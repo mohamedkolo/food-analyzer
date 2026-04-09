@@ -1,18 +1,17 @@
 import streamlit as st
 import requests
-import os
 
 # ===========================================================================
 # إعدادات الصفحة
 # ===========================================================================
 st.set_page_config(
-    page_title="محلل القيم الغذائية",
+    page_title="DNP — التغذية الذكية",
     page_icon="🥗",
     layout="centered",
 )
 
 # ===========================================================================
-# CSS مخصص لدعم العربية والموبايل
+# CSS
 # ===========================================================================
 st.markdown("""
 <style>
@@ -22,17 +21,12 @@ st.markdown("""
         direction: rtl;
     }
     .main { background-color: #f8f9fa; }
-    .block-container { padding: 1rem 1rem 2rem; max-width: 720px; }
+    .block-container { padding: 1rem 1rem 2rem; max-width: 750px; }
     h1 { color: #2e7d32; text-align: center; }
     .metric-card {
-        background: white;
-        border-radius: 12px;
-        padding: 14px 18px;
-        margin: 6px 0;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        background: white; border-radius: 12px; padding: 14px 18px;
+        margin: 6px 0; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        display: flex; justify-content: space-between; align-items: center;
     }
     .badge-rich  { background:#e8f5e9; color:#2e7d32; border-radius:8px; padding:2px 10px; font-size:0.8em; }
     .badge-mid   { background:#fff8e1; color:#f57f17; border-radius:8px; padding:2px 10px; font-size:0.8em; }
@@ -46,12 +40,22 @@ st.markdown("""
         background: #e3f2fd; border-radius: 10px;
         padding: 10px 14px; margin: 4px 0; font-size: 0.9em; color: #0d47a1;
     }
+    .bmi-card {
+        border-radius: 16px; padding: 20px; text-align: center;
+        font-size: 2em; font-weight: 700; margin: 10px 0;
+    }
+    .result-box {
+        background: white; border-radius: 14px; padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.10); margin: 10px 0;
+        text-align: center;
+    }
     .stProgress > div > div > div { background-color: #4caf50; }
+    .stTabs [data-baseweb="tab"] { font-family: 'Cairo', sans-serif; font-size: 1em; }
 </style>
 """, unsafe_allow_html=True)
 
 # ===========================================================================
-# القيم اليومية الموصى بها DRI
+# البيانات الغذائية DRI
 # ===========================================================================
 DRI = {
     "Energy":                              {"dri": 2000,  "unit": "kcal",  "ar": "سعرات حرارية",     "type": "macro"},
@@ -146,9 +150,8 @@ USDA_API_KEY = "DEMO_KEY"
 USDA_BASE_URL = "https://api.nal.usda.gov/fdc/v1"
 
 # ===========================================================================
-# دوال المساعدة
+# دوال المساعدة — الغذاء
 # ===========================================================================
-
 def translate_query(q):
     q = q.strip()
     if q in ARABIC_TO_ENGLISH:
@@ -218,142 +221,253 @@ def smart_notes(nutrients_scaled):
             notes.append(texts["low"])
     return notes
 
-# ===========================================================================
-# واجهة Streamlit
-# ===========================================================================
+def render_section(ns, title, keys):
+    items = [(k, ns.get(k, 0)) for k in keys if ns.get(k, 0) > 0]
+    if not items:
+        return
+    st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
+    for k, val in items:
+        info = DRI[k]
+        pct = min(val / info["dri"] * 100, 100)
+        label, badge = classify(pct)
+        st.markdown(
+            f'<div class="metric-card">'
+            f'<span>{info["ar"]}</span>'
+            f'<span>{val:.2f} {info["unit"]}</span>'
+            f'<span class="{badge}">{label} ({pct:.0f}%)</span>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+        st.progress(int(pct))
 
-st.markdown("# 🥗 محلل القيم الغذائية")
-st.markdown("**مبني على USDA FoodData Central · معايير WHO/DRI 2023**")
+# ===========================================================================
+# دوال حساب BMI والسعرات
+# ===========================================================================
+def calc_bmi(weight_kg, height_cm):
+    h = height_cm / 100
+    return weight_kg / (h * h)
+
+def bmi_category(bmi):
+    if bmi < 18.5:
+        return "نقص في الوزن", "#2196f3", "⚠️"
+    elif bmi < 25:
+        return "وزن طبيعي ✓", "#4caf50", "✅"
+    elif bmi < 30:
+        return "زيادة في الوزن", "#ff9800", "⚠️"
+    else:
+        return "سمنة", "#f44336", "🚨"
+
+def calc_bmr(weight_kg, height_cm, age, gender):
+    # معادلة Mifflin-St Jeor — الأدق وفق الأبحاث الحديثة
+    if gender == "ذكر":
+        return 10 * weight_kg + 6.25 * height_cm - 5 * age + 5
+    else:
+        return 10 * weight_kg + 6.25 * height_cm - 5 * age - 161
+
+ACTIVITY_FACTORS = {
+    "مستقر (بدون رياضة)":           1.2,
+    "خفيف (رياضة 1-3 أيام/أسبوع)":  1.375,
+    "متوسط (رياضة 3-5 أيام/أسبوع)": 1.55,
+    "مكثف (رياضة 6-7 أيام/أسبوع)":  1.725,
+    "رياضي احترافي":                  1.9,
+}
+
+GOAL_ADJUSTMENTS = {
+    "خسارة دهون وبناء عضل":   -300,
+    "زيادة الوزن والعضل":      +400,
+    "الحفاظ على الوزن الحالي":   0,
+}
+
+# ===========================================================================
+# الواجهة الرئيسية — تبويبات
+# ===========================================================================
+st.markdown("# 🥗 DNP — التغذية الذكية")
+st.markdown("**محلل الغذاء · BMI · السعرات اليومية**")
 st.divider()
 
-col1, col2 = st.columns([3, 1])
-with col1:
-    food_input = st.text_input("🔍 اسم الطعام (عربي أو إنجليزي)",
-                                placeholder="مثال: موز، صدر دجاج، avocado...")
-with col2:
-    weight = st.number_input("الكمية (جم)", min_value=1, max_value=2000,
-                              value=100, step=10)
+tab1, tab2 = st.tabs(["⚖️ BMI والسعرات اليومية", "🔍 محلل الغذاء"])
 
-analyze_btn = st.button("تحليل الآن", type="primary", use_container_width=True)
+# ===========================================================================
+# تبويب 1: BMI + السعرات
+# ===========================================================================
+with tab1:
+    st.markdown("### أدخل بياناتك الشخصية")
 
-if analyze_btn and food_input:
-    english_q = translate_query(food_input)
-    nutrients_raw = None
-    food_name = food_input
-    source = ""
-    fdc_id = None
-    search_results = []
+    col1, col2 = st.columns(2)
+    with col1:
+        gender = st.radio("الجنس", ["ذكر", "أنثى"], horizontal=True)
+        age    = st.number_input("العمر (سنة)", min_value=10, max_value=100, value=25)
+    with col2:
+        height = st.number_input("الطول (سم)", min_value=100, max_value=250, value=170)
+        weight_p = st.number_input("الوزن (كجم)", min_value=30, max_value=300, value=70)
 
-    # --- USDA API ---
-    with st.spinner("جاري البحث في USDA FoodData Central..."):
-        api_results = search_usda(english_q)
+    activity = st.selectbox("مستوى النشاط البدني", list(ACTIVITY_FACTORS.keys()))
+    goal     = st.radio("الهدف", list(GOAL_ADJUSTMENTS.keys()), horizontal=True)
 
-    if api_results:
-        search_results = api_results
-        options = {f"{i['description']}": i for i in api_results}
-        chosen_label = st.selectbox("اختر الطعام الأقرب لما تريده:", list(options.keys()))
-        chosen = options[chosen_label]
-        fdc_id = chosen["fdcId"]
-        food_name = chosen["description"]
+    calc_btn = st.button("احسب الآن", type="primary", use_container_width=True)
 
-        with st.spinner("جاري جلب التفاصيل..."):
-            detail = get_usda_detail(fdc_id)
-        nutrients_raw = extract_nutrients(detail)
-        source = f"USDA FoodData Central — FDC ID: {fdc_id}"
+    if calc_btn:
+        bmi   = calc_bmi(weight_p, height)
+        cat, color, icon = bmi_category(bmi)
+        bmr   = calc_bmr(weight_p, height, age, gender)
+        tdee  = bmr * ACTIVITY_FACTORS[activity]
+        final = tdee + GOAL_ADJUSTMENTS[goal]
 
-    # --- Fallback محلي ---
-    if not nutrients_raw:
-        local = search_local(english_q) or search_local(food_input)
-        if local:
-            if len(local) == 1:
-                key, val = local[0]
-            else:
-                opts = {v["name_ar"] + f" ({k})": (k, v) for k, v in local}
-                ch = st.selectbox("اختر من القائمة:", list(opts.keys()))
-                key, val = opts[ch]
-            food_name = val["name_ar"]
-            nutrients_raw = val["nutrients"]
-            source = "قاعدة بيانات محلية (USDA-based)"
+        # BMI
+        st.divider()
+        st.markdown("### نتيجة BMI")
+        st.markdown(
+            f'<div class="bmi-card" style="background:{color}20; color:{color};">'
+            f'{icon} {bmi:.1f} — {cat}'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+        # جدول تصنيف BMI
+        st.markdown("""
+        | التصنيف | BMI |
+        |---------|-----|
+        | نقص في الوزن | أقل من 18.5 |
+        | وزن طبيعي | 18.5 – 24.9 |
+        | زيادة في الوزن | 25 – 29.9 |
+        | سمنة | 30 فأكثر |
+        """)
+
+        # السعرات
+        st.divider()
+        st.markdown("### السعرات الحرارية اليومية")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("🔥 الأساسي (BMR)", f"{bmr:.0f} kcal", help="السعرات التي يحرقها جسمك في الراحة التامة")
+        c2.metric("⚡ مع النشاط (TDEE)", f"{tdee:.0f} kcal", help="إجمالي ما تحرقه يومياً")
+        c3.metric("🎯 هدفك اليومي", f"{final:.0f} kcal", help=f"مع تعديل الهدف: {GOAL_ADJUSTMENTS[goal]:+} kcal")
+
+        # توزيع الماكرو المقترح
+        st.divider()
+        st.markdown("### توزيع الماكرو المقترح")
+
+        if goal == "خسارة دهون وبناء عضل":
+            p_pct, f_pct, c_pct = 0.35, 0.25, 0.40
+        elif goal == "زيادة الوزن والعضل":
+            p_pct, f_pct, c_pct = 0.30, 0.25, 0.45
         else:
-            st.error(f"عذراً، لم يُعثر على **{food_input}**. جرب اسماً آخر أو اكتبه بالإنجليزية.")
-            st.stop()
+            p_pct, f_pct, c_pct = 0.25, 0.30, 0.45
 
-    # --- الحساب ---
-    ns = scale(nutrients_raw, weight)
-    total_cal = ns.get("Energy", 0) or (
-        ns.get("Protein", 0) * 4 +
-        ns.get("Total lipid (fat)", 0) * 9 +
-        ns.get("Carbohydrate, by difference", 0) * 4 +
-        ns.get("Fiber, total dietary", 0) * 2
-    )
+        pro_g  = (final * p_pct) / 4
+        fat_g  = (final * f_pct) / 9
+        carb_g = (final * c_pct) / 4
 
-    # --- العرض ---
-    st.divider()
-    st.markdown(f"### 📋 {food_name} — {weight} جم")
-    st.caption(f"المصدر: {source}")
+        m1, m2, m3 = st.columns(3)
+        m1.metric("💪 بروتين",      f"{pro_g:.0f} جم/يوم",  f"{p_pct*100:.0f}% من السعرات")
+        m2.metric("🥑 دهون",        f"{fat_g:.0f} جم/يوم",  f"{f_pct*100:.0f}% من السعرات")
+        m3.metric("🍞 كربوهيدرات",  f"{carb_g:.0f} جم/يوم", f"{c_pct*100:.0f}% من السعرات")
 
-    # السعرات — بطاقات رئيسية
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("🔥 سعرات",    f"{total_cal:.0f} kcal")
-    c2.metric("💪 بروتين",   f"{ns.get('Protein', 0):.1f} g")
-    c3.metric("🍞 كارب",     f"{ns.get('Carbohydrate, by difference', 0):.1f} g")
-    c4.metric("🥑 دهون",     f"{ns.get('Total lipid (fat)', 0):.1f} g")
+        st.caption("* المعادلة المستخدمة: Mifflin-St Jeor (2005) — الأدق وفق الأبحاث الحديثة لدى البالغين.")
 
-    # توزيع السعرات
-    cal_p = ns.get("Protein", 0) * 4
-    cal_f = ns.get("Total lipid (fat)", 0) * 9
-    cal_c = ns.get("Carbohydrate, by difference", 0) * 4
-    if total_cal > 0:
-        st.markdown('<div class="section-title">توزيع السعرات</div>', unsafe_allow_html=True)
-        col_a, col_b, col_c = st.columns(3)
-        col_a.metric("من البروتين",      f"{cal_p/total_cal*100:.0f}%")
-        col_b.metric("من الدهون",        f"{cal_f/total_cal*100:.0f}%")
-        col_c.metric("من الكربوهيدرات", f"{cal_c/total_cal*100:.0f}%")
+# ===========================================================================
+# تبويب 2: محلل الغذاء
+# ===========================================================================
+with tab2:
+    st.markdown("### حلّل أي طعام")
 
-    def render_section(title, keys):
-        items = [(k, ns.get(k, 0)) for k in keys if ns.get(k, 0) > 0]
-        if not items:
-            return
-        st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
-        for k, val in items:
-            info = DRI[k]
-            pct = min(val / info["dri"] * 100, 100)
-            label, badge = classify(pct)
-            st.markdown(
-                f'<div class="metric-card">'
-                f'<span>{info["ar"]}</span>'
-                f'<span>{val:.2f} {info["unit"]}</span>'
-                f'<span class="{badge}">{label} ({pct:.0f}%)</span>'
-                f'</div>',
-                unsafe_allow_html=True
-            )
-            st.progress(int(pct))
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        food_input = st.text_input("🔍 اسم الطعام (عربي أو إنجليزي)",
+                                    placeholder="مثال: موز، صدر دجاج، avocado...")
+    with col2:
+        weight = st.number_input("الكمية (جم)", min_value=1, max_value=2000,
+                                  value=100, step=10)
 
-    render_section("🧪 العناصر الكبرى (Macros)",
-                   ["Protein","Total lipid (fat)","Carbohydrate, by difference",
-                    "Fiber, total dietary","Sugars, total including NLEA"])
-    render_section("⚗️ المعادن",
-                   ["Calcium, Ca","Iron, Fe","Potassium, K","Sodium, Na",
-                    "Magnesium, Mg","Phosphorus, P","Zinc, Zn"])
-    render_section("💊 الفيتامينات",
-                   ["Vitamin C, total ascorbic acid","Vitamin A, RAE",
-                    "Vitamin D (D2 + D3)","Vitamin B-12","Vitamin B-6",
-                    "Folate, total","Vitamin K (phylloquinone)",
-                    "Vitamin E (alpha-tocopherol)","Thiamin","Riboflavin","Niacin"])
-    render_section("🫀 الدهون المفصّلة",
-                   ["Fatty acids, total saturated","Fatty acids, total monounsaturated",
-                    "Fatty acids, total polyunsaturated","Cholesterol"])
+    analyze_btn = st.button("تحليل الآن", type="primary", use_container_width=True, key="analyze")
 
-    # الملاحظات الذكية
-    notes = smart_notes(ns)
-    if notes:
-        st.markdown('<div class="section-title">💡 ملاحظات غذائية وصحية</div>',
-                    unsafe_allow_html=True)
-        for note in notes:
-            st.markdown(f'<div class="note-card">{note}</div>', unsafe_allow_html=True)
+    if analyze_btn and food_input:
+        english_q   = translate_query(food_input)
+        nutrients_raw = None
+        food_name   = food_input
+        source      = ""
+        fdc_id      = None
 
-    st.divider()
-    st.caption("* القيم اليومية مبنية على نظام 2000 سعرة — قد تختلف حسب العمر والجنس ومستوى النشاط.")
+        with st.spinner("جاري البحث في USDA FoodData Central..."):
+            api_results = search_usda(english_q)
 
-elif analyze_btn and not food_input:
-    st.warning("من فضلك أدخل اسم الطعام أولاً.")
+        if api_results:
+            options = {i["description"]: i for i in api_results}
+            chosen_label = st.selectbox("اختر الطعام الأقرب:", list(options.keys()))
+            chosen = options[chosen_label]
+            fdc_id = chosen["fdcId"]
+            food_name = chosen["description"]
+            with st.spinner("جاري جلب التفاصيل..."):
+                detail = get_usda_detail(fdc_id)
+            nutrients_raw = extract_nutrients(detail)
+            source = f"USDA FoodData Central — FDC ID: {fdc_id}"
+
+        if not nutrients_raw:
+            local = search_local(english_q) or search_local(food_input)
+            if local:
+                if len(local) == 1:
+                    key, val = local[0]
+                else:
+                    opts = {v["name_ar"] + f" ({k})": (k, v) for k, v in local}
+                    ch = st.selectbox("اختر من القائمة:", list(opts.keys()))
+                    key, val = opts[ch]
+                food_name     = val["name_ar"]
+                nutrients_raw = val["nutrients"]
+                source        = "قاعدة بيانات محلية (USDA-based)"
+            else:
+                st.error(f"عذراً، لم يُعثر على **{food_input}**. جرب اسماً آخر أو اكتبه بالإنجليزية.")
+                st.stop()
+
+        ns = scale(nutrients_raw, weight)
+        total_cal = ns.get("Energy", 0) or (
+            ns.get("Protein", 0) * 4 +
+            ns.get("Total lipid (fat)", 0) * 9 +
+            ns.get("Carbohydrate, by difference", 0) * 4 +
+            ns.get("Fiber, total dietary", 0) * 2
+        )
+
+        st.divider()
+        st.markdown(f"### 📋 {food_name} — {weight} جم")
+        st.caption(f"المصدر: {source}")
+
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("🔥 سعرات",  f"{total_cal:.0f} kcal")
+        c2.metric("💪 بروتين", f"{ns.get('Protein', 0):.1f} g")
+        c3.metric("🍞 كارب",   f"{ns.get('Carbohydrate, by difference', 0):.1f} g")
+        c4.metric("🥑 دهون",   f"{ns.get('Total lipid (fat)', 0):.1f} g")
+
+        cal_p = ns.get("Protein", 0) * 4
+        cal_f = ns.get("Total lipid (fat)", 0) * 9
+        cal_c = ns.get("Carbohydrate, by difference", 0) * 4
+        if total_cal > 0:
+            st.markdown('<div class="section-title">توزيع السعرات</div>', unsafe_allow_html=True)
+            a, b, c = st.columns(3)
+            a.metric("من البروتين",      f"{cal_p/total_cal*100:.0f}%")
+            b.metric("من الدهون",        f"{cal_f/total_cal*100:.0f}%")
+            c.metric("من الكربوهيدرات", f"{cal_c/total_cal*100:.0f}%")
+
+        render_section(ns, "🧪 العناصر الكبرى",
+                       ["Protein","Total lipid (fat)","Carbohydrate, by difference",
+                        "Fiber, total dietary","Sugars, total including NLEA"])
+        render_section(ns, "⚗️ المعادن",
+                       ["Calcium, Ca","Iron, Fe","Potassium, K","Sodium, Na",
+                        "Magnesium, Mg","Phosphorus, P","Zinc, Zn"])
+        render_section(ns, "💊 الفيتامينات",
+                       ["Vitamin C, total ascorbic acid","Vitamin A, RAE",
+                        "Vitamin D (D2 + D3)","Vitamin B-12","Vitamin B-6",
+                        "Folate, total","Vitamin K (phylloquinone)",
+                        "Vitamin E (alpha-tocopherol)","Thiamin","Riboflavin","Niacin"])
+        render_section(ns, "🫀 الدهون المفصّلة",
+                       ["Fatty acids, total saturated","Fatty acids, total monounsaturated",
+                        "Fatty acids, total polyunsaturated","Cholesterol"])
+
+        notes = smart_notes(ns)
+        if notes:
+            st.markdown('<div class="section-title">💡 ملاحظات غذائية وصحية</div>',
+                        unsafe_allow_html=True)
+            for note in notes:
+                st.markdown(f'<div class="note-card">{note}</div>', unsafe_allow_html=True)
+
+        st.divider()
+        st.caption("* القيم اليومية مبنية على نظام 2000 سعرة — قد تختلف حسب العمر والجنس ومستوى النشاط.")
+
+    elif analyze_btn and not food_input:
+        st.warning("من فضلك أدخل اسم الطعام أولاً.")
