@@ -1,5 +1,5 @@
 # ===============================
-# DNP PRO FULL SYSTEM (ADMIN FIXED)
+# NUTRAX PRO (FINAL WORKING VERSION)
 # ===============================
 
 import streamlit as st
@@ -8,14 +8,15 @@ import hashlib
 import random
 
 # ===============================
-# IMPORTANT: PUT YOUR EMAIL HERE
+# ADMIN ACCOUNT (LOGIN WITH THIS)
 # ===============================
-ADMIN_EMAIL = "your@email.com"  # غيره بإيميلك
+ADMIN_EMAIL = "admin@nutrax.app"
+ADMIN_PASSWORD = "123456"  # غيره بعد أول دخول
 
 # ===============================
-# DB SETUP
+# DB
 # ===============================
-conn = sqlite3.connect("dnp.db", check_same_thread=False)
+conn = sqlite3.connect("nutrax.db", check_same_thread=False)
 c = conn.cursor()
 
 c.execute("""
@@ -56,6 +57,16 @@ def hash_pass(p):
     return hashlib.sha256(p.encode()).hexdigest()
 
 
+def create_admin():
+    c.execute("SELECT * FROM users WHERE email=?", (ADMIN_EMAIL,))
+    if not c.fetchone():
+        c.execute("INSERT INTO users (email, password, is_admin) VALUES (?,?,1)",
+                  (ADMIN_EMAIL, hash_pass(ADMIN_PASSWORD)))
+        conn.commit()
+
+create_admin()
+
+
 def calc_bmi(w, h):
     return w / ((h/100)**2)
 
@@ -78,31 +89,31 @@ def random_meals():
 # ===============================
 # UI
 # ===============================
-st.set_page_config(layout="centered")
+st.set_page_config(page_title="NutraX", layout="centered")
+
+st.title("NutraX")
 
 if "user" not in st.session_state:
     st.session_state.user = None
 
-# ===============================
-# AUTH
-# ===============================
-st.title("DNP PRO")
-
 menu = st.sidebar.selectbox("menu", ["login", "register"])
 
+# ===============================
+# REGISTER
+# ===============================
 if menu == "register":
     email = st.text_input("email")
     password = st.text_input("password", type="password")
 
-    if st.button("create"):
-        is_admin = 1 if email == ADMIN_EMAIL else 0
-
-        c.execute("INSERT INTO users (email, password, is_admin) VALUES (?,?,?)",
-                  (email, hash_pass(password), is_admin))
+    if st.button("create account"):
+        c.execute("INSERT INTO users (email, password) VALUES (?,?)",
+                  (email, hash_pass(password)))
         conn.commit()
-
         st.success("account created")
 
+# ===============================
+# LOGIN
+# ===============================
 if menu == "login":
     email = st.text_input("email")
     password = st.text_input("password", type="password")
@@ -113,18 +124,11 @@ if menu == "login":
         user = c.fetchone()
 
         if user:
-            # ضمان إن الإيميل ده دايماً admin حتى لو اتسجل قبل كده
-            if user[1] == ADMIN_EMAIL and user[3] == 0:
-                c.execute("UPDATE users SET is_admin=1 WHERE email=?", (ADMIN_EMAIL,))
-                conn.commit()
-                c.execute("SELECT * FROM users WHERE email=?", (ADMIN_EMAIL,))
-                user = c.fetchone()
-
             st.session_state.user = user
             st.success("logged in")
 
 # ===============================
-# MAIN APP
+# MAIN
 # ===============================
 if st.session_state.user:
 
@@ -133,9 +137,7 @@ if st.session_state.user:
 
     tab = st.sidebar.selectbox("app", ["dashboard", "tracking", "meals", "plans"])
 
-    # ===========================
     # DASHBOARD
-    # ===========================
     if tab == "dashboard":
         w = st.number_input("weight")
         h = st.number_input("height")
@@ -144,15 +146,10 @@ if st.session_state.user:
         goal = st.selectbox("goal", ["fat_loss", "muscle", "maintain"])
 
         if st.button("calculate"):
-            bmi = calc_bmi(w, h)
-            cal = calc_calories(w, h, age, goal)
+            st.write("BMI", round(calc_bmi(w, h),1))
+            st.write("Calories", int(calc_calories(w, h, age, goal)))
 
-            st.write("BMI", round(bmi,1))
-            st.write("Calories", int(cal))
-
-    # ===========================
     # TRACKING
-    # ===========================
     if tab == "tracking":
         weight = st.number_input("today weight")
 
@@ -162,19 +159,16 @@ if st.session_state.user:
             conn.commit()
 
         c.execute("SELECT weight, date FROM tracking WHERE user_id=? ORDER BY id DESC", (user_id,))
-        data = c.fetchall()
+        for row in c.fetchall():
+            st.write(row)
 
-        for d in data:
-            st.write(d)
-
-    # ===========================
     # MEALS
-    # ===========================
     if tab == "meals":
 
         if is_admin:
-            st.subheader("ADD / CONTROL MEALS")
-            name = st.text_input("name")
+            st.subheader("ADMIN CONTROL")
+
+            name = st.text_input("meal name")
             cal = st.number_input("calories")
             p = st.number_input("protein")
             cbs = st.number_input("carbs")
@@ -185,52 +179,49 @@ if st.session_state.user:
                           (name, cal, p, cbs, f))
                 conn.commit()
 
-            # delete meals
-            st.subheader("DELETE MEAL")
+            st.subheader("delete meal")
             c.execute("SELECT id, name FROM meals")
-            all_meals = c.fetchall()
-            meal_names = [m[1] for m in all_meals]
+            meals = c.fetchall()
 
-            if meal_names:
-                selected = st.selectbox("choose meal to delete", meal_names)
-                meal_id = next(m[0] for m in all_meals if m[1] == selected)
+            if meals:
+                names = [m[1] for m in meals]
+                selected = st.selectbox("choose", names)
+                meal_id = next(m[0] for m in meals if m[1] == selected)
 
                 if st.button("delete"):
                     c.execute("DELETE FROM meals WHERE id=?", (meal_id,))
                     conn.commit()
 
-        st.subheader("MEAL OPTIONS")
-        meals = random_meals()
-
-        for m in meals:
+        st.subheader("meal suggestions")
+        for m in random_meals():
             st.write(m)
 
-    # ===========================
-    # PLANS (PACKAGES)
-    # ===========================
+    # PLANS
     if tab == "plans":
         st.subheader("packages")
 
         st.write("FREE")
-        st.write("basic tracking")
+        st.write("tracking only")
 
         st.write("PRO - 10$")
         st.write("meal plans + tracking")
 
         st.write("COACH - 30$")
-        st.write("custom plans + follow up")
+        st.write("full coaching")
 
 # ===============================
-# DEFAULT DATA
+# DEFAULT MEALS
 # ===============================
 c.execute("SELECT COUNT(*) FROM meals")
 if c.fetchone()[0] == 0:
     sample = [
-        ("chicken breast", 165, 31, 0, 3),
+        ("chicken", 165, 31, 0, 3),
         ("rice", 200, 4, 45, 1),
         ("eggs", 150, 12, 1, 10),
         ("tuna", 120, 25, 0, 1),
         ("beef", 250, 26, 0, 15),
+        ("oats", 180, 6, 30, 3),
+        ("banana", 100, 1, 27, 0),
     ]
 
     for s in sample:
