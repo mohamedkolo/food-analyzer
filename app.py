@@ -263,3 +263,20 @@ if st.session_state.user:
 
 else:
     st.info("سجل دخولك للبدء")
+# ===============================
+# تصحيح بيانات الأدمن (شغله مرة واحدة)
+# ===============================
+import hashlib
+
+# هنعمل كلمة السر من جديد عشان نتأكد إنها متطابقة
+correct_pass_hash = hashlib.sha256("admin123".encode()).hexdigest()
+
+# حذف أي أدمن قديم بنفس الإيميل
+c.execute("DELETE FROM users WHERE email='admin@nutrax.com'")
+
+# إنشاء الأدمن من جديد بالبيانات الصحيحة 100%
+c.execute("INSERT INTO users (email, password, is_admin) VALUES (?, ?, ?)", 
+          ("admin@nutrax.com", correct_pass_hash, 1))
+conn.commit()
+
+st.info("تم تصحيح بيانات الأدمن بنجاح! جرب الدخول الآن.")
