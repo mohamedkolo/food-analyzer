@@ -1,134 +1,233 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>NutraX</title>
-<style>
-body { font-family: Arial; margin:0; background:#f5f5f5 }
-.container { padding:20px }
-.card { background:#fff; padding:20px; margin:10px 0; border-radius:10px }
-button { padding:10px 15px; margin:5px; cursor:pointer; border:none; border-radius:5px }
-input { padding:10px; margin:5px; width:200px }
-.hidden { display:none }
-.sidebar { width:200px; background:#222; color:#fff; height:100vh; float:left; padding:20px }
-.main { margin-left:220px; padding:20px }
-</style>
-</head>
+# ===============================
+# NUTRAX PRO (FINAL WORKING VERSION)
+# ===============================
 
-<body>
+import streamlit as st
+import sqlite3
+import hashlib
+import random
 
-<!-- LOGIN -->
-<div id="login" class="container">
-  <h2>NutraX Login</h2>
-  <input id="email" placeholder="Email"><br>
-  <input id="pass" type="password" placeholder="Password"><br>
-  <button onclick="login()">Login</button>
-</div>
+# ===============================
+# ADMIN ACCOUNT (LOGIN WITH THIS)
+# ===============================
+ADMIN_EMAIL = "admin@nutrax.app"
+ADMIN_PASSWORD = "123456"  # غيره بعد أول دخول
 
-<!-- ADMIN -->
-<div id="admin" class="hidden">
-  <div class="sidebar">
-    <h3>Admin</h3>
-    <button onclick="showSection('addFood')">Add Food</button>
-    <button onclick="showSection('plans')">Plans</button>
-  </div>
+# ===============================
+# DB
+# ===============================
+conn = sqlite3.connect("nutrax.db", check_same_thread=False)
+c = conn.cursor()
 
-  <div class="main">
-    <div id="addFood" class="card">
-      <h3>Add Food</h3>
-      <input id="foodName" placeholder="Food name">
-      <input id="cal" placeholder="Calories">
-      <button onclick="addFood()">Add</button>
-    </div>
+c.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT,
+    password TEXT,
+    is_admin INTEGER DEFAULT 0
+)
+""")
 
-    <div id="plans" class="card">
-      <h3>Generated Plan</h3>
-      <button onclick="generatePlan()">Generate</button>
-      <ul id="planList"></ul>
-    </div>
-  </div>
-</div>
+c.execute("""
+CREATE TABLE IF NOT EXISTS meals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    calories INTEGER,
+    protein INTEGER,
+    carbs INTEGER,
+    fat INTEGER
+)
+""")
 
-<!-- USER -->
-<div id="user" class="hidden">
-  <div class="container">
-    <h2>User Dashboard</h2>
+c.execute("""
+CREATE TABLE IF NOT EXISTS tracking (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    weight REAL,
+    date TEXT
+)
+""")
 
-    <select id="goal">
-      <option>Fat Loss</option>
-      <option>Muscle Gain</option>
-      <option>Maintenance</option>
-    </select>
+conn.commit()
 
-    <button onclick="generatePlan()">Get Plan</button>
+# ===============================
+# HELPERS
+# ===============================
+def hash_pass(p):
+    return hashlib.sha256(p.encode()).hexdigest()
 
-    <ul id="userPlan"></ul>
-  </div>
-</div>
 
-<script>
+def create_admin():
+    c.execute("SELECT * FROM users WHERE email=?", (ADMIN_EMAIL,))
+    if not c.fetchone():
+        c.execute("INSERT INTO users (email, password, is_admin) VALUES (?,?,1)",
+                  (ADMIN_EMAIL, hash_pass(ADMIN_PASSWORD)))
+        conn.commit()
 
-// USERS
-const ADMIN_EMAIL = "admin@nutrax.app";
-const ADMIN_PASS = "123456";
+create_admin()
 
-// DATA
-let foods = [
-  {name:"Chicken", cal:165},
-  {name:"Eggs", cal:155},
-  {name:"Rice", cal:200},
-  {name:"Fish", cal:180},
-  {name:"Oats", cal:150}
-];
 
-// LOGIN
-function login() {
-  let email = document.getElementById("email").value;
-  let pass = document.getElementById("pass").value;
+def calc_bmi(w, h):
+    return w / ((h/100)**2)
 
-  if(email === ADMIN_EMAIL && pass === ADMIN_PASS){
-    document.getElementById("login").classList.add("hidden");
-    document.getElementById("admin").classList.remove("hidden");
-  } else {
-    document.getElementById("login").classList.add("hidden");
-    document.getElementById("user").classList.remove("hidden");
-  }
-}
 
-// ADD FOOD
-function addFood(){
-  let name = document.getElementById("foodName").value;
-  let cal = document.getElementById("cal").value;
+def calc_calories(w, h, age, goal):
+    bmr = 10*w + 6.25*h - 5*age + 5
 
-  foods.push({name, cal});
-  alert("Added");
-}
+    if goal == "fat_loss":
+        return bmr - 400
+    elif goal == "muscle":
+        return bmr + 400
+    return bmr
 
-// GENERATE PLAN
-function generatePlan(){
-  let plan = [];
-  for(let i=0;i<3;i++){
-    let random = foods[Math.floor(Math.random()*foods.length)];
-    plan.push(random.name + " ("+random.cal+" cal)");
-  }
 
-  let list = document.getElementById("planList") || document.getElementById("userPlan");
-  list.innerHTML = "";
+def random_meals():
+    c.execute("SELECT * FROM meals")
+    data = c.fetchall()
+    return random.sample(data, min(len(data), 5)) if data else []
 
-  plan.forEach(p=>{
-    let li = document.createElement("li");
-    li.textContent = p;
-    list.appendChild(li);
-  });
-}
+# ===============================
+# UI
+# ===============================
+st.set_page_config(page_title="NutraX", layout="centered")
 
-// UI
-function showSection(id){
-  document.querySelectorAll(".main .card").forEach(el=>el.style.display="none");
-  document.getElementById(id).style.display="block";
-}
+st.title("NutraX")
 
-</script>
+if "user" not in st.session_state:
+    st.session_state.user = None
 
-</body>
-</html>
+menu = st.sidebar.selectbox("menu", ["login", "register"])
+
+# ===============================
+# REGISTER
+# ===============================
+if menu == "register":
+    email = st.text_input("email")
+    password = st.text_input("password", type="password")
+
+    if st.button("create account"):
+        c.execute("INSERT INTO users (email, password) VALUES (?,?)",
+                  (email, hash_pass(password)))
+        conn.commit()
+        st.success("account created")
+
+# ===============================
+# LOGIN
+# ===============================
+if menu == "login":
+    email = st.text_input("email")
+    password = st.text_input("password", type="password")
+
+    if st.button("login"):
+        c.execute("SELECT * FROM users WHERE email=? AND password=?",
+                  (email, hash_pass(password)))
+        user = c.fetchone()
+
+        if user:
+            st.session_state.user = user
+            st.success("logged in")
+
+# ===============================
+# MAIN
+# ===============================
+if st.session_state.user:
+
+    user_id = st.session_state.user[0]
+    is_admin = st.session_state.user[3]
+
+    tab = st.sidebar.selectbox("app", ["dashboard", "tracking", "meals", "plans"])
+
+    # DASHBOARD
+    if tab == "dashboard":
+        w = st.number_input("weight")
+        h = st.number_input("height")
+        age = st.number_input("age")
+
+        goal = st.selectbox("goal", ["fat_loss", "muscle", "maintain"])
+
+        if st.button("calculate"):
+            st.write("BMI", round(calc_bmi(w, h),1))
+            st.write("Calories", int(calc_calories(w, h, age, goal)))
+
+    # TRACKING
+    if tab == "tracking":
+        weight = st.number_input("today weight")
+
+        if st.button("save"):
+            c.execute("INSERT INTO tracking (user_id, weight, date) VALUES (?,?,datetime('now'))",
+                      (user_id, weight))
+            conn.commit()
+
+        c.execute("SELECT weight, date FROM tracking WHERE user_id=? ORDER BY id DESC", (user_id,))
+        for row in c.fetchall():
+            st.write(row)
+
+    # MEALS
+    if tab == "meals":
+
+        if is_admin:
+            st.subheader("ADMIN CONTROL")
+
+            name = st.text_input("meal name")
+            cal = st.number_input("calories")
+            p = st.number_input("protein")
+            cbs = st.number_input("carbs")
+            f = st.number_input("fat")
+
+            if st.button("add meal"):
+                c.execute("INSERT INTO meals (name, calories, protein, carbs, fat) VALUES (?,?,?,?,?)",
+                          (name, cal, p, cbs, f))
+                conn.commit()
+
+            st.subheader("delete meal")
+            c.execute("SELECT id, name FROM meals")
+            meals = c.fetchall()
+
+            if meals:
+                names = [m[1] for m in meals]
+                selected = st.selectbox("choose", names)
+                meal_id = next(m[0] for m in meals if m[1] == selected)
+
+                if st.button("delete"):
+                    c.execute("DELETE FROM meals WHERE id=?", (meal_id,))
+                    conn.commit()
+
+        st.subheader("meal suggestions")
+        for m in random_meals():
+            st.write(m)
+
+    # PLANS
+    if tab == "plans":
+        st.subheader("packages")
+
+        st.write("FREE")
+        st.write("tracking only")
+
+        st.write("PRO - 10$")
+        st.write("meal plans + tracking")
+
+        st.write("COACH - 30$")
+        st.write("full coaching")
+
+# ===============================
+# DEFAULT MEALS
+# ===============================
+c.execute("SELECT COUNT(*) FROM meals")
+if c.fetchone()[0] == 0:
+    sample = [
+        ("chicken", 165, 31, 0, 3),
+        ("rice", 200, 4, 45, 1),
+        ("eggs", 150, 12, 1, 10),
+        ("tuna", 120, 25, 0, 1),
+        ("beef", 250, 26, 0, 15),
+        ("oats", 180, 6, 30, 3),
+        ("banana", 100, 1, 27, 0),
+    ]
+
+    for s in sample:
+        c.execute("INSERT INTO meals (name, calories, protein, carbs, fat) VALUES (?,?,?,?,?)", s)
+    conn.commit()
+
+# ===============================
+# END
+# ===============================
