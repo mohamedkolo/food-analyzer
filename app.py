@@ -4,6 +4,9 @@ import hashlib
 import json
 from datetime import datetime
 
+# ======================
+# إعداد الصفحة
+# ======================
 st.set_page_config(page_title="NutraX", layout="wide")
 
 # ======================
@@ -14,7 +17,7 @@ c = conn.cursor()
 
 c.execute("""CREATE TABLE IF NOT EXISTS users(
 id INTEGER PRIMARY KEY,
-email TEXT UNIQUE,
+email TEXT,
 password TEXT,
 name TEXT,
 is_admin INTEGER)""")
@@ -22,207 +25,207 @@ is_admin INTEGER)""")
 c.execute("""CREATE TABLE IF NOT EXISTS plans(
 id INTEGER PRIMARY KEY,
 user_id INTEGER,
-plan TEXT,
-days INTEGER,
-created TEXT)""")
+name TEXT,
+data TEXT,
+created_at TEXT)""")
 
 conn.commit()
 
-def hash_pass(p): return hashlib.sha256(p.encode()).hexdigest()
+def hash_pass(p):
+    return hashlib.sha256(p.encode()).hexdigest()
 
-# admin
+# إنشاء أدمن
 c.execute("SELECT * FROM users WHERE is_admin=1")
 if not c.fetchone():
-    c.execute("INSERT INTO users VALUES(NULL,?,?,?,1)",
+    c.execute("INSERT INTO users (email,password,name,is_admin) VALUES (?,?,?,1)",
               ("admin@nutrax.com", hash_pass("admin123"), "Admin"))
     conn.commit()
 
 # ======================
-# FOOD DB
+# أكل
 # ======================
-FOODS = {
-    "chicken": {"cal":165,"p":31},
-    "beef": {"cal":250,"p":26},
-    "rice": {"cal":130,"p":2},
-    "oats": {"cal":389,"p":16},
-    "egg": {"cal":78,"p":6},
-    "banana": {"cal":89,"p":1},
-    "apple": {"cal":52,"p":0},
-    "milk": {"cal":60,"p":3},
-    "tuna": {"cal":116,"p":26},
-    "salmon": {"cal":208,"p":20},
-    "bread": {"cal":265,"p":9},
-    "cheese": {"cal":402,"p":25}
+FOOD = {
+    "chicken": {"name":"صدر دجاج", "cal":165},
+    "beef": {"name":"لحم بقري", "cal":250},
+    "rice": {"name":"رز", "cal":130},
+    "oats": {"name":"شوفان", "cal":389},
+    "egg": {"name":"بيض", "cal":78},
+    "milk": {"name":"لبن", "cal":60},
+    "apple": {"name":"تفاح", "cal":52},
+    "banana": {"name":"موز", "cal":89},
+    "potato": {"name":"بطاطس", "cal":87},
+    "fish": {"name":"سمك", "cal":200},
+    "tuna": {"name":"تونة", "cal":116},
+    "cheese": {"name":"جبنة", "cal":260},
+    "bread": {"name":"عيش", "cal":250},
 }
 
+def food_advice(cal):
+    if cal < 100:
+        return "خفيف. ينفع دايت."
+    elif cal < 250:
+        return "متوسط. كويس للثبات."
+    else:
+        return "سعراته عالية. خلي بالك."
+
 # ======================
-# SESSION
+# session
 # ======================
 if "user" not in st.session_state:
     st.session_state.user = None
+
 if "page" not in st.session_state:
     st.session_state.page = "login"
 
 # ======================
-# LOGIN
+# login
 # ======================
-if not st.session_state.user:
+if st.session_state.page == "login":
 
     st.title("NutraX")
 
-    tab1, tab2 = st.tabs(["Login", "Register"])
+    tab1, tab2 = st.tabs(["دخول", "تسجيل"])
 
     with tab1:
-        e = st.text_input("Email")
-        p = st.text_input("Password", type="password")
-        if st.button("Login"):
-            c.execute("SELECT * FROM users WHERE email=? AND password=?",
-                      (e, hash_pass(p)))
+        e = st.text_input("email")
+        p = st.text_input("password", type="password")
+        if st.button("login"):
+            c.execute("SELECT * FROM users WHERE email=? AND password=?", (e, hash_pass(p)))
             u = c.fetchone()
             if u:
                 st.session_state.user = u
                 st.session_state.page = "dashboard"
                 st.rerun()
             else:
-                st.error("Wrong data")
+                st.error("غلط")
 
     with tab2:
-        n = st.text_input("Name")
-        e = st.text_input("Email")
-        p = st.text_input("Password", type="password")
-        if st.button("Create"):
-            try:
-                c.execute("INSERT INTO users VALUES(NULL,?,?,?,0)",
-                          (e, hash_pass(p), n))
-                conn.commit()
-                st.success("Done")
-            except:
-                st.error("Email exists")
+        n = st.text_input("name")
+        e = st.text_input("email ")
+        p = st.text_input("password ", type="password")
+        if st.button("create"):
+            c.execute("INSERT INTO users (email,password,name,is_admin) VALUES (?,?,?,0)",
+                      (e, hash_pass(p), n))
+            conn.commit()
+            st.success("تم")
 
 # ======================
-# APP
+# app
 # ======================
 else:
+
     user = st.session_state.user
 
+    if not user:
+        st.session_state.page = "login"
+        st.rerun()
+
+    uid = user[0]
+    name = user[3]
+    is_admin = user[4]
+
+    # sidebar
     with st.sidebar:
-        st.write(f"👤 {user[3]}")
+        st.write(name)
 
         if st.button("Dashboard"):
-            st.session_state.page="dashboard"
-
+            st.session_state.page = "dashboard"
         if st.button("Analyze Food"):
-            st.session_state.page="analyze"
-
+            st.session_state.page = "analyze"
         if st.button("Create Plan"):
-            st.session_state.page="create"
-
+            st.session_state.page = "plan"
         if st.button("My Plans"):
-            st.session_state.page="plans"
+            st.session_state.page = "myplans"
 
-        if user[4]==1:
+        if is_admin == 1:
             if st.button("Admin"):
-                st.session_state.page="admin"
+                st.session_state.page = "admin"
 
         if st.button("Logout"):
-            st.session_state.user=None
+            st.session_state.user = None
+            st.session_state.page = "login"
             st.rerun()
 
-# ======================
-# DASHBOARD
-# ======================
-    if st.session_state.page=="dashboard":
-        st.title("Dashboard")
+    # ======================
+    # dashboard
+    # ======================
+    if st.session_state.page == "dashboard":
+        st.title(f"اهلا {name}")
 
-        c.execute("SELECT * FROM plans WHERE user_id=? ORDER BY id DESC LIMIT 1",(user[0],))
-        last = c.fetchone()
+        total = c.execute("SELECT COUNT(*) FROM plans WHERE user_id=?", (uid,)).fetchone()[0]
+        st.metric("خططك", total)
 
-        if last:
-            st.success("Last Plan")
-            st.json(json.loads(last[2]))
-        else:
-            st.info("No plans yet")
+    # ======================
+    # تحليل
+    # ======================
+    elif st.session_state.page == "analyze":
+        st.title("تحليل الأكل")
 
-# ======================
-# ANALYZE
-# ======================
-    elif st.session_state.page=="analyze":
-        st.title("Food Analysis")
+        f = st.selectbox("اختار", list(FOOD.keys()))
+        g = st.number_input("جرام", 100)
 
-        food = st.selectbox("Food", list(FOODS.keys()))
-        grams = st.number_input("Grams", value=100)
+        if st.button("حلل"):
+            cal = FOOD[f]["cal"] * g / 100
+            st.write(f"سعرات: {int(cal)}")
+            st.info(food_advice(cal))
 
-        if st.button("Analyze"):
-            cal = FOODS[food]["cal"] * grams / 100
-            protein = FOODS[food]["p"] * grams / 100
+    # ======================
+    # إنشاء جدول
+    # ======================
+    elif st.session_state.page == "plan":
 
-            st.metric("Calories", int(cal))
-            st.metric("Protein", int(protein))
+        st.title("اعمل جدولك")
 
-            if cal > 500:
-                st.warning("High calories reduce it")
-            else:
-                st.success("Good choice")
+        days = st.number_input("عدد الأيام", 1, 30, 7)
 
-# ======================
-# CREATE PLAN
-# ======================
-    elif st.session_state.page=="create":
-        st.title("Create Plan")
-
-        days = st.number_input("Days",1,30,7)
+        meals = ["فطار", "غداء", "عشاء", "سناك"]
 
         plan = {}
 
         for d in range(days):
-            st.subheader(f"Day {d+1}")
+            st.subheader(f"يوم {d+1}")
+            plan[d] = {}
 
-            breakfast = st.text_input(f"Breakfast {d}", key=f"b{d}")
-            lunch = st.text_input(f"Lunch {d}", key=f"l{d}")
-            dinner = st.text_input(f"Dinner {d}", key=f"d{d}")
-            snack = st.text_input(f"Snack {d}", key=f"s{d}")
+            for m in meals:
+                f = st.selectbox(f"{m} - يوم {d+1}", list(FOOD.keys()), key=f"{d}_{m}")
+                g = st.number_input("جرام", 50, 500, 100, key=f"{d}_{m}_g")
+                plan[d][m] = {"food": f, "g": g}
 
-            plan[f"day_{d}"] = {
-                "breakfast": breakfast,
-                "lunch": lunch,
-                "dinner": dinner,
-                "snack": snack
-            }
+        name_plan = st.text_input("اسم الجدول")
 
-        if st.button("Save Plan"):
-            c.execute("INSERT INTO plans VALUES(NULL,?,?,?,?)",
-                      (user[0], json.dumps(plan), days, str(datetime.now())))
+        if st.button("save"):
+            c.execute("INSERT INTO plans (user_id,name,data,created_at) VALUES (?,?,?,?)",
+                      (uid, name_plan, json.dumps(plan), datetime.now()))
             conn.commit()
-            st.success("Saved")
+            st.success("اتحفظ")
 
-# ======================
-# MY PLANS
-# ======================
-    elif st.session_state.page=="plans":
-        st.title("My Plans")
+    # ======================
+    # خططى
+    # ======================
+    elif st.session_state.page == "myplans":
 
-        c.execute("SELECT * FROM plans WHERE user_id=?",(user[0],))
-        plans = c.fetchall()
+        st.title("خططى")
 
-        for p in plans:
-            with st.expander(p[4]):
-                st.json(json.loads(p[2]))
+        rows = c.execute("SELECT id,name,created_at FROM plans WHERE user_id=?", (uid,)).fetchall()
 
-# ======================
-# ADMIN
-# ======================
-    elif st.session_state.page=="admin":
+        for r in rows:
+            with st.expander(r[1]):
+                data = json.loads(c.execute("SELECT data FROM plans WHERE id=?", (r[0],)).fetchone()[0])
+
+                for d in data:
+                    st.write(f"يوم {int(d)+1}")
+                    for m in data[d]:
+                        f = data[d][m]["food"]
+                        g = data[d][m]["g"]
+                        st.write(f"{m}: {FOOD[f]['name']} {g}g")
+
+    # ======================
+    # admin
+    # ======================
+    elif st.session_state.page == "admin":
+
         st.title("Admin")
 
-        st.subheader("Users")
-        c.execute("SELECT email FROM users")
-        st.write(c.fetchall())
-
-        st.subheader("Add Food")
-        name = st.text_input("Name")
-        cal = st.number_input("Calories")
-        p = st.number_input("Protein")
-
-        if st.button("Add Food"):
-            FOODS[name]={"cal":cal,"p":p}
-            st.success("Added")
+        users = c.execute("SELECT id,name,email FROM users").fetchall()
+        for u in users:
+            st.write(u)
