@@ -4,80 +4,89 @@
 
 import streamlit as st
 import sqlite3
-import hashlib
-import copy
-from datetime import datetime
-
 # ===============================
-# CONFIG & STYLING
+# DATABASE CONNECTION & AUTO-REPAIR
 # ===============================
-st.set_page_config(
-    page_title="NutraX Pro",
-    page_icon="💊",
-    layout="wide", # الواجهة عريضة عشان تظهر معلومات كتير
-    initial_sidebar_state="expanded"
-)
+import os
 
-# CSS للحصول على واجهة احترافية
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
-    html, body, [class*="css"] { font-family: 'Cairo', sans-serif; direction: rtl; }
+DB_FILE = "nutrax_v2.db"
+
+# محاولة إصلاح قاعدة البيانات تلقائياً لو كانت تالفة
+def init_db():
+    global conn, c
+    try:
+        # نحاول نعمل كويري بسيط عشان نختبر صحة الملف
+        conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+        c = conn.cursor()
+        c.execute("SELECT count(*) FROM users")
+    except (sqlite3.OperationalError, sqlite3.DatabaseError):
+        # لو في أي خطأ (ملف تالف)، نمسحه ونعمل جديد
+        if os.path.exists(DB_FILE):
+            os.remove(DB_FILE)
+            print("Database was corrupted, deleted and recreating...")
+        
+        # نعيد المحاولة بعد المسح
+        conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+        c = conn.cursor()
+
+    # ===========================================
+    # إنشاء الجداول (Safe Mode)
+    # ===========================================
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE,
+        password TEXT,
+        name TEXT,
+        birth_year INTEGER,
+        height REAL,
+        weight REAL,
+        goal TEXT DEFAULT 'maintain',
+        is_admin INTEGER DEFAULT 0,
+        join_date TEXT DEFAULT datetime('now')
+    )
+    """)
+
+    c.execute("CREATE TABLE IF NOT EXISTS meals (id INTEGER PRIMARY KEY, name TEXT, calories INTEGER, protein REAL, carbs REAL, fat REAL)")
+    c.execute("CREATE TABLE IF NOT EXISTS tracking (id INTEGER PRIMARY KEY, user_id INTEGER, weight REAL, date TEXT)")
+
+    # ===========================================
+    # تحديث الجدول بأمان (Migration)
+    # ===========================================
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN name TEXT")
+    except: pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN birth_year INTEGER")
+    except: pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN height REAL")
+    except: pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN weight REAL")
+    except: pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN goal TEXT")
+    except: pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN join_date TEXT")
+    except: pass
     
-    /* Sidebar Profile Card */
-    .profile-card {
-        background: linear-gradient(135deg, #0056b3, #007bff);
-        color: white; padding: 20px; border-radius: 15px;
-        margin-bottom: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,123,255,0.3);
-    }
-    .profile-avatar { font-size: 3em; margin-bottom: 10px; }
-    .profile-name { font-weight: 700; font-size: 1.2em; }
-    .profile-role { font-size: 0.8em; opacity: 0.9; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; display: inline-block; margin-top: 5px; }
+    conn.commit()
 
-    /* Main Cards */
-    .card {
-        background: white; padding: 25px; border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #eee; margin-bottom: 20px;
-    }
-    .card-header { font-size: 1.4em; font-weight: 700; color: #333; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
-    
-    /* Goal Cards */
-    .goal-card {
-        background: white; padding: 20px; border-radius: 12px;
-        border: 2px solid #eee; text-align: center; cursor: pointer; transition: 0.3s;
-    }
-    .goal-card:hover { border-color: #007bff; transform: translateY(-5px); }
-    .goal-icon { font-size: 2.5em; display: block; margin-bottom: 10px; }
-    
-    /* Food Cards */
-    .food-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f9f9f9; }
-    .food-name { font-weight: 600; color: #333; }
-    .food-cal { color: #007bff; font-weight: bold; }
+# تشغيل دالة الإعداد
+init_db()
 
-    /* Tables */
-    .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    .data-table th { background: #f8f9fa; color: #555; padding: 12px; text-align: right; font-size: 0.9em; }
-    .data-table td { padding: 12px; border-bottom: 1px solid #eee; color: #333; font-size: 0.95em; }
-</style>
-""", unsafe_allow_html=True)
+# ===========================================
+# إنشاء الأدمن (مرة واحدة فقط)
+# ===========================================
+def hash_pass(p): return hashlib.sha256(p.encode()).hexdigest()
 
-# ===============================
-# DATABASE CONNECTION & SETUP
-# ===============================
-conn = sqlite3.connect("nutrax_v2.db", check_same_thread=False)
-c = conn.cursor()
-
-# جدول المستخدمين (تمت إضافة الاسم وسنة الميلاد والهدف)
-c.execute("""
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT UNIQUE,
-    password TEXT,
-    name TEXT,
-    birth_year INTEGER,
-    height REAL,
-    weight REAL,
-    goal TEXT DEFAULT 'maintain',
+c.execute("SELECT * FROM users WHERE is_admin=1")
+if not c.fetchone():
+    c.execute("INSERT INTO users (email, password, name, is_admin) VALUES (?, ?, ?, ?)",
+              ("admin@nutrax.com", hash_pass("admin123"), "Super Admin", 1))
+    conn.commit()
     is_admin INTEGER DEFAULT 0,
     join_date TEXT DEFAULT datetime('now')
 )
