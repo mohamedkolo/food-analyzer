@@ -6,30 +6,27 @@ import json
 from datetime import datetime
 
 # ==========================================
-# 1. الإعدادات
+# 1. إعدادات الصفحة
 # ==========================================
-st.set_page_config(page_title="NutraX Pro", page_icon="💊", layout="wide")
+st.set_page_config(page_title="NutraX V4", page_icon="💊", layout="wide")
 
+# تنسيقات بسيطة ونظيفة
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
     html, body, [class*="css"] { font-family: 'Cairo', sans-serif; direction: rtl; }
     .profile-card { background: linear-gradient(135deg, #0056b3, #007bff); color: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,123,255,0.3); }
-    .goal-btn { background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: 0.3s; margin-bottom: 10px; }
-    .goal-btn:hover { border-color: #007bff; transform: translateY(-3px); }
-    .goal-btn.selected { border-color: #007bff; background-color: #f0f7ff; }
-    .goal-icon { font-size: 2.5em; display: block; margin-bottom: 5px; }
-    .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #eee; }
-    .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    .data-table th { background: #f8f9fa; padding: 12px; text-align: right; }
-    .data-table td { padding: 12px; border-bottom: 1px solid #eee; }
+    .goal-btn { background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 25px; text-align: center; cursor: pointer; transition: 0.2s; margin-bottom: 15px; }
+    .goal-btn:hover { border-color: #007bff; transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .goal-icon { font-size: 2.5em; display: block; margin-bottom: 10px; }
+    .metric-box { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; border: 1px solid #eee; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. قاعدة البيانات (مع جدول الحفظ)
+# 2. قاعدة البيانات
 # ==========================================
-DB_FILE = "nutrax_pro_v3.db"
+DB_FILE = "nutrax_v4.db"
 
 def init_db():
     global conn, c
@@ -43,8 +40,6 @@ def init_db():
         c = conn.cursor()
 
     c.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, email TEXT UNIQUE, password TEXT, name TEXT, birth_year INTEGER, height REAL, weight REAL, goal TEXT, is_admin INTEGER, join_date TEXT)")
-    c.execute("CREATE TABLE IF NOT EXISTS tracking (id INTEGER PRIMARY KEY, user_id INTEGER, weight REAL, date TEXT)")
-    # جدول جديد لحفظ الجداول
     c.execute("CREATE TABLE IF NOT EXISTS saved_plans (id INTEGER PRIMARY KEY, user_id INTEGER, plan_name TEXT, plan_data TEXT, created_at TEXT)")
     conn.commit()
 
@@ -86,36 +81,13 @@ LOCAL_DB = {
     "spinach": {"name_ar": "سبانخ", "cal": 23, "p": 2.9, "c": 3.6, "f": 0.4},
 }
 
-# دالة حساب السعرات والماكرو
-def calculate_macros(weight, height, age, goal_type):
-    # معادلة Mifflin-St Jeor (تقريبية للذكر)
-    bmr = 10 * weight + 6.25 * height - 5 * age + 5
-    tdee = bmr * 1.55 # نشاط متوسط
-    
-    target_cal = tdee
-    if goal_type == "fat_loss": target_cal -= 400
-    elif goal_type == "muscle_gain": target_cal += 400
-    
-    # توزيع الماكرو
-    if goal_type == "fat_loss":
-        p_pct, f_pct, c_pct = 0.40, 0.30, 0.30
-    elif goal_type == "muscle_gain":
-        p_pct, f_pct, c_pct = 0.30, 0.25, 0.45
-    else:
-        p_pct, f_pct, c_pct = 0.30, 0.30, 0.40
-        
-    pro_g = (target_cal * p_pct) / 4
-    fat_g = (target_cal * f_pct) / 9
-    carb_g = (target_cal * c_pct) / 4
-    
-    return int(target_cal), int(pro_g), int(fat_g), int(carb_g)
-
 # ==========================================
 # 4. حالة النظام
 # ==========================================
 if 'page' not in st.session_state: st.session_state.page = 'login'
 if 'user' not in st.session_state: st.session_state.user = None
-if 'plan_data' not in st.session_state: st.session_state.plan_data = None # لتخزين الجدول مؤقتاً
+# متغيرات للتحكم في التسلسل
+if 'metrics_calculated' not in st.session_state: st.session_state.metrics_calculated = False
 
 # ==========================================
 # 5. الصفحات
@@ -124,7 +96,7 @@ if 'plan_data' not in st.session_state: st.session_state.plan_data = None # لت
 if st.session_state.page == 'login':
     col_l, col_c, col_r = st.columns([1,2,1])
     with col_c:
-        st.markdown("<h1 style='text-align:center; color:#0056b3;'>💊 NutraX Pro</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align:center; color:#0056b3;'>💊 NutraX V4</h1>", unsafe_allow_html=True)
         tab1, tab2 = st.tabs(["تسجيل الدخول", "إنشاء حساب"])
         with tab1:
             with st.form("l"):
@@ -146,7 +118,7 @@ if st.session_state.page == 'login':
                 by = st.number_input("سنة الميلاد", value=2000)
                 if st.form_submit_button("إنشاء حساب"):
                     try:
-                        c.execute("INSERT INTO users (email, password, name, birth_year, is_admin, goal) VALUES (?, ?, ?, ?, 0, 'maintain')", (e, hash_pass(p), n, by))
+                        c.execute("INSERT INTO users (email, password, name, birth_year, is_admin) VALUES (?, ?, ?, ?, 0)", (e, hash_pass(p), n, by))
                         conn.commit()
                         st.success("تم التسجيل! سجل دخولك الآن.")
                     except: st.error("البريد مستخدم من قبل")
@@ -154,7 +126,7 @@ if st.session_state.page == 'login':
 # --- التطبيق الرئيسي ---
 else:
     u = st.session_state.user
-    u_id, u_name, u_email, u_goal, is_admin = u[0], u[3], u[1], u[7], u[8]
+    u_id, u_name, u_email = u[0], u[3], u[1]
     
     with st.sidebar:
         st.markdown(f"<div class='profile-card'><div style='font-size:2em'>👤</div><div class='profile-name'>{u_name}</div></div>", unsafe_allow_html=True)
@@ -162,183 +134,168 @@ else:
         if st.button("🏠 الرئيسية"): st.session_state.page = 'dashboard'; st.rerun()
         if st.button("👤 الملف الشخصي والأهداف"): st.session_state.page = 'profile'; st.rerun()
         if st.button("🥗 مصمم الجدول"): st.session_state.page = 'planner'; st.rerun()
-        if st.button("🥗 جداولي المحفوظة"): st.session_state.page = 'saved_plans'; st.rerun()
-        if st.button("🔍 محلل الطعام"): st.session_state.page = 'analyzer'; st.rerun()
+        if st.button("🥗 جداولي المحفوظة"): st.session_state.page = 'saved'; st.rerun()
         if st.button("🚪 خروج"): st.session_state.user = None; st.session_state.page = 'login'; st.rerun()
 
     # --- 1. الرئيسية ---
     if st.session_state.page == 'dashboard':
         st.title(f"أهلاً بك، {u_name}")
-        w = u[6] or 70
-        h = u[5] or 170
-        bmi = w / ((h/100)**2)
-        c1, c2, c3 = st.columns(3)
-        c1.metric("الوزن", f"{w} kg")
-        c2.metric("الطول", f"{h} cm")
-        c3.metric("BMI", f"{bmi:.1f}")
-        st.info("اذهب إلى 'الملف الشخصي' لاختيار هدفك وحساب جدولك الغذائي.")
+        st.info("للبدء في إنشاء جدولك الغذائي، اذهب إلى 'الملف الشخصي والأهداف'.")
 
-    # --- 2. الملف الشخصي (المنطق الجديد) ---
+    # --- 2. الملف الشخصي (التسلسل المطلوب) ---
     elif st.session_state.page == 'profile':
-        st.title("إعدادات الملف الشخصي")
+        st.title("إعداداتك الغذائية")
         
-        # فورم البيانات الأساسية
-        with st.form("up_basic"):
-            col1, col2 = st.columns(2)
-            with col1:
-                nn = st.text_input("الاسم", value=u_name)
-                nh = st.number_input("الطول (سم)", value=float(u[5] or 170))
-            with col2:
-                nw = st.number_input("الوزن (كجم)", value=float(u[6] or 70))
-                age = st.number_input("العمر", value=int(datetime.now().year - (u[4] or 2000)))
-            if st.form_submit_button("حفظ البيانات"):
-                c.execute("UPDATE users SET name=?, height=?, weight=?, birth_year=? WHERE id=?", (nn, nh, nw, datetime.now().year - age, u_id))
-                conn.commit()
-                st.success("تم التحديث"); st.rerun()
-
-        st.markdown("---")
-        st.subheader("اختر هدفك وابدأ التصميم")
-        st.warning("لما تضغط على هدف، سيتم حساب احتياجك ونقلك لصفحة التصميم فوراً.")
+        # إذا لم يتم الحساب بعد، اظهر الفورم فقط
+        if not st.session_state.metrics_calculated:
+            st.subheader("الخطوة 1: أدخل بياناتك")
+            with st.form("calculate_form"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    height = st.number_input("الطول (سم)", min_value=100, max_value=250, value=170)
+                    weight = st.number_input("الوزن (كجم)", min_value=30, max_value=300, value=70)
+                with col2:
+                    age = st.number_input("العمر", min_value=10, max_value=100, value=25)
+                    gender = st.selectbox("الجنس", ["ذكر", "أنثى"])
+                
+                if st.form_submit_button("احسب السعرات والـ BMI", type="primary"):
+                    # الحسابات
+                    bmi = weight / ((height/100)**2)
+                    if gender == "ذكر":
+                        bmr = 10 * weight + 6.25 * height - 5 * age + 5
+                    else:
+                        bmr = 10 * weight + 6.25 * height - 5 * age - 161
+                    
+                    tdee = bmr * 1.55 # نشاط متوسط افتراضي
+                    
+                    # تخزين النتائج
+                    st.session_state['user_metrics'] = {
+                        'bmi': round(bmi, 1),
+                        'bmr': int(bmr),
+                        'tdee': int(tdee),
+                        'weight': weight,
+                        'height': height
+                    }
+                    # تفعيل الحالة
+                    st.session_state.metrics_calculated = True
+                    st.rerun()
         
-        col1, col2, col3 = st.columns(3)
-        
-        # زر خسارة
-        with col1:
-            style = "border-color:#007bff; background-color:#f0f7ff;" if u_goal == "fat_loss" else ""
-            st.markdown(f"<div class='goal-btn {style}'><span class='goal-icon'>🔥</span><b>خسارة دهون</b></div>", unsafe_allow_html=True)
-            if st.button("ابدأ تصميم جدول خسارة", key="btn_fat"):
-                # الحساب والانتقال
-                w = u[6] or 70
-                h = u[5] or 170
-                age = datetime.now().year - (u[4] or 2000)
-                cal, p, f, c = calculate_macros(w, h, age, "fat_loss")
-                st.session_state['calc'] = {'cal': cal, 'p': p, 'f': f, 'c': c, 'goal': 'fat_loss'}
-                c.execute("UPDATE users SET goal='fat_loss' WHERE id=?", (u_id,)); conn.commit()
-                st.session_state.page = 'planner'; st.rerun()
-
-        # زر عضل
-        with col2:
-            style = "border-color:#28a745; background-color:#f0fff4;" if u_goal == "muscle_gain" else ""
-            st.markdown(f"<div class='goal-btn {style}'><span class='goal-icon'>💪</span><b>بناء عضل</b></div>", unsafe_allow_html=True)
-            if st.button("ابدأ تصميم جدول عضل", key="btn_muscle"):
-                w = u[6] or 70
-                h = u[5] or 170
-                age = datetime.now().year - (u[4] or 2000)
-                cal, p, f, c = calculate_macros(w, h, age, "muscle_gain")
-                st.session_state['calc'] = {'cal': cal, 'p': p, 'f': f, 'c': c, 'goal': 'muscle_gain'}
-                c.execute("UPDATE users SET goal='muscle_gain' WHERE id=?", (u_id,)); conn.commit()
-                st.session_state.page = 'planner'; st.rerun()
-
-        # زر ثبات
-        with col3:
-            style = "border-color:#ffc107; background-color:#fffbe6;" if u_goal == "maintain" else ""
-            st.markdown(f"<div class='goal-btn {style}'><span class='goal-icon'>⚖️</span><b>ثبات وزن</b></div>", unsafe_allow_html=True)
-            if st.button("ابدأ تصميم جدول ثبات", key="btn_main"):
-                w = u[6] or 70
-                h = u[5] or 170
-                age = datetime.now().year - (u[4] or 2000)
-                cal, p, f, c = calculate_macros(w, h, age, "maintain")
-                st.session_state['calc'] = {'cal': cal, 'p': p, 'f': f, 'c': c, 'goal': 'maintain'}
-                c.execute("UPDATE users SET goal='maintain' WHERE id=?", (u_id,)); conn.commit()
-                st.session_state.page = 'planner'; st.rerun()
-
-    # --- 3. مصمم الجدول (التصميم والحفظ) ---
-    elif st.session_state.page == 'planner':
-        st.title("تصميم وحفظ جدولك الغذائي")
-        
-        # عرض الأهداف المحسوبة
-        if 'calc' in st.session_state:
-            calc = st.session_state['calc']
-            st.success(f"🎯 تم ضبط الجدول بناءً على هدفك: {calc['goal'].upper()}")
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("الهدف اليومي", f"{calc['cal']} kcal")
-            c2.metric("بروتين", f"{calc['p']} g")
-            c3.metric("كارب", f"{calc['c']} g")
-            c4.metric("دهون", f"{calc['f']} g")
+        # إذا تم الحساب، اظهر النتائج والأهداف
         else:
-            st.info("الرجاء الذهاب للملف الشخصي وتحديد هدفك أولاً.")
+            metrics = st.session_state['user_metrics']
+            
+            # عرض النتائج
+            st.success("تم احتساب بياناتك بنجاح!")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("مؤشر الكتلة (BMI)", metrics['bmi'])
+            c2.metric("معدل الحرق الأساسي (BMR)", f"{metrics['bmr']} kcal")
+            c3.metric("معدل الحرق الكلي (TDEE)", f"{metrics['tdee']} kcal")
+            
+            st.markdown("---")
+            st.subheader("الخطوة 2: اختر هدفك")
+            st.info("اختر الهدف المناسب لك للانتقال لتصميم الجدول الغذائي.")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.markdown("<div class='goal-btn'><span class='goal-icon'>🔥</span><b>خسارة دهون</b></div>", unsafe_allow_html=True)
+                if st.button("ابدأ خسارة الدهون", key="g1"):
+                    target = metrics['tdee'] - 400
+                    st.session_state['plan_target'] = {'cal': target, 'goal': 'fat_loss'}
+                    st.session_state.page = 'planner'
+                    st.rerun()
+
+            with col2:
+                st.markdown("<div class='goal-btn'><span class='goal-icon'>💪</span><b>بناء عضل</b></div>", unsafe_allow_html=True)
+                if st.button("ابدأ بناء العضل", key="g2"):
+                    target = metrics['tdee'] + 400
+                    st.session_state['plan_target'] = {'cal': target, 'goal': 'muscle_gain'}
+                    st.session_state.page = 'planner'
+                    st.rerun()
+
+            with col3:
+                st.markdown("<div class='goal-btn'><span class='goal-icon'>⚖️</span><b>ثبات وزن</b></div>", unsafe_allow_html=True)
+                if st.button("الحفاظ على الوزن", key="g3"):
+                    target = metrics['tdee']
+                    st.session_state['plan_target'] = {'cal': target, 'goal': 'maintain'}
+                    st.session_state.page = 'planner'
+                    st.rerun()
+
+            st.markdown("---")
+            if st.button("🔄 إعادة حساب البيانات"):
+                st.session_state.metrics_calculated = False
+                st.rerun()
+
+    # --- 3. مصمم الجدول ---
+    elif st.session_state.page == 'planner':
+        st.title("مصمم جدولك الغذائي")
+        
+        if 'plan_target' not in st.session_state:
+            st.warning("يرجى الذهاب للملف الشخصي وحساب بياناتك أولاً.")
+            if st.button("الذهاب للملف الشخصي"): st.session_state.page = 'profile'; st.rerun()
             st.stop()
 
-        st.markdown("---")
-        st.subheader("عدل الكميات حسب رغبتك ثم احفظ الجدول")
+        target = st.session_state['plan_target']
+        goal_name = {'fat_loss': 'خسارة دهون', 'muscle_gain': 'بناء عضل', 'maintain': 'ثبات وزن'}[target['goal']]
         
-        # القالب الافتراضي
+        st.info(f"هدفك: {goal_name} | السعرات المستهدفة: {target['cal']} kcal")
+        
+        # القالب
         template = {
-            "الإفطار": {"oats": 50, "eggs": 100},
+            "الإفطار": {"oats": 50, "eggs": 100, "apple": 100},
             "الغداء": {"chicken breast": 150, "brown rice": 100, "broccoli": 100},
             "العشاء": {"salmon": 120, "sweet potato": 150, "spinach": 100},
-            "سناك": {"apple": 1, "almonds": 20}
+            "سناك": {"greek yogurt": 150, "almonds": 20}
         }
         
-        # واجهة التعديل
+        if target['goal'] == 'muscle_gain':
+            template["الغداء"]["white rice"] = 150 # زيادة كارب
+            template["سناك"]["peanut butter"] = 20
+            del template["الغداء"]["brown rice"]
+        
         edited_plan = {}
         total_cal = 0
         
-        for meal_name, foods in template.items():
-            st.write(f"### {meal_name}")
+        for meal, foods in template.items():
+            st.write(f"### {meal}")
             cols = st.columns(len(foods))
-            edited_plan[meal_name] = {}
+            edited_plan[meal] = {}
             
-            for idx, (food_key, default_g) in enumerate(foods):
+            for idx, (f_key, def_g) in enumerate(foods.items()):
                 with cols[idx]:
-                    food_name = LOCAL_DB[food_key]['name_ar']
-                    new_g = st.number_input(f"{food_name} (جم)", value=default_g, key=f"{meal_name}_{food_key}")
-                    edited_plan[meal_name][food_key] = new_g
-                    
-                    # الحساب الفوري
-                    cal_per_100 = LOCAL_DB[food_key]['cal']
-                    total_cal += (new_g / 100) * cal_per_100
+                    if f_key in LOCAL_DB:
+                        f_name = LOCAL_DB[f_key]['name_ar']
+                        new_g = st.number_input(f"{f_name} (جم)", value=int(def_g), key=f"{meal}_{f_key}")
+                        edited_plan[meal][f_key] = new_g
+                        cal = (new_g / 100) * LOCAL_DB[f_key]['cal']
+                        total_cal += cal
 
-        st.markdown("---")
-        st.metric("إجمالي الجدول الحالي", f"{int(total_cal)} kcal", delta=f"{int(total_cal - calc['cal'])} kcal عن الهدف")
+        st.metric("المجموع الحالي", f"{int(total_cal)} kcal", delta=f"{int(total_cal - target['cal'])} kcal")
 
-        # زر الحفظ
-        plan_name = st.text_input("اسم الجدول (للحفظ)", value=f"جدول {calc['goal']} {datetime.now().strftime('%d-%m')}")
-        if st.button("💾 حفظ هذا الجدول في قاعدة البيانات"):
-            plan_json = json.dumps(edited_plan)
+        # الحفظ
+        plan_name = st.text_input("اسم الجدول", value=f"جدول {goal_name} {datetime.now().day}")
+        if st.button("💾 حفظ الجدول"):
             c.execute("INSERT INTO saved_plans (user_id, plan_name, plan_data, created_at) VALUES (?, ?, ?, datetime('now'))",
-                      (u_id, plan_name, plan_json))
+                      (u_id, plan_name, json.dumps(edited_plan)))
             conn.commit()
-            st.success("تم حفظ الجدول بنجاح! يمكنك مشاهدته في قسم 'جداولي المحفوظة'.")
+            st.success("تم الحفظ!")
 
-    # --- 4. جداولي المحفوظة ---
-    elif st.session_state.page == 'saved_plans':
+    # --- 4. الجداول المحفوظة ---
+    elif st.session_state.page == 'saved':
         st.title("جداولي المحفوظة")
         c.execute("SELECT id, plan_name, created_at FROM saved_plans WHERE user_id=? ORDER BY id DESC", (u_id,))
         plans = c.fetchall()
-        
-        if not plans:
-            st.info("لم تقم بحفظ أي جداول بعد.")
-        else:
-            for plan_id, p_name, p_date in plans:
-                with st.expander(f"📅 {p_name} - {p_date}"):
-                    c.execute("SELECT plan_data FROM saved_plans WHERE id=?", (plan_id,))
-                    data = json.loads(c.fetchone()[0])
-                    
-                    # عرض تفاصيل الجدول المحفوظ
-                    for meal, foods in data.items():
-                        st.write(f"**{meal}**")
-                        for f_key, f_g in foods.items():
-                            if f_key in LOCAL_DB:
-                                f_name = LOCAL_DB[f_key]['name_ar']
-                                f_cal = LOCAL_DB[f_key]['cal']
-                                st.write(f"- {f_name}: {f_g} جم ({int((f_g/100)*f_cal)} kcal)")
-                    if st.button("🗑️ حذف هذا الجدول", key=f"del_{plan_id}"):
-                        c.execute("DELETE FROM saved_plans WHERE id=?", (plan_id,))
-                        conn.commit()
-                        st.rerun()
-
-    elif st.session_state.page == 'analyzer':
-        st.title("محلل الطعام")
-        s = st.text_input("ابحث عن طعام")
-        if s:
-            res = [(k,v) for k,v in LOCAL_DB.items() if s in k or s in v['name_ar']]
-            if res:
-                for k, v in res:
-                    with st.expander(f"🍴 {v['name_ar']}"):
-                        c1, c2, c3, c4 = st.columns(4)
-                        c1.metric("سعرات", f"{v['cal']}")
-                        c2.metric("بروتين", f"{v['p']}")
-                        c3.metric("كارب", f"{v['c']}")
-                        c4.metric("دهون", f"{v['f']}")
-            else: st.warning("غير موجود")
+        if not plans: st.info("لا توجد جداول محفوظة.")
+        for pid, pname, pdate in plans:
+            with st.expander(f"📅 {pname} - {pdate}"):
+                c.execute("SELECT plan_data FROM saved_plans WHERE id=?", (pid,))
+                data = json.loads(c.fetchone()[0])
+                for m, foods in data.items():
+                    st.write(f"**{m}**")
+                    for k, v in foods.items():
+                        if k in LOCAL_DB:
+                            st.write(f"- {LOCAL_DB[k]['name_ar']}: {v} جم")
+                if st.button("حذف", key=f"del_{pid}"):
+                    c.execute("DELETE FROM saved_plans WHERE id=?", (pid,))
+                    conn.commit()
+                    st.rerun()
