@@ -1,8 +1,9 @@
 # =============================================================================
-# [GPT Generated Code] NutraX Ultimate V5 - Expanded Database
+# [GPT Generated Code] NutraX V5 - No External Dependencies
 # Developer: GPT & User Collaboration
+# FIX: Replaced Plotly with Streamlit Native Charts to prevent crashes.
 # Features: Multi-day Planner, BMI/Calorie Logic, History Charts, Shopping List
-# Database Update: Added 50+ items including Quinoa, Chia Seeds, diverse fish/meats.
+# Database: 50+ Expanded Items
 # =============================================================================
 
 import streamlit as st
@@ -11,7 +12,7 @@ import hashlib
 import os
 import json
 from datetime import datetime
-import plotly.graph_objs as go
+# تم إزالة import plotly لمنع الأخطاء
 
 # ==========================================
 # 1. CONFIG & STYLE
@@ -28,7 +29,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. DATABASE SETUP (Upgraded)
+# 2. DATABASE SETUP
 # ==========================================
 DB_FILE = "nutrax_v5.db"
 
@@ -43,7 +44,6 @@ def init_db():
         conn = sqlite3.connect(DB_FILE, check_same_thread=False)
         c = conn.cursor()
 
-    # Users Table
     c.execute("""CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY,
         email TEXT UNIQUE,
@@ -56,7 +56,6 @@ def init_db():
         is_admin INTEGER
     )""")
     
-    # Plans Table
     c.execute("""CREATE TABLE IF NOT EXISTS saved_plans (
         id INTEGER PRIMARY KEY,
         user_id INTEGER,
@@ -66,7 +65,6 @@ def init_db():
         type TEXT
     )""")
     
-    # Tracking Table (History)
     c.execute("""CREATE TABLE IF NOT EXISTS tracking (
         id INTEGER PRIMARY KEY,
         user_id INTEGER,
@@ -80,7 +78,6 @@ init_db()
 
 def hash_pass(p): return hashlib.sha256(p.encode()).hexdigest()
 
-# Create Admin
 c.execute("SELECT * FROM users WHERE is_admin=1")
 if not c.fetchone():
     c.execute("INSERT INTO users VALUES (NULL, ?, ?, ?, NULL, NULL, NULL, NULL, 1)", 
@@ -91,23 +88,21 @@ if not c.fetchone():
 # 3. EXPANDED LOCAL FOOD DB (50+ Items)
 # ==========================================
 LOCAL_DB = {
-    # --- Proteins (Meat & Poultry) ---
+    # --- Proteins ---
     "chicken_breast": {"name": "صدر دجاج", "cal":165, "p":31},
     "chicken_thigh": {"name": "فخذ دجاج", "cal":209, "p":26},
     "turkey_breast": {"name": "صدر ديك رومي", "cal":135, "p":30},
     "beef_steak": {"name": "ستيك لحم", "cal":271, "p":25},
     "ground_beef": {"name": "لحم مفروم", "cal":250, "p":26},
     "lamb": {"name": "لحم ضأن", "cal":294, "p":25},
-    
-    # --- Fish & Seafood ---
     "salmon": {"name": "سلمون", "cal":208, "p":20},
     "tuna_canned": {"name": "تونة معلبة", "cal":116, "p":26},
     "shrimp": {"name": "جمبري", "cal":99, "p":24},
-    "white_fish": {"name": "سمك أبيض (بلطي)", "cal":96, "p":20},
-    
-    # --- Eggs & Dairy ---
+    "white_fish": {"name": "سمك أبيض", "cal":96, "p":20},
     "eggs_whole": {"name": "بيضة كاملة", "cal":78, "p":6},
     "eggs_whites": {"name": "بياض بيض", "cal":17, "p":3.6},
+    
+    # --- Dairy ---
     "milk_whole": {"name": "حليب كامل", "cal":61, "p":3.2},
     "milk_skim": {"name": "حليب خالي الدسم", "cal":35, "p":3.4},
     "greek_yogurt": {"name": "زبادي يوناني", "cal":59, "p":10},
@@ -158,9 +153,8 @@ LOCAL_DB = {
 # 4. HELPER FUNCTIONS
 # ==========================================
 def calculate_macros(weight, height, age, goal):
-    bmr = 10 * weight + 6.25 * height - 5 * age + 5 # Male default
+    bmr = 10 * weight + 6.25 * height - 5 * age + 5 
     tdee = bmr * 1.55
-    
     if goal == "fat_loss": target = tdee - 400
     elif goal == "muscle_gain": target = tdee + 400
     else: target = tdee
@@ -188,7 +182,7 @@ if "targets" not in st.session_state: st.session_state.targets = None
 # ==========================================
 
 if st.session_state.page == "login":
-    st.markdown("<h1 style='text-align:center; color:#0056b3;'>💊 NutraX V5 (Expanded)</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; color:#0056b3;'>💊 NutraX V5 (Stable)</h1>", unsafe_allow_html=True)
     
     tab1, tab2 = st.tabs(["تسجيل الدخول", "إنشاء حساب"])
 
@@ -255,12 +249,10 @@ else:
                 c.execute("UPDATE users SET height=?, weight=?, goal=?, birth_year=? WHERE id=?", 
                           (h, w, goal, datetime.now().year - age, u_id))
                 conn.commit()
-                
                 target_cal = calculate_macros(w, h, age, goal)
                 st.session_state.targets = {'cal': target_cal, 'goal': goal}
                 c.execute("SELECT * FROM users WHERE id=?", (u_id,))
                 st.session_state.user = c.fetchone()
-                
                 st.success(f"تم الحفظ! احتياجك اليومي التقريبي: {target_cal} kcal")
                 st.session_state.page = "planner"
                 st.rerun()
@@ -279,7 +271,7 @@ else:
         st.markdown("---")
         st.info("ابدأ بتصميم جدول جديد أو راجع سجل وزنك.")
 
-    # --- 3. PLANNER (Multi-day Logic) ---
+    # --- 3. PLANNER ---
     elif st.session_state.page == "planner":
         st.title("مصمم الجدول الغذائي")
         if not st.session_state.targets:
@@ -289,24 +281,20 @@ else:
             
         target = st.session_state.targets['cal']
         st.info(f"الهدف اليومي: **{target} kcal**")
-        st.caption("قاعدة البيانات موسعة الآن لتشمل الكينوا، الشيا، وأصناف متنوعة.")
         
         days = st.number_input("عدد الأيام", 1, 30, 1)
-        
         plan = {}
         total_cal = 0
         
         for d in range(days):
             st.subheader(f"📅 يوم {d+1}")
             plan[d] = {}
-            
             cols = st.columns(4)
             meals = ["فطار", "غداء", "عشاء", "سناك"]
             
             for i, meal in enumerate(meals):
                 with cols[i]:
                     st.write(f"**{meal}**")
-                    # Using the expanded list of keys
                     foods = st.multiselect(f"أضف أكل", list(LOCAL_DB.keys()), key=f"sel_{meal}_{d}")
                     plan[d][meal] = {}
                     
@@ -345,14 +333,11 @@ else:
     elif st.session_state.page == "saved":
         st.title("جداولي المحفوظة")
         filter_type = st.selectbox("فلتر", ["الكل", "خاص بي", "للعميل", "عام"])
-        
         query = "SELECT id, plan_name, created_at, type FROM saved_plans WHERE user_id=?"
         params = [u_id]
-        
         if filter_type != "الكل":
             query += " AND type=?"
             params.append(filter_type)
-            
         c.execute(query, params)
         data = c.fetchall()
         
@@ -367,18 +352,16 @@ else:
                         for m, foods in meals.items():
                             items_str = ", ".join([f"{LOCAL_DB[k]['name']}: {v}g" for k,v in foods.items() if v>0])
                             st.write(f"- {m}: {items_str}")
-                
                 with col2:
                     if st.button("🛒 قائمة المشتريات", key=f"shop_{pid}"):
                         c.execute("SELECT plan_data FROM saved_plans WHERE id=?", (pid,))
                         raw_plan = json.loads(c.fetchone()[0])
                         shop = generate_shopping_list(raw_plan)
-                        
                         st.subheader("قائمة المشتريات للجدول")
                         for f_key, total_g in shop.items():
-                            st.write(f"- {LOCAL_DB[f_key]['name']}: **{total_g} جم** ({int(total_g/1000) if total_g>1000 else total_g} كجم/جم)")
+                            st.write(f"- {LOCAL_DB[f_key]['name']}: **{total_g} جم**")
 
-    # --- 5. HISTORY (Charts) ---
+    # --- 5. HISTORY (Native Chart) ---
     elif st.session_state.page == "history":
         st.title("سجل تقدم الوزن")
         with st.form("log_weight"):
@@ -393,12 +376,9 @@ else:
         data = c.fetchall()
         
         if data:
-            dates = [d[0] for d in data]
+            # استخراج الوزن فقط للرسم البسيط
             weights = [d[1] for d in data]
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=dates, y=weights, mode='lines+markers', name='الوزن'))
-            fig.update_layout(title="تغير الوزن عبر الزمن", xaxis_title="التاريخ", yaxis_title="الوزن (كجم)")
-            st.plotly_chart(fig, use_container_width=True)
+            st.line_chart({"الوزن (كجم)": weights})
+            st.write("*(يظهر هنا رسم بياني مبسط لتقدمك)*")
         else:
             st.info("لا توجد سجلات وزن بعد.")
