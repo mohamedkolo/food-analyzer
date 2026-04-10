@@ -39,7 +39,7 @@ st.markdown("""
         width: 100%;
         text-align: right;
         background: rgba(255,255,255,0.05);
-        color: #cce8ff;
+        color: #e8f8ff;
         border: 1px solid rgba(0,180,216,0.15);
         border-radius: 10px;
         padding: 10px 15px;
@@ -66,9 +66,9 @@ st.markdown("""
         transition: transform 0.2s;
     }
     .stat-card:hover { transform: translateY(-3px); }
-    .stat-card .label { color: #90caf9; font-size: 13px; margin-bottom: 6px; }
+    .stat-card .label { color: #b8d8ff; font-size: 13px; margin-bottom: 6px; font-weight:600; }
     .stat-card .value { color: #ffffff; font-size: 28px; font-weight: 700; }
-    .stat-card .unit  { color: #90caf9; font-size: 12px; }
+    .stat-card .unit  { color: #a8ccee; font-size: 12px; }
 
     /* ── Macro pills ── */
     .macro-row { display:flex; gap:10px; margin-top:12px; justify-content:center; }
@@ -91,7 +91,7 @@ st.markdown("""
         margin-bottom: 10px;
         border-left: 4px solid #00b4d8;
     }
-    .food-card h4 { color: #e0f4ff; margin: 0 0 8px 0; font-size: 16px; }
+    .food-card h4 { color: #ffffff; margin: 0 0 8px 0; font-size: 16px; }
 
     /* ── Progress bar custom ── */
     .progress-wrap { background: rgba(255,255,255,0.08); border-radius:20px; height:12px; overflow:hidden; margin:6px 0; }
@@ -127,21 +127,28 @@ st.markdown("""
     .diff-zero{ color:#90caf9; font-weight:700; }
 
     /* ── General text in app ── */
-    h1,h2,h3,h4,h5 { color: #e0f4ff !important; }
-    .stMarkdown p { color: #b0cfe0; }
-    label, .stSelectbox label, .stNumberInput label, .stTextInput label { color: #90caf9 !important; }
+    h1,h2,h3,h4,h5 { color: #ffffff !important; }
+    p, li { color: #e8f4ff; }
+    .stMarkdown p  { color: #e8f4ff !important; }
+    .stMarkdown li { color: #e8f4ff !important; }
+    .stMarkdown strong { color: #ffffff !important; }
+    label, .stSelectbox label, .stNumberInput label, .stTextInput label { color: #c8e6ff !important; font-weight:600; }
+    [data-testid="stText"] { color: #e8f4ff !important; }
+    .stCaption, [data-testid="stCaptionContainer"] { color: #a8ccee !important; }
+    [data-baseweb="select"] span { color: #ffffff !important; }
+    [data-baseweb="menu"] li   { color: #1a2a3a !important; }
 
     /* ── Inputs ── */
     input, .stTextInput input, .stNumberInput input {
-        background: rgba(255,255,255,0.07) !important;
-        color: #e0f4ff !important;
-        border: 1px solid rgba(0,180,216,0.3) !important;
+        background: rgba(255,255,255,0.10) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(0,180,216,0.4) !important;
         border-radius: 8px !important;
     }
     .stSelectbox > div > div {
-        background: rgba(255,255,255,0.07) !important;
-        color: #e0f4ff !important;
-        border: 1px solid rgba(0,180,216,0.3) !important;
+        background: rgba(255,255,255,0.10) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(0,180,216,0.4) !important;
     }
 
     /* ── Main buttons ── */
@@ -186,8 +193,8 @@ st.markdown("""
         border-radius: 12px;
         padding: 12px;
     }
-    [data-testid="metric-container"] label { color: #90caf9 !important; }
-    [data-testid="metric-container"] [data-testid="stMetricValue"] { color: #e0f4ff !important; }
+    [data-testid="metric-container"] label { color: #c8e6ff !important; font-weight:600; }
+    [data-testid="metric-container"] [data-testid="stMetricValue"] { color: #ffffff !important; font-weight:700; }
 
     /* ── Divider ── */
     hr { border-color: rgba(0,180,216,0.2) !important; }
@@ -201,7 +208,7 @@ st.markdown("""
         margin-bottom: 12px;
     }
     .suggestion-box h4 { color: #00d4ff; margin: 0 0 10px 0; }
-    .suggestion-box p  { color: #b0cfe0; margin: 4px 0; font-size: 14px; }
+    .suggestion-box p  { color: #dceeff; margin: 4px 0; font-size: 14px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -504,6 +511,11 @@ else:
             st.session_state.user = None
             st.session_state.page = "login"
             st.rerun()
+
+    # ── Validate targets has all required keys (fix KeyError from old sessions) ──
+    required_keys = {"cal", "p", "c", "f", "goal"}
+    if st.session_state.targets and not required_keys.issubset(st.session_state.targets.keys()):
+        st.session_state.targets = None
 
     # ============================================
     # DASHBOARD
