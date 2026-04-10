@@ -1,5 +1,5 @@
 # ===============================
-# NUTRAX ULTIMATE SYSTEM (Compact Stable Version)
+# NUTRAX V2 - PRO SYSTEM
 # ===============================
 
 import streamlit as st
@@ -9,274 +9,371 @@ import copy
 from datetime import datetime
 
 # ===============================
-# PAGE CONFIG & STYLES
+# CONFIG & STYLING
 # ===============================
-st.set_page_config(page_title="NutraX", page_icon="💊", layout="centered")
+st.set_page_config(
+    page_title="NutraX Pro",
+    page_icon="💊",
+    layout="wide", # الواجهة عريضة عشان تظهر معلومات كتير
+    initial_sidebar_state="expanded"
+)
 
+# CSS للحصول على واجهة احترافية
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
     html, body, [class*="css"] { font-family: 'Cairo', sans-serif; direction: rtl; }
-    .main { background-color: #f0f4f8; }
-    .section-title { font-size: 1.1em; font-weight: 700; color: #0056b3; border-right: 5px solid #007bff; padding-right: 12px; margin: 20px 0 10px; }
     
-    /* Plans Cards */
-    .plan-container { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
-    .plan-card { background: white; border-radius: 20px; padding: 30px; width: 300px; text-align: center; box-shadow: 0 10px 25px rgba(0,123,255,0.1); border-top: 6px solid #ccc; }
-    .plan-free { border-color: #6c757d; }
-    .plan-pro { border-color: #007bff; }
-    .plan-coach { border-color: #ffc107; }
-    .plan-price { font-size: 2.5em; font-weight: 800; margin: 15px 0; color: #222; }
-    .plan-features { list-style: none; padding: 0; text-align: right; margin: 25px 0; font-size: 1.05em; }
-    .plan-features li { padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
-    .btn-plan { display: block; width: 100%; padding: 12px; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 1.1em; }
+    /* Sidebar Profile Card */
+    .profile-card {
+        background: linear-gradient(135deg, #0056b3, #007bff);
+        color: white; padding: 20px; border-radius: 15px;
+        margin-bottom: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+    }
+    .profile-avatar { font-size: 3em; margin-bottom: 10px; }
+    .profile-name { font-weight: 700; font-size: 1.2em; }
+    .profile-role { font-size: 0.8em; opacity: 0.9; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; display: inline-block; margin-top: 5px; }
+
+    /* Main Cards */
+    .card {
+        background: white; padding: 25px; border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #eee; margin-bottom: 20px;
+    }
+    .card-header { font-size: 1.4em; font-weight: 700; color: #333; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
     
-    /* Meal Planner */
-    .meal-card { background: white; border-radius: 14px; padding: 20px; margin: 12px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-right: 6px solid #007bff; }
-    .total-bar { background: linear-gradient(135deg, #0056b3, #007bff); color: white; border-radius: 16px; padding: 20px 30px; margin: 20px 0; text-align: center; font-weight: bold; font-size: 1.2em; }
+    /* Goal Cards */
+    .goal-card {
+        background: white; padding: 20px; border-radius: 12px;
+        border: 2px solid #eee; text-align: center; cursor: pointer; transition: 0.3s;
+    }
+    .goal-card:hover { border-color: #007bff; transform: translateY(-5px); }
+    .goal-icon { font-size: 2.5em; display: block; margin-bottom: 10px; }
+    
+    /* Food Cards */
+    .food-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f9f9f9; }
+    .food-name { font-weight: 600; color: #333; }
+    .food-cal { color: #007bff; font-weight: bold; }
+
+    /* Tables */
+    .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .data-table th { background: #f8f9fa; color: #555; padding: 12px; text-align: right; font-size: 0.9em; }
+    .data-table td { padding: 12px; border-bottom: 1px solid #eee; color: #333; font-size: 0.95em; }
 </style>
 """, unsafe_allow_html=True)
 
 # ===============================
-# DB SETUP
+# DATABASE CONNECTION & SETUP
 # ===============================
-conn = sqlite3.connect("nutrax.db", check_same_thread=False)
+conn = sqlite3.connect("nutrax_v2.db", check_same_thread=False)
 c = conn.cursor()
 
-c.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, password TEXT, is_admin INTEGER DEFAULT 0)")
-c.execute("CREATE TABLE IF NOT EXISTS meals (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, calories INTEGER, protein INTEGER, carbs INTEGER, fat INTEGER)")
-c.execute("CREATE TABLE IF NOT EXISTS tracking (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, weight REAL, date TEXT)")
+# جدول المستخدمين (تمت إضافة الاسم وسنة الميلاد والهدف)
+c.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE,
+    password TEXT,
+    name TEXT,
+    birth_year INTEGER,
+    height REAL,
+    weight REAL,
+    goal TEXT DEFAULT 'maintain',
+    is_admin INTEGER DEFAULT 0,
+    join_date TEXT DEFAULT datetime('now')
+)
+""")
+
+# جداول الأكل والتتبع
+c.execute("CREATE TABLE IF NOT EXISTS meals (id INTEGER PRIMARY KEY, name TEXT, calories INTEGER, protein REAL, carbs REAL, fat REAL)")
+c.execute("CREATE TABLE IF NOT EXISTS tracking (id INTEGER PRIMARY KEY, user_id INTEGER, weight REAL, date TEXT)")
+
+# تحديث الجدول تلقائياً لو كان قديم (Migration)
+try:
+    c.execute("ALTER TABLE users ADD COLUMN name TEXT")
+    c.execute("ALTER TABLE users ADD COLUMN birth_year INTEGER")
+    c.execute("ALTER TABLE users ADD COLUMN height REAL")
+    c.execute("ALTER TABLE users ADD COLUMN weight REAL")
+    c.execute("ALTER TABLE users ADD COLUMN goal TEXT")
+    c.execute("ALTER TABLE users ADD COLUMN join_date TEXT")
+except:
+    pass # الأعمدة موجودة بالفعل
 conn.commit()
 
-# ===============================
-# AUTO-CREATE ADMIN
-# ===============================
+# إنشاء أدمن افتراضي
 def hash_pass(p): return hashlib.sha256(p.encode()).hexdigest()
-
 c.execute("SELECT * FROM users WHERE is_admin=1")
 if not c.fetchone():
-    c.execute("INSERT INTO users (email, password, is_admin) VALUES (?, ?, ?)", ("admin@nutrax.com", hash_pass("admin123"), 1))
+    c.execute("INSERT INTO users (email, password, name, is_admin) VALUES (?, ?, ?, ?)",
+              ("admin@nutrax.com", hash_pass("admin123"), "Super Admin", 1))
     conn.commit()
 
 # ===============================
-# DATA (Top 20 Essentials)
+# EXPANDED DATABASE (LOCAL_DB)
 # ===============================
 LOCAL_DB = {
-    "apple": {"name_ar": "تفاح", "nutrients": {"Energy":52, "Protein":0.3,"Total lipid (fat)":0.2,"Carbohydrate, by difference":14,"Fiber, total dietary":2.4,"Calcium, Ca":6,"Iron, Fe":0.1}},
-    "banana": {"name_ar": "موز", "nutrients": {"Energy":89, "Protein":1.1,"Total lipid (fat)":0.3,"Carbohydrate, by difference":23,"Fiber, total dietary":2.6,"Potassium, K":358}},
-    "egg": {"name_ar": "بيضة", "nutrients": {"Energy":143, "Protein":12.6,"Total lipid (fat)":9.5,"Carbohydrate, by difference":0.7,"Calcium, Ca":56,"Iron, Fe":1.8,"Vitamin D (D2 + D3)":2.0}},
-    "chicken breast": {"name_ar": "صدر دجاج", "nutrients": {"Energy":165, "Protein":31,"Total lipid (fat)":3.6,"Carbohydrate, by difference":0,"Iron, Fe":1.0,"Vitamin B-12":0.3}},
-    "rice": {"name_ar": "أرز", "nutrients": {"Energy":130, "Protein":2.7,"Total lipid (fat)":0.3,"Carbohydrate, by difference":28,"Fiber, total dietary":0.4,"Iron, Fe":1.5}},
-    "bread": {"name_ar": "خبز", "nutrients": {"Energy":265, "Protein":9,"Total lipid (fat)":3.2,"Carbohydrate, by difference":49,"Fiber, total dietary":2.7,"Calcium, Ca":182}},
-    "milk": {"name_ar": "حليب", "nutrients": {"Energy":61, "Protein":3.2,"Total lipid (fat)":3.3,"Carbohydrate, by difference":4.8,"Calcium, Ca":113,"Vitamin D (D2 + D3)":1.3}},
-    "yogurt": {"name_ar": "زبادي", "nutrients": {"Energy":61, "Protein":3.5,"Total lipid (fat)":3.3,"Carbohydrate, by difference":4.7,"Calcium, Ca":121}},
-    "cheese": {"name_ar": "جبن", "nutrients": {"Energy":264, "Protein":18,"Total lipid (fat)":21,"Carbohydrate, by difference":1.3,"Calcium, Ca":500,"Sodium, Na":621}},
-    "beef": {"name_ar": "لحم بقري", "nutrients": {"Energy":250, "Protein":26,"Total lipid (fat)":15,"Carbohydrate, by difference":0,"Iron, Fe":2.6,"Zinc, Zn":5.3}},
-    "tuna": {"name_ar": "تونة", "nutrients": {"Energy":128, "Protein":29,"Total lipid (fat)":1.0,"Carbohydrate, by difference":0,"Iron, Fe":1.3,"Vitamin D (D2 + D3)":5.7}},
-    "salmon": {"name_ar": "سلمون", "nutrients": {"Energy":208, "Protein":20,"Total lipid (fat)":13,"Carbohydrate, by difference":0,"Vitamin D (D2 + D3)":11}},
-    "pasta": {"name_ar": "مكرونة", "nutrients": {"Energy":158, "Protein":5.8,"Total lipid (fat)":0.9,"Carbohydrate, by difference":31,"Fiber, total dietary":1.8}},
-    "oats": {"name_ar": "شوفان", "nutrients": {"Energy":389, "Protein":16.9,"Total lipid (fat)":6.9,"Carbohydrate, by difference":66,"Fiber, total dietary":10.6,"Iron, Fe":4.7}},
-    "potato": {"name_ar": "بطاطس", "nutrients": {"Energy":87, "Protein":1.9,"Total lipid (fat)":0.1,"Carbohydrate, by difference":20,"Vitamin C, total ascorbic acid":13}},
-    "lentils": {"name_ar": "عدس", "nutrients": {"Energy":116, "Protein":9,"Total lipid (fat)":0.4,"Carbohydrate, by difference":20,"Fiber, total dietary":7.9,"Iron, Fe":3.3}},
-    "almonds": {"name_ar": "لوز", "nutrients": {"Energy":579, "Protein":21,"Total lipid (fat)":50,"Carbohydrate, by difference":22,"Fiber, total dietary":12.5,"Calcium, Ca":264}},
-    "orange": {"name_ar": "برتقال", "nutrients": {"Energy":47, "Protein":0.9,"Total lipid (fat)":0.1,"Carbohydrate, by difference":12,"Vitamin C, total ascorbic acid":53}},
-    "avocado": {"name_ar": "أفوكادو", "nutrients": {"Energy":160, "Protein":2,"Total lipid (fat)":15,"Carbohydrate, by difference":9,"Fiber, total dietary":6.7}},
-    "broccoli": {"name_ar": "بروكلي", "nutrients": {"Energy":34, "Protein":2.8,"Total lipid (fat)":0.4,"Carbohydrate, by difference":7,"Fiber, total dietary":2.6,"Vitamin C, total ascorbic acid":89}},
-}
-
-MEAL_PLAN_TEMPLATES = {
-    "خسارة دهون وبناء عضل": {
-        "الإفطار": [{"name": "شوفان", "amount": 50, "key": "oats"}, {"name": "بيضة", "amount": 100, "key": "egg"}],
-        "الغداء": [{"name": "صدر دجاج", "amount": 150, "key": "chicken breast"}, {"name": "أرز", "amount": 100, "key": "rice"}],
-        "العشاء": [{"name": "تونة", "amount": 100, "key": "tuna"}, {"name": "سلطة", "amount": 100, "key": "broccoli"}], 
-    },
-    "زيادة الوزن والعضل": {
-        "الإفطار": [{"name": "شوفان", "amount": 80, "key": "oats"}, {"name": "بيضة", "amount": 150, "key": "egg"}, {"name": "حليب", "amount": 200, "key": "milk"}],
-        "الغداء": [{"name": "صدر دجاج", "amount": 200, "key": "chicken breast"}, {"name": "أرز", "amount": 250, "key": "rice"}],
-        "العشاء": [{"name": "لحم بقري", "amount": 150, "key": "beef"}, {"name": "مكرونة", "amount": 200, "key": "pasta"}],
-    }
-}
-
-def get_meal_macros(items):
-    total = {"Energy":0, "Protein":0, "Carbohydrate, by difference":0, "Total lipid (fat)":0}
-    for item in items:
-        key = item.get("key")
-        amt = item.get("amount", 100) / 100.0
-        if key in LOCAL_DB:
-            nuts = LOCAL_DB[key]["nutrients"]
-            for k in total: total[k] += nuts.get(k, 0) * amt
-    return total
-
-# ===============================
-# APP UI & LOGIC
-# ===============================
-st.title("NutraX PRO 💊")
-
-if "user" not in st.session_state: st.session_state.user = None
-
-# Sidebar Menu
-menu = st.sidebar.selectbox("القائمة", ["تسجيل الدخول", "إنشاء حساب"])
-
-if menu == "إنشاء حساب":
-    with st.form("reg"):
-        e = st.text_input("البريد الإلكتروني")
-        p = st.text_input("كلمة المرور", type="password")
-        if st.form_submit_button("إنشاء"):
-            try:
-                c.execute("INSERT INTO users (email, password) VALUES (?,?)", (e, hash_pass(p)))
-                conn.commit()
-                st.success("تم إنشاء الحساب")
-            except: st.error("البريد مستخدم")
-
-if menu == "تسجيل الدخول":
-    with st.form("login"):
-        e = st.text_input("البريد الإلكتروني")
-        p = st.text_input("كلمة المرور", type="password")
-        if st.form_submit_button("دخول"):
-            c.execute("SELECT * FROM users WHERE email=? AND password=?", (e, hash_pass(p)))
-            u = c.fetchone()
-            if u:
-                st.session_state.user = u
-                st.rerun()
-            else: st.error("خطأ في البيانات")
-
-if st.session_state.user:
-    uid = st.session_state.user[0]
-    is_admin = st.session_state.user[3]
-    st.sidebar.markdown("---")
+    # فواكه وخضار (من السابق)
+    "apple": {"name_ar": "تفاح أحمر", "cal": 52, "p": 0.3, "c": 14, "f": 0.2},
+    "banana": {"name_ar": "موز", "cal": 89, "p": 1.1, "c": 23, "f": 0.3},
+    "orange": {"name_ar": "برتقال", "cal": 47, "p": 0.9, "c": 12, "f": 0.1},
+    "broccoli": {"name_ar": "بروكلي", "cal": 34, "p": 2.8, "c": 7, "f": 0.4},
+    "spinach": {"name_ar": "سبانخ", "cal": 23, "p": 2.9, "c": 3.6, "f": 0.4},
     
-    # Navigation
-    page = st.sidebar.radio("الصفحات", ["📊 لوحة التحكم", "🔍 محلل الأكل", "🍽️ مصمم الوجبات", "💎 الباقات"], label_visibility="collapsed")
-    if is_admin:
-        page = st.sidebar.selectbox("أدمن", ["📊 لوحة التحكم", "🔍 محلل الأكل", "🍽️ مصمم الوجبات", "💎 الباقات", "🛠️ إدارة الأكل"], index=0)
+    # بروتينات حيوانية (لحوم ودجاج متنوعة)
+    "chicken breast": {"name_ar": "صدر دجاج مشوي", "cal": 165, "p": 31, "c": 0, "f": 3.6},
+    "chicken thigh": {"name_ar": "فخذ دجاج", "cal": 209, "p": 26, "c": 0, "f": 10},
+    "turkey breast": {"name_ar": "صدر ديك رومي", "cal": 135, "p": 30, "c": 0, "f": 1},
+    "beef steak": {"name_ar": "ستيك لحم بقري", "cal": 271, "p": 25, "c": 0, "f": 19},
+    "ground beef": {"name_ar": "لحم مفروم (15%)", "cal": 250, "p": 26, "c": 0, "f": 15},
+    "lamb": {"name_ar": "لحم ضأن", "cal": 294, "p": 25, "c": 0, "f": 21},
+    "salmon": {"name_ar": "سلمون", "cal": 208, "p": 20, "c": 0, "f": 13},
+    "tuna": {"name_ar": "تونة معلبة", "cal": 116, "p": 26, "c": 0, "f": 1},
+    "shrimp": {"name_ar": "جمبري", "cal": 99, "p": 24, "c": 0.2, "f": 0.3},
+    "eggs": {"name_ar": "بيضة (كبيرة)", "cal": 78, "p": 6, "c": 0.6, "f": 5},
 
-    # Dashboard
-    if page == "📊 لوحة التحكم":
-        c1, c2 = st.columns(2)
-        with c1:
-            st.subheader("احتياجاتك")
-            with st.expander("بياناتك", expanded=True):
-                g = st.radio("الجنس", ["ذكر", "أنثى"], horizontal=True)
-                a = st.number_input("العمر", 10, 100, 25)
-                h = st.number_input("الطول سم", 100, 250, 170)
-                w = st.number_input("الوزن كجم", 30, 300, 70)
-                act = st.selectbox("النشاط", ["خفيف", "متوسط", "رياضي"])
-                gl = st.selectbox("الهدف", ["خسارة دهون", "بناء عضل", "ثبات"])
-                if st.button("احسب"):
-                    bmr = (10*w + 6.25*h - 5*a + 5) if g=="ذكر" else (10*w + 6.25*h - 5*a - 161)
-                    mul = {"خفيف":1.2, "متوسط":1.55, "رياضي":1.8}[act]
-                    tdee = bmr * mul
-                    adj = {"خسارة دهون":-400, "بناء عضل":400, "ثبات":0}[gl]
-                    st.session_state['cal'] = int(tdee+adj)
-                    st.session_state['w'] = w
-        with c2:
-            if 'cal' in st.session_state:
-                st.metric("BMI", f"{w/((h/100)**2):.1f}")
-                st.metric("الهدف", f"{st.session_state['cal']} kcal")
+    # منتجات ألبان وجبن (تنوع كبير)
+    "milk whole": {"name_ar": "حليب كامل الدسم", "cal": 61, "p": 3.2, "c": 4.8, "f": 3.3},
+    "milk skim": {"name_ar": "حليب خالي الدسم", "cal": 35, "p": 3.4, "c": 5, "f": 0.1},
+    "greek yogurt": {"name_ar": "زبادي يوناني", "cal": 59, "p": 10, "c": 3.6, "f": 0.4},
+    "cottage cheese": {"name_ar": "جبن قريش", "cal": 98, "p": 11, "c": 3.4, "f": 4.3},
+    "white cheese": {"name_ar": "جبن أبيض", "cal": 264, "p": 18, "c": 1.3, "f": 21},
+    "mozzarella": {"name_ar": "موزاريلا", "cal": 280, "p": 28, "c": 2.2, "f": 17},
+    "cheddar": {"name_ar": "جبن شيدر", "cal": 402, "p": 25, "c": 1.3, "f": 33},
+    "parmesan": {"name_ar": "بارميزان", "cal": 431, "p": 38, "c": 3.2, "f": 29},
+
+    # كربوهيدرات وحبوب (شوفان وأكثر)
+    "oats": {"name_ar": "شوفان", "cal": 389, "p": 16.9, "c": 66, "f": 6.9},
+    "quinoa": {"name_ar": "كينوا مطبوخة", "cal": 120, "p": 4.4, "c": 21, "f": 1.9},
+    "brown rice": {"name_ar": "أرز بني", "cal": 111, "p": 2.6, "c": 23, "f": 0.9},
+    "white rice": {"name_ar": "أرز أبيض", "cal": 130, "p": 2.7, "c": 28, "f": 0.3},
+    "pasta": {"name_ar": "مكرونة", "cal": 131, "p": 5, "c": 25, "f": 1.1},
+    "bulgur": {"name_ar": "برغل", "cal": 83, "p": 3.1, "c": 18, "f": 0.2},
+    "bread whole": {"name_ar": "خبز قمح كامل", "cal": 247, "p": 13, "c": 41, "f": 3.4},
+    "sweet potato": {"name_ar": "بطاطا حلوة", "cal": 86, "p": 1.6, "c": 20, "f": 0.1},
+    "potato": {"name_ar": "بطاطس مسلوقة", "cal": 87, "p": 1.9, "c": 20, "f": 0.1},
+
+    # دهون صحية ومكسرات
+    "almonds": {"name_ar": "لوز", "cal": 579, "p": 21, "c": 22, "f": 50},
+    "walnuts": {"name_ar": "جوز", "cal": 654, "p": 15, "c": 14, "f": 65},
+    "peanut butter": {"name_ar": "زبدة فول سوداني", "cal": 588, "p": 25, "c": 20, "f": 50},
+    "olive oil": {"name_ar": "زيت زيتون", "cal": 884, "p": 0, "c": 0, "f": 100},
+    "avocado": {"name_ar": "أفوكادو", "cal": 160, "p": 2, "c": 9, "f": 15},
+    "pumpkin seeds": {"name_ar": "بذور قرع", "cal": 559, "p": 30, "c": 10, "f": 49},
+}
+
+# ===============================
+# HELPER FUNCTIONS
+# ===============================
+def get_user(uid):
+    c.execute("SELECT * FROM users WHERE id=?", (uid,))
+    return c.fetchone()
+
+def calc_bmi(w, h): return w / ((h/100)**2)
+
+# ===============================
+# SESSION STATE INIT
+# ===============================
+if 'page' not in st.session_state: st.session_state.page = 'auth'
+if 'user' not in st.session_state: st.session_state.user = None
+
+# ===============================
+# PAGE: AUTHENTICATION (Login/Register)
+# ===============================
+if st.session_state.page == 'auth':
+    col_l, col_c, col_r = st.columns([1,2,1])
+    with col_c:
+        st.markdown("<h1 style='text-align:center; color:#0056b3; margin-bottom:30px;'>💊 NutraX Pro</h1>", unsafe_allow_html=True)
+        
+        auth_type = st.tabs(["تسجيل الدخول", "إنشاء حساب جديد"])
+        
+        with auth_type[0]: # Login
+            with st.form("login_form"):
+                email = st.text_input("البريد الإلكتروني")
+                password = st.text_input("كلمة المرور", type="password")
+                if st.form_submit_button("دخول"):
+                    c.execute("SELECT * FROM users WHERE email=? AND password=?", (email, hash_pass(password)))
+                    u = c.fetchone()
+                    if u:
+                        st.session_state.user = u
+                        st.session_state.page = 'dashboard'
+                        st.rerun()
+                    else:
+                        st.error("البيانات غير صحيحة")
+
+        with auth_type[1]: # Register
+            with st.form("reg_form"):
+                name = st.text_input("الاسم الكامل")
+                email = st.text_input("البريد الإلكتروني")
+                password = st.text_input("كلمة المرور", type="password")
+                birth_year = st.number_input("سنة الميلاد", min_value=1950, max_value=2010, value=2000)
+                
+                if st.form_submit_button("إنشاء حساب"):
+                    try:
+                        c.execute("INSERT INTO users (email, password, name, birth_year) VALUES (?,?,?,?)",
+                                  (email, hash_pass(password), name, birth_year))
+                        conn.commit()
+                        st.success("تم إنشاء الحساب! سجل دخولك الآن.")
+                    except sqlite3.IntegrityError:
+                        st.error("البريد الإلكتروني مستخدم من قبل.")
+
+# ===============================
+# MAIN APP LOGIC (If Logged In)
+# ===============================
+else:
+    user_id = st.session_state.user[0]
+    user = get_user(user_id)
+    u_name, u_email, u_goal = user[3], user[1], user[6]
+    is_admin = user[8]
+
+    # ===================
+    # SIDEBAR NAVIGATION
+    # ===================
+    with st.sidebar:
+        # Profile Card
+        st.markdown(f"""
+        <div class='profile-card'>
+            <div class='profile-avatar'>👤</div>
+            <div class='profile-name'>{u_name}</div>
+            <div class='profile-role'>عضو NutraX</div>
+            <div style='font-size:0.8em; margin-top:10px; opacity:0.8'>{u_email}</div>
+        </div>
+        """, unsafe_allow_html=True)
         
         st.divider()
-        st.subheader("تتبع الوزن")
-        c1, c2 = st.columns([1,3])
-        with c1:
-            nw = st.number_input("وزن اليوم", value=float(st.session_state.get('w',70)))
-            if st.button("حفظ"):
-                c.execute("INSERT INTO tracking (user_id, weight, date) VALUES (?,?,datetime('now'))", (uid, nw))
+        
+        # Menu
+        if st.button("🏠 الرئيسية (Dashboard)", use_container_width=True):
+            st.session_state.page = 'dashboard'
+            st.rerun()
+        if st.button("👤 الملف الشخصي والأهداف", use_container_width=True):
+            st.session_state.page = 'profile'
+            st.rerun()
+        if st.button("🥗 محلل الطعام", use_container_width=True):
+            st.session_state.page = 'analyzer'
+            st.rerun()
+        if st.button("📅 مصمم الجدول", use_container_width=True):
+            st.session_state.page = 'planner'
+            st.rerun()
+        
+        st.divider()
+        if st.button("🚪 تسجيل خروج", use_container_width=True):
+            st.session_state.user = None
+            st.session_state.page = 'auth'
+            st.rerun()
+            
+        if is_admin:
+            st.markdown("---")
+            st.warning("لوحة تحكم الأدمن")
+            if st.button("🔔 مشاهدة المسجلين الجدد"):
+                st.session_state.page = 'admin_notifications'
+                st.rerun()
+
+    # ===================
+    # PAGE ROUTER
+    # ===================
+    
+    # 1. DASHBOARD
+    if st.session_state.page == 'dashboard':
+        st.title(f"أهلاً بك، {u_name} 👋")
+        c1, c2, c3 = st.columns(3)
+        
+        # Quick BMI check if data exists
+        w = user[5] or 70
+        h = user[4] or 170
+        bmi = calc_bmi(w, h)
+        
+        c1.metric("مؤشر الكتلة (BMI)", f"{bmi:.1f}")
+        c2.metric("هدفك الحالي", u_goal)
+        c3.metric("تاريخ الانضمام", user[9][:10])
+        
+        st.markdown("<div class='card'><div class='card-header'>نصائح اليوم</div></div>", unsafe_allow_html=True)
+        st.info("تأكد من شرب 3 لتر ماء يومياً ومتابعة وزنك في قسم التتبع.")
+
+    # 2. PROFILE & GOALS
+    elif st.session_state.page == 'profile':
+        st.title("⚙️ إعدادات الملف الشخصي")
+        
+        with st.form("update_profile"):
+            col1, col2 = st.columns(2)
+            with col1:
+                new_name = st.text_input("الاسم", value=u_name)
+                new_height = st.number_input("الطول (سم)", value=float(user[4] or 170))
+            with col2:
+                new_weight = st.number_input("الوزن (كجم)", value=float(user[5] or 70))
+                new_goal = st.selectbox("ما هو هدفك الأساسي؟", ["خسارة دهون", "بناء عضل", "الحفاظ على الوزن"], 
+                                         index=["loss","gain","maintain"].index(user[6]) if user[6] else 0)
+            
+            if st.form_submit_button("حفظ التغييرات"):
+                goal_map = {"خسارة دهون": "loss", "بناء عضل": "gain", "الحفاظ على الوزن": "maintain"}
+                c.execute("UPDATE users SET name=?, height=?, weight=?, goal=? WHERE id=?",
+                          (new_name, new_height, new_weight, goal_map[new_goal], user_id))
                 conn.commit()
-                st.success("تم")
-        with c2:
-            c.execute("SELECT date, weight FROM tracking WHERE user_id=? ORDER BY id DESC LIMIT 7", (uid,))
-            d = c.fetchall()
-            if d: st.line_chart(dict(zip([x[0] for x in d[::-1]], [x[1] for x in d[::-1]])))
+                st.success("تم تحديث بياناتك بنجاح!")
+                st.rerun()
 
-    # Analyzer
-    elif page == "🔍 محلل الأكل":
-        st.subheader("تحليل الطعام")
-        c1, c2 = st.columns([3,1])
-        with c1: s = st.text_input("ابحث (مثال: تفاح، دجاج)")
-        with c2: g = st.number_input("جم", 100)
-        if s:
-            k = next((k for k,v in LOCAL_DB.items() if s in v["name_ar"] or s in k), None)
-            if k:
-                i = LOCAL_DB[k]
-                st.write(f"### {i['name_ar']} ({g}جم)")
-                n = i['nutrients']
-                f = g/100.0
-                c1, c2, c3, c4 = st.columns(4)
-                c1.metric("سعرات", f"{n['Energy']*f:.0f}")
-                c2.metric("بروتين", f"{n['Protein']*f:.1f}g")
-                c3.metric("كارب", f"{n['Carbohydrate, by difference']*f:.1f}g")
-                c4.metric("دهون", f"{n['Total lipid (fat)']*f:.1f}g")
-            else: st.warning("غير موجود")
+    # 3. ANALYZER
+    elif st.session_state.page == 'analyzer':
+        st.title("🔍 محلل الطعام المتقدم")
+        search = st.text_input("ابحث عن طعام (مثال: موز، ستيلك، موزاريلا)")
+        
+        if search:
+            results = []
+            for k, v in LOCAL_DB.items():
+                if search.lower() in k.lower() or search in v['name_ar']:
+                    results.append((k, v))
+            
+            if results:
+                st.markdown(f"تم العثور على {len(results)} نتيجة:")
+                for k, v in results:
+                    with st.expander(f"🍴 {v['name_ar']} ({k})"):
+                        c1, c2, c3, c4 = st.columns(4)
+                        c1.metric("سعرات", f"{v['cal']} kcal")
+                        c2.metric("بروتين", f"{v['p']} g")
+                        c3.metric("كارب", f"{v['c']} g")
+                        c4.metric("دهون", f"{v['f']} g")
+            else:
+                st.warning("عذراً، هذا الطعام غير موجود في قاعدتنا.")
 
-    # Planner
-    elif page == "🍽️ مصمم الوجبات":
-        st.subheader("جدولك")
-        if 'plan' not in st.session_state: st.session_state['plan'] = copy.deepcopy(MEAL_PLAN_TEMPLATES["خسارة دهون وبناء عضل"])
-        p = st.session_state['plan']
-        tot = 0
-        for m, items in p.items():
-            with st.expander(m):
-                for i, it in enumerate(items):
-                    cols = st.columns([3,1])
-                    with cols[0]:
-                        opts = list(LOCAL_DB.keys())
-                        idx = opts.index(it['key']) if it['key'] in opts else 0
-                        nk = st.selectbox("طعام", opts, idx, key=f"{m}_{i}")
-                        if nk!=it['key']: it['key']=nk; it['name']=LOCAL_DB[nk]['name_ar']
-                    with cols[1]:
-                        na = st.number_input("جم", 5,500,int(it['amount']), key=f"a{m}_{i}")
-                        it['amount']=na
-                m_n = get_meal_macros(items)
-                st.caption(f"🔥 {m_n['Energy']:.0f} kcal")
-                tot += m_n['Energy']
-        st.markdown(f'<div class="total-bar">مجموع الجدول: {tot:.0f} kcal</div>', unsafe_allow_html=True)
+    # 4. MEAL PLANNER
+    elif st.session_state.page == 'planner':
+        st.title("📅 مصمم وجباتك")
+        st.info("هذه الميزة تستخدم بياناتك الشخصية والهدف المختار في الملف الشخصي.")
+        
+        # Simple Planner Logic based on goal
+        goal = user[6]
+        if not goal: st.warning("يرجى تحديد هدفك في الملف الشخصي أولاً.")
+        else:
+            target_cals = 2000 if goal == 'maintain' else (1800 if goal == 'loss' else 2500)
+            st.write(f"هدفك اليومي التقريبي بناءً على {goal}: **{target_cals} kcal**")
+            
+            # Example Meal Structure
+            meals = {
+                "الإفطار": ["oats", "eggs", "milk whole"],
+                "الغداء": ["chicken breast", "brown rice", "broccoli"],
+                "العشاء": ["salmon", "sweet potato", "spinach"]
+            }
+            
+            for m_name, foods in meals.items():
+                st.subheader(f"☀️ {m_name}")
+                total_c = 0
+                for f in foods:
+                    if f in LOCAL_DB:
+                        item = LOCAL_DB[f]
+                        st.markdown(f"<div class='food-item'><span class='food-name'>{item['name_ar']}</span><span class='food-cal'>{item['cal']} kcal</span></div>", unsafe_allow_html=True)
+                        total_c += item['cal']
+                st.caption(f"مجموع الوجبة: {total_c} kcal")
+                st.markdown("---")
 
-    # Plans
-    elif page == "💎 الباقات":
-        st.markdown("<h2 style='text-align:center'>باقات NutraX</h2>", unsafe_allow_html=True)
-        st.markdown("<div class='plan-container'>", unsafe_allow_html=True)
-        st.markdown("""
-        <div class='plan-card plan-free'><h3>مجاني</h3><div class='plan-price'>0$</div>
-        <ul class='plan-features'><li>تتبع الوزن</li><li>BMI</li></ul>
-        <button class='btn-plan' style='background:#9e9e9e'>الحالي</button></div>
-        <div class='plan-card plan-pro'><h3>PRO</h3><div class='plan-price'>10$</div>
-        <ul class='plan-features'><li>محلل الأكل</li><li>مصمم الوجبات</li></ul>
-        <button class='btn-plan' style='background:#007bff'>اشترك</button></div>
-        <div class='plan-card plan-coach'><h3>COACH</h3><div class='plan-price'>30$</div>
-        <ul class='plan-features'><li>متابعة مع مدرب</li><li>خطط مخصصة</li></ul>
-        <button class='btn-plan' style='background:#ffc107'>تواصل</button></div>
-        """, unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # Admin
-    elif page == "🛠️ إدارة الأكل":
-        st.subheader("إضافة أكل للقاعدة")
-        with st.form("add"):
-            n = st.text_input("اسم (إنجليزي)")
-            c, p, cb, f = st.number_input("سعرات"), st.number_input("بروتين"), st.number_input("كارب"), st.number_input("دهون")
-            if st.form_submit_button("إضافة"):
-                c.execute("INSERT INTO meals VALUES (?,?,?,?,?,?)", (None, n, c, p, cb, f))
-                conn.commit()
-                st.success("تم")
-        st.subheader("الوجبات المسجلة")
-        for r in c.execute("SELECT * FROM meals"): st.write(r)
-
-else:
-    st.info("سجل دخولك للبدء")
-# ===============================
-# تصحيح بيانات الأدمن (شغله مرة واحدة)
-# ===============================
-import hashlib
-
-# هنعمل كلمة السر من جديد عشان نتأكد إنها متطابقة
-correct_pass_hash = hashlib.sha256("admin123".encode()).hexdigest()
-
-# حذف أي أدمن قديم بنفس الإيميل
-c.execute("DELETE FROM users WHERE email='admin@nutrax.com'")
-
-# إنشاء الأدمن من جديد بالبيانات الصحيحة 100%
-c.execute("INSERT INTO users (email, password, is_admin) VALUES (?, ?, ?)", 
-          ("admin@nutrax.com", correct_pass_hash, 1))
-conn.commit()
-
-st.info("تم تصحيح بيانات الأدمن بنجاح! جرب الدخول الآن.")
+    # 5. ADMIN NOTIFICATIONS
+    elif st.session_state.page == 'admin_notifications':
+        st.title("🔔 إشعارات النظام (المسجلين الجدد)")
+        c.execute("SELECT name, email, join_date FROM users ORDER BY id DESC LIMIT 10")
+        users = c.fetchall()
+        
+        if users:
+            html = "<table class='data-table'><thead><tr><th>الاسم</th><th>الإيميل</th><th>تاريخ التسجيل</th></tr></thead><tbody>"
+            for u in users:
+                html += f"<tr><td>{u[0]}</td><td>{u[1]}</td><td>{u[2]}</td></tr>"
+            html += "</tbody></table>"
+            st.markdown(html, unsafe_allow_html=True)
+        else:
+            st.info("لا يوجد مستخدمين جدد حالياً.")
