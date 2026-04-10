@@ -140,16 +140,24 @@ st.markdown("""
 
     /* ── Inputs ── */
     input, .stTextInput input, .stNumberInput input {
-        background: rgba(255,255,255,0.10) !important;
+        background: #1a2f48 !important;
         color: #ffffff !important;
-        border: 1px solid rgba(0,180,216,0.4) !important;
+        border: 1px solid rgba(0,180,216,0.5) !important;
         border-radius: 8px !important;
+        caret-color: #00d4ff !important;
+    }
+    input::placeholder { color: #6a9bbf !important; opacity: 1 !important; }
+    input:-webkit-autofill {
+        -webkit-text-fill-color: #ffffff !important;
+        -webkit-box-shadow: 0 0 0px 1000px #1a2f48 inset !important;
     }
     .stSelectbox > div > div {
-        background: rgba(255,255,255,0.10) !important;
+        background: #1a2f48 !important;
         color: #ffffff !important;
-        border: 1px solid rgba(0,180,216,0.4) !important;
+        border: 1px solid rgba(0,180,216,0.5) !important;
     }
+    /* password field icon */
+    [data-testid="stTextInput"] svg { fill: #90caf9 !important; }
 
     /* ── Main buttons ── */
     .stButton > button {
