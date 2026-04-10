@@ -1,8 +1,8 @@
 # =============================================================================
-# NutraX Final V6 - Fully Fixed & Integrated
-# Fixes: Resolved SyntaxError (Line 282) & Duplicate ID issues.
-# Features: Food Analyzer (Search & Details), Planner, Shopping List, History.
-# Registration: Full Details (Name, Birth Year, Country).
+# NutraX V8 - The "Safety First" Version
+# FIX: Added Safety Check to prevent IndexError & Crashes.
+# FIX: Resolved Missing Submit Button issues by cleaning state.
+# FEATURES: Analyzer, Planner, Shopping, History.
 # =============================================================================
 
 import streamlit as st
@@ -15,7 +15,7 @@ from datetime import datetime
 # ==========================================
 # 1. CONFIG & STYLE
 # ==========================================
-st.set_page_config(page_title="NutraX V6", page_icon="💊", layout="wide")
+st.set_page_config(page_title="NutraX V8", page_icon="💊", layout="wide")
 
 st.markdown("""
 <style>
@@ -23,13 +23,14 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Cairo', sans-serif; direction: rtl; }
     .metric-box { background:#fff; padding:15px; border-radius:10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; border: 1px solid #eee; }
     .food-card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 10px; border-left: 5px solid #007bff; }
+    .alert-box { background: #fff3cd; color: #856404; padding: 15px; border-radius: 10px; border: 1px solid #ffeeba; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
 # 2. DATABASE SETUP
 # ==========================================
-DB_FILE = "nutrax_v6.db"
+DB_FILE = "nutrax_v8.db"
 
 def init_db():
     global conn, c
@@ -42,7 +43,6 @@ def init_db():
         conn = sqlite3.connect(DB_FILE, check_same_thread=False)
         c = conn.cursor()
 
-    # Users Table (Added Country)
     c.execute("""CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY,
         email TEXT UNIQUE,
@@ -55,7 +55,6 @@ def init_db():
         goal TEXT,
         is_admin INTEGER
     )""")
-    # Add Country column if missing (Migration)
     try: c.execute("ALTER TABLE users ADD COLUMN country TEXT")
     except: pass
     
@@ -80,6 +79,7 @@ init_db()
 
 def hash_pass(p): return hashlib.sha256(p.encode()).hexdigest()
 
+# Admin
 c.execute("SELECT * FROM users WHERE is_admin=1")
 if not c.fetchone():
     c.execute("INSERT INTO users VALUES (NULL, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, 1)", 
@@ -171,10 +171,10 @@ if "user" not in st.session_state: st.session_state.user = None
 if "targets" not in st.session_state: st.session_state.targets = None
 
 # ==========================================
-# 5. PAGES
+# 5. PAGES LOGIC
 # ==========================================
 if st.session_state.page == "login":
-    st.markdown("<h1 style='text-align:center; color:#0056b3;'>💊 NutraX V6</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; color:#0056b3;'>💊 NutraX V8</h1>", unsafe_allow_html=True)
     tab1, tab2 = st.tabs(["تسجيل الدخول", "إنشاء حساب"])
     with tab1:
         with st.form("lgn"):
@@ -183,7 +183,11 @@ if st.session_state.page == "login":
             if st.form_submit_button("دخول"):
                 c.execute("SELECT * FROM users WHERE email=? AND password=?", (e, hash_pass(p)))
                 u = c.fetchone()
-                if u: st.session_state.user = u; st.session_state.page = "dashboard"; st.rerun()
+                if u:
+                    st.session_state.user = u
+                    # Simple redirect to Dashboard
+                    st.session_state.page = "dashboard"
+                    st.rerun()
                 else: st.error("البيانات غير صحيحة")
     with tab2:
         with st.form("reg"):
@@ -197,34 +201,52 @@ if st.session_state.page == "login":
                 except: st.error("البريد مستخدم")
 
 else:
+    # --- SAFETY CHECK (The Fix) ---
+    # If user is None or corrupted, force logout/reset to prevent crashes
+    if st.session_state.user is None or len(st.session_state.user) < 5:
+        st.session_state.user = None
+        st.session_state.page = "login"
+        st.warning("تمت إعادة تعيين الجلسة لأسباب أمنية. يرجى تسجيل الدخول.")
+        st.rerun()
+
     u = st.session_state.user
     u_id = u[0]
+    
     with st.sidebar:
         st.markdown(f"<h3 style='text-align:center'>{u[3]}</h3>", unsafe_allow_html=True)
         st.divider()
         if st.button("🏠 الرئيسية", key="b1"): st.session_state.page="dashboard"; st.rerun()
-        if st.button("🔍 محلل الطعام", key="b2"): st.session_state.page="analyzer"; st.rerun()
-        if st.button("📅 مصمم الجدول", key="b3"): st.session_state.page="planner"; st.rerun()
-        if st.button("💾 جداولي المحفوظة", key="b4"): st.session_state.page="saved"; st.rerun()
-        if st.button("📈 سجل الوزن", key="b5"): st.session_state.page="history"; st.rerun()
-        if st.button("🚪 خروج", key="b6"):
+        if st.button("👤 الإعدادات والهدف", key="b2"): st.session_state.page="profile_setup"; st.rerun()
+        if st.button("🔍 محلل الطعام", key="b3"): st.session_state.page="analyzer"; st.rerun()
+        if st.button("📅 مصمم الجدول", key="b4"): st.session_state.page="planner"; st.rerun()
+        if st.button("💾 جداولي المحفوظة", key="b5"): st.session_state.page="saved"; st.rerun()
+        if st.button("📈 سجل الوزن", key="b6"): st.session_state.page="history"; st.rerun()
+        if st.button("🚪 خروج", key="b7"):
             st.session_state.user=None; st.session_state.page="login"; st.rerun()
 
     # --- DASHBOARD ---
     if st.session_state.page == "dashboard":
         st.title(f"أهلاً بك، {u[3]}")
-        c1, c2, c3 = st.columns(3)
-        c.execute("SELECT COUNT(*) FROM saved_plans WHERE user_id=?", (u_id,))
-        c1.metric("جداولك", c.fetchone()[0])
-        if st.session_state.targets: c2.metric("هدفك اليومي", f"{st.session_state.targets['cal']} kcal")
-        c.execute("SELECT weight FROM tracking WHERE user_id=? ORDER BY id DESC LIMIT 1", (u_id,))
-        last_w = c.fetchone()
-        c3.metric("وزنك", f"{last_w[0] if last_w else '---'} kg")
+        
+        # Check if targets exist
+        if not st.session_state.targets:
+            st.markdown("<div class='alert-box'><h3>⚠️ بياناتك غير مكتملة</h3><p>عشان نستطيع مساعدتك، يرجى إكمال الإعدادات.</p></div>", unsafe_allow_html=True)
+            if st.button("👤 اذهب للإعدادات", key="setup_btn"):
+                st.session_state.page = "profile_setup"
+                st.rerun()
+        else:
+            c1, c2, c3 = st.columns(3)
+            c.execute("SELECT COUNT(*) FROM saved_plans WHERE user_id=?", (u_id,))
+            c1.metric("جداولك", c.fetchone()[0])
+            c2.metric("هدفك اليومي", f"{st.session_state.targets['cal']} kcal")
+            c.execute("SELECT weight FROM tracking WHERE user_id=? ORDER BY id DESC LIMIT 1", (u_id,))
+            last_w = c.fetchone()
+            c3.metric("وزنك", f"{last_w[0] if last_w else '---'} kg")
 
-    # --- FOOD ANALYZER (New & Fixed) ---
+    # --- ANALYZER ---
     elif st.session_state.page == "analyzer":
         st.title("🔍 محلل الطعام المتقدم")
-        search = st.text_input("ابحث عن طعام (عربي أو إنجليزي)")
+        search = st.text_input("ابحث عن طعام")
         if search:
             res = []
             s = search.lower()
@@ -243,7 +265,7 @@ else:
 
     # --- PROFILE SETUP ---
     elif st.session_state.page == "profile_setup":
-        st.title("إعداداتك")
+        st.title("إعداداتك الغذائية")
         with st.form("up"):
             col1, col2 = st.columns(2)
             with col1:
@@ -252,13 +274,13 @@ else:
             with col2:
                 age = st.number_input("العمر", 25)
                 goal = st.selectbox("هدفك", ["maintain", "fat_loss", "muscle_gain"], format_func=lambda x: {"maintain":"ثبات", "fat_loss":"خسارة", "muscle_gain":"عضل"}[x])
-            if st.form_submit_button("حفظ"):
+            if st.form_submit_button("حفظ وابدأ"):
                 c.execute("UPDATE users SET height=?, weight=?, goal=?, birth_year=? WHERE id=?", (h, w, goal, datetime.now().year - age, u_id))
                 conn.commit()
                 st.session_state.targets = {'cal': calculate_macros(w, h, age, goal), 'goal': goal}
                 c.execute("SELECT * FROM users WHERE id=?", (u_id,))
                 st.session_state.user = c.fetchone()
-                st.success("تم"); st.session_state.page="planner"; st.rerun()
+                st.success("تم الحفظ!"); st.session_state.page="dashboard"; st.rerun()
 
     # --- PLANNER ---
     elif st.session_state.page == "planner":
@@ -302,7 +324,7 @@ else:
             c.execute("INSERT INTO saved_plans VALUES (NULL, ?, ?, ?, datetime('now'), ?)", (u_id, name, json.dumps(plan), save_type))
             conn.commit(); st.success("تم"); st.rerun()
 
-    # --- SAVED PLANS (Fixed Syntax) ---
+    # --- SAVED PLANS ---
     elif st.session_state.page == "saved":
         st.title("جداولي")
         ft = st.selectbox("فلتر", ["الكل", "خاص بي", "للعميل", "عام"])
@@ -319,7 +341,6 @@ else:
                     for d, meals in pd.items():
                         st.write(f"يوم {int(d)+1}")
                         for m, foods in meals.items():
-                            # Fixed the Syntax Error by building string carefully
                             items = [f"{LOCAL_DB[k]['name']} {v}g" for k, v in foods.items() if v > 0]
                             st.write(f"- {m}: " + ", ".join(items))
                 with c2:
