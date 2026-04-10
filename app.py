@@ -1,11 +1,16 @@
 # ===============================
-# DNP PRO FULL SYSTEM (WORKING VERSION)
+# DNP PRO FULL SYSTEM (ADMIN FIXED)
 # ===============================
 
 import streamlit as st
 import sqlite3
 import hashlib
 import random
+
+# ===============================
+# IMPORTANT: PUT YOUR EMAIL HERE
+# ===============================
+ADMIN_EMAIL = "your@email.com"  # غيره بإيميلك
 
 # ===============================
 # DB SETUP
@@ -90,10 +95,13 @@ if menu == "register":
     password = st.text_input("password", type="password")
 
     if st.button("create"):
-        c.execute("INSERT INTO users (email, password) VALUES (?,?)",
-                  (email, hash_pass(password)))
+        is_admin = 1 if email == ADMIN_EMAIL else 0
+
+        c.execute("INSERT INTO users (email, password, is_admin) VALUES (?,?,?)",
+                  (email, hash_pass(password), is_admin))
         conn.commit()
-        st.success("created")
+
+        st.success("account created")
 
 if menu == "login":
     email = st.text_input("email")
@@ -105,6 +113,13 @@ if menu == "login":
         user = c.fetchone()
 
         if user:
+            # ضمان إن الإيميل ده دايماً admin حتى لو اتسجل قبل كده
+            if user[1] == ADMIN_EMAIL and user[3] == 0:
+                c.execute("UPDATE users SET is_admin=1 WHERE email=?", (ADMIN_EMAIL,))
+                conn.commit()
+                c.execute("SELECT * FROM users WHERE email=?", (ADMIN_EMAIL,))
+                user = c.fetchone()
+
             st.session_state.user = user
             st.success("logged in")
 
@@ -158,17 +173,31 @@ if st.session_state.user:
     if tab == "meals":
 
         if is_admin:
-            st.subheader("ADD MEAL")
+            st.subheader("ADD / CONTROL MEALS")
             name = st.text_input("name")
             cal = st.number_input("calories")
             p = st.number_input("protein")
             cbs = st.number_input("carbs")
             f = st.number_input("fat")
 
-            if st.button("add"):
+            if st.button("add meal"):
                 c.execute("INSERT INTO meals (name, calories, protein, carbs, fat) VALUES (?,?,?,?,?)",
                           (name, cal, p, cbs, f))
                 conn.commit()
+
+            # delete meals
+            st.subheader("DELETE MEAL")
+            c.execute("SELECT id, name FROM meals")
+            all_meals = c.fetchall()
+            meal_names = [m[1] for m in all_meals]
+
+            if meal_names:
+                selected = st.selectbox("choose meal to delete", meal_names)
+                meal_id = next(m[0] for m in all_meals if m[1] == selected)
+
+                if st.button("delete"):
+                    c.execute("DELETE FROM meals WHERE id=?", (meal_id,))
+                    conn.commit()
 
         st.subheader("MEAL OPTIONS")
         meals = random_meals()
