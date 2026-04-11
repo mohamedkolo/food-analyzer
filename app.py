@@ -7,7 +7,7 @@ import sqlite3, hashlib, os, json, math
 from datetime import datetime
 
 st.set_page_config(page_title="NutraX", page_icon="🥗", layout="wide",
-                   initial_sidebar_state="auto")
+                   initial_sidebar_state="collapsed")
 
 # ══════════════════════════════════════════
 # CSS — Light Theme + Mobile Responsive
@@ -238,23 +238,65 @@ hr{border-color:#e8efff!important;margin:20px 0!important}
 
 /* ─── Mobile ─── */
 @media(max-width:768px){
+  /* hide sidebar completely on mobile — use hamburger */
+  section[data-testid="stSidebar"]{display:none!important}
+  /* fix main content takes full width */
+  .block-container{
+    padding:0.75rem 0.6rem 2rem!important;
+    max-width:100%!important;
+  }
   .stApp{padding:0!important}
-  .card{padding:16px 14px!important}
-  .card .c-value{font-size:22px!important}
-  .sec-title{font-size:18px!important}
-  .food-card{padding:12px 14px!important}
-  .stButton>button{padding:10px 14px!important;font-size:13px!important}
-  h1{font-size:26px!important}
-  h2{font-size:20px!important}
-  h3{font-size:17px!important}
-  .pills{gap:4px}
-  .pill{font-size:11px!important;padding:2px 8px!important}
-  [data-testid="stSidebar"]{width:260px!important}
-  .block-container{padding:1rem 0.75rem!important}
+  /* cards stack nicely */
+  .card{padding:14px 12px!important;margin-bottom:8px!important}
+  .card .c-value{font-size:20px!important}
+  .card .c-icon{font-size:22px!important;margin-bottom:4px!important}
+  .card .c-label{font-size:11px!important}
+  /* section title */
+  .sec-title{font-size:17px!important;margin-bottom:14px!important}
+  /* food cards */
+  .food-card{padding:12px 13px!important;margin-bottom:8px!important}
+  .food-card .fc-name{font-size:14px!important}
+  /* buttons full width on mobile */
+  .stButton>button{
+    padding:10px 12px!important;font-size:13px!important;
+    width:100%!important;
+  }
+  /* text sizes */
+  h1{font-size:24px!important}
+  h2{font-size:19px!important}
+  h3{font-size:16px!important}
+  h4{font-size:14px!important}
+  p,.stMarkdown p{font-size:13px!important}
+  /* pills smaller */
+  .pills{gap:4px!important;margin:5px 0!important}
+  .pill{font-size:11px!important;padding:2px 7px!important}
+  /* alerts */
+  .alert-warn,.alert-info,.alert-success{
+    padding:10px 13px!important;font-size:12px!important;
+    margin-bottom:10px!important;
+  }
+  /* inputs */
+  input,textarea{font-size:16px!important} /* prevents iOS zoom */
+  label{font-size:13px!important}
+  /* login */
+  .login-wrap{padding:20px 16px 16px!important}
+  .login-logo h1{font-size:30px!important}
+  .login-logo .logo-icon{font-size:44px!important}
+  /* tabs */
+  .stTabs [data-baseweb="tab"]{font-size:12px!important;padding:6px 10px!important}
+  /* metric */
+  [data-testid="metric-container"]{padding:10px!important}
+  [data-testid="stMetricValue"]{font-size:20px!important}
+  /* calc box */
+  .calc-box{padding:14px 13px!important}
+  .clin-row{padding:6px 10px!important;margin-bottom:5px!important}
+  /* sug box */
+  .sug-box{padding:12px 13px!important}
 }
 @media(max-width:480px){
-  .card .c-value{font-size:18px!important}
-  .sec-title{font-size:16px!important}
+  .card .c-value{font-size:17px!important}
+  .sec-title{font-size:15px!important}
+  .block-container{padding:0.5rem 0.5rem 2rem!important}
 }
 
 /* ─── Login Page ─── */
@@ -1343,33 +1385,139 @@ else:
 
     # ═══════════════ DASHBOARD ═══════════════
     if st.session_state.page=="dashboard":
-        st.markdown("<div class='sec-title'>🏠 الرئيسية</div>",unsafe_allow_html=True)
+        # Header welcome
+        gl={"fat_loss":"🔥 خسارة دهون","muscle_gain":"💪 بناء عضل","maintain":"⚖️ ثبات الوزن"}
+        st.markdown(f"""
+        <div style="background:linear-gradient(135deg,#4f8ef7,#a78bfa);
+            border-radius:18px;padding:20px 22px;margin-bottom:18px;color:#fff">
+            <div style="font-size:13px;opacity:.85;margin-bottom:4px">أهلاً بك 👋</div>
+            <div style="font-size:22px;font-weight:900">{u[3]}</div>
+            <div style="font-size:12px;opacity:.8;margin-top:6px">{u[1]}</div>
+        </div>""", unsafe_allow_html=True)
+
         if not st.session_state.targets:
-            st.markdown("<div class='alert-warn'>⚠️ <b>أكمل إعداداتك</b> لحساب أهدافك الغذائية.</div>",unsafe_allow_html=True)
-            if st.button("⚙️ الإعدادات"): st.session_state.page="profile_setup"; st.rerun()
+            st.markdown("""
+            <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:14px;
+                padding:18px 20px;text-align:center;margin-bottom:16px">
+                <div style="font-size:36px;margin-bottom:8px">⚙️</div>
+                <div style="color:#92600a;font-weight:700;font-size:15px">أكمل إعداداتك أولاً</div>
+                <div style="color:#b56b00;font-size:13px;margin-top:4px">لحساب أهدافك الغذائية اليومية</div>
+            </div>""", unsafe_allow_html=True)
+            if st.button("⚙️ اذهب للإعدادات", use_container_width=True):
+                st.session_state.page="profile_setup"; st.rerun()
         else:
             t=st.session_state.targets
             c.execute("SELECT COUNT(*) FROM saved_plans WHERE user_id=?",(u_id,)); pn=c.fetchone()[0]
             c.execute("SELECT weight FROM tracking WHERE user_id=? ORDER BY id DESC LIMIT 1",(u_id,)); lw=c.fetchone()
-            cols=st.columns(4)
-            for col,(ic,lb,val,un) in zip(cols,[("🎯","هدف السعرات",t['cal'],"kcal"),
-                ("💪","بروتين يومي",t['p'],"جم"),("🍞","كاربوهيدرات",t['c'],"جم"),("🥑","دهون يومية",t['f'],"جم")]):
-                col.markdown(f'<div class="card" style="text-align:center"><div class="c-icon">{ic}</div><div class="c-label">{lb}</div><div class="c-value">{val}</div><div class="c-unit">{un}</div></div>',unsafe_allow_html=True)
-            st.markdown("<br>",unsafe_allow_html=True)
-            c1,c2,c3=st.columns(3)
-            with c1:
-                if u[4] and u[5]:
-                    bv,bcls,blbl=bmi_info(float(u[5]),float(u[4]))
-                    st.markdown(f'<div class="card"><div class="c-label">📏 مؤشر كتلة الجسم (BMI)</div><div class="c-value">{bv}</div><div class="bmi-badge {bcls}">{blbl}</div></div>',unsafe_allow_html=True)
-                else:
-                    st.markdown("<div class='card'><div class='c-label'>📏 BMI</div><div class='c-unit'>أكمل إعداداتك</div></div>",unsafe_allow_html=True)
-            with c2:
-                wv=f"{lw[0]} كجم" if lw else "لم يُسجَّل"
-                st.markdown(f'<div class="card" style="text-align:center"><div class="c-icon">⚖️</div><div class="c-label">آخر وزن</div><div class="c-value" style="font-size:22px">{wv}</div></div>',unsafe_allow_html=True)
-            with c3:
-                st.markdown(f'<div class="card" style="text-align:center"><div class="c-icon">💾</div><div class="c-label">جداول محفوظة</div><div class="c-value">{pn}</div></div>',unsafe_allow_html=True)
-            gl={"fat_loss":"🔥 خسارة دهون","muscle_gain":"💪 بناء عضل","maintain":"⚖️ ثبات الوزن"}
-            st.markdown(f"<div class='alert-info'>هدفك: <b>{gl.get(t['goal'],t['goal'])}</b> | TDEE: <b>{t.get('tdee','—')} kcal</b> | هدف: <b>{t['cal']} kcal/يوم</b></div>",unsafe_allow_html=True)
+
+            # Goal banner
+            goal_label = gl.get(t['goal'], t['goal'])
+            st.markdown(f"""
+            <div style="background:#f0f7ff;border:1px solid #c7d7f0;border-radius:12px;
+                padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+                <div>
+                    <div style="color:#6b7fa3;font-size:11px;font-weight:700">هدفك</div>
+                    <div style="color:#1a2a4a;font-size:15px;font-weight:800">{goal_label}</div>
+                </div>
+                <div style="text-align:center">
+                    <div style="color:#6b7fa3;font-size:11px;font-weight:700">TDEE</div>
+                    <div style="color:#1a2a4a;font-size:15px;font-weight:800">{t.get('tdee','—')}</div>
+                    <div style="color:#a0aec0;font-size:10px">kcal</div>
+                </div>
+                <div style="text-align:left">
+                    <div style="color:#6b7fa3;font-size:11px;font-weight:700">هدف يومي</div>
+                    <div style="color:#4f8ef7;font-size:18px;font-weight:900">{t['cal']}</div>
+                    <div style="color:#a0aec0;font-size:10px">kcal/يوم</div>
+                </div>
+            </div>""", unsafe_allow_html=True)
+
+            # Macro cards — 2 columns for mobile friendliness
+            r1c1, r1c2 = st.columns(2)
+            r2c1, r2c2 = st.columns(2)
+            for col, ic, lb, val, un, clr in [
+                (r1c1,"🔥","السعرات",t['cal'],"kcal","#4f8ef7"),
+                (r1c2,"💪","بروتين",t['p'],"جم","#22c55e"),
+                (r2c1,"🍞","كارب",t['c'],"جم","#f59e0b"),
+                (r2c2,"🥑","دهون",t['f'],"جم","#ef4444"),
+            ]:
+                col.markdown(f"""
+                <div class="card" style="text-align:center;margin-bottom:10px">
+                    <div style="font-size:24px;margin-bottom:4px">{ic}</div>
+                    <div style="color:#6b7fa3;font-size:11px;font-weight:700;letter-spacing:.5px">{lb}</div>
+                    <div style="color:{clr};font-size:24px;font-weight:900;line-height:1.1">{val}</div>
+                    <div style="color:#a0aec0;font-size:11px">{un}</div>
+                </div>""", unsafe_allow_html=True)
+
+            # BMI + extra info
+            bmi_card = ""
+            if u[4] and u[5]:
+                bv, bcls, blbl = bmi_info(float(u[5]), float(u[4]))
+                bmi_card = f'<div class="bmi-badge {bcls}" style="margin-top:4px">{blbl}</div>'
+            wv = f"{lw[0]} كجم" if lw else "—"
+
+            ec1, ec2, ec3 = st.columns(3)
+            ec1.markdown(f"""
+            <div class="card" style="text-align:center;padding:14px 8px">
+                <div style="font-size:11px;color:#6b7fa3;font-weight:700">📏 BMI</div>
+                <div style="font-size:20px;font-weight:900;color:#1a2a4a">{bv if u[4] and u[5] else "—"}</div>
+                {bmi_card}
+            </div>""", unsafe_allow_html=True)
+            ec2.markdown(f"""
+            <div class="card" style="text-align:center;padding:14px 8px">
+                <div style="font-size:11px;color:#6b7fa3;font-weight:700">⚖️ آخر وزن</div>
+                <div style="font-size:18px;font-weight:900;color:#1a2a4a;margin-top:4px">{wv}</div>
+            </div>""", unsafe_allow_html=True)
+            ec3.markdown(f"""
+            <div class="card" style="text-align:center;padding:14px 8px">
+                <div style="font-size:11px;color:#6b7fa3;font-weight:700">💾 جداول</div>
+                <div style="font-size:24px;font-weight:900;color:#a78bfa;margin-top:2px">{pn}</div>
+            </div>""", unsafe_allow_html=True)
+
+            # Quick nav shortcuts
+            st.markdown("<div style='margin-top:16px;margin-bottom:8px'><span style='color:#6b7fa3;font-size:12px;font-weight:700'>⚡ وصول سريع</span></div>", unsafe_allow_html=True)
+            qn1, qn2 = st.columns(2)
+            with qn1:
+                if st.button("🔍 محلل الطعام", use_container_width=True, key="qnav_analyzer"):
+                    st.session_state.page="analyzer"; st.rerun()
+                if st.button("📚 المرجع الكلينيكي", use_container_width=True, key="qnav_clinical"):
+                    st.session_state.page="clinical"; st.rerun()
+            with qn2:
+                if st.button("📅 مصمم الجدول", use_container_width=True, key="qnav_planner"):
+                    st.session_state.page="planner"; st.rerun()
+                if st.button("📈 سجل الوزن", use_container_width=True, key="qnav_history"):
+                    st.session_state.page="history"; st.rerun()
+
+        # ── Bottom Nav Bar (mobile) ──
+        st.markdown("""
+        <style>
+        .bottom-nav{
+            display:none;
+        }
+        @media(max-width:768px){
+            .bottom-nav{
+                display:flex;
+                position:fixed;bottom:0;left:0;right:0;
+                background:#fff;
+                border-top:1px solid #e2ecff;
+                padding:8px 0 12px;
+                justify-content:space-around;
+                align-items:center;
+                z-index:9999;
+                box-shadow:0 -4px 20px rgba(79,142,247,.1);
+            }
+            .bn-item{
+                display:flex;flex-direction:column;align-items:center;
+                font-family:'Cairo',sans-serif;
+                color:#6b7fa3;font-size:10px;font-weight:600;
+                cursor:pointer;min-width:50px;text-align:center;
+            }
+            .bn-item .bn-icon{font-size:22px;margin-bottom:2px}
+            .bn-item.active{color:#4f8ef7}
+            /* push content up so it's not hidden behind bottom nav */
+            .block-container{padding-bottom:80px!important}
+        }
+        </style>
+        """, unsafe_allow_html=True)
 
     # ═══════════════ PROFILE ═══════════════
     elif st.session_state.page=="profile_setup":
