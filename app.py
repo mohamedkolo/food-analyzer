@@ -1,142 +1,290 @@
 # =============================================================================
-# NutraX V10 — Professional Edition
-# ✅ UI احترافي كامل  ✅ قاعدة بيانات موسعة (100+ صنف)
-# ✅ ملاحظات ونصائح لكل صنف  ✅ BMI في الداشبورد
-# ✅ تأكيد قبل الحذف  ✅ Safety check كامل
+# NutraX V11 — Light Theme | Mobile Responsive | Clinical Nutrition Calculator
 # =============================================================================
 
 import streamlit as st
-import sqlite3, hashlib, os, json
+import sqlite3, hashlib, os, json, math
 from datetime import datetime
 
-st.set_page_config(page_title="NutraX", page_icon="🥗", layout="wide")
+st.set_page_config(page_title="NutraX", page_icon="🥗", layout="wide",
+                   initial_sidebar_state="auto")
 
 # ══════════════════════════════════════════
-# CSS
+# CSS — Light Theme + Mobile Responsive
 # ══════════════════════════════════════════
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap');
+
+/* ─── Reset ─── */
 *,*::before,*::after{box-sizing:border-box}
 html,body,[class*="css"]{font-family:'Cairo',sans-serif!important;direction:rtl}
-.stApp{background:radial-gradient(ellipse at top left,#0d2137 0%,#071525 40%,#020d18 100%);min-height:100vh}
 
-/* sidebar */
-[data-testid="stSidebar"]{background:linear-gradient(180deg,#0e2540 0%,#071525 100%)!important;border-left:1px solid rgba(0,210,255,.12)}
-[data-testid="stSidebar"] .stButton>button{width:100%;text-align:right;background:transparent;color:#c8e8ff;border:1px solid transparent;border-radius:10px;padding:11px 16px;margin-bottom:4px;font-family:'Cairo',sans-serif;font-size:14.5px;font-weight:500;transition:all .2s ease;letter-spacing:.2px}
-[data-testid="stSidebar"] .stButton>button:hover{background:rgba(0,210,255,.1);border-color:rgba(0,210,255,.25);color:#fff;transform:translateX(-4px)}
+/* ─── App Background — Clean White ─── */
+.stApp{
+  background: linear-gradient(135deg,#f0f7ff 0%,#ffffff 50%,#f5f0ff 100%);
+  min-height:100vh;
+}
 
-/* card */
-.card{background:linear-gradient(135deg,rgba(255,255,255,.06) 0%,rgba(255,255,255,.02) 100%);border:1px solid rgba(0,210,255,.18);border-radius:18px;padding:22px 24px;backdrop-filter:blur(12px);transition:transform .25s,box-shadow .25s;position:relative;overflow:hidden}
-.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(0,210,255,.5),transparent)}
-.card:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(0,0,0,.4)}
-.card .c-label{color:#7fb8d8;font-size:13px;font-weight:600;margin-bottom:6px;letter-spacing:.5px}
-.card .c-value{color:#fff;font-size:30px;font-weight:800;line-height:1}
-.card .c-unit{color:#7fb8d8;font-size:12px;margin-top:4px}
-.card .c-icon{font-size:28px;margin-bottom:8px}
+/* ─── Sidebar ─── */
+[data-testid="stSidebar"]{
+  background:linear-gradient(180deg,#1e3a5f 0%,#0f2035 100%)!important;
+  border-left:none!important;
+}
+[data-testid="stSidebar"] .stButton>button{
+  width:100%;text-align:right;
+  background:transparent;color:#c8e8ff;
+  border:1px solid transparent;border-radius:10px;
+  padding:11px 16px;margin-bottom:4px;
+  font-family:'Cairo',sans-serif;font-size:14.5px;font-weight:500;
+  transition:all .2s ease;
+}
+[data-testid="stSidebar"] .stButton>button:hover{
+  background:rgba(0,210,255,.12);border-color:rgba(0,210,255,.3);
+  color:#fff;transform:translateX(-4px);
+}
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] div{color:#c8e8ff!important}
 
-/* section title */
-.sec-title{color:#00d4ff;font-size:22px;font-weight:800;padding-bottom:10px;border-bottom:2px solid rgba(0,212,255,.2);margin-bottom:22px;letter-spacing:.3px}
+/* ─── Cards ─── */
+.card{
+  background:#ffffff;
+  border:1px solid #e2ecff;
+  border-radius:18px;padding:22px 20px;
+  box-shadow:0 2px 16px rgba(0,80,180,.07);
+  transition:transform .25s,box-shadow .25s;
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#4f8ef7,#a78bfa);
+}
+.card:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(79,142,247,.15)}
+.card .c-label{color:#6b7fa3;font-size:12px;font-weight:700;margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase}
+.card .c-value{color:#1a2a4a;font-size:28px;font-weight:900;line-height:1}
+.card .c-unit{color:#8a9bbf;font-size:12px;margin-top:4px}
+.card .c-icon{font-size:26px;margin-bottom:8px}
 
-/* food card */
-.food-card{background:rgba(255,255,255,.04);border:1px solid rgba(0,210,255,.16);border-radius:14px;padding:16px 20px;margin-bottom:12px;border-right:4px solid #00b4d8;transition:border-color .2s}
-.food-card:hover{border-right-color:#00ffcc}
-.food-card .fc-name{color:#fff;font-size:17px;font-weight:700;margin-bottom:10px}
-.food-card .fc-note{background:rgba(0,210,255,.07);border-right:3px solid rgba(0,210,255,.4);border-radius:8px;padding:8px 12px;color:#a8d8f0;font-size:13px;margin-top:10px;line-height:1.6}
-.food-card .fc-tip{background:rgba(255,200,0,.07);border-right:3px solid rgba(255,200,0,.4);border-radius:8px;padding:8px 12px;color:#ffe082;font-size:13px;margin-top:8px;line-height:1.6}
+/* ─── Section Title ─── */
+.sec-title{
+  color:#1a2a4a;font-size:21px;font-weight:800;
+  padding-bottom:10px;
+  border-bottom:2px solid #e2ecff;
+  margin-bottom:22px;
+}
+.sec-title span{color:#4f8ef7}
 
-/* pills */
-.pills{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-.pill{padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600}
-.pill-cal{background:rgba(0,180,216,.18);color:#80d8ff;border:1px solid rgba(0,180,216,.3)}
-.pill-p{background:rgba(76,175,80,.18);color:#a5d6a7;border:1px solid rgba(76,175,80,.3)}
-.pill-c{background:rgba(255,167,38,.18);color:#ffcc80;border:1px solid rgba(255,167,38,.3)}
-.pill-f{background:rgba(244,67,54,.18);color:#ef9a9a;border:1px solid rgba(244,67,54,.3)}
+/* ─── Food Card ─── */
+.food-card{
+  background:#fff;border:1px solid #e8f0fe;
+  border-radius:14px;padding:16px 18px;margin-bottom:10px;
+  border-right:4px solid #4f8ef7;
+  box-shadow:0 1px 8px rgba(79,142,247,.06);
+  transition:border-color .2s,box-shadow .2s;
+}
+.food-card:hover{border-right-color:#a78bfa;box-shadow:0 4px 16px rgba(79,142,247,.12)}
+.food-card .fc-name{color:#1a2a4a;font-size:16px;font-weight:700;margin-bottom:8px}
+.food-card .fc-note{
+  background:#f0f7ff;border-right:3px solid #4f8ef7;
+  border-radius:8px;padding:8px 12px;color:#3a5a8a;
+  font-size:13px;margin-top:8px;line-height:1.6;
+}
+.food-card .fc-tip{
+  background:#fffbf0;border-right:3px solid #f59e0b;
+  border-radius:8px;padding:8px 12px;color:#92600a;
+  font-size:13px;margin-top:6px;line-height:1.6;
+}
 
-/* progress */
-.prog-wrap{background:rgba(255,255,255,.07);border-radius:20px;height:10px;overflow:hidden;margin:5px 0 12px}
+/* ─── Pills ─── */
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.pill{padding:3px 11px;border-radius:20px;font-size:12px;font-weight:700}
+.pill-cal{background:#e8f4ff;color:#1a6bc9;border:1px solid #b3d7ff}
+.pill-p{background:#e8f7ee;color:#1a7a3a;border:1px solid #a8ddb8}
+.pill-c{background:#fff4e0;color:#b56b00;border:1px solid #ffd080}
+.pill-f{background:#ffeaea;color:#c02020;border:1px solid #ffb8b8}
+
+/* ─── Progress ─── */
+.prog-wrap{background:#edf2ff;border-radius:20px;height:10px;overflow:hidden;margin:5px 0 12px}
 .prog-fill{height:10px;border-radius:20px;transition:width .6s}
-.prog-cal{background:linear-gradient(90deg,#0096c7,#00d4ff)}
-.prog-p{background:linear-gradient(90deg,#388e3c,#66bb6a)}
-.prog-c{background:linear-gradient(90deg,#e65100,#ffa726)}
-.prog-f{background:linear-gradient(90deg,#c62828,#ef5350)}
+.prog-cal{background:linear-gradient(90deg,#4f8ef7,#818cf8)}
+.prog-p{background:linear-gradient(90deg,#22c55e,#4ade80)}
+.prog-c{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.prog-f{background:linear-gradient(90deg,#ef4444,#f87171)}
 
-/* alerts */
-.alert-warn{background:rgba(255,152,0,.1);border:1px solid rgba(255,152,0,.35);border-radius:14px;padding:16px 20px;color:#ffcc80;margin-bottom:18px}
-.alert-info{background:rgba(0,180,216,.1);border:1px solid rgba(0,180,216,.3);border-radius:14px;padding:14px 18px;color:#80d8ff;margin-bottom:14px}
-.alert-success{background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.3);border-radius:14px;padding:14px 18px;color:#a5d6a7;margin-bottom:14px}
+/* ─── Alerts ─── */
+.alert-warn{background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:14px 18px;color:#92600a;margin-bottom:14px}
+.alert-info{background:#eff6ff;border:1px solid #93c5fd;border-radius:12px;padding:12px 16px;color:#1e40af;margin-bottom:12px}
+.alert-success{background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 16px;color:#15803d;margin-bottom:12px}
 
-/* bmi */
-.bmi-badge{display:inline-block;padding:6px 18px;border-radius:30px;font-size:14px;font-weight:700;margin-top:6px}
-.bmi-under{background:rgba(33,150,243,.2);color:#90caf9;border:1px solid rgba(33,150,243,.4)}
-.bmi-normal{background:rgba(76,175,80,.2);color:#a5d6a7;border:1px solid rgba(76,175,80,.4)}
-.bmi-over{background:rgba(255,152,0,.2);color:#ffcc80;border:1px solid rgba(255,152,0,.4)}
-.bmi-obese{background:rgba(244,67,54,.2);color:#ef9a9a;border:1px solid rgba(244,67,54,.4)}
+/* ─── BMI Badge ─── */
+.bmi-badge{display:inline-block;padding:5px 16px;border-radius:30px;font-size:13px;font-weight:700;margin-top:5px}
+.bmi-under{background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd}
+.bmi-normal{background:#dcfce7;color:#15803d;border:1px solid #86efac}
+.bmi-over{background:#fef3c7;color:#92600a;border:1px solid #fcd34d}
+.bmi-obese{background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5}
 
-/* text */
-h1,h2,h3,h4,h5,h6{color:#fff!important}
-p,li,span{color:#dceeff}
-strong{color:#fff!important}
-.stMarkdown p{color:#dceeff!important}
-.stMarkdown li{color:#dceeff!important}
-.stMarkdown strong{color:#fff!important}
-label,.stSelectbox label,.stNumberInput label,.stTextInput label{color:#9cc8e8!important;font-weight:600;font-size:14px}
-[data-testid="stCaptionContainer"]{color:#7fb8d8!important}
+/* ─── Text ─── */
+h1,h2,h3,h4,h5,h6{color:#1a2a4a!important}
+p,li{color:#374151}
+strong{color:#1a2a4a!important}
+.stMarkdown p{color:#374151!important}
+.stMarkdown li{color:#374151!important}
+.stMarkdown strong{color:#1a2a4a!important}
+label,.stSelectbox label,.stNumberInput label,.stTextInput label{
+  color:#4a5568!important;font-weight:600;font-size:14px}
+[data-testid="stCaptionContainer"]{color:#6b7fa3!important}
 
-/* inputs */
-input,textarea{background:#0f2030!important;color:#fff!important;border:1px solid rgba(0,180,216,.35)!important;border-radius:10px!important;caret-color:#00d4ff!important}
-input::placeholder,textarea::placeholder{color:#456a88!important;opacity:1!important}
-input:-webkit-autofill{-webkit-text-fill-color:#fff!important;-webkit-box-shadow:0 0 0px 1000px #0f2030 inset!important}
-.stSelectbox>div>div,[data-baseweb="select"]>div{background:#0f2030!important;color:#fff!important;border:1px solid rgba(0,180,216,.35)!important;border-radius:10px!important}
-[data-baseweb="select"] span{color:#fff!important}
+/* ─── Inputs ─── */
+input,textarea{
+  background:#fff!important;color:#1a2a4a!important;
+  border:1px solid #c7d7f0!important;border-radius:10px!important;
+  caret-color:#4f8ef7!important;
+}
+input::placeholder,textarea::placeholder{color:#a0aec0!important;opacity:1!important}
+input:focus,textarea:focus{border-color:#4f8ef7!important;box-shadow:0 0 0 3px rgba(79,142,247,.12)!important}
+input:-webkit-autofill{
+  -webkit-text-fill-color:#1a2a4a!important;
+  -webkit-box-shadow:0 0 0px 1000px #fff inset!important;
+}
+.stSelectbox>div>div,[data-baseweb="select"]>div{
+  background:#fff!important;color:#1a2a4a!important;
+  border:1px solid #c7d7f0!important;border-radius:10px!important;
+}
+[data-baseweb="select"] span{color:#1a2a4a!important}
 
-/* buttons */
-.stButton>button{background:linear-gradient(135deg,#005f8a,#0096c7);color:#fff;border:none;border-radius:10px;font-family:'Cairo',sans-serif;font-weight:700;font-size:14px;padding:10px 22px;transition:all .2s}
-.stButton>button:hover{background:linear-gradient(135deg,#0077aa,#00b4d8);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,180,216,.35)}
+/* ─── Buttons ─── */
+.stButton>button{
+  background:linear-gradient(135deg,#4f8ef7,#818cf8);
+  color:#fff;border:none;border-radius:10px;
+  font-family:'Cairo',sans-serif;font-weight:700;font-size:14px;
+  padding:10px 22px;transition:all .2s;
+}
+.stButton>button:hover{
+  background:linear-gradient(135deg,#3b7ef6,#6d76f5);
+  transform:translateY(-2px);box-shadow:0 6px 20px rgba(79,142,247,.3);
+}
 
-/* tabs */
-.stTabs [data-baseweb="tab-list"]{background:rgba(255,255,255,.03);border-radius:12px;padding:4px;gap:4px}
-.stTabs [data-baseweb="tab"]{color:#7fb8d8;border-radius:8px;font-family:'Cairo',sans-serif;font-weight:600}
-.stTabs [aria-selected="true"]{background:rgba(0,180,216,.18)!important;color:#00d4ff!important}
+/* ─── Tabs ─── */
+.stTabs [data-baseweb="tab-list"]{background:#f1f5fd;border-radius:12px;padding:4px;gap:4px}
+.stTabs [data-baseweb="tab"]{color:#4a5568;border-radius:8px;font-family:'Cairo',sans-serif;font-weight:600}
+.stTabs [aria-selected="true"]{background:#fff!important;color:#4f8ef7!important;box-shadow:0 2px 8px rgba(79,142,247,.15)!important}
 
-/* expander */
-.streamlit-expanderHeader{background:rgba(255,255,255,.04)!important;border-radius:12px!important;color:#c8e8ff!important;font-weight:600!important;border:1px solid rgba(0,180,216,.15)!important}
-.streamlit-expanderContent{background:rgba(255,255,255,.02)!important;border:1px solid rgba(0,180,216,.1)!important;border-top:none!important;border-radius:0 0 12px 12px!important}
+/* ─── Expander ─── */
+.streamlit-expanderHeader{
+  background:#f8faff!important;border-radius:12px!important;
+  color:#1a2a4a!important;font-weight:600!important;
+  border:1px solid #e2ecff!important;
+}
+.streamlit-expanderContent{
+  background:#fdfdff!important;
+  border:1px solid #e8efff!important;
+  border-top:none!important;border-radius:0 0 12px 12px!important;
+}
 
-/* metric */
-[data-testid="metric-container"]{background:rgba(255,255,255,.04);border:1px solid rgba(0,180,216,.18);border-radius:14px;padding:14px}
-[data-testid="metric-container"] label{color:#7fb8d8!important;font-weight:600}
-[data-testid="stMetricValue"]{color:#fff!important;font-weight:800}
+/* ─── Metric ─── */
+[data-testid="metric-container"]{
+  background:#fff;border:1px solid #e2ecff;border-radius:14px;padding:14px;
+  box-shadow:0 2px 10px rgba(79,142,247,.06);
+}
+[data-testid="metric-container"] label{color:#6b7fa3!important;font-weight:600}
+[data-testid="stMetricValue"]{color:#1a2a4a!important;font-weight:800}
 
-/* st alerts */
-.stSuccess{background:rgba(76,175,80,.12)!important;color:#a5d6a7!important;border-radius:12px!important;border:1px solid rgba(76,175,80,.3)!important}
-.stError{background:rgba(244,67,54,.12)!important;color:#ef9a9a!important;border-radius:12px!important;border:1px solid rgba(244,67,54,.3)!important}
-.stWarning{background:rgba(255,152,0,.12)!important;color:#ffcc80!important;border-radius:12px!important;border:1px solid rgba(255,152,0,.3)!important}
-.stInfo{background:rgba(0,180,216,.10)!important;color:#80d8ff!important;border-radius:12px!important;border:1px solid rgba(0,180,216,.25)!important}
+/* ─── Streamlit alerts ─── */
+.stSuccess{background:#f0fdf4!important;color:#15803d!important;border-radius:12px!important;border:1px solid #86efac!important}
+.stError{background:#fef2f2!important;color:#b91c1c!important;border-radius:12px!important;border:1px solid #fca5a5!important}
+.stWarning{background:#fffbeb!important;color:#92600a!important;border-radius:12px!important;border:1px solid #fcd34d!important}
+.stInfo{background:#eff6ff!important;color:#1e40af!important;border-radius:12px!important;border:1px solid #93c5fd!important}
 
-/* suggestion */
-.sug-box{background:linear-gradient(135deg,rgba(0,100,160,.2),rgba(0,180,216,.08));border:1px solid rgba(0,180,216,.28);border-radius:14px;padding:16px 18px;margin-bottom:10px;transition:border-color .2s}
-.sug-box:hover{border-color:rgba(0,210,255,.5)}
-.sug-box h4{color:#00d4ff;margin:0 0 8px 0;font-size:15px}
+/* ─── Suggestion box ─── */
+.sug-box{
+  background:#f8fbff;border:1px solid #c7d7f0;
+  border-radius:14px;padding:16px 18px;margin-bottom:10px;
+  transition:border-color .2s,box-shadow .2s;
+  box-shadow:0 1px 6px rgba(79,142,247,.06);
+}
+.sug-box:hover{border-color:#4f8ef7;box-shadow:0 4px 16px rgba(79,142,247,.12)}
+.sug-box h4{color:#1a2a4a;margin:0 0 8px 0;font-size:15px}
 
-hr{border-color:rgba(0,180,216,.15)!important;margin:20px 0!important}
-::-webkit-scrollbar{width:6px}
-::-webkit-scrollbar-track{background:#071525}
-::-webkit-scrollbar-thumb{background:#1a4a6e;border-radius:10px}
-::-webkit-scrollbar-thumb:hover{background:#0096c7}
+/* ─── Clinical row ─── */
+.clin-row{
+  background:#f8fbff;border-right:3px solid #4f8ef7;
+  border-radius:8px;padding:8px 12px;margin-bottom:7px;
+}
+.clin-row .cr-label{color:#4f8ef7;font-size:12px;font-weight:700}
+.clin-row .cr-val{color:#1a2a4a;font-size:13px}
+.clin-row-warn{border-right-color:#f59e0b;background:#fffbf0}
+.clin-row-warn .cr-label{color:#b56b00}
+.clin-row-green{border-right-color:#22c55e;background:#f0fdf4}
+.clin-row-green .cr-label{color:#15803d}
+.clin-row-red{border-right-color:#ef4444;background:#fef2f2}
+.clin-row-red .cr-label{color:#b91c1c}
 
-/* login */
-.login-logo{text-align:center;padding:50px 0 28px}
-.login-logo .logo-icon{font-size:64px;filter:drop-shadow(0 0 20px rgba(0,180,216,.5))}
-.login-logo h1{font-size:46px;font-weight:900;background:linear-gradient(90deg,#00b4d8,#00ffcc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:10px 0 4px}
-.login-logo p{color:#7fb8d8;font-size:16px;margin:0}
+/* ─── Clinical calc box ─── */
+.calc-box{
+  background:linear-gradient(135deg,#f0f7ff,#f5f0ff);
+  border:1px solid #c7d7f0;border-radius:16px;
+  padding:20px 22px;margin:16px 0;
+}
+.calc-box h4{color:#1a2a4a;font-size:16px;font-weight:800;margin:0 0 14px}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:#f0f5ff}
+::-webkit-scrollbar-thumb{background:#c7d7f0;border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:#4f8ef7}
+
+hr{border-color:#e8efff!important;margin:20px 0!important}
+
+/* ─── Mobile ─── */
+@media(max-width:768px){
+  .stApp{padding:0!important}
+  .card{padding:16px 14px!important}
+  .card .c-value{font-size:22px!important}
+  .sec-title{font-size:18px!important}
+  .food-card{padding:12px 14px!important}
+  .stButton>button{padding:10px 14px!important;font-size:13px!important}
+  h1{font-size:26px!important}
+  h2{font-size:20px!important}
+  h3{font-size:17px!important}
+  .pills{gap:4px}
+  .pill{font-size:11px!important;padding:2px 8px!important}
+  [data-testid="stSidebar"]{width:260px!important}
+  .block-container{padding:1rem 0.75rem!important}
+}
+@media(max-width:480px){
+  .card .c-value{font-size:18px!important}
+  .sec-title{font-size:16px!important}
+}
+
+/* ─── Login Page ─── */
+.login-wrap{
+  max-width:460px;margin:0 auto;
+  padding:40px 24px 24px;
+}
+.login-logo{text-align:center;margin-bottom:32px}
+.login-logo .logo-icon{font-size:56px}
+.login-logo h1{
+  font-size:38px;font-weight:900;
+  background:linear-gradient(90deg,#4f8ef7,#a78bfa);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin:8px 0 4px;
+}
+.login-logo p{color:#6b7fa3;font-size:15px;margin:0}
+
+/* ─── Nav active ─── */
+.nav-active button{
+  background:rgba(79,142,247,.15)!important;
+  color:#fff!important;
+  border-color:rgba(79,142,247,.4)!important;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
 # DATABASE
 # ══════════════════════════════════════════
-DB_FILE = "nutrax_v10.db"
+DB_FILE = "nutrax_v11.db"
 def init_db():
     global conn, c
     try:
@@ -166,9 +314,6 @@ if not c.fetchone():
               ("admin@nutrax.com", hp("123456"), "Admin"))
     conn.commit()
 
-# ══════════════════════════════════════════
-# FOOD DB — 100+ items with notes & tips
-# ══════════════════════════════════════════
 LOCAL_DB = {
     # ── Poultry ──
     "chicken_breast":    {"name":"صدر دجاج","cal":165,"p":31,"c":0,"f":3.6,"cat":"🍗 دواجن",
@@ -528,7 +673,6 @@ def smart_suggest(rem_cal, rem_p, rem_c, rem_f):
 
 # ══════════════════════════════════════════
 # CLINICAL REFERENCE DATA (from textbook)
-# ══════════════════════════════════════════
 CLINICAL_CONDITIONS = {
     "diabetes_t1": {
         "name":"السكري النوع الأول (Type 1)","icon":"🩸","chapter":"Chapter 26 — Diabetes Mellitus",
@@ -958,11 +1102,475 @@ else:
                     with col2:
                         if st.button("🛒 المشتريات",key=f"sh_{pid}"):
                             shop=shopping(pd_raw)
-                            st.markdown("**🛒 قائمة المشتريات:**")
+
+# ══════════════════════════════════════════
+# HELPERS
+# ══════════════════════════════════════════
+def calc_targets(weight, height, age, goal, act=1.55):
+    bmr  = 10*weight + 6.25*height - 5*age + 5
+    tdee = bmr * act
+    if   goal=="fat_loss":    cal=tdee-400; pr,cr,fr=0.35,0.35,0.30
+    elif goal=="muscle_gain": cal=tdee+400; pr,cr,fr=0.30,0.45,0.25
+    else:                     cal=tdee;     pr,cr,fr=0.25,0.45,0.30
+    return {"cal":int(cal),"p":int(cal*pr/4),"c":int(cal*cr/4),"f":int(cal*fr/9),"goal":goal,"tdee":int(tdee)}
+
+def macros(key, grams):
+    f=LOCAL_DB[key]; r=grams/100
+    return {"cal":round(f["cal"]*r,1),"p":round(f["p"]*r,1),"c":round(f["c"]*r,1),"f":round(f["f"]*r,1)}
+
+def bmi_info(w, h_cm):
+    h=h_cm/100; bmi=w/(h*h)
+    if bmi<18.5: return round(bmi,1),"bmi-under","نقص في الوزن"
+    elif bmi<25: return round(bmi,1),"bmi-normal","وزن مثالي ✅"
+    elif bmi<30: return round(bmi,1),"bmi-over","زيادة في الوزن"
+    else:        return round(bmi,1),"bmi-obese","سمنة"
+
+def prog(pct, css):
+    p=min(max(pct,0),100)
+    return f'<div class="prog-wrap"><div class="prog-fill {css}" style="width:{p}%"></div></div>'
+
+def diff_badge(diff):
+    if diff>80:    return f'<span style="color:#b91c1c;font-weight:700">+{int(diff)} kcal زيادة ⬆️</span>'
+    elif diff<-80: return f'<span style="color:#15803d;font-weight:700">{int(diff)} kcal ناقص ⬇️</span>'
+    else:          return f'<span style="color:#1e40af;font-weight:700">مثالي ✅</span>'
+
+def shopping(plan_data):
+    out={}
+    for day,meals in plan_data.items():
+        for meal,foods in meals.items():
+            for k,g in foods.items():
+                if k in LOCAL_DB: out[k]=out.get(k,0)+g
+    return out
+
+def smart_suggest(rem_cal, rem_p, rem_c, rem_f):
+    sug=[]
+    for k,v in LOCAL_DB.items():
+        if rem_cal<=0: break
+        g=min(300,max(50,int(rem_cal/max(v["cal"]/100,.1))))
+        m=macros(k,g)
+        if m["cal"]>rem_cal*1.3 or m["cal"]<40: continue
+        score=100-abs(m["cal"]-rem_cal*.4)
+        if rem_p>20 and v["p"]>15: score+=40
+        if rem_f<10 and v["f"]<5:  score+=20
+        sug.append({"key":k,"name":v["name"],"cat":v["cat"],"grams":g,"macro":m,"score":score})
+    sug.sort(key=lambda x:-x["score"])
+    return sug[:5]
+
+# ── Clinical Nutrition Calculator ──
+def clinical_calc(weight, height_cm, age, sex, conditions, activity=1.55):
+    """Calculate personalized nutrition targets adjusted for clinical conditions."""
+    h = height_cm / 100
+    bmi = weight / (h * h)
+
+    # Base BMR (Mifflin-St Jeor)
+    if sex == "ذكر":
+        bmr = 10*weight + 6.25*height_cm - 5*age + 5
+    else:
+        bmr = 10*weight + 6.25*height_cm - 5*age - 161
+
+    tdee = bmr * activity
+
+    # Start with defaults
+    cal = tdee
+    p_g_kg = 0.8       # protein g/kg
+    carb_pct = 0.50
+    fat_pct  = 0.30
+    fiber_g  = 28
+    sodium_mg = 2300
+    fluid_ml = 35 * weight
+    notes = []
+    restrictions = {}
+
+    # Apply condition-specific adjustments
+    for cond in conditions:
+        if cond == "diabetes_t1":
+            carb_pct = 0.45
+            fiber_g = 30
+            sodium_mg = 2300
+            notes.append("🩸 السكري 1: كارب ثابت 45% | وجبات منتظمة مع الأنسولين")
+        elif cond == "diabetes_t2":
+            cal = tdee - 400 if bmi >= 25 else tdee
+            carb_pct = 0.45
+            p_g_kg = 1.0
+            fiber_g = 35
+            sodium_mg = 2300
+            notes.append("🩸 السكري 2: عجز 400 kcal للإنقاص | ألياف عالية 35 جم")
+        elif cond == "pregnancy":
+            trimester_bonus = [0, 340, 452]
+            cal = tdee + 340  # default 2nd trimester
+            p_g_kg = 1.1
+            fiber_g = 28
+            notes.append("🤰 الحمل: +340 kcal | بروتين 1.1 جم/كجم | فولات + حديد + DHA")
+            restrictions["فولات"] = "600 ميكروجرام/يوم"
+            restrictions["حديد"] = "27 مجم/يوم"
+            restrictions["DHA"] = "200–300 مجم/يوم"
+            restrictions["كالسيوم"] = "1000 مجم/يوم"
+        elif cond == "lactation":
+            cal = tdee + 500
+            p_g_kg = 1.1
+            fluid_ml = 3100
+            notes.append("🤱 الرضاعة: +500 kcal | سوائل 3.1 لتر/يوم | DHA 200 مجم")
+            restrictions["أيودين"] = "290 ميكروجرام/يوم"
+            restrictions["فيتامين D"] = "600 IU/يوم"
+        elif cond == "ckd_predialysis":
+            p_g_kg = 0.65
+            sodium_mg = 2000
+            fluid_ml = -1  # unrestricted if urine OK
+            notes.append("🫘 الكلى (قبل ديلزة): بروتين 0.65 جم/كجم | صوديوم < 2000 مجم")
+            restrictions["فوسفور"] = "800–1000 مجم/يوم"
+            restrictions["بوتاسيوم"] = "حسب مستوى الدم"
+            restrictions["سوائل"] = "غير مقيدة إذا البول طبيعي"
+        elif cond == "ckd_hemodialysis":
+            p_g_kg = 1.2
+            sodium_mg = 2000
+            fluid_ml = 1000  # + urine output
+            notes.append("🫘 الكلى (ديلزة): بروتين 1.2 جم/كجم | سوائل 1000 مل + البول")
+            restrictions["فوسفور"] = "800–1000 مجم/يوم"
+            restrictions["بوتاسيوم"] = "2000–3000 مجم/يوم"
+            restrictions["سوائل"] = "1000 مل + إخراج البول اليومي"
+        elif cond == "cardiovascular":
+            fat_pct = 0.28
+            fiber_g = 30
+            sodium_mg = 1500
+            notes.append("❤️ القلب: دهون مشبعة < 7% | صوديوم < 1500 مجم | ألياف 30 جم")
+            restrictions["دهون مشبعة"] = "< 7% من السعرات"
+            restrictions["كوليسترول"] = "< 200 مجم/يوم"
+            restrictions["أوميغا 3"] = "1 جم EPA+DHA/يوم"
+        elif cond == "liver_cirrhosis":
+            p_g_kg = 1.3
+            sodium_mg = 2000
+            fat_pct = 0.30
+            notes.append("🫀 الكبد: بروتين 1.3 جم/كجم | صوديوم < 2000 | 6 وجبات صغيرة")
+            restrictions["صوديوم"] = "< 2000 مجم/يوم (استسقاء)"
+            restrictions["زنك"] = "مكمل موصى به"
+            restrictions["فيتامين D"] = "600 IU/يوم"
+        elif cond == "obesity":
+            cal = max(tdee - 600, 1200 if weight < 80 else 1500)
+            p_g_kg = 1.2
+            fiber_g = 35
+            notes.append("⚖️ السمنة: عجز 600 kcal | بروتين عالٍ 1.2 جم/كجم | ألياف 35 جم")
+        elif cond == "cancer":
+            cal = tdee * 1.1
+            p_g_kg = 1.5
+            notes.append("🎗️ السرطان: رفع السعرات 10% | بروتين 1.5 جم/كجم | وجبات صغيرة متكررة")
+            restrictions["أوميغا 3 (EPA)"] = "مكمل للتخفيف من الكاكسيا"
+        elif cond == "gerd":
+            notes.append("🔥 GERD: وجبات صغيرة | تجنب الدهون العالية والكافيين | لا أكل قبل النوم 3 ساعات")
+        elif cond == "ibs":
+            fiber_g = 25
+            notes.append("🫃 القولون العصبي: Low-FODMAP | ألياف قابلة للذوبان | وجبات منتظمة")
+        elif cond == "metabolic_syndrome":
+            cal = tdee - 500
+            carb_pct = 0.42
+            fiber_g = 35
+            sodium_mg = 2000
+            notes.append("🔬 المتلازمة الأيضية: عجز 500 kcal | كارب منخفض | صوديوم < 2000 مجم")
+
+    # Final macros from adjusted cal + p_g_kg
+    cal = int(cal)
+    p_g = int(p_g_kg * weight)
+    p_cal = p_g * 4
+    f_cal = int(cal * fat_pct)
+    f_g = int(f_cal / 9)
+    c_cal = max(cal - p_cal - f_cal, 130*4)  # min 130g carb
+    c_g = int(c_cal / 4)
+
+    return {
+        "cal": cal, "tdee": int(tdee), "bmr": int(bmr),
+        "p": p_g, "c": c_g, "f": f_g,
+        "p_g_kg": round(p_g_kg, 2),
+        "fiber": fiber_g,
+        "sodium": sodium_mg,
+        "fluid": fluid_ml,
+        "notes": notes,
+        "restrictions": restrictions,
+        "bmi": round(bmi, 1),
+    }
+
+# ══════════════════════════════════════════
+# SESSION
+# ══════════════════════════════════════════
+for k,v in [("page","login"),("user",None),("targets",None),("confirm_del",None)]:
+    if k not in st.session_state: st.session_state[k]=v
+REQUIRED={"cal","p","c","f","goal"}
+
+# ══════════════════════════════════════════
+# LOGIN
+# ══════════════════════════════════════════
+if st.session_state.page=="login":
+    st.markdown('<div class="login-wrap">', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="login-logo">
+        <div class="logo-icon">🥗</div>
+        <h1>NutraX</h1>
+        <p>مساعدك الذكي للتغذية الصحية</p>
+    </div>""", unsafe_allow_html=True)
+    t1,t2=st.tabs(["🔑 دخول","✨ حساب جديد"])
+    with t1:
+        with st.form("lgn"):
+            e=st.text_input("📧 البريد الإلكتروني")
+            p=st.text_input("🔒 كلمة المرور",type="password")
+            if st.form_submit_button("دخول ←",use_container_width=True):
+                c.execute("SELECT * FROM users WHERE email=? AND password=?",(e,hp(p)))
+                u=c.fetchone()
+                if u: st.session_state.user=u; st.session_state.page="dashboard"; st.rerun()
+                else: st.error("البريد أو كلمة المرور غير صحيحة")
+    with t2:
+        with st.form("reg"):
+            n=st.text_input("👤 الاسم الكامل"); e2=st.text_input("📧 البريد")
+            p2=st.text_input("🔒 كلمة المرور",type="password")
+            by=st.number_input("📅 سنة الميلاد",1950,2010,1995)
+            cn=st.selectbox("🌍 البلد",["Egypt","Saudi Arabia","UAE","Kuwait","Qatar","Bahrain","Jordan","Other"])
+            if st.form_submit_button("إنشاء الحساب ←",use_container_width=True):
+                try:
+                    c.execute("INSERT INTO users (email,password,name,birth_year,country,is_admin) VALUES (?,?,?,?,?,0)",
+                              (e2,hp(p2),n,by,cn)); conn.commit(); st.success("تم! سجل دخولك.")
+                except: st.error("البريد مستخدم بالفعل")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ══════════════════════════════════════════
+# MAIN APP
+# ══════════════════════════════════════════
+else:
+    if st.session_state.user is None or len(st.session_state.user)<5:
+        st.session_state.user=None; st.session_state.page="login"; st.rerun()
+    if st.session_state.targets and not REQUIRED.issubset(st.session_state.targets.keys()):
+        st.session_state.targets=None
+    u=st.session_state.user; u_id=u[0]
+
+    # ── SIDEBAR ──
+    with st.sidebar:
+        st.markdown(f"""
+        <div style="text-align:center;padding:20px 0 12px">
+            <div style="font-size:44px">👤</div>
+            <div style="color:#ffffff;font-size:16px;font-weight:700;margin:6px 0 2px">{u[3]}</div>
+            <div style="color:#7ab0cc;font-size:11px">{u[1]}</div>
+        </div>""", unsafe_allow_html=True)
+        st.divider()
+        NAV = [("🏠","الرئيسية","dashboard"),("⚙️","الإعدادات","profile_setup"),
+               ("🔍","محلل الطعام","analyzer"),("📅","مصمم الجدول","planner"),
+               ("💡","مقترح الوجبات","suggester"),("💾","جداولي","saved"),
+               ("📈","سجل الوزن","history"),("📚","المرجع الكلينيكي","clinical")]
+        for icon,label,pg in NAV:
+            active = "⬤ " if st.session_state.page==pg else "    "
+            if st.button(f"{active}{icon}  {label}",key=f"nav_{pg}"):
+                st.session_state.page=pg; st.rerun()
+        st.divider()
+        if st.button("🚪  خروج",key="logout"):
+            st.session_state.user=None; st.session_state.page="login"; st.rerun()
+        st.markdown("<div style='text-align:center;color:#2a5070;font-size:10px;margin-top:14px'>NutraX V11 © 2025</div>",unsafe_allow_html=True)
+
+    # ═══════════════ DASHBOARD ═══════════════
+    if st.session_state.page=="dashboard":
+        st.markdown("<div class='sec-title'>🏠 الرئيسية</div>",unsafe_allow_html=True)
+        if not st.session_state.targets:
+            st.markdown("<div class='alert-warn'>⚠️ <b>أكمل إعداداتك</b> لحساب أهدافك الغذائية.</div>",unsafe_allow_html=True)
+            if st.button("⚙️ الإعدادات"): st.session_state.page="profile_setup"; st.rerun()
+        else:
+            t=st.session_state.targets
+            c.execute("SELECT COUNT(*) FROM saved_plans WHERE user_id=?",(u_id,)); pn=c.fetchone()[0]
+            c.execute("SELECT weight FROM tracking WHERE user_id=? ORDER BY id DESC LIMIT 1",(u_id,)); lw=c.fetchone()
+            cols=st.columns(4)
+            for col,(ic,lb,val,un) in zip(cols,[("🎯","هدف السعرات",t['cal'],"kcal"),
+                ("💪","بروتين يومي",t['p'],"جم"),("🍞","كاربوهيدرات",t['c'],"جم"),("🥑","دهون يومية",t['f'],"جم")]):
+                col.markdown(f'<div class="card" style="text-align:center"><div class="c-icon">{ic}</div><div class="c-label">{lb}</div><div class="c-value">{val}</div><div class="c-unit">{un}</div></div>',unsafe_allow_html=True)
+            st.markdown("<br>",unsafe_allow_html=True)
+            c1,c2,c3=st.columns(3)
+            with c1:
+                if u[4] and u[5]:
+                    bv,bcls,blbl=bmi_info(float(u[5]),float(u[4]))
+                    st.markdown(f'<div class="card"><div class="c-label">📏 مؤشر كتلة الجسم (BMI)</div><div class="c-value">{bv}</div><div class="bmi-badge {bcls}">{blbl}</div></div>',unsafe_allow_html=True)
+                else:
+                    st.markdown("<div class='card'><div class='c-label'>📏 BMI</div><div class='c-unit'>أكمل إعداداتك</div></div>",unsafe_allow_html=True)
+            with c2:
+                wv=f"{lw[0]} كجم" if lw else "لم يُسجَّل"
+                st.markdown(f'<div class="card" style="text-align:center"><div class="c-icon">⚖️</div><div class="c-label">آخر وزن</div><div class="c-value" style="font-size:22px">{wv}</div></div>',unsafe_allow_html=True)
+            with c3:
+                st.markdown(f'<div class="card" style="text-align:center"><div class="c-icon">💾</div><div class="c-label">جداول محفوظة</div><div class="c-value">{pn}</div></div>',unsafe_allow_html=True)
+            gl={"fat_loss":"🔥 خسارة دهون","muscle_gain":"💪 بناء عضل","maintain":"⚖️ ثبات الوزن"}
+            st.markdown(f"<div class='alert-info'>هدفك: <b>{gl.get(t['goal'],t['goal'])}</b> | TDEE: <b>{t.get('tdee','—')} kcal</b> | هدف: <b>{t['cal']} kcal/يوم</b></div>",unsafe_allow_html=True)
+
+    # ═══════════════ PROFILE ═══════════════
+    elif st.session_state.page=="profile_setup":
+        st.markdown("<div class='sec-title'>⚙️ الإعدادات والهدف</div>",unsafe_allow_html=True)
+        with st.form("pf"):
+            c1,c2=st.columns(2)
+            with c1:
+                h=st.number_input("📏 الطول (سم)",140.0,220.0,float(u[4] or 170))
+                w=st.number_input("⚖️ الوزن (كجم)",40.0,250.0,float(u[5] or 70))
+                age=st.number_input("📅 العمر (سنة)",15,90,25)
+            with c2:
+                goal=st.selectbox("🎯 هدفك",["maintain","fat_loss","muscle_gain"],
+                    format_func=lambda x:{"maintain":"⚖️ ثبات الوزن","fat_loss":"🔥 خسارة دهون","muscle_gain":"💪 بناء عضل"}[x])
+                act=st.selectbox("🏃 مستوى النشاط",[1.2,1.375,1.55,1.725,1.9],
+                    format_func=lambda x:{1.2:"مستقر",1.375:"خفيف (1-3 أيام)",
+                        1.55:"معتدل (3-5 أيام)",1.725:"نشيط (6-7 أيام)",1.9:"رياضي محترف"}[x])
+            if st.form_submit_button("💾 حفظ وحساب الأهداف",use_container_width=True):
+                c.execute("UPDATE users SET height=?,weight=?,goal=?,birth_year=? WHERE id=?",(h,w,goal,datetime.now().year-age,u_id)); conn.commit()
+                st.session_state.targets=calc_targets(w,h,age,goal,act)
+                c.execute("SELECT * FROM users WHERE id=?",(u_id,)); st.session_state.user=c.fetchone()
+                st.success("✅ تم الحفظ!"); st.session_state.page="dashboard"; st.rerun()
+
+    # ═══════════════ ANALYZER ═══════════════
+    elif st.session_state.page=="analyzer":
+        st.markdown("<div class='sec-title'>🔍 محلل الطعام</div>",unsafe_allow_html=True)
+        cats=sorted(set(v["cat"] for v in LOCAL_DB.values()))
+        col_f1,col_f2=st.columns([1,2])
+        with col_f1: sel_cat=st.selectbox("📂 الفئة",["الكل"]+cats)
+        with col_f2: search=st.text_input("🔎 ابحث بالعربي أو الإنجليزي")
+        filtered=dict(LOCAL_DB)
+        if sel_cat!="الكل": filtered={k:v for k,v in filtered.items() if v["cat"]==sel_cat}
+        if search:
+            s=search.lower()
+            filtered={k:v for k,v in filtered.items() if s in k.lower() or s in v["name"]}
+        if not search and sel_cat!="الكل" and sel_cat in CATEGORY_TIPS:
+            st.markdown(f"<div class='alert-info'>💡 <b>نصيحة:</b> {CATEGORY_TIPS[sel_cat]}</div>",unsafe_allow_html=True)
+        st.markdown(f"<div style='color:#6b7fa3;font-size:12px;margin-bottom:10px'>{len(filtered)} نتيجة من {len(LOCAL_DB)} صنف</div>",unsafe_allow_html=True)
+        for k,v in list(filtered.items())[:30]:
+            st.markdown(f"""<div class="food-card">
+                <div class="fc-name">{v['name']} <span style="color:#a0aec0;font-size:11px">{v['cat']}</span></div>
+                <div class="pills">
+                    <span class="pill pill-cal">🔥 {v['cal']} kcal</span>
+                    <span class="pill pill-p">💪 {v['p']}ج</span>
+                    <span class="pill pill-c">🍞 {v['c']}ج</span>
+                    <span class="pill pill-f">🥑 {v['f']}ج</span>
+                </div>
+                <div style="color:#a0aec0;font-size:11px;margin:3px 0 6px">لكل 100 جرام</div>
+                <div class="fc-note">📋 {v['note']}</div>
+                <div class="fc-tip">{v['tip']}</div>
+            </div>""",unsafe_allow_html=True)
+        if len(filtered)>30: st.info("عرض أول 30 — ضيّق البحث لرؤية المزيد")
+        if not filtered: st.markdown("<div class='alert-warn'>لا نتائج. جرب كلمة مختلفة.</div>",unsafe_allow_html=True)
+
+    # ═══════════════ PLANNER ═══════════════
+    elif st.session_state.page=="planner":
+        st.markdown("<div class='sec-title'>📅 مصمم الجدول الغذائي</div>",unsafe_allow_html=True)
+        if not st.session_state.targets:
+            st.markdown("<div class='alert-warn'>⚠️ أكمل إعداداتك أولاً.</div>",unsafe_allow_html=True)
+            if st.button("⚙️ الإعدادات"): st.session_state.page="profile_setup"; st.rerun()
+            st.stop()
+        t=st.session_state.targets
+        st.markdown(f"<div class='alert-info'>🎯 هدفك: <b>{t['cal']} kcal</b> | 💪 {t['p']}ج | 🍞 {t['c']}ج | 🥑 {t['f']}ج</div>",unsafe_allow_html=True)
+        days=st.number_input("عدد الأيام",1,14,1)
+        plan={}; total_cal=total_p=total_c=total_f=0
+        food_opts=list(LOCAL_DB.keys())
+        food_lbls={k:f"{LOCAL_DB[k]['name']} ({LOCAL_DB[k]['cat']})" for k in food_opts}
+        for d in range(days):
+            with st.expander(f"📆 يوم {d+1}",expanded=(d==0)):
+                plan[d]={}; cols=st.columns(2)
+                meals_list=["🌅 فطار","☀️ غداء","🌙 عشاء","🍎 سناك"]
+                for i,meal in enumerate(meals_list):
+                    with cols[i%2]:
+                        st.markdown(f"**{meal}**")
+                        foods=st.multiselect("اختر",food_opts,format_func=lambda k:food_lbls[k],key=f"ms_{d}_{i}")
+                        plan[d][meal]={}
+                        for fk in foods:
+                            g=st.number_input(f"{LOCAL_DB[fk]['name']} (جم)",0,1000,100,key=f"gi_{d}_{i}_{fk}")
+                            if g>0:
+                                plan[d][meal][fk]=g; m=macros(fk,g)
+                                total_cal+=m["cal"]; total_p+=m["p"]; total_c+=m["c"]; total_f+=m["f"]
+                                st.caption(f"🔥{m['cal']} | 💪{m['p']}ج | 🍞{m['c']}ج | 🥑{m['f']}ج")
+        st.divider()
+        st.markdown("### 📊 ملخص الجدول")
+        mc1,mc2=st.columns(2)
+        with mc1:
+            for lbl,val,tgt,css in [("🔥 سعرات",int(total_cal),t['cal']*days,"prog-cal"),
+                ("💪 بروتين",int(total_p),t['p']*days,"prog-p"),
+                ("🍞 كارب",int(total_c),t['c']*days,"prog-c"),
+                ("🥑 دهون",int(total_f),t['f']*days,"prog-f")]:
+                pct=int(val/tgt*100) if tgt>0 else 0
+                st.markdown(f"**{lbl}: {val} / {tgt}** ({pct}%)")
+                st.markdown(prog(pct,css),unsafe_allow_html=True)
+        with mc2:
+            diff=total_cal-t['cal']*days
+            st.markdown(f"**الفارق:** {diff_badge(diff)}",unsafe_allow_html=True)
+            if abs(diff)<100: st.markdown("<div class='alert-success'>ممتاز! الجدول متوازن 🎯</div>",unsafe_allow_html=True)
+            elif diff>0: st.markdown(f"<div class='alert-warn'>زيادة {int(diff)} kcal — قلل الكميات.</div>",unsafe_allow_html=True)
+            else: st.markdown(f"<div class='alert-warn'>ناقص {int(abs(diff))} kcal — أضف وجبة.</div>",unsafe_allow_html=True)
+        st.divider()
+        cn1,cn2=st.columns(2)
+        with cn1: pname=st.text_input("📝 اسم الجدول",value=f"جدول {datetime.now().strftime('%d/%m/%Y')}")
+        with cn2: ptype=st.selectbox("📁 نوع",["خاص بي","للعميل","عام"])
+        if st.button("💾 حفظ الجدول",use_container_width=True):
+            c.execute("INSERT INTO saved_plans VALUES (NULL,?,?,?,datetime('now'),?)",
+                      (u_id,pname,json.dumps({str(k):v for k,v in plan.items()}),ptype))
+            conn.commit(); st.success("✅ تم حفظ الجدول!"); st.rerun()
+
+    # ═══════════════ SUGGESTER ═══════════════
+    elif st.session_state.page=="suggester":
+        st.markdown("<div class='sec-title'>💡 مقترح الوجبات الذكي</div>",unsafe_allow_html=True)
+        if not st.session_state.targets:
+            st.warning("أكمل الإعدادات أولاً")
+            if st.button("⚙️ الإعدادات"): st.session_state.page="profile_setup"; st.rerun()
+            st.stop()
+        t=st.session_state.targets
+        st.markdown("<div class='alert-info'>أدخل ما أكلته اليوم — سنقترح الوجبات المتبقية.</div>",unsafe_allow_html=True)
+        with st.form("eaten"):
+            r1,r2,r3,r4=st.columns(4)
+            ec=r1.number_input("🔥 سعرات",0,5000,0,50)
+            ep=r2.number_input("💪 بروتين (ج)",0,500,0)
+            ecc=r3.number_input("🍞 كارب (ج)",0,600,0)
+            ef=r4.number_input("🥑 دهون (ج)",0,300,0)
+            go=st.form_submit_button("💡 اقترح لي ←",use_container_width=True)
+        if go:
+            rem={"cal":max(0,t['cal']-ec),"p":max(0,t['p']-ep),"c":max(0,t['c']-ecc),"f":max(0,t['f']-ef)}
+            r1,r2=st.columns(2)
+            with r1:
+                st.markdown("**✅ أكلته:**")
+                for lb,vl in [("🔥",f"{ec} kcal"),("💪",f"{ep}ج"),("🍞",f"{ecc}ج"),("🥑",f"{ef}ج")]:
+                    st.markdown(f"- {lb} {vl}")
+            with r2:
+                st.markdown("**🎯 المتبقي:**")
+                for lb,vl in [("🔥",f"{rem['cal']} kcal"),("💪",f"{rem['p']}ج"),("🍞",f"{rem['c']}ج"),("🥑",f"{rem['f']}ج")]:
+                    st.markdown(f"- {lb} {vl}")
+            st.divider()
+            if rem["cal"]<50:
+                st.markdown("<div class='alert-success'>🎉 وصلت لهدفك اليومي!</div>",unsafe_allow_html=True)
+            else:
+                st.markdown("### 🍽️ وجبات مقترحة:")
+                for s in smart_suggest(rem["cal"],rem["p"],rem["c"],rem["f"]):
+                    m=s["macro"]
+                    st.markdown(f"""<div class="sug-box">
+                        <h4>🍴 {s['name']} — {s['grams']} جرام <span style="color:#6b7fa3;font-size:11px">{s['cat']}</span></h4>
+                        <div class="pills">
+                            <span class="pill pill-cal">🔥 {m['cal']} kcal</span>
+                            <span class="pill pill-p">💪 {m['p']}ج</span>
+                            <span class="pill pill-c">🍞 {m['c']}ج</span>
+                            <span class="pill pill-f">🥑 {m['f']}ج</span>
+                        </div>
+                        <div class="fc-note">📋 {LOCAL_DB[s['key']]['note']}</div>
+                    </div>""",unsafe_allow_html=True)
+
+    # ═══════════════ SAVED ═══════════════
+    elif st.session_state.page=="saved":
+        st.markdown("<div class='sec-title'>💾 جداولي المحفوظة</div>",unsafe_allow_html=True)
+        ft=st.selectbox("🔎 فلتر",["الكل","خاص بي","للعميل","عام"])
+        q="SELECT id,plan_name,created_at,type FROM saved_plans WHERE user_id=?"
+        p=[u_id]
+        if ft!="الكل": q+=" AND type=?"; p.append(ft)
+        c.execute(q,p); rows=c.fetchall()
+        if not rows:
+            st.markdown("<div class='alert-info'>لا توجد جداول محفوظة بعد.</div>",unsafe_allow_html=True)
+        else:
+            for pid,pname,pdate,ptype in rows:
+                with st.expander(f"📋 {pname}  |  {ptype}  |  {str(pdate)[:10]}"):
+                    c.execute("SELECT plan_data FROM saved_plans WHERE id=?",(pid,))
+                    pd_raw=json.loads(c.fetchone()[0])
+                    col1,col2=st.columns([3,1])
+                    with col1:
+                        for d,meals in pd_raw.items():
+                            st.markdown(f"**📆 يوم {int(d)+1}**")
+                            for m,foods in meals.items():
+                                items=[f"{LOCAL_DB[k]['name']} ({v}ج)" for k,v in foods.items() if v>0 and k in LOCAL_DB]
+                                if items: st.markdown(f"- {m}: "+"، ".join(items))
+                    with col2:
+                        if st.button("🛒 مشتريات",key=f"sh_{pid}"):
+                            shop=shopping(pd_raw)
+                            st.markdown("**قائمة المشتريات:**")
                             for k,v in shop.items():
-                                if k in LOCAL_DB: st.markdown(f"- {LOCAL_DB[k]['name']}: **{v} جرام**")
+                                if k in LOCAL_DB: st.markdown(f"- {LOCAL_DB[k]['name']}: **{v}ج**")
                         if st.session_state.confirm_del==pid:
-                            st.warning("⚠️ هل أنت متأكد من الحذف؟")
+                            st.warning("هل تحذف؟")
                             cc1,cc2=st.columns(2)
                             if cc1.button("✅ نعم",key=f"yes_{pid}"):
                                 c.execute("DELETE FROM saved_plans WHERE id=?",(pid,)); conn.commit()
@@ -973,7 +1581,7 @@ else:
                             if st.button("🗑️ حذف",key=f"del_{pid}"):
                                 st.session_state.confirm_del=pid; st.rerun()
 
-    # ── HISTORY ──
+    # ═══════════════ HISTORY ═══════════════
     elif st.session_state.page=="history":
         st.markdown("<div class='sec-title'>📈 سجل الوزن</div>",unsafe_allow_html=True)
         with st.form("wf"):
@@ -981,285 +1589,262 @@ else:
             with wc1: w_in=st.number_input("⚖️ وزن اليوم (كجم)",30.0,300.0,70.0,.1)
             if st.form_submit_button("✅ تسجيل",use_container_width=True):
                 c.execute("INSERT INTO tracking VALUES (NULL,?,?,datetime('now'))",(u_id,w_in))
-                conn.commit(); st.success("تم التسجيل!"); st.rerun()
+                conn.commit(); st.success("تم!"); st.rerun()
         c.execute("SELECT date,weight FROM tracking WHERE user_id=? ORDER BY id ASC",(u_id,))
         data=c.fetchall()
         if data:
             weights=[d[1] for d in data]
             m1,m2,m3=st.columns(3)
-            m1.metric("📉 أقل وزن",f"{min(weights)} كجم")
-            m2.metric("📈 أعلى وزن",f"{max(weights)} كجم")
-            m3.metric("📊 آخر وزن",f"{weights[-1]} كجم",
+            m1.metric("📉 أقل",f"{min(weights)} كجم")
+            m2.metric("📈 أعلى",f"{max(weights)} كجم")
+            m3.metric("📊 آخر",f"{weights[-1]} كجم",
                       delta=f"{round(weights[-1]-weights[0],1)} كجم" if len(weights)>1 else None)
             if st.session_state.targets and u[4]:
                 bv,bcls,blbl=bmi_info(weights[-1],float(u[4]))
-                st.markdown(f"<div class='alert-info'>📏 BMI الحالي: <b>{bv}</b> — <span class='bmi-badge {bcls}'>{blbl}</span></div>",unsafe_allow_html=True)
+                st.markdown(f"<div class='alert-info'>📏 BMI: <b>{bv}</b> — <span class='bmi-badge {bcls}'>{blbl}</span></div>",unsafe_allow_html=True)
             st.line_chart({"الوزن (كجم)":weights})
         else:
-            st.markdown("<div class='alert-info'>لم تسجل أي وزن بعد. سجل وزنك اليوم!</div>",unsafe_allow_html=True)
+            st.markdown("<div class='alert-info'>سجل وزنك اليوم!</div>",unsafe_allow_html=True)
 
-    # ══════════════════════════════════════════
-    # ── CLINICAL REFERENCE MODULE ──
-    # ══════════════════════════════════════════
-    elif st.session_state.page == "clinical":
-        st.markdown("<div class='sec-title'>📚 المرجع الكلينيكي</div>", unsafe_allow_html=True)
+    # ═══════════════ CLINICAL REFERENCE ═══════════════
+    elif st.session_state.page=="clinical":
+        st.markdown("<div class='sec-title'>📚 <span>المرجع الكلينيكي</span> والحسابات التغذوية</div>",unsafe_allow_html=True)
         st.markdown(
-            "<div class='alert-info'>📖 <b>مستخلص من:</b> Understanding Normal and Clinical Nutrition, 8th Ed — "
-            "Rolfes, Pinna & Whitney | هذه المعلومات للمرجعية المهنية فقط</div>",
-            unsafe_allow_html=True
-        )
+            "<div class='alert-info'>📖 مستخلص من: <b>Understanding Normal and Clinical Nutrition, 8th Ed</b> — Rolfes, Pinna & Whitney</div>",
+            unsafe_allow_html=True)
 
-        # ── Condition selector ──
-        CONDITIONS_LIST = {
-            "🩸 السكري النوع الأول":               "diabetes_t1",
-            "🩸 السكري النوع الثاني":              "diabetes_t2",
-            "🤰 الحمل":                            "pregnancy",
-            "🤱 الرضاعة الطبيعية":                "lactation",
-            "🫘 الفشل الكلوي — قبل الديلزة":      "ckd_predialysis",
-            "🫘 الفشل الكلوي — غسيل الكلى":       "ckd_hemodialysis",
-            "❤️ أمراض القلب والأوعية / ضغط الدم": "cardiovascular",
-            "🫀 تليف الكبد":                       "liver_cirrhosis",
-            "⚖️ السمنة وزيادة الوزن":             "obesity",
-            "🎗️ السرطان":                         "cancer",
-            "🔴 HIV/AIDS":                         "hiv_aids",
-            "🔥 حرقة المعدة / الارتجاع (GERD)":   "gerd",
-            "🫃 القولون العصبي (IBS)":             "ibs",
-            "🔬 المتلازمة الأيضية":               "metabolic_syndrome",
-        }
+        tab1, tab2 = st.tabs(["🧮 حاسبة التغذية الكلينيكية", "📋 المرجع التفصيلي"])
 
-        st.markdown("### 🗂️ اختر الحالة أو الأمراض المصاحبة")
-        col_s1, col_s2 = st.columns([2, 1])
-        with col_s1:
-            selected_labels = st.multiselect(
-                "يمكنك اختيار أكثر من حالة في نفس الوقت (حالات مركبة)",
-                list(CONDITIONS_LIST.keys()),
-                help="اختر حالة واحدة أو أكثر — عند اختيار حالتين ستظهر ملاحظات الدمج"
-            )
-        with col_s2:
-            st.markdown("<br>", unsafe_allow_html=True)
-            search_ref = st.text_input("🔎 بحث سريع في المرجع", placeholder="مثال: بروتين، حديد، كالسيوم")
+        # ─── TAB 1: Clinical Calculator ───
+        with tab1:
+            st.markdown("### 🧮 احسب الاحتياجات الغذائية حسب الحالة المرضية")
+            st.markdown("<div class='alert-info'>أدخل بيانات المريض واختر الحالات — ستظهر الحسابات فوراً</div>",unsafe_allow_html=True)
 
-        if not selected_labels and not search_ref:
-            # Show overview cards
-            st.markdown("### 📋 الحالات المتاحة في المرجع")
-            cols = st.columns(3)
-            for i, (lbl, key) in enumerate(CONDITIONS_LIST.items()):
-                with cols[i % 3]:
-                    cond = CLINICAL_CONDITIONS[key]
-                    st.markdown(f"""
-                    <div class="card" style="text-align:center;padding:16px 12px;margin-bottom:10px">
-                        <div style="font-size:28px">{cond['icon']}</div>
-                        <div style="color:#ffffff;font-size:13px;font-weight:700;margin:6px 0 2px">{cond['name']}</div>
-                        <div style="color:#3a6a8a;font-size:11px">{cond['chapter'][:30]}...</div>
-                    </div>""", unsafe_allow_html=True)
-            st.markdown(
-                "<div class='alert-info' style='margin-top:20px'>💡 اختر حالة من القائمة لعرض التوصيات الغذائية الكاملة من المرجع</div>",
-                unsafe_allow_html=True
-            )
+            with st.form("clin_calc"):
+                cr1,cr2,cr3=st.columns(3)
+                with cr1:
+                    cc_w=st.number_input("⚖️ الوزن (كجم)",20.0,300.0,70.0,0.5)
+                    cc_h=st.number_input("📏 الطول (سم)",100.0,220.0,165.0,0.5)
+                with cr2:
+                    cc_age=st.number_input("📅 العمر",5,100,35)
+                    cc_sex=st.selectbox("👤 الجنس",["ذكر","أنثى"])
+                with cr3:
+                    cc_act=st.selectbox("🏃 النشاط",[1.2,1.375,1.55,1.725,1.9],index=2,
+                        format_func=lambda x:{1.2:"مستقر",1.375:"خفيف",1.55:"معتدل",1.725:"نشيط",1.9:"رياضي"}[x])
+                    cc_trim=st.selectbox("🤰 ثلث الحمل (إن حاملاً)",["لا ينطبق","الأول","الثاني","الثالث"])
 
-        # ── Search mode ──
-        if search_ref:
-            sq = search_ref.lower()
-            st.markdown(f"### 🔎 نتائج البحث عن: '{search_ref}'")
-            found = False
-            for key, cond in CLINICAL_CONDITIONS.items():
-                hits = []
-                for section_val in [str(cond.get('overview', '')), str(cond.get('key_points', '')),
-                                    str(cond.get('macros', '')), str(cond.get('key_micronutrients', ''))]:
-                    if sq in section_val.lower():
-                        hits.append(section_val[:200])
-                if hits:
-                    found = True
-                    st.markdown(f"""
-                    <div class="sug-box">
-                        <h4>{cond['icon']} {cond['name']}</h4>
-                        <div style="color:#7fb8d8;font-size:12px;margin-bottom:8px">{cond['chapter']}</div>
-                        <div class="fc-note">📋 {cond['overview'][:300]}...</div>
-                    </div>""", unsafe_allow_html=True)
-            if not found:
-                st.markdown("<div class='alert-warn'>لم يُعثر على نتائج. جرب كلمة مختلفة.</div>", unsafe_allow_html=True)
+                CONDITIONS_OPTS={
+                    "🩸 السكري النوع الأول":"diabetes_t1",
+                    "🩸 السكري النوع الثاني":"diabetes_t2",
+                    "🤰 الحمل":"pregnancy",
+                    "🤱 الرضاعة":"lactation",
+                    "🫘 الفشل الكلوي — قبل الديلزة":"ckd_predialysis",
+                    "🫘 الفشل الكلوي — غسيل الكلى":"ckd_hemodialysis",
+                    "❤️ أمراض القلب / ضغط الدم":"cardiovascular",
+                    "🫀 تليف الكبد":"liver_cirrhosis",
+                    "⚖️ السمنة":"obesity",
+                    "🎗️ السرطان":"cancer",
+                    "🔥 حرقة المعدة (GERD)":"gerd",
+                    "🫃 القولون العصبي (IBS)":"ibs",
+                    "🔬 المتلازمة الأيضية":"metabolic_syndrome",
+                }
+                cc_conds_lbl=st.multiselect("🏥 الحالات المرضية (يمكن اختيار أكثر من حالة)",list(CONDITIONS_OPTS.keys()))
+                calc_btn=st.form_submit_button("🧮 احسب الاحتياجات ←",use_container_width=True)
 
-        # ── Condition detail view ──
-        if selected_labels:
-            selected_keys = [CONDITIONS_LIST[l] for l in selected_labels]
+            if calc_btn:
+                cc_conds=[CONDITIONS_OPTS[l] for l in cc_conds_lbl]
+                res=clinical_calc(cc_w,cc_h,cc_age,cc_sex,cc_conds,cc_act)
 
-            # Combination notes
-            if len(selected_keys) >= 2:
+                # pregnancy trimester adjustment
+                if "pregnancy" in cc_conds:
+                    bonus={"الأول":0,"الثاني":340,"الثالث":452}.get(cc_trim,340)
+                    res["cal"]=int(res["cal"]-340+bonus)
+
                 st.markdown("---")
-                st.markdown("### ⚠️ ملاحظات الحالات المركبة")
-                shown_combo = False
-                for i in range(len(selected_keys)):
-                    for j in range(i+1, len(selected_keys)):
-                        pair = (selected_keys[i], selected_keys[j])
-                        pair_rev = (selected_keys[j], selected_keys[i])
-                        note = COMBINATION_NOTES.get(pair) or COMBINATION_NOTES.get(pair_rev)
-                        if note:
-                            shown_combo = True
-                            st.markdown(f"<div class='alert-warn'>{note}</div>", unsafe_allow_html=True)
-                if not shown_combo:
-                    st.markdown(
-                        "<div class='alert-info'>ℹ️ راجع التوصيات التفصيلية لكل حالة بالأسفل وادمجها بحكمة سريرية.</div>",
-                        unsafe_allow_html=True
-                    )
+                st.markdown(f"### 📊 نتائج الحسابات لـ {u[3] if cc_w==float(u[5] or 0) else 'المريض'}")
 
-            # Individual condition details
-            for key in selected_keys:
-                cond = CLINICAL_CONDITIONS[key]
+                # Main macros
+                col_r1,col_r2,col_r3,col_r4=st.columns(4)
+                for col,ic,lb,val,un in [
+                    (col_r1,"🔥","السعرات اليومية",res["cal"],"kcal"),
+                    (col_r2,"💪","البروتين",res["p"],"جم/يوم"),
+                    (col_r3,"🍞","الكارب",res["c"],"جم/يوم"),
+                    (col_r4,"🥑","الدهون",res["f"],"جم/يوم"),
+                ]:
+                    col.markdown(f'<div class="card" style="text-align:center"><div class="c-icon">{ic}</div><div class="c-label">{lb}</div><div class="c-value">{val}</div><div class="c-unit">{un}</div></div>',unsafe_allow_html=True)
+
+                st.markdown("<br>",unsafe_allow_html=True)
+
+                # Extra info
+                col_x1,col_x2,col_x3=st.columns(3)
+                with col_x1:
+                    bv,bcls,blbl=bmi_info(cc_w,cc_h)
+                    st.markdown(f'<div class="card"><div class="c-label">📏 BMI</div><div class="c-value">{bv}</div><div class="bmi-badge {bcls}">{blbl}</div></div>',unsafe_allow_html=True)
+                with col_x2:
+                    ibw = 22 * (cc_h/100)**2
+                    st.markdown(f'<div class="card" style="text-align:center"><div class="c-label">📐 الوزن المثالي</div><div class="c-value">{round(ibw,1)}</div><div class="c-unit">كجم (BMI 22)</div></div>',unsafe_allow_html=True)
+                with col_x3:
+                    st.markdown(f'<div class="card" style="text-align:center"><div class="c-label">⚡ TDEE</div><div class="c-value">{res["tdee"]}</div><div class="c-unit">kcal/يوم</div></div>',unsafe_allow_html=True)
+
+                # Detailed macro breakdown
+                st.markdown("#### ⚖️ تفاصيل الماكروز")
+                st.markdown(f"""
+                <div class="calc-box">
+                    <h4>📐 الحسابات التفصيلية</h4>
+                    <div class="clin-row"><span class="cr-label">BMR (معدل الأيض الأساسي)</span><br><span class="cr-val">{res['bmr']} kcal/يوم (Mifflin-St Jeor)</span></div>
+                    <div class="clin-row"><span class="cr-label">TDEE (السعرات مع النشاط)</span><br><span class="cr-val">{res['tdee']} kcal/يوم</span></div>
+                    <div class="clin-row clin-row-green"><span class="cr-label">السعرات المستهدفة</span><br><span class="cr-val">{res['cal']} kcal/يوم</span></div>
+                    <div class="clin-row"><span class="cr-label">البروتين</span><br><span class="cr-val">{res['p']} جم/يوم = {res['p_g_kg']} جم/كجم = {res['p']*4} kcal ({round(res['p']*4/res['cal']*100)}%)</span></div>
+                    <div class="clin-row"><span class="cr-label">الكارب</span><br><span class="cr-val">{res['c']} جم/يوم = {res['c']*4} kcal ({round(res['c']*4/res['cal']*100)}%)</span></div>
+                    <div class="clin-row"><span class="cr-label">الدهون</span><br><span class="cr-val">{res['f']} جم/يوم = {res['f']*9} kcal ({round(res['f']*9/res['cal']*100)}%)</span></div>
+                    <div class="clin-row clin-row-warn"><span class="cr-label">الألياف الموصى بها</span><br><span class="cr-val">{res['fiber']} جم/يوم</span></div>
+                    <div class="clin-row clin-row-warn"><span class="cr-label">الصوديوم الأقصى</span><br><span class="cr-val">{res['sodium']:,} مجم/يوم</span></div>
+                    {'<div class="clin-row clin-row-warn"><span class="cr-label">السوائل</span><br><span class="cr-val">' + (f"{res['fluid']:,} مل/يوم" if res['fluid']>0 else "غير مقيدة إذا كان البول طبيعياً") + '</span></div>' if res['fluid']!=0 else ''}
+                </div>""",unsafe_allow_html=True)
+
+                # Condition notes
+                if res["notes"]:
+                    st.markdown("#### 📌 تعديلات الحالات المرضية")
+                    for n in res["notes"]:
+                        st.markdown(f"<div class='alert-warn'>{n}</div>",unsafe_allow_html=True)
+
+                # Micronutrient restrictions
+                if res["restrictions"]:
+                    st.markdown("#### 💊 مغذيات دقيقة مهمة لهذه الحالات")
+                    cols_r=st.columns(min(len(res["restrictions"]),3))
+                    for i,(rk,rv) in enumerate(res["restrictions"].items()):
+                        cols_r[i%3].markdown(f"""
+                        <div class="clin-row clin-row-green">
+                            <span class="cr-label">{rk}</span><br>
+                            <span class="cr-val">{rv}</span>
+                        </div>""",unsafe_allow_html=True)
+
+                # Meal distribution
+                st.markdown("#### 🍽️ توزيع الوجبات المقترح")
+                n_meals=6 if any(c in cc_conds for c in ["liver_cirrhosis","cancer","gerd","diabetes_t1"]) else 3
+                cal_per=res["cal"]//n_meals
+                p_per=res["p"]//n_meals
+                st.markdown(f"""
+                <div class="calc-box">
+                    <h4>📅 {n_meals} وجبات يومياً × {cal_per} kcal لكل وجبة</h4>
+                    {''.join([f'<div class="clin-row"><span class="cr-label">الوجبة {i+1}</span><span class="cr-val"> {cal_per} kcal | بروتين {p_per} جم</span></div>' for i in range(n_meals)])}
+                </div>""",unsafe_allow_html=True)
+
+        # ─── TAB 2: Reference ───
+        with tab2:
+            CONDITIONS_LIST={
+                "🩸 السكري النوع الأول":"diabetes_t1","🩸 السكري النوع الثاني":"diabetes_t2",
+                "🤰 الحمل":"pregnancy","🤱 الرضاعة الطبيعية":"lactation",
+                "🫘 الفشل الكلوي — قبل الديلزة":"ckd_predialysis","🫘 الفشل الكلوي — غسيل الكلى":"ckd_hemodialysis",
+                "❤️ أمراض القلب / ضغط الدم":"cardiovascular","🫀 تليف الكبد":"liver_cirrhosis",
+                "⚖️ السمنة":"obesity","🎗️ السرطان":"cancer",
+                "🔴 HIV/AIDS":"hiv_aids","🔥 GERD":"gerd","🫃 القولون العصبي (IBS)":"ibs",
+                "🔬 المتلازمة الأيضية":"metabolic_syndrome",
+            }
+            search_ref=st.text_input("🔎 بحث في المرجع",placeholder="مثال: حديد، بوتاسيوم، سكر")
+            selected_labels=st.multiselect("اختر حالة",list(CONDITIONS_LIST.keys()))
+
+            if not selected_labels and not search_ref:
+                cols3=st.columns(3)
+                for i,(lbl,key) in enumerate(CONDITIONS_LIST.items()):
+                    cond=CLINICAL_CONDITIONS[key]
+                    cols3[i%3].markdown(f"""
+                    <div class="card" style="text-align:center;padding:14px 10px;margin-bottom:10px;cursor:pointer">
+                        <div style="font-size:26px">{cond['icon']}</div>
+                        <div style="color:#1a2a4a;font-size:12px;font-weight:700;margin:5px 0 2px">{cond['name']}</div>
+                        <div style="color:#6b7fa3;font-size:10px">{cond['chapter'][:28]}...</div>
+                    </div>""",unsafe_allow_html=True)
+
+            if search_ref:
+                sq=search_ref.lower()
+                st.markdown(f"### نتائج: '{search_ref}'")
+                found=False
+                for key,cond in CLINICAL_CONDITIONS.items():
+                    if any(sq in str(v).lower() for v in [cond.get('overview',''),cond.get('key_points',''),cond.get('macros','')]):
+                        found=True
+                        st.markdown(f"""<div class="sug-box"><h4>{cond['icon']} {cond['name']}</h4>
+                        <div style="color:#6b7fa3;font-size:12px">{cond['chapter']}</div>
+                        <div class="fc-note">{cond['overview'][:280]}...</div></div>""",unsafe_allow_html=True)
+                if not found: st.markdown("<div class='alert-warn'>لا نتائج. جرب كلمة مختلفة.</div>",unsafe_allow_html=True)
+
+            for lbl in selected_labels:
+                key=CONDITIONS_LIST[lbl]
+                cond=CLINICAL_CONDITIONS[key]
                 st.markdown("---")
                 st.markdown(f"## {cond['icon']} {cond['name']}")
-                st.markdown(f"<div style='color:#3a6a8a;font-size:13px;margin-bottom:12px'>📖 {cond['chapter']}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='color:#6b7fa3;font-size:12px;margin-bottom:10px'>📖 {cond['chapter']}</div>",unsafe_allow_html=True)
+                st.markdown(f"<div class='fc-note'>📋 {cond['overview']}</div>",unsafe_allow_html=True)
+                st.markdown("<br>",unsafe_allow_html=True)
 
-                # Overview
-                st.markdown(f"<div class='fc-note'>📋 <b>نظرة عامة:</b> {cond['overview']}</div>", unsafe_allow_html=True)
-                st.markdown("<br>", unsafe_allow_html=True)
-
-                # Goals
                 if cond.get('goals'):
                     st.markdown("#### 🎯 أهداف العلاج الغذائي")
-                    for g in cond['goals']:
-                        st.markdown(f"- {g}")
+                    for g in cond['goals']: st.markdown(f"- {g}")
 
-                # Macros table
                 if cond.get('macros'):
-                    st.markdown("#### ⚖️ التوصيات الغذائية الكمية")
-                    macro_items = cond['macros']
-                    mc1, mc2 = st.columns(2)
-                    items_list = list(macro_items.items())
-                    half = (len(items_list) + 1) // 2
+                    st.markdown("#### ⚖️ التوصيات الكمية")
+                    items=list(cond['macros'].items()); half=(len(items)+1)//2
+                    mc1,mc2=st.columns(2)
+                    LMAP={"energy":"🔥 السعرات","carb":"🍞 الكارب","protein":"💪 البروتين",
+                          "fat":"🥑 الدهون","fiber":"🌾 الألياف","sodium":"🧂 الصوديوم",
+                          "potassium":"⚡ البوتاسيوم","phosphorus":"🔵 الفوسفور",
+                          "calcium":"🦴 الكالسيوم","fluid":"💧 السوائل","omega3":"🐟 أوميغا 3","zinc":"🔩 الزنك"}
                     with mc1:
-                        for k, v in items_list[:half]:
-                            label_map = {
-                                'energy':'🔥 السعرات','carb':'🍞 الكارب','protein':'💪 البروتين',
-                                'fat':'🥑 الدهون','fiber':'🌾 الألياف','sodium':'🧂 الصوديوم',
-                                'potassium':'⚡ البوتاسيوم','phosphorus':'🔵 الفوسفور',
-                                'calcium':'🦴 الكالسيوم','fluid':'💧 السوائل',
-                                'omega3':'🐟 أوميغا 3','zinc':'🔩 الزنك'
-                            }
-                            lbl = label_map.get(k, k)
-                            st.markdown(f"""
-                            <div style="background:rgba(0,180,216,.07);border-right:3px solid rgba(0,180,216,.35);
-                            border-radius:8px;padding:8px 12px;margin-bottom:8px">
-                                <span style="color:#7fb8d8;font-size:12px;font-weight:700">{lbl}</span><br>
-                                <span style="color:#dceeff;font-size:13px">{v}</span>
-                            </div>""", unsafe_allow_html=True)
+                        for k,v in items[:half]:
+                            st.markdown(f'<div class="clin-row"><span class="cr-label">{LMAP.get(k,k)}</span><br><span class="cr-val">{v}</span></div>',unsafe_allow_html=True)
                     with mc2:
-                        for k, v in items_list[half:]:
-                            label_map = {
-                                'energy':'🔥 السعرات','carb':'🍞 الكارب','protein':'💪 البروتين',
-                                'fat':'🥑 الدهون','fiber':'🌾 الألياف','sodium':'🧂 الصوديوم',
-                                'potassium':'⚡ البوتاسيوم','phosphorus':'🔵 الفوسفور',
-                                'calcium':'🦴 الكالسيوم','fluid':'💧 السوائل',
-                                'omega3':'🐟 أوميغا 3','zinc':'🔩 الزنك'
-                            }
-                            lbl = label_map.get(k, k)
-                            st.markdown(f"""
-                            <div style="background:rgba(0,180,216,.07);border-right:3px solid rgba(0,180,216,.35);
-                            border-radius:8px;padding:8px 12px;margin-bottom:8px">
-                                <span style="color:#7fb8d8;font-size:12px;font-weight:700">{lbl}</span><br>
-                                <span style="color:#dceeff;font-size:13px">{v}</span>
-                            </div>""", unsafe_allow_html=True)
+                        for k,v in items[half:]:
+                            st.markdown(f'<div class="clin-row"><span class="cr-label">{LMAP.get(k,k)}</span><br><span class="cr-val">{v}</span></div>',unsafe_allow_html=True)
 
-                # Key micronutrients
                 if cond.get('key_micronutrients'):
-                    st.markdown("#### 💊 المغذيات الدقيقة الحرجة")
-                    for km, kv in cond['key_micronutrients'].items():
-                        st.markdown(f"""
-                        <div style="background:rgba(255,200,0,.06);border-right:3px solid rgba(255,200,0,.3);
-                        border-radius:8px;padding:7px 12px;margin-bottom:6px">
-                            <span style="color:#ffe082;font-size:12px;font-weight:700">{km.replace('_',' ').title()}</span>:
-                            <span style="color:#dceeff;font-size:13px"> {kv}</span>
-                        </div>""", unsafe_allow_html=True)
+                    st.markdown("#### 💊 مغذيات دقيقة حرجة")
+                    for km,kv in cond['key_micronutrients'].items():
+                        st.markdown(f'<div class="clin-row clin-row-warn"><span class="cr-label">{km.replace("_"," ").title()}</span><br><span class="cr-val">{kv}</span></div>',unsafe_allow_html=True)
 
-                # Key points
                 if cond.get('key_points'):
-                    st.markdown("#### 🔑 نقاط رئيسية للممارسة السريرية")
+                    st.markdown("#### 🔑 نقاط سريرية رئيسية")
                     for kp in cond['key_points']:
-                        st.markdown(f"""
-                        <div class="food-card" style="padding:10px 14px;margin-bottom:6px">
-                            <span style="color:#dceeff;font-size:13.5px">{kp}</span>
-                        </div>""", unsafe_allow_html=True)
+                        st.markdown(f'<div class="food-card" style="padding:9px 13px;margin-bottom:5px"><span style="color:#374151;font-size:13px">{kp}</span></div>',unsafe_allow_html=True)
 
-                # Foods recommended / limit
-                if cond.get('foods_recommended') or cond.get('foods_limit'):
-                    fa, fb = st.columns(2)
-                    with fa:
-                        if cond.get('foods_recommended'):
-                            st.markdown("#### ✅ أطعمة مُشجَّعة")
-                            for f in cond['foods_recommended']:
-                                st.markdown(f"<div style='color:#a5d6a7;font-size:13px;padding:3px 0'>✔ {f}</div>", unsafe_allow_html=True)
-                    with fb:
-                        if cond.get('foods_limit'):
-                            st.markdown("#### ⛔ أطعمة تُقلَّل أو تُتجنَّب")
-                            for f in cond['foods_limit']:
-                                st.markdown(f"<div style='color:#ef9a9a;font-size:13px;padding:3px 0'>✖ {f}</div>", unsafe_allow_html=True)
+                fa,fb=st.columns(2)
+                with fa:
+                    if cond.get('foods_recommended'):
+                        st.markdown("#### ✅ أطعمة مُشجَّعة")
+                        for f in cond['foods_recommended']:
+                            st.markdown(f"<div style='color:#15803d;font-size:13px;padding:2px 0'>✔ {f}</div>",unsafe_allow_html=True)
+                with fb:
+                    if cond.get('foods_limit'):
+                        st.markdown("#### ⛔ أطعمة تُقلَّل")
+                        for f in cond['foods_limit']:
+                            st.markdown(f"<div style='color:#b91c1c;font-size:13px;padding:2px 0'>✖ {f}</div>",unsafe_allow_html=True)
 
-                # DASH diet table (cardiovascular)
-                if cond.get('dash_diet'):
-                    st.markdown("#### 🥗 حمية DASH — التفاصيل")
-                    dd = cond['dash_diet']
-                    st.markdown(f"<div class='alert-info'>{dd['description']}: صوديوم {dd['sodium']}</div>", unsafe_allow_html=True)
-                    d1, d2 = st.columns(2)
-                    with d1:
-                        for item in ['fruits','vegetables','grains','dairy_lowfat']:
-                            label = {'fruits':'🍎 فاكهة','vegetables':'🥦 خضروات','grains':'🌾 حبوب','dairy_lowfat':'🥛 ألبان قليلة الدسم'}.get(item, item)
-                            st.markdown(f"**{label}:** {dd[item]}")
-                    with d2:
-                        for item in ['lean_meat','nuts_seeds','fats_oils']:
-                            label = {'lean_meat':'🍗 لحوم قليلة الدهن','nuts_seeds':'🥜 مكسرات وبذور','fats_oils':'🫙 دهون وزيوت'}.get(item, item)
-                            st.markdown(f"**{label}:** {dd[item]}")
-
-                # Weight gain guide (pregnancy)
                 if cond.get('weight_gain_guide'):
-                    st.markdown("#### ⚖️ الزيادة الوزنية المثالية حسب BMI قبل الحمل")
-                    for bmi_range, rec in cond['weight_gain_guide'].items():
-                        st.markdown(f"""
-                        <div style="background:rgba(76,175,80,.07);border-right:3px solid rgba(76,175,80,.3);
-                        border-radius:8px;padding:7px 12px;margin-bottom:6px">
-                            <span style="color:#a5d6a7;font-size:13px;font-weight:700">{bmi_range}</span>:
-                            <span style="color:#dceeff"> {rec}</span>
-                        </div>""", unsafe_allow_html=True)
+                    st.markdown("#### ⚖️ الزيادة الوزنية حسب BMI (الحمل)")
+                    for br,rec in cond['weight_gain_guide'].items():
+                        st.markdown(f'<div class="clin-row clin-row-green"><span class="cr-label">{br}</span><br><span class="cr-val">{rec}</span></div>',unsafe_allow_html=True)
 
-                # FODMAP lists (IBS)
+                if cond.get('dash_diet'):
+                    dd=cond['dash_diet']
+                    st.markdown(f"<div class='alert-info'>🥗 حمية DASH — صوديوم {dd['sodium']}</div>",unsafe_allow_html=True)
+
                 if cond.get('high_fodmap_foods'):
-                    fi1, fi2 = st.columns(2)
+                    fi1,fi2=st.columns(2)
                     with fi1:
-                        st.markdown("#### 🔴 أطعمة High-FODMAP (تجنب)")
-                        for f in cond['high_fodmap_foods']:
-                            st.markdown(f"<div style='color:#ef9a9a;font-size:13px'>✖ {f}</div>", unsafe_allow_html=True)
+                        st.markdown("**🔴 High-FODMAP (تجنب)**")
+                        for f in cond['high_fodmap_foods']: st.markdown(f"<div style='color:#b91c1c;font-size:13px'>✖ {f}</div>",unsafe_allow_html=True)
                     with fi2:
-                        st.markdown("#### 🟢 أطعمة Low-FODMAP (مسموح)")
-                        for f in cond['low_fodmap_foods']:
-                            st.markdown(f"<div style='color:#a5d6a7;font-size:13px'>✔ {f}</div>", unsafe_allow_html=True)
+                        st.markdown("**🟢 Low-FODMAP (مسموح)**")
+                        for f in cond['low_fodmap_foods']: st.markdown(f"<div style='color:#15803d;font-size:13px'>✔ {f}</div>",unsafe_allow_html=True)
 
-                # High phos/potassium (renal)
                 if cond.get('high_phosphorus_foods'):
-                    rp1, rp2 = st.columns(2)
+                    rp1,rp2=st.columns(2)
                     with rp1:
-                        st.markdown("#### 🔵 أطعمة عالية الفوسفور (تحكم)")
-                        for f in cond['high_phosphorus_foods']:
-                            st.markdown(f"<div style='color:#ffcc80;font-size:13px'>⚠ {f}</div>", unsafe_allow_html=True)
+                        st.markdown("**🔵 عالية الفوسفور (تحكم)**")
+                        for f in cond['high_phosphorus_foods']: st.markdown(f"<div style='color:#b56b00;font-size:13px'>⚠ {f}</div>",unsafe_allow_html=True)
                     with rp2:
                         if cond.get('high_potassium_foods'):
-                            st.markdown("#### ⚡ أطعمة عالية البوتاسيوم (تحكم)")
-                            for f in cond['high_potassium_foods']:
-                                st.markdown(f"<div style='color:#ffcc80;font-size:13px'>⚠ {f}</div>", unsafe_allow_html=True)
+                            st.markdown("**⚡ عالية البوتاسيوم (تحكم)**")
+                            for f in cond['high_potassium_foods']: st.markdown(f"<div style='color:#b56b00;font-size:13px'>⚠ {f}</div>",unsafe_allow_html=True)
 
-                # Meal timing
-                if cond.get('meal_timing'):
-                    st.markdown(f"<div class='alert-info'>⏰ <b>توقيت الوجبات:</b> {cond['meal_timing']}</div>", unsafe_allow_html=True)
-
-                # Monitoring
-                if cond.get('monitoring'):
-                    st.markdown(f"<div class='alert-warn'>📊 <b>المتابعة:</b> {cond['monitoring']}</div>", unsafe_allow_html=True)
-
-                # Reference
-                st.markdown(f"""
-                <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
-                border-radius:10px;padding:10px 14px;margin-top:16px">
-                    <span style="color:#3a6a8a;font-size:12px">📚 المصدر: {cond['reference']}</span>
-                </div>""", unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════
-# CLINICAL DATA (inline — extracted from textbook)
-# ══════════════════════════════════════════
+                if cond.get('meal_timing'): st.markdown(f"<div class='alert-info'>⏰ {cond['meal_timing']}</div>",unsafe_allow_html=True)
+                if cond.get('monitoring'): st.markdown(f"<div class='alert-warn'>📊 {cond['monitoring']}</div>",unsafe_allow_html=True)
+                st.markdown(f"<div style='background:#f8faff;border:1px solid #e2ecff;border-radius:8px;padding:8px 12px;margin-top:12px'><span style='color:#6b7fa3;font-size:11px'>📚 {cond['reference']}</span></div>",unsafe_allow_html=True)
