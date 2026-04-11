@@ -875,26 +875,7 @@ else:
         st.session_state.targets=None
     u=st.session_state.user; u_id=u[0]
 
-    # SIDEBAR
-    with st.sidebar:
-        st.markdown(f"""
-        <div style="text-align:center;padding:24px 0 12px">
-            <div style="font-size:52px;filter:drop-shadow(0 0 14px rgba(0,180,216,.5))">👤</div>
-            <div style="color:#fff;font-size:18px;font-weight:700;margin:8px 0 2px">{u[3]}</div>
-            <div style="color:#3a6a8a;font-size:12px">{u[1]}</div>
-        </div>""", unsafe_allow_html=True)
-        st.divider()
-        for icon,label,pg in [("🏠","الرئيسية","dashboard"),("⚙️","الإعدادات والهدف","profile_setup"),
-            ("🔍","محلل الطعام","analyzer"),("📅","مصمم الجدول","planner"),
-            ("💡","مقترح الوجبات","suggester"),("💾","جداولي المحفوظة","saved"),("📈","سجل الوزن","history"),
-            ("📚","المرجع الكلينيكي","clinical")]:
-            mark="⬤ " if st.session_state.page==pg else ""
-            if st.button(f"{mark}{icon}  {label}",key=f"nav_{pg}"):
-                st.session_state.page=pg; st.rerun()
-        st.divider()
-        if st.button("🚪  خروج",key="logout"):
-            st.session_state.user=None; st.session_state.page="login"; st.rerun()
-        st.markdown("<div style='text-align:center;color:#1e3a50;font-size:11px;margin-top:16px'>NutraX V10 © 2025</div>",unsafe_allow_html=True)
+    # sidebar rendered below in the main app block
 
     # ── DASHBOARD ──
     if st.session_state.page=="dashboard":
@@ -1351,9 +1332,9 @@ else:
                ("🔍","محلل الطعام","analyzer"),("📅","مصمم الجدول","planner"),
                ("💡","مقترح الوجبات","suggester"),("💾","جداولي","saved"),
                ("📈","سجل الوزن","history"),("📚","المرجع الكلينيكي","clinical")]
-        for icon,label,pg in NAV:
+        for i,(icon,label,pg) in enumerate(NAV):
             active = "⬤ " if st.session_state.page==pg else "    "
-            if st.button(f"{active}{icon}  {label}",key=f"nav_{pg}"):
+            if st.button(f"{active}{icon}  {label}",key=f"sb_nav_{i}"):
                 st.session_state.page=pg; st.rerun()
         st.divider()
         if st.button("🚪  خروج",key="logout"):
