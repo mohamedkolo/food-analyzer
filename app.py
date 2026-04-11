@@ -525,6 +525,161 @@ def smart_suggest(rem_cal, rem_p, rem_c, rem_f):
     sug.sort(key=lambda x:-x["score"])
     return sug[:5]
 
+
+# ══════════════════════════════════════════
+# CLINICAL REFERENCE DATA (from textbook)
+# ══════════════════════════════════════════
+CLINICAL_CONDITIONS = {
+    "diabetes_t1": {
+        "name":"السكري النوع الأول (Type 1)","icon":"🩸","chapter":"Chapter 26 — Diabetes Mellitus",
+        "overview":"النوع الأول اضطراب مناعي ذاتي يؤدي لتوقف إنتاج الأنسولين كلياً. التحكم الدقيق في الكارب ضروري لتجنب التذبذبات في السكر.",
+        "goals":["الحفاظ على سكر الدم في النطاق الطبيعي (70–130 صيام، <180 بعد الأكل)","تنسيق وجبات الكارب مع جرعة الأنسولين","الوقاية من نقص السكر (hypoglycemia)","الحفاظ على وزن صحي وضبط الدهون والضغط"],
+        "macros":{"energy":"يحسب EER فردياً حسب الوزن والنشاط","carb":"45–60% | موزعة بثبات | لا تقل عن 130 جم/يوم","protein":"15–20% | 0.8–1.0 جم/كجم","fat":"< 30% | مشبعة < 7% | كوليسترول < 200 مجم/يوم","fiber":"21–38 جم/يوم (بقوليات، حبوب كاملة)","sodium":"< 2300 مجم/يوم"},
+        "key_points":["🔑 عد الكارب (Carb Counting) هو الأساس — كل 15 جم = 1 وحدة","🔑 ثبات الكميات بين الوجبات أهم من نوع الكارب","🔑 السكر لا يُحظر كلياً لكن يُحسب ضمن حصة الكارب","🔑 تجنب الدهون المشبعة والمتحولة — خطر القلب مرتفع","🔑 الكحول يسبب نقص السكر — يؤخذ مع وجبة فقط","🔑 النشاط البدني يخفض السكر — قد تحتاج تعديل الأنسولين"],
+        "foods_recommended":["حبوب كاملة (شوفان، أرز بني، برغل، كينوا)","بقوليات (عدس، حمص، فول) — ألياف عالية ومؤشر جلايسيمي منخفض","خضروات غير نشوية (بروكلي، سبانخ، خيار)","بروتين قليل الدهون (صدر دجاج، سمك، بياض بيض)","دهون صحية (أفوكادو، زيت زيتون، مكسرات)","فاكهة طازجة بكميات معتدلة (حصة = 15 جم كارب)"],
+        "foods_limit":["عصائر ومشروبات محلاة","خبز أبيض ومعجنات مكررة","أرز أبيض بكميات كبيرة","دهون مشبعة (لحوم دهنية، زبدة، قشطة)","حلويات ومحليات مكررة"],
+        "meal_timing":"3 وجبات رئيسية + 2-3 وجبات خفيفة | ثبات التوقيت مع الأنسولين أساسي",
+        "monitoring":"HbA1c هدف < 7% | قياس سكر ذاتي 3+ مرات يومياً",
+        "reference":"Rolfes et al., Understanding Normal and Clinical Nutrition, 8th Ed, Ch.26, pp.810–836",
+    },
+    "diabetes_t2": {
+        "name":"السكري النوع الثاني (Type 2)","icon":"🩸","chapter":"Chapter 26 — Diabetes Mellitus",
+        "overview":"النوع الثاني مقاومة للأنسولين مع نقص تدريجي في إفرازه. يرتبط بالوزن الزائد. فقدان 5-10% من الوزن يُحسّن التحكم في السكر بشكل ملحوظ.",
+        "goals":["خسارة 5–10% من الوزن إن كان هناك زيادة","ضبط سكر الدم والدهون والضغط","تأخير مضاعفات السكري","تقليل الحاجة للأدوية بتحسين نمط الحياة"],
+        "macros":{"energy":"عجز 500-750 kcal/يوم للإنقاص | 1200-1500 نساء | 1500-1800 رجال","carb":"45–60% | تقليل الكارب المكرر | مؤشر جلايسيمي منخفض","protein":"15–20% | بروتين عالي الجودة قليل الدهون","fat":"دهون أحادية غير مشبعة (زيت زيتون، أفوكادو) هي الأفضل | مشبعة < 7%","fiber":"25–38 جم/يوم — يُبطئ امتصاص الجلوكوز","sodium":"< 2300 مجم/يوم (< 1500 مع ضغط الدم)"},
+        "key_points":["🔑 خسارة الوزن أكثر فعالية من أي دواء في المراحل الأولى","🔑 الألياف القابلة للذوبان (شوفان، بقوليات) تُبطئ امتصاص السكر","🔑 توزيع الوجبات على 3 وجبات منتظمة — لا تجاهل الإفطار","🔑 تقليل الدهون المشبعة — خطر القلب مرتفع جداً","🔑 150 دقيقة نشاط هوائي/أسبوع يُحسّن حساسية الأنسولين","🔑 الإفطار مهم — تجاهله يرفع سكر الظهر والعشاء"],
+        "foods_recommended":["شوفان وحبوب كاملة يومياً","بقوليات يومياً (عدس، حمص، فول)","خضروات غير نشوية بكميات كبيرة","بروتين نباتي وحيواني قليل الدهون","زيت زيتون وأفوكادو","أسماك دهنية مرتين/أسبوع"],
+        "foods_limit":["أرز أبيض، خبز أبيض، معجنات مكررة","مشروبات محلاة وعصائر","لحوم دهنية وأطعمة مقلية","وجبات سريعة عالية الصوديوم","حلويات ومعجنات"],
+        "meal_timing":"3 وجبات منتظمة | وجبة خفيفة مسائية إن لزم | لا تجاوز 6 ساعات بين الوجبات",
+        "monitoring":"HbA1c هدف < 7% | قياس سكر ذاتي حسب توجيه الطبيب",
+        "reference":"Rolfes et al., Understanding Normal and Clinical Nutrition, 8th Ed, Ch.26, pp.818–836",
+    },
+    "pregnancy": {
+        "name":"الحمل (Pregnancy)","icon":"🤰","chapter":"Chapter 14 — Life Cycle Nutrition: Pregnancy and Lactation",
+        "overview":"التغذية خلال الحمل تؤثر على صحة الأم والطفل طويل الأمد. الاحتياجات ترتفع كثيراً خاصة للحديد وحمض الفوليك والكالسيوم وأوميغا 3.",
+        "goals":["تلبية الاحتياجات الغذائية المتزايدة للأم والجنين","زيادة وزن مناسبة حسب BMI قبل الحمل","الوقاية من فقر الدم وعيوب الأنبوب العصبي وسكر الحمل","ضمان نمو سليم للجنين"],
+        "macros":{"energy":"+340 kcal/يوم في الثلث الثاني | +452 kcal/يوم في الثالث | لا زيادة في الأول","carb":"175 جم/يوم كحد أدنى (لنمو دماغ الجنين)","protein":"+25 جم/يوم = ~71 جم/يوم إجمالاً","fat":"DHA 200–300 مجم/يوم على الأقل (سلمون، سردين، مكمل)","fiber":"28 جم/يوم — يقلل الإمساك الشائع في الحمل","sodium":"لا تقييد إلا مع ضغط الحمل"},
+        "key_micronutrients":{"folic_acid":"600 ميكروجرام/يوم — يبدأ قبل الحمل بشهر (يقي عيوب الأنبوب العصبي)","iron":"27 مجم/يوم — ضعف الاحتياج الطبيعي (كبدة، لحوم، بقوليات + فيتامين C)","calcium":"1000 مجم/يوم (ألبان، سمسم، أسماك معلبة بالعظم)","vitamin_d":"600 IU/يوم","iodine":"220 ميكروجرام/يوم (أسماك، ألبان، ملح معزز)","choline":"450 مجم/يوم — بيض، لحوم، بقوليات (لتطوير دماغ الجنين)","dha":"200–300 مجم/يوم — سلمون، سردين، مكمل زيت سمك"},
+        "key_points":["🔑 حمض الفوليك الأهم — يبدأ قبل الحمل بـ 4 أسابيع","🔑 تجنب الكافيين الزائد (< 200 مجم/يوم = كوب قهوة واحد)","🔑 تجنب الأسماك عالية الزئبق (سوورد فيش، marlin)","🔑 لا كحول إطلاقاً — متلازمة الكحول الجنينية خطيرة","🔑 الغثيان: وجبات صغيرة متكررة، بسكويت جاف، تجنب الروائح","🔑 الحديد يُمتص أفضل مع فيتامين C، ويقل مع الشاي والقهوة"],
+        "foods_recommended":["كبدة الدجاج أو البقر مرة أسبوعياً (حديد + فولات + B12)","سلمون وسردين معلب (DHA + كالسيوم)","بيض كامل (كولين + DHA + بروتين)","بقوليات (فولات + حديد + ألياف)","ألبان ومشتقاتها (كالسيوم + D + بروتين)","حبوب كاملة مدعمة بحمض الفوليك"],
+        "foods_limit":["جبن غير مبستر ولحوم نيئة (خطر ليستيريا)","أسماك عالية الزئبق","كافيين زائد (> 200 مجم/يوم)","مكملات فيتامين A الزائدة (تشوه خلقي)"],
+        "weight_gain_guide":{"BMI < 18.5 (نحافة)":"12.5–18 كجم","BMI 18.5–24.9 (طبيعي)":"11.5–16 كجم","BMI 25–29.9 (زيادة وزن)":"7–11.5 كجم","BMI ≥ 30 (سمنة)":"5–9 كجم","حمل توأم (BMI طبيعي)":"17–25 كجم"},
+        "reference":"Rolfes et al., Understanding Normal and Clinical Nutrition, 8th Ed, Ch.14, pp.476–512",
+    },
+    "lactation": {
+        "name":"الرضاعة الطبيعية (Lactation)","icon":"🤱","chapter":"Chapter 14 — Life Cycle Nutrition: Pregnancy and Lactation",
+        "overview":"الرضاعة تزيد الاحتياجات الغذائية بشكل أكبر من الحمل نفسه. جودة الحليب تتأثر بتغذية الأم وبعض المواد تنتقل للطفل.",
+        "goals":["إنتاج حليب كافٍ وعالي الجودة","الحفاظ على صحة الأم وذخائرها الغذائية","تدعيم التعافي بعد الولادة"],
+        "macros":{"energy":"+500 kcal/يوم فوق الاحتياج الطبيعي (أعلى من الحمل)","carb":"210 جم/يوم كحد أدنى","protein":"+25 جم/يوم — إجمالي ~71 جم/يوم","fat":"DHA مهم جداً — يؤثر مباشرة على تركيزه في الحليب","fluid":"13 أكواب (3.1 لتر) يومياً","fiber":"29 جم/يوم"},
+        "key_micronutrients":{"iodine":"290 ميكروجرام/يوم (الأعلى في دورة الحياة)","vitamin_d":"600 IU/يوم (لتعزيز فيتامين D في الحليب)","calcium":"1000 مجم/يوم","vitamin_a":"1300 ميكروجرام/يوم (أعلى من الحمل)","dha":"200–300 مجم/يوم — يؤثر على تطور دماغ الرضيع","choline":"550 مجم/يوم"},
+        "key_points":["🔑 الكافيين ينتقل للحليب — كوب واحد مقبول، تابع تأثيره على الطفل","🔑 بعض الأطعمة تغير طعم الحليب (ثوم، توابل) ولا تضره","🔑 الكحول ينتقل للحليب — امتنعي أو انتظري ساعتين","🔑 خسارة الوزن التدريجية (0.5 كجم/أسبوع) آمنة","🔑 الترطيب الكافي ضروري لإدرار الحليب","🔑 أدوية كثيرة تنتقل للحليب — استشيري الطبيب قبل أي دواء"],
+        "reference":"Rolfes et al., Understanding Normal and Clinical Nutrition, 8th Ed, Ch.14, pp.497–505",
+    },
+    "ckd_predialysis": {
+        "name":"الفشل الكلوي المزمن — قبل الديلزة","icon":"🫘","chapter":"Chapter 28 — Renal Diseases",
+        "overview":"مرض الكلى المزمن يستلزم تقليل البروتين لتخفيف حمل اليوريا، وضبط الصوديوم والبوتاسيوم والفوسفور حسب المرحلة. التغذية تُبطئ تقدم المرض.",
+        "goals":["إبطاء تقدم الفشل الكلوي بتقليل البروتين","منع سوء التغذية","ضبط الفوسفور والبوتاسيوم والصوديوم","الحفاظ على ضغط الدم وصحة العظام"],
+        "macros":{"energy":"35 kcal/كجم/يوم (< 60 سنة) | 30-35 (> 60 سنة)","protein":"0.60–0.75 جم/كجم/يوم | > 50% بروتين عالي الجودة","sodium":"1000–3000 مجم/يوم حسب الحالة","potassium":"غير مقيد إذا كان طبيعياً — يُقيّد عند hyperkalemia","phosphorus":"800–1000 مجم/يوم إذا ارتفع الفوسفور أو PTH","calcium":"1000–1500 مجم/يوم","fluid":"غير مقيد إذا كان البول طبيعياً"},
+        "key_points":["🔑 تقليل البروتين — اليوريا الزائدة تُجهد الكلى","🔑 الطاقة يجب أن تكفي حتى لا يُستهلك البروتين كطاقة","🔑 الفوسفور مرتفع في ألبان، مكسرات، مشروبات غازية","🔑 سلق الخضار يقلل البوتاسيوم فيها","🔑 فيتامين D نشط (calcitriol) ضروري لصحة العظام","🔑 مراقبة الألبومين للكشف المبكر عن سوء التغذية"],
+        "high_phosphorus_foods":["ألبان ومشتقاتها","مكسرات","مشروبات غازية (كولا)","فاصوليا وعدس","حبوب كاملة"],
+        "high_potassium_foods":["موز","طماطم وعصيرها","بطاطس","برتقال","أفوكادو","مشمش مجفف"],
+        "reference":"Rolfes et al., Understanding Normal and Clinical Nutrition, 8th Ed, Ch.28, pp.872–892",
+    },
+    "ckd_hemodialysis": {
+        "name":"الفشل الكلوي — غسيل الكلى (Hemodialysis)","icon":"🫘","chapter":"Chapter 28 — Renal Diseases",
+        "overview":"عند الغسيل الكلوي يرتفع احتياج البروتين لتعويض الخسائر خلال الجلسات، لكن تقييد السوائل والبوتاسيوم والفوسفور يصبح أكثر صرامة.",
+        "goals":["ضمان بروتين كافٍ لتعويض خسائر الغسيل","تقييد السوائل بين الجلسات","ضبط البوتاسيوم والفوسفور لتجنب المضاعفات القلبية"],
+        "macros":{"energy":"35 kcal/كجم/يوم (< 60 سنة) | 30-35 (> 60 سنة)","protein":"≥ 1.2 جم/كجم/يوم | > 50% بروتين عالي الجودة","sodium":"1000–3000 مجم/يوم","potassium":"2000–3000 مجم/يوم | يُعدّل حسب الدم","phosphorus":"800–1000 مجم/يوم | مع ضابطات الفوسفور","calcium":"< 2000 مجم/يوم","fluid":"1000 مل + كمية البول اليومية"},
+        "key_points":["🔑 السوائل تشمل: ماء، عصائر، شوربة، جيلاتين، آيسكريم — كلها تُحسب","🔑 لا تزيد الزيادة في الوزن بين جلستين عن 1-1.5 كجم","🔑 البروتين يرتفع الآن (عكس ما قبل الديلزة) لتعويض الخسائر","🔑 ضابطات الفوسفور تُؤخذ مع أول لقمة في كل وجبة","🔑 الفاكهة المعلبة المصفاة أقل بوتاسيوماً من الطازجة"],
+        "high_phosphorus_foods":["ألبان","مكسرات","مشروبات غازية","بقوليات"],
+        "high_potassium_foods":["موز","طماطم","بطاطس","برتقال","فاكهة طازجة بشكل عام"],
+        "reference":"Rolfes et al., Understanding Normal and Clinical Nutrition, 8th Ed, Ch.28, pp.883–887",
+    },
+    "cardiovascular": {
+        "name":"أمراض القلب والأوعية / ضغط الدم","icon":"❤️","chapter":"Chapter 27 — Cardiovascular Diseases",
+        "overview":"نظام TLC (Therapeutic Lifestyle Changes) هو الأساس الغذائي لأمراض القلب. يستهدف خفض LDL والكوليسترول الكلي مع الحفاظ على HDL.",
+        "goals":["خفض LDL والكوليسترول الكلي","رفع HDL","خفض الدهون الثلاثية (TG)","التحكم في ضغط الدم والوزن"],
+        "macros":{"energy":"يكفي للحفاظ على وزن صحي أو إنقاصه","carb":"50–60% | حبوب كاملة وألياف قابلة للذوبان","protein":"15–20%","fat":"25–35% إجمالي | مشبعة < 7% | متحولة < 1% | كوليسترول < 200 مجم/يوم","fiber":"25–30 جم/يوم | ألياف قابلة للذوبان 10–25 جم/يوم","sodium":"< 2300 مجم/يوم | < 1500 مع ضغط الدم (DASH)","omega3":"سمك دهني مرتين/أسبوع | 1 جم EPA+DHA يومياً لمرضى القلب"},
+        "dash_diet":{"description":"حمية DASH لخفض ضغط الدم","fruits":"4–5 حصص/يوم","vegetables":"4–5 حصص/يوم","grains":"6–8 حصص/يوم (كاملة)","dairy_lowfat":"2–3 حصص/يوم","lean_meat":"≤ 6 أوقية/يوم","nuts_seeds":"4–5 حصص/أسبوع","fats_oils":"2–3 حصص/يوم (زيت زيتون، كانولا)","sodium":"1500–2300 مجم/يوم"},
+        "key_points":["🔑 الدهون المشبعة أخطر من الكوليسترول الغذائي — قلل اللحوم الدهنية والزبدة","🔑 الدهون المتحولة (هدرجة) ترفع LDL وتخفض HDL — أخطر الدهون","🔑 الألياف القابلة للذوبان (شوفان، بقوليات) تخفض LDL","🔑 أوميغا 3 من السمك يخفض الدهون الثلاثية","🔑 DASH يخفض الضغط الانقباضي 8-14 نقطة","🔑 الصوديوم المخفي في الأطعمة المعلبة هو الأخطر"],
+        "foods_recommended":["سمك دهني مرتين/أسبوع (سلمون، مكريل، سردين)","شوفان وحبوب كاملة يومياً","بقوليات 4-5 مرات/أسبوع","مكسرات غير مملحة (جوز، لوز)","زيت زيتون بكر ممتاز","فاكهة وخضروات متنوعة"],
+        "foods_limit":["لحوم حمراء دهنية — مرتان/أسبوع كحد أقصى","زبدة وسمن حيواني وقشطة","أطعمة محتوية على زيوت هدرجة","أطعمة مقلية وعالية الملح","صفار البيض — 2/أسبوع للمرتفعي LDL"],
+        "reference":"Rolfes et al., Understanding Normal and Clinical Nutrition, 8th Ed, Ch.27, pp.840–870",
+    },
+    "liver_cirrhosis": {
+        "name":"تليف الكبد (Liver Cirrhosis)","icon":"🫀","chapter":"Chapter 25 — Liver Disease and Gallstones",
+        "overview":"التليف الكبدي يُعطل التمثيل الغذائي للبروتين والكربوهيدرات والدهون. سوء التغذية شائع جداً. تحاشي الكحول تماماً ضروري.",
+        "goals":["الوقاية من سوء التغذية وضمان طاقة كافية","منع اعتلال الدماغ الكبدي","ضبط الاستسقاء بتقييد الصوديوم","توقف تام عن الكحول"],
+        "macros":{"energy":"35–40 kcal/كجم/يوم من الوزن الجاف","protein":"1.2–1.5 جم/كجم/يوم | لا تقلل إلا عند اعتلال الدماغ الحاد","carb":"55–60% | وجبات صغيرة متكررة لتجنب نقص السكر","fat":"دهون طبيعية | MCT عند سوء الامتصاص الشديد","sodium":"< 2000 مجم/يوم عند الاستسقاء","fluid":"< 1000–1500 مل/يوم عند hyponatremia","zinc":"مكمل الزنك مفيد — كثيراً ما يكون ناقصاً"},
+        "key_micronutrients":{"vitamin_k":"غالباً ناقص — ضروري لعوامل التخثر","vitamin_d":"ناقص في 90% من الحالات","zinc":"نقصه يُعجّل اعتلال الدماغ","folate":"ناقص خاصة في تليف الكحول","thiamine_b1":"حرج جداً — نقصه يُسبب متلازمة Wernicke"},
+        "key_points":["🔑 6 وجبات صغيرة/يوم تقلل عبء البروتين وتمنع نقص السكر","🔑 وجبة خفيفة متأخرة في الليل (Late Evening Snack) تُقلل الانهيار العضلي","🔑 لا تقلل البروتين عشوائياً — سوء التغذية يُفاقم اعتلال الدماغ","🔑 عند اعتلال الدماغ: يُفضل البروتين النباتي مؤقتاً","🔑 الاستسقاء يزيف الوزن — استخدم الوزن الجاف للحسابات"],
+        "reference":"Rolfes et al., Understanding Normal and Clinical Nutrition, 8th Ed, Ch.25, pp.786–800",
+    },
+    "obesity": {
+        "name":"السمنة وزيادة الوزن","icon":"⚖️","chapter":"Chapter 9 — Weight Management",
+        "overview":"السمنة (BMI ≥ 30) تزيد خطر السكري والقلب والسرطان. خسارة 5-10% من الوزن الأولي تُحسن المؤشرات الصحية. النهج المتكامل هو الأكثر فعالية.",
+        "goals":["خسارة 0.5–1 كجم/أسبوع بعجز 500–1000 kcal/يوم","الحفاظ على الكتلة العضلية","تعديل نمط الحياة طويل الأمد","علاج الأمراض المصاحبة"],
+        "macros":{"energy":"1200–1500 kcal للنساء | 1500–1800 للرجال (الحد الأدنى)","protein":"25–30% — يزيد الشبع ويحافظ على العضل","carb":"45–50% — حبوب كاملة وبقوليات وخضروات","fat":"25–35% — مع تقليل المشبعة","fiber":"25–38 جم/يوم — يزيد الشبع ويُبطئ الهضم"},
+        "key_points":["🔑 عجز الطاقة هو الأساس — لا نظام سحري","🔑 البروتين العالي (30%) يحافظ على العضل ويقلل الجوع","🔑 الألياف تزيد الشبع بدون كثير من السعرات","🔑 150–300 دقيقة نشاط هوائي/أسبوع للإنقاص","🔑 النوم الكافي يُعادل هرمونات الجوع والشبع","🔑 تتبع الطعام (food diary) يزيد الفقدان الفعلي"],
+        "strategies":["أكل وجبات في أوقات منتظمة","تقليل حجم الأطباق والتحكم في الحصص","تناول الخضروات في بداية الوجبة","شرب كوب ماء قبل الأكل بـ 30 دقيقة","إزالة الأطعمة المغرية من المنزل","الأكل على الطاولة وليس أمام الشاشة"],
+        "reference":"Rolfes et al., Understanding Normal and Clinical Nutrition, 8th Ed, Ch.9, pp.270–310",
+    },
+    "cancer": {
+        "name":"السرطان (Cancer)","icon":"🎗️","chapter":"Chapter 29 — Cancer and HIV Infection",
+        "overview":"السرطان وعلاجه يسببان فقدان الوزن والعضل. الكاكسيا السرطانية حالة أيضية تعيق التغذية. الهدف: الحفاظ على الوزن والكتلة العضلية قدر الإمكان.",
+        "goals":["الحفاظ على الوزن ومنع الكاكسيا","دعم تحمل العلاج","تعزيز المناعة","تحسين جودة الحياة"],
+        "macros":{"energy":"25–35 kcal/كجم/يوم | 35–45 عند النحول الشديد","protein":"1.2–2.0 جم/كجم/يوم — لتعويض الهدم العضلي","fat":"دهون صحية — أوميغا 3 قد يُخفف الالتهاب","fluid":"30–35 مل/كجم/يوم على الأقل"},
+        "key_points":["🔑 الأولوية لإدخال السعرات بأي وسيلة — الطاقة أهم في مراحل العلاج","🔑 وجبات صغيرة كثيرة (6-8/يوم) أسهل من 3 كبيرة","🔑 الغثيان: تجنب الروائح، أكل بارد، وجبات جافة","🔑 تقرحات الفم: طعام طري وبارد، تجنب الحمضيات","🔑 الإسهال: BRAT diet، تعويض الكهارل","🔑 مكملات EPA (أوميغا 3) قد تُخفف فقدان العضل"],
+        "foods_recommended":["بياض بيض مطهو (بروتين عالٍ وسهل)","زبادي يوناني (بروتين + بروبيوتيك)","سمك مسلوق أو بخار","شوربات غنية بالبروتين","سموثي بالحليب وبروتين"],
+        "reference":"Rolfes et al., Understanding Normal and Clinical Nutrition, 8th Ed, Ch.29, pp.900–920",
+    },
+    "hiv_aids": {
+        "name":"فيروس نقص المناعة البشري (HIV/AIDS)","icon":"🔴","chapter":"Chapter 29 — Cancer and HIV Infection",
+        "overview":"HIV وعلاجه يزيدان الاحتياجات الغذائية ويسببان مقاومة للأنسولين واضطرابات الدهون. سلامة الغذاء بالغة الأهمية.",
+        "goals":["الحفاظ على الوزن والكتلة العضلية","دعم جهاز المناعة","ضبط اضطرابات الدهون المرتبطة بالعلاج","ضمان سلامة الغذاء"],
+        "macros":{"energy":"رفع 10% في المرحلة المستقرة | 20-30% عند الأعراض","protein":"1.0–1.5 جم/كجم/يوم | 1.5–2.0 عند الأعراض الشديدة"},
+        "key_points":["🔑 سلامة الغذاء: طهي جيد، تجنب ألبان غير مبسترة، غسيل الفواكه جيداً","🔑 الدهون: علاجات الريتروفيراس قد ترفع الكوليسترول — تعديل الدهون مهم","🔑 بعض الأدوية تُؤخذ مع طعام وأخرى على معدة فارغة — راجع الدواء","🔑 مكملات الفيتامينات والمعادن موصى بها لأغلب المرضى"],
+        "reference":"Rolfes et al., Understanding Normal and Clinical Nutrition, 8th Ed, Ch.29, pp.911–917",
+    },
+    "gerd": {
+        "name":"حرقة المعدة / الارتجاع (GERD)","icon":"🔥","chapter":"Chapter 23 — Upper Gastrointestinal Disorders",
+        "overview":"ارتجاع المريء يحدث عند ارتداد حمض المعدة للمريء. التعديلات الغذائية وتغيير نمط الحياة أساس العلاج.",
+        "goals":["تخفيف أعراض الارتجاع","منع تلف المريء","تحسين جودة الحياة"],
+        "macros":{"energy":"يكفي للحفاظ على وزن صحي أو إنقاصه","carb":"طبيعي مع تجنب المُفاقِمات","protein":"طبيعي","fat":"تقليل الدهون العالية التي تُبطئ إفراغ المعدة"},
+        "key_points":["🔑 تجنب الأكل قبل النوم بـ 3 ساعات","🔑 وجبات صغيرة متكررة أفضل من كبيرة","🔑 رفع رأس السرير 15–20 سم","🔑 محفزات: قهوة، كحول، شوكولاتة، نعناع، ثوم، بصل، طماطم، حمضيات","🔑 الدهون والمقليات تُبطئ إفراغ المعدة وتُفاقم الأعراض","🔑 خسارة الوزن تُحسّن الأعراض بشكل ملحوظ"],
+        "reference":"Rolfes et al., Understanding Normal and Clinical Nutrition, 8th Ed, Ch.23, pp.730–750",
+    },
+    "ibs": {
+        "name":"القولون العصبي (IBS)","icon":"🫃","chapter":"Chapter 24 — Lower Gastrointestinal Disorders",
+        "overview":"القولون العصبي اضطراب وظيفي مع آلام البطن وإسهال/إمساك. حمية Low-FODMAP فعّالة لدى 75% من المرضى.",
+        "goals":["تخفيف الأعراض","تحديد المحفزات الغذائية الفردية","تحسين جودة الحياة"],
+        "macros":{"energy":"طبيعي","carb":"تقليل FODMAP في المرحلة الأولى ثم إعادة إدخال تدريجي","protein":"طبيعي","fat":"طبيعي — تجنب الكميات الكبيرة دفعة واحدة","fiber":"ألياف قابلة للذوبان (psyllium) للإمساك السائد"},
+        "key_points":["🔑 حمية Low-FODMAP: تقليل السكريات القابلة للتخمر (فركتوز، لاكتوز)","🔑 ألياف قابلة للذوبان (psyllium) للإمساك السائد","🔑 ألياف غير قابلة للذوبان قد تُفاقم الإسهال — استخدمها بحذر","🔑 البروبيوتيك قد يُخفف الأعراض في بعض المرضى","🔑 إدارة التوتر جزء أساسي من العلاج"],
+        "high_fodmap_foods":["تفاح، كمثرى، مانجو","حليب عادي ولبن","قمح وشعير","بصل وثوم","عدس وحمص بكميات كبيرة"],
+        "low_fodmap_foods":["موز ناضج، عنب، فراولة، كيوي","حليب خالٍ من اللاكتوز","أرز، شوفان، كينوا","جزر، خيار، طماطم"],
+        "reference":"Rolfes et al., Understanding Normal and Clinical Nutrition, 8th Ed, Ch.24, pp.754–780",
+    },
+    "metabolic_syndrome": {
+        "name":"المتلازمة الأيضية","icon":"🔬","chapter":"Chapter 26 — Highlight: The Metabolic Syndrome",
+        "overview":"المتلازمة الأيضية: 3 أو أكثر من: دهون البطن + ارتفاع الجلوكوز + ارتفاع الضغط + ارتفاع TG + انخفاض HDL. تسبق السكري وأمراض القلب.",
+        "goals":["خسارة 5-10% من الوزن","تحسين جميع مكونات المتلازمة","تقليل خطر السكري وأمراض القلب"],
+        "macros":{"energy":"عجز معتدل 500-750 kcal/يوم","carb":"تقليل الكارب المكرر والسكريات البسيطة","protein":"25-30%","fat":"زيادة الدهون الصحية (أحادية وغير مشبعة)","fiber":"25-38 جم/يوم"},
+        "key_points":["🔑 خسارة 5-10% من الوزن تُحسّن أو تُعالج معظم مكونات المتلازمة","🔑 150 دقيقة نشاط هوائي/أسبوع أساسي","🔑 تقليل الكارب المكرر والسكريات البسيطة","🔑 زيادة الألياف والدهون الصحية","🔑 توقف عن التدخين"],
+        "reference":"Rolfes et al., Understanding Normal and Clinical Nutrition, 8th Ed, Ch.26 Highlight, pp.836–839",
+    },
+}
+
+COMBINATION_NOTES = {
+    ("diabetes_t2","cardiovascular"): "⚠️ السكري + القلب: البروتين 15-20% (لحماية الكلى). دهون مشبعة < 7%. ضبط HbA1c وLDL معاً. حمية DASH مناسبة للحالتين.",
+    ("diabetes_t2","ckd_predialysis"): "⚠️ السكري + الكلى: بروتين 0.6-0.75 جم/كجم + ضبط الكارب + مراقبة البوتاسيوم والفوسفور. HbA1c هدف 7.5-8% لتجنب نقص السكر الخطر.",
+    ("cardiovascular","ckd_predialysis"): "⚠️ القلب + الكلى: تقليل الصوديوم والسوائل لكليهما. أوميغا 3 مفيد للقلب لكن راعِ مستوى الفوسفور.",
+    ("pregnancy","diabetes_t1"): "⚠️ الحمل + السكري النوع 1: هدف السكر < 95 صيام و< 140 بعد ساعة. متابعة مكثفة. DHA ضروري لنمو دماغ الجنين.",
+    ("pregnancy","diabetes_t2"): "⚠️ الحمل + السكري النوع 2: حمض الفوليك 5 مجم يومياً (ضعف المعتاد). بعض أدوية السكري ممنوعة في الحمل — راجع الطبيب فوراً.",
+    ("diabetes_t1","cardiovascular"): "⚠️ السكري النوع 1 + القلب: ضبط مكثف للسكر والدهون. أوميغا 3 مهم. تجنب نقص السكر الشديد الذي يضر القلب.",
+    ("obesity","diabetes_t2"): "⚠️ السمنة + السكري 2: خسارة الوزن هي العلاج الأساسي. عجز 500-750 kcal/يوم مع إعطاء الأولوية للبروتين العالي والألياف.",
+    ("liver_cirrhosis","diabetes_t2"): "⚠️ تليف الكبد + السكري: سكر الكبد مختلف عن سكر البنكرياس. تحاشي نقص السكر مهم جداً. استشارة متخصصة.",
+}
+
 # ══════════════════════════════════════════
 # SESSION
 # ══════════════════════════════════════════
@@ -587,7 +742,8 @@ else:
         st.divider()
         for icon,label,pg in [("🏠","الرئيسية","dashboard"),("⚙️","الإعدادات والهدف","profile_setup"),
             ("🔍","محلل الطعام","analyzer"),("📅","مصمم الجدول","planner"),
-            ("💡","مقترح الوجبات","suggester"),("💾","جداولي المحفوظة","saved"),("📈","سجل الوزن","history")]:
+            ("💡","مقترح الوجبات","suggester"),("💾","جداولي المحفوظة","saved"),("📈","سجل الوزن","history"),
+            ("📚","المرجع الكلينيكي","clinical")]:
             mark="⬤ " if st.session_state.page==pg else ""
             if st.button(f"{mark}{icon}  {label}",key=f"nav_{pg}"):
                 st.session_state.page=pg; st.rerun()
@@ -841,3 +997,269 @@ else:
             st.line_chart({"الوزن (كجم)":weights})
         else:
             st.markdown("<div class='alert-info'>لم تسجل أي وزن بعد. سجل وزنك اليوم!</div>",unsafe_allow_html=True)
+
+    # ══════════════════════════════════════════
+    # ── CLINICAL REFERENCE MODULE ──
+    # ══════════════════════════════════════════
+    elif st.session_state.page == "clinical":
+        st.markdown("<div class='sec-title'>📚 المرجع الكلينيكي</div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='alert-info'>📖 <b>مستخلص من:</b> Understanding Normal and Clinical Nutrition, 8th Ed — "
+            "Rolfes, Pinna & Whitney | هذه المعلومات للمرجعية المهنية فقط</div>",
+            unsafe_allow_html=True
+        )
+
+        # ── Condition selector ──
+        CONDITIONS_LIST = {
+            "🩸 السكري النوع الأول":               "diabetes_t1",
+            "🩸 السكري النوع الثاني":              "diabetes_t2",
+            "🤰 الحمل":                            "pregnancy",
+            "🤱 الرضاعة الطبيعية":                "lactation",
+            "🫘 الفشل الكلوي — قبل الديلزة":      "ckd_predialysis",
+            "🫘 الفشل الكلوي — غسيل الكلى":       "ckd_hemodialysis",
+            "❤️ أمراض القلب والأوعية / ضغط الدم": "cardiovascular",
+            "🫀 تليف الكبد":                       "liver_cirrhosis",
+            "⚖️ السمنة وزيادة الوزن":             "obesity",
+            "🎗️ السرطان":                         "cancer",
+            "🔴 HIV/AIDS":                         "hiv_aids",
+            "🔥 حرقة المعدة / الارتجاع (GERD)":   "gerd",
+            "🫃 القولون العصبي (IBS)":             "ibs",
+            "🔬 المتلازمة الأيضية":               "metabolic_syndrome",
+        }
+
+        st.markdown("### 🗂️ اختر الحالة أو الأمراض المصاحبة")
+        col_s1, col_s2 = st.columns([2, 1])
+        with col_s1:
+            selected_labels = st.multiselect(
+                "يمكنك اختيار أكثر من حالة في نفس الوقت (حالات مركبة)",
+                list(CONDITIONS_LIST.keys()),
+                help="اختر حالة واحدة أو أكثر — عند اختيار حالتين ستظهر ملاحظات الدمج"
+            )
+        with col_s2:
+            st.markdown("<br>", unsafe_allow_html=True)
+            search_ref = st.text_input("🔎 بحث سريع في المرجع", placeholder="مثال: بروتين، حديد، كالسيوم")
+
+        if not selected_labels and not search_ref:
+            # Show overview cards
+            st.markdown("### 📋 الحالات المتاحة في المرجع")
+            cols = st.columns(3)
+            for i, (lbl, key) in enumerate(CONDITIONS_LIST.items()):
+                with cols[i % 3]:
+                    cond = CLINICAL_CONDITIONS[key]
+                    st.markdown(f"""
+                    <div class="card" style="text-align:center;padding:16px 12px;margin-bottom:10px">
+                        <div style="font-size:28px">{cond['icon']}</div>
+                        <div style="color:#ffffff;font-size:13px;font-weight:700;margin:6px 0 2px">{cond['name']}</div>
+                        <div style="color:#3a6a8a;font-size:11px">{cond['chapter'][:30]}...</div>
+                    </div>""", unsafe_allow_html=True)
+            st.markdown(
+                "<div class='alert-info' style='margin-top:20px'>💡 اختر حالة من القائمة لعرض التوصيات الغذائية الكاملة من المرجع</div>",
+                unsafe_allow_html=True
+            )
+
+        # ── Search mode ──
+        if search_ref:
+            sq = search_ref.lower()
+            st.markdown(f"### 🔎 نتائج البحث عن: '{search_ref}'")
+            found = False
+            for key, cond in CLINICAL_CONDITIONS.items():
+                hits = []
+                for section_val in [str(cond.get('overview', '')), str(cond.get('key_points', '')),
+                                    str(cond.get('macros', '')), str(cond.get('key_micronutrients', ''))]:
+                    if sq in section_val.lower():
+                        hits.append(section_val[:200])
+                if hits:
+                    found = True
+                    st.markdown(f"""
+                    <div class="sug-box">
+                        <h4>{cond['icon']} {cond['name']}</h4>
+                        <div style="color:#7fb8d8;font-size:12px;margin-bottom:8px">{cond['chapter']}</div>
+                        <div class="fc-note">📋 {cond['overview'][:300]}...</div>
+                    </div>""", unsafe_allow_html=True)
+            if not found:
+                st.markdown("<div class='alert-warn'>لم يُعثر على نتائج. جرب كلمة مختلفة.</div>", unsafe_allow_html=True)
+
+        # ── Condition detail view ──
+        if selected_labels:
+            selected_keys = [CONDITIONS_LIST[l] for l in selected_labels]
+
+            # Combination notes
+            if len(selected_keys) >= 2:
+                st.markdown("---")
+                st.markdown("### ⚠️ ملاحظات الحالات المركبة")
+                shown_combo = False
+                for i in range(len(selected_keys)):
+                    for j in range(i+1, len(selected_keys)):
+                        pair = (selected_keys[i], selected_keys[j])
+                        pair_rev = (selected_keys[j], selected_keys[i])
+                        note = COMBINATION_NOTES.get(pair) or COMBINATION_NOTES.get(pair_rev)
+                        if note:
+                            shown_combo = True
+                            st.markdown(f"<div class='alert-warn'>{note}</div>", unsafe_allow_html=True)
+                if not shown_combo:
+                    st.markdown(
+                        "<div class='alert-info'>ℹ️ راجع التوصيات التفصيلية لكل حالة بالأسفل وادمجها بحكمة سريرية.</div>",
+                        unsafe_allow_html=True
+                    )
+
+            # Individual condition details
+            for key in selected_keys:
+                cond = CLINICAL_CONDITIONS[key]
+                st.markdown("---")
+                st.markdown(f"## {cond['icon']} {cond['name']}")
+                st.markdown(f"<div style='color:#3a6a8a;font-size:13px;margin-bottom:12px'>📖 {cond['chapter']}</div>", unsafe_allow_html=True)
+
+                # Overview
+                st.markdown(f"<div class='fc-note'>📋 <b>نظرة عامة:</b> {cond['overview']}</div>", unsafe_allow_html=True)
+                st.markdown("<br>", unsafe_allow_html=True)
+
+                # Goals
+                if cond.get('goals'):
+                    st.markdown("#### 🎯 أهداف العلاج الغذائي")
+                    for g in cond['goals']:
+                        st.markdown(f"- {g}")
+
+                # Macros table
+                if cond.get('macros'):
+                    st.markdown("#### ⚖️ التوصيات الغذائية الكمية")
+                    macro_items = cond['macros']
+                    mc1, mc2 = st.columns(2)
+                    items_list = list(macro_items.items())
+                    half = (len(items_list) + 1) // 2
+                    with mc1:
+                        for k, v in items_list[:half]:
+                            label_map = {
+                                'energy':'🔥 السعرات','carb':'🍞 الكارب','protein':'💪 البروتين',
+                                'fat':'🥑 الدهون','fiber':'🌾 الألياف','sodium':'🧂 الصوديوم',
+                                'potassium':'⚡ البوتاسيوم','phosphorus':'🔵 الفوسفور',
+                                'calcium':'🦴 الكالسيوم','fluid':'💧 السوائل',
+                                'omega3':'🐟 أوميغا 3','zinc':'🔩 الزنك'
+                            }
+                            lbl = label_map.get(k, k)
+                            st.markdown(f"""
+                            <div style="background:rgba(0,180,216,.07);border-right:3px solid rgba(0,180,216,.35);
+                            border-radius:8px;padding:8px 12px;margin-bottom:8px">
+                                <span style="color:#7fb8d8;font-size:12px;font-weight:700">{lbl}</span><br>
+                                <span style="color:#dceeff;font-size:13px">{v}</span>
+                            </div>""", unsafe_allow_html=True)
+                    with mc2:
+                        for k, v in items_list[half:]:
+                            label_map = {
+                                'energy':'🔥 السعرات','carb':'🍞 الكارب','protein':'💪 البروتين',
+                                'fat':'🥑 الدهون','fiber':'🌾 الألياف','sodium':'🧂 الصوديوم',
+                                'potassium':'⚡ البوتاسيوم','phosphorus':'🔵 الفوسفور',
+                                'calcium':'🦴 الكالسيوم','fluid':'💧 السوائل',
+                                'omega3':'🐟 أوميغا 3','zinc':'🔩 الزنك'
+                            }
+                            lbl = label_map.get(k, k)
+                            st.markdown(f"""
+                            <div style="background:rgba(0,180,216,.07);border-right:3px solid rgba(0,180,216,.35);
+                            border-radius:8px;padding:8px 12px;margin-bottom:8px">
+                                <span style="color:#7fb8d8;font-size:12px;font-weight:700">{lbl}</span><br>
+                                <span style="color:#dceeff;font-size:13px">{v}</span>
+                            </div>""", unsafe_allow_html=True)
+
+                # Key micronutrients
+                if cond.get('key_micronutrients'):
+                    st.markdown("#### 💊 المغذيات الدقيقة الحرجة")
+                    for km, kv in cond['key_micronutrients'].items():
+                        st.markdown(f"""
+                        <div style="background:rgba(255,200,0,.06);border-right:3px solid rgba(255,200,0,.3);
+                        border-radius:8px;padding:7px 12px;margin-bottom:6px">
+                            <span style="color:#ffe082;font-size:12px;font-weight:700">{km.replace('_',' ').title()}</span>:
+                            <span style="color:#dceeff;font-size:13px"> {kv}</span>
+                        </div>""", unsafe_allow_html=True)
+
+                # Key points
+                if cond.get('key_points'):
+                    st.markdown("#### 🔑 نقاط رئيسية للممارسة السريرية")
+                    for kp in cond['key_points']:
+                        st.markdown(f"""
+                        <div class="food-card" style="padding:10px 14px;margin-bottom:6px">
+                            <span style="color:#dceeff;font-size:13.5px">{kp}</span>
+                        </div>""", unsafe_allow_html=True)
+
+                # Foods recommended / limit
+                if cond.get('foods_recommended') or cond.get('foods_limit'):
+                    fa, fb = st.columns(2)
+                    with fa:
+                        if cond.get('foods_recommended'):
+                            st.markdown("#### ✅ أطعمة مُشجَّعة")
+                            for f in cond['foods_recommended']:
+                                st.markdown(f"<div style='color:#a5d6a7;font-size:13px;padding:3px 0'>✔ {f}</div>", unsafe_allow_html=True)
+                    with fb:
+                        if cond.get('foods_limit'):
+                            st.markdown("#### ⛔ أطعمة تُقلَّل أو تُتجنَّب")
+                            for f in cond['foods_limit']:
+                                st.markdown(f"<div style='color:#ef9a9a;font-size:13px;padding:3px 0'>✖ {f}</div>", unsafe_allow_html=True)
+
+                # DASH diet table (cardiovascular)
+                if cond.get('dash_diet'):
+                    st.markdown("#### 🥗 حمية DASH — التفاصيل")
+                    dd = cond['dash_diet']
+                    st.markdown(f"<div class='alert-info'>{dd['description']}: صوديوم {dd['sodium']}</div>", unsafe_allow_html=True)
+                    d1, d2 = st.columns(2)
+                    with d1:
+                        for item in ['fruits','vegetables','grains','dairy_lowfat']:
+                            label = {'fruits':'🍎 فاكهة','vegetables':'🥦 خضروات','grains':'🌾 حبوب','dairy_lowfat':'🥛 ألبان قليلة الدسم'}.get(item, item)
+                            st.markdown(f"**{label}:** {dd[item]}")
+                    with d2:
+                        for item in ['lean_meat','nuts_seeds','fats_oils']:
+                            label = {'lean_meat':'🍗 لحوم قليلة الدهن','nuts_seeds':'🥜 مكسرات وبذور','fats_oils':'🫙 دهون وزيوت'}.get(item, item)
+                            st.markdown(f"**{label}:** {dd[item]}")
+
+                # Weight gain guide (pregnancy)
+                if cond.get('weight_gain_guide'):
+                    st.markdown("#### ⚖️ الزيادة الوزنية المثالية حسب BMI قبل الحمل")
+                    for bmi_range, rec in cond['weight_gain_guide'].items():
+                        st.markdown(f"""
+                        <div style="background:rgba(76,175,80,.07);border-right:3px solid rgba(76,175,80,.3);
+                        border-radius:8px;padding:7px 12px;margin-bottom:6px">
+                            <span style="color:#a5d6a7;font-size:13px;font-weight:700">{bmi_range}</span>:
+                            <span style="color:#dceeff"> {rec}</span>
+                        </div>""", unsafe_allow_html=True)
+
+                # FODMAP lists (IBS)
+                if cond.get('high_fodmap_foods'):
+                    fi1, fi2 = st.columns(2)
+                    with fi1:
+                        st.markdown("#### 🔴 أطعمة High-FODMAP (تجنب)")
+                        for f in cond['high_fodmap_foods']:
+                            st.markdown(f"<div style='color:#ef9a9a;font-size:13px'>✖ {f}</div>", unsafe_allow_html=True)
+                    with fi2:
+                        st.markdown("#### 🟢 أطعمة Low-FODMAP (مسموح)")
+                        for f in cond['low_fodmap_foods']:
+                            st.markdown(f"<div style='color:#a5d6a7;font-size:13px'>✔ {f}</div>", unsafe_allow_html=True)
+
+                # High phos/potassium (renal)
+                if cond.get('high_phosphorus_foods'):
+                    rp1, rp2 = st.columns(2)
+                    with rp1:
+                        st.markdown("#### 🔵 أطعمة عالية الفوسفور (تحكم)")
+                        for f in cond['high_phosphorus_foods']:
+                            st.markdown(f"<div style='color:#ffcc80;font-size:13px'>⚠ {f}</div>", unsafe_allow_html=True)
+                    with rp2:
+                        if cond.get('high_potassium_foods'):
+                            st.markdown("#### ⚡ أطعمة عالية البوتاسيوم (تحكم)")
+                            for f in cond['high_potassium_foods']:
+                                st.markdown(f"<div style='color:#ffcc80;font-size:13px'>⚠ {f}</div>", unsafe_allow_html=True)
+
+                # Meal timing
+                if cond.get('meal_timing'):
+                    st.markdown(f"<div class='alert-info'>⏰ <b>توقيت الوجبات:</b> {cond['meal_timing']}</div>", unsafe_allow_html=True)
+
+                # Monitoring
+                if cond.get('monitoring'):
+                    st.markdown(f"<div class='alert-warn'>📊 <b>المتابعة:</b> {cond['monitoring']}</div>", unsafe_allow_html=True)
+
+                # Reference
+                st.markdown(f"""
+                <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+                border-radius:10px;padding:10px 14px;margin-top:16px">
+                    <span style="color:#3a6a8a;font-size:12px">📚 المصدر: {cond['reference']}</span>
+                </div>""", unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════
+# CLINICAL DATA (inline — extracted from textbook)
+# ══════════════════════════════════════════
