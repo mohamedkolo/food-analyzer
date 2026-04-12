@@ -1,7 +1,3 @@
-# =============================================================================
-# NutraX V11 — Light Theme | Mobile Responsive | Clinical Nutrition Calculator
-# =============================================================================
-
 import streamlit as st
 import sqlite3, hashlib, os, json, math
 from datetime import datetime
@@ -10,315 +6,602 @@ st.set_page_config(page_title="NutraX", page_icon="🥗", layout="wide",
                    initial_sidebar_state="collapsed")
 
 # ══════════════════════════════════════════
-# CSS — Light Theme + Mobile Responsive
+# LANGUAGE SYSTEM
+# ══════════════════════════════════════════
+LANG = {
+    "ar": {
+        "app_name": "NutraX",
+        "tagline": "مساعدك الذكي للتغذية الصحية",
+        "login": "تسجيل الدخول", "register": "حساب جديد",
+        "email": "البريد الإلكتروني", "password": "كلمة المرور",
+        "name": "الاسم الكامل", "birth_year": "سنة الميلاد",
+        "country": "البلد", "enter": "دخول ←", "create": "إنشاء الحساب ←",
+        "remember": "تذكرني على هذا الجهاز",
+        "wrong_creds": "البريد أو كلمة المرور غير صحيحة",
+        "email_used": "البريد الإلكتروني مستخدم بالفعل",
+        "registered": "تم التسجيل! سجل دخولك.",
+        "dashboard": "الرئيسية", "settings": "الإعدادات",
+        "analyzer": "محلل الطعام", "planner": "مصمم الجدول",
+        "suggester": "مقترح الوجبات", "saved": "جداولي",
+        "history": "سجل الوزن", "clinical": "المرجع الكلينيكي",
+        "logout": "خروج",
+        "complete_settings": "أكمل إعداداتك أولاً لحساب أهدافك",
+        "go_settings": "اذهب للإعدادات",
+        "your_goal": "هدفك", "tdee": "TDEE", "daily_target": "هدف يومي",
+        "calories": "السعرات", "protein": "بروتين",
+        "carbs": "كارب", "fat": "دهون",
+        "bmi": "BMI", "last_weight": "آخر وزن", "plans": "جداول",
+        "quick_access": "وصول سريع",
+        "height": "الطول (سم)", "weight_kg": "الوزن (كجم)",
+        "age": "العمر (سنة)", "your_goal_lbl": "هدفك",
+        "activity": "مستوى النشاط", "save_calc": "حفظ وحساب الأهداف",
+        "saved_ok": "تم الحفظ!",
+        "fat_loss": "🔥 خسارة دهون", "muscle_gain": "💪 بناء عضل", "maintain": "⚖️ ثبات الوزن",
+        "sedentary": "مستقر", "light": "خفيف (1-3 أيام)",
+        "moderate": "معتدل (3-5 أيام)", "active": "نشيط (6-7 أيام)", "athlete": "رياضي محترف",
+        "filter_cat": "الفئة", "all": "الكل", "search": "ابحث بالعربي أو الإنجليزي",
+        "per_100g": "لكل 100 جرام",
+        "results": "نتيجة من", "items": "صنف",
+        "no_results": "لا نتائج. جرب كلمة مختلفة.",
+        "show_first30": "عرض أول 30 — ضيّق البحث لرؤية المزيد",
+        "days": "عدد الأيام", "breakfast": "🌅 فطار", "lunch": "☀️ غداء",
+        "dinner": "🌙 عشاء", "snack": "🍎 سناك", "choose": "اختر",
+        "summary": "ملخص الجدول", "gap": "الفارق", "perfect": "ممتاز! الجدول متوازن 🎯",
+        "over_cal": "زيادة — قلل الكميات",
+        "under_cal": "ناقص — أضف وجبة",
+        "plan_name": "اسم الجدول", "plan_type": "نوع",
+        "save_plan": "حفظ الجدول", "saved_plan_ok": "تم حفظ الجدول!",
+        "personal": "خاص بي", "for_client": "للعميل", "public": "عام",
+        "no_plans": "لا توجد جداول محفوظة بعد.",
+        "shopping": "مشتريات", "delete": "حذف",
+        "confirm_delete": "هل تحذف؟", "yes": "✅ نعم", "cancel": "❌ إلغاء",
+        "log_weight": "وزن اليوم (كجم)", "log_btn": "تسجيل",
+        "min_weight": "📉 أقل", "max_weight": "📈 أعلى", "last_weight2": "📊 آخر",
+        "no_weight": "سجل وزنك اليوم!",
+        "what_ate": "أدخل ما أكلته اليوم — سنقترح الوجبات المتبقية.",
+        "ate": "✅ أكلته", "remaining": "🎯 المتبقي",
+        "suggest_btn": "💡 اقترح لي ←", "reached_goal": "🎉 وصلت لهدفك اليومي!",
+        "suggested_meals": "🍽️ وجبات مقترحة",
+        "ideal_weight": "الوزن المثالي", "filter": "فلتر",
+        "select_condition": "اختر الحالة أو الأمراض",
+        "multi_condition": "يمكن اختيار أكثر من حالة",
+        "calc_btn": "🧮 احسب الاحتياجات ←",
+        "calc_title": "احسب الاحتياجات الغذائية حسب الحالة المرضية",
+        "gender": "الجنس", "male": "ذكر", "female": "أنثى",
+        "pregnancy_trim": "ثلث الحمل (إن حاملاً)",
+        "not_applicable": "لا ينطبق", "first": "الأول", "second": "الثاني", "third": "الثالث",
+        "conditions_label": "🏥 الحالات المرضية",
+        "results_title": "📊 نتائج الحسابات",
+        "macros_detail": "📐 الحسابات التفصيلية",
+        "bmr_lbl": "BMR (معدل الأيض الأساسي)",
+        "tdee_lbl": "TDEE (السعرات مع النشاط)",
+        "target_cal": "السعرات المستهدفة",
+        "fiber_rec": "الألياف الموصى بها",
+        "sodium_max": "الصوديوم الأقصى",
+        "fluid_lbl": "السوائل",
+        "condition_notes": "📌 تعديلات الحالات المرضية",
+        "micro_important": "💊 مغذيات دقيقة مهمة",
+        "meal_dist": "🍽️ توزيع الوجبات المقترح",
+        "meals_per_day": "وجبات يومياً",
+        "cal_each": "kcal لكل وجبة",
+        "meal_num": "الوجبة",
+        "ref_detail": "📋 المرجع التفصيلي",
+        "search_ref": "🔎 بحث في المرجع",
+        "search_placeholder": "مثال: حديد، بوتاسيوم",
+        "select_case": "اختر حالة",
+        "treat_goals": "🎯 أهداف العلاج الغذائي",
+        "quant_rec": "⚖️ التوصيات الكمية",
+        "critical_micro": "💊 مغذيات دقيقة حرجة",
+        "clinical_points": "🔑 نقاط سريرية رئيسية",
+        "recommended": "✅ أطعمة مُشجَّعة",
+        "limited": "⛔ أطعمة تُقلَّل",
+        "weight_gain": "⚖️ الزيادة الوزنية حسب BMI",
+        "source": "📚 المصدر",
+        "gram": "جم", "kcal": "kcal", "day": "يوم",
+        "lang_btn": "English",
+    },
+    "en": {
+        "app_name": "NutraX",
+        "tagline": "Your Smart Clinical Nutrition Assistant",
+        "login": "Sign In", "register": "New Account",
+        "email": "Email Address", "password": "Password",
+        "name": "Full Name", "birth_year": "Birth Year",
+        "country": "Country", "enter": "Sign In →", "create": "Create Account →",
+        "remember": "Remember me on this device",
+        "wrong_creds": "Incorrect email or password",
+        "email_used": "Email already in use",
+        "registered": "Account created! Sign in now.",
+        "dashboard": "Dashboard", "settings": "Settings",
+        "analyzer": "Food Analyzer", "planner": "Meal Planner",
+        "suggester": "Meal Suggester", "saved": "My Plans",
+        "history": "Weight Log", "clinical": "Clinical Reference",
+        "logout": "Sign Out",
+        "complete_settings": "Complete your profile to calculate daily targets",
+        "go_settings": "Go to Settings",
+        "your_goal": "Your Goal", "tdee": "TDEE", "daily_target": "Daily Target",
+        "calories": "Calories", "protein": "Protein",
+        "carbs": "Carbs", "fat": "Fat",
+        "bmi": "BMI", "last_weight": "Last Weight", "plans": "Plans",
+        "quick_access": "Quick Access",
+        "height": "Height (cm)", "weight_kg": "Weight (kg)",
+        "age": "Age (years)", "your_goal_lbl": "Your Goal",
+        "activity": "Activity Level", "save_calc": "Save & Calculate Targets",
+        "saved_ok": "Saved!",
+        "fat_loss": "🔥 Fat Loss", "muscle_gain": "💪 Muscle Gain", "maintain": "⚖️ Maintain Weight",
+        "sedentary": "Sedentary", "light": "Light (1-3 days)",
+        "moderate": "Moderate (3-5 days)", "active": "Active (6-7 days)", "athlete": "Pro Athlete",
+        "filter_cat": "Category", "all": "All", "search": "Search food...",
+        "per_100g": "Per 100 grams",
+        "results": "results from", "items": "items",
+        "no_results": "No results found. Try a different term.",
+        "show_first30": "Showing first 30 — narrow your search for more",
+        "days": "Number of Days", "breakfast": "🌅 Breakfast", "lunch": "☀️ Lunch",
+        "dinner": "🌙 Dinner", "snack": "🍎 Snack", "choose": "Choose",
+        "summary": "Plan Summary", "gap": "Gap", "perfect": "Perfect! Balanced plan 🎯",
+        "over_cal": "Over — reduce portions",
+        "under_cal": "Under — add a meal",
+        "plan_name": "Plan Name", "plan_type": "Type",
+        "save_plan": "Save Plan", "saved_plan_ok": "Plan saved!",
+        "personal": "Personal", "for_client": "For Client", "public": "Public",
+        "no_plans": "No saved plans yet.",
+        "shopping": "Shopping List", "delete": "Delete",
+        "confirm_delete": "Confirm delete?", "yes": "✅ Yes", "cancel": "❌ Cancel",
+        "log_weight": "Today's Weight (kg)", "log_btn": "Log",
+        "min_weight": "📉 Min", "max_weight": "📈 Max", "last_weight2": "📊 Last",
+        "no_weight": "Log your weight today!",
+        "what_ate": "Enter what you ate today — we'll suggest remaining meals.",
+        "ate": "✅ Eaten", "remaining": "🎯 Remaining",
+        "suggest_btn": "💡 Suggest →", "reached_goal": "🎉 You reached your daily goal!",
+        "suggested_meals": "🍽️ Suggested Meals",
+        "ideal_weight": "Ideal Weight", "filter": "Filter",
+        "select_condition": "Select condition(s)",
+        "multi_condition": "Multiple conditions supported",
+        "calc_btn": "🧮 Calculate Needs →",
+        "calc_title": "Calculate Nutrition Targets by Clinical Condition",
+        "gender": "Gender", "male": "Male", "female": "Female",
+        "pregnancy_trim": "Pregnancy Trimester",
+        "not_applicable": "N/A", "first": "1st", "second": "2nd", "third": "3rd",
+        "conditions_label": "🏥 Clinical Conditions",
+        "results_title": "📊 Calculated Results",
+        "macros_detail": "📐 Detailed Breakdown",
+        "bmr_lbl": "BMR (Basal Metabolic Rate)",
+        "tdee_lbl": "TDEE (with Activity)",
+        "target_cal": "Target Calories",
+        "fiber_rec": "Recommended Fiber",
+        "sodium_max": "Maximum Sodium",
+        "fluid_lbl": "Fluids",
+        "condition_notes": "📌 Condition-Specific Adjustments",
+        "micro_important": "💊 Key Micronutrients",
+        "meal_dist": "🍽️ Suggested Meal Distribution",
+        "meals_per_day": "meals per day",
+        "cal_each": "kcal each",
+        "meal_num": "Meal",
+        "ref_detail": "📋 Detailed Reference",
+        "search_ref": "🔎 Search Reference",
+        "search_placeholder": "e.g. iron, potassium",
+        "select_case": "Select condition",
+        "treat_goals": "🎯 Treatment Goals",
+        "quant_rec": "⚖️ Quantitative Recommendations",
+        "critical_micro": "💊 Critical Micronutrients",
+        "clinical_points": "🔑 Key Clinical Points",
+        "recommended": "✅ Recommended Foods",
+        "limited": "⛔ Foods to Limit",
+        "weight_gain": "⚖️ Weight Gain Guide (BMI)",
+        "source": "📚 Source",
+        "gram": "g", "kcal": "kcal", "day": "day",
+        "lang_btn": "عربي",
+    }
+}
+
+def T(key):
+    lang = st.session_state.get("lang", "ar")
+    return LANG[lang].get(key, key)
+
+
+# ══════════════════════════════════════════
+# CSS — Futuristic Nutrition UI
 # ══════════════════════════════════════════
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&family=Orbitron:wght@400;700&display=swap');
 
-/* ─── Reset ─── */
 *,*::before,*::after{box-sizing:border-box}
-html,body,[class*="css"]{font-family:'Cairo',sans-serif!important;direction:rtl}
+html,body,[class*="css"]{font-family:'Cairo',sans-serif!important}
 
-/* ─── App Background — Clean White ─── */
+/* ─── App Background ─── */
 .stApp{
-  background: linear-gradient(135deg,#f0f7ff 0%,#ffffff 50%,#f5f0ff 100%);
+  background:#0a0e1a;
   min-height:100vh;
+  background-image:
+    radial-gradient(ellipse at 10% 0%,rgba(0,245,160,0.06) 0%,transparent 60%),
+    radial-gradient(ellipse at 90% 100%,rgba(0,180,255,0.06) 0%,transparent 60%);
 }
+
+/* ─── RTL / LTR ─── */
+.rtl{direction:rtl!important;text-align:right!important}
+.ltr{direction:ltr!important;text-align:left!important}
 
 /* ─── Sidebar ─── */
 [data-testid="stSidebar"]{
-  background:linear-gradient(180deg,#1e3a5f 0%,#0f2035 100%)!important;
-  border-left:none!important;
+  background:linear-gradient(180deg,#0d1220 0%,#080c18 100%)!important;
+  border-right:1px solid rgba(0,245,160,0.12)!important;
 }
 [data-testid="stSidebar"] .stButton>button{
-  width:100%;text-align:right;
-  background:transparent;color:#c8e8ff;
-  border:1px solid transparent;border-radius:10px;
-  padding:11px 16px;margin-bottom:4px;
-  font-family:'Cairo',sans-serif;font-size:14.5px;font-weight:500;
-  transition:all .2s ease;
+  width:100%;background:transparent;
+  color:#8aebb4;border:1px solid transparent;
+  border-radius:10px;padding:11px 16px;
+  margin-bottom:4px;font-family:'Cairo',sans-serif;
+  font-size:14px;font-weight:500;
+  transition:all .2s;text-align:right;
 }
 [data-testid="stSidebar"] .stButton>button:hover{
-  background:rgba(0,210,255,.12);border-color:rgba(0,210,255,.3);
-  color:#fff;transform:translateX(-4px);
+  background:rgba(0,245,160,0.08);
+  border-color:rgba(0,245,160,0.25);
+  color:#00f5a0;transform:translateX(-3px);
 }
-[data-testid="stSidebar"] p,
-[data-testid="stSidebar"] span,
-[data-testid="stSidebar"] div{color:#c8e8ff!important}
 
 /* ─── Cards ─── */
 .card{
-  background:#ffffff;
-  border:1px solid #e2ecff;
-  border-radius:18px;padding:22px 20px;
-  box-shadow:0 2px 16px rgba(0,80,180,.07);
-  transition:transform .25s,box-shadow .25s;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(0,245,160,0.15);
+  border-radius:20px;padding:22px 20px;
   position:relative;overflow:hidden;
+  transition:transform .25s,box-shadow .25s;
+  backdrop-filter:blur(10px);
 }
 .card::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,#4f8ef7,#a78bfa);
+  content:'';position:absolute;
+  top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,#00f5a0,transparent);
 }
-.card:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(79,142,247,.15)}
-.card .c-label{color:#6b7fa3;font-size:12px;font-weight:700;margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase}
-.card .c-value{color:#1a2a4a;font-size:28px;font-weight:900;line-height:1}
-.card .c-unit{color:#8a9bbf;font-size:12px;margin-top:4px}
-.card .c-icon{font-size:26px;margin-bottom:8px}
+.card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 8px 32px rgba(0,245,160,0.12);
+}
+.card .c-label{
+  color:rgba(138,235,180,0.7);
+  font-size:11px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;
+  margin-bottom:8px;
+}
+.card .c-value{
+  color:#ffffff;font-size:28px;
+  font-weight:900;line-height:1;
+}
+.card .c-unit{
+  color:rgba(138,235,180,0.5);
+  font-size:12px;margin-top:5px;
+}
+.card .c-icon{font-size:24px;margin-bottom:8px}
 
 /* ─── Section Title ─── */
 .sec-title{
-  color:#1a2a4a;font-size:21px;font-weight:800;
-  padding-bottom:10px;
-  border-bottom:2px solid #e2ecff;
-  margin-bottom:22px;
+  font-size:20px;font-weight:800;
+  color:#ffffff;padding-bottom:12px;
+  border-bottom:1px solid rgba(0,245,160,0.2);
+  margin-bottom:24px;
+  display:flex;align-items:center;gap:10px;
 }
-.sec-title span{color:#4f8ef7}
+.sec-title .accent{color:#00f5a0}
 
 /* ─── Food Card ─── */
 .food-card{
-  background:#fff;border:1px solid #e8f0fe;
-  border-radius:14px;padding:16px 18px;margin-bottom:10px;
-  border-right:4px solid #4f8ef7;
-  box-shadow:0 1px 8px rgba(79,142,247,.06);
-  transition:border-color .2s,box-shadow .2s;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(0,245,160,0.12);
+  border-radius:16px;padding:16px 18px;
+  margin-bottom:10px;
+  border-right:3px solid #00f5a0;
+  transition:all .2s;
 }
-.food-card:hover{border-right-color:#a78bfa;box-shadow:0 4px 16px rgba(79,142,247,.12)}
-.food-card .fc-name{color:#1a2a4a;font-size:16px;font-weight:700;margin-bottom:8px}
+.food-card:hover{
+  background:rgba(0,245,160,0.04);
+  border-color:rgba(0,245,160,0.3);
+}
+.food-card .fc-name{
+  color:#ffffff;font-size:15px;
+  font-weight:700;margin-bottom:8px;
+}
 .food-card .fc-note{
-  background:#f0f7ff;border-right:3px solid #4f8ef7;
-  border-radius:8px;padding:8px 12px;color:#3a5a8a;
-  font-size:13px;margin-top:8px;line-height:1.6;
+  background:rgba(0,180,255,0.06);
+  border-right:3px solid rgba(0,180,255,0.4);
+  border-radius:8px;padding:8px 12px;
+  color:rgba(200,230,255,0.85);
+  font-size:12.5px;margin-top:8px;line-height:1.6;
 }
 .food-card .fc-tip{
-  background:#fffbf0;border-right:3px solid #f59e0b;
-  border-radius:8px;padding:8px 12px;color:#92600a;
-  font-size:13px;margin-top:6px;line-height:1.6;
+  background:rgba(255,200,0,0.05);
+  border-right:3px solid rgba(255,200,0,0.4);
+  border-radius:8px;padding:8px 12px;
+  color:rgba(255,220,100,0.9);
+  font-size:12.5px;margin-top:6px;line-height:1.6;
 }
 
 /* ─── Pills ─── */
 .pills{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
-.pill{padding:3px 11px;border-radius:20px;font-size:12px;font-weight:700}
-.pill-cal{background:#e8f4ff;color:#1a6bc9;border:1px solid #b3d7ff}
-.pill-p{background:#e8f7ee;color:#1a7a3a;border:1px solid #a8ddb8}
-.pill-c{background:#fff4e0;color:#b56b00;border:1px solid #ffd080}
-.pill-f{background:#ffeaea;color:#c02020;border:1px solid #ffb8b8}
+.pill{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.pill-cal{background:rgba(0,180,255,0.12);color:#5dd8ff;border:1px solid rgba(0,180,255,0.25)}
+.pill-p{background:rgba(0,245,160,0.1);color:#00f5a0;border:1px solid rgba(0,245,160,0.25)}
+.pill-c{background:rgba(255,180,0,0.1);color:#ffb400;border:1px solid rgba(255,180,0,0.25)}
+.pill-f{background:rgba(255,80,120,0.1);color:#ff5078;border:1px solid rgba(255,80,120,0.25)}
 
 /* ─── Progress ─── */
-.prog-wrap{background:#edf2ff;border-radius:20px;height:10px;overflow:hidden;margin:5px 0 12px}
-.prog-fill{height:10px;border-radius:20px;transition:width .6s}
-.prog-cal{background:linear-gradient(90deg,#4f8ef7,#818cf8)}
-.prog-p{background:linear-gradient(90deg,#22c55e,#4ade80)}
-.prog-c{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
-.prog-f{background:linear-gradient(90deg,#ef4444,#f87171)}
+.prog-wrap{
+  background:rgba(255,255,255,0.06);
+  border-radius:20px;height:8px;
+  overflow:hidden;margin:4px 0 12px;
+}
+.prog-fill{height:8px;border-radius:20px;transition:width .6s}
+.prog-cal{background:linear-gradient(90deg,#0096c7,#5dd8ff)}
+.prog-p{background:linear-gradient(90deg,#00b87a,#00f5a0)}
+.prog-c{background:linear-gradient(90deg,#cc8800,#ffb400)}
+.prog-f{background:linear-gradient(90deg,#cc2244,#ff5078)}
 
 /* ─── Alerts ─── */
-.alert-warn{background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:14px 18px;color:#92600a;margin-bottom:14px}
-.alert-info{background:#eff6ff;border:1px solid #93c5fd;border-radius:12px;padding:12px 16px;color:#1e40af;margin-bottom:12px}
-.alert-success{background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 16px;color:#15803d;margin-bottom:12px}
-
-/* ─── BMI Badge ─── */
-.bmi-badge{display:inline-block;padding:5px 16px;border-radius:30px;font-size:13px;font-weight:700;margin-top:5px}
-.bmi-under{background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd}
-.bmi-normal{background:#dcfce7;color:#15803d;border:1px solid #86efac}
-.bmi-over{background:#fef3c7;color:#92600a;border:1px solid #fcd34d}
-.bmi-obese{background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5}
-
-/* ─── Text ─── */
-h1,h2,h3,h4,h5,h6{color:#1a2a4a!important}
-p,li{color:#374151}
-strong{color:#1a2a4a!important}
-.stMarkdown p{color:#374151!important}
-.stMarkdown li{color:#374151!important}
-.stMarkdown strong{color:#1a2a4a!important}
-label,.stSelectbox label,.stNumberInput label,.stTextInput label{
-  color:#4a5568!important;font-weight:600;font-size:14px}
-[data-testid="stCaptionContainer"]{color:#6b7fa3!important}
-
-/* ─── Inputs ─── */
-input,textarea{
-  background:#fff!important;color:#1a2a4a!important;
-  border:1px solid #c7d7f0!important;border-radius:10px!important;
-  caret-color:#4f8ef7!important;
+.alert-warn{
+  background:rgba(255,180,0,0.08);
+  border:1px solid rgba(255,180,0,0.25);
+  border-radius:14px;padding:14px 18px;
+  color:#ffcc66;margin-bottom:14px;
+  font-size:14px;line-height:1.6;
 }
-input::placeholder,textarea::placeholder{color:#a0aec0!important;opacity:1!important}
-input:focus,textarea:focus{border-color:#4f8ef7!important;box-shadow:0 0 0 3px rgba(79,142,247,.12)!important}
+.alert-info{
+  background:rgba(0,180,255,0.08);
+  border:1px solid rgba(0,180,255,0.2);
+  border-radius:14px;padding:12px 16px;
+  color:#80d8ff;margin-bottom:12px;
+  font-size:14px;line-height:1.6;
+}
+.alert-success{
+  background:rgba(0,245,160,0.08);
+  border:1px solid rgba(0,245,160,0.2);
+  border-radius:14px;padding:12px 16px;
+  color:#00f5a0;margin-bottom:12px;
+  font-size:14px;line-height:1.6;
+}
+
+/* ─── BMI ─── */
+.bmi-badge{
+  display:inline-block;padding:5px 14px;
+  border-radius:30px;font-size:13px;font-weight:700;margin-top:5px;
+}
+.bmi-under{background:rgba(0,180,255,0.15);color:#5dd8ff;border:1px solid rgba(0,180,255,0.3)}
+.bmi-normal{background:rgba(0,245,160,0.12);color:#00f5a0;border:1px solid rgba(0,245,160,0.3)}
+.bmi-over{background:rgba(255,180,0,0.12);color:#ffb400;border:1px solid rgba(255,180,0,0.3)}
+.bmi-obese{background:rgba(255,80,120,0.12);color:#ff5078;border:1px solid rgba(255,80,120,0.3)}
+
+/* ─── Text — HIGH CONTRAST ─── */
+h1,h2,h3,h4,h5,h6{color:#ffffff!important;font-family:'Cairo',sans-serif!important}
+p,li{color:rgba(255,255,255,0.85)!important;font-size:14px}
+strong{color:#ffffff!important}
+.stMarkdown p{color:rgba(255,255,255,0.85)!important;font-size:14px!important}
+.stMarkdown li{color:rgba(255,255,255,0.85)!important}
+.stMarkdown strong{color:#00f5a0!important}
+label,
+.stSelectbox label,
+.stNumberInput label,
+.stTextInput label{
+  color:#8aebb4!important;
+  font-weight:600!important;
+  font-size:13px!important;
+  letter-spacing:0.3px;
+}
+[data-testid="stCaptionContainer"]{color:rgba(138,235,180,0.6)!important}
+.stCheckbox label{color:rgba(255,255,255,0.85)!important;font-size:13px!important}
+
+/* ─── Inputs — HIGH CONTRAST ─── */
+input,textarea{
+  background:rgba(255,255,255,0.05)!important;
+  color:#ffffff!important;
+  border:1px solid rgba(0,245,160,0.25)!important;
+  border-radius:12px!important;
+  font-size:15px!important;
+  caret-color:#00f5a0!important;
+}
+input::placeholder,textarea::placeholder{
+  color:rgba(138,235,180,0.4)!important;opacity:1!important;
+}
+input:focus{
+  border-color:rgba(0,245,160,0.6)!important;
+  box-shadow:0 0 0 3px rgba(0,245,160,0.08)!important;
+}
 input:-webkit-autofill{
-  -webkit-text-fill-color:#1a2a4a!important;
-  -webkit-box-shadow:0 0 0px 1000px #fff inset!important;
+  -webkit-text-fill-color:#ffffff!important;
+  -webkit-box-shadow:0 0 0px 1000px #0d1525 inset!important;
 }
 .stSelectbox>div>div,[data-baseweb="select"]>div{
-  background:#fff!important;color:#1a2a4a!important;
-  border:1px solid #c7d7f0!important;border-radius:10px!important;
+  background:rgba(255,255,255,0.05)!important;
+  color:#ffffff!important;
+  border:1px solid rgba(0,245,160,0.25)!important;
+  border-radius:12px!important;
 }
-[data-baseweb="select"] span{color:#1a2a4a!important}
+[data-baseweb="select"] span{color:#ffffff!important;font-size:14px!important}
+[data-baseweb="menu"]{
+  background:#0d1525!important;
+  border:1px solid rgba(0,245,160,0.2)!important;
+}
+[data-baseweb="option"]{color:#ffffff!important;background:#0d1525!important}
+[data-baseweb="option"]:hover{background:rgba(0,245,160,0.08)!important}
 
 /* ─── Buttons ─── */
 .stButton>button{
-  background:linear-gradient(135deg,#4f8ef7,#818cf8);
-  color:#fff;border:none;border-radius:10px;
-  font-family:'Cairo',sans-serif;font-weight:700;font-size:14px;
-  padding:10px 22px;transition:all .2s;
+  background:linear-gradient(135deg,rgba(0,245,160,0.15),rgba(0,180,255,0.12));
+  color:#00f5a0;
+  border:1px solid rgba(0,245,160,0.35)!important;
+  border-radius:12px;
+  font-family:'Cairo',sans-serif;
+  font-weight:700;font-size:14px;
+  padding:10px 22px;
+  transition:all .2s;
+  letter-spacing:0.3px;
 }
 .stButton>button:hover{
-  background:linear-gradient(135deg,#3b7ef6,#6d76f5);
-  transform:translateY(-2px);box-shadow:0 6px 20px rgba(79,142,247,.3);
+  background:linear-gradient(135deg,rgba(0,245,160,0.25),rgba(0,180,255,0.2));
+  border-color:rgba(0,245,160,0.6)!important;
+  color:#ffffff;
+  transform:translateY(-2px);
+  box-shadow:0 4px 20px rgba(0,245,160,0.2);
 }
 
 /* ─── Tabs ─── */
-.stTabs [data-baseweb="tab-list"]{background:#f1f5fd;border-radius:12px;padding:4px;gap:4px}
-.stTabs [data-baseweb="tab"]{color:#4a5568;border-radius:8px;font-family:'Cairo',sans-serif;font-weight:600}
-.stTabs [aria-selected="true"]{background:#fff!important;color:#4f8ef7!important;box-shadow:0 2px 8px rgba(79,142,247,.15)!important}
+.stTabs [data-baseweb="tab-list"]{
+  background:rgba(255,255,255,0.03);
+  border-radius:14px;padding:4px;gap:4px;
+  border:1px solid rgba(0,245,160,0.1);
+}
+.stTabs [data-baseweb="tab"]{
+  color:rgba(138,235,180,0.7);
+  border-radius:10px;
+  font-family:'Cairo',sans-serif;font-weight:600;
+  font-size:14px;
+}
+.stTabs [aria-selected="true"]{
+  background:rgba(0,245,160,0.12)!important;
+  color:#00f5a0!important;
+  border:1px solid rgba(0,245,160,0.25)!important;
+}
 
 /* ─── Expander ─── */
 .streamlit-expanderHeader{
-  background:#f8faff!important;border-radius:12px!important;
-  color:#1a2a4a!important;font-weight:600!important;
-  border:1px solid #e2ecff!important;
+  background:rgba(255,255,255,0.03)!important;
+  border-radius:12px!important;
+  color:#ffffff!important;
+  font-weight:600!important;font-size:14px!important;
+  border:1px solid rgba(0,245,160,0.15)!important;
 }
 .streamlit-expanderContent{
-  background:#fdfdff!important;
-  border:1px solid #e8efff!important;
-  border-top:none!important;border-radius:0 0 12px 12px!important;
+  background:rgba(255,255,255,0.02)!important;
+  border:1px solid rgba(0,245,160,0.1)!important;
+  border-top:none!important;
+  border-radius:0 0 12px 12px!important;
 }
 
 /* ─── Metric ─── */
 [data-testid="metric-container"]{
-  background:#fff;border:1px solid #e2ecff;border-radius:14px;padding:14px;
-  box-shadow:0 2px 10px rgba(79,142,247,.06);
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(0,245,160,0.15);
+  border-radius:16px;padding:14px;
 }
-[data-testid="metric-container"] label{color:#6b7fa3!important;font-weight:600}
-[data-testid="stMetricValue"]{color:#1a2a4a!important;font-weight:800}
+[data-testid="metric-container"] label{
+  color:rgba(138,235,180,0.7)!important;
+  font-weight:600;font-size:13px!important;
+}
+[data-testid="stMetricValue"]{
+  color:#ffffff!important;font-weight:800!important;
+}
+[data-testid="stMetricDelta"]{color:rgba(138,235,180,0.8)!important}
 
 /* ─── Streamlit alerts ─── */
-.stSuccess{background:#f0fdf4!important;color:#15803d!important;border-radius:12px!important;border:1px solid #86efac!important}
-.stError{background:#fef2f2!important;color:#b91c1c!important;border-radius:12px!important;border:1px solid #fca5a5!important}
-.stWarning{background:#fffbeb!important;color:#92600a!important;border-radius:12px!important;border:1px solid #fcd34d!important}
-.stInfo{background:#eff6ff!important;color:#1e40af!important;border-radius:12px!important;border:1px solid #93c5fd!important}
-
-/* ─── Suggestion box ─── */
-.sug-box{
-  background:#f8fbff;border:1px solid #c7d7f0;
-  border-radius:14px;padding:16px 18px;margin-bottom:10px;
-  transition:border-color .2s,box-shadow .2s;
-  box-shadow:0 1px 6px rgba(79,142,247,.06);
-}
-.sug-box:hover{border-color:#4f8ef7;box-shadow:0 4px 16px rgba(79,142,247,.12)}
-.sug-box h4{color:#1a2a4a;margin:0 0 8px 0;font-size:15px}
+.stSuccess{background:rgba(0,245,160,0.08)!important;color:#00f5a0!important;border-radius:12px!important;border:1px solid rgba(0,245,160,0.25)!important}
+.stError{background:rgba(255,80,120,0.08)!important;color:#ff8099!important;border-radius:12px!important;border:1px solid rgba(255,80,120,0.25)!important}
+.stWarning{background:rgba(255,180,0,0.08)!important;color:#ffcc66!important;border-radius:12px!important;border:1px solid rgba(255,180,0,0.25)!important}
+.stInfo{background:rgba(0,180,255,0.08)!important;color:#80d8ff!important;border-radius:12px!important;border:1px solid rgba(0,180,255,0.25)!important}
 
 /* ─── Clinical row ─── */
 .clin-row{
-  background:#f8fbff;border-right:3px solid #4f8ef7;
+  background:rgba(0,180,255,0.05);
+  border-right:3px solid rgba(0,180,255,0.4);
   border-radius:8px;padding:8px 12px;margin-bottom:7px;
 }
-.clin-row .cr-label{color:#4f8ef7;font-size:12px;font-weight:700}
-.clin-row .cr-val{color:#1a2a4a;font-size:13px}
-.clin-row-warn{border-right-color:#f59e0b;background:#fffbf0}
-.clin-row-warn .cr-label{color:#b56b00}
-.clin-row-green{border-right-color:#22c55e;background:#f0fdf4}
-.clin-row-green .cr-label{color:#15803d}
-.clin-row-red{border-right-color:#ef4444;background:#fef2f2}
-.clin-row-red .cr-label{color:#b91c1c}
+.clin-row .cr-label{color:#80d8ff;font-size:12px;font-weight:700;letter-spacing:0.5px}
+.clin-row .cr-val{color:rgba(255,255,255,0.9);font-size:13px}
+.clin-row-warn{border-right-color:rgba(255,180,0,0.5);background:rgba(255,180,0,0.05)}
+.clin-row-warn .cr-label{color:#ffb400}
+.clin-row-green{border-right-color:rgba(0,245,160,0.5);background:rgba(0,245,160,0.05)}
+.clin-row-green .cr-label{color:#00f5a0}
+.clin-row-red{border-right-color:rgba(255,80,120,0.5);background:rgba(255,80,120,0.05)}
+.clin-row-red .cr-label{color:#ff5078}
 
-/* ─── Clinical calc box ─── */
+/* ─── Suggestion box ─── */
+.sug-box{
+  background:rgba(0,245,160,0.04);
+  border:1px solid rgba(0,245,160,0.15);
+  border-radius:16px;padding:16px 18px;
+  margin-bottom:10px;transition:all .2s;
+}
+.sug-box:hover{
+  border-color:rgba(0,245,160,0.35);
+  background:rgba(0,245,160,0.07);
+}
+.sug-box h4{color:#00f5a0;margin:0 0 8px;font-size:15px}
+
+/* ─── Calc box ─── */
 .calc-box{
-  background:linear-gradient(135deg,#f0f7ff,#f5f0ff);
-  border:1px solid #c7d7f0;border-radius:16px;
-  padding:20px 22px;margin:16px 0;
+  background:rgba(0,180,255,0.04);
+  border:1px solid rgba(0,180,255,0.15);
+  border-radius:18px;padding:20px 22px;margin:16px 0;
 }
-.calc-box h4{color:#1a2a4a;font-size:16px;font-weight:800;margin:0 0 14px}
+.calc-box h4{color:#5dd8ff;font-size:16px;font-weight:800;margin:0 0 14px}
 
-/* ─── Scrollbar ─── */
-::-webkit-scrollbar{width:5px}
-::-webkit-scrollbar-track{background:#f0f5ff}
-::-webkit-scrollbar-thumb{background:#c7d7f0;border-radius:10px}
-::-webkit-scrollbar-thumb:hover{background:#4f8ef7}
+/* ─── Divider ─── */
+hr{border-color:rgba(0,245,160,0.1)!important;margin:20px 0!important}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:#080c18}
+::-webkit-scrollbar-thumb{background:rgba(0,245,160,0.3);border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:#00f5a0}
 
-hr{border-color:#e8efff!important;margin:20px 0!important}
-
-/* ─── Mobile ─── */
-@media(max-width:768px){
-  /* hide sidebar completely on mobile — use hamburger */
-  section[data-testid="stSidebar"]{display:none!important}
-  /* fix main content takes full width */
-  .block-container{
-    padding:0.75rem 0.6rem 2rem!important;
-    max-width:100%!important;
-  }
-  .stApp{padding:0!important}
-  /* cards stack nicely */
-  .card{padding:14px 12px!important;margin-bottom:8px!important}
-  .card .c-value{font-size:20px!important}
-  .card .c-icon{font-size:22px!important;margin-bottom:4px!important}
-  .card .c-label{font-size:11px!important}
-  /* section title */
-  .sec-title{font-size:17px!important;margin-bottom:14px!important}
-  /* food cards */
-  .food-card{padding:12px 13px!important;margin-bottom:8px!important}
-  .food-card .fc-name{font-size:14px!important}
-  /* buttons full width on mobile */
-  .stButton>button{
-    padding:10px 12px!important;font-size:13px!important;
-    width:100%!important;
-  }
-  /* text sizes */
-  h1{font-size:24px!important}
-  h2{font-size:19px!important}
-  h3{font-size:16px!important}
-  h4{font-size:14px!important}
-  p,.stMarkdown p{font-size:13px!important}
-  /* pills smaller */
-  .pills{gap:4px!important;margin:5px 0!important}
-  .pill{font-size:11px!important;padding:2px 7px!important}
-  /* alerts */
-  .alert-warn,.alert-info,.alert-success{
-    padding:10px 13px!important;font-size:12px!important;
-    margin-bottom:10px!important;
-  }
-  /* inputs */
-  input,textarea{font-size:16px!important} /* prevents iOS zoom */
-  label{font-size:13px!important}
-  /* login */
-  .login-wrap{padding:20px 16px 16px!important}
-  .login-logo h1{font-size:30px!important}
-  .login-logo .logo-icon{font-size:44px!important}
-  /* tabs */
-  .stTabs [data-baseweb="tab"]{font-size:12px!important;padding:6px 10px!important}
-  /* metric */
-  [data-testid="metric-container"]{padding:10px!important}
-  [data-testid="stMetricValue"]{font-size:20px!important}
-  /* calc box */
-  .calc-box{padding:14px 13px!important}
-  .clin-row{padding:6px 10px!important;margin-bottom:5px!important}
-  /* sug box */
-  .sug-box{padding:12px 13px!important}
-}
-@media(max-width:480px){
-  .card .c-value{font-size:17px!important}
-  .sec-title{font-size:15px!important}
-  .block-container{padding:0.5rem 0.5rem 2rem!important}
-}
-
-/* ─── Login Page ─── */
-.login-wrap{
-  max-width:460px;margin:0 auto;
-  padding:40px 24px 24px;
-}
+/* ─── Login ─── */
+.login-wrap{max-width:440px;margin:0 auto;padding:30px 20px 20px}
 .login-logo{text-align:center;margin-bottom:32px}
-.login-logo .logo-icon{font-size:56px}
+.login-logo .logo-icon{font-size:52px;filter:drop-shadow(0 0 20px rgba(0,245,160,0.4))}
 .login-logo h1{
-  font-size:38px;font-weight:900;
-  background:linear-gradient(90deg,#4f8ef7,#a78bfa);
+  font-size:42px;font-weight:900;
+  background:linear-gradient(90deg,#00f5a0,#00b4ff);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   margin:8px 0 4px;
 }
-.login-logo p{color:#6b7fa3;font-size:15px;margin:0}
+.login-logo p{color:rgba(138,235,180,0.7);font-size:15px;margin:0}
 
-/* ─── Nav active ─── */
-.nav-active button{
-  background:rgba(79,142,247,.15)!important;
-  color:#fff!important;
-  border-color:rgba(79,142,247,.4)!important;
+/* ─── Line chart ─── */
+[data-testid="stArrowVegaLiteChart"]{
+  background:rgba(255,255,255,0.02)!important;
+  border-radius:16px!important;
+  border:1px solid rgba(0,245,160,0.1)!important;
+  padding:12px!important;
+}
+
+/* ─── Mobile ─── */
+@media(max-width:768px){
+  section[data-testid="stSidebar"]{display:none!important}
+  .block-container{padding:0.6rem 0.5rem 5rem!important;max-width:100%!important}
+  .card{padding:14px 12px!important;margin-bottom:8px!important}
+  .card .c-value{font-size:20px!important}
+  .sec-title{font-size:16px!important;margin-bottom:14px!important}
+  .food-card{padding:12px 13px!important}
+  .stButton>button{padding:10px 12px!important;font-size:13px!important;width:100%!important}
+  h1{font-size:22px!important}h2{font-size:18px!important}h3{font-size:15px!important}
+  p,.stMarkdown p{font-size:13px!important}
+  input,textarea{font-size:16px!important}
+  .pills{gap:4px!important}
+  .pill{font-size:11px!important;padding:2px 7px!important}
+  .alert-warn,.alert-info,.alert-success{padding:10px 13px!important;font-size:12px!important}
+  label{font-size:12px!important}
+  .login-logo h1{font-size:32px!important}
+  .login-wrap{padding:20px 14px!important}
+}
+@media(max-width:480px){
+  .card .c-value{font-size:17px!important}
+  .block-container{padding:0.4rem 0.4rem 5rem!important}
+}
+
+/* ─── Mobile Bottom Nav ─── */
+.bottom-nav{display:none}
+@media(max-width:768px){
+  .bottom-nav{
+    display:flex;position:fixed;bottom:0;left:0;right:0;
+    background:#0d1220;
+    border-top:1px solid rgba(0,245,160,0.15);
+    padding:6px 0 10px;
+    justify-content:space-around;align-items:center;
+    z-index:9999;
+  }
+  .bn-item{
+    display:flex;flex-direction:column;align-items:center;
+    color:rgba(138,235,180,0.5);font-size:10px;
+    font-family:'Cairo',sans-serif;font-weight:600;cursor:pointer;
+  }
+  .bn-item .bn-icon{font-size:20px;margin-bottom:2px}
+  .bn-item.active{color:#00f5a0}
+  .block-container{padding-bottom:70px!important}
 }
 </style>
 """, unsafe_allow_html=True)
@@ -869,44 +1152,70 @@ COMBINATION_NOTES = {
 # ══════════════════════════════════════════
 # SESSION
 # ══════════════════════════════════════════
-for k,v in [("page","login"),("user",None),("targets",None),("confirm_del",None)]:
+
+# ══════════════════════════════════════════
+# SESSION INIT
+# ══════════════════════════════════════════
+for k,v in [("page","login"),("user",None),("targets",None),
+            ("confirm_del",None),("lang","ar")]:
     if k not in st.session_state: st.session_state[k]=v
 REQUIRED={"cal","p","c","f","goal"}
 
+# ── Direction based on language ──
+DIR = "rtl" if st.session_state.lang=="ar" else "ltr"
+st.markdown(f"<style>html,body,[class*='css']{{direction:{DIR}!important}}</style>",
+            unsafe_allow_html=True)
+
 # ══════════════════════════════════════════
-# LOGIN
+# LOGIN PAGE
 # ══════════════════════════════════════════
 if st.session_state.page=="login":
-    st.markdown("""
+
+    # Language toggle top right
+    col_lang, _ = st.columns([1,4])
+    with col_lang:
+        if st.button(f"🌐 {T('lang_btn')}", key="lang_toggle_login"):
+            st.session_state.lang = "en" if st.session_state.lang=="ar" else "ar"
+            st.rerun()
+
+    st.markdown('<div class="login-wrap">', unsafe_allow_html=True)
+    st.markdown(f"""
     <div class="login-logo">
         <div class="logo-icon">🥗</div>
         <h1>NutraX</h1>
-        <p>مساعدك الذكي للتغذية الصحية — تحليل · تخطيط · متابعة</p>
+        <p>{T('tagline')}</p>
     </div>""", unsafe_allow_html=True)
-    _,mid,_ = st.columns([1,2,1])
-    with mid:
-        t1,t2=st.tabs(["🔑 تسجيل الدخول","✨ حساب جديد"])
-        with t1:
-            with st.form("lgn"):
-                e=st.text_input("📧 البريد الإلكتروني")
-                p=st.text_input("🔒 كلمة المرور",type="password")
-                if st.form_submit_button("دخول ←",use_container_width=True):
-                    c.execute("SELECT * FROM users WHERE email=? AND password=?",(e,hp(p)))
-                    u=c.fetchone()
-                    if u: st.session_state.user=u; st.session_state.page="dashboard"; st.rerun()
-                    else: st.error("البريد أو كلمة المرور غير صحيحة")
-        with t2:
-            with st.form("reg"):
-                n=st.text_input("👤 الاسم الكامل"); e2=st.text_input("📧 البريد الإلكتروني")
-                p2=st.text_input("🔒 كلمة المرور",type="password")
-                by=st.number_input("📅 سنة الميلاد",1950,2010,1995)
-                cn=st.selectbox("🌍 البلد",["Egypt","Saudi Arabia","UAE","Kuwait","Qatar","Bahrain","Jordan","Other"])
-                if st.form_submit_button("إنشاء الحساب ←",use_container_width=True):
-                    try:
-                        c.execute("INSERT INTO users (email,password,name,birth_year,country,is_admin) VALUES (?,?,?,?,?,0)",
-                                  (e2,hp(p2),n,by,cn)); conn.commit(); st.success("تم! سجل دخولك.")
-                    except: st.error("البريد الإلكتروني مستخدم بالفعل")
 
+    t1,t2=st.tabs([f"🔑 {T('login')}", f"✨ {T('register')}"])
+    with t1:
+        with st.form("lgn"):
+            e=st.text_input(f"📧 {T('email')}")
+            p=st.text_input(f"🔒 {T('password')}",type="password")
+            remember=st.checkbox(T('remember'), value=True)
+            if st.form_submit_button(T('enter'), use_container_width=True):
+                c.execute("SELECT * FROM users WHERE email=? AND password=?",(e,hp(p)))
+                u=c.fetchone()
+                if u:
+                    st.session_state.user=u
+                    st.session_state.page="dashboard"
+                    if remember:
+                        st.query_params["t"]=hp(p)
+                    st.rerun()
+                else: st.error(T('wrong_creds'))
+    with t2:
+        with st.form("reg"):
+            n=st.text_input(f"👤 {T('name')}")
+            e2=st.text_input(f"📧 {T('email')}")
+            p2=st.text_input(f"🔒 {T('password')}",type="password")
+            by=st.number_input(f"📅 {T('birth_year')}",1950,2010,1995)
+            cn=st.selectbox(f"🌍 {T('country')}",
+                ["Egypt","Saudi Arabia","UAE","Kuwait","Qatar","Bahrain","Jordan","Other"])
+            if st.form_submit_button(T('create'), use_container_width=True):
+                try:
+                    c.execute("INSERT INTO users (email,password,name,birth_year,country,is_admin) VALUES (?,?,?,?,?,0)",
+                              (e2,hp(p2),n,by,cn)); conn.commit()
+                    st.success(T('registered'))
+                except: st.error(T('email_used'))
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
@@ -921,31 +1230,56 @@ else:
 
     # ── SIDEBAR ──
     with st.sidebar:
+        # Language toggle
+        if st.button(f"🌐 {T('lang_btn')}", key="lang_toggle_app"):
+            st.session_state.lang="en" if st.session_state.lang=="ar" else "ar"
+            st.rerun()
         st.markdown(f"""
-        <div style="text-align:center;padding:20px 0 12px">
-            <div style="font-size:44px">👤</div>
-            <div style="color:#ffffff;font-size:16px;font-weight:700;margin:6px 0 2px">{u[3]}</div>
-            <div style="color:#7ab0cc;font-size:11px">{u[1]}</div>
+        <div style="text-align:center;padding:16px 0 10px">
+            <div style="font-size:42px;filter:drop-shadow(0 0 12px rgba(0,245,160,0.4))">👤</div>
+            <div style="color:#00f5a0;font-size:15px;font-weight:700;margin:6px 0 2px">{u[3]}</div>
+            <div style="color:rgba(138,235,180,0.5);font-size:11px">{u[1]}</div>
         </div>""", unsafe_allow_html=True)
         st.divider()
-        NAV = [("🏠","الرئيسية","dashboard"),("⚙️","الإعدادات","profile_setup"),
-               ("🔍","محلل الطعام","analyzer"),("📅","مصمم الجدول","planner"),
-               ("💡","مقترح الوجبات","suggester"),("💾","جداولي","saved"),
-               ("📈","سجل الوزن","history"),("📚","المرجع الكلينيكي","clinical")]
+        NAV=[("🏠",T("dashboard"),"dashboard"),
+             ("⚙️",T("settings"),"profile_setup"),
+             ("🔍",T("analyzer"),"analyzer"),
+             ("📅",T("planner"),"planner"),
+             ("💡",T("suggester"),"suggester"),
+             ("💾",T("saved"),"saved"),
+             ("📈",T("history"),"history"),
+             ("📚",T("clinical"),"clinical")]
         for i,(icon,label,pg) in enumerate(NAV):
-            active = "⬤ " if st.session_state.page==pg else "    "
+            active="⬤ " if st.session_state.page==pg else "    "
             if st.button(f"{active}{icon}  {label}",key=f"sb_nav_{i}"):
                 st.session_state.page=pg; st.rerun()
         st.divider()
-        if st.button("🚪  خروج",key="logout"):
-            st.markdown("""
-            <script>
-            localStorage.removeItem('nutrax_email');
-            localStorage.removeItem('nutrax_pw');
-            </script>
-            """, unsafe_allow_html=True)
+        if st.button(f"🚪  {T('logout')}",key="logout"):
+            st.query_params.clear()
             st.session_state.user=None; st.session_state.page="login"; st.rerun()
-        st.markdown("<div style='text-align:center;color:#2a5070;font-size:10px;margin-top:14px'>NutraX V11 © 2025</div>",unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align:center;color:rgba(0,245,160,0.2);font-size:10px;margin-top:14px'>NutraX V12 © 2025</div>",unsafe_allow_html=True)
+
+    # ── Mobile bottom nav ──
+    pg_now=st.session_state.page
+    st.markdown(f"""
+    <div class="bottom-nav">
+        <div class="bn-item {'active' if pg_now=='dashboard' else ''}"
+             onclick="window.location.href='?page=dashboard'">
+            <div class="bn-icon">🏠</div><div>{T('dashboard')}</div></div>
+        <div class="bn-item {'active' if pg_now=='analyzer' else ''}"
+             onclick="window.location.href='?page=analyzer'">
+            <div class="bn-icon">🔍</div><div>{T('analyzer')}</div></div>
+        <div class="bn-item {'active' if pg_now=='planner' else ''}"
+             onclick="window.location.href='?page=planner'">
+            <div class="bn-icon">📅</div><div>{T('planner')}</div></div>
+        <div class="bn-item {'active' if pg_now=='clinical' else ''}"
+             onclick="window.location.href='?page=clinical'">
+            <div class="bn-icon">📚</div><div>{T('clinical')}</div></div>
+        <div class="bn-item {'active' if pg_now=='profile_setup' else ''}"
+             onclick="window.location.href='?page=settings'">
+            <div class="bn-icon">⚙️</div><div>{T('settings')}</div></div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # ═══════════════ DASHBOARD ═══════════════
     if st.session_state.page=="dashboard":
