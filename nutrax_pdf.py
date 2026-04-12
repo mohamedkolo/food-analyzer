@@ -4,7 +4,7 @@ NutraX — مولّد PDF الجداول الغذائية
 يولّد جدول أسبوعي كامل بناءً على بيانات المريض والأعراض
 """
 
-import sys, json
+import sys, json, os, tempfile, urllib.request
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import cm
@@ -18,9 +18,26 @@ import arabic_reshaper
 from bidi.algorithm import get_display
 
 # ── Register Arabic fonts ──
-FONT_REG  = "/usr/share/fonts/opentype/fonts-hosny-amiri/Amiri-Regular.ttf"
-FONT_BOLD = "/usr/share/fonts/opentype/fonts-hosny-amiri/Amiri-Bold.ttf"
-pdfmetrics.registerFont(TTFont("Amiri", FONT_REG))
+# Try local first, fallback to download
+_FONT_DIR = tempfile.gettempdir()
+_FONT_REG_PATH  = os.path.join(_FONT_DIR, "Amiri-Regular.ttf")
+_FONT_BOLD_PATH = os.path.join(_FONT_DIR, "Amiri-Bold.ttf")
+
+_LOCAL_REG  = "/usr/share/fonts/opentype/fonts-hosny-amiri/Amiri-Regular.ttf"
+_LOCAL_BOLD = "/usr/share/fonts/opentype/fonts-hosny-amiri/Amiri-Bold.ttf"
+
+def _get_font(local_path, tmp_path, url):
+    if os.path.exists(local_path):
+        return local_path
+    if not os.path.exists(tmp_path):
+        urllib.request.urlretrieve(url, tmp_path)
+    return tmp_path
+
+_BASE = "https://github.com/alif-type/amiri/raw/master/"
+FONT_REG  = _get_font(_LOCAL_REG,  _FONT_REG_PATH,  _BASE + "Amiri-Regular.ttf")
+FONT_BOLD = _get_font(_LOCAL_BOLD, _FONT_BOLD_PATH, _BASE + "Amiri-Bold.ttf")
+
+pdfmetrics.registerFont(TTFont("Amiri",     FONT_REG))
 pdfmetrics.registerFont(TTFont("AmiriBold", FONT_BOLD))
 
 # ── Colors ──
