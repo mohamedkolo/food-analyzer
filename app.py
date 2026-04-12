@@ -1777,6 +1777,25 @@ else:
             st.markdown("### 🧮 احسب الاحتياجات الغذائية حسب الحالة المرضية")
             st.markdown("<div class='alert-info'>أدخل بيانات المريض واختر الحالات — ستظهر الحسابات فوراً</div>",unsafe_allow_html=True)
 
+            # Initialize defaults BEFORE form to avoid NameError
+            cc_w=70.0; cc_h=165.0; cc_age=35; cc_sex="ذكر"
+            cc_act=1.55; cc_trim="لا ينطبق"; cc_conds_lbl=[]; calc_btn=False
+            CONDITIONS_OPTS={
+                "🩸 السكري النوع الأول":"diabetes_t1",
+                "🩸 السكري النوع الثاني":"diabetes_t2",
+                "🤰 الحمل":"pregnancy",
+                "🤱 الرضاعة":"lactation",
+                "🫘 الفشل الكلوي — قبل الديلزة":"ckd_predialysis",
+                "🫘 الفشل الكلوي — غسيل الكلى":"ckd_hemodialysis",
+                "❤️ أمراض القلب / ضغط الدم":"cardiovascular",
+                "🫀 تليف الكبد":"liver_cirrhosis",
+                "⚖️ السمنة":"obesity",
+                "🎗️ السرطان":"cancer",
+                "🔥 حرقة المعدة (GERD)":"gerd",
+                "🫃 القولون العصبي (IBS)":"ibs",
+                "🔬 المتلازمة الأيضية":"metabolic_syndrome",
+            }
+
             with st.form("clin_calc"):
                 cr1,cr2,cr3=st.columns(3)
                 with cr1:
@@ -1789,22 +1808,6 @@ else:
                     cc_act=st.selectbox("🏃 النشاط",[1.2,1.375,1.55,1.725,1.9],index=2,
                         format_func=lambda x:{1.2:"مستقر",1.375:"خفيف",1.55:"معتدل",1.725:"نشيط",1.9:"رياضي"}[x])
                     cc_trim=st.selectbox("🤰 ثلث الحمل (إن حاملاً)",["لا ينطبق","الأول","الثاني","الثالث"])
-
-                CONDITIONS_OPTS={
-                    "🩸 السكري النوع الأول":"diabetes_t1",
-                    "🩸 السكري النوع الثاني":"diabetes_t2",
-                    "🤰 الحمل":"pregnancy",
-                    "🤱 الرضاعة":"lactation",
-                    "🫘 الفشل الكلوي — قبل الديلزة":"ckd_predialysis",
-                    "🫘 الفشل الكلوي — غسيل الكلى":"ckd_hemodialysis",
-                    "❤️ أمراض القلب / ضغط الدم":"cardiovascular",
-                    "🫀 تليف الكبد":"liver_cirrhosis",
-                    "⚖️ السمنة":"obesity",
-                    "🎗️ السرطان":"cancer",
-                    "🔥 حرقة المعدة (GERD)":"gerd",
-                    "🫃 القولون العصبي (IBS)":"ibs",
-                    "🔬 المتلازمة الأيضية":"metabolic_syndrome",
-                }
                 cc_conds_lbl=st.multiselect("🏥 الحالات المرضية (يمكن اختيار أكثر من حالة)",list(CONDITIONS_OPTS.keys()))
                 calc_btn=st.form_submit_button("🧮 احسب الاحتياجات ←",use_container_width=True)
 
@@ -2008,8 +2011,7 @@ else:
 
     # ═══════════════ ADMIN — مولّد الجداول الغذائية ═══════════════
     elif st.session_state.page=="admin" and u[9]==1:
-        import sys, os, tempfile, base64
-        sys.path.insert(0, '/home/claude')
+        import os, tempfile
 
         st.markdown("""
         <div class='sec-title'>
@@ -2017,147 +2019,363 @@ else:
             <span style='font-size:14px;color:#64748b;font-weight:400'> — مولّد الجدول الغذائي الأسبوعي</span>
         </div>""", unsafe_allow_html=True)
 
-        # ── Patient Data Form ──
-        st.markdown("""
-        <div style='background:#f8faff;border:1.5px solid #dbeafe;border-radius:16px;
-            padding:20px 22px;margin-bottom:20px'>
-            <div style='font-size:16px;font-weight:800;color:#1e3a8a;margin-bottom:14px'>
-                📋 بيانات المريض
-            </div>""", unsafe_allow_html=True)
-
         with st.form("admin_form"):
-            # Row 1: Basic info
-            col1, col2, col3 = st.columns(3)
+            st.markdown("<div style='font-size:15px;font-weight:800;color:#1e3a8a;margin-bottom:12px'>📋 بيانات المريض</div>", unsafe_allow_html=True)
+            col1,col2,col3=st.columns(3)
             with col1:
-                pt_name   = st.text_input("👤 اسم المريض", value="")
-                pt_age    = st.number_input("📅 العمر", 10, 90, 30)
+                pt_name   = st.text_input("👤 اسم المريض")
+                pt_age    = st.number_input("📅 العمر",10,90,30)
             with col2:
-                pt_gender = st.selectbox("👤 الجنس", ["ذكر", "أنثى"])
-                pt_height = st.number_input("📏 الطول (سم)", 130.0, 220.0, 165.0, 0.5)
+                pt_gender = st.selectbox("👤 الجنس",["ذكر","أنثى"])
+                pt_height = st.number_input("📏 الطول (سم)",130.0,220.0,165.0,0.5)
             with col3:
-                pt_weight = st.number_input("⚖️ الوزن (كجم)", 30.0, 250.0, 80.0, 0.1)
-                pt_fat    = st.number_input("📊 نسبة الدهون %", 0.0, 70.0, 30.0, 0.1)
-
-            # Row 2: Measurements
-            col4, col5, col6 = st.columns(3)
+                pt_weight = st.number_input("⚖️ الوزن (كجم)",30.0,250.0,80.0,0.1)
+                pt_fat    = st.number_input("📊 نسبة الدهون %",0.0,70.0,30.0,0.1)
+            col4,col5,col6=st.columns(3)
             with col4:
-                pt_visceral = st.number_input("🔴 دهون البطن (Visceral)", 0.0, 30.0, 10.0, 0.1)
-                pt_muscle   = st.number_input("💪 نسبة العضلات %", 0.0, 60.0, 35.0, 0.1)
+                pt_visceral=st.number_input("🔴 دهون البطن",0.0,30.0,10.0,0.1)
+                pt_muscle  =st.number_input("💪 نسبة العضلات %",0.0,60.0,35.0,0.1)
             with col5:
-                pt_water  = st.number_input("💧 نسبة الماء %", 0.0, 70.0, 50.0, 0.1)
-                pt_bone   = st.number_input("🦴 كتافة العظام (كجم)", 0.0, 10.0, 3.0, 0.05)
+                pt_water=st.number_input("💧 نسبة الماء %",0.0,70.0,50.0,0.1)
+                pt_bone =st.number_input("🦴 كتافة العظام (كجم)",0.0,10.0,3.0,0.05)
             with col6:
-                pt_bmi    = st.number_input("📐 BMI", 10.0, 60.0, 25.0, 0.1)
-                pt_tdee   = st.number_input("🔥 TDEE (kcal/يوم)", 1000, 5000, 2000, 50)
+                pt_bmi =st.number_input("📐 BMI",10.0,60.0,25.0,0.1)
+                pt_tdee=st.number_input("🔥 TDEE (kcal/يوم)",1000,5000,2000,50)
 
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size:15px;font-weight:700;color:#1e3a8a;margin:14px 0 8px'>🏥 الأعراض والحالات المرضية</div>", unsafe_allow_html=True)
+            SYMPTOMS_LIST=["قولون عصبي","إمساك مزمن","حرق بطيء","سمنة",
+                           "سكري النوع الثاني","سكري النوع الأول","ضغط الدم",
+                           "أمراض القلب","الفشل الكلوي","تليف الكبد",
+                           "حمل","رضاعة","نحافة وضعف شهية","GERD / حرقة معدة"]
+            cols_s=st.columns(4); selected_symptoms=[]
+            for i,symp in enumerate(SYMPTOMS_LIST):
+                with cols_s[i%4]:
+                    if st.checkbox(symp,key=f"symp_{i}"): selected_symptoms.append(symp)
 
-            # ── Symptoms ──
-            st.markdown("""
-            <div style='font-size:15px;font-weight:700;color:#1e3a8a;margin:14px 0 8px'>
-                🏥 الأعراض والحالات المرضية
-            </div>""", unsafe_allow_html=True)
+            cg1,cg2=st.columns(2)
+            with cg1: pt_goal_cal=st.number_input("🎯 السعرات المستهدفة (kcal)",800,3000,max(1000,int(pt_tdee*0.55)),50)
+            with cg2: pt_notes=st.text_area("📝 ملاحظات إضافية",height=80,placeholder="ملاحظات سريرية...")
+            gen_btn=st.form_submit_button("🚀 توليد الجدول الغذائي وتحميل PDF",use_container_width=True)
 
-            SYMPTOMS_LIST = [
-                "قولون عصبي", "إمساك مزمن", "حرق بطيء", "سمنة",
-                "سكري النوع الثاني", "سكري النوع الأول", "ضغط الدم",
-                "أمراض القلب", "الفشل الكلوي", "تليف الكبد",
-                "حمل", "رضاعة", "نحافة وضعف شهية", "GERD / حرقة معدة",
-            ]
-            cols_s = st.columns(4)
-            selected_symptoms = []
-            for i, symp in enumerate(SYMPTOMS_LIST):
-                with cols_s[i % 4]:
-                    if st.checkbox(symp, key=f"symp_{i}"):
-                        selected_symptoms.append(symp)
-
-            # ── Goal calories ──
-            st.markdown("<div style='margin-top:12px'></div>", unsafe_allow_html=True)
-            col_g1, col_g2 = st.columns(2)
-            with col_g1:
-                pt_goal_cal = st.number_input(
-                    "🎯 السعرات المستهدفة يومياً (kcal)",
-                    800, 3000,
-                    max(1000, int(pt_tdee * 0.55)),
-                    50
-                )
-            with col_g2:
-                pt_notes = st.text_area("📝 ملاحظات إضافية", height=80, placeholder="أي ملاحظات سريرية إضافية...")
-
-            # ── Generate button ──
-            generate_btn = st.form_submit_button(
-                "🚀 توليد الجدول الغذائي وتحميل PDF",
-                use_container_width=True
-            )
-
-        # ── Generate PDF ──
-        if generate_btn:
+        if gen_btn:
             if not pt_name.strip():
                 st.error("أدخل اسم المريض أولاً!")
             else:
                 with st.spinner("⏳ جاري توليد الجدول الغذائي..."):
                     try:
-                        # Import PDF generator
-                        from nutrax_pdf import build_pdf
+                        # ── Inline PDF generation (no external files) ──
+                        from reportlab.lib.pagesizes import A4
+                        from reportlab.lib import colors as rlcolors
+                        from reportlab.lib.units import cm
+                        from reportlab.platypus import (SimpleDocTemplate, Paragraph,
+                            Spacer, Table, TableStyle, HRFlowable, PageBreak)
+                        from reportlab.lib.styles import ParagraphStyle
+                        from reportlab.pdfbase import pdfmetrics
+                        from reportlab.pdfbase.ttfonts import TTFont
+                        from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+                        import arabic_reshaper
+                        from bidi.algorithm import get_display
 
-                        patient_data = {
-                            "name":     pt_name.strip(),
-                            "age":      pt_age,
-                            "gender":   pt_gender,
-                            "height":   pt_height,
-                            "weight":   pt_weight,
-                            "fat_pct":  pt_fat,
-                            "visceral": pt_visceral,
-                            "muscle":   pt_muscle,
-                            "water":    pt_water,
-                            "bone":     pt_bone,
-                            "bmi":      pt_bmi,
-                            "tdee":     pt_tdee,
-                            "goal_cal": pt_goal_cal,
-                            "symptoms": selected_symptoms,
-                            "notes":    pt_notes.strip(),
-                        }
+                        # ── Find font ──
+                        def _find_font(fname):
+                            # Look next to app.py first (GitHub repo)
+                            app_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in dir() else os.getcwd()
+                            candidates = [
+                                os.path.join(app_dir, fname),
+                                os.path.join(os.getcwd(), fname),
+                                f"/usr/share/fonts/opentype/fonts-hosny-amiri/{fname}",
+                                f"/usr/share/fonts/truetype/amiri/{fname}",
+                                os.path.join(tempfile.gettempdir(), fname),
+                            ]
+                            for p in candidates:
+                                if os.path.exists(p):
+                                    return p
+                            raise FileNotFoundError(
+                                f"Font '{fname}' not found!\n"
+                                "Please upload Amiri-Regular.ttf and Amiri-Bold.ttf "
+                                "to your GitHub repo alongside app.py"
+                            )
 
-                        # Generate PDF to temp file
-                        tmp = tempfile.NamedTemporaryFile(
-                            suffix=".pdf", delete=False,
-                            prefix=f"nutrax_{pt_name.replace(' ','_')}_"
-                        )
-                        build_pdf(patient_data, tmp.name)
+                        try:
+                            pdfmetrics.registerFont(TTFont("Amiri",     _find_font("Amiri-Regular.ttf")))
+                            pdfmetrics.registerFont(TTFont("AmiriBold", _find_font("Amiri-Bold.ttf")))
+                        except Exception as fe:
+                            st.error(f"❌ الـ Font مش موجود: {fe}")
+                            st.info("📌 ارفع ملفات Amiri-Regular.ttf و Amiri-Bold.ttf على GitHub في نفس مجلد app.py")
+                            st.stop()
 
-                        # Read PDF bytes
-                        with open(tmp.name, "rb") as f:
-                            pdf_bytes = f.read()
+                        def ar(t):
+                            try: return get_display(arabic_reshaper.reshape(str(t)))
+                            except: return str(t)
+
+                        def S(size=11, bold=False, color=None, align=TA_RIGHT):
+                            return ParagraphStyle("s",
+                                fontName="AmiriBold" if bold else "Amiri",
+                                fontSize=size, textColor=color or rlcolors.HexColor("#222222"),
+                                alignment=align, spaceAfter=4, leading=size*1.5,
+                                rightIndent=3, leftIndent=3)
+
+                        CB = rlcolors.HexColor("#1a3a6b")
+                        CG = rlcolors.HexColor("#1a5c3a")
+                        CR = rlcolors.HexColor("#8b0000")
+                        CO = rlcolors.HexColor("#b34700")
+                        LB = rlcolors.HexColor("#dce8f5")
+                        LG = rlcolors.HexColor("#e8f5ec")
+                        LO = rlcolors.HexColor("#fef3e2")
+                        GR = rlcolors.HexColor("#f5f5f5")
+                        bd = {"style":0.4,"color":rlcolors.HexColor("#cccccc")}
+
+                        def cell_row(items, hdr_bg=CB, row_bgs=(rlcolors.white, GR), col_ws=None):
+                            rows=[]
+                            for ri,row in enumerate(items):
+                                rows.append([Paragraph(ar(c), S(10, ri==0,
+                                    rlcolors.white if ri==0 else rlcolors.HexColor("#111111")))
+                                    for c in row])
+                            t=Table(rows, colWidths=col_ws or [17.4*cm/len(items[0])]*len(items[0]))
+                            ts=[("FONTNAME",(0,0),(-1,-1),"Amiri"),
+                                ("FONTNAME",(0,0),(-1,0),"AmiriBold"),
+                                ("FONTSIZE",(0,0),(-1,-1),10),
+                                ("ALIGN",(0,0),(-1,-1),"RIGHT"),
+                                ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+                                ("BACKGROUND",(0,0),(-1,0),hdr_bg),
+                                ("TEXTCOLOR",(0,0),(-1,0),rlcolors.white),
+                                ("ROWBACKGROUNDS",(0,1),(-1,-1),list(row_bgs)),
+                                ("GRID",(0,0),(-1,-1),0.4,rlcolors.HexColor("#cccccc")),
+                                ("TOPPADDING",(0,0),(-1,-1),5),
+                                ("BOTTOMPADDING",(0,0),(-1,-1),5),
+                                ("RIGHTPADDING",(0,0),(-1,-1),6),
+                                ("LEFTPADDING",(0,0),(-1,-1),6)]
+                            t.setStyle(TableStyle(ts)); return t
+
+                        # ── Meal plan data ──
+                        symptoms = selected_symptoms
+                        has_colon = any(s in symptoms for s in ["قولون عصبي"])
+                        breakfasts=[
+                            ["فطار","فول مدمس بزيت الزيتون","200 جم","220","8","ألياف + أوميغا 3"],
+                            ["فطار","شوفان بالحليب + موز","6 ملاعق","280","10","بيتا جلوكان يهدئ القولون"],
+                            ["فطار","بيض أومليت بالخضار","3 بيضات","250","18","بروتين يرفع الحرق"],
+                            ["فطار","فول مع طحينة وليمون","200 جم","290","11","كالسيوم + دهون صحية"],
+                            ["فطار","شوفان بالموز والقرفة","6 ملاعق","310","9","قرفة تنظم السكر"],
+                            ["فطار","فول + بيضتان مسلوقتان","200 جم + 2 بيض","376","20","وجبة مصرية متكاملة"],
+                            ["فطار","شوفان بالكيوي واللوز","6 ملاعق","310","10","مضادات أكسدة + ألياف"],
+                        ]
+                        lunches=[
+                            ["غداء","صدر دجاج مشوي + أرز بني + سلطة","150 جم + 4 ملاعق","378","49","بروتين يرفع الحرق"],
+                            ["غداء","سمك بلطي مشوي + بطاطا حلوة","200 جم + حبة","321","42","أوميغا 3 يقلل الالتهاب"],
+                            ["غداء","فخذ دجاج فرن + برغل + سلطة فتوش","200 جم + 4 ملاعق","450","42","متنوع وغني"],
+                            ["غداء","كبدة دجاج + أرز بني + ملوخية","150 جم + 4 ملاعق","389","33","أغنى مصدر للحديد"],
+                            ["غداء","سمكة بلطي كاملة + بطاطا مسلوقة","250 جم + 150 جم","356","52","بروتين عالي جداً"],
+                            ["غداء","صدر دجاج فرن + خضار مشوية","180 جم + 200 جم","350","52","وجبة مثالية للحرق"],
+                            ["غداء","كبسة دجاج بالأرز البني (بدون جلد)","قطعة + أرز","380","38","وجبة اجتماعية صحية"],
+                        ]
+                        dinners=[
+                            ["عشاء","شوربة عدس أحمر + خبز أسمر","طبق + شريحة","250","12","ألياف قابلة للذوبان"],
+                            ["عشاء","عدس مطهو بجزر وكرفس + خبز","طبق + شريحة","270","13","بروتين نباتي + ألياف"],
+                            ["عشاء","شوربة خضار + جبن قريش","طبق + 50 جم","199","10","خفيف يريح القولون"],
+                            ["عشاء","حمص بطحينة + خبز أسمر","150 جم + شريحة","320","13","بروتين نباتي"],
+                            ["عشاء","شوربة عدس أصفر + خبز","طبق + شريحة","250","12","ألياف + بروتين"],
+                            ["عشاء","عدس مع جزر + جبن قريش","طبق + 50 جم","249","16","وجبة متكاملة"],
+                            ["عشاء","كشري مصري (كمية معتدلة)","طبق صغير","280","12","عدس + أرز = بروتين كامل"],
+                        ]
+                        snacks=["تفاحة بالقشر (80 kcal)","لوز نيئ 20 جم (120 kcal)",
+                                "برتقالة (62 kcal)","تمرتان (66 kcal)",
+                                "كيوي (61 kcal)","رمانة نصف (53 kcal)","موزة صغيرة (89 kcal)"]
+                        sleep=["زبادي يوناني سادة (89 kcal)","كمثرى (101 kcal)",
+                               "حليب دافئ خالي الدسم (70 kcal)","زبادي يوناني (89 kcal)",
+                               "تفاحة بالقشر (80 kcal)","زبادي يوناني (89 kcal)","موزة صغيرة (89 kcal)"]
+                        days_ar=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"]
+
+                        # ── Build PDF ──
+                        tmp=tempfile.NamedTemporaryFile(suffix=".pdf",delete=False)
+                        doc=SimpleDocTemplate(tmp.name, pagesize=A4,
+                            rightMargin=1.8*cm, leftMargin=1.8*cm,
+                            topMargin=1.5*cm, bottomMargin=1.5*cm)
+                        story=[]
+
+                        # Cover
+                        story.append(Spacer(1,16))
+                        story.append(Paragraph(ar("NutraX — النظام الغذائي الأسبوعي"),S(22,True,CB,TA_CENTER)))
+                        story.append(Spacer(1,6))
+                        story.append(HRFlowable(width="100%",thickness=2,color=CB,spaceAfter=8,spaceBefore=8))
+
+                        # Patient info
+                        bmi_cat="سمنة" if pt_bmi>=30 else "زيادة وزن" if pt_bmi>=25 else "طبيعي" if pt_bmi>=18.5 else "نحافة"
+                        pat=[["الاسم",pt_name,"العمر",f"{pt_age} سنة","الجنس",pt_gender],
+                             ["الطول",f"{pt_height} سم","الوزن",f"{pt_weight} كجم","BMI",f"{pt_bmi} ({bmi_cat})"],
+                             ["نسبة الدهون",f"{pt_fat}%","TDEE",f"{pt_tdee} kcal","الهدف اليومي",f"{pt_goal_cal} kcal"]]
+                        pt_rows=[]
+                        for row in pat:
+                            pt_rows.append([Paragraph(ar(c),S(10,i%2==0,CB if i%2==0 else rlcolors.HexColor("#111111")))
+                                           for i,c in enumerate(row)])
+                        pt_t=Table(pt_rows,colWidths=[2.3*cm,2.9*cm,2.3*cm,2.9*cm,2.3*cm,2.9*cm])
+                        pt_t.setStyle(TableStyle([
+                            ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),10),
+                            ("ALIGN",(0,0),(-1,-1),"CENTER"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+                            ("BACKGROUND",(0,0),(0,-1),LB),("BACKGROUND",(2,0),(2,-1),LB),
+                            ("BACKGROUND",(4,0),(4,-1),LB),
+                            ("TEXTCOLOR",(0,0),(0,-1),CB),("TEXTCOLOR",(2,0),(2,-1),CB),("TEXTCOLOR",(4,0),(4,-1),CB),
+                            ("GRID",(0,0),(-1,-1),0.5,rlcolors.HexColor("#aaaaaa")),
+                            ("TOPPADDING",(0,0),(-1,-1),6),("BOTTOMPADDING",(0,0),(-1,-1),6),
+                            ("ROWBACKGROUNDS",(0,0),(-1,-1),[rlcolors.white,GR])]))
+                        story.append(pt_t); story.append(Spacer(1,8))
+
+                        if symptoms:
+                            story.append(Paragraph(ar(f"الأعراض: {'  |  '.join(symptoms)}"),S(11,False,CR)))
+                        if pt_notes.strip():
+                            story.append(Paragraph(ar(f"ملاحظات: {pt_notes}"),S(10)))
+                        story.append(HRFlowable(width="100%",thickness=1.5,color=CG,spaceAfter=6,spaceBefore=6))
+                        story.append(PageBreak())
+
+                        # Rules
+                        story.append(Paragraph(ar("المسموح والممنوع"),S(15,True,CB)))
+                        story.append(Spacer(1,6))
+                        allowed=["فول مدمس • عدس • شوربات • سمك مشوي",
+                                 "دجاج مشوي أو فرن (بدون جلد) • بيض",
+                                 "شوفان • خبز أسمر • أرز بني • برغل",
+                                 "زيت زيتون • طحينة بكميات صغيرة",
+                                 "زبادي يوناني سادة • جبن قريش • لبن رايب",
+                                 "ملوخية • كوسة • جزر • خضار مطبوخة",
+                                 "شاي أخضر • ماء دافئ بالليمون صباحاً"]
+                        forbidden=["الخبز الأبيض والعيش الفينو",
+                                   "البهارات الحارة — تستفز القولون",
+                                   "الدهانة والسمن والأكل المقلي",
+                                   "المشروبات الغازية والعصائر المعلبة",
+                                   "الكافيين الزائد (أكثر من كوب يومياً)",
+                                   "البقوليات بكميات كبيرة دفعة واحدة",
+                                   "الحلويات والسكريات المضافة"]
+                        r_rows=[[ar("✅ مسموح — بحرية"),ar("🚫 ممنوع أو مقلل")]]
+                        for a,f in zip(allowed,forbidden): r_rows.append([ar(a),ar(f)])
+                        r_t=Table([[Paragraph(c,S(10,ri==0,
+                            CG if ri==0 and ci==0 else CR if ri==0 and ci==1
+                            else rlcolors.HexColor("#166534") if ci==0
+                            else rlcolors.HexColor("#991b1b")))
+                            for ci,c in enumerate(row)] for ri,row in enumerate(r_rows)],
+                            colWidths=[8.7*cm,8.7*cm])
+                        r_t.setStyle(TableStyle([
+                            ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),10),
+                            ("ALIGN",(0,0),(-1,-1),"RIGHT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+                            ("BACKGROUND",(0,0),(0,0),CG),("BACKGROUND",(1,0),(1,0),CR),
+                            ("ROWBACKGROUNDS",(0,1),(-1,-1),[LG,rlcolors.white]),
+                            ("GRID",(0,0),(-1,-1),0.4,rlcolors.HexColor("#cccccc")),
+                            ("TOPPADDING",(0,0),(-1,-1),5),("BOTTOMPADDING",(0,0),(-1,-1),5),
+                            ("RIGHTPADDING",(0,0),(-1,-1),7),("LEFTPADDING",(0,0),(-1,-1),7)]))
+                        story.append(r_t); story.append(PageBreak())
+
+                        # Weekly plan
+                        story.append(Paragraph(ar("الجدول الغذائي الأسبوعي التفصيلي"),S(15,True,CB)))
+                        story.append(Spacer(1,8))
+
+                        for di in range(7):
+                            story.append(Paragraph(ar(f"اليوم {di+1} — {days_ar[di]}"),S(13,True,CG)))
+                            day_rows=[["الوجبة","الأكل","الكمية","kcal","بروتين","ملاحظة"]]
+                            total_cal=0; total_p=0
+                            # breakfast
+                            br=breakfasts[di]
+                            day_rows.append(["🌅 "+br[0],br[1],br[2],br[3],br[4],br[5]])
+                            total_cal+=int(br[3]); total_p+=int(br[4])
+                            # snack
+                            day_rows.append(["🍎 سناك",snacks[di],"","","","فاكهة طبيعية"])
+                            # lunch
+                            lu=lunches[di]
+                            day_rows.append(["☀️ "+lu[0],lu[1],lu[2],lu[3],lu[4],lu[5]])
+                            total_cal+=int(lu[3]); total_p+=int(lu[4])
+                            # dinner
+                            dn=dinners[di]
+                            day_rows.append(["🌙 "+dn[0],dn[1],dn[2],dn[3],dn[4],dn[5]])
+                            total_cal+=int(dn[3]); total_p+=int(dn[4])
+                            # before sleep
+                            day_rows.append(["🌛 قبل النوم",sleep[di],"","","","بروبيوتيك ليلي"])
+                            # total
+                            day_rows.append(["الإجمالي","","",str(total_cal)+f" kcal",f"{total_p}ج",""])
+
+                            cw=[1.9*cm,3.8*cm,2.5*cm,1.8*cm,1.5*cm,5.9*cm]
+                            m_t=Table([[Paragraph(ar(c),S(9.5,ri==0 or ri==len(day_rows)-1,
+                                CB if ri==0 else LB if ri==len(day_rows)-1 else None))
+                                for ci,c in enumerate(row)]
+                                for ri,row in enumerate(day_rows)], colWidths=cw)
+                            m_t.setStyle(TableStyle([
+                                ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),9.5),
+                                ("ALIGN",(0,0),(-1,-1),"RIGHT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+                                ("BACKGROUND",(0,0),(-1,0),CB),("TEXTCOLOR",(0,0),(-1,0),rlcolors.white),
+                                ("BACKGROUND",(0,-1),(-1,-1),LB),
+                                ("ROWBACKGROUNDS",(0,1),(-1,-2),[rlcolors.white,GR]),
+                                ("GRID",(0,0),(-1,-1),0.4,rlcolors.HexColor("#cccccc")),
+                                ("TOPPADDING",(0,0),(-1,-1),4),("BOTTOMPADDING",(0,0),(-1,-1),4),
+                                ("RIGHTPADDING",(0,0),(-1,-1),5),("LEFTPADDING",(0,0),(-1,-1),5)]))
+                            story.append(m_t); story.append(Spacer(1,8))
+                            if di<6: story.append(HRFlowable(width="100%",thickness=0.5,
+                                color=rlcolors.HexColor("#dddddd"),spaceAfter=4,spaceBefore=4))
+
+                        story.append(PageBreak())
+
+                        # Protocols
+                        story.append(Paragraph(ar("بروتوكول القولون والإمساك"),S(14,True,CR)))
+                        story.append(Spacer(1,4))
+                        gut=["زبادي يوناني سادة كل ليلة — بروبيوتيك يصلح البكتيريا",
+                             "تفاحة أو كمثرى بالقشر يومياً — بيكتين يلين الأمعاء",
+                             "كمون + شبت في الطهي — يقلل الغازات ويهدئ القولون",
+                             "شاي النعنع بعد الغداء — مضاد تشنج طبيعي",
+                             "المضغ الجيد يقلل 50% من مشاكل القولون",
+                             "لا تشرب ماء بارد جداً مع الأكل",
+                             "ملعقة بذور الكتان المطحونة في الزبادي إذا استمر الإمساك"]
+                        gut_rows=[[ar("بروتوكول القولون والإمساك")]]+[[ar(f"• {g}")] for g in gut]
+                        g_t=Table([[Paragraph(c,S(10,ri==0,rlcolors.white if ri==0 else rlcolors.HexColor("#7f1d1d")))
+                            for c in row] for ri,row in enumerate(gut_rows)],colWidths=[17.4*cm])
+                        g_t.setStyle(TableStyle([
+                            ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),10),
+                            ("ALIGN",(0,0),(-1,-1),"RIGHT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+                            ("BACKGROUND",(0,0),(0,0),CR),
+                            ("ROWBACKGROUNDS",(0,1),(-1,-1),[rlcolors.HexColor("#ffeef0"),rlcolors.white]),
+                            ("GRID",(0,0),(-1,-1),0.4,rlcolors.HexColor("#cccccc")),
+                            ("TOPPADDING",(0,0),(-1,-1),5),("BOTTOMPADDING",(0,0),(-1,-1),5),
+                            ("RIGHTPADDING",(0,0),(-1,-1),8)]))
+                        story.append(g_t); story.append(Spacer(1,10))
+
+                        story.append(Paragraph(ar("رفع معدل الحرق"),S(14,True,CO)))
+                        met=["وجبة الصباح إلزامية خلال ساعة — إغلاقها يخفض الحرق 20%",
+                             "البروتين في كل وجبة — هضمه يحرق 25% من سعراته",
+                             "كركم + قرفة + زنجبيل في الطهي — يرفعون الحرق 10%",
+                             "الشاي الأخضر كوب يومياً — يرفع الحرق 4-6%",
+                             "8 أكواب ماء يومياً — الجفاف يبطئ الحرق 30%",
+                             "مشي 30 دقيقة بعد الغداء — الأفضل لحرق الدهون"]
+                        met_rows=[[ar("رفع معدل الحرق")]]+[[ar(f"• {m}")] for m in met]
+                        m_t2=Table([[Paragraph(c,S(10,ri==0,rlcolors.white if ri==0 else rlcolors.HexColor("#92400e")))
+                            for c in row] for ri,row in enumerate(met_rows)],colWidths=[17.4*cm])
+                        m_t2.setStyle(TableStyle([
+                            ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),10),
+                            ("ALIGN",(0,0),(-1,-1),"RIGHT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+                            ("BACKGROUND",(0,0),(0,0),CO),
+                            ("ROWBACKGROUNDS",(0,1),(-1,-1),[LO,rlcolors.white]),
+                            ("GRID",(0,0),(-1,-1),0.4,rlcolors.HexColor("#cccccc")),
+                            ("TOPPADDING",(0,0),(-1,-1),5),("BOTTOMPADDING",(0,0),(-1,-1),5),
+                            ("RIGHTPADDING",(0,0),(-1,-1),8)]))
+                        story.append(m_t2); story.append(Spacer(1,10))
+
+                        # Footer
+                        story.append(HRFlowable(width="100%",thickness=1.5,color=CB,spaceAfter=6,spaceBefore=6))
+                        story.append(Paragraph(
+                            ar(f"NutraX | معد لـ {pt_name} | {datetime.now().strftime('%d/%m/%Y')} | يراجع بعد 4 أسابيع"),
+                            S(10,False,rlcolors.HexColor("#888888"),TA_CENTER)))
+
+                        doc.build(story)
+
+                        with open(tmp.name,"rb") as f: pdf_bytes=f.read()
                         os.unlink(tmp.name)
 
-                        # Success + Preview
-                        st.markdown(f"""
-                        <div class='alert-success'>
-                            ✅ تم توليد الجدول الغذائي لـ <b>{pt_name}</b> بنجاح!
-                            <br>
-                            <span style='font-size:13px'>
-                                السعرات: {pt_goal_cal} kcal/يوم |
-                                الأعراض: {', '.join(selected_symptoms) if selected_symptoms else 'لا توجد'}
-                            </span>
-                        </div>""", unsafe_allow_html=True)
-
-                        # Quick summary
-                        bmi_cat = "سمنة" if pt_bmi >= 30 else "زيادة وزن" if pt_bmi >= 25 else "طبيعي" if pt_bmi >= 18.5 else "نحافة"
-                        weekly_loss = round((pt_tdee - pt_goal_cal) * 7 / 7700, 2)
-
-                        s1, s2, s3 = st.columns(3)
-                        s1.metric("BMI", f"{pt_bmi}", f"{bmi_cat}")
-                        s2.metric("العجز اليومي", f"{pt_tdee - pt_goal_cal} kcal")
-                        s3.metric("الخسارة المتوقعة/أسبوع", f"{weekly_loss} كجم")
-
-                        # Download button
+                        # ── Results ──
+                        st.markdown(f"<div class='alert-success'>✅ تم توليد الجدول الغذائي لـ <b>{pt_name}</b> بنجاح!</div>",
+                            unsafe_allow_html=True)
+                        weekly_loss=round((pt_tdee-pt_goal_cal)*7/7700,2)
+                        s1,s2,s3=st.columns(3)
+                        s1.metric("BMI",f"{pt_bmi}",bmi_cat)
+                        s2.metric("العجز اليومي",f"{pt_tdee-pt_goal_cal} kcal")
+                        s3.metric("خسارة متوقعة/أسبوع",f"{weekly_loss} كجم")
                         st.download_button(
-                            label="⬇️ تحميل PDF الجدول الغذائي",
+                            "⬇️ تحميل PDF الجدول الغذائي",
                             data=pdf_bytes,
                             file_name=f"NutraX_{pt_name.replace(' ','_')}.pdf",
                             mime="application/pdf",
-                            use_container_width=True,
-                        )
+                            use_container_width=True)
 
                     except Exception as e:
                         st.error(f"خطأ في توليد الـ PDF: {str(e)}")
