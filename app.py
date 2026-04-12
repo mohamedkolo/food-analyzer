@@ -1317,41 +1317,17 @@ for k,v in [("page","login"),("user",None),("targets",None),("confirm_del",None)
     if k not in st.session_state: st.session_state[k]=v
 REQUIRED={"cal","p","c","f","goal"}
 
-# ── Read saved email from URL query params (set by JS localStorage bridge) ──
+# ── Auto-login via token in URL ──
 qp = st.query_params
-saved_email = qp.get("saved_email","")
-
-# ── JS: on load, read localStorage and inject into URL params ──
-st.markdown("""
-<script>
-(function(){
-  var em = localStorage.getItem('nutrax_email');
-  var pw = localStorage.getItem('nutrax_pw');
-  if(em && pw){
-    var url = new URL(window.location.href);
-    if(!url.searchParams.get('saved_email')){
-      url.searchParams.set('saved_email', em);
-      url.searchParams.set('saved_pw', pw);
-      window.location.replace(url.toString());
-    }
-  }
-})();
-</script>
-""", unsafe_allow_html=True)
-
-# ── Auto-login if saved credentials exist in URL ──
-if saved_email and not st.session_state.auto_checked:
+token = qp.get("t","")
+if token and not st.session_state.auto_checked:
     st.session_state.auto_checked = True
-    saved_pw = qp.get("saved_pw","")
-    if saved_pw:
-        c.execute("SELECT * FROM users WHERE email=? AND password=?",(saved_email, saved_pw))
-        auto_user = c.fetchone()
-        if auto_user:
-            st.session_state.user = auto_user
-            st.session_state.page = "dashboard"
-            # Clean URL
-            st.query_params.clear()
-            st.rerun()
+    c.execute("SELECT * FROM users WHERE password=?",(token,))
+    auto_user = c.fetchone()
+    if auto_user:
+        st.session_state.user = auto_user
+        st.session_state.page = "dashboard"
+        st.rerun()
 
 # ══════════════════════════════════════════
 # LOGIN
@@ -1369,7 +1345,7 @@ if st.session_state.page=="login":
         with st.form("lgn"):
             e=st.text_input("📧 البريد الإلكتروني")
             p=st.text_input("🔒 كلمة المرور",type="password")
-            remember=st.checkbox("تذكرني على هذا الجهاز ✓", value=True)
+            remember=st.checkbox("تذكرني على هذا الجهاز", value=True)
             if st.form_submit_button("دخول ←",use_container_width=True):
                 c.execute("SELECT * FROM users WHERE email=? AND password=?",(e,hp(p)))
                 u=c.fetchone()
@@ -1377,12 +1353,16 @@ if st.session_state.page=="login":
                     st.session_state.user=u
                     st.session_state.page="dashboard"
                     if remember:
-                        # Save to localStorage via JS
+                        # Set token in URL — user bookmarks this URL
+                        st.query_params["t"] = hp(p)
                         st.markdown(f"""
-                        <script>
-                        localStorage.setItem('nutrax_email', '{e}');
-                        localStorage.setItem('nutrax_pw', '{hp(p)}');
-                        </script>
+                        <div class='alert-success'>
+                        ✅ تم الدخول! <br>
+                        📌 <b>احفظ الرابط ده في المتصفح</b> وهتدخل تلقائي المرة الجاية:<br>
+                        <span style='font-size:11px;word-break:break-all;color:#155724'>
+                        {st.query_params}
+                        </span>
+                        </div>
                         """, unsafe_allow_html=True)
                     st.rerun()
                 else: st.error("البريد أو كلمة المرور غير صحيحة")
