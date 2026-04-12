@@ -2185,177 +2185,230 @@ else:
                                "تفاحة بالقشر (80 kcal)","زبادي يوناني (89 kcal)","موزة صغيرة (89 kcal)"]
                         days_ar=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"]
 
-                        # ── Build PDF ──
+                        # ── Build PDF — 3 pages clean ──
                         tmp=tempfile.NamedTemporaryFile(suffix=".pdf",delete=False)
                         doc=SimpleDocTemplate(tmp.name, pagesize=A4,
-                            rightMargin=1.8*cm, leftMargin=1.8*cm,
-                            topMargin=1.5*cm, bottomMargin=1.5*cm)
+                            rightMargin=1.2*cm, leftMargin=1.2*cm,
+                            topMargin=1.0*cm, bottomMargin=1.0*cm)
                         story=[]
 
-                        # Cover
-                        story.append(Spacer(1,16))
-                        story.append(Paragraph(ar("NutraX — النظام الغذائي الأسبوعي"),S(22,True,CB,TA_CENTER)))
-                        story.append(Spacer(1,6))
-                        story.append(HRFlowable(width="100%",thickness=2,color=CB,spaceAfter=8,spaceBefore=8))
-
-                        # Patient info
                         bmi_cat="سمنة" if pt_bmi>=30 else "زيادة وزن" if pt_bmi>=25 else "طبيعي" if pt_bmi>=18.5 else "نحافة"
-                        pat=[["الاسم",pt_name,"العمر",f"{pt_age} سنة","الجنس",pt_gender],
-                             ["الطول",f"{pt_height} سم","الوزن",f"{pt_weight} كجم","BMI",f"{pt_bmi} ({bmi_cat})"],
-                             ["نسبة الدهون",f"{pt_fat}%","TDEE",f"{pt_tdee} kcal","الهدف اليومي",f"{pt_goal_cal} kcal"]]
-                        pt_rows=[]
-                        for row in pat:
-                            pt_rows.append([Paragraph(ar(c),S(10,i%2==0,CB if i%2==0 else rlcolors.HexColor("#111111")))
-                                           for i,c in enumerate(row)])
-                        pt_t=Table(pt_rows,colWidths=[2.3*cm,2.9*cm,2.3*cm,2.9*cm,2.3*cm,2.9*cm])
+                        weekly_loss=round((pt_tdee-pt_goal_cal)*7/7700,2)
+
+                        # ══════════════════════════════════════
+                        # PAGE 1 — بيانات المريض + مسموح/ممنوع
+                        # ══════════════════════════════════════
+
+                        # Header
+                        story.append(Paragraph(ar(f"NutraX  ●  {pt_name}  ●  {datetime.now().strftime('%d/%m/%Y')}"),
+                            S(12,True,CB,TA_CENTER)))
+                        story.append(HRFlowable(width="100%",thickness=2,color=CB,spaceAfter=5,spaceBefore=4))
+
+                        # Patient row — compact
+                        pat_data=[
+                            [ar("الاسم"),ar(pt_name),ar("الطول"),ar(f"{pt_height} سم"),ar("الوزن"),ar(f"{pt_weight} كجم"),ar("BMI"),ar(f"{pt_bmi}")],
+                            [ar("العمر"),ar(f"{pt_age} سنة"),ar("الجنس"),ar(pt_gender),ar("الدهون"),ar(f"{pt_fat}%"),ar("الهدف"),ar(f"{pt_goal_cal} kcal")],
+                        ]
+                        pt_t=Table([[Paragraph(c,S(9,i%2==0,CB if i%2==0 else rlcolors.HexColor("#111")))
+                            for i,c in enumerate(r)] for r in pat_data],
+                            colWidths=[1.8*cm,2.8*cm,1.8*cm,2.3*cm,1.8*cm,2.3*cm,1.8*cm,2.3*cm])
                         pt_t.setStyle(TableStyle([
-                            ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),10),
+                            ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),9),
                             ("ALIGN",(0,0),(-1,-1),"CENTER"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
                             ("BACKGROUND",(0,0),(0,-1),LB),("BACKGROUND",(2,0),(2,-1),LB),
-                            ("BACKGROUND",(4,0),(4,-1),LB),
-                            ("TEXTCOLOR",(0,0),(0,-1),CB),("TEXTCOLOR",(2,0),(2,-1),CB),("TEXTCOLOR",(4,0),(4,-1),CB),
-                            ("GRID",(0,0),(-1,-1),0.5,rlcolors.HexColor("#aaaaaa")),
-                            ("TOPPADDING",(0,0),(-1,-1),6),("BOTTOMPADDING",(0,0),(-1,-1),6),
-                            ("ROWBACKGROUNDS",(0,0),(-1,-1),[rlcolors.white,GR])]))
-                        story.append(pt_t); story.append(Spacer(1,8))
+                            ("BACKGROUND",(4,0),(4,-1),LB),("BACKGROUND",(6,0),(6,-1),LB),
+                            ("TEXTCOLOR",(0,0),(0,-1),CB),("TEXTCOLOR",(2,0),(2,-1),CB),
+                            ("TEXTCOLOR",(4,0),(4,-1),CB),("TEXTCOLOR",(6,0),(6,-1),CB),
+                            ("GRID",(0,0),(-1,-1),0.4,rlcolors.HexColor("#aaa")),
+                            ("TOPPADDING",(0,0),(-1,-1),4),("BOTTOMPADDING",(0,0),(-1,-1),4)]))
+                        story.append(pt_t)
 
+                        # Symptoms + target
                         if symptoms:
-                            story.append(Paragraph(ar(f"الأعراض: {'  |  '.join(symptoms)}"),S(11,False,CR)))
-                        if pt_notes.strip():
-                            story.append(Paragraph(ar(f"ملاحظات: {pt_notes}"),S(10)))
-                        story.append(HRFlowable(width="100%",thickness=1.5,color=CG,spaceAfter=6,spaceBefore=6))
-                        story.append(PageBreak())
+                            story.append(Spacer(1,4))
+                            story.append(Paragraph(
+                                ar(f"الأعراض: {' | '.join(symptoms)}   |   الخسارة المتوقعة: {weekly_loss} كجم/أسبوع"),
+                                S(9,False,CR)))
 
-                        # Rules
-                        story.append(Paragraph(ar("المسموح والممنوع"),S(15,True,CB)))
-                        story.append(Spacer(1,6))
-                        allowed=["فول مدمس • عدس • شوربات • سمك مشوي",
-                                 "دجاج مشوي أو فرن (بدون جلد) • بيض",
-                                 "شوفان • خبز أسمر • أرز بني • برغل",
-                                 "زيت زيتون • طحينة بكميات صغيرة",
-                                 "زبادي يوناني سادة • جبن قريش • لبن رايب",
-                                 "ملوخية • كوسة • جزر • خضار مطبوخة",
-                                 "شاي أخضر • ماء دافئ بالليمون صباحاً"]
-                        forbidden=["الخبز الأبيض والعيش الفينو",
-                                   "البهارات الحارة — تستفز القولون",
-                                   "الدهانة والسمن والأكل المقلي",
-                                   "المشروبات الغازية والعصائر المعلبة",
-                                   "الكافيين الزائد (أكثر من كوب يومياً)",
-                                   "البقوليات بكميات كبيرة دفعة واحدة",
-                                   "الحلويات والسكريات المضافة"]
-                        r_rows=[[ar("✅ مسموح — بحرية"),ar("🚫 ممنوع أو مقلل")]]
-                        for a,f in zip(allowed,forbidden): r_rows.append([ar(a),ar(f)])
-                        r_t=Table([[Paragraph(c,S(10,ri==0,
+                        story.append(HRFlowable(width="100%",thickness=1,color=CG,spaceAfter=5,spaceBefore=5))
+
+                        # ── مسموح / ممنوع — side by side compact ──
+                        story.append(Paragraph(ar("✅ الأكل المسموح          |          🚫 الأكل الممنوع"),
+                            S(11,True,CB,TA_CENTER)))
+                        story.append(Spacer(1,4))
+
+                        allowed=[
+                            "فول مدمس • عدس • شوربات صافية",
+                            "دجاج مشوي / فرن بدون جلد • بيض",
+                            "شوفان • خبز أسمر • أرز بني • برغل",
+                            "سمك مشوي أو مسلوق",
+                            "زبادي يوناني سادة • جبن قريش",
+                            "خضار مطبوخة • ملوخية • كوسة",
+                            "زيت زيتون (ملعقة) • فاكهة طازجة",
+                        ]
+                        forbidden=[
+                            "الخبز الأبيض • العيش الفينو",
+                            "الأكل المقلي • الدهانة • السمن",
+                            "المشروبات الغازية • العصائر المعلبة",
+                            "البهارات الحارة (تستفز القولون)",
+                            "الحلويات والسكريات المضافة",
+                            "الكافيين الزائد (أكثر من كوب)",
+                            "البقوليات بكميات كبيرة دفعة واحدة",
+                        ]
+                        ar_rows=[[ar("✅ مسموح"),ar("🚫 ممنوع")]]
+                        for a,f in zip(allowed,forbidden): ar_rows.append([ar(f"• {a}"),ar(f"• {f}")])
+                        ar_t=Table([[Paragraph(c,S(9,ri==0,
                             CG if ri==0 and ci==0 else CR if ri==0 and ci==1
-                            else rlcolors.HexColor("#166534") if ci==0
+                            else rlcolors.HexColor("#14532d") if ci==0
                             else rlcolors.HexColor("#991b1b")))
-                            for ci,c in enumerate(row)] for ri,row in enumerate(r_rows)],
-                            colWidths=[8.7*cm,8.7*cm])
-                        r_t.setStyle(TableStyle([
-                            ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),10),
+                            for ci,c in enumerate(row)] for ri,row in enumerate(ar_rows)],
+                            colWidths=[9.3*cm,9.3*cm])
+                        ar_t.setStyle(TableStyle([
+                            ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),9),
                             ("ALIGN",(0,0),(-1,-1),"RIGHT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
                             ("BACKGROUND",(0,0),(0,0),CG),("BACKGROUND",(1,0),(1,0),CR),
                             ("ROWBACKGROUNDS",(0,1),(-1,-1),[LG,rlcolors.white]),
-                            ("GRID",(0,0),(-1,-1),0.4,rlcolors.HexColor("#cccccc")),
-                            ("TOPPADDING",(0,0),(-1,-1),5),("BOTTOMPADDING",(0,0),(-1,-1),5),
-                            ("RIGHTPADDING",(0,0),(-1,-1),7),("LEFTPADDING",(0,0),(-1,-1),7)]))
-                        story.append(r_t); story.append(PageBreak())
+                            ("GRID",(0,0),(-1,-1),0.4,rlcolors.HexColor("#ccc")),
+                            ("TOPPADDING",(0,0),(-1,-1),4),("BOTTOMPADDING",(0,0),(-1,-1),4),
+                            ("RIGHTPADDING",(0,0),(-1,-1),6),("LEFTPADDING",(0,0),(-1,-1),6)]))
+                        story.append(ar_t)
 
-                        # Weekly plan
-                        story.append(Paragraph(ar("الجدول الغذائي الأسبوعي التفصيلي"),S(15,True,CB)))
-                        story.append(Spacer(1,8))
-
-                        for di in range(7):
-                            story.append(Paragraph(ar(f"اليوم {di+1} — {days_ar[di]}"),S(13,True,CG)))
-                            day_rows=[["الوجبة","الأكل","الكمية","kcal","بروتين","ملاحظة"]]
-                            total_cal=0; total_p=0
-                            # breakfast
-                            br=breakfasts[di]
-                            day_rows.append(["🌅 "+br[0],br[1],br[2],br[3],br[4],br[5]])
-                            total_cal+=int(br[3]); total_p+=int(br[4])
-                            # snack
-                            day_rows.append(["🍎 سناك",snacks[di],"","","","فاكهة طبيعية"])
-                            # lunch
-                            lu=lunches[di]
-                            day_rows.append(["☀️ "+lu[0],lu[1],lu[2],lu[3],lu[4],lu[5]])
-                            total_cal+=int(lu[3]); total_p+=int(lu[4])
-                            # dinner
-                            dn=dinners[di]
-                            day_rows.append(["🌙 "+dn[0],dn[1],dn[2],dn[3],dn[4],dn[5]])
-                            total_cal+=int(dn[3]); total_p+=int(dn[4])
-                            # before sleep
-                            day_rows.append(["🌛 قبل النوم",sleep[di],"","","","بروبيوتيك ليلي"])
-                            # total
-                            day_rows.append(["الإجمالي","","",str(total_cal)+f" kcal",f"{total_p}ج",""])
-
-                            cw=[1.9*cm,3.8*cm,2.5*cm,1.8*cm,1.5*cm,5.9*cm]
-                            m_t=Table([[Paragraph(ar(c),S(9.5,ri==0 or ri==len(day_rows)-1,
-                                CB if ri==0 else LB if ri==len(day_rows)-1 else None))
-                                for ci,c in enumerate(row)]
-                                for ri,row in enumerate(day_rows)], colWidths=cw)
-                            m_t.setStyle(TableStyle([
-                                ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),9.5),
+                        # Condition-specific tips (brief)
+                        cond_tips={
+                            "قولون عصبي":  "القولون: شاي نعنع بعد الغداء • تجنب الأكل المتسرع • مضغ جيد",
+                            "إمساك مزمن": "الإمساك: تفاحة بالقشر يومياً • كوب ماء دافئ الصباح • بذور كتان",
+                            "حرق بطيء":   "الحرق: فطار إلزامي • بروتين في كل وجبة • قرفة + كركم يومياً",
+                            "سمنة":        "الوزن: تحرك 10 دقائق بعد الأكل • لا تنام جائعاً ولا ممتلئاً",
+                            "سكري النوع الثاني": "السكري: لا كارب مكرر • توزيع الوجبات • راقب السكر بعد الأكل",
+                            "ضغط الدم":    "الضغط: قلل الملح • سمك مرتين أسبوعياً • بطاطس مسلوقة بدل مقلية",
+                            "أمراض القلب": "القلب: زيت زيتون فقط • سمك أوميغا 3 • تجنب الدهون المشبعة",
+                        }
+                        active_tips=[v for k,v in cond_tips.items() if any(k in s for s in symptoms)]
+                        if active_tips:
+                            story.append(Spacer(1,5))
+                            story.append(HRFlowable(width="100%",thickness=0.5,color=rlcolors.HexColor("#ddd"),spaceAfter=3,spaceBefore=3))
+                            story.append(Paragraph(ar("نصائح خاصة بحالتك:"),S(10,True,CB)))
+                            tip_rows=[[Paragraph(ar(tip),S(9,False,rlcolors.HexColor("#374151")))] for tip in active_tips]
+                            tip_t=Table(tip_rows,colWidths=[18.6*cm])
+                            tip_t.setStyle(TableStyle([
+                                ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),9),
                                 ("ALIGN",(0,0),(-1,-1),"RIGHT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-                                ("BACKGROUND",(0,0),(-1,0),CB),("TEXTCOLOR",(0,0),(-1,0),rlcolors.white),
-                                ("BACKGROUND",(0,-1),(-1,-1),LB),
-                                ("ROWBACKGROUNDS",(0,1),(-1,-2),[rlcolors.white,GR]),
-                                ("GRID",(0,0),(-1,-1),0.4,rlcolors.HexColor("#cccccc")),
-                                ("TOPPADDING",(0,0),(-1,-1),4),("BOTTOMPADDING",(0,0),(-1,-1),4),
-                                ("RIGHTPADDING",(0,0),(-1,-1),5),("LEFTPADDING",(0,0),(-1,-1),5)]))
-                            story.append(m_t); story.append(Spacer(1,8))
-                            if di<6: story.append(HRFlowable(width="100%",thickness=0.5,
-                                color=rlcolors.HexColor("#dddddd"),spaceAfter=4,spaceBefore=4))
+                                ("ROWBACKGROUNDS",(0,0),(-1,-1),[LB,rlcolors.white]),
+                                ("TOPPADDING",(0,0),(-1,-1),3),("BOTTOMPADDING",(0,0),(-1,-1),3),
+                                ("RIGHTPADDING",(0,0),(-1,-1),6)]))
+                            story.append(tip_t)
 
                         story.append(PageBreak())
 
-                        # Protocols
-                        story.append(Paragraph(ar("بروتوكول القولون والإمساك"),S(14,True,CR)))
-                        story.append(Spacer(1,4))
-                        gut=["زبادي يوناني سادة كل ليلة — بروبيوتيك يصلح البكتيريا",
-                             "تفاحة أو كمثرى بالقشر يومياً — بيكتين يلين الأمعاء",
-                             "كمون + شبت في الطهي — يقلل الغازات ويهدئ القولون",
-                             "شاي النعنع بعد الغداء — مضاد تشنج طبيعي",
-                             "المضغ الجيد يقلل 50% من مشاكل القولون",
-                             "لا تشرب ماء بارد جداً مع الأكل",
-                             "ملعقة بذور الكتان المطحونة في الزبادي إذا استمر الإمساك"]
-                        gut_rows=[[ar("بروتوكول القولون والإمساك")]]+[[ar(f"• {g}")] for g in gut]
-                        g_t=Table([[Paragraph(c,S(10,ri==0,rlcolors.white if ri==0 else rlcolors.HexColor("#7f1d1d")))
-                            for c in row] for ri,row in enumerate(gut_rows)],colWidths=[17.4*cm])
-                        g_t.setStyle(TableStyle([
-                            ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),10),
-                            ("ALIGN",(0,0),(-1,-1),"RIGHT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-                            ("BACKGROUND",(0,0),(0,0),CR),
-                            ("ROWBACKGROUNDS",(0,1),(-1,-1),[rlcolors.HexColor("#ffeef0"),rlcolors.white]),
-                            ("GRID",(0,0),(-1,-1),0.4,rlcolors.HexColor("#cccccc")),
-                            ("TOPPADDING",(0,0),(-1,-1),5),("BOTTOMPADDING",(0,0),(-1,-1),5),
-                            ("RIGHTPADDING",(0,0),(-1,-1),8)]))
-                        story.append(g_t); story.append(Spacer(1,10))
+                        # ══════════════════════════════════════
+                        # PAGE 2 — الأسبوع كله في جدول واحد
+                        # ══════════════════════════════════════
+                        story.append(Paragraph(ar("الجدول الغذائي الأسبوعي"),S(13,True,CB,TA_CENTER)))
+                        story.append(Paragraph(
+                            ar(f"الهدف اليومي: {pt_goal_cal} kcal   |   البروتين: ~90 جم   |   الماء: 8 أكواب"),
+                            S(9,False,CG,TA_CENTER)))
+                        story.append(HRFlowable(width="100%",thickness=1.5,color=CB,spaceAfter=4,spaceBefore=4))
 
-                        story.append(Paragraph(ar("رفع معدل الحرق"),S(14,True,CO)))
-                        met=["وجبة الصباح إلزامية خلال ساعة — إغلاقها يخفض الحرق 20%",
-                             "البروتين في كل وجبة — هضمه يحرق 25% من سعراته",
-                             "كركم + قرفة + زنجبيل في الطهي — يرفعون الحرق 10%",
-                             "الشاي الأخضر كوب يومياً — يرفع الحرق 4-6%",
-                             "8 أكواب ماء يومياً — الجفاف يبطئ الحرق 30%",
-                             "مشي 30 دقيقة بعد الغداء — الأفضل لحرق الدهون"]
-                        met_rows=[[ar("رفع معدل الحرق")]]+[[ar(f"• {m}")] for m in met]
-                        m_t2=Table([[Paragraph(c,S(10,ri==0,rlcolors.white if ri==0 else rlcolors.HexColor("#92400e")))
-                            for c in row] for ri,row in enumerate(met_rows)],colWidths=[17.4*cm])
-                        m_t2.setStyle(TableStyle([
-                            ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),10),
-                            ("ALIGN",(0,0),(-1,-1),"RIGHT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-                            ("BACKGROUND",(0,0),(0,0),CO),
-                            ("ROWBACKGROUNDS",(0,1),(-1,-1),[LO,rlcolors.white]),
-                            ("GRID",(0,0),(-1,-1),0.4,rlcolors.HexColor("#cccccc")),
-                            ("TOPPADDING",(0,0),(-1,-1),5),("BOTTOMPADDING",(0,0),(-1,-1),5),
-                            ("RIGHTPADDING",(0,0),(-1,-1),8)]))
-                        story.append(m_t2); story.append(Spacer(1,10))
+                        days_ar=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"]
+
+                        # Header row
+                        week_rows=[[ar("اليوم"),ar("الفطار"),ar("سناك"),ar("الغداء"),ar("العشاء"),ar("قبل النوم"),ar("kcal")]]
+
+                        for di in range(7):
+                            br=breakfasts[di]; lu=lunches[di]; dn=dinners[di]
+                            total=int(br[3])+int(lu[3])+int(dn[3])
+                            week_rows.append([
+                                ar(days_ar[di]),
+                                ar(br[1]),
+                                ar(snacks[di].split("(")[0].strip()),
+                                ar(lu[1]),
+                                ar(dn[1]),
+                                ar(sleep[di].split("(")[0].strip()),
+                                ar(str(total)),
+                            ])
+
+                        # Column widths to fit A4
+                        cw=[1.6*cm, 3.8*cm, 2.2*cm, 4.0*cm, 3.4*cm, 2.4*cm, 1.2*cm]
+                        week_t=Table(week_rows,colWidths=cw)
+                        week_t.setStyle(TableStyle([
+                            ("FONTNAME",(0,0),(-1,-1),"Amiri"),
+                            ("FONTSIZE",(0,0),(-1,-1),8.5),
+                            ("FONTSIZE",(0,0),(-1,0),9.5),
+                            ("FONTNAME",(0,0),(-1,0),"AmiriBold"),
+                            ("ALIGN",(0,0),(-1,-1),"RIGHT"),
+                            ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+                            ("BACKGROUND",(0,0),(-1,0),CB),
+                            ("TEXTCOLOR",(0,0),(-1,0),rlcolors.white),
+                            ("BACKGROUND",(0,1),(0,-1),LB),
+                            ("TEXTCOLOR",(0,1),(0,-1),CB),
+                            ("FONTNAME",(0,1),(0,-1),"AmiriBold"),
+                            ("ROWBACKGROUNDS",(0,1),(-1,-1),[rlcolors.white,GR]),
+                            ("GRID",(0,0),(-1,-1),0.4,rlcolors.HexColor("#bbb")),
+                            ("TOPPADDING",(0,0),(-1,-1),5),
+                            ("BOTTOMPADDING",(0,0),(-1,-1),5),
+                            ("RIGHTPADDING",(0,0),(-1,-1),4),
+                            ("LEFTPADDING",(0,0),(-1,-1),4),
+                            # Color kcal column
+                            ("TEXTCOLOR",(6,1),(6,-1),CR),
+                            ("FONTNAME",(6,1),(6,-1),"AmiriBold"),
+                        ]))
+                        story.append(week_t)
+
+                        story.append(Spacer(1,8))
+                        story.append(Paragraph(
+                            ar("السناك يومياً: فاكهة طازجة بالقشر   |   قبل النوم: زبادي يوناني أو فاكهة خفيفة"),
+                            S(9,False,rlcolors.HexColor("#555"),TA_CENTER)))
+
+                        story.append(PageBreak())
+
+                        # ══════════════════════════════════════
+                        # PAGE 3 — نصائح عامة مختصرة
+                        # ══════════════════════════════════════
+                        story.append(Paragraph(ar("النصائح العامة للنجاح"),S(13,True,CB,TA_CENTER)))
+                        story.append(HRFlowable(width="100%",thickness=1.5,color=CB,spaceAfter=6,spaceBefore=4))
+
+                        tips_sections=[
+                            (CB,"💧 الماء أساس كل شيء",[
+                                "كوب ماء دافئ + نصف ليمون فور الاستيقاظ",
+                                "8 أكواب ماء على مدار اليوم — لا تنتظر العطش",
+                                "كوب ماء قبل كل وجبة بـ 30 دقيقة يقلل الشهية",
+                            ]),
+                            (CG,"🍽️ عادات الأكل الصحيحة",[
+                                "3 وجبات رئيسية + سناك واحد — لا تقطع أكثر من 6 ساعات",
+                                "امضغ ببطء — الإحساس بالشبع يأتي بعد 20 دقيقة",
+                                "لا تأكل أمام الشاشة — الأكل المشتت يزيد الكمية",
+                            ]),
+                            (CO,"🔥 رفع معدل الحرق",[
+                                "الفطار إلزامي — إغلاقه يخفض الحرق 20%",
+                                "بروتين في كل وجبة — بيض / دجاج / سمك / عدس",
+                                "مشي 30 دقيقة بعد الغداء — يرفع الحرق ويهدئ القولون",
+                            ]),
+                            (CR,"⚠️ تحذيرات مهمة",[
+                                "لا تخفض السعرات أكثر من المحدد — يوقف الحرق",
+                                "لو جاعك بين الوجبات: شرب ماء أولاً ثم فاكهة",
+                                "راجع مع أخصائي التغذية كل 4 أسابيع",
+                            ]),
+                        ]
+
+                        for color,title,items in tips_sections:
+                            t_rows=[[ar(title)]]+[[ar(f"• {item}")] for item in items]
+                            t=Table([[Paragraph(c,S(9.5,ri==0,rlcolors.white if ri==0 else rlcolors.HexColor("#1a1a1a")))
+                                for c in row] for ri,row in enumerate(t_rows)],colWidths=[18.6*cm])
+                            t.setStyle(TableStyle([
+                                ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),9.5),
+                                ("ALIGN",(0,0),(-1,-1),"RIGHT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+                                ("BACKGROUND",(0,0),(0,0),color),
+                                ("ROWBACKGROUNDS",(0,1),(-1,-1),[rlcolors.HexColor("#f8f8f8"),rlcolors.white]),
+                                ("GRID",(0,0),(-1,-1),0.4,rlcolors.HexColor("#ddd")),
+                                ("TOPPADDING",(0,0),(-1,-1),5),("BOTTOMPADDING",(0,0),(-1,-1),5),
+                                ("RIGHTPADDING",(0,0),(-1,-1),8)]))
+                            story.append(t); story.append(Spacer(1,6))
 
                         # Footer
-                        story.append(HRFlowable(width="100%",thickness=1.5,color=CB,spaceAfter=6,spaceBefore=6))
+                        story.append(HRFlowable(width="100%",thickness=1,color=CB,spaceAfter=4,spaceBefore=6))
                         story.append(Paragraph(
-                            ar(f"NutraX | معد لـ {pt_name} | {datetime.now().strftime('%d/%m/%Y')} | يراجع بعد 4 أسابيع"),
-                            S(10,False,rlcolors.HexColor("#888888"),TA_CENTER)))
+                            ar(f"NutraX  |  {pt_name}  |  {datetime.now().strftime('%d/%m/%Y')}  |  يُراجَع بعد 4 أسابيع"),
+                            S(9,False,rlcolors.HexColor("#888"),TA_CENTER)))
 
                         doc.build(story)
 
