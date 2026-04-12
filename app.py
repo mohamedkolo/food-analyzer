@@ -1459,57 +1459,197 @@ else:
 
     # ═══════════════ PLANNER ═══════════════
     elif st.session_state.page=="planner":
-        st.markdown("<div class='sec-title'>📅 مصمم الجدول الغذائي</div>",unsafe_allow_html=True)
+        is_ar = st.session_state.get("lang","ar") == "ar"
+        gr = "ج" if is_ar else "g"
+
+        st.markdown(f"<div class='sec-title'>📅 {T('planner')}</div>", unsafe_allow_html=True)
+
         if not st.session_state.targets:
-            st.markdown("<div class='alert-warn'>⚠️ أكمل إعداداتك أولاً.</div>",unsafe_allow_html=True)
-            if st.button("⚙️ الإعدادات"): st.session_state.page="profile_setup"; st.rerun()
+            st.markdown(f"<div class='alert-warn'>⚠️ {T('complete_settings')}</div>", unsafe_allow_html=True)
+            if st.button(f"⚙️ {T('go_settings')}"): st.session_state.page="profile_setup"; st.rerun()
             st.stop()
-        t=st.session_state.targets
-        st.markdown(f"<div class='alert-info'>🎯 هدفك: <b>{t['cal']} kcal</b> | 💪 {t['p']}ج | 🍞 {t['c']}ج | 🥑 {t['f']}ج</div>",unsafe_allow_html=True)
-        days=st.number_input("عدد الأيام",1,14,1)
-        plan={}; total_cal=total_p=total_c=total_f=0
-        food_opts=list(LOCAL_DB.keys())
-        food_lbls={k:f"{LOCAL_DB[k]['name']} ({LOCAL_DB[k]['cat']})" for k in food_opts}
+
+        t = st.session_state.targets
+        gr_lbl = "ج" if is_ar else "g"
+
+        # ── Target bar ──
+        st.markdown(f"""
+        <div style="background:#f0f7ff;border:1.5px solid #93c5fd;border-radius:14px;
+            padding:14px 18px;margin-bottom:18px;font-size:15px;font-weight:600;color:#1e3a8a">
+            🎯 {'هدفك اليومي' if is_ar else 'Daily Target'}:
+            <b>{t['cal']} kcal</b> &nbsp;|&nbsp;
+            💪 {t['p']}{gr_lbl} {'بروتين' if is_ar else 'protein'} &nbsp;|&nbsp;
+            🍞 {t['c']}{gr_lbl} {'كارب' if is_ar else 'carbs'} &nbsp;|&nbsp;
+            🥑 {t['f']}{gr_lbl} {'دهون' if is_ar else 'fat'}
+        </div>""", unsafe_allow_html=True)
+
+        # ── Clinical condition selector ──
+        with st.expander(f"🏥 {'ربط بحالة مرضية (اختياري)' if is_ar else 'Link to Clinical Condition (optional)'}"):
+            CONDITIONS_OPTS_P = {
+                "🩸 السكري النوع الأول" if is_ar else "🩸 Type 1 Diabetes":       "diabetes_t1",
+                "🩸 السكري النوع الثاني" if is_ar else "🩸 Type 2 Diabetes":      "diabetes_t2",
+                "🤰 الحمل" if is_ar else "🤰 Pregnancy":                          "pregnancy",
+                "🤱 الرضاعة" if is_ar else "🤱 Lactation":                        "lactation",
+                "🫘 الفشل الكلوي — قبل الديلزة" if is_ar else "🫘 CKD Pre-dialysis": "ckd_predialysis",
+                "🫘 الفشل الكلوي — غسيل" if is_ar else "🫘 CKD Hemodialysis":    "ckd_hemodialysis",
+                "❤️ أمراض القلب" if is_ar else "❤️ Cardiovascular":             "cardiovascular",
+                "🫀 تليف الكبد" if is_ar else "🫀 Liver Cirrhosis":             "liver_cirrhosis",
+                "⚖️ السمنة" if is_ar else "⚖️ Obesity":                         "obesity",
+                "🎗️ السرطان" if is_ar else "🎗️ Cancer":                         "cancer",
+            }
+            sel_cond = st.multiselect(
+                f"{'اختر الحالة' if is_ar else 'Select condition'}",
+                list(CONDITIONS_OPTS_P.keys())
+            )
+            if sel_cond:
+                for lbl in sel_cond:
+                    cond_key = CONDITIONS_OPTS_P[lbl]
+                    if cond_key in CLINICAL_CONDITIONS:
+                        cd = CLINICAL_CONDITIONS[cond_key]
+                        st.markdown(f"""
+                        <div style="background:#f8faff;border:1.5px solid #dbeafe;
+                            border-right:4px solid #2563eb;border-radius:12px;
+                            padding:14px 16px;margin-top:10px">
+                            <div style="font-size:16px;font-weight:800;color:#1e3a8a;margin-bottom:8px">
+                                {cd['icon']} {cd['name']}
+                            </div>
+                            <div style="font-size:14px;color:#374151;line-height:1.6;margin-bottom:10px">
+                                {cd['overview']}
+                            </div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap">""", unsafe_allow_html=True)
+                        macros_d = cd.get('macros', {})
+                        lmap = {
+                            'energy':'🔥 سعرات' if is_ar else '🔥 Energy',
+                            'protein':'💪 بروتين' if is_ar else '💪 Protein',
+                            'carb':'🍞 كارب' if is_ar else '🍞 Carbs',
+                            'fat':'🥑 دهون' if is_ar else '🥑 Fat',
+                            'fiber':'🌾 ألياف' if is_ar else '🌾 Fiber',
+                            'sodium':'🧂 صوديوم' if is_ar else '🧂 Sodium',
+                        }
+                        for mk, mv in list(macros_d.items())[:4]:
+                            lbl_m = lmap.get(mk, mk)
+                            st.markdown(f"""
+                            <span style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;
+                                padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;
+                                display:inline-block;margin:2px">
+                                {lbl_m}: {mv[:35]}
+                            </span>""", unsafe_allow_html=True)
+                        st.markdown("</div></div>", unsafe_allow_html=True)
+                        if cd.get('key_points'):
+                            st.markdown(f"<div style='margin-top:8px;font-size:13px;color:#374151'>", unsafe_allow_html=True)
+                            for kp in cd['key_points'][:3]:
+                                st.markdown(f"<div style='padding:3px 0;color:#374151;font-size:13px'>{kp}</div>", unsafe_allow_html=True)
+                            st.markdown("</div>", unsafe_allow_html=True)
+
+        # ── Days ──
+        days_lbl = "عدد الأيام" if is_ar else "Number of Days"
+        days = st.number_input(days_lbl, 1, 14, 1)
+
+        # ── Meals ──
+        plan = {}; total_cal = total_p = total_c = total_f = 0
+        food_opts = list(LOCAL_DB.keys())
+        food_lbls = {k: f"{LOCAL_DB[k]['name']} ({LOCAL_DB[k]['cat']})" for k in food_opts}
+
+        meals_labels = {
+            "breakfast": ("🌅", "فطار" if is_ar else "Breakfast"),
+            "lunch":     ("☀️", "غداء" if is_ar else "Lunch"),
+            "dinner":    ("🌙", "عشاء" if is_ar else "Dinner"),
+            "snack":     ("🍎", "سناك" if is_ar else "Snack"),
+        }
+        choose_lbl = "اختر" if is_ar else "Choose"
+        day_lbl = "يوم" if is_ar else "Day"
+
         for d in range(days):
-            with st.expander(f"📆 يوم {d+1}",expanded=(d==0)):
-                plan[d]={}; cols=st.columns(2)
-                meals_list=["🌅 فطار","☀️ غداء","🌙 عشاء","🍎 سناك"]
-                for i,meal in enumerate(meals_list):
-                    with cols[i%2]:
-                        st.markdown(f"**{meal}**")
-                        foods=st.multiselect("اختر",food_opts,format_func=lambda k:food_lbls[k],key=f"ms_{d}_{i}")
-                        plan[d][meal]={}
+            with st.expander(f"📆 {day_lbl} {d+1}", expanded=(d==0)):
+                plan[d] = {}
+                cols = st.columns(2)
+                for i, (mk, (mic, mlbl)) in enumerate(meals_labels.items()):
+                    with cols[i % 2]:
+                        st.markdown(f"""
+                        <div style="font-size:16px;font-weight:700;color:#0f172a;
+                            margin-bottom:8px;padding:8px 0;
+                            border-bottom:1.5px solid #e2e8f0">
+                            {mic} {mlbl}
+                        </div>""", unsafe_allow_html=True)
+                        foods = st.multiselect(
+                            choose_lbl,
+                            food_opts,
+                            format_func=lambda k: food_lbls[k],
+                            key=f"ms_{d}_{i}"
+                        )
+                        plan[d][mlbl] = {}
                         for fk in foods:
-                            g=st.number_input(f"{LOCAL_DB[fk]['name']} (جم)",0,1000,100,key=f"gi_{d}_{i}_{fk}")
-                            if g>0:
-                                plan[d][meal][fk]=g; m=macros(fk,g)
-                                total_cal+=m["cal"]; total_p+=m["p"]; total_c+=m["c"]; total_f+=m["f"]
-                                st.caption(f"🔥{m['cal']} | 💪{m['p']}ج | 🍞{m['c']}ج | 🥑{m['f']}ج")
-        st.divider()
-        st.markdown("### 📊 ملخص الجدول")
-        mc1,mc2=st.columns(2)
+                            g_lbl = f"{LOCAL_DB[fk]['name']} ({'جم' if is_ar else 'g'})"
+                            g = st.number_input(g_lbl, 0, 1000, 100, key=f"gi_{d}_{i}_{fk}")
+                            if g > 0:
+                                plan[d][mlbl][fk] = g
+                                m = macros(fk, g)
+                                total_cal += m["cal"]; total_p += m["p"]
+                                total_c += m["c"];   total_f += m["f"]
+                                # Macro badge
+                                st.markdown(f"""
+                                <div style="background:#f0f7ff;border-radius:8px;
+                                    padding:6px 10px;margin:4px 0;font-size:13px;
+                                    color:#1e3a8a;font-weight:600">
+                                    🔥 {m['cal']} kcal &nbsp;
+                                    💪 {m['p']}{gr} &nbsp;
+                                    🍞 {m['c']}{gr} &nbsp;
+                                    🥑 {m['f']}{gr}
+                                </div>""", unsafe_allow_html=True)
+
+        # ── Summary ──
+        st.markdown("<hr>", unsafe_allow_html=True)
+        sum_lbl  = "📊 ملخص الجدول" if is_ar else "📊 Plan Summary"
+        st.markdown(f"<div style='font-size:18px;font-weight:800;color:#0f172a;margin-bottom:16px'>{sum_lbl}</div>", unsafe_allow_html=True)
+
+        mc1, mc2 = st.columns(2)
         with mc1:
-            for lbl,val,tgt,css in [("🔥 سعرات",int(total_cal),t['cal']*days,"prog-cal"),
-                ("💪 بروتين",int(total_p),t['p']*days,"prog-p"),
-                ("🍞 كارب",int(total_c),t['c']*days,"prog-c"),
-                ("🥑 دهون",int(total_f),t['f']*days,"prog-f")]:
-                pct=int(val/tgt*100) if tgt>0 else 0
-                st.markdown(f"**{lbl}: {val} / {tgt}** ({pct}%)")
-                st.markdown(prog(pct,css),unsafe_allow_html=True)
+            labels = [
+                (f"🔥 {'سعرات' if is_ar else 'Calories'}", int(total_cal), t['cal']*days, "prog-cal"),
+                (f"💪 {'بروتين' if is_ar else 'Protein'}",  int(total_p),   t['p']*days,   "prog-p"),
+                (f"🍞 {'كارب' if is_ar else 'Carbs'}",      int(total_c),   t['c']*days,   "prog-c"),
+                (f"🥑 {'دهون' if is_ar else 'Fat'}",         int(total_f),   t['f']*days,   "prog-f"),
+            ]
+            for lbl, val, tgt, css in labels:
+                pct = int(val/tgt*100) if tgt > 0 else 0
+                st.markdown(f"""
+                <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:4px">
+                    {lbl}: <span style="color:#2563eb">{val}</span>
+                    <span style="color:#64748b;font-size:13px"> / {tgt} ({pct}%)</span>
+                </div>""", unsafe_allow_html=True)
+                st.markdown(prog(pct, css), unsafe_allow_html=True)
+
         with mc2:
-            diff=total_cal-t['cal']*days
-            st.markdown(f"**الفارق:** {diff_badge(diff)}",unsafe_allow_html=True)
-            if abs(diff)<100: st.markdown("<div class='alert-success'>ممتاز! الجدول متوازن 🎯</div>",unsafe_allow_html=True)
-            elif diff>0: st.markdown(f"<div class='alert-warn'>زيادة {int(diff)} kcal — قلل الكميات.</div>",unsafe_allow_html=True)
-            else: st.markdown(f"<div class='alert-warn'>ناقص {int(abs(diff))} kcal — أضف وجبة.</div>",unsafe_allow_html=True)
-        st.divider()
-        cn1,cn2=st.columns(2)
-        with cn1: pname=st.text_input("📝 اسم الجدول",value=f"جدول {datetime.now().strftime('%d/%m/%Y')}")
-        with cn2: ptype=st.selectbox("📁 نوع",["خاص بي","للعميل","عام"])
-        if st.button("💾 حفظ الجدول",use_container_width=True):
+            diff = total_cal - t['cal'] * days
+            gap_lbl = "الفارق" if is_ar else "Gap"
+            st.markdown(f"<div style='font-size:15px;font-weight:700;color:#0f172a;margin-bottom:10px'>{gap_lbl}: {diff_badge(diff)}</div>", unsafe_allow_html=True)
+            if abs(diff) < 100:
+                st.markdown(f"<div class='alert-success'>{'ممتاز! الجدول متوازن 🎯' if is_ar else 'Perfect! Balanced plan 🎯'}</div>", unsafe_allow_html=True)
+            elif diff > 0:
+                st.markdown(f"<div class='alert-warn'>{'زيادة' if is_ar else 'Over'} {int(diff)} kcal — {'قلل الكميات' if is_ar else 'reduce portions'}</div>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<div class='alert-warn'>{'ناقص' if is_ar else 'Under'} {int(abs(diff))} kcal — {'أضف وجبة' if is_ar else 'add a meal'}</div>", unsafe_allow_html=True)
+
+        # ── Save ──
+        st.markdown("<hr>", unsafe_allow_html=True)
+        cn1, cn2 = st.columns(2)
+        with cn1:
+            pname = st.text_input(
+                f"📝 {T('plan_name')}",
+                value=f"{'جدول' if is_ar else 'Plan'} {datetime.now().strftime('%d/%m/%Y')}"
+            )
+        with cn2:
+            ptype = st.selectbox(
+                f"📁 {T('plan_type')}",
+                [T('personal'), T('for_client'), T('public')]
+            )
+        if st.button(f"💾 {T('save_plan')}", use_container_width=True):
             c.execute("INSERT INTO saved_plans VALUES (NULL,?,?,?,datetime('now'),?)",
-                      (u_id,pname,json.dumps({str(k):v for k,v in plan.items()}),ptype))
-            conn.commit(); st.success("✅ تم حفظ الجدول!"); st.rerun()
+                      (u_id, pname, json.dumps({str(k):v for k,v in plan.items()}), ptype))
+            conn.commit()
+            st.success(f"✅ {T('saved_plan_ok')}")
+            st.rerun()
+
 
     # ═══════════════ SUGGESTER ═══════════════
     elif st.session_state.page=="suggester":
