@@ -1215,139 +1215,93 @@ else:
 
     # ═══════════════ DASHBOARD ═══════════════
     if st.session_state.page=="dashboard":
-        # Header welcome
-        gl={"fat_loss":"🔥 خسارة دهون","muscle_gain":"💪 بناء عضل","maintain":"⚖️ ثبات الوزن"}
+        gl={
+            "fat_loss":   T("fat_loss"),
+            "muscle_gain":T("muscle_gain"),
+            "maintain":   T("maintain")
+        }
+        greet = "أهلاً بك 👋" if st.session_state.get("lang","ar")=="ar" else "Welcome 👋"
         st.markdown(f"""
-        <div style="background:linear-gradient(135deg,#4f8ef7,#a78bfa);
+        <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);
             border-radius:18px;padding:20px 22px;margin-bottom:18px;color:#fff">
-            <div style="font-size:13px;opacity:.85;margin-bottom:4px">أهلاً بك 👋</div>
+            <div style="font-size:14px;opacity:.85;margin-bottom:4px">{greet}</div>
             <div style="font-size:22px;font-weight:900">{u[3]}</div>
             <div style="font-size:12px;opacity:.8;margin-top:6px">{u[1]}</div>
         </div>""", unsafe_allow_html=True)
 
         if not st.session_state.targets:
-            st.markdown("""
-            <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:14px;
+            st.markdown(f"""
+            <div style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:14px;
                 padding:18px 20px;text-align:center;margin-bottom:16px">
                 <div style="font-size:36px;margin-bottom:8px">⚙️</div>
-                <div style="color:#92600a;font-weight:700;font-size:15px">أكمل إعداداتك أولاً</div>
-                <div style="color:#b56b00;font-size:13px;margin-top:4px">لحساب أهدافك الغذائية اليومية</div>
+                <div style="color:#78350f;font-weight:700;font-size:15px">{T('complete_settings')}</div>
             </div>""", unsafe_allow_html=True)
-            if st.button("⚙️ اذهب للإعدادات", use_container_width=True):
+            if st.button(f"⚙️ {T('go_settings')}", use_container_width=True):
                 st.session_state.page="profile_setup"; st.rerun()
         else:
             t=st.session_state.targets
             c.execute("SELECT COUNT(*) FROM saved_plans WHERE user_id=?",(u_id,)); pn=c.fetchone()[0]
             c.execute("SELECT weight FROM tracking WHERE user_id=? ORDER BY id DESC LIMIT 1",(u_id,)); lw=c.fetchone()
-
-            # Goal banner
             goal_label = gl.get(t['goal'], t['goal'])
             st.markdown(f"""
-            <div style="background:#f0f7ff;border:1px solid #c7d7f0;border-radius:12px;
-                padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+            <div style="background:#f8faff;border:1.5px solid #dbeafe;border-radius:12px;
+                padding:14px 18px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
                 <div>
-                    <div style="color:#6b7fa3;font-size:11px;font-weight:700">هدفك</div>
-                    <div style="color:#1a2a4a;font-size:15px;font-weight:800">{goal_label}</div>
+                    <div style="color:#64748b;font-size:12px;font-weight:700">{T('your_goal')}</div>
+                    <div style="color:#0f172a;font-size:16px;font-weight:800">{goal_label}</div>
                 </div>
                 <div style="text-align:center">
-                    <div style="color:#6b7fa3;font-size:11px;font-weight:700">TDEE</div>
-                    <div style="color:#1a2a4a;font-size:15px;font-weight:800">{t.get('tdee','—')}</div>
-                    <div style="color:#a0aec0;font-size:10px">kcal</div>
+                    <div style="color:#64748b;font-size:12px;font-weight:700">{T('tdee')}</div>
+                    <div style="color:#0f172a;font-size:16px;font-weight:800">{t.get('tdee','—')}</div>
+                    <div style="color:#94a3b8;font-size:10px">kcal</div>
                 </div>
-                <div style="text-align:left">
-                    <div style="color:#6b7fa3;font-size:11px;font-weight:700">هدف يومي</div>
-                    <div style="color:#4f8ef7;font-size:18px;font-weight:900">{t['cal']}</div>
-                    <div style="color:#a0aec0;font-size:10px">kcal/يوم</div>
+                <div>
+                    <div style="color:#64748b;font-size:12px;font-weight:700">{T('daily_target')}</div>
+                    <div style="color:#2563eb;font-size:20px;font-weight:900">{t['cal']}</div>
+                    <div style="color:#94a3b8;font-size:10px">kcal</div>
                 </div>
             </div>""", unsafe_allow_html=True)
-
-            # Macro cards — 2 columns for mobile friendliness
-            r1c1, r1c2 = st.columns(2)
-            r2c1, r2c2 = st.columns(2)
-            for col, ic, lb, val, un, clr in [
-                (r1c1,"🔥","السعرات",t['cal'],"kcal","#4f8ef7"),
-                (r1c2,"💪","بروتين",t['p'],"جم","#22c55e"),
-                (r2c1,"🍞","كارب",t['c'],"جم","#f59e0b"),
-                (r2c2,"🥑","دهون",t['f'],"جم","#ef4444"),
+            r1c1,r1c2=st.columns(2); r2c1,r2c2=st.columns(2)
+            for col,ic,lb,val,un,clr in [
+                (r1c1,"🔥",T("calories"),  t['cal'],"kcal","#2563eb"),
+                (r1c2,"💪",T("protein"),   t['p'],  T("gram"),"#16a34a"),
+                (r2c1,"🍞",T("carbs"),     t['c'],  T("gram"),"#d97706"),
+                (r2c2,"🥑",T("fat"),       t['f'],  T("gram"),"#dc2626"),
             ]:
                 col.markdown(f"""
                 <div class="card" style="text-align:center;margin-bottom:10px">
                     <div style="font-size:24px;margin-bottom:4px">{ic}</div>
-                    <div style="color:#6b7fa3;font-size:11px;font-weight:700;letter-spacing:.5px">{lb}</div>
-                    <div style="color:{clr};font-size:24px;font-weight:900;line-height:1.1">{val}</div>
-                    <div style="color:#a0aec0;font-size:11px">{un}</div>
+                    <div style="color:#64748b;font-size:12px;font-weight:700">{lb}</div>
+                    <div style="color:{clr};font-size:26px;font-weight:900">{val}</div>
+                    <div style="color:#94a3b8;font-size:12px">{un}</div>
                 </div>""", unsafe_allow_html=True)
-
-            # BMI + extra info
-            bmi_card = ""
+            bv_str="—"; bcls="bmi-normal"; blbl="—"
             if u[4] and u[5]:
-                bv, bcls, blbl = bmi_info(float(u[5]), float(u[4]))
-                bmi_card = f'<div class="bmi-badge {bcls}" style="margin-top:4px">{blbl}</div>'
-            wv = f"{lw[0]} كجم" if lw else "—"
-
-            ec1, ec2, ec3 = st.columns(3)
-            ec1.markdown(f"""
-            <div class="card" style="text-align:center;padding:14px 8px">
-                <div style="font-size:11px;color:#6b7fa3;font-weight:700">📏 BMI</div>
-                <div style="font-size:20px;font-weight:900;color:#1a2a4a">{bv if u[4] and u[5] else "—"}</div>
-                {bmi_card}
-            </div>""", unsafe_allow_html=True)
-            ec2.markdown(f"""
-            <div class="card" style="text-align:center;padding:14px 8px">
-                <div style="font-size:11px;color:#6b7fa3;font-weight:700">⚖️ آخر وزن</div>
-                <div style="font-size:18px;font-weight:900;color:#1a2a4a;margin-top:4px">{wv}</div>
-            </div>""", unsafe_allow_html=True)
-            ec3.markdown(f"""
-            <div class="card" style="text-align:center;padding:14px 8px">
-                <div style="font-size:11px;color:#6b7fa3;font-weight:700">💾 جداول</div>
-                <div style="font-size:24px;font-weight:900;color:#a78bfa;margin-top:2px">{pn}</div>
-            </div>""", unsafe_allow_html=True)
-
-            # Quick nav shortcuts
-            st.markdown("<div style='margin-top:16px;margin-bottom:8px'><span style='color:#6b7fa3;font-size:12px;font-weight:700'>⚡ وصول سريع</span></div>", unsafe_allow_html=True)
-            qn1, qn2 = st.columns(2)
+                bv,bcls,blbl=bmi_info(float(u[5]),float(u[4])); bv_str=str(bv)
+            wv=f"{lw[0]} kg" if lw else "—"
+            ec1,ec2,ec3=st.columns(3)
+            ec1.markdown(f'''<div class="card" style="text-align:center;padding:14px 8px">
+                <div style="font-size:12px;color:#64748b;font-weight:700">{T("bmi")}</div>
+                <div style="font-size:22px;font-weight:900;color:#0f172a">{bv_str}</div>
+                <div class="bmi-badge {bcls}">{blbl}</div></div>''', unsafe_allow_html=True)
+            ec2.markdown(f'''<div class="card" style="text-align:center;padding:14px 8px">
+                <div style="font-size:12px;color:#64748b;font-weight:700">{T("last_weight")}</div>
+                <div style="font-size:18px;font-weight:900;color:#0f172a;margin-top:4px">{wv}</div></div>''', unsafe_allow_html=True)
+            ec3.markdown(f'''<div class="card" style="text-align:center;padding:14px 8px">
+                <div style="font-size:12px;color:#64748b;font-weight:700">{T("plans")}</div>
+                <div style="font-size:26px;font-weight:900;color:#7c3aed;margin-top:2px">{pn}</div></div>''', unsafe_allow_html=True)
+            st.markdown(f"<div style='margin-top:16px;margin-bottom:8px;font-size:14px;font-weight:700;color:#374151'>{T('quick_access')}</div>", unsafe_allow_html=True)
+            qn1,qn2=st.columns(2)
             with qn1:
-                if st.button("🔍 محلل الطعام", use_container_width=True, key="qnav_analyzer"):
+                if st.button(f"🔍 {T('analyzer')}", use_container_width=True, key="qnav_a"):
                     st.session_state.page="analyzer"; st.rerun()
-                if st.button("📚 المرجع الكلينيكي", use_container_width=True, key="qnav_clinical"):
+                if st.button(f"📚 {T('clinical')}", use_container_width=True, key="qnav_c"):
                     st.session_state.page="clinical"; st.rerun()
             with qn2:
-                if st.button("📅 مصمم الجدول", use_container_width=True, key="qnav_planner"):
+                if st.button(f"📅 {T('planner')}", use_container_width=True, key="qnav_p"):
                     st.session_state.page="planner"; st.rerun()
-                if st.button("📈 سجل الوزن", use_container_width=True, key="qnav_history"):
+                if st.button(f"📈 {T('history')}", use_container_width=True, key="qnav_h"):
                     st.session_state.page="history"; st.rerun()
-
-        # ── Bottom Nav Bar (mobile) ──
-        st.markdown("""
-        <style>
-        .bottom-nav{
-            display:none;
-        }
-        @media(max-width:768px){
-            .bottom-nav{
-                display:flex;
-                position:fixed;bottom:0;left:0;right:0;
-                background:#fff;
-                border-top:1px solid #e2ecff;
-                padding:8px 0 12px;
-                justify-content:space-around;
-                align-items:center;
-                z-index:9999;
-                box-shadow:0 -4px 20px rgba(79,142,247,.1);
-            }
-            .bn-item{
-                display:flex;flex-direction:column;align-items:center;
-                font-family:'Cairo',sans-serif;
-                color:#6b7fa3;font-size:10px;font-weight:600;
-                cursor:pointer;min-width:50px;text-align:center;
-            }
-            .bn-item .bn-icon{font-size:22px;margin-bottom:2px}
-            .bn-item.active{color:#4f8ef7}
-            /* push content up so it's not hidden behind bottom nav */
-            .block-container{padding-bottom:80px!important}
-        }
-        </style>
-        """, unsafe_allow_html=True)
 
     # ═══════════════ PROFILE ═══════════════
     elif st.session_state.page=="profile_setup":
@@ -1372,34 +1326,136 @@ else:
 
     # ═══════════════ ANALYZER ═══════════════
     elif st.session_state.page=="analyzer":
-        st.markdown("<div class='sec-title'>🔍 محلل الطعام</div>",unsafe_allow_html=True)
-        cats=sorted(set(v["cat"] for v in LOCAL_DB.values()))
-        col_f1,col_f2=st.columns([1,2])
-        with col_f1: sel_cat=st.selectbox("📂 الفئة",["الكل"]+cats)
-        with col_f2: search=st.text_input("🔎 ابحث بالعربي أو الإنجليزي")
-        filtered=dict(LOCAL_DB)
-        if sel_cat!="الكل": filtered={k:v for k,v in filtered.items() if v["cat"]==sel_cat}
+        lang = st.session_state.get("lang","ar")
+        is_ar = lang=="ar"
+        gr = "ج" if is_ar else "g"
+
+        st.markdown(f"<div class='sec-title'>🔍 {T('analyzer')}</div>", unsafe_allow_html=True)
+
+        # ── Search + Category ──
+        cats = sorted(set(v["cat"] for v in LOCAL_DB.values()))
+        c1, c2 = st.columns([1, 2])
+        with c1:
+            sel_cat = st.selectbox(
+                f"📂 {T('filter_cat')}",
+                [T('all')] + cats
+            )
+        with c2:
+            search = st.text_input(
+                f"🔎 {T('search')}",
+                placeholder="دجاج، سلمون، شوفان..." if is_ar else "chicken, salmon, oats..."
+            )
+
+        # ── Filter ──
+        filtered = dict(LOCAL_DB)
+        if sel_cat != T('all'):
+            filtered = {k:v for k,v in filtered.items() if v["cat"]==sel_cat}
         if search:
-            s=search.lower()
-            filtered={k:v for k,v in filtered.items() if s in k.lower() or s in v["name"]}
-        if not search and sel_cat!="الكل" and sel_cat in CATEGORY_TIPS:
-            st.markdown(f"<div class='alert-info'>💡 <b>نصيحة:</b> {CATEGORY_TIPS[sel_cat]}</div>",unsafe_allow_html=True)
-        st.markdown(f"<div style='color:#6b7fa3;font-size:12px;margin-bottom:10px'>{len(filtered)} نتيجة من {len(LOCAL_DB)} صنف</div>",unsafe_allow_html=True)
-        for k,v in list(filtered.items())[:30]:
-            st.markdown(f"""<div class="food-card">
-                <div class="fc-name">{v['name']} <span style="color:#a0aec0;font-size:11px">{v['cat']}</span></div>
-                <div class="pills">
-                    <span class="pill pill-cal">🔥 {v['cal']} kcal</span>
-                    <span class="pill pill-p">💪 {v['p']}ج</span>
-                    <span class="pill pill-c">🍞 {v['c']}ج</span>
-                    <span class="pill pill-f">🥑 {v['f']}ج</span>
-                </div>
-                <div style="color:#a0aec0;font-size:11px;margin:3px 0 6px">لكل 100 جرام</div>
-                <div class="fc-note">📋 {v['note']}</div>
-                <div class="fc-tip">{v['tip']}</div>
-            </div>""",unsafe_allow_html=True)
-        if len(filtered)>30: st.info("عرض أول 30 — ضيّق البحث لرؤية المزيد")
-        if not filtered: st.markdown("<div class='alert-warn'>لا نتائج. جرب كلمة مختلفة.</div>",unsafe_allow_html=True)
+            s = search.lower()
+            filtered = {k:v for k,v in filtered.items() if s in k.lower() or s in v["name"]}
+
+        # Category tip
+        if not search and sel_cat != T('all') and sel_cat in CATEGORY_TIPS:
+            st.markdown(f"<div class='alert-info'>💡 {CATEGORY_TIPS[sel_cat]}</div>", unsafe_allow_html=True)
+
+        # Count
+        total_label = f"{len(filtered)} {'نتيجة' if is_ar else 'results'} · {'لكل 100 جرام' if is_ar else 'per 100g'}"
+        st.markdown(f"<div style='color:#64748b;font-size:13px;margin-bottom:12px;font-weight:500'>{total_label}</div>", unsafe_allow_html=True)
+
+        if not filtered:
+            st.markdown(f"<div class='alert-warn'>{T('no_results')}</div>", unsafe_allow_html=True)
+        elif len(filtered) > 30 and not search:
+            st.info(T('show_first30'))
+
+        # ── Food cards ──
+        for k, v in list(filtered.items())[:30]:
+            with st.container():
+                # Card header
+                st.markdown(f"""
+                <div style="background:#ffffff;border:1.5px solid #e2e8f0;border-radius:16px;
+                    padding:16px 18px;margin-bottom:4px;border-right:4px solid #2563eb">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                        <div>
+                            <div style="font-size:17px;font-weight:800;color:#0f172a">{v['name']}</div>
+                            <div style="font-size:12px;color:#64748b;margin-top:2px">{v['cat']}</div>
+                        </div>
+                        <div style="text-align:left">
+                            <div style="font-size:22px;font-weight:900;color:#2563eb">{v['cal']}</div>
+                            <div style="font-size:11px;color:#64748b">kcal/100{gr}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+                        <span style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;
+                            padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700">
+                            💪 {v['p']}{gr} {'بروتين' if is_ar else 'protein'}
+                        </span>
+                        <span style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;
+                            padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700">
+                            🍞 {v['c']}{gr} {'كارب' if is_ar else 'carbs'}
+                        </span>
+                        <span style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;
+                            padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700">
+                            🥑 {v['f']}{gr} {'دهون' if is_ar else 'fat'}
+                        </span>
+                    </div>
+                </div>""", unsafe_allow_html=True)
+
+                # ── Grams input + live calc ──
+                gc1, gc2 = st.columns([1, 2])
+                with gc1:
+                    grams = st.number_input(
+                        f"{'الكمية' if is_ar else 'Amount'} ({gr})",
+                        min_value=0, max_value=2000,
+                        value=100, step=10,
+                        key=f"az_g_{k}"
+                    )
+                with gc2:
+                    if grams > 0:
+                        r = grams / 100
+                        cal_r = round(v['cal'] * r, 1)
+                        p_r   = round(v['p']   * r, 1)
+                        c_r   = round(v['c']   * r, 1)
+                        f_r   = round(v['f']   * r, 1)
+                        st.markdown(f"""
+                        <div style="background:#f0f7ff;border:1.5px solid #93c5fd;border-radius:12px;
+                            padding:12px 16px;margin-top:22px">
+                            <div style="font-size:11px;font-weight:700;color:#1e40af;margin-bottom:8px">
+                                {'نتيجة' if is_ar else 'Result'} {grams}{gr} {'من' if is_ar else 'of'} {v['name']}
+                            </div>
+                            <div style="display:flex;gap:12px;flex-wrap:wrap">
+                                <div style="text-align:center">
+                                    <div style="font-size:20px;font-weight:900;color:#1d4ed8">{cal_r}</div>
+                                    <div style="font-size:11px;color:#64748b">kcal</div>
+                                </div>
+                                <div style="text-align:center">
+                                    <div style="font-size:20px;font-weight:900;color:#166534">{p_r}{gr}</div>
+                                    <div style="font-size:11px;color:#64748b">{'بروتين' if is_ar else 'protein'}</div>
+                                </div>
+                                <div style="text-align:center">
+                                    <div style="font-size:20px;font-weight:900;color:#92400e">{c_r}{gr}</div>
+                                    <div style="font-size:11px;color:#64748b">{'كارب' if is_ar else 'carbs'}</div>
+                                </div>
+                                <div style="text-align:center">
+                                    <div style="font-size:20px;font-weight:900;color:#991b1b">{f_r}{gr}</div>
+                                    <div style="font-size:11px;color:#64748b">{'دهون' if is_ar else 'fat'}</div>
+                                </div>
+                            </div>
+                        </div>""", unsafe_allow_html=True)
+
+                # Notes + Tip (collapsible)
+                with st.expander(f"📋 {'معلومة + نصيحة' if is_ar else 'Info & Tip'}"):
+                    st.markdown(f"""
+                    <div style="background:#f0fdf4;border-right:3px solid #16a34a;border-radius:8px;
+                        padding:10px 14px;margin-bottom:8px;font-size:14px;color:#14532d;line-height:1.7">
+                        {v['note']}
+                    </div>
+                    <div style="background:#fffbeb;border-right:3px solid #f59e0b;border-radius:8px;
+                        padding:10px 14px;font-size:14px;color:#78350f;line-height:1.7">
+                        {v['tip']}
+                    </div>""", unsafe_allow_html=True)
+
+                st.markdown("<div style='margin-bottom:8px'></div>", unsafe_allow_html=True)
+
 
     # ═══════════════ PLANNER ═══════════════
     elif st.session_state.page=="planner":
