@@ -216,24 +216,36 @@ html,body,[class*="css"]{font-family:'Cairo',sans-serif!important}
 
 /* ─── Sidebar ─── */
 [data-testid="stSidebar"]{
-  background:linear-gradient(180deg,#1a2744 0%,#0f1a30 100%)!important;
+  background:#ffffff!important;
+  border-left:1px solid #e2e8f0!important;
+  border-right:none!important;
 }
 [data-testid="stSidebar"] .stButton>button{
-  width:100%;background:transparent;
-  color:#c8e0ff;border:1px solid transparent;
-  border-radius:10px;padding:11px 16px;
-  margin-bottom:4px;font-family:'Cairo',sans-serif;
-  font-size:14px;font-weight:600;
-  transition:all .2s;text-align:right;
+  width:100%!important;
+  background:#f8fafc!important;
+  color:#1e293b!important;
+  border:1px solid #e2e8f0!important;
+  border-radius:10px!important;
+  padding:12px 16px!important;
+  margin-bottom:6px!important;
+  font-family:'Cairo',sans-serif!important;
+  font-size:14px!important;
+  font-weight:600!important;
+  transition:all .2s!important;
+  text-align:right!important;
+  direction:rtl!important;
 }
 [data-testid="stSidebar"] .stButton>button:hover{
-  background:rgba(100,180,255,0.12);
-  border-color:rgba(100,180,255,0.3);
-  color:#ffffff;
+  background:#eff6ff!important;
+  border-color:#93c5fd!important;
+  color:#1d4ed8!important;
 }
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] span,
-[data-testid="stSidebar"] div{color:#c8e0ff!important}
+[data-testid="stSidebar"] div{
+  color:#1e293b!important;
+  direction:rtl!important;
+}
 
 /* ─── Main content ─── */
 .block-container{
@@ -1133,30 +1145,51 @@ else:
         if st.button(f"🌐 {T('lang_btn')}", key="lang_toggle_app"):
             st.session_state.lang="en" if st.session_state.lang=="ar" else "ar"
             st.rerun()
+
         st.markdown(f"""
-        <div style="text-align:center;padding:16px 0 10px">
-            <div style="font-size:42px;filter:drop-shadow(0 0 12px rgba(0,245,160,0.4))">👤</div>
-            <div style="color:#00f5a0;font-size:15px;font-weight:700;margin:6px 0 2px">{u[3]}</div>
-            <div style="color:rgba(138,235,180,0.5);font-size:11px">{u[1]}</div>
+        <div style="text-align:center;padding:20px 0 16px;border-bottom:1px solid #e2e8f0;margin-bottom:12px">
+            <div style="width:56px;height:56px;border-radius:50%;background:#eff6ff;
+                border:2px solid #93c5fd;display:flex;align-items:center;
+                justify-content:center;font-size:26px;margin:0 auto 10px">👤</div>
+            <div style="color:#0f172a;font-size:15px;font-weight:700">{u[3]}</div>
+            <div style="color:#64748b;font-size:12px;margin-top:3px">{u[1]}</div>
         </div>""", unsafe_allow_html=True)
-        st.divider()
-        NAV=[("🏠",T("dashboard"),"dashboard"),
-             ("⚙️",T("settings"),"profile_setup"),
-             ("🔍",T("analyzer"),"analyzer"),
-             ("📅",T("planner"),"planner"),
-             ("💡",T("suggester"),"suggester"),
-             ("💾",T("saved"),"saved"),
-             ("📈",T("history"),"history"),
-             ("📚",T("clinical"),"clinical")]
+
+        NAV=[("🏠", T("dashboard"),    "dashboard"),
+             ("⚙️", T("settings"),     "profile_setup"),
+             ("🔍", T("analyzer"),     "analyzer"),
+             ("📅", T("planner"),      "planner"),
+             ("💡", T("suggester"),    "suggester"),
+             ("💾", T("saved"),        "saved"),
+             ("📈", T("history"),      "history"),
+             ("📚", T("clinical"),     "clinical")]
+
         for i,(icon,label,pg) in enumerate(NAV):
-            active="⬤ " if st.session_state.page==pg else "    "
-            if st.button(f"{active}{icon}  {label}",key=f"sb_nav_{i}"):
+            is_active = st.session_state.page == pg
+            # Active button gets blue highlight via CSS override
+            if is_active:
+                st.markdown(f"""
+                <div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:10px;
+                    padding:12px 16px;margin-bottom:6px;cursor:pointer;direction:rtl;
+                    display:flex;align-items:center;gap:10px">
+                    <span style="font-size:16px">{icon}</span>
+                    <span style="color:#1d4ed8;font-weight:700;font-size:14px">{label}</span>
+                    <span style="margin-right:auto;width:6px;height:6px;border-radius:50%;background:#2563eb;display:inline-block"></span>
+                </div>""", unsafe_allow_html=True)
+            if st.button(f"{icon}  {label}" if not is_active else f"← {label}",
+                        key=f"sb_nav_{i}",
+                        type="secondary" if not is_active else "primary"):
                 st.session_state.page=pg; st.rerun()
-        st.divider()
-        if st.button(f"🚪  {T('logout')}",key="logout"):
+
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='border-top:1px solid #e2e8f0;margin:4px 0 12px'></div>", unsafe_allow_html=True)
+
+        if st.button(f"🚪  {T('logout')}", key="logout"):
             st.query_params.clear()
             st.session_state.user=None; st.session_state.page="login"; st.rerun()
-        st.markdown(f"<div style='text-align:center;color:rgba(0,245,160,0.2);font-size:10px;margin-top:14px'>NutraX V12 © 2025</div>",unsafe_allow_html=True)
+
+        st.markdown(f"<div style='text-align:center;color:#cbd5e1;font-size:10px;margin-top:16px'>NutraX V12 © 2025</div>",
+                   unsafe_allow_html=True)
 
     # ── Mobile bottom nav ──
     pg_now=st.session_state.page
