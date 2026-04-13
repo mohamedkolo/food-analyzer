@@ -1,201 +1,578 @@
-{% extends "base.html" %}
-{% block title %}محلل الطعام{% endblock %}
-
-{% block extra_style %}
-<style>
-.search-box{background:var(--white);border:2px solid var(--gray-2);border-radius:14px;padding:16px;margin-bottom:16px}
-.food-card{background:var(--white);border:1.5px solid var(--gray-2);border-radius:14px;padding:14px 16px;margin-bottom:10px;border-right:4px solid var(--blue-light);transition:all .2s}
-.food-card:hover{border-right-color:var(--green-light);box-shadow:0 3px 14px rgba(37,99,235,0.1)}
-.food-name{font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px}
-.food-cat{font-size:11px;color:var(--muted);margin-bottom:8px}
-.pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-.pill{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
-.pill-cal{background:#dbeafe;color:#1e40af}
-.pill-p{background:#dcfce7;color:#166534}
-.pill-c{background:#fef3c7;color:#92400e}
-.pill-f{background:#fee2e2;color:#991b1b}
-.note-box{background:#f0fdf4;border-right:3px solid var(--green-light);border-radius:8px;padding:8px 12px;font-size:13px;color:#14532d;margin-bottom:6px}
-.tip-box{background:#fffbeb;border-right:3px solid #f59e0b;border-radius:8px;padding:8px 12px;font-size:13px;color:#78350f}
-.calc-result{background:#eff6ff;border:1.5px solid #93c5fd;border-radius:10px;padding:10px 14px;margin-top:8px;font-size:13px}
-.cat-btn{padding:6px 14px;border-radius:20px;border:1.5px solid var(--gray-2);background:var(--white);font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;color:var(--text)}
-.cat-btn.active,.cat-btn:hover{background:var(--blue-pale);border-color:var(--blue-light);color:var(--blue)}
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="page-title"><span class="icon">🔍</span> محلل الطعام</div>
-
-<!-- Search -->
-<div class="search-box">
-  <div class="grid-2" style="gap:10px;margin-bottom:12px">
-    <div>
-      <label class="form-label">🔎 ابحث عن طعام</label>
-      <input class="form-input" type="text" id="searchInput" placeholder="دجاج، سلمون، شوفان..." oninput="filterFoods()">
-    </div>
-    <div>
-      <label class="form-label">📂 الفئة</label>
-      <select class="form-select" id="catSelect" onchange="filterFoods()">
-        <option value="">الكل</option>
-        <option value="🍗 دواجن">🍗 دواجن</option>
-        <option value="🥩 لحوم حمراء">🥩 لحوم حمراء</option>
-        <option value="🐟 أسماك">🐟 أسماك</option>
-        <option value="🥚 بيض">🥚 بيض</option>
-        <option value="🥛 ألبان">🥛 ألبان</option>
-        <option value="🌾 حبوب">🌾 حبوب</option>
-        <option value="🫘 بقوليات">🫘 بقوليات</option>
-        <option value="🥜 مكسرات">🥜 مكسرات</option>
-        <option value="🍎 فاكهة">🍎 فاكهة</option>
-        <option value="🥦 خضروات">🥦 خضروات</option>
-        <option value="🇪🇬 مصري">🇪🇬 مصري</option>
-      </select>
-    </div>
-  </div>
-  <div id="resultCount" style="font-size:13px;color:var(--muted)"></div>
-</div>
-
-<!-- Food list -->
-<div id="foodList"></div>
-
-<script>
-const FOODS = {
-  "chicken_breast":    {name:"صدر دجاج",cal:165,p:31,c:0,f:3.6,cat:"🍗 دواجن",note:"مصدر ممتاز للبروتين الكامل، قليل الدهون. مثالي لبناء العضل وخسارة الدهون.",tip:"💡 أفضل طريقة: شوي أو بخار. تجنب القلي."},
-  "chicken_thigh":     {name:"فخذ دجاج",cal:209,p:26,c:0,f:10,cat:"🍗 دواجن",note:"أعلى في الدهون الصحية من الصدر، مما يمنحه نكهة أغنى.",tip:"💡 مناسب للرياضيين الذين يحتاجون كالوري أعلى."},
-  "chicken_liver":     {name:"كبدة دجاج",cal:119,p:17,c:0.7,f:4.8,cat:"🍗 دواجن",note:"غنية بالحديد والفيتامينات B12 وA. من أكثر الأطعمة كثافةً بالمغذيات.",tip:"💡 يُنصح بتناولها مرة أو مرتين أسبوعياً كحد أقصى."},
-  "turkey_breast":     {name:"صدر ديك رومي",cal:135,p:30,c:0,f:1,cat:"🍗 دواجن",note:"من أعلى مصادر البروتين وأقلها في الدهون.",tip:"💡 غني بالتريبتوفان الذي يساعد على النوم الجيد."},
-  "beef_steak":        {name:"ستيك لحم بقري",cal:271,p:25,c:0,f:19,cat:"🥩 لحوم حمراء",note:"مصدر ممتاز للزنك والحديد الهيمي وB12.",tip:"💡 اختر قطع lean مثل sirloin. الشوي أفضل من القلي."},
-  "ground_beef_lean":  {name:"لحم مفروم قليل الدهن",cal:218,p:27,c:0,f:12,cat:"🥩 لحوم حمراء",note:"متوازن بين البروتين والدهون.",tip:"💡 اختر نسبة دهون 10-15%."},
-  "lamb_leg":          {name:"لحم ضأن (ساق)",cal:258,p:26,c:0,f:17,cat:"🥩 لحوم حمراء",note:"غني بالزنك والحديد والكارنيتين.",tip:"💡 مصدر ممتاز للكارنيتين الذي يساعد على استهلاك الدهون."},
-  "beef_liver":        {name:"كبدة بقري",cal:135,p:20,c:4,f:3.6,cat:"🥩 لحوم حمراء",note:"أغنى مصدر طبيعي للحديد وB12 وA وحمض الفوليك.",tip:"💡 وجبة واحدة أسبوعياً كافية لتلبية احتياجات الحديد."},
-  "salmon":            {name:"سلمون",cal:208,p:20,c:0,f:13,cat:"🐟 أسماك",note:"غني بأوميغا 3 EPA/DHA. يقلل الالتهابات ويدعم القلب والمخ.",tip:"💡 تناوله مرتين أسبوعياً. الشوي يحافظ على أوميغا 3 أفضل."},
-  "tuna_fresh":        {name:"تونة طازجة",cal:144,p:30,c:0,f:2.5,cat:"🐟 أسماك",note:"بروتين عالٍ جداً مع دهون منخفضة.",tip:"💡 نسبة البروتين إلى الكالوري من أعلى النسب."},
-  "tuna_canned":       {name:"تونة معلبة (ماء)",cal:116,p:26,c:0,f:1,cat:"🐟 أسماك",note:"اقتصادية ومريحة. خيار عملي لوجبة سريعة.",tip:"💡 فضّل المعلبة في ماء. قلل الاستهلاك لأكثر من 3-4 مرات أسبوعياً."},
-  "sardine_canned":    {name:"سردين معلب",cal:208,p:25,c:0,f:11,cat:"🐟 أسماك",note:"غني جداً بالكالسيوم وأوميغا 3.",tip:"💡 السردين المعلب مع العظام يعطيك كالسيوم مثل كوب الحليب."},
-  "shrimp":            {name:"جمبري",cal:99,p:24,c:0.2,f:0.3,cat:"🐟 أسماك",note:"بروتين عالٍ جداً مع كالوري منخفض جداً.",tip:"💡 غني بالأيودين الضروري للغدة الدرقية."},
-  "white_fish":        {name:"سمك أبيض (بلطي/دنيس)",cal:96,p:20,c:0,f:1.7,cat:"🐟 أسماك",note:"سمك عملي وبسعر مناسب، منخفض الدهون.",tip:"💡 متاح في مصر. يمكن طهيه بطرق متعددة مع الخضار."},
-  "eggs_whole":        {name:"بيضة كاملة",cal:78,p:6,c:0.6,f:5,cat:"🥚 بيض",note:"يُلقب بـ'معيار الذهب للبروتين'. يحتوي على جميع الأحماض الأمينية.",tip:"💡 الصفار يحتوي على كولين مهم لصحة الدماغ."},
-  "egg_whites":        {name:"بياض بيض",cal:17,p:3.6,c:0.2,f:0.1,cat:"🥚 بيض",note:"بروتين نقي تقريباً. مثالي لرفع البروتين بأقل سعرات.",tip:"💡 4 بياضات = ~15جم بروتين بـ68 سعرة فقط."},
-  "greek_yogurt":      {name:"زبادي يوناني",cal:59,p:10,c:3.6,f:0.4,cat:"🥛 ألبان",note:"ضعف بروتين الزبادي العادي. يحتوي على بروبيوتيك.",tip:"💡 اختر النوع غير المحلى وأضف الفاكهة الطازجة."},
-  "cottage_cheese":    {name:"جبن قريش",cal:98,p:11,c:3.4,f:4.3,cat:"🥛 ألبان",note:"بروتين بطيء الهضم (كازيين). ممتاز قبل النوم.",tip:"💡 يمكن تناوله حلو (مع العسل) أو مالح (مع الخيار)."},
-  "milk_skim":         {name:"حليب خالي الدسم",cal:35,p:3.4,c:5,f:0.1,cat:"🥛 ألبان",note:"نفس كالسيوم الحليب الكامل بكالوري أقل.",tip:"💡 جيد للرياضيين بعد التمرين."},
-  "whey_protein":      {name:"واي بروتين (سادة)",cal:375,p:80,c:6,f:4,cat:"🥛 ألبان",note:"أسرع بروتين امتصاصاً. مثالي بعد التمرين.",tip:"💡 مكمل عملي لإتمام هدف البروتين اليومي."},
-  "rice_white":        {name:"أرز أبيض",cal:130,p:2.7,c:28,f:0.3,cat:"🌾 حبوب",note:"كارب سريع الهضم. مصدر طاقة سهل.",tip:"💡 أفضل وقت: بعد التمرين لتجديد الجليكوجين."},
-  "rice_brown":        {name:"أرز بني",cal:111,p:2.6,c:23,f:0.9,cat:"🌾 حبوب",note:"أعلى في الألياف والمغنيسيوم. هضم أبطأ وشبع أطول.",tip:"💡 أفضل خيار للتحكم في سكر الدم."},
-  "oats":              {name:"شوفان",cal:389,p:16.9,c:66,f:6.9,cat:"🌾 حبوب",note:"الملك بين الحبوب — غني بالبيتا جلوكان.",tip:"💡 جاهزه ببياض البيض لوجبة بروتين + كارب مثالية."},
-  "sweet_potato":      {name:"بطاطا حلوة",cal:86,p:1.6,c:20,f:0.1,cat:"🌾 حبوب",note:"كارب صحي بامتياز — غني بالبيتا كاروتين وألياف.",tip:"💡 الشوي في الفرن أفضل من السلق."},
-  "potato":            {name:"بطاطس",cal:87,p:1.9,c:20,f:0.1,cat:"🌾 حبوب",note:"مصدر جيد للبوتاسيوم أكثر من الموز!",tip:"💡 تجنب القلي. مسلوق أو مشوي يحافظ على قيمته."},
-  "lentils":           {name:"عدس",cal:116,p:9,c:20,f:0.4,cat:"🫘 بقوليات",note:"سوبر فود نباتي — بروتين + ألياف + حديد.",tip:"💡 العدس + الأرز (كشري) = بروتين كامل نباتياً."},
-  "chickpeas":         {name:"حمص",cal:164,p:8.9,c:27,f:2.6,cat:"🫘 بقوليات",note:"غني بالألياف والبروتين والمغنيسيوم.",tip:"💡 نقعه طوال الليل يسهل الهضم."},
-  "fava_beans":        {name:"فول مدمس",cal:110,p:7.6,c:20,f:0.5,cat:"🫘 بقوليات",note:"الإفطار الوطني المصري. بروتين + ألياف + حديد.",tip:"💡 أضف زيت زيتون وليمون وثوم لرفع قيمته."},
-  "almonds":           {name:"لوز",cal:579,p:21,c:22,f:50,cat:"🥜 مكسرات",note:"غني بالمغنيسيوم وفيتامين E والدهون الصحية.",tip:"💡 حفنة صغيرة (28جم) كافية."},
-  "walnuts":           {name:"جوز",cal:654,p:15,c:14,f:65,cat:"🥜 مكسرات",note:"المصدر النباتي الأغنى بأوميغا 3.",tip:"💡 7 حبات جوز يومياً تُغطي احتياجات أوميغا 3."},
-  "olive_oil":         {name:"زيت زيتون",cal:884,p:0,c:0,f:100,cat:"🥜 مكسرات",note:"ملك الدهون الصحية. 73% دهون أحادية غير مشبعة.",tip:"💡 استخدم البكر الممتاز للسلطات."},
-  "avocado":           {name:"أفوكادو",cal:160,p:2,c:9,f:15,cat:"🥜 مكسرات",note:"الفاكهة الوحيدة الغنية بالدهون الصحية!",tip:"💡 نصفة يعطيك بوتاسيوم أكثر من الموزة الكاملة."},
-  "banana":            {name:"موز",cal:89,p:1.1,c:23,f:0.3,cat:"🍎 فاكهة",note:"أسرع طاقة طبيعية للرياضيين.",tip:"💡 قبل التمرين بـ30 دقيقة = طاقة مثالية."},
-  "apple":             {name:"تفاح",cal:52,p:0.3,c:14,f:0.2,cat:"🍎 فاكهة",note:"مضادات الأكسدة والألياف تدعم الهضم وصحة القلب.",tip:"💡 كله مع قشره — فيه 2/3 مضادات الأكسدة."},
-  "orange":            {name:"برتقال",cal:47,p:0.9,c:12,f:0.1,cat:"🍎 فاكهة",note:"واحدة تُغطي 100% من احتياج فيتامين C اليومي.",tip:"💡 كل البرتقالة كاملاً للحصول على الألياف."},
-  "dates":             {name:"تمر",cal:277,p:1.8,c:75,f:0.2,cat:"🍎 فاكهة",note:"طاقة فورية طبيعية. غني بالحديد والبوتاسيوم.",tip:"💡 3 تمرات قبل التمرين = طاقة ممتازة."},
-  "pomegranate":       {name:"رمان",cal:83,p:1.7,c:19,f:1.2,cat:"🍎 فاكهة",note:"من أقوى مضادات الأكسدة في الطبيعة.",tip:"💡 ثبت علمياً أنه يحسن أداء التمرين."},
-  "broccoli":          {name:"بروكلي",cal:34,p:2.8,c:7,f:0.4,cat:"🥦 خضروات",note:"سوبر فود خضروات — غني بالكالسيوم.",tip:"💡 الطهي بالبخار يحافظ على قيمته."},
-  "spinach":           {name:"سبانخ",cal:23,p:2.9,c:3.6,f:0.4,cat:"🥦 خضروات",note:"مكثف غذائياً — حديد وكالسيوم وماغنيسيوم.",tip:"💡 أضف عصير ليمون للمساعدة على امتصاص الحديد."},
-  "tomato":            {name:"طماطم",cal:18,p:0.9,c:3.9,f:0.2,cat:"🥦 خضروات",note:"غني باللايكوبين — مضاد أكسدة قوي.",tip:"💡 الطهي يرفع محتوى اللايكوبين."},
-  "cucumber":          {name:"خيار",cal:16,p:0.6,c:4,f:0.1,cat:"🥦 خضروات",note:"96% ماء — مرطب ممتاز. كالوري شبه معدوم.",tip:"💡 وجبة خفيفة مثالية للتنشيف."},
-  "molokhia":          {name:"ملوخية",cal:44,p:4.8,c:8,f:0.6,cat:"🇪🇬 مصري",note:"سوبر فود مصري! أعلى من السبانخ بالحديد والكالسيوم.",tip:"💡 إضافة زيت زيتون وثوم وليمون يرفع امتصاص معادنها."},
-  "falafel":           {name:"فلافل",cal:333,p:13,c:32,f:18,cat:"🇪🇬 مصري",note:"بروتين نباتي جيد لكن القلي يرفع الدهون.",tip:"💡 الفلافل المخبوزة تقلل الكالوري بنسبة 40%."},
-  "hummus":            {name:"حمص بطحينة",cal:166,p:7.9,c:14,f:9.6,cat:"🇪🇬 مصري",note:"دهون صحية + بروتين + ألياف.",tip:"💡 مع الخبز الأسمر أو الخضار النيئة وجبة متكاملة."},
-};
-
-let currentFoods = Object.entries(FOODS);
-
-function filterFoods() {
-  const search = document.getElementById('searchInput').value.toLowerCase();
-  const cat = document.getElementById('catSelect').value;
-  
-  currentFoods = Object.entries(FOODS).filter(([k, v]) => {
-    const matchSearch = !search || v.name.includes(search) || k.includes(search);
-    const matchCat = !cat || v.cat === cat;
-    return matchSearch && matchCat;
-  });
-  
-  renderFoods();
-}
-
-function renderFoods() {
-  const list = document.getElementById('foodList');
-  const count = document.getElementById('resultCount');
-  
-  count.textContent = `${currentFoods.length} نتيجة — لكل 100 جرام`;
-  
-  if (currentFoods.length === 0) {
-    list.innerHTML = '<div class="alert alert-warn">لا نتائج. جرب كلمة مختلفة.</div>';
-    return;
-  }
-  
-  list.innerHTML = currentFoods.slice(0,30).map(([k, v]) => `
-    <div class="food-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div class="food-name">${v.name}</div>
-          <div class="food-cat">${v.cat}</div>
-        </div>
-        <div style="text-align:left">
-          <div style="font-size:22px;font-weight:900;color:var(--blue-light)">${v.cal}</div>
-          <div style="font-size:11px;color:var(--muted)">kcal/100جم</div>
-        </div>
-      </div>
-      <div class="pills">
-        <span class="pill pill-p">💪 ${v.p}ج بروتين</span>
-        <span class="pill pill-c">🍞 ${v.c}ج كارب</span>
-        <span class="pill pill-f">🥑 ${v.f}ج دهون</span>
-      </div>
-      
-      <!-- Gram calculator -->
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <label style="font-size:13px;font-weight:700;color:var(--text-2)">الكمية (جم):</label>
-        <input type="number" value="100" min="0" max="2000" step="10"
-          style="width:90px;padding:6px 10px;border:2px solid var(--gray-2);border-radius:8px;font-family:'Cairo',sans-serif;font-size:14px;text-align:center"
-          oninput="calcGrams(this, ${v.cal}, ${v.p}, ${v.c}, ${v.f}, '${k}')"
-          id="grams_${k}">
-      </div>
-      <div id="result_${k}" class="calc-result" style="display:none"></div>
-      
-      <!-- Notes toggle -->
-      <details style="margin-top:6px">
-        <summary style="font-size:13px;font-weight:700;color:var(--blue);cursor:pointer">📋 معلومة + نصيحة</summary>
-        <div style="margin-top:8px">
-          <div class="note-box">${v.note}</div>
-          <div class="tip-box">${v.tip}</div>
-        </div>
-      </details>
-    </div>
-  `).join('');
-  
-  // Init calculators
-  currentFoods.slice(0,30).forEach(([k, v]) => {
-    calcGrams(document.getElementById(`grams_${k}`), v.cal, v.p, v.c, v.f, k);
-  });
-}
-
-function calcGrams(input, cal, p, c, f, key) {
-  const g = parseFloat(input.value) || 0;
-  const r = g / 100;
-  const result = document.getElementById(`result_${key}`);
-  if (g > 0 && result) {
-    result.style.display = 'block';
-    result.innerHTML = `
-      <div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:6px">${g}جم = </div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--blue-light)">${(cal*r).toFixed(1)}</div><div style="font-size:11px;color:var(--muted)">kcal</div></div>
-        <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--green-light)">${(p*r).toFixed(1)}ج</div><div style="font-size:11px;color:var(--muted)">بروتين</div></div>
-        <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--orange)">${(c*r).toFixed(1)}ج</div><div style="font-size:11px;color:var(--muted)">كارب</div></div>
-        <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--red)">${(f*r).toFixed(1)}ج</div><div style="font-size:11px;color:var(--muted)">دهون</div></div>
-      </div>
-    `;
-  } else if (result) {
-    result.style.display = 'none';
-  }
-}
-
-// Init
-renderFoods();
-</script>
+{% extends "base.html" %} {% block title %}محلل الطعام{% endblock %} {% block extra_style %} {% endblock %} {% block content %}
+🔍 محلل الطعام
+🔎 ابحث عن طعام 
+دجاج، سلمون، شوفان...
+📂 الفئة 
+الكل
+44 نتيجة — لكل 100 جرام
+صدر دجاج
+🍗 دواجن
+165
+kcal/100جم
+💪 31ج بروتين
+🍞 0ج كارب
+🥑 3.6ج دهون
+الكمية (جم):
+100
+100جم =
+165.0
+kcal
+31.0ج
+بروتين
+0.0ج
+كارب
+3.6ج
+دهون
+📋 معلومة + نصيحة
+فخذ دجاج
+🍗 دواجن
+209
+kcal/100جم
+💪 26ج بروتين
+🍞 0ج كارب
+🥑 10ج دهون
+الكمية (جم):
+100
+100جم =
+209.0
+kcal
+26.0ج
+بروتين
+0.0ج
+كارب
+10.0ج
+دهون
+📋 معلومة + نصيحة
+كبدة دجاج
+🍗 دواجن
+119
+kcal/100جم
+💪 17ج بروتين
+🍞 0.7ج كارب
+🥑 4.8ج دهون
+الكمية (جم):
+100
+100جم =
+119.0
+kcal
+17.0ج
+بروتين
+0.7ج
+كارب
+4.8ج
+دهون
+📋 معلومة + نصيحة
+صدر ديك رومي
+🍗 دواجن
+135
+kcal/100جم
+💪 30ج بروتين
+🍞 0ج كارب
+🥑 1ج دهون
+الكمية (جم):
+100
+100جم =
+135.0
+kcal
+30.0ج
+بروتين
+0.0ج
+كارب
+1.0ج
+دهون
+📋 معلومة + نصيحة
+ستيك لحم بقري
+🥩 لحوم حمراء
+271
+kcal/100جم
+💪 25ج بروتين
+🍞 0ج كارب
+🥑 19ج دهون
+الكمية (جم):
+100
+100جم =
+271.0
+kcal
+25.0ج
+بروتين
+0.0ج
+كارب
+19.0ج
+دهون
+📋 معلومة + نصيحة
+لحم مفروم قليل الدهن
+🥩 لحوم حمراء
+218
+kcal/100جم
+💪 27ج بروتين
+🍞 0ج كارب
+🥑 12ج دهون
+الكمية (جم):
+100
+100جم =
+218.0
+kcal
+27.0ج
+بروتين
+0.0ج
+كارب
+12.0ج
+دهون
+📋 معلومة + نصيحة
+لحم ضأن (ساق)
+🥩 لحوم حمراء
+258
+kcal/100جم
+💪 26ج بروتين
+🍞 0ج كارب
+🥑 17ج دهون
+الكمية (جم):
+100
+100جم =
+258.0
+kcal
+26.0ج
+بروتين
+0.0ج
+كارب
+17.0ج
+دهون
+📋 معلومة + نصيحة
+كبدة بقري
+🥩 لحوم حمراء
+135
+kcal/100جم
+💪 20ج بروتين
+🍞 4ج كارب
+🥑 3.6ج دهون
+الكمية (جم):
+100
+100جم =
+135.0
+kcal
+20.0ج
+بروتين
+4.0ج
+كارب
+3.6ج
+دهون
+📋 معلومة + نصيحة
+سلمون
+🐟 أسماك
+208
+kcal/100جم
+💪 20ج بروتين
+🍞 0ج كارب
+🥑 13ج دهون
+الكمية (جم):
+100
+100جم =
+208.0
+kcal
+20.0ج
+بروتين
+0.0ج
+كارب
+13.0ج
+دهون
+📋 معلومة + نصيحة
+تونة طازجة
+🐟 أسماك
+144
+kcal/100جم
+💪 30ج بروتين
+🍞 0ج كارب
+🥑 2.5ج دهون
+الكمية (جم):
+100
+100جم =
+144.0
+kcal
+30.0ج
+بروتين
+0.0ج
+كارب
+2.5ج
+دهون
+📋 معلومة + نصيحة
+تونة معلبة (ماء)
+🐟 أسماك
+116
+kcal/100جم
+💪 26ج بروتين
+🍞 0ج كارب
+🥑 1ج دهون
+الكمية (جم):
+100
+100جم =
+116.0
+kcal
+26.0ج
+بروتين
+0.0ج
+كارب
+1.0ج
+دهون
+📋 معلومة + نصيحة
+سردين معلب
+🐟 أسماك
+208
+kcal/100جم
+💪 25ج بروتين
+🍞 0ج كارب
+🥑 11ج دهون
+الكمية (جم):
+100
+100جم =
+208.0
+kcal
+25.0ج
+بروتين
+0.0ج
+كارب
+11.0ج
+دهون
+📋 معلومة + نصيحة
+جمبري
+🐟 أسماك
+99
+kcal/100جم
+💪 24ج بروتين
+🍞 0.2ج كارب
+🥑 0.3ج دهون
+الكمية (جم):
+100
+100جم =
+99.0
+kcal
+24.0ج
+بروتين
+0.2ج
+كارب
+0.3ج
+دهون
+📋 معلومة + نصيحة
+سمك أبيض (بلطي/دنيس)
+🐟 أسماك
+96
+kcal/100جم
+💪 20ج بروتين
+🍞 0ج كارب
+🥑 1.7ج دهون
+الكمية (جم):
+100
+100جم =
+96.0
+kcal
+20.0ج
+بروتين
+0.0ج
+كارب
+1.7ج
+دهون
+📋 معلومة + نصيحة
+بيضة كاملة
+🥚 بيض
+78
+kcal/100جم
+💪 6ج بروتين
+🍞 0.6ج كارب
+🥑 5ج دهون
+الكمية (جم):
+100
+100جم =
+78.0
+kcal
+6.0ج
+بروتين
+0.6ج
+كارب
+5.0ج
+دهون
+📋 معلومة + نصيحة
+بياض بيض
+🥚 بيض
+17
+kcal/100جم
+💪 3.6ج بروتين
+🍞 0.2ج كارب
+🥑 0.1ج دهون
+الكمية (جم):
+100
+100جم =
+17.0
+kcal
+3.6ج
+بروتين
+0.2ج
+كارب
+0.1ج
+دهون
+📋 معلومة + نصيحة
+زبادي يوناني
+🥛 ألبان
+59
+kcal/100جم
+💪 10ج بروتين
+🍞 3.6ج كارب
+🥑 0.4ج دهون
+الكمية (جم):
+100
+100جم =
+59.0
+kcal
+10.0ج
+بروتين
+3.6ج
+كارب
+0.4ج
+دهون
+📋 معلومة + نصيحة
+جبن قريش
+🥛 ألبان
+98
+kcal/100جم
+💪 11ج بروتين
+🍞 3.4ج كارب
+🥑 4.3ج دهون
+الكمية (جم):
+100
+100جم =
+98.0
+kcal
+11.0ج
+بروتين
+3.4ج
+كارب
+4.3ج
+دهون
+📋 معلومة + نصيحة
+حليب خالي الدسم
+🥛 ألبان
+35
+kcal/100جم
+💪 3.4ج بروتين
+🍞 5ج كارب
+🥑 0.1ج دهون
+الكمية (جم):
+100
+100جم =
+35.0
+kcal
+3.4ج
+بروتين
+5.0ج
+كارب
+0.1ج
+دهون
+📋 معلومة + نصيحة
+واي بروتين (سادة)
+🥛 ألبان
+375
+kcal/100جم
+💪 80ج بروتين
+🍞 6ج كارب
+🥑 4ج دهون
+الكمية (جم):
+100
+100جم =
+375.0
+kcal
+80.0ج
+بروتين
+6.0ج
+كارب
+4.0ج
+دهون
+📋 معلومة + نصيحة
+أرز أبيض
+🌾 حبوب
+130
+kcal/100جم
+💪 2.7ج بروتين
+🍞 28ج كارب
+🥑 0.3ج دهون
+الكمية (جم):
+100
+100جم =
+130.0
+kcal
+2.7ج
+بروتين
+28.0ج
+كارب
+0.3ج
+دهون
+📋 معلومة + نصيحة
+أرز بني
+🌾 حبوب
+111
+kcal/100جم
+💪 2.6ج بروتين
+🍞 23ج كارب
+🥑 0.9ج دهون
+الكمية (جم):
+100
+100جم =
+111.0
+kcal
+2.6ج
+بروتين
+23.0ج
+كارب
+0.9ج
+دهون
+📋 معلومة + نصيحة
+شوفان
+🌾 حبوب
+389
+kcal/100جم
+💪 16.9ج بروتين
+🍞 66ج كارب
+🥑 6.9ج دهون
+الكمية (جم):
+100
+100جم =
+389.0
+kcal
+16.9ج
+بروتين
+66.0ج
+كارب
+6.9ج
+دهون
+📋 معلومة + نصيحة
+بطاطا حلوة
+🌾 حبوب
+86
+kcal/100جم
+💪 1.6ج بروتين
+🍞 20ج كارب
+🥑 0.1ج دهون
+الكمية (جم):
+100
+100جم =
+86.0
+kcal
+1.6ج
+بروتين
+20.0ج
+كارب
+0.1ج
+دهون
+📋 معلومة + نصيحة
+بطاطس
+🌾 حبوب
+87
+kcal/100جم
+💪 1.9ج بروتين
+🍞 20ج كارب
+🥑 0.1ج دهون
+الكمية (جم):
+100
+100جم =
+87.0
+kcal
+1.9ج
+بروتين
+20.0ج
+كارب
+0.1ج
+دهون
+📋 معلومة + نصيحة
+عدس
+🫘 بقوليات
+116
+kcal/100جم
+💪 9ج بروتين
+🍞 20ج كارب
+🥑 0.4ج دهون
+الكمية (جم):
+100
+100جم =
+116.0
+kcal
+9.0ج
+بروتين
+20.0ج
+كارب
+0.4ج
+دهون
+📋 معلومة + نصيحة
+حمص
+🫘 بقوليات
+164
+kcal/100جم
+💪 8.9ج بروتين
+🍞 27ج كارب
+🥑 2.6ج دهون
+الكمية (جم):
+100
+100جم =
+164.0
+kcal
+8.9ج
+بروتين
+27.0ج
+كارب
+2.6ج
+دهون
+📋 معلومة + نصيحة
+فول مدمس
+🫘 بقوليات
+110
+kcal/100جم
+💪 7.6ج بروتين
+🍞 20ج كارب
+🥑 0.5ج دهون
+الكمية (جم):
+100
+100جم =
+110.0
+kcal
+7.6ج
+بروتين
+20.0ج
+كارب
+0.5ج
+دهون
+📋 معلومة + نصيحة
+لوز
+🥜 مكسرات
+579
+kcal/100جم
+💪 21ج بروتين
+🍞 22ج كارب
+🥑 50ج دهون
+الكمية (جم):
+100
+100جم =
+579.0
+kcal
+21.0ج
+بروتين
+22.0ج
+كارب
+50.0ج
+دهون
+📋 معلومة + نصيحة
+جوز
+🥜 مكسرات
+654
+kcal/100جم
+💪 15ج بروتين
+🍞 14ج كارب
+🥑 65ج دهون
+الكمية (جم):
+100
+100جم =
+654.0
+kcal
+15.0ج
+بروتين
+14.0ج
+كارب
+65.0ج
+دهون
+📋 معلومة + نصيحة
 {% endblock %}
