@@ -1,9 +1,243 @@
-{% extends "base.html" %} {% block title %}{{ 'المرجع الكلينيكي' if (lang or 'ar')=='ar' else 'Clinical Reference' }}{% endblock %} {% block extra_style %} {% endblock %} {% block content %} {% set is_ar = (lang or 'ar') == 'ar' %}
-📚 {{ 'المرجع الكلينيكي التغذوي' if is_ar else 'Clinical Nutrition Reference' }}
-📖 {{ 'مستخلص من: Understanding Normal and Clinical Nutrition, 8th Ed — Rolfes, Pinna & Whitney' if is_ar else 'Based on: Understanding Normal and Clinical Nutrition, 8th Ed — Rolfes, Pinna & Whitney' }}
-{% set conditions = [ { 'icon': '🩸', 'name_ar': 'السكري النوع الثاني', 'name_en': 'Type 2 Diabetes', 'overview_ar': 'مقاومة للأنسولين مع نقص تدريجي في إفرازه. فقدان 5-10% من الوزن يُحسّن التحكم في السكر بشكل ملحوظ.', 'overview_en': 'Insulin resistance with progressive secretion deficit. Losing 5-10% of weight significantly improves blood sugar control.', 'macros': [('🔥 السعرات/Calories','عجز 500-750 kcal/يوم / 500-750 kcal deficit/day'),('💪 البروتين/Protein','15-20%'),('🍞 الكارب/Carbs','45-60% حبوب كاملة / whole grains'),('🌾 الألياف/Fiber','25-38 جم/يوم / g/day')], 'good_ar': ['شوفان','عدس','حمص','خضروات','أسماك','دجاج مشوي'], 'good_en': ['Oats','Lentils','Chickpeas','Vegetables','Fish','Grilled chicken'], 'bad_ar': ['خبز أبيض','أرز أبيض','مشروبات محلاة','حلويات','أكل مقلي'], 'bad_en': ['White bread','White rice','Sweet drinks','Sweets','Fried food'] }, { 'icon': '❤️', 'name_ar': 'أمراض القلب / ضغط الدم', 'name_en': 'Cardiovascular / Hypertension', 'overview_ar': 'نظام TLC يستهدف خفض LDL والكوليسترول مع الحفاظ على HDL.', 'overview_en': 'TLC diet targets lowering LDL and cholesterol while maintaining HDL.', 'macros': [('🔥 السعرات/Calories','للحفاظ على وزن صحي / maintain healthy weight'),('🥑 الدهون/Fat','مشبعة < 7% / saturated < 7%'),('🐟 أوميغا 3/Omega-3','سمك مرتين/أسبوع / fish twice/week'),('🧂 الصوديوم/Sodium','< 2300 مجم/يوم / mg/day')], 'good_ar': ['سمك دهني','شوفان','بقوليات','زيت زيتون','مكسرات','فاكهة وخضروات'], 'good_en': ['Fatty fish','Oats','Legumes','Olive oil','Nuts','Fruits and vegetables'], 'bad_ar': ['لحوم دهنية','زبدة وسمن','أكل مقلي','ملح زائد','مشروبات غازية'], 'bad_en': ['Fatty meats','Butter and ghee','Fried food','Excess salt','Soft drinks'] }, { 'icon': '🤰', 'name_ar': 'الحمل', 'name_en': 'Pregnancy', 'overview_ar': 'الاحتياجات ترتفع كثيراً خاصة للحديد وحمض الفوليك والكالسيوم وأوميغا 3.', 'overview_en': 'Nutritional needs increase significantly especially for iron, folate, calcium, and omega-3.', 'macros': [('🔥 سعرات إضافية/Extra Calories','+340 kcal ثلث ثاني / 2nd trimester, +452 ثالث / 3rd'),('💪 البروتين/Protein','+25 جم/يوم = ~71 جم / g/day'),('🩸 حمض الفوليك/Folate','600 ميكروجرام/يوم / mcg/day'),('🐟 DHA','200-300 مجم/يوم / mg/day')], 'good_ar': ['كبدة الدجاج','سلمون وسردين','بيض كامل','بقوليات','ألبان'], 'good_en': ['Chicken liver','Salmon and sardines','Whole eggs','Legumes','Dairy'], 'bad_ar': ['جبن غير مبستر','أسماك عالية الزئبق','كافيين زائد','كحول'], 'bad_en': ['Unpasteurized cheese','High-mercury fish','Excess caffeine','Alcohol'] }, { 'icon': '🫘', 'name_ar': 'الفشل الكلوي المزمن', 'name_en': 'Chronic Kidney Disease', 'overview_ar': 'يستلزم تقليل البروتين لتخفيف حمل اليوريا، وضبط الصوديوم والبوتاسيوم والفوسفور.', 'overview_en': 'Requires protein restriction to reduce urea load, and control of sodium, potassium, and phosphorus.', 'macros': [('🔥 السعرات/Calories','35 kcal/كجم/يوم / kg/day'),('💪 البروتين/Protein','0.6-0.75 جم/كجم / g/kg'),('🧂 الصوديوم/Sodium','1000-3000 مجم/يوم / mg/day'),('🔵 الفوسفور/Phosphorus','800-1000 مجم/يوم / mg/day')], 'good_ar': ['بياض بيض','سمك أبيض','أرز أبيض','تفاح','كرنب'], 'good_en': ['Egg whites','White fish','White rice','Apple','Cabbage'], 'bad_ar': ['ألبان بكميات كبيرة','مكسرات','مشروبات غازية','موز','طماطم'], 'bad_en': ['Large amounts of dairy','Nuts','Soft drinks','Banana','Tomatoes'] }, { 'icon': '🫃', 'name_ar': 'القولون العصبي (IBS)', 'name_en': 'Irritable Bowel Syndrome (IBS)', 'overview_ar': 'حمية Low-FODMAP فعّالة لدى 75% من المرضى.', 'overview_en': 'Low-FODMAP diet is effective in 75% of patients.', 'macros': [('🌾 الألياف/Fiber','ألياف قابلة للذوبان / soluble fiber for constipation'),('💧 الماء/Water','8 أكواب يومياً / 8 cups/day'),('🍽️ الوجبات/Meals','صغيرة ومتكررة / small and frequent'),('🧘 التوتر/Stress','إدارة التوتر أساسية / stress management essential')], 'good_ar': ['موز','كيوي','جزر','خيار','أرز','شوفان','زبادي'], 'good_en': ['Banana','Kiwi','Carrots','Cucumber','Rice','Oats','Yogurt'], 'bad_ar': ['تفاح','بصل وثوم','حليب كامل','قمح بكميات كبيرة'], 'bad_en': ['Apple','Onion and garlic','Whole milk','Large amounts of wheat'] }, { 'icon': '⚖️', 'name_ar': 'السمنة وزيادة الوزن', 'name_en': 'Obesity & Overweight', 'overview_ar': 'خسارة 0.5-1 كجم/أسبوع بعجز 500-1000 kcal/يوم.', 'overview_en': 'Lose 0.5-1 kg/week with 500-1000 kcal/day deficit.', 'macros': [('🔥 السعرات/Calories','1200-1500 نساء، 1500-1800 رجال / women/men'),('💪 البروتين/Protein','25-30% — يزيد الشبع / increases satiety'),('🌾 الألياف/Fiber','25-38 جم/يوم / g/day'),('🏃 نشاط/Activity','150 دقيقة/أسبوع / min/week minimum')], 'good_ar': ['بروتين في كل وجبة','خضروات كثيرة','حبوب كاملة','ماء قبل الأكل'], 'good_en': ['Protein in every meal','Lots of vegetables','Whole grains','Water before meals'], 'bad_ar': ['مشروبات محلاة','أكل مقلي','وجبات سريعة','حلويات'], 'bad_en': ['Sweet drinks','Fried food','Fast food','Sweets'] } ] %} {% for cond in conditions %}
-{{ cond.icon }}
-{{ cond.name_ar if is_ar else cond.name_en }}
-{{ (cond.overview_ar if is_ar else cond.overview_en)[:80] }}...
-▼
-{% endfor %} {% endblock %}
+{% extends "base.html" %}
+{% block title %}{{ 'المرجع الكلينيكي' if (lang or 'ar')=='ar' else 'Clinical Reference' }}{% endblock %}
+
+{% block extra_style %}
+<style>
+.cond-card{background:#fff;border:1.5px solid var(--gray-2);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer;transition:all .2s}
+.cond-card:hover{border-color:var(--blue-light);box-shadow:0 3px 14px rgba(37,99,235,.1)}
+.cond-detail{display:none;margin-top:14px;padding-top:14px;border-top:1.5px solid var(--gray-2)}
+.cond-detail.open{display:block}
+.rec-row{background:var(--blue-pale);border-right:3px solid var(--blue-light);border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:13px}
+.rec-label{font-size:11px;font-weight:700;color:var(--blue);margin-bottom:2px}
+.food-tag-good{background:var(--green-pale);color:var(--green);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-block;margin:2px}
+.food-tag-bad{background:var(--red-pale);color:var(--red);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-block;margin:2px}
+.arr{transition:transform .3s}
+</style>
+{% endblock %}
+
+{% block content %}
+{% set is_ar = (lang or 'ar') == 'ar' %}
+
+<div class="page-title">
+  <i class="fa-solid fa-book-medical"></i>
+  {{ 'المرجع الكلينيكي التغذوي' if is_ar else 'Clinical Nutrition Reference' }}
+</div>
+
+<div class="alert alert-info">
+  <i class="fa-solid fa-circle-info"></i>
+  {{ 'مستخلص من: Understanding Normal and Clinical Nutrition, 8th Ed — Rolfes, Pinna & Whitney' if is_ar else 'Based on: Understanding Normal and Clinical Nutrition, 8th Ed — Rolfes, Pinna & Whitney' }}
+</div>
+
+<div id="condList"></div>
+
+<script>
+const IS_AR = {{ 'true' if is_ar else 'false' }};
+
+const CONDITIONS = [
+  {
+    icon: 'fa-droplet', color: '#dc2626',
+    name_ar: 'السكري النوع الثاني', name_en: 'Type 2 Diabetes',
+    overview_ar: 'مقاومة للانسولين مع نقص تدريجي في افرازه. فقدان 5-10% من الوزن يحسن التحكم في السكر بشكل ملحوظ.',
+    overview_en: 'Insulin resistance with progressive secretion deficit. Losing 5-10% of weight significantly improves blood sugar control.',
+    macros: [
+      {label: 'السعرات / Calories', val: 'عجز 500-750 kcal/يوم — 500-750 kcal deficit/day'},
+      {label: 'البروتين / Protein', val: '15-20%'},
+      {label: 'الكارب / Carbs', val: '45-60% حبوب كاملة — whole grains'},
+      {label: 'الالياف / Fiber', val: '25-38 جم/يوم — g/day'},
+    ],
+    good_ar: ['شوفان','عدس','حمص','خضروات','اسماك','دجاج مشوي'],
+    good_en: ['Oats','Lentils','Chickpeas','Vegetables','Fish','Grilled chicken'],
+    bad_ar: ['خبز ابيض','مشروبات محلاة','حلويات','اكل مقلي'],
+    bad_en: ['White bread','Sweet drinks','Sweets','Fried food'],
+    ref: 'Ch.26 — Diabetes Mellitus, pp.818-836'
+  },
+  {
+    icon: 'fa-heart', color: '#dc2626',
+    name_ar: 'امراض القلب وضغط الدم', name_en: 'Cardiovascular & Hypertension',
+    overview_ar: 'نظام TLC يستهدف خفض LDL والكوليسترول مع الحفاظ على HDL. DASH يخفض الضغط الانقباضي 8-14 نقطة.',
+    overview_en: 'TLC system targets lowering LDL and cholesterol while maintaining HDL. DASH lowers systolic BP by 8-14 points.',
+    macros: [
+      {label: 'الدهون المشبعة / Saturated Fat', val: '< 7%'},
+      {label: 'اوميغا 3 / Omega-3', val: 'سمك مرتين/اسبوع — fish twice/week'},
+      {label: 'الصوديوم / Sodium', val: '< 2300 مجم/يوم — mg/day'},
+      {label: 'الالياف القابلة للذوبان / Soluble Fiber', val: '10-25 جم/يوم — g/day'},
+    ],
+    good_ar: ['سمك دهني','شوفان','زيت زيتون','مكسرات','فاكهة وخضروات'],
+    good_en: ['Fatty fish','Oats','Olive oil','Nuts','Fruits & veg'],
+    bad_ar: ['لحوم دهنية','زبدة وسمن','اكل مقلي','ملح زائد'],
+    bad_en: ['Fatty meats','Butter & ghee','Fried food','Excess salt'],
+    ref: 'Ch.27 — Cardiovascular Diseases, pp.840-870'
+  },
+  {
+    icon: 'fa-person-pregnant', color: '#9333ea',
+    name_ar: 'الحمل', name_en: 'Pregnancy',
+    overview_ar: 'الاحتياجات ترتفع خاصة للحديد وحمض الفوليك والكالسيوم وDHA. حمض الفوليك يبدا قبل الحمل بشهر.',
+    overview_en: 'Needs increase especially for iron, folate, calcium, and DHA. Folate starts one month before pregnancy.',
+    macros: [
+      {label: 'سعرات اضافية / Extra Calories', val: '+340 ثلث ثاني — 2nd trimester / +452 ثالث — 3rd'},
+      {label: 'البروتين / Protein', val: '+25 جم/يوم — g/day (total ~71g)'},
+      {label: 'حمض الفوليك / Folate', val: '600 ميكروجرام/يوم — mcg/day'},
+      {label: 'DHA', val: '200-300 مجم/يوم — mg/day'},
+    ],
+    good_ar: ['كبدة الدجاج','سلمون وسردين','بيض كامل','بقوليات','البان'],
+    good_en: ['Chicken liver','Salmon & sardines','Whole eggs','Legumes','Dairy'],
+    bad_ar: ['جبن غير مبستر','اسماك زئبق عالي','كافيين زائد'],
+    bad_en: ['Unpasteurized cheese','High-mercury fish','Excess caffeine'],
+    ref: 'Ch.14 — Pregnancy and Lactation, pp.476-512'
+  },
+  {
+    icon: 'fa-baby', color: '#9333ea',
+    name_ar: 'الرضاعة الطبيعية', name_en: 'Lactation',
+    overview_ar: 'الرضاعة تزيد الاحتياجات اكثر من الحمل نفسه. جودة الحليب تتاثر بتغذية الام.',
+    overview_en: 'Lactation increases nutritional needs more than pregnancy. Milk quality is affected by the mothers diet.',
+    macros: [
+      {label: 'سعرات اضافية / Extra Calories', val: '+500 kcal/يوم — day'},
+      {label: 'البروتين / Protein', val: '+25 جم/يوم — g/day'},
+      {label: 'الايودين / Iodine', val: '290 ميكروجرام/يوم — mcg/day (الاعلى في دورة الحياة)'},
+      {label: 'السوائل / Fluids', val: '13 كوب/يوم — 3.1 لتر — cups/day'},
+    ],
+    good_ar: ['سمك مرتين اسبوعيا','البان','بيض','بقوليات'],
+    good_en: ['Fish twice weekly','Dairy','Eggs','Legumes'],
+    bad_ar: ['كافيين زائد','كحول'],
+    bad_en: ['Excess caffeine','Alcohol'],
+    ref: 'Ch.14 — Pregnancy and Lactation, pp.497-505'
+  },
+  {
+    icon: 'fa-kidney', color: '#2563eb',
+    name_ar: 'الفشل الكلوي المزمن (قبل الديلزة)', name_en: 'Chronic Kidney Disease (Pre-Dialysis)',
+    overview_ar: 'تقليل البروتين لتخفيف حمل اليوريا وضبط الصوديوم والبوتاسيوم والفوسفور.',
+    overview_en: 'Protein restriction to reduce urea load and control sodium, potassium, and phosphorus.',
+    macros: [
+      {label: 'السعرات / Calories', val: '35 kcal/كجم/يوم — kg/day'},
+      {label: 'البروتين / Protein', val: '0.6-0.75 جم/كجم — g/kg'},
+      {label: 'الصوديوم / Sodium', val: '1000-3000 مجم/يوم — mg/day'},
+      {label: 'الفوسفور / Phosphorus', val: '800-1000 مجم/يوم — mg/day'},
+    ],
+    good_ar: ['بياض بيض','سمك ابيض','ارز ابيض','تفاح','كرنب'],
+    good_en: ['Egg whites','White fish','White rice','Apple','Cabbage'],
+    bad_ar: ['البان بكثرة','مكسرات','مشروبات غازية','موز'],
+    bad_en: ['Large dairy amounts','Nuts','Soft drinks','Banana'],
+    ref: 'Ch.28 — Renal Diseases, pp.872-892'
+  },
+  {
+    icon: 'fa-person-walking', color: '#16a34a',
+    name_ar: 'السمنة وزيادة الوزن', name_en: 'Obesity & Overweight',
+    overview_ar: 'خسارة 0.5-1 كجم/اسبوع بعجز 500-1000 kcal/يوم. البروتين العالي يحافظ على العضل ويقلل الجوع.',
+    overview_en: 'Lose 0.5-1 kg/week with 500-1000 kcal/day deficit. High protein preserves muscle and reduces hunger.',
+    macros: [
+      {label: 'السعرات / Calories', val: '1200-1500 نساء — women / 1500-1800 رجال — men'},
+      {label: 'البروتين / Protein', val: '25-30% يزيد الشبع — increases satiety'},
+      {label: 'الالياف / Fiber', val: '25-38 جم/يوم — g/day'},
+      {label: 'النشاط / Activity', val: '150 دقيقة/اسبوع هوائي — min/week cardio'},
+    ],
+    good_ar: ['بروتين في كل وجبة','خضروات كثيرة','حبوب كاملة','ماء قبل الاكل'],
+    good_en: ['Protein each meal','Lots of vegetables','Whole grains','Water before meals'],
+    bad_ar: ['مشروبات محلاة','اكل مقلي','وجبات سريعة','حلويات'],
+    bad_en: ['Sweet drinks','Fried food','Fast food','Sweets'],
+    ref: 'Ch.9 — Weight Management, pp.270-310'
+  },
+  {
+    icon: 'fa-stomach', color: '#b34700',
+    name_ar: 'القولون العصبي (IBS)', name_en: 'Irritable Bowel Syndrome (IBS)',
+    overview_ar: 'حمية Low-FODMAP فعالة لدى 75% من المرضى. ادارة التوتر جزء اساسي من العلاج.',
+    overview_en: 'Low-FODMAP diet effective in 75% of patients. Stress management is an essential part of treatment.',
+    macros: [
+      {label: 'الالياف القابلة للذوبان / Soluble Fiber', val: 'psyllium للامساك السائد — for constipation-dominant'},
+      {label: 'الماء / Water', val: '8 اكواب يوميا — cups/day'},
+      {label: 'الوجبات / Meals', val: 'صغيرة ومتكررة — small and frequent'},
+      {label: 'التوتر / Stress', val: 'ادارة التوتر اساسية — stress management essential'},
+    ],
+    good_ar: ['موز','كيوي','جزر','خيار','ارز','شوفان','زبادي'],
+    good_en: ['Banana','Kiwi','Carrots','Cucumber','Rice','Oats','Yogurt'],
+    bad_ar: ['تفاح','بصل وثوم','حليب كامل','قمح بكثرة'],
+    bad_en: ['Apple','Onion & garlic','Whole milk','Large wheat amounts'],
+    ref: 'Ch.24 — Lower GI Disorders, pp.754-780'
+  },
+  {
+    icon: 'fa-fire', color: '#dc2626',
+    name_ar: 'حرقة المعدة / الارتجاع (GERD)', name_en: 'GERD / Acid Reflux',
+    overview_ar: 'الارتجاع يحدث عند ارتداد حمض المعدة للمريء. التعديلات الغذائية وتغيير نمط الحياة اساس العلاج.',
+    overview_en: 'Reflux occurs when stomach acid backs up into the esophagus. Dietary changes and lifestyle modification are the foundation of treatment.',
+    macros: [
+      {label: 'الوجبات / Meals', val: 'صغيرة ومتكررة — small and frequent'},
+      {label: 'التوقيت / Timing', val: 'لا اكل قبل النوم بـ 3 ساعات — no eating 3hrs before bed'},
+      {label: 'الوزن / Weight', val: 'خسارة الوزن تحسن الاعراض — weight loss improves symptoms'},
+      {label: 'وضعية النوم / Sleep', val: 'رفع راس السرير 15-20 سم — raise head 15-20cm'},
+    ],
+    good_ar: ['خضروات مطبوخة','دجاج مشوي','سمك','ارز','موز'],
+    good_en: ['Cooked vegetables','Grilled chicken','Fish','Rice','Banana'],
+    bad_ar: ['قهوة وكافيين','شوكولاتة','بصل وثوم','طماطم','اكل مقلي'],
+    bad_en: ['Coffee & caffeine','Chocolate','Onion & garlic','Tomatoes','Fried food'],
+    ref: 'Ch.23 — Upper GI Disorders, pp.730-750'
+  },
+];
+
+function renderConditions() {
+  document.getElementById('condList').innerHTML = CONDITIONS.map((cond, i) => {
+    const name = IS_AR ? cond.name_ar : cond.name_en;
+    const overview = IS_AR ? cond.overview_ar : cond.overview_en;
+    const good = IS_AR ? cond.good_ar : cond.good_en;
+    const bad = IS_AR ? cond.bad_ar : cond.bad_en;
+    const macrosHtml = cond.macros.map(m => `
+      <div class="rec-row">
+        <div class="rec-label">${m.label}</div>
+        <div>${m.val}</div>
+      </div>`).join('');
+    const goodTags = good.map(f => `<span class="food-tag-good">${f}</span>`).join('');
+    const badTags = bad.map(f => `<span class="food-tag-bad">${f}</span>`).join('');
+    return `
+    <div class="cond-card" onclick="toggleCond(${i})">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:44px;height:44px;border-radius:12px;background:${cond.color}20;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="fa-solid ${cond.icon}" style="font-size:20px;color:${cond.color}"></i>
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:800;color:var(--text)">${name}</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:2px">${overview.substring(0,60)}...</div>
+          </div>
+        </div>
+        <i class="fa-solid fa-chevron-down arr" id="arr_${i}" style="color:var(--muted);font-size:14px"></i>
+      </div>
+      <div class="cond-detail" id="det_${i}">
+        <p style="font-size:14px;color:var(--text-2);margin-bottom:12px;line-height:1.7">${overview}</p>
+        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px">
+          <i class="fa-solid fa-scale-balanced"></i>
+          ${IS_AR ? 'التوصيات الكمية' : 'Quantitative Recommendations'}
+        </div>
+        ${macrosHtml}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:8px">
+              <i class="fa-solid fa-circle-check"></i>
+              ${IS_AR ? 'اطعمة مشجعة' : 'Recommended Foods'}
+            </div>
+            <div>${goodTags}</div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:8px">
+              <i class="fa-solid fa-circle-xmark"></i>
+              ${IS_AR ? 'اطعمة تقلل' : 'Foods to Limit'}
+            </div>
+            <div>${badTags}</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:8px 12px;background:var(--gray);border-radius:8px;font-size:12px;color:var(--muted)">
+          <i class="fa-solid fa-book"></i> ${cond.ref}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCond(i) {
+  const det = document.getElementById('det_' + i);
+  const arr = document.getElementById('arr_' + i);
+  const isOpen = det.classList.contains('open');
+  det.classList.toggle('open');
+  arr.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+renderConditions();
+</script>
+{% endblock %}
