@@ -5,9 +5,16 @@
 <style>
 .day-card{background:#fff;border:1.5px solid var(--gray-2);border-radius:14px;padding:16px;margin-bottom:12px}
 .day-title{font-size:15px;font-weight:800;color:var(--blue);margin-bottom:12px;padding-bottom:8px;border-bottom:1.5px solid var(--gray-2);display:flex;align-items:center;gap:8px}
-.meal-row{margin-bottom:10px}
-.meal-label{font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:4px;display:flex;align-items:center;gap:6px}
 .target-bar{background:var(--blue-pale);border:1.5px solid #93c5fd;border-radius:12px;padding:14px 18px;margin-bottom:16px}
+.cond-check{display:flex;align-items:center;gap:8px;background:var(--gray);border:1.5px solid var(--gray-2);border-radius:10px;padding:10px 14px;cursor:pointer;transition:all .2s;margin-bottom:6px}
+.cond-check:hover{border-color:var(--blue-light);background:var(--blue-pale)}
+.cond-check input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue-light);cursor:pointer}
+.cond-check label{font-size:14px;font-weight:600;cursor:pointer;color:var(--text-2)}
+.cond-notes{display:none;margin-top:10px}
+.cond-notes.show{display:block}
+.cond-note-row{background:#fff;border:1.5px solid var(--gray-2);border-radius:10px;padding:10px 14px;margin-bottom:8px;border-right:4px solid var(--blue-light)}
+.cond-note-title{font-size:12px;font-weight:700;color:var(--blue);margin-bottom:4px}
+.cond-note-val{font-size:13px;color:var(--text-2)}
 </style>
 {% endblock %}
 
@@ -22,7 +29,7 @@
 {% if not user.height or not user.weight or not user.age %}
 <div class="alert alert-warn">
   <i class="fa-solid fa-triangle-exclamation"></i>
-  {{ 'أكمل إعداداتك الشخصية أولاً لحساب أهدافك' if is_ar else 'Complete your profile first to calculate your targets' }}
+  {{ 'أكمل إعداداتك الشخصية أولاً' if is_ar else 'Complete your profile first' }}
 </div>
 <a href="/settings" class="btn btn-primary">
   <i class="fa-solid fa-gear"></i>
@@ -31,7 +38,6 @@
 
 {% else %}
 
-{# حساب الهدف اليومي من بيانات المستخدم #}
 {% set h = user.height | float %}
 {% set w = user.weight | float %}
 {% set age = user.age | int %}
@@ -46,34 +52,40 @@
   {% set goal_label = ('بناء عضل' if is_ar else 'Muscle Gain') %}
 {% else %}
   {% set cal = tdee %}
-  {% set goal_label = ('ثبات الوزن' if is_ar else 'Maintain Weight') %}
+  {% set goal_label = ('ثبات الوزن' if is_ar else 'Maintain') %}
 {% endif %}
 {% set prot = (cal * 0.30 / 4) | int %}
+{% set carb = (cal * 0.45 / 4) | int %}
+{% set fat  = (cal * 0.25 / 9) | int %}
 
-<!-- Target bar مأخوذ من الإعدادات -->
+<!-- Target bar -->
 <div class="target-bar">
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
     <i class="fa-solid fa-user" style="color:var(--blue)"></i>
     <span style="font-size:14px;font-weight:700;color:var(--blue)">{{ user.name }}</span>
-    <span style="font-size:12px;color:var(--muted)">— {{ w }} kg | {{ h }} cm | {{ age }} {{ 'سنة' if is_ar else 'yrs' }}</span>
+    <span style="font-size:12px;color:var(--muted)">{{ w }}kg | {{ h }}cm | {{ age }}{{ 'سنة' if is_ar else 'yrs' }}</span>
   </div>
-  <div style="display:flex;gap:20px;flex-wrap:wrap">
-    <div>
-      <div style="font-size:11px;font-weight:700;color:var(--muted)">{{ 'هدفك' if is_ar else 'Goal' }}</div>
-      <div style="font-size:15px;font-weight:800;color:var(--blue)">{{ goal_label }}</div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap">
+    <div style="text-align:center">
+      <div style="font-size:11px;font-weight:700;color:var(--muted)">{{ 'الهدف' if is_ar else 'Goal' }}</div>
+      <div style="font-size:14px;font-weight:800;color:var(--blue)">{{ goal_label }}</div>
     </div>
-    <div>
-      <div style="font-size:11px;font-weight:700;color:var(--muted)">{{ 'الهدف اليومي' if is_ar else 'Daily Target' }}</div>
-      <div style="font-size:20px;font-weight:900;color:var(--blue-light)">{{ cal }} <span style="font-size:12px">kcal</span></div>
+    <div style="text-align:center">
+      <div style="font-size:11px;font-weight:700;color:var(--muted)">{{ 'السعرات' if is_ar else 'Calories' }}</div>
+      <div style="font-size:20px;font-weight:900;color:var(--blue-light)">{{ cal }}</div>
     </div>
-    <div>
+    <div style="text-align:center">
       <div style="font-size:11px;font-weight:700;color:var(--muted)">{{ 'البروتين' if is_ar else 'Protein' }}</div>
-      <div style="font-size:20px;font-weight:900;color:var(--green-light)">{{ prot }} <span style="font-size:12px">{{ 'جرام' if is_ar else 'g' }}</span></div>
+      <div style="font-size:20px;font-weight:900;color:var(--green-light)">{{ prot }}{{ 'ج' if is_ar else 'g' }}</div>
     </div>
-  </div>
-  <div style="font-size:12px;color:var(--muted);margin-top:8px">
-    <i class="fa-solid fa-circle-check" style="color:var(--green-light)"></i>
-    {{ 'البيانات محملة من إعداداتك الشخصية تلقائياً' if is_ar else 'Data loaded automatically from your profile' }}
+    <div style="text-align:center">
+      <div style="font-size:11px;font-weight:700;color:var(--muted)">{{ 'الكارب' if is_ar else 'Carbs' }}</div>
+      <div style="font-size:20px;font-weight:900;color:var(--orange)">{{ carb }}{{ 'ج' if is_ar else 'g' }}</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:11px;font-weight:700;color:var(--muted)">{{ 'الدهون' if is_ar else 'Fat' }}</div>
+      <div style="font-size:20px;font-weight:900;color:var(--red)">{{ fat }}{{ 'ج' if is_ar else 'g' }}</div>
+    </div>
   </div>
 </div>
 
@@ -81,6 +93,21 @@
   <input type="hidden" name="target_cal" value="{{ cal }}">
   <input type="hidden" name="target_prot" value="{{ prot }}">
 
+  <!-- الحالات المرضية -->
+  <div class="card">
+    <div class="card-title">
+      <i class="fa-solid fa-stethoscope"></i>
+      {{ 'الحالات المرضية (اختياري)' if is_ar else 'Clinical Conditions (optional)' }}
+    </div>
+    <div class="alert alert-info" style="margin-bottom:12px">
+      <i class="fa-solid fa-circle-info"></i>
+      {{ 'اختر الحالة لإظهار التوصيات الغذائية المخصصة' if is_ar else 'Select a condition to show custom nutrition recommendations' }}
+    </div>
+    <div id="condList"></div>
+    <div class="cond-notes" id="condNotes"></div>
+  </div>
+
+  <!-- أيام الجدول -->
   {% set days_ar = ['الاحد','الاثنين','الثلاثاء','الاربعاء','الخميس','الجمعة','السبت'] %}
   {% set days_en = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] %}
   {% set meals_ar = [('fa-sun','فطار'),('fa-cloud-sun','غداء'),('fa-moon','عشاء'),('fa-apple-whole','سناك')] %}
@@ -96,8 +123,8 @@
     </div>
     <div class="grid-2">
       {% for icon, meal_name in meals %}
-      <div class="meal-row">
-        <div class="meal-label">
+      <div style="margin-bottom:10px">
+        <div style="font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:4px;display:flex;align-items:center;gap:6px">
           <i class="fa-solid {{ icon }}" style="color:var(--blue-light)"></i>
           {{ meal_name }}
         </div>
@@ -110,7 +137,7 @@
   </div>
   {% endfor %}
 
-  <!-- حفظ الجدول -->
+  <!-- حفظ -->
   <div class="card">
     <div class="card-title">
       <i class="fa-solid fa-floppy-disk"></i>
@@ -136,6 +163,187 @@
     </button>
   </div>
 </form>
+
+<script>
+const IS_AR = {{ 'true' if is_ar else 'false' }};
+
+const CONDITIONS = [
+  {
+    key: 'diabetes_t2',
+    icon: 'fa-droplet', color: '#dc2626',
+    name_ar: 'السكري النوع الثاني', name_en: 'Type 2 Diabetes',
+    notes: [
+      {label_ar: 'السعرات', label_en: 'Calories', val: 'عجز 500-750 kcal/يوم — Deficit 500-750 kcal/day'},
+      {label_ar: 'الكارب', label_en: 'Carbs', val: '45-60% حبوب كاملة فقط — Whole grains only'},
+      {label_ar: 'الالياف', label_en: 'Fiber', val: '25-38 جم/يوم — g/day'},
+      {label_ar: 'تجنب', label_en: 'Avoid', val: 'خبز ابيض، مشروبات محلاة، حلويات — White bread, sweet drinks, sweets'},
+    ]
+  },
+  {
+    key: 'diabetes_t1',
+    icon: 'fa-syringe', color: '#dc2626',
+    name_ar: 'السكري النوع الاول', name_en: 'Type 1 Diabetes',
+    notes: [
+      {label_ar: 'الكارب', label_en: 'Carbs', val: '45-60% موزعة بثبات مع الانسولين — Consistent distribution with insulin'},
+      {label_ar: 'البروتين', label_en: 'Protein', val: '15-20% | 0.8-1.0 جم/كجم — g/kg'},
+      {label_ar: 'ملاحظة', label_en: 'Note', val: 'عد الكارب اساسي — 15 جم = وحدة انسولين — Carb counting essential'},
+      {label_ar: 'تجنب', label_en: 'Avoid', val: 'السكريات البسيطة المنفردة — Simple sugars alone'},
+    ]
+  },
+  {
+    key: 'hypertension',
+    icon: 'fa-heart-pulse', color: '#dc2626',
+    name_ar: 'ضغط الدم المرتفع', name_en: 'Hypertension',
+    notes: [
+      {label_ar: 'الصوديوم', label_en: 'Sodium', val: '< 2300 مجم/يوم — mg/day (DASH: < 1500)'},
+      {label_ar: 'البوتاسيوم', label_en: 'Potassium', val: '4700 مجم/يوم من الفاكهة والخضار — mg/day from fruits & veg'},
+      {label_ar: 'حمية DASH', label_en: 'DASH Diet', val: 'فاكهة 4-5 حصص + خضار 4-5 حصص يوميا'},
+      {label_ar: 'تجنب', label_en: 'Avoid', val: 'ملح زائد، اطعمة معلبة، مخللات — Excess salt, canned foods, pickles'},
+    ]
+  },
+  {
+    key: 'cardiovascular',
+    icon: 'fa-heart', color: '#dc2626',
+    name_ar: 'امراض القلب', name_en: 'Cardiovascular Disease',
+    notes: [
+      {label_ar: 'الدهون المشبعة', label_en: 'Saturated Fat', val: '< 7% من السعرات الكلية — of total calories'},
+      {label_ar: 'اوميغا 3', label_en: 'Omega-3', val: 'سمك دهني مرتين/اسبوع — Fatty fish twice/week'},
+      {label_ar: 'الالياف القابلة للذوبان', label_en: 'Soluble Fiber', val: '10-25 جم/يوم شوفان وبقوليات — g/day oats & legumes'},
+      {label_ar: 'تجنب', label_en: 'Avoid', val: 'دهون متحولة، لحوم دهنية، زبدة — Trans fat, fatty meats, butter'},
+    ]
+  },
+  {
+    key: 'ckd',
+    icon: 'fa-filter', color: '#2563eb',
+    name_ar: 'الفشل الكلوي المزمن', name_en: 'Chronic Kidney Disease',
+    notes: [
+      {label_ar: 'البروتين', label_en: 'Protein', val: '0.6-0.75 جم/كجم/يوم — g/kg/day'},
+      {label_ar: 'البوتاسيوم', label_en: 'Potassium', val: 'تقليل: موز، طماطم، بطاطس — Limit: banana, tomato, potato'},
+      {label_ar: 'الفوسفور', label_en: 'Phosphorus', val: '800-1000 مجم/يوم — تجنب البان والمكسرات الكثيرة'},
+      {label_ar: 'السوائل', label_en: 'Fluids', val: 'حسب كمية البول اليومية — Based on daily urine output'},
+    ]
+  },
+  {
+    key: 'pregnancy',
+    icon: 'fa-person-pregnant', color: '#9333ea',
+    name_ar: 'الحمل', name_en: 'Pregnancy',
+    notes: [
+      {label_ar: 'سعرات اضافية', label_en: 'Extra Calories', val: '+340 ثلث ثاني — 2nd trim / +452 ثالث — 3rd trim'},
+      {label_ar: 'حمض الفوليك', label_en: 'Folate', val: '600 ميكروجرام/يوم — mcg/day'},
+      {label_ar: 'الحديد', label_en: 'Iron', val: '27 مجم/يوم — mg/day (ضعف المعدل الطبيعي)'},
+      {label_ar: 'DHA', label_en: 'DHA', val: '200-300 مجم/يوم — سلمون وسردين — mg/day'},
+    ]
+  },
+  {
+    key: 'lactation',
+    icon: 'fa-baby', color: '#9333ea',
+    name_ar: 'الرضاعة الطبيعية', name_en: 'Lactation',
+    notes: [
+      {label_ar: 'سعرات اضافية', label_en: 'Extra Calories', val: '+500 kcal/يوم — day'},
+      {label_ar: 'الايودين', label_en: 'Iodine', val: '290 ميكروجرام/يوم — mcg/day (الاعلى في دورة الحياة)'},
+      {label_ar: 'السوائل', label_en: 'Fluids', val: '13 كوب/يوم — cups/day (3.1 لتر)'},
+      {label_ar: 'DHA', label_en: 'DHA', val: '200-300 مجم/يوم — يؤثر على تطور دماغ الرضيع'},
+    ]
+  },
+  {
+    key: 'obesity',
+    icon: 'fa-weight-scale', color: '#b34700',
+    name_ar: 'السمنة وزيادة الوزن', name_en: 'Obesity',
+    notes: [
+      {label_ar: 'العجز الكلوري', label_en: 'Calorie Deficit', val: '500-750 kcal/يوم للخسارة الامنة — safe weight loss'},
+      {label_ar: 'البروتين', label_en: 'Protein', val: '25-30% يحافظ على العضل ويزيد الشبع'},
+      {label_ar: 'الالياف', label_en: 'Fiber', val: '25-38 جم/يوم تزيد الشبع'},
+      {label_ar: 'النشاط', label_en: 'Activity', val: '150 دقيقة هوائي/اسبوع — min cardio/week'},
+    ]
+  },
+  {
+    key: 'ibs',
+    icon: 'fa-stomach', color: '#b34700',
+    name_ar: 'القولون العصبي (IBS)', name_en: 'IBS',
+    notes: [
+      {label_ar: 'الحمية', label_en: 'Diet', val: 'Low-FODMAP فعالة لدى 75% من المرضى'},
+      {label_ar: 'الالياف', label_en: 'Fiber', val: 'psyllium للامساك السائد — بحذر في الاسهال'},
+      {label_ar: 'تجنب', label_en: 'Avoid', val: 'تفاح، بصل، ثوم، حليب، قمح كثير'},
+      {label_ar: 'مسموح', label_en: 'Allowed', val: 'موز، كيوي، جزر، خيار، ارز، شوفان'},
+    ]
+  },
+  {
+    key: 'gerd',
+    icon: 'fa-fire', color: '#dc2626',
+    name_ar: 'حرقة المعدة (GERD)', name_en: 'GERD',
+    notes: [
+      {label_ar: 'التوقيت', label_en: 'Timing', val: 'لا اكل قبل النوم بـ 3 ساعات — no food 3hrs before bed'},
+      {label_ar: 'الوجبات', label_en: 'Meals', val: 'صغيرة ومتكررة — تجنب الاكل الكثير دفعة واحدة'},
+      {label_ar: 'تجنب', label_en: 'Avoid', val: 'قهوة، شوكولاتة، بصل، طماطم، مقليات'},
+      {label_ar: 'النوم', label_en: 'Sleep', val: 'رفع راس السرير 15-20 سم — Raise head 15-20cm'},
+    ]
+  },
+  {
+    key: 'liver',
+    icon: 'fa-liver', color: '#b34700',
+    name_ar: 'تليف الكبد', name_en: 'Liver Cirrhosis',
+    notes: [
+      {label_ar: 'السعرات', label_en: 'Calories', val: '35-40 kcal/كجم/يوم من الوزن الجاف — dry weight'},
+      {label_ar: 'البروتين', label_en: 'Protein', val: '1.2-1.5 جم/كجم/يوم — لا تقلل الا عند اعتلال الدماغ'},
+      {label_ar: 'الصوديوم', label_en: 'Sodium', val: '< 2000 مجم/يوم عند الاستسقاء — with ascites'},
+      {label_ar: 'وجبة الليل', label_en: 'Late Snack', val: 'وجبة خفيفة قبل النوم تقلل الانهيار العضلي'},
+    ]
+  },
+  {
+    key: 'cancer',
+    icon: 'fa-ribbon', color: '#9333ea',
+    name_ar: 'السرطان', name_en: 'Cancer',
+    notes: [
+      {label_ar: 'السعرات', label_en: 'Calories', val: '25-35 kcal/كجم/يوم — رفعها عند النحول الشديد'},
+      {label_ar: 'البروتين', label_en: 'Protein', val: '1.2-2.0 جم/كجم/يوم — لتعويض الهدم العضلي'},
+      {label_ar: 'الوجبات', label_en: 'Meals', val: '6-8 وجبات صغيرة — الاولوية لادخال السعرات'},
+      {label_ar: 'الغثيان', label_en: 'Nausea', val: 'اكل بارد وجاف، تجنب الروائح القوية'},
+    ]
+  },
+  {
+    key: 'metabolic',
+    icon: 'fa-flask', color: '#2563eb',
+    name_ar: 'المتلازمة الايضية', name_en: 'Metabolic Syndrome',
+    notes: [
+      {label_ar: 'الهدف', label_en: 'Goal', val: 'خسارة 5-10% من الوزن تحسن كل المكونات'},
+      {label_ar: 'الكارب', label_en: 'Carbs', val: 'تقليل الكارب المكرر والسكريات البسيطة'},
+      {label_ar: 'الدهون', label_en: 'Fats', val: 'زيادة الدهون الاحادية غير المشبعة — زيت زيتون، افوكادو'},
+      {label_ar: 'النشاط', label_en: 'Activity', val: '150 دقيقة هوائي/اسبوع اساسي'},
+    ]
+  },
+];
+
+function renderConditions() {
+  const list = document.getElementById('condList');
+  list.innerHTML = CONDITIONS.map(c => `
+    <div class="cond-check" onclick="toggleCond('${c.key}', event)">
+      <input type="checkbox" name="condition" value="${c.key}" id="c_${c.key}" onclick="toggleCond('${c.key}', event)">
+      <div style="width:32px;height:32px;border-radius:8px;background:${c.color}20;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i class="fa-solid ${c.icon}" style="color:${c.color};font-size:14px"></i>
+      </div>
+      <label for="c_${c.key}">${IS_AR ? c.name_ar : c.name_en}</label>
+    </div>
+    <div class="cond-notes" id="notes_${c.key}">
+      ${c.notes.map(n => `
+        <div class="cond-note-row">
+          <div class="cond-note-title">${IS_AR ? n.label_ar : n.label_en}</div>
+          <div class="cond-note-val">${n.val}</div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function toggleCond(key, event) {
+  event.stopPropagation();
+  const cb = document.getElementById('c_' + key);
+  if (event.target !== cb) cb.checked = !cb.checked;
+  const notes = document.getElementById('notes_' + key);
+  notes.classList.toggle('show', cb.checked);
+}
+
+renderConditions();
+</script>
 
 {% endif %}
 {% endblock %}
