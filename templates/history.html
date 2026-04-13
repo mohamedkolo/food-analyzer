@@ -1,6 +1,125 @@
 {% extends "base.html" %}
-{% block title %}سجل الوزن{% endblock %}
+{% block title %}{{ 'سجل الوزن' if (lang or 'ar')=='ar' else 'Weight Log' }}{% endblock %}
+
 {% block content %}
-<div class="page-title"><span class="icon">📈</span> سجل الوزن</div>
-<div class="alert alert-info">⏳ هذه الصفحة قيد التطوير — قريباً!</div>
+{% set is_ar = (lang or 'ar') == 'ar' %}
+
+<div class="page-title">
+  <i class="fa-solid fa-chart-line"></i>
+  {{ 'سجل الوزن' if is_ar else 'Weight Log' }}
+</div>
+
+<!-- Log form -->
+<div class="card">
+  <div class="card-title">
+    <i class="fa-solid fa-scale-unbalanced"></i>
+    {{ 'سجل وزنك اليوم' if is_ar else 'Log Your Weight Today' }}
+  </div>
+  <form method="POST" action="/log_weight">
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">{{ 'الوزن (كجم)' if is_ar else 'Weight (kg)' }}</label>
+        <input class="form-input" type="number" name="weight" step="0.1" placeholder="70.5" required>
+      </div>
+      <div style="display:flex;align-items:flex-end">
+        <button type="submit" class="btn btn-success btn-full">
+          <i class="fa-solid fa-check"></i>
+          {{ 'تسجيل' if is_ar else 'Log' }}
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+{% if logs %}
+
+<!-- Stats -->
+{% set weights = logs | map(attribute='weight') | list %}
+<div class="grid-3" style="margin-bottom:16px">
+  <div class="metric">
+    <i class="fa-solid fa-arrow-down" style="color:var(--green-light)"></i>
+    <div class="metric-label">{{ 'أقل وزن' if is_ar else 'Lowest' }}</div>
+    <div class="metric-value" style="color:var(--green-light)">{{ weights | min }}</div>
+    <div class="metric-unit">kg</div>
+  </div>
+  <div class="metric">
+    <i class="fa-solid fa-arrow-up" style="color:var(--red)"></i>
+    <div class="metric-label">{{ 'أعلى وزن' if is_ar else 'Highest' }}</div>
+    <div class="metric-value" style="color:var(--red)">{{ weights | max }}</div>
+    <div class="metric-unit">kg</div>
+  </div>
+  <div class="metric">
+    <i class="fa-solid fa-clock-rotate-left" style="color:var(--blue-light)"></i>
+    <div class="metric-label">{{ 'آخر وزن' if is_ar else 'Latest' }}</div>
+    <div class="metric-value" style="color:var(--blue-light)">{{ logs[0].weight }}</div>
+    <div class="metric-unit">kg</div>
+  </div>
+</div>
+
+{% if logs | length > 1 %}
+{% set diff = (logs[0].weight - logs[-1].weight) | round(1) %}
+<div class="alert {{ 'alert-success' if diff > 0 else 'alert-info' }}">
+  <i class="fa-solid fa-{{ 'arrow-trend-down' if diff > 0 else 'arrow-trend-up' }}"></i>
+  {% if diff > 0 %}
+    {{ 'خسرت' if is_ar else 'Lost' }} {{ diff }} kg {{ 'منذ البداية' if is_ar else 'since start' }} 🎉
+  {% elif diff < 0 %}
+    {{ 'زدت' if is_ar else 'Gained' }} {{ diff | abs }} kg {{ 'منذ البداية' if is_ar else 'since start' }}
+  {% else %}
+    {{ 'وزنك ثابت' if is_ar else 'Weight stable' }} ⚖️
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Table -->
+<div class="card">
+  <div class="card-title">
+    <i class="fa-solid fa-table"></i>
+    {{ 'سجل القياسات' if is_ar else 'Measurements Log' }}
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:14px">
+    <thead>
+      <tr style="background:var(--blue-pale)">
+        <th style="padding:10px 14px;text-align:right;color:var(--blue);font-weight:700">
+          <i class="fa-solid fa-calendar"></i> {{ 'التاريخ' if is_ar else 'Date' }}
+        </th>
+        <th style="padding:10px 14px;text-align:center;color:var(--blue);font-weight:700">
+          <i class="fa-solid fa-weight-scale"></i> {{ 'الوزن' if is_ar else 'Weight' }}
+        </th>
+        <th style="padding:10px 14px;text-align:center;color:var(--blue);font-weight:700">
+          {{ 'التغيير' if is_ar else 'Change' }}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i, log in logs | enumerate %}
+      {% if i < logs | length - 1 %}
+        {% set change = (log.weight - logs[i+1].weight) | round(1) %}
+      {% else %}
+        {% set change = 0 %}
+      {% endif %}
+      <tr style="border-bottom:1px solid var(--gray-2)">
+        <td style="padding:10px 14px">{{ log.logged_at[:10] }}</td>
+        <td style="padding:10px 14px;text-align:center;font-weight:700">{{ log.weight }} kg</td>
+        <td style="padding:10px 14px;text-align:center">
+          {% if i > 0 and change != 0 %}
+            <span style="color:{{ '#16a34a' if change < 0 else '#dc2626' }};font-weight:700;font-size:13px">
+              {{ '+' if change > 0 else '' }}{{ change }} kg
+            </span>
+          {% else %}
+            <span style="color:var(--muted)">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% else %}
+<div class="alert alert-info">
+  <i class="fa-solid fa-circle-info"></i>
+  {{ 'سجل وزنك اليوم لتبدأ متابعة تقدمك!' if is_ar else 'Log your weight today to start tracking your progress!' }}
+</div>
+{% endif %}
+
 {% endblock %}
