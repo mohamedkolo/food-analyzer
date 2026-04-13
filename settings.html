@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}الإعدادات{% endblock %}
+
+{% block content %}
+<div class="page-title"><span class="icon">⚙️</span> الإعدادات الشخصية</div>
+
+{% if saved %}
+<div class="alert alert-success">✅ تم الحفظ وحساب أهدافك!</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-title">📏 البيانات الجسمية</div>
+  <form method="POST" action="/settings">
+    <div class="grid-3">
+      <div class="form-group">
+        <label class="form-label">الطول (سم)</label>
+        <input class="form-input" type="number" name="height" value="{{ user.height or '' }}" placeholder="170" step="0.5">
+      </div>
+      <div class="form-group">
+        <label class="form-label">الوزن (كجم)</label>
+        <input class="form-input" type="number" name="weight" value="{{ user.weight or '' }}" placeholder="70" step="0.1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">العمر (سنة)</label>
+        <input class="form-input" type="number" name="age" value="{{ user.age or '' }}" placeholder="25">
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">الجنس</label>
+        <select class="form-select" name="gender">
+          <option value="ذكر" {% if user.gender=='ذكر' %}selected{% endif %}>ذكر</option>
+          <option value="أنثى" {% if user.gender=='أنثى' %}selected{% endif %}>أنثى</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">🎯 هدفك</label>
+        <select class="form-select" name="goal">
+          <option value="maintain" {% if user.goal=='maintain' %}selected{% endif %}>⚖️ ثبات الوزن</option>
+          <option value="fat_loss" {% if user.goal=='fat_loss' %}selected{% endif %}>🔥 خسارة دهون</option>
+          <option value="muscle_gain" {% if user.goal=='muscle_gain' %}selected{% endif %}>💪 بناء عضل</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">🏃 مستوى النشاط</label>
+      <select class="form-select" name="activity">
+        <option value="1.2"    {% if user.activity==1.2 %}selected{% endif %}>مستقر (عمل مكتبي)</option>
+        <option value="1.375"  {% if user.activity==1.375 %}selected{% endif %}>خفيف (1-3 أيام رياضة)</option>
+        <option value="1.55"   {% if user.activity==1.55 or not user.activity %}selected{% endif %}>معتدل (3-5 أيام)</option>
+        <option value="1.725"  {% if user.activity==1.725 %}selected{% endif %}>نشيط (6-7 أيام)</option>
+        <option value="1.9"    {% if user.activity==1.9 %}selected{% endif %}>رياضي محترف</option>
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-full">💾 حفظ وحساب الأهداف</button>
+  </form>
+</div>
+{% endblock %}

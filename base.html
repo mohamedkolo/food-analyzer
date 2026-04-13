@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="{{ lang or 'ar' }}" dir="{{ 'rtl' if (lang or 'ar') == 'ar' else 'ltr' }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NutraX — {% block title %}{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#1a3a6b;--blue-light:#2563eb;--blue-pale:#dce8f5;--blue-mid:#1d4ed8;
+  --green:#1a5c3a;--green-light:#16a34a;--green-pale:#e8f5ec;
+  --red:#8b0000;--red-pale:#fef2f2;
+  --orange:#b34700;--orange-pale:#fef3e2;
+  --gray:#f4f6fa;--gray-2:#e2e8f0;--gray-3:#f8fafc;
+  --text:#0f172a;--text-2:#374151;--muted:#64748b;--muted-2:#94a3b8;
+  --white:#ffffff;
+  --sidebar-w:240px;
+  --header-h:60px;
+}
+body{
+  font-family:'Cairo',sans-serif;
+  background:var(--gray);
+  color:var(--text);
+  min-height:100vh;
+}
+
+/* ─── HEADER ─── */
+.header{
+  position:fixed;top:0;right:0;left:0;
+  height:var(--header-h);
+  background:var(--blue);
+  display:flex;align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
+  z-index:100;
+  box-shadow:0 2px 12px rgba(0,0,0,0.15);
+}
+.header-logo{
+  color:var(--white);font-size:18px;font-weight:900;
+  display:flex;align-items:center;gap:8px;
+}
+.header-logo span{font-size:22px}
+.header-actions{display:flex;align-items:center;gap:10px}
+.header-btn{
+  background:rgba(255,255,255,0.15);
+  color:var(--white);border:none;
+  padding:7px 14px;border-radius:8px;
+  font-family:'Cairo',sans-serif;font-size:13px;
+  font-weight:600;cursor:pointer;
+  transition:background .2s;text-decoration:none;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.header-btn:hover{background:rgba(255,255,255,0.25)}
+.user-badge{
+  background:rgba(255,255,255,0.1);
+  color:var(--white);font-size:12px;font-weight:600;
+  padding:6px 12px;border-radius:8px;
+  border:1px solid rgba(255,255,255,0.2);
+}
+
+/* ─── SIDEBAR ─── */
+.sidebar{
+  position:fixed;
+  top:var(--header-h);right:0;bottom:0;
+  width:var(--sidebar-w);
+  background:var(--white);
+  border-left:1px solid var(--gray-2);
+  overflow-y:auto;padding:16px 12px;
+  z-index:90;
+  transition:transform .3s ease;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 14px;border-radius:10px;
+  text-decoration:none;color:var(--text-2);
+  font-size:14px;font-weight:600;
+  margin-bottom:4px;transition:all .2s;
+  cursor:pointer;border:none;background:none;
+  width:100%;text-align:right;
+}
+.nav-item:hover{background:var(--gray);color:var(--blue)}
+.nav-item.active{
+  background:var(--blue-pale);color:var(--blue);
+  border-right:3px solid var(--blue);
+}
+.nav-item .nav-icon{font-size:18px;min-width:24px;text-align:center}
+.nav-divider{
+  height:1px;background:var(--gray-2);
+  margin:12px 0;
+}
+.nav-section-label{
+  font-size:11px;font-weight:700;color:var(--muted-2);
+  letter-spacing:1px;padding:4px 14px;margin-bottom:4px;
+}
+
+/* ─── MAIN ─── */
+.main{
+  margin-top:var(--header-h);
+  margin-right:var(--sidebar-w);
+  padding:24px 20px;
+  min-height:calc(100vh - var(--header-h));
+}
+
+/* ─── CARDS ─── */
+.card{
+  background:var(--white);
+  border:1.5px solid var(--gray-2);
+  border-radius:16px;
+  padding:20px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.04);
+  margin-bottom:16px;
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;
+  top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--blue),var(--blue-light));
+}
+.card-title{
+  font-size:15px;font-weight:800;
+  color:var(--blue);margin-bottom:14px;
+  padding-bottom:10px;
+  border-bottom:1.5px solid var(--gray-2);
+}
+
+/* ─── PAGE TITLE ─── */
+.page-title{
+  font-size:20px;font-weight:900;
+  color:var(--text);margin-bottom:20px;
+  display:flex;align-items:center;gap:10px;
+}
+.page-title .icon{font-size:26px}
+
+/* ─── METRIC CARDS ─── */
+.metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.metric{
+  background:var(--white);border:1.5px solid var(--gray-2);
+  border-radius:14px;padding:16px;text-align:center;
+  box-shadow:0 1px 6px rgba(0,0,0,0.04);
+}
+.metric-icon{font-size:22px;margin-bottom:6px}
+.metric-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;margin-bottom:4px}
+.metric-value{font-size:24px;font-weight:900;color:var(--text)}
+.metric-unit{font-size:12px;color:var(--muted-2);margin-top:2px}
+
+/* ─── ALERTS ─── */
+.alert{padding:12px 16px;border-radius:10px;font-size:14px;font-weight:500;margin-bottom:12px;line-height:1.6}
+.alert-info{background:var(--blue-pale);color:#1e3a8a;border:1px solid #93c5fd}
+.alert-success{background:var(--green-pale);color:#14532d;border:1px solid #86efac}
+.alert-warn{background:#fffbeb;color:#78350f;border:1px solid #fcd34d}
+.alert-error{background:var(--red-pale);color:#7f1d1d;border:1px solid #fca5a5}
+
+/* ─── FORM ELEMENTS ─── */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:5px}
+.form-input,.form-select,.form-textarea{
+  width:100%;padding:11px 14px;
+  border:2px solid var(--gray-2);border-radius:10px;
+  font-family:'Cairo',sans-serif;font-size:14px;
+  color:var(--text);background:var(--white);
+  transition:border .2s;outline:none;text-align:right;
+}
+.form-input:focus,.form-select:focus,.form-textarea:focus{
+  border-color:var(--blue-light);
+  box-shadow:0 0 0 3px rgba(37,99,235,0.1);
+}
+.form-textarea{resize:vertical;min-height:80px}
+
+/* ─── BUTTONS ─── */
+.btn{
+  padding:11px 22px;border:none;border-radius:10px;
+  font-family:'Cairo',sans-serif;font-size:14px;
+  font-weight:700;cursor:pointer;transition:all .2s;
+  display:inline-flex;align-items:center;gap:6px;
+  text-decoration:none;
+}
+.btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue-light));color:var(--white)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(37,99,235,0.3)}
+.btn-success{background:linear-gradient(135deg,var(--green),var(--green-light));color:var(--white)}
+.btn-success:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(22,163,74,0.3)}
+.btn-outline{background:transparent;color:var(--blue);border:2px solid var(--blue-pale)}
+.btn-outline:hover{background:var(--blue-pale)}
+.btn-danger{background:var(--red-pale);color:var(--red);border:1px solid #fca5a5}
+.btn-full{width:100%;justify-content:center}
+
+/* ─── GRID ─── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
+
+/* ─── BMI BADGES ─── */
+.bmi-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700}
+.bmi-under{background:var(--blue-pale);color:var(--blue)}
+.bmi-normal{background:var(--green-pale);color:var(--green)}
+.bmi-over{background:#fffbeb;color:var(--orange)}
+.bmi-obese{background:var(--red-pale);color:var(--red)}
+
+/* ─── PROGRESS BAR ─── */
+.prog-wrap{background:var(--gray-2);border-radius:20px;height:8px;overflow:hidden;margin:4px 0 12px}
+.prog-fill{height:8px;border-radius:20px;transition:width .6s}
+.prog-blue{background:linear-gradient(90deg,var(--blue),var(--blue-light))}
+.prog-green{background:linear-gradient(90deg,var(--green),var(--green-light))}
+.prog-orange{background:linear-gradient(90deg,var(--orange),#fbbf24)}
+.prog-red{background:linear-gradient(90deg,var(--red),#f87171)}
+
+/* ─── MOBILE ─── */
+@media(max-width:768px){
+  .sidebar{transform:translateX(100%);width:100%}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-right:0;padding:16px 14px 80px}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
+  .metrics{grid-template-columns:1fr 1fr}
+  .page-title{font-size:18px}
+
+  /* Mobile bottom nav */
+  .mobile-nav{
+    display:flex;position:fixed;bottom:0;left:0;right:0;
+    background:var(--white);border-top:2px solid var(--gray-2);
+    padding:6px 0 10px;justify-content:space-around;
+    z-index:100;box-shadow:0 -2px 16px rgba(0,0,0,0.08);
+  }
+  .mn-item{
+    display:flex;flex-direction:column;align-items:center;
+    color:var(--muted-2);font-size:10px;font-weight:600;
+    cursor:pointer;min-width:50px;text-decoration:none;
+    transition:color .2s;
+  }
+  .mn-item.active{color:var(--blue-light)}
+  .mn-item .mn-icon{font-size:20px;margin-bottom:2px}
+}
+@media(min-width:769px){
+  .mobile-nav{display:none}
+  .menu-toggle{display:none}
+}
+
+/* Menu toggle (mobile) */
+.menu-toggle{
+  background:rgba(255,255,255,0.15);border:none;
+  color:var(--white);font-size:20px;cursor:pointer;
+  width:36px;height:36px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* Overlay */
+.sidebar-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.4);z-index:89;
+}
+.sidebar-overlay.show{display:block}
+</style>
+{% block extra_style %}{% endblock %}
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div style="display:flex;align-items:center;gap:12px">
+    <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+    <div class="header-logo">
+      <span>🥗</span> NutraX
+    </div>
+  </div>
+  <div class="header-actions">
+    <a href="/api/lang/{{ 'en' if lang=='ar' else 'ar' }}" class="header-btn">
+      🌐 {{ 'English' if lang=='ar' else 'عربي' }}
+    </a>
+    <span class="user-badge">👤 {{ user.name if user else '' }}</span>
+    <a href="/logout" class="header-btn">🚪 خروج</a>
+  </div>
+</header>
+
+<!-- Sidebar overlay (mobile) -->
+<div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+  <div style="padding:8px 14px 16px;border-bottom:1px solid var(--gray-2);margin-bottom:12px">
+    <div style="font-size:15px;font-weight:700;color:var(--text)">{{ user.name if user else '' }}</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:2px">{{ user.email if user else '' }}</div>
+  </div>
+
+  <div class="nav-section-label">القائمة الرئيسية</div>
+  <a href="/dashboard" class="nav-item {% if request.endpoint=='dashboard' %}active{% endif %}">
+    <span class="nav-icon">🏠</span> الرئيسية
+  </a>
+  <a href="/analyzer" class="nav-item {% if request.endpoint=='analyzer' %}active{% endif %}">
+    <span class="nav-icon">🔍</span> محلل الطعام
+  </a>
+  <a href="/planner" class="nav-item {% if request.endpoint=='planner' %}active{% endif %}">
+    <span class="nav-icon">📅</span> مصمم الجدول
+  </a>
+  <a href="/saved" class="nav-item {% if request.endpoint=='saved' %}active{% endif %}">
+    <span class="nav-icon">💾</span> جداولي
+  </a>
+
+  <div class="nav-divider"></div>
+  <div class="nav-section-label">المتابعة</div>
+  <a href="/history" class="nav-item {% if request.endpoint=='history' %}active{% endif %}">
+    <span class="nav-icon">📈</span> سجل الوزن
+  </a>
+  <a href="/clinical" class="nav-item {% if request.endpoint=='clinical' %}active{% endif %}">
+    <span class="nav-icon">📚</span> المرجع الكلينيكي
+  </a>
+
+  <div class="nav-divider"></div>
+  <div class="nav-section-label">الحساب</div>
+  <a href="/settings" class="nav-item {% if request.endpoint=='settings' %}active{% endif %}">
+    <span class="nav-icon">⚙️</span> الإعدادات
+  </a>
+  <a href="/logout" class="nav-item" style="color:#991b1b">
+    <span class="nav-icon">🚪</span> خروج
+  </a>
+</nav>
+
+<!-- Main content -->
+<main class="main">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- Mobile bottom nav -->
+<nav class="mobile-nav">
+  <a href="/dashboard" class="mn-item {% if request.endpoint=='dashboard' %}active{% endif %}">
+    <span class="mn-icon">🏠</span>الرئيسية
+  </a>
+  <a href="/analyzer" class="mn-item {% if request.endpoint=='analyzer' %}active{% endif %}">
+    <span class="mn-icon">🔍</span>محلل
+  </a>
+  <a href="/planner" class="mn-item {% if request.endpoint=='planner' %}active{% endif %}">
+    <span class="mn-icon">📅</span>جدول
+  </a>
+  <a href="/clinical" class="mn-item {% if request.endpoint=='clinical' %}active{% endif %}">
+    <span class="mn-icon">📚</span>كلينيكي
+  </a>
+  <a href="/settings" class="mn-item {% if request.endpoint=='settings' %}active{% endif %}">
+    <span class="mn-icon">⚙️</span>إعدادات
+  </a>
+</nav>
+
+<script>
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+</script>
+{% block extra_script %}{% endblock %}
+</body>
+</html>

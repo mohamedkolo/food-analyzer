@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NutraX — تسجيل الدخول</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#1a3a6b;--blue-light:#2563eb;--blue-pale:#dce8f5;
+  --green:#1a5c3a;--green-light:#16a34a;--green-pale:#e8f5ec;
+  --red:#8b0000;--orange:#b34700;
+  --gray:#f4f6fa;--border:#e2e8f0;
+  --text:#0f172a;--muted:#64748b;
+  --white:#ffffff;
+}
+body{
+  font-family:'Cairo',sans-serif;
+  background:var(--gray);
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  position:relative;
+  overflow:hidden;
+}
+/* Background decoration */
+body::before{
+  content:'';position:fixed;
+  top:-200px;right:-200px;
+  width:600px;height:600px;
+  background:radial-gradient(circle,rgba(37,99,235,0.08) 0%,transparent 70%);
+  border-radius:50%;pointer-events:none;
+}
+body::after{
+  content:'';position:fixed;
+  bottom:-200px;left:-200px;
+  width:500px;height:500px;
+  background:radial-gradient(circle,rgba(26,92,58,0.08) 0%,transparent 70%);
+  border-radius:50%;pointer-events:none;
+}
+
+.card{
+  background:var(--white);
+  border-radius:24px;
+  padding:40px 36px;
+  width:100%;max-width:440px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.08),0 4px 20px rgba(0,0,0,0.04);
+  border:1px solid var(--border);
+  position:relative;z-index:1;
+  animation:slideUp .4s ease;
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* Logo */
+.logo{text-align:center;margin-bottom:28px}
+.logo-icon{font-size:52px;display:block;margin-bottom:8px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.logo h1{
+  font-size:36px;font-weight:900;
+  background:linear-gradient(135deg,var(--blue),var(--blue-light));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;margin-bottom:4px;
+}
+.logo p{color:var(--muted);font-size:14px;font-weight:500}
+
+/* Tabs */
+.tabs{
+  display:flex;background:var(--gray);
+  border-radius:12px;padding:4px;
+  margin-bottom:24px;gap:4px;
+}
+.tab{
+  flex:1;padding:10px;border:none;background:transparent;
+  border-radius:8px;font-family:'Cairo',sans-serif;
+  font-size:14px;font-weight:700;color:var(--muted);
+  cursor:pointer;transition:all .2s;
+}
+.tab.active{
+  background:var(--white);color:var(--blue);
+  box-shadow:0 1px 6px rgba(0,0,0,0.08);
+}
+
+/* Alert */
+.alert{
+  padding:12px 16px;border-radius:10px;
+  font-size:13px;font-weight:600;
+  margin-bottom:16px;text-align:center;
+}
+.alert-error{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5}
+.alert-success{background:var(--green-pale);color:var(--green);border:1px solid #86efac}
+
+/* Form */
+.form-group{margin-bottom:16px}
+label{
+  display:block;font-size:13px;font-weight:700;
+  color:#374151;margin-bottom:6px;
+}
+input,select{
+  width:100%;padding:12px 14px;
+  border:2px solid var(--border);border-radius:10px;
+  font-family:'Cairo',sans-serif;font-size:15px;
+  color:var(--text);background:var(--white);
+  transition:border .2s,box-shadow .2s;
+  outline:none;text-align:right;
+}
+input:focus,select:focus{
+  border-color:var(--blue-light);
+  box-shadow:0 0 0 3px rgba(37,99,235,0.1);
+}
+input::placeholder{color:#94a3b8}
+
+/* Checkbox */
+.checkbox-wrap{
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:16px;cursor:pointer;
+}
+.checkbox-wrap input[type="checkbox"]{
+  width:18px;height:18px;padding:0;
+  accent-color:var(--blue-light);
+}
+.checkbox-wrap span{font-size:13px;color:var(--muted);font-weight:500}
+
+/* Button */
+.btn{
+  width:100%;padding:14px;
+  background:linear-gradient(135deg,var(--blue),var(--blue-light));
+  color:var(--white);border:none;border-radius:10px;
+  font-family:'Cairo',sans-serif;font-size:15px;font-weight:700;
+  cursor:pointer;transition:all .2s;letter-spacing:.3px;
+}
+.btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 6px 20px rgba(37,99,235,0.3);
+}
+.btn:active{transform:translateY(0)}
+
+/* Grid */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* Form panels */
+.form-panel{display:none}
+.form-panel.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* Footer */
+.card-footer{
+  text-align:center;margin-top:20px;
+  color:var(--muted);font-size:12px;
+}
+
+@media(max-width:480px){
+  .card{padding:28px 20px;border-radius:18px}
+  .logo h1{font-size:28px}
+  .grid-2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- Logo -->
+  <div class="logo">
+    <span class="logo-icon">🥗</span>
+    <h1>NutraX</h1>
+    <p>مساعدك الذكي للتغذية الصحية</p>
+  </div>
+
+  <!-- Alert -->
+  {% if error %}
+  <div class="alert {% if '✅' in error %}alert-success{% else %}alert-error{% endif %}">
+    {{ error }}
+  </div>
+  {% endif %}
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab {% if tab=='login' %}active{% endif %}"
+            onclick="switchTab('login')">🔑 تسجيل الدخول</button>
+    <button class="tab {% if tab=='register' %}active{% endif %}"
+            onclick="switchTab('register')">✨ حساب جديد</button>
+  </div>
+
+  <!-- Login Form -->
+  <div class="form-panel {% if tab=='login' %}active{% endif %}" id="panel-login">
+    <form method="POST" action="/">
+      <input type="hidden" name="action" value="login">
+      <div class="form-group">
+        <label>📧 البريد الإلكتروني</label>
+        <input type="email" name="email" placeholder="example@email.com" required>
+      </div>
+      <div class="form-group">
+        <label>🔒 كلمة المرور</label>
+        <input type="password" name="password" placeholder="••••••••" required>
+      </div>
+      <label class="checkbox-wrap">
+        <input type="checkbox" name="remember" checked>
+        <span>تذكرني على هذا الجهاز</span>
+      </label>
+      <button type="submit" class="btn">دخول ←</button>
+    </form>
+  </div>
+
+  <!-- Register Form -->
+  <div class="form-panel {% if tab=='register' %}active{% endif %}" id="panel-register">
+    <form method="POST" action="/">
+      <input type="hidden" name="action" value="register">
+      <div class="form-group">
+        <label>👤 الاسم الكامل</label>
+        <input type="text" name="name" placeholder="محمد أحمد" required>
+      </div>
+      <div class="form-group">
+        <label>📧 البريد الإلكتروني</label>
+        <input type="email" name="reg_email" placeholder="example@email.com" required>
+      </div>
+      <div class="form-group">
+        <label>🔒 كلمة المرور</label>
+        <input type="password" name="reg_password" placeholder="••••••••" required minlength="6">
+      </div>
+      <div class="form-group">
+        <label>🌍 البلد</label>
+        <select name="country">
+          <option value="مصر">🇪🇬 مصر</option>
+          <option value="الإمارات">🇦🇪 الإمارات</option>
+          <option value="السعودية">🇸🇦 السعودية</option>
+          <option value="الكويت">🇰🇼 الكويت</option>
+          <option value="قطر">🇶🇦 قطر</option>
+          <option value="البحرين">🇧🇭 البحرين</option>
+          <option value="الأردن">🇯🇴 الأردن</option>
+          <option value="أخرى">🌍 أخرى</option>
+        </select>
+      </div>
+      <button type="submit" class="btn">إنشاء الحساب ←</button>
+    </form>
+  </div>
+
+  <div class="card-footer">NutraX © 2025 — جميع الحقوق محفوظة</div>
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+</script>
+</body>
+</html>

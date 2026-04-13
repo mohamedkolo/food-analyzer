@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}الرئيسية{% endblock %}
+
+{% block content %}
+<!-- Welcome banner -->
+<div style="background:linear-gradient(135deg,var(--blue),#7c3aed);border-radius:18px;padding:22px 24px;margin-bottom:20px;color:#fff">
+  <div style="font-size:13px;opacity:.8;margin-bottom:4px">أهلاً بك 👋</div>
+  <div style="font-size:22px;font-weight:900">{{ user.name }}</div>
+  <div style="font-size:12px;opacity:.7;margin-top:4px">{{ user.email }}</div>
+</div>
+
+{% if not user.height or not user.weight %}
+<!-- Setup prompt -->
+<div class="alert alert-warn">
+  ⚙️ أكمل إعداداتك الشخصية لحساب أهدافك الغذائية اليومية
+</div>
+<a href="/settings" class="btn btn-primary btn-full" style="margin-bottom:20px">
+  ⚙️ اذهب للإعدادات ←
+</a>
+{% else %}
+
+<!-- Calculate targets -->
+{% set h = user.height|float %}
+{% set w = user.weight|float %}
+{% set age = user.age|int %}
+{% set act = user.activity|float %}
+{% set bmr = (10*w + 6.25*h - 5*age + 5)|int %}
+{% set tdee = (bmr * act)|int %}
+{% if user.goal == 'fat_loss' %}
+  {% set cal = tdee - 400 %}{% set p_pct = 0.35 %}{% set c_pct = 0.35 %}{% set f_pct = 0.30 %}
+{% elif user.goal == 'muscle_gain' %}
+  {% set cal = tdee + 400 %}{% set p_pct = 0.30 %}{% set c_pct = 0.45 %}{% set f_pct = 0.25 %}
+{% else %}
+  {% set cal = tdee %}{% set p_pct = 0.25 %}{% set c_pct = 0.45 %}{% set f_pct = 0.30 %}
+{% endif %}
+{% set prot = (cal * p_pct / 4)|int %}
+{% set carb = (cal * c_pct / 4)|int %}
+{% set fat  = (cal * f_pct / 9)|int %}
+{% set bmi  = (w / ((h/100)**2))|round(1) %}
+
+<!-- Goal bar -->
+<div style="background:var(--blue-pale);border:1.5px solid #93c5fd;border-radius:12px;padding:14px 18px;margin-bottom:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted)">هدفك</div>
+      <div style="font-size:16px;font-weight:800;color:var(--blue)">
+        {% if user.goal=='fat_loss' %}🔥 خسارة دهون
+        {% elif user.goal=='muscle_gain' %}💪 بناء عضل
+        {% else %}⚖️ ثبات الوزن{% endif %}
+      </div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:11px;font-weight:700;color:var(--muted)">TDEE</div>
+      <div style="font-size:18px;font-weight:900;color:var(--text)">{{ tdee }}</div>
+      <div style="font-size:11px;color:var(--muted-2)">kcal</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:11px;font-weight:700;color:var(--muted)">الهدف اليومي</div>
+      <div style="font-size:22px;font-weight:900;color:var(--blue-light)">{{ cal }}</div>
+      <div style="font-size:11px;color:var(--muted-2)">kcal</div>
+    </div>
+  </div>
+</div>
+
+<!-- Macro metrics -->
+<div class="metrics">
+  <div class="metric">
+    <div class="metric-icon">🔥</div>
+    <div class="metric-label">السعرات</div>
+    <div class="metric-value" style="color:var(--blue-light)">{{ cal }}</div>
+    <div class="metric-unit">kcal</div>
+  </div>
+  <div class="metric">
+    <div class="metric-icon">💪</div>
+    <div class="metric-label">البروتين</div>
+    <div class="metric-value" style="color:var(--green-light)">{{ prot }}</div>
+    <div class="metric-unit">جرام</div>
+  </div>
+  <div class="metric">
+    <div class="metric-icon">🍞</div>
+    <div class="metric-label">الكارب</div>
+    <div class="metric-value" style="color:var(--orange)">{{ carb }}</div>
+    <div class="metric-unit">جرام</div>
+  </div>
+  <div class="metric">
+    <div class="metric-icon">🥑</div>
+    <div class="metric-label">الدهون</div>
+    <div class="metric-value" style="color:var(--red)">{{ fat }}</div>
+    <div class="metric-unit">جرام</div>
+  </div>
+</div>
+
+<!-- BMI -->
+<div class="grid-3" style="margin-bottom:16px">
+  <div class="metric">
+    <div class="metric-label">📏 BMI</div>
+    <div class="metric-value">{{ bmi }}</div>
+    <div class="bmi-badge {% if bmi < 18.5 %}bmi-under{% elif bmi < 25 %}bmi-normal{% elif bmi < 30 %}bmi-over{% else %}bmi-obese{% endif %}">
+      {% if bmi < 18.5 %}نحافة{% elif bmi < 25 %}مثالي ✅{% elif bmi < 30 %}زيادة{% else %}سمنة{% endif %}
+    </div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">⚖️ الوزن الحالي</div>
+    <div class="metric-value">{{ w }}</div>
+    <div class="metric-unit">كجم</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">📐 الوزن المثالي</div>
+    <div class="metric-value">{{ (22 * ((h/100)**2))|round(1) }}</div>
+    <div class="metric-unit">كجم</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Quick access -->
+<div class="card-title" style="font-size:14px;margin-bottom:12px">⚡ وصول سريع</div>
+<div class="grid-2">
+  <a href="/analyzer" class="btn btn-primary">🔍 محلل الطعام</a>
+  <a href="/planner" class="btn btn-success">📅 مصمم الجدول</a>
+  <a href="/clinical" class="btn btn-outline">📚 المرجع الكلينيكي</a>
+  <a href="/history" class="btn btn-outline">📈 سجل الوزن</a>
+</div>
+{% endblock %}
