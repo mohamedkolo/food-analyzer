@@ -1,9 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, session
-import sqlite3, hashlib, os
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+import sqlite3, hashlib, os, json
 from datetime import timedelta
 
 app = Flask(__name__)
-app.secret_key = "nutrax2025"
+app.secret_key = os.environ.get("SECRET_KEY", "nutrax2025")
 app.permanent_session_lifetime = timedelta(days=30)
 
 DB = "/tmp/nutrax.db"
@@ -133,12 +133,53 @@ def clinical():
 @app.route("/history")
 @login_required
 def history():
-    return render_template("history.html", user=get_user_by_id(session["user_id"]), lang=session.get("lang","ar"))
+    user = get_user_by_id(session["user_id"])
+    conn = get_conn()
+    logs = conn.execute("SELECT * FROM weight_log WHERE user_id=? ORDER BY logged_at ASC", (session["user_id"],)).fetchall()
+    conn.close()
+    return render_template("history.html", user=user, lang=session.get("lang","ar"), logs=logs)
 
 @app.route("/saved")
 @login_required
 def saved():
-    return render_template("saved.html", user=get_user_by_id(session["user_id"]), lang=session.get("lang","ar"))
+    user = get_user_by_id(session["user_id"])
+    conn = get_conn()
+    plans = conn.execute("SELECT * FROM saved_plans WHERE user_id=? ORDER BY created_at DESC", (session["user_id"],)).fetchall()
+    conn.close()
+    return render_template("saved.html", user=user, lang=session.get("lang","ar"), plans=plans)
+
+@app.route("/log_weight", methods=["POST"])
+@login_required
+def log_weight():
+    weight = request.form.get("weight")
+    if weight:
+        conn = get_conn()
+        conn.execute("INSERT INTO weight_log (user_id, weight) VALUES (?, ?)", (session["user_id"], weight))
+        conn.commit()
+        conn.close()
+    return redirect(url_for("history"))
+
+@app.route("/save_plan", methods=["POST"])
+@login_required
+def save_plan():
+    plan_name = request.form.get("plan_name", "خطتي")
+    plan_type = request.form.get("plan_type", "personal")
+    plan_data = json.dumps(dict(request.form))
+    conn = get_conn()
+    conn.execute("INSERT INTO saved_plans (user_id, name, plan_data, plan_type) VALUES (?, ?, ?, ?)",
+                 (session["user_id"], plan_name, plan_data, plan_type))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("saved"))
+
+@app.route("/delete_plan/<int:plan_id>", methods=["POST"])
+@login_required
+def delete_plan(plan_id):
+    conn = get_conn()
+    conn.execute("DELETE FROM saved_plans WHERE id=? AND user_id=?", (plan_id, session["user_id"]))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("saved"))
 
 @app.route("/api/lang/<lang>")
 @login_required
