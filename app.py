@@ -1,21 +1,58 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
-import os
-from utils.database import init_db, get_user, register_user, update_user_profile, get_user_by_id
+from flask import Flask, render_template, request, redirect, url_for, session
+import sqlite3, hashlib, os
 from datetime import timedelta
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "nutrax-secret-2025-change-this")
+app.secret_key = "nutrax2025"
 app.permanent_session_lifetime = timedelta(days=30)
 
-# ══════════════════════════════════════════════════════════════
-# Init DB on startup
-# ══════════════════════════════════════════════════════════════
-with app.app_context():
-    init_db()
+DB = "/tmp/nutrax.db"
 
-# ══════════════════════════════════════════════════════════════
-# Helper
-# ══════════════════════════════════════════════════════════════
+def get_conn():
+    conn = sqlite3.connect(DB)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def hp(p):
+    return hashlib.sha256(p.encode()).hexdigest()
+
+def init_db():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0)")
+    c.execute("CREATE TABLE IF NOT EXISTS weight_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+    c.execute("CREATE TABLE IF NOT EXISTS saved_plans (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+    c.execute("SELECT id FROM users WHERE is_admin=1")
+    if not c.fetchone():
+        c.execute("INSERT INTO users (name,email,password,is_admin) VALUES (?,?,?,1)", ("Admin","admin@nutrax.com",hp("nutrax2025")))
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def get_user(email, password):
+    conn = get_conn()
+    u = conn.execute("SELECT * FROM users WHERE email=? AND password=?", (email, hp(password))).fetchone()
+    conn.close()
+    return u
+
+def get_user_by_id(uid):
+    conn = get_conn()
+    u = conn.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
+    conn.close()
+    return u
+
+def register_user(name, email, password, country):
+    conn = get_conn()
+    try:
+        conn.execute("INSERT INTO users (name,email,password,country) VALUES (?,?,?,?)", (name,email,hp(password),country))
+        conn.commit()
+        return "ok"
+    except:
+        return "exists"
+    finally:
+        conn.close()
+
 def login_required(f):
     from functools import wraps
     @wraps(f)
@@ -25,64 +62,42 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ══════════════════════════════════════════════════════════════
-# AUTH ROUTES
-# ══════════════════════════════════════════════════════════════
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET","POST"])
 def login():
     if "user_id" in session:
         return redirect(url_for("dashboard"))
-
     error = None
     tab = "login"
-
     if request.method == "POST":
         action = request.form.get("action")
-
         if action == "login":
-            email    = request.form.get("email", "").strip().lower()
-            password = request.form.get("password", "").strip()
-            remember = request.form.get("remember") == "on"
-            user = get_user(email, password)
-            if user:
-                session.permanent = remember
-                session["user_id"] = user["id"]
-                session["lang"]    = user["lang"] or "ar"
+            u = get_user(request.form.get("email","").lower(), request.form.get("password",""))
+            if u:
+                session.permanent = True
+                session["user_id"] = u["id"]
+                session["lang"] = u["lang"] or "ar"
                 return redirect(url_for("dashboard"))
             else:
-                error = "البريد أو كلمة المرور غير صحيحة" if True else "Wrong email or password"
-                tab = "login"
-
+                error = "البريد أو كلمة المرور غير صحيحة"
         elif action == "register":
             tab = "register"
-            name     = request.form.get("name", "").strip()
-            email    = request.form.get("reg_email", "").strip().lower()
-            password = request.form.get("reg_password", "").strip()
-            country  = request.form.get("country", "")
-            result   = register_user(name, email, password, country)
-            if result == "ok":
-                error = "✅ تم التسجيل! سجل دخولك الآن."
+            r = register_user(request.form.get("name",""), request.form.get("reg_email","").lower(), request.form.get("reg_password",""), request.form.get("country",""))
+            if r == "ok":
+                error = "✅ تم التسجيل! سجل دخولك."
                 tab = "login"
-            elif result == "exists":
-                error = "البريد الإلكتروني مستخدم بالفعل"
-
+            else:
+                error = "البريد مستخدم بالفعل"
     return render_template("login.html", error=error, tab=tab)
-
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
-
-# ══════════════════════════════════════════════════════════════
-# MAIN ROUTES
-# ══════════════════════════════════════════════════════════════
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    user = get_user_by_id(session["user_id"])
-    return render_template("dashboard.html", user=user, lang=session.get("lang","ar"))
+    return render_template("dashboard.html", user=get_user_by_id(session["user_id"]), lang=session.get("lang","ar"))
 
 @app.route("/settings", methods=["GET","POST"])
 @login_required
@@ -90,15 +105,12 @@ def settings():
     user = get_user_by_id(session["user_id"])
     saved = False
     if request.method == "POST":
-        data = {
-            "height":   request.form.get("height"),
-            "weight":   request.form.get("weight"),
-            "age":      request.form.get("age"),
-            "gender":   request.form.get("gender"),
-            "goal":     request.form.get("goal"),
-            "activity": request.form.get("activity"),
-        }
-        update_user_profile(session["user_id"], data)
+        conn = get_conn()
+        conn.execute("UPDATE users SET height=?,weight=?,age=?,gender=?,goal=?,activity=? WHERE id=?",
+            (request.form.get("height"), request.form.get("weight"), request.form.get("age"),
+             request.form.get("gender"), request.form.get("goal"), request.form.get("activity"), session["user_id"]))
+        conn.commit()
+        conn.close()
         user = get_user_by_id(session["user_id"])
         saved = True
     return render_template("settings.html", user=user, lang=session.get("lang","ar"), saved=saved)
@@ -106,36 +118,28 @@ def settings():
 @app.route("/analyzer")
 @login_required
 def analyzer():
-    user = get_user_by_id(session["user_id"])
-    return render_template("analyzer.html", user=user, lang=session.get("lang","ar"))
+    return render_template("analyzer.html", user=get_user_by_id(session["user_id"]), lang=session.get("lang","ar"))
 
 @app.route("/planner")
 @login_required
 def planner():
-    user = get_user_by_id(session["user_id"])
-    return render_template("planner.html", user=user, lang=session.get("lang","ar"))
+    return render_template("planner.html", user=get_user_by_id(session["user_id"]), lang=session.get("lang","ar"))
 
 @app.route("/clinical")
 @login_required
 def clinical():
-    user = get_user_by_id(session["user_id"])
-    return render_template("clinical.html", user=user, lang=session.get("lang","ar"))
+    return render_template("clinical.html", user=get_user_by_id(session["user_id"]), lang=session.get("lang","ar"))
 
 @app.route("/history")
 @login_required
 def history():
-    user = get_user_by_id(session["user_id"])
-    return render_template("history.html", user=user, lang=session.get("lang","ar"))
+    return render_template("history.html", user=get_user_by_id(session["user_id"]), lang=session.get("lang","ar"))
 
 @app.route("/saved")
 @login_required
 def saved():
-    user = get_user_by_id(session["user_id"])
-    return render_template("saved.html", user=user, lang=session.get("lang","ar"))
+    return render_template("saved.html", user=get_user_by_id(session["user_id"]), lang=session.get("lang","ar"))
 
-# ══════════════════════════════════════════════════════════════
-# API — Language toggle
-# ══════════════════════════════════════════════════════════════
 @app.route("/api/lang/<lang>")
 @login_required
 def set_lang(lang):
@@ -143,8 +147,5 @@ def set_lang(lang):
         session["lang"] = lang
     return redirect(request.referrer or url_for("dashboard"))
 
-# ══════════════════════════════════════════════════════════════
-# RUN
-# ══════════════════════════════════════════════════════════════
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True)
