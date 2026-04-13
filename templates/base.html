@@ -18,127 +18,41 @@
   --sidebar-w:240px;
   --header-h:60px;
 }
-body{
-  font-family:'Cairo',sans-serif;
-  background:var(--gray);
-  color:var(--text);
-  min-height:100vh;
-}
+body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min-height:100vh}
 
 /* ─── HEADER ─── */
-.header{
-  position:fixed;top:0;right:0;left:0;
-  height:var(--header-h);
-  background:var(--blue);
-  display:flex;align-items:center;
-  justify-content:space-between;
-  padding:0 20px;
-  z-index:100;
-  box-shadow:0 2px 12px rgba(0,0,0,0.15);
-}
-.header-logo{
-  color:var(--white);font-size:18px;font-weight:900;
-  display:flex;align-items:center;gap:8px;
-}
+.header{position:fixed;top:0;right:0;left:0;height:var(--header-h);background:var(--blue);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.15)}
+.header-logo{color:var(--white);font-size:18px;font-weight:900;display:flex;align-items:center;gap:8px}
 .header-logo span{font-size:22px}
 .header-actions{display:flex;align-items:center;gap:10px}
-.header-btn{
-  background:rgba(255,255,255,0.15);
-  color:var(--white);border:none;
-  padding:7px 14px;border-radius:8px;
-  font-family:'Cairo',sans-serif;font-size:13px;
-  font-weight:600;cursor:pointer;
-  transition:background .2s;text-decoration:none;
-  display:inline-flex;align-items:center;gap:5px;
-}
+.header-btn{background:rgba(255,255,255,0.15);color:var(--white);border:none;padding:7px 14px;border-radius:8px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
 .header-btn:hover{background:rgba(255,255,255,0.25)}
-.user-badge{
-  background:rgba(255,255,255,0.1);
-  color:var(--white);font-size:12px;font-weight:600;
-  padding:6px 12px;border-radius:8px;
-  border:1px solid rgba(255,255,255,0.2);
-}
+.user-badge{background:rgba(255,255,255,0.1);color:var(--white);font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.2)}
 
 /* ─── SIDEBAR ─── */
-.sidebar{
-  position:fixed;
-  top:var(--header-h);right:0;bottom:0;
-  width:var(--sidebar-w);
-  background:var(--white);
-  border-left:1px solid var(--gray-2);
-  overflow-y:auto;padding:16px 12px;
-  z-index:90;
-  transition:transform .3s ease;
-}
-.nav-item{
-  display:flex;align-items:center;gap:10px;
-  padding:11px 14px;border-radius:10px;
-  text-decoration:none;color:var(--text-2);
-  font-size:14px;font-weight:600;
-  margin-bottom:4px;transition:all .2s;
-  cursor:pointer;border:none;background:none;
-  width:100%;text-align:right;
-}
+.sidebar{position:fixed;top:var(--header-h);right:0;bottom:0;width:var(--sidebar-w);background:var(--white);border-left:1px solid var(--gray-2);overflow-y:auto;padding:16px 12px;z-index:90;transition:transform .3s ease}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;text-decoration:none;color:var(--text-2);font-size:14px;font-weight:600;margin-bottom:4px;transition:all .2s;cursor:pointer;border:none;background:none;width:100%;text-align:{{ 'right' if (lang or 'ar')=='ar' else 'left' }}}
 .nav-item:hover{background:var(--gray);color:var(--blue)}
-.nav-item.active{
-  background:var(--blue-pale);color:var(--blue);
-  border-right:3px solid var(--blue);
-}
-.nav-item .nav-icon{font-size:18px;min-width:24px;text-align:center}
-.nav-divider{
-  height:1px;background:var(--gray-2);
-  margin:12px 0;
-}
-.nav-section-label{
-  font-size:11px;font-weight:700;color:var(--muted-2);
-  letter-spacing:1px;padding:4px 14px;margin-bottom:4px;
-}
+.nav-item.active{background:var(--blue-pale);color:var(--blue);border-{{ 'right' if (lang or 'ar')=='ar' else 'left' }}:3px solid var(--blue)}
+.nav-icon{font-size:18px;min-width:24px;text-align:center}
+.nav-divider{height:1px;background:var(--gray-2);margin:12px 0}
+.nav-section-label{font-size:11px;font-weight:700;color:var(--muted-2);letter-spacing:1px;padding:4px 14px;margin-bottom:4px}
 
 /* ─── MAIN ─── */
-.main{
-  margin-top:var(--header-h);
-  margin-right:var(--sidebar-w);
-  padding:24px 20px;
-  min-height:calc(100vh - var(--header-h));
-}
+.main{margin-top:var(--header-h);margin-{{ 'right' if (lang or 'ar')=='ar' else 'left' }}:var(--sidebar-w);padding:24px 20px;min-height:calc(100vh - var(--header-h))}
 
 /* ─── CARDS ─── */
-.card{
-  background:var(--white);
-  border:1.5px solid var(--gray-2);
-  border-radius:16px;
-  padding:20px;
-  box-shadow:0 2px 10px rgba(0,0,0,0.04);
-  margin-bottom:16px;
-  position:relative;overflow:hidden;
-}
-.card::before{
-  content:'';position:absolute;
-  top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,var(--blue),var(--blue-light));
-}
-.card-title{
-  font-size:15px;font-weight:800;
-  color:var(--blue);margin-bottom:14px;
-  padding-bottom:10px;
-  border-bottom:1.5px solid var(--gray-2);
-}
+.card{background:var(--white);border:1.5px solid var(--gray-2);border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.04);margin-bottom:16px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--blue-light))}
+.card-title{font-size:15px;font-weight:800;color:var(--blue);margin-bottom:14px;padding-bottom:10px;border-bottom:1.5px solid var(--gray-2)}
 
 /* ─── PAGE TITLE ─── */
-.page-title{
-  font-size:20px;font-weight:900;
-  color:var(--text);margin-bottom:20px;
-  display:flex;align-items:center;gap:10px;
-}
+.page-title{font-size:20px;font-weight:900;color:var(--text);margin-bottom:20px;display:flex;align-items:center;gap:10px}
 .page-title .icon{font-size:26px}
 
-/* ─── METRIC CARDS ─── */
+/* ─── METRICS ─── */
 .metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px}
-.metric{
-  background:var(--white);border:1.5px solid var(--gray-2);
-  border-radius:14px;padding:16px;text-align:center;
-  box-shadow:0 1px 6px rgba(0,0,0,0.04);
-}
+.metric{background:var(--white);border:1.5px solid var(--gray-2);border-radius:14px;padding:16px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,0.04)}
 .metric-icon{font-size:22px;margin-bottom:6px}
 .metric-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;margin-bottom:4px}
 .metric-value{font-size:24px;font-weight:900;color:var(--text)}
@@ -151,37 +65,21 @@ body{
 .alert-warn{background:#fffbeb;color:#78350f;border:1px solid #fcd34d}
 .alert-error{background:var(--red-pale);color:#7f1d1d;border:1px solid #fca5a5}
 
-/* ─── FORM ELEMENTS ─── */
+/* ─── FORMS ─── */
 .form-group{margin-bottom:14px}
 .form-label{display:block;font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:5px}
-.form-input,.form-select,.form-textarea{
-  width:100%;padding:11px 14px;
-  border:2px solid var(--gray-2);border-radius:10px;
-  font-family:'Cairo',sans-serif;font-size:14px;
-  color:var(--text);background:var(--white);
-  transition:border .2s;outline:none;text-align:right;
-}
-.form-input:focus,.form-select:focus,.form-textarea:focus{
-  border-color:var(--blue-light);
-  box-shadow:0 0 0 3px rgba(37,99,235,0.1);
-}
+.form-input,.form-select,.form-textarea{width:100%;padding:11px 14px;border:2px solid var(--gray-2);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;color:var(--text);background:var(--white);transition:border .2s;outline:none;text-align:{{ 'right' if (lang or 'ar')=='ar' else 'left' }}}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--blue-light);box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
 .form-textarea{resize:vertical;min-height:80px}
 
 /* ─── BUTTONS ─── */
-.btn{
-  padding:11px 22px;border:none;border-radius:10px;
-  font-family:'Cairo',sans-serif;font-size:14px;
-  font-weight:700;cursor:pointer;transition:all .2s;
-  display:inline-flex;align-items:center;gap:6px;
-  text-decoration:none;
-}
+.btn{padding:11px 22px;border:none;border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
 .btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue-light));color:var(--white)}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(37,99,235,0.3)}
 .btn-success{background:linear-gradient(135deg,var(--green),var(--green-light));color:var(--white)}
 .btn-success:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(22,163,74,0.3)}
 .btn-outline{background:transparent;color:var(--blue);border:2px solid var(--blue-pale)}
 .btn-outline:hover{background:var(--blue-pale)}
-.btn-danger{background:var(--red-pale);color:var(--red);border:1px solid #fca5a5}
 .btn-full{width:100%;justify-content:center}
 
 /* ─── GRID ─── */
@@ -189,14 +87,14 @@ body{
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
 .grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
 
-/* ─── BMI BADGES ─── */
+/* ─── BMI ─── */
 .bmi-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700}
 .bmi-under{background:var(--blue-pale);color:var(--blue)}
 .bmi-normal{background:var(--green-pale);color:var(--green)}
 .bmi-over{background:#fffbeb;color:var(--orange)}
 .bmi-obese{background:var(--red-pale);color:var(--red)}
 
-/* ─── PROGRESS BAR ─── */
+/* ─── PROGRESS ─── */
 .prog-wrap{background:var(--gray-2);border-radius:20px;height:8px;overflow:hidden;margin:4px 0 12px}
 .prog-fill{height:8px;border-radius:20px;transition:width .6s}
 .prog-blue{background:linear-gradient(90deg,var(--blue),var(--blue-light))}
@@ -206,134 +104,109 @@ body{
 
 /* ─── MOBILE ─── */
 @media(max-width:768px){
-  .sidebar{transform:translateX(100%);width:100%}
+  .sidebar{transform:translateX({{ '100%' if (lang or 'ar')=='ar' else '-100%' }});width:100%}
   .sidebar.open{transform:translateX(0)}
-  .main{margin-right:0;padding:16px 14px 80px}
+  .main{margin-right:0;margin-left:0;padding:16px 14px 80px}
   .grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
   .metrics{grid-template-columns:1fr 1fr}
-  .page-title{font-size:18px}
-
-  /* Mobile bottom nav */
-  .mobile-nav{
-    display:flex;position:fixed;bottom:0;left:0;right:0;
-    background:var(--white);border-top:2px solid var(--gray-2);
-    padding:6px 0 10px;justify-content:space-around;
-    z-index:100;box-shadow:0 -2px 16px rgba(0,0,0,0.08);
-  }
-  .mn-item{
-    display:flex;flex-direction:column;align-items:center;
-    color:var(--muted-2);font-size:10px;font-weight:600;
-    cursor:pointer;min-width:50px;text-decoration:none;
-    transition:color .2s;
-  }
+  .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:2px solid var(--gray-2);padding:6px 0 10px;justify-content:space-around;z-index:100;box-shadow:0 -2px 16px rgba(0,0,0,0.08)}
+  .mn-item{display:flex;flex-direction:column;align-items:center;color:var(--muted-2);font-size:10px;font-weight:600;cursor:pointer;min-width:50px;text-decoration:none;transition:color .2s}
   .mn-item.active{color:var(--blue-light)}
   .mn-item .mn-icon{font-size:20px;margin-bottom:2px}
+  .block-container{padding-bottom:70px!important}
 }
 @media(min-width:769px){
   .mobile-nav{display:none}
   .menu-toggle{display:none}
 }
-
-/* Menu toggle (mobile) */
-.menu-toggle{
-  background:rgba(255,255,255,0.15);border:none;
-  color:var(--white);font-size:20px;cursor:pointer;
-  width:36px;height:36px;border-radius:8px;
-  display:flex;align-items:center;justify-content:center;
-}
-
-/* Overlay */
-.sidebar-overlay{
-  display:none;position:fixed;inset:0;
-  background:rgba(0,0,0,0.4);z-index:89;
-}
+.menu-toggle{background:rgba(255,255,255,0.15);border:none;color:var(--white);font-size:20px;cursor:pointer;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:89}
 .sidebar-overlay.show{display:block}
 </style>
 {% block extra_style %}{% endblock %}
 </head>
 <body>
 
+{% set is_ar = (lang or 'ar') == 'ar' %}
+
 <!-- Header -->
 <header class="header">
   <div style="display:flex;align-items:center;gap:12px">
     <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-    <div class="header-logo">
-      <span>🥗</span> NutraX
-    </div>
+    <div class="header-logo"><span>🥗</span> NutraX</div>
   </div>
   <div class="header-actions">
-    <a href="/api/lang/{{ 'en' if lang=='ar' else 'ar' }}" class="header-btn">
-      🌐 {{ 'English' if lang=='ar' else 'عربي' }}
+    <a href="/api/lang/{{ 'en' if is_ar else 'ar' }}" class="header-btn">
+      🌐 {{ 'English' if is_ar else 'عربي' }}
     </a>
     <span class="user-badge">👤 {{ user.name if user else '' }}</span>
-    <a href="/logout" class="header-btn">🚪 خروج</a>
+    <a href="/logout" class="header-btn">🚪 {{ 'خروج' if is_ar else 'Logout' }}</a>
   </div>
 </header>
 
-<!-- Sidebar overlay (mobile) -->
 <div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
 
 <!-- Sidebar -->
 <nav class="sidebar" id="sidebar">
   <div style="padding:8px 14px 16px;border-bottom:1px solid var(--gray-2);margin-bottom:12px">
-    <div style="font-size:15px;font-weight:700;color:var(--text)">{{ user.name if user else '' }}</div>
+    <div style="font-size:15px;font-weight:700">{{ user.name if user else '' }}</div>
     <div style="font-size:12px;color:var(--muted);margin-top:2px">{{ user.email if user else '' }}</div>
   </div>
 
-  <div class="nav-section-label">القائمة الرئيسية</div>
+  <div class="nav-section-label">{{ 'القائمة الرئيسية' if is_ar else 'Main Menu' }}</div>
   <a href="/dashboard" class="nav-item {% if request.endpoint=='dashboard' %}active{% endif %}">
-    <span class="nav-icon">🏠</span> الرئيسية
+    <span class="nav-icon">🏠</span> {{ 'الرئيسية' if is_ar else 'Dashboard' }}
   </a>
   <a href="/analyzer" class="nav-item {% if request.endpoint=='analyzer' %}active{% endif %}">
-    <span class="nav-icon">🔍</span> محلل الطعام
+    <span class="nav-icon">🔍</span> {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
   </a>
   <a href="/planner" class="nav-item {% if request.endpoint=='planner' %}active{% endif %}">
-    <span class="nav-icon">📅</span> مصمم الجدول
+    <span class="nav-icon">📅</span> {{ 'مصمم الجدول' if is_ar else 'Meal Planner' }}
   </a>
   <a href="/saved" class="nav-item {% if request.endpoint=='saved' %}active{% endif %}">
-    <span class="nav-icon">💾</span> جداولي
+    <span class="nav-icon">💾</span> {{ 'جداولي' if is_ar else 'My Plans' }}
   </a>
 
   <div class="nav-divider"></div>
-  <div class="nav-section-label">المتابعة</div>
+  <div class="nav-section-label">{{ 'المتابعة' if is_ar else 'Tracking' }}</div>
   <a href="/history" class="nav-item {% if request.endpoint=='history' %}active{% endif %}">
-    <span class="nav-icon">📈</span> سجل الوزن
+    <span class="nav-icon">📈</span> {{ 'سجل الوزن' if is_ar else 'Weight Log' }}
   </a>
   <a href="/clinical" class="nav-item {% if request.endpoint=='clinical' %}active{% endif %}">
-    <span class="nav-icon">📚</span> المرجع الكلينيكي
+    <span class="nav-icon">📚</span> {{ 'المرجع الكلينيكي' if is_ar else 'Clinical Reference' }}
   </a>
 
   <div class="nav-divider"></div>
-  <div class="nav-section-label">الحساب</div>
+  <div class="nav-section-label">{{ 'الحساب' if is_ar else 'Account' }}</div>
   <a href="/settings" class="nav-item {% if request.endpoint=='settings' %}active{% endif %}">
-    <span class="nav-icon">⚙️</span> الإعدادات
+    <span class="nav-icon">⚙️</span> {{ 'الإعدادات' if is_ar else 'Settings' }}
   </a>
   <a href="/logout" class="nav-item" style="color:#991b1b">
-    <span class="nav-icon">🚪</span> خروج
+    <span class="nav-icon">🚪</span> {{ 'خروج' if is_ar else 'Logout' }}
   </a>
 </nav>
 
-<!-- Main content -->
+<!-- Main -->
 <main class="main">
   {% block content %}{% endblock %}
 </main>
 
-<!-- Mobile bottom nav -->
+<!-- Mobile nav -->
 <nav class="mobile-nav">
   <a href="/dashboard" class="mn-item {% if request.endpoint=='dashboard' %}active{% endif %}">
-    <span class="mn-icon">🏠</span>الرئيسية
+    <span class="mn-icon">🏠</span>{{ 'الرئيسية' if is_ar else 'Home' }}
   </a>
   <a href="/analyzer" class="mn-item {% if request.endpoint=='analyzer' %}active{% endif %}">
-    <span class="mn-icon">🔍</span>محلل
+    <span class="mn-icon">🔍</span>{{ 'محلل' if is_ar else 'Analyze' }}
   </a>
   <a href="/planner" class="mn-item {% if request.endpoint=='planner' %}active{% endif %}">
-    <span class="mn-icon">📅</span>جدول
+    <span class="mn-icon">📅</span>{{ 'جدول' if is_ar else 'Planner' }}
   </a>
   <a href="/clinical" class="mn-item {% if request.endpoint=='clinical' %}active{% endif %}">
-    <span class="mn-icon">📚</span>كلينيكي
+    <span class="mn-icon">📚</span>{{ 'كلينيكي' if is_ar else 'Clinical' }}
   </a>
   <a href="/settings" class="mn-item {% if request.endpoint=='settings' %}active{% endif %}">
-    <span class="mn-icon">⚙️</span>إعدادات
+    <span class="mn-icon">⚙️</span>{{ 'إعدادات' if is_ar else 'Settings' }}
   </a>
 </nav>
 
