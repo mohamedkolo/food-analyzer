@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session
 import sqlite3, hashlib, os, json
 from datetime import timedelta
 
@@ -28,8 +28,10 @@ init_db()
 
 def gu(email, pw):
     c = db(); u = c.execute("SELECT * FROM users WHERE email=? AND password=?", (email, hp(pw))).fetchone(); c.close(); return u
+
 def guid(uid):
     c = db(); u = c.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone(); c.close(); return u
+
 def ru(name, email, pw, country):
     c = db()
     try: c.execute("INSERT INTO users (name,email,password,country) VALUES (?,?,?,?)", (name,email,hp(pw),country)); c.commit(); return "ok"
@@ -44,49 +46,27 @@ def lr(f):
         return f(*a, **k)
     return d
 
-CSS = """*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}:root{--bl:#1a3a6b;--bll:#2563eb;--blp:#dce8f5;--gr:#1a5c3a;--grl:#16a34a;--grp:#e8f5ec;--rd:#8b0000;--rdp:#fef2f2;--or:#b34700;--gy:#f4f6fa;--gy2:#e2e8f0;--tx:#0f172a;--tx2:#374151;--mt:#64748b;--mt2:#94a3b8;--wh:#ffffff}body{font-family:'Cairo',sans-serif;background:var(--gy);color:var(--tx);min-height:100vh}.hdr{position:fixed;top:0;right:0;left:0;height:60px;background:var(--bl);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.15)}.hl{color:#fff;font-size:18px;font-weight:900;display:flex;align-items:center;gap:8px}.hb{background:rgba(255,255,255,.15);color:#fff;border:none;padding:7px 14px;border-radius:8px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px}.hb:hover{background:rgba(255,255,255,.25)}.ub{background:rgba(255,255,255,.1);color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.2)}.sdb{position:fixed;top:60px;right:0;bottom:0;width:240px;background:var(--wh);border-left:1px solid var(--gy2);overflow-y:auto;padding:16px 12px;z-index:90;transition:transform .3s}.nv{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;text-decoration:none;color:var(--tx2);font-size:14px;font-weight:600;margin-bottom:4px;transition:all .2s;border:none;background:none;width:100%;cursor:pointer}.nv:hover{background:var(--gy);color:var(--bl)}.nv.act{background:var(--blp);color:var(--bl);border-right:3px solid var(--bl)}.nvd{height:1px;background:var(--gy2);margin:12px 0}.mn{margin-top:60px;margin-right:240px;padding:24px 20px;min-height:calc(100vh - 60px)}.cd{background:var(--wh);border:1.5px solid var(--gy2);border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.04);margin-bottom:16px;position:relative;overflow:hidden}.cd::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--bl),var(--bll))}.cdt{font-size:15px;font-weight:800;color:var(--bl);margin-bottom:14px;padding-bottom:10px;border-bottom:1.5px solid var(--gy2)}.pt{font-size:20px;font-weight:900;margin-bottom:20px;display:flex;align-items:center;gap:10px}.mts{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px}.mt{background:var(--wh);border:1.5px solid var(--gy2);border-radius:14px;padding:16px;text-align:center}.al{padding:12px 16px;border-radius:10px;font-size:14px;font-weight:500;margin-bottom:12px;line-height:1.6}.ali{background:var(--blp);color:#1e3a8a;border:1px solid #93c5fd}.als{background:var(--grp);color:#14532d;border:1px solid #86efac}.alw{background:#fffbeb;color:#78350f;border:1px solid #fcd34d}.fg{margin-bottom:14px}.fl{display:block;font-size:13px;font-weight:700;color:var(--tx2);margin-bottom:5px}.fi,.fs{width:100%;padding:11px 14px;border:2px solid var(--gy2);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;color:var(--tx);background:var(--wh);transition:border .2s;outline:none;text-align:right}.fi:focus,.fs:focus{border-color:var(--bll);box-shadow:0 0 0 3px rgba(37,99,235,.1)}.bt{padding:11px 22px;border:none;border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;text-decoration:none}.btp{background:linear-gradient(135deg,var(--bl),var(--bll));color:#fff}.btp:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(37,99,235,.3)}.bts{background:linear-gradient(135deg,var(--gr),var(--grl));color:#fff}.bto{background:transparent;color:var(--bl);border:2px solid var(--blp)}.bto:hover{background:var(--blp)}.bff{width:100%;justify-content:center}.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}.bb{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700}.bbn{background:var(--grp);color:var(--gr)}.bbo{background:#fffbeb;color:var(--or)}.bbd{background:var(--rdp);color:var(--rd)}.bbu{background:var(--blp);color:var(--bl)}.ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:89}.ovl.sh{display:block}.mtg{display:none}@media(max-width:768px){.sdb{transform:translateX(100%);width:100%}.sdb.op{transform:translateX(0)}.mn{margin-right:0;padding:16px 14px 80px}.g2,.g3{grid-template-columns:1fr}.mts{grid-template-columns:1fr 1fr}.mbn{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--wh);border-top:2px solid var(--gy2);padding:6px 0 10px;justify-content:space-around;z-index:100}.mbi{display:flex;flex-direction:column;align-items:center;color:var(--mt2);font-size:10px;font-weight:600;text-decoration:none;min-width:50px}.mbi.act{color:var(--bll)}.mbi-ic{font-size:20px;margin-bottom:2px}.mtg{display:flex;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;cursor:pointer;width:36px;height:36px;border-radius:8px;align-items:center;justify-content:center}}@media(min-width:769px){.mbn{display:none}}"""
-
-def base(content, u, lang, page):
-    is_ar = lang == "ar"
-    navs = [("/dashboard","🏠","الرئيسية","Dashboard","dashboard"),("/analyzer","🔍","محلل الطعام","Food Analyzer","analyzer"),("/planner","📅","مصمم الجدول","Meal Planner","planner"),("/saved","💾","جداولي","My Plans","saved"),("/history","📈","سجل الوزن","Weight Log","history"),("/clinical","📚","المرجع الكلينيكي","Clinical Reference","clinical"),("/settings","⚙️","الإعدادات","Settings","settings")]
-    nhtml = "".join(f'<a href="{h}" class="nv {"act" if page==pg else ""}"><span style="font-size:18px;min-width:24px;text-align:center">{ic}</span> {a if is_ar else e}</a>' for h,ic,a,e,pg in navs)
-    mhtml = "".join(f'<a href="{h}" class="mbi {"act" if page==pg else ""}"><span class="mbi-ic">{ic}</span>{(a if is_ar else e)[:4]}</a>' for h,ic,a,e,pg in navs[:5])
-    return f"""<!DOCTYPE html><html lang="{lang}" dir="{"rtl" if is_ar else "ltr"}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>NutraX</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"><style>{CSS}</style></head><body>
-<header class="hdr"><div style="display:flex;align-items:center;gap:12px"><button class="mtg" onclick="ts()">☰</button><div class="hl"><span>🥗</span> NutraX</div></div><div style="display:flex;align-items:center;gap:10px"><a href="/lang/{"en" if is_ar else "ar"}" class="hb">🌐 {"English" if is_ar else "عربي"}</a><span class="ub">👤 {u["name"] if u else ""}</span><a href="/logout" class="hb">🚪 {"خروج" if is_ar else "Logout"}</a></div></header>
-<div class="ovl" id="ovl" onclick="ts()"></div>
-<nav class="sdb" id="sdb"><div style="padding:8px 14px 16px;border-bottom:1px solid var(--gy2);margin-bottom:12px"><div style="font-size:15px;font-weight:700">{u["name"] if u else ""}</div><div style="font-size:12px;color:var(--mt);margin-top:2px">{u["email"] if u else ""}</div></div>{nhtml}<div class="nvd"></div><a href="/logout" class="nv" style="color:#991b1b"><span style="font-size:18px;min-width:24px;text-align:center">🚪</span> {"خروج" if is_ar else "Logout"}</a></nav>
-<main class="mn">{content}</main>
-<nav class="mbn">{mhtml}</nav>
-<script>function ts(){{document.getElementById("sdb").classList.toggle("op");document.getElementById("ovl").classList.toggle("sh");}}</script></body></html>"""
-
 @app.route("/", methods=["GET","POST"])
 def login():
     if "uid" in session: return redirect("/dashboard")
-    lang = session.get("lang","ar"); is_ar = lang=="ar"
-    error=""; tab=request.args.get("tab","login")
-    if request.method=="POST":
-        action=request.form.get("action")
-        if action=="login":
-            u=gu(request.form.get("email","").lower(),request.form.get("password",""))
-            if u: session.permanent=True; session["uid"]=u["id"]; session["lang"]=u["lang"] or "ar"; return redirect("/dashboard")
-            error="❌ البريد أو كلمة المرور غير صحيحة" if is_ar else "❌ Wrong email or password"
-        elif action=="register":
-            tab="register"; r=ru(request.form.get("name",""),request.form.get("reg_email","").lower(),request.form.get("reg_password",""),request.form.get("country",""))
-            if r=="ok": error="✅ تم التسجيل! سجل دخولك." if is_ar else "✅ Registered!"; tab="login"
-            else: error="البريد مستخدم بالفعل" if is_ar else "Email already in use"
-    ecls="als" if "✅" in error else "al" if not error else ""
-    ehtml=f'<div class="al {"als" if "✅" in error else "al"}" style="background:{"var(--grp);color:#14532d;border:1px solid #86efac" if "✅" in error else "#fef2f2;color:#991b1b;border:1px solid #fca5a5"};padding:12px 16px;border-radius:10px;margin-bottom:16px;text-align:center;font-size:13px;font-weight:600">{error}</div>' if error else ""
-    return f"""<!DOCTYPE html><html lang="{lang}" dir="{"rtl" if is_ar else "ltr"}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>NutraX</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"><style>{CSS}.tabs{{display:flex;background:var(--gy);border-radius:12px;padding:4px;margin-bottom:24px;gap:4px}}.tb{{flex:1;padding:10px;border:none;background:transparent;border-radius:8px;font-family:"Cairo",sans-serif;font-size:14px;font-weight:700;color:var(--mt);cursor:pointer}}.tb.act{{background:var(--wh);color:var(--bl);box-shadow:0 1px 6px rgba(0,0,0,.08)}}.fp{{display:none}}.fp.act{{display:block}}</style></head>
-<body style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px">
-<div style="background:var(--wh);border-radius:24px;padding:40px 36px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.08);border:1px solid var(--gy2)">
-<div style="text-align:center;margin-bottom:28px"><div style="font-size:52px">🥗</div><div style="font-size:36px;font-weight:900;background:linear-gradient(135deg,var(--bl),var(--bll));-webkit-background-clip:text;-webkit-text-fill-color:transparent">NutraX</div><div style="color:var(--mt);font-size:14px;margin-top:4px">{"مساعدك الذكي للتغذية الصحية" if is_ar else "Your Smart Nutrition Assistant"}</div></div>
-{ehtml}
-<div class="tabs"><button class="tb {"act" if tab=="login" else ""}" onclick="sw('login')" type="button">🔑 {"تسجيل الدخول" if is_ar else "Sign In"}</button><button class="tb {"act" if tab=="register" else ""}" onclick="sw('register')" type="button">✨ {"حساب جديد" if is_ar else "New Account"}</button></div>
-<div class="fp {"act" if tab=="login" else ""}" id="p-login"><form method="POST"><input type="hidden" name="action" value="login"><div class="fg"><label class="fl">📧 {"البريد" if is_ar else "Email"}</label><input class="fi" type="email" name="email" required></div><div class="fg"><label class="fl">🔒 {"كلمة المرور" if is_ar else "Password"}</label><input class="fi" type="password" name="password" required></div><button type="submit" class="bt btp bff">{"دخول ←" if is_ar else "Sign In →"}</button></form></div>
-<div class="fp {"act" if tab=="register" else ""}" id="p-register"><form method="POST"><input type="hidden" name="action" value="register"><div class="fg"><label class="fl">👤 {"الاسم" if is_ar else "Name"}</label><input class="fi" type="text" name="name" required></div><div class="fg"><label class="fl">📧 {"البريد" if is_ar else "Email"}</label><input class="fi" type="email" name="reg_email" required></div><div class="fg"><label class="fl">🔒 {"كلمة المرور" if is_ar else "Password"}</label><input class="fi" type="password" name="reg_password" required minlength="6"></div><div class="fg"><label class="fl">🌍 {"البلد" if is_ar else "Country"}</label><select class="fs" name="country"><option value="مصر">🇪🇬 {"مصر" if is_ar else "Egypt"}</option><option value="الإمارات">🇦🇪 {"الإمارات" if is_ar else "UAE"}</option><option value="السعودية">🇸🇦 {"السعودية" if is_ar else "Saudi Arabia"}</option><option value="أخرى">🌍 {"أخرى" if is_ar else "Other"}</option></select></div><button type="submit" class="bt btp bff">{"إنشاء الحساب ←" if is_ar else "Create Account →"}</button></form></div>
-</div>
-<script>function sw(t){{document.querySelectorAll(".tb,.fp").forEach(e=>e.classList.remove("act"));document.querySelector("#p-"+t).classList.add("act");event.target.classList.add("act")}}</script>
-</body></html>"""
+    lang = session.get("lang","ar")
+    error = ""; tab = request.args.get("tab","login")
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "login":
+            u = gu(request.form.get("email","").lower(), request.form.get("password",""))
+            if u:
+                session.permanent = True
+                session["uid"] = u["id"]
+                session["lang"] = u["lang"] or "ar"
+                return redirect("/dashboard")
+            error = "❌ البريد أو كلمة المرور غير صحيحة"
+        elif action == "register":
+            tab = "register"
+            r = ru(request.form.get("name",""), request.form.get("reg_email","").lower(), request.form.get("reg_password",""), request.form.get("country",""))
+            if r == "ok": error = "✅ تم التسجيل! سجل دخولك."; tab = "login"
+            else: error = "البريد مستخدم بالفعل"
+    return render_template("login.html", error=error, tab=tab, lang=lang)
 
 @app.route("/logout")
 def logout():
@@ -94,121 +74,81 @@ def logout():
 
 @app.route("/lang/<l>")
 def set_lang(l):
-    if l in ["ar","en"]: session["lang"]=l
+    if l in ["ar","en"]: session["lang"] = l
     return redirect(request.referrer or "/dashboard")
 
 @app.route("/dashboard")
 @lr
 def dashboard():
-    u=guid(session["uid"]); lang=session.get("lang","ar"); is_ar=lang=="ar"
-    if not u["height"] or not u["weight"]:
-        c=f'<div style="background:linear-gradient(135deg,var(--bl),#7c3aed);border-radius:18px;padding:22px 24px;margin-bottom:20px;color:#fff"><div style="font-size:13px;opacity:.8">{"أهلاً بك 👋" if is_ar else "Welcome 👋"}</div><div style="font-size:22px;font-weight:900">{u["name"]}</div></div><div class="al alw">⚙️ {"أكمل إعداداتك لحساب أهدافك الغذائية" if is_ar else "Complete your profile"}</div><a href="/settings" class="bt btp bff">⚙️ {"اذهب للإعدادات ←" if is_ar else "Go to Settings →"}</a>'
-    else:
-        h=float(u["height"]); w=float(u["weight"]); age=int(u["age"] or 25); act=float(u["activity"] or 1.55)
-        bmr=int(10*w+6.25*h-5*age+5); tdee=int(bmr*act)
-        if u["goal"]=="fat_loss": cal=tdee-400; pp,cp,fp=0.35,0.35,0.30
-        elif u["goal"]=="muscle_gain": cal=tdee+400; pp,cp,fp=0.30,0.45,0.25
-        else: cal=tdee; pp,cp,fp=0.25,0.45,0.30
-        prot=int(cal*pp/4); carb=int(cal*cp/4); fat=int(cal*fp/9); bmi=round(w/((h/100)**2),1)
-        if bmi<18.5: bc,bl="bbu",("نحافة" if is_ar else "Underweight")
-        elif bmi<25: bc,bl="bbn",("مثالي ✅" if is_ar else "Normal ✅")
-        elif bmi<30: bc,bl="bbo",("زيادة" if is_ar else "Overweight")
-        else: bc,bl="bbd",("سمنة" if is_ar else "Obese")
-        gl={"fat_loss":"🔥 "+("خسارة دهون" if is_ar else "Fat Loss"),"muscle_gain":"💪 "+("بناء عضل" if is_ar else "Muscle Gain")}.get(u["goal"],"⚖️ "+("ثبات" if is_ar else "Maintain"))
-        c=f'<div style="background:linear-gradient(135deg,var(--bl),#7c3aed);border-radius:18px;padding:22px 24px;margin-bottom:20px;color:#fff"><div style="font-size:13px;opacity:.8">{"أهلاً بك 👋" if is_ar else "Welcome 👋"}</div><div style="font-size:22px;font-weight:900">{u["name"]}</div><div style="font-size:12px;opacity:.7;margin-top:4px">{u["email"]}</div></div><div style="background:var(--blp);border:1.5px solid #93c5fd;border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px"><div><div style="font-size:11px;font-weight:700;color:var(--mt)">{"هدفك" if is_ar else "Goal"}</div><div style="font-size:16px;font-weight:800;color:var(--bl)">{gl}</div></div><div style="text-align:center"><div style="font-size:11px;font-weight:700;color:var(--mt)">TDEE</div><div style="font-size:18px;font-weight:900">{tdee}</div><div style="font-size:11px;color:var(--mt2)">kcal</div></div><div style="text-align:center"><div style="font-size:11px;font-weight:700;color:var(--mt)">{"الهدف اليومي" if is_ar else "Daily Target"}</div><div style="font-size:22px;font-weight:900;color:var(--bll)">{cal}</div><div style="font-size:11px;color:var(--mt2)">kcal</div></div></div><div class="mts"><div class="mt"><div style="font-size:22px">🔥</div><div style="font-size:11px;font-weight:700;color:var(--mt)">{"السعرات" if is_ar else "Calories"}</div><div style="font-size:24px;font-weight:900;color:var(--bll)">{cal}</div><div style="font-size:12px;color:var(--mt2)">kcal</div></div><div class="mt"><div style="font-size:22px">💪</div><div style="font-size:11px;font-weight:700;color:var(--mt)">{"البروتين" if is_ar else "Protein"}</div><div style="font-size:24px;font-weight:900;color:var(--grl)">{prot}</div><div style="font-size:12px;color:var(--mt2)">{"جرام" if is_ar else "g"}</div></div><div class="mt"><div style="font-size:22px">🍞</div><div style="font-size:11px;font-weight:700;color:var(--mt)">{"الكارب" if is_ar else "Carbs"}</div><div style="font-size:24px;font-weight:900;color:var(--or)">{carb}</div><div style="font-size:12px;color:var(--mt2)">{"جرام" if is_ar else "g"}</div></div><div class="mt"><div style="font-size:22px">🥑</div><div style="font-size:11px;font-weight:700;color:var(--mt)">{"الدهون" if is_ar else "Fat"}</div><div style="font-size:24px;font-weight:900;color:var(--rd)">{fat}</div><div style="font-size:12px;color:var(--mt2)">{"جرام" if is_ar else "g"}</div></div></div><div class="g3" style="margin-bottom:16px"><div class="mt"><div style="font-size:12px;font-weight:700;color:var(--mt)">📏 BMI</div><div style="font-size:22px;font-weight:900">{bmi}</div><span class="bb {bc}">{bl}</span></div><div class="mt"><div style="font-size:12px;font-weight:700;color:var(--mt)">{"الوزن" if is_ar else "Weight"}</div><div style="font-size:22px;font-weight:900">{w}</div><div style="font-size:12px;color:var(--mt2)">kg</div></div><div class="mt"><div style="font-size:12px;font-weight:700;color:var(--mt)">{"المثالي" if is_ar else "Ideal"}</div><div style="font-size:22px;font-weight:900">{round(22*((h/100)**2),1)}</div><div style="font-size:12px;color:var(--mt2)">kg</div></div></div><div style="font-size:14px;font-weight:700;margin-bottom:12px">⚡ {"وصول سريع" if is_ar else "Quick Access"}</div><div class="g2"><a href="/analyzer" class="bt btp">🔍 {"محلل الطعام" if is_ar else "Food Analyzer"}</a><a href="/planner" class="bt bts">📅 {"مصمم الجدول" if is_ar else "Meal Planner"}</a><a href="/clinical" class="bt bto">📚 {"المرجع الكلينيكي" if is_ar else "Clinical Reference"}</a><a href="/history" class="bt bto">📈 {"سجل الوزن" if is_ar else "Weight Log"}</a></div>'
-    return base(c, u, lang, "dashboard")
+    u = guid(session["uid"])
+    return render_template("dashboard.html", user=u, lang=session.get("lang","ar"))
 
 @app.route("/settings", methods=["GET","POST"])
 @lr
 def settings():
-    u=guid(session["uid"]); lang=session.get("lang","ar"); is_ar=lang=="ar"; saved=""
-    if request.method=="POST":
-        c=db(); c.execute("UPDATE users SET height=?,weight=?,age=?,gender=?,goal=?,activity=? WHERE id=?",(request.form.get("height"),request.form.get("weight"),request.form.get("age"),request.form.get("gender"),request.form.get("goal"),request.form.get("activity"),session["uid"])); c.commit(); c.close()
-        u=guid(session["uid"]); saved=f'<div class="al als">✅ {"تم الحفظ!" if is_ar else "Saved!"}</div>'
-    ao=[(1.2,"مستقر","Sedentary"),(1.375,"خفيف (1-3 أيام)","Light"),(1.55,"معتدل (3-5 أيام)","Moderate"),(1.725,"نشيط (6-7 أيام)","Active"),(1.9,"رياضي محترف","Pro Athlete")]
-    ah="".join(f'<option value="{v}" {"selected" if float(u["activity"] or 1.55)==v else ""}>{a if is_ar else e}</option>' for v,a,e in ao)
-    c=f'<div class="pt"><span style="font-size:26px">⚙️</span> {"الإعدادات الشخصية" if is_ar else "Personal Settings"}</div>{saved}<div class="cd"><div class="cdt">📏 {"البيانات الجسمية" if is_ar else "Body Measurements"}</div><form method="POST"><div class="g3"><div class="fg"><label class="fl">{"الطول (سم)" if is_ar else "Height (cm)"}</label><input class="fi" type="number" name="height" value="{u["height"] or ""}" placeholder="170" step="0.5"></div><div class="fg"><label class="fl">{"الوزن (كجم)" if is_ar else "Weight (kg)"}</label><input class="fi" type="number" name="weight" value="{u["weight"] or ""}" placeholder="70" step="0.1"></div><div class="fg"><label class="fl">{"العمر" if is_ar else "Age"}</label><input class="fi" type="number" name="age" value="{u["age"] or ""}" placeholder="25"></div></div><div class="g2"><div class="fg"><label class="fl">{"الجنس" if is_ar else "Gender"}</label><select class="fs" name="gender"><option value="male" {"selected" if u["gender"]=="male" else ""}>{"ذكر" if is_ar else "Male"}</option><option value="female" {"selected" if u["gender"]=="female" else ""}>{"أنثى" if is_ar else "Female"}</option></select></div><div class="fg"><label class="fl">🎯 {"هدفك" if is_ar else "Goal"}</label><select class="fs" name="goal"><option value="maintain" {"selected" if u["goal"]=="maintain" else ""}>⚖️ {"ثبات" if is_ar else "Maintain"}</option><option value="fat_loss" {"selected" if u["goal"]=="fat_loss" else ""}>🔥 {"خسارة دهون" if is_ar else "Fat Loss"}</option><option value="muscle_gain" {"selected" if u["goal"]=="muscle_gain" else ""}>💪 {"بناء عضل" if is_ar else "Muscle Gain"}</option></select></div></div><div class="fg"><label class="fl">🏃 {"مستوى النشاط" if is_ar else "Activity Level"}</label><select class="fs" name="activity">{ah}</select></div><button type="submit" class="bt btp bff">💾 {"حفظ وحساب الأهداف" if is_ar else "Save & Calculate"}</button></form></div>'
-    return base(c, u, lang, "settings")
+    u = guid(session["uid"]); saved = False
+    if request.method == "POST":
+        c = db()
+        c.execute("UPDATE users SET height=?,weight=?,age=?,gender=?,goal=?,activity=? WHERE id=?",
+            (request.form.get("height"),request.form.get("weight"),request.form.get("age"),
+             request.form.get("gender"),request.form.get("goal"),request.form.get("activity"),session["uid"]))
+        c.commit(); c.close()
+        u = guid(session["uid"]); saved = True
+    return render_template("settings.html", user=u, lang=session.get("lang","ar"), saved=saved)
 
 @app.route("/analyzer")
 @lr
 def analyzer():
-    u=guid(session["uid"]); lang=session.get("lang","ar"); is_ar=lang=="ar"; gr="ج" if is_ar else "g"
-    foods=[("chicken_breast","صدر دجاج","Chicken Breast",165,31,0,3.6,"🍗 دواجن","🍗 Poultry","مصدر ممتاز للبروتين الكامل","Excellent complete protein source","💡 شوي أو بخار","💡 Grill or steam"),("chicken_thigh","فخذ دجاج","Chicken Thigh",209,26,0,10,"🍗 دواجن","🍗 Poultry","أعلى في الدهون الصحية","Higher in healthy fats","💡 مناسب للرياضيين","💡 Great for athletes"),("beef_steak","ستيك لحم بقري","Beef Steak",271,25,0,19,"🥩 لحوم","🥩 Red Meat","غني بالزنك والحديد الهيمي","Rich in zinc and heme iron","💡 اختر قطع lean","💡 Choose lean cuts"),("salmon","سلمون","Salmon",208,20,0,13,"🐟 أسماك","🐟 Fish","غني بأوميغا 3","Rich in omega-3","💡 مرتين أسبوعياً","💡 Twice weekly"),("tuna_canned","تونة معلبة","Canned Tuna",116,26,0,1,"🐟 أسماك","🐟 Fish","بروتين عالٍ وسعرات منخفضة","High protein low calories","💡 فضل في ماء","💡 Prefer in water"),("shrimp","جمبري","Shrimp",99,24,0.2,0.3,"🐟 أسماك","🐟 Fish","بروتين عالٍ جداً","Very high protein","💡 غني بالأيودين","💡 Rich in iodine"),("eggs_whole","بيضة كاملة","Whole Egg",78,6,0.6,5,"🥚 بيض","🥚 Eggs","معيار الذهب للبروتين","Gold standard protein","💡 الصفار غني بالكولين","💡 Yolk rich in choline"),("egg_whites","بياض بيض","Egg Whites",17,3.6,0.2,0.1,"🥚 بيض","🥚 Eggs","بروتين نقي","Pure protein","💡 4 بياضات = 15جم","💡 4 whites = 15g"),("greek_yogurt","زبادي يوناني","Greek Yogurt",59,10,3.6,0.4,"🥛 ألبان","🥛 Dairy","بروبيوتيك + بروتين","Probiotic + protein","💡 اختر غير محلى","💡 Choose unsweetened"),("oats","شوفان","Oats",389,16.9,66,6.9,"🌾 حبوب","🌾 Grains","بيتا جلوكان","Beta-glucan","💡 أضف بياض البيض","💡 Add egg whites"),("rice_brown","أرز بني","Brown Rice",111,2.6,23,0.9,"🌾 حبوب","🌾 Grains","أعلى ألياف","More fiber","💡 أفضل للسكر","💡 Better for blood sugar"),("sweet_potato","بطاطا حلوة","Sweet Potato",86,1.6,20,0.1,"🌾 حبوب","🌾 Grains","غني بالبيتا كاروتين","Rich in beta-carotene","💡 اشوه في الفرن","💡 Bake in oven"),("lentils","عدس","Lentils",116,9,20,0.4,"🫘 بقوليات","🫘 Legumes","بروتين + ألياف + حديد","Protein + fiber + iron","💡 كشري = بروتين كامل","💡 Great with rice"),("fava_beans","فول مدمس","Fava Beans",110,7.6,20,0.5,"🫘 بقوليات","🫘 Legumes","الإفطار الوطني المصري","Egyptian national breakfast","💡 زيت زيتون + ليمون","💡 Olive oil + lemon"),("chickpeas","حمص","Chickpeas",164,8.9,27,2.6,"🫘 بقوليات","🫘 Legumes","ينظم سكر الدم","Regulates blood sugar","💡 انقعه الليل","💡 Soak overnight"),("almonds","لوز","Almonds",579,21,22,50,"🥜 مكسرات","🥜 Nuts","غني بالمغنيسيوم","Rich in magnesium","💡 28جم = حفنة","💡 28g = handful"),("olive_oil","زيت زيتون","Olive Oil",884,0,0,100,"🥜 مكسرات","🥜 Fats","دهون صحية","Healthy fats","💡 بكر ممتاز","💡 Extra virgin"),("banana","موز","Banana",89,1.1,23,0.3,"🍎 فاكهة","🍎 Fruit","طاقة فورية","Quick energy","💡 قبل التمرين","💡 Before workout"),("dates","تمر","Dates",277,1.8,75,0.2,"🍎 فاكهة","🍎 Fruit","طاقة طبيعية","Natural energy","💡 3 تمرات","💡 3 dates"),("broccoli","بروكلي","Broccoli",34,2.8,7,0.4,"🥦 خضروات","🥦 Vegetables","سوبر فود","Superfood","💡 بالبخار أفضل","💡 Steam is best"),("spinach","سبانخ","Spinach",23,2.9,3.6,0.4,"🥦 خضروات","🥦 Vegetables","حديد وكالسيوم","Iron and calcium","💡 ليمون يساعد","💡 Lemon helps absorption"),("molokhia","ملوخية","Molokhia",44,4.8,8,0.6,"🇪🇬 مصري","🇪🇬 Egyptian","سوبر فود مصري","Egyptian superfood","💡 ثوم + ليمون","💡 Garlic + lemon"),("hummus","حمص بطحينة","Hummus",166,7.9,14,9.6,"🇪🇬 مصري","🇪🇬 Egyptian","دهون صحية + بروتين","Healthy fats + protein","💡 مع خبز أسمر","💡 With whole wheat")]
-    fj=json.dumps([{"k":f[0],"n":f[1] if is_ar else f[2],"cal":f[3],"p":f[4],"c":f[5],"f":f[6],"cat":f[7] if is_ar else f[8],"note":f[9] if is_ar else f[10],"tip":f[11] if is_ar else f[12]} for f in foods])
-    c=f'<div class="pt"><span style="font-size:26px">🔍</span> {"محلل الطعام" if is_ar else "Food Analyzer"}</div><div class="cd" style="margin-bottom:16px"><div class="g2" style="gap:10px;margin-bottom:10px"><div class="fg" style="margin:0"><label class="fl">🔎 {"ابحث" if is_ar else "Search"}</label><input class="fi" id="srch" oninput="flt()" placeholder="{"دجاج، سلمون..." if is_ar else "chicken, salmon..."}"></div><div class="fg" style="margin:0"><label class="fl">📂 {"الفئة" if is_ar else "Category"}</label><select class="fs" id="cat" onchange="flt()"><option value="">{"الكل" if is_ar else "All"}</option></select></div></div><div id="cnt" style="font-size:13px;color:var(--mt)"></div></div><div id="list"></div><script>const F={fj};const gr="{gr}";const cats=[...new Set(F.map(f=>f.cat))];const sel=document.getElementById("cat");cats.forEach(c=>sel.add(new Option(c,c)));function flt(){{const s=document.getElementById("srch").value.toLowerCase();const c=document.getElementById("cat").value;const r=F.filter(f=>(!s||f.n.toLowerCase().includes(s))&&(!c||f.cat===c));document.getElementById("cnt").textContent=r.length+" {"نتيجة" if is_ar else "results"} — {"لكل 100 جرام" if is_ar else "per 100g"}";document.getElementById("list").innerHTML=r.slice(0,30).map(f=>`<div style="background:#fff;border:1.5px solid var(--gy2);border-radius:14px;padding:14px 16px;margin-bottom:10px;border-right:4px solid var(--bll)"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:15px;font-weight:800">${{f.n}}</div><div style="font-size:11px;color:var(--mt);margin-top:2px">${{f.cat}}</div></div><div style="text-align:left"><div style="font-size:22px;font-weight:900;color:var(--bll)">${{f.cal}}</div><div style="font-size:11px;color:var(--mt)">kcal/100{gr}</div></div></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0"><span style="background:#dcfce7;color:#166534;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700">💪 ${{f.p}}{gr}</span><span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700">🍞 ${{f.c}}{gr}</span><span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700">🥑 ${{f.f}}{gr}</span></div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><label style="font-size:13px;font-weight:700">{"الكمية" if is_ar else "Amount"} ({gr}):</label><input type="number" value="100" min="0" max="2000" step="10" style="width:80px;padding:5px 8px;border:2px solid var(--gy2);border-radius:8px;font-family:Cairo,sans-serif;text-align:center" oninput="calc(this,${{f.cal}},${{f.p}},${{f.c}},${{f.f}},${{JSON.stringify(f.k)}})" id="g_${{f.k}}"></div><div id="r_${{f.k}}" style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:10px;padding:10px;display:none;font-size:13px"></div><details style="margin-top:8px"><summary style="font-size:13px;font-weight:700;color:var(--bl);cursor:pointer">📋 {"معلومة + نصيحة" if is_ar else "Info + Tip"}</summary><div style="margin-top:8px"><div style="background:var(--grp);border-right:3px solid var(--grl);border-radius:8px;padding:8px 12px;font-size:13px;color:#14532d;margin-bottom:6px">${{f.note}}</div><div style="background:#fffbeb;border-right:3px solid #f59e0b;border-radius:8px;padding:8px 12px;font-size:13px;color:#78350f">${{f.tip}}</div></div></details></div>`).join("");r.slice(0,30).forEach(f=>calc(document.getElementById("g_"+f.k),f.cal,f.p,f.c,f.f,f.k));}}function calc(inp,cal,p,c,f,k){{const g=parseFloat(inp.value)||0;const r=document.getElementById("r_"+k);if(g>0&&r){{const x=g/100;r.style.display="block";r.innerHTML=`<div style="font-weight:700;color:var(--bl);margin-bottom:6px">${{g}}{gr} = </div><div style="display:flex;gap:12px;flex-wrap:wrap"><div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--bll)">${{(cal*x).toFixed(1)}}</div><div style="font-size:11px;color:var(--mt)">kcal</div></div><div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--grl)">${{(p*x).toFixed(1)}}{gr}</div><div style="font-size:11px;color:var(--mt)">{"بروتين" if is_ar else "protein"}</div></div><div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--or)">${{(c*x).toFixed(1)}}{gr}</div><div style="font-size:11px;color:var(--mt)">{"كارب" if is_ar else "carbs"}</div></div><div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--rd)">${{(f*x).toFixed(1)}}{gr}</div><div style="font-size:11px;color:var(--mt)">{"دهون" if is_ar else "fat"}</div></div></div>`;}}else if(r) r.style.display="none";}}flt();</script>'
-    return base(c, u, lang, "analyzer")
-
-@app.route("/history", methods=["GET"])
-@lr
-def history():
-    u=guid(session["uid"]); lang=session.get("lang","ar"); is_ar=lang=="ar"
-    c=db(); logs=c.execute("SELECT * FROM weight_log WHERE user_id=? ORDER BY logged_at DESC LIMIT 30",(session["uid"],)).fetchall(); c.close()
-    if logs:
-        ws=[l["weight"] for l in logs]
-        lh=f'<div class="g3" style="margin-bottom:16px"><div class="mt"><div style="font-size:12px;font-weight:700;color:var(--mt)">📉 {"أقل" if is_ar else "Lowest"}</div><div style="font-size:22px;font-weight:900;color:var(--grl)">{min(ws)}</div><div style="font-size:12px;color:var(--mt2)">kg</div></div><div class="mt"><div style="font-size:12px;font-weight:700;color:var(--mt)">📈 {"أعلى" if is_ar else "Highest"}</div><div style="font-size:22px;font-weight:900;color:var(--rd)">{max(ws)}</div><div style="font-size:12px;color:var(--mt2)">kg</div></div><div class="mt"><div style="font-size:12px;font-weight:700;color:var(--mt)">📊 {"آخر" if is_ar else "Latest"}</div><div style="font-size:22px;font-weight:900;color:var(--bll)">{ws[0]}</div><div style="font-size:12px;color:var(--mt2)">kg</div></div></div><table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="background:var(--blp)"><th style="padding:10px;text-align:right;color:var(--bl);font-weight:700">{"التاريخ" if is_ar else "Date"}</th><th style="padding:10px;text-align:center;color:var(--bl);font-weight:700">{"الوزن" if is_ar else "Weight"}</th></tr></thead><tbody>{"".join(f"<tr style=border-bottom:1px_solid_var(--gy2)><td style=padding:10px>{l[chr(39)]logged_at{chr(39)][:10]}</td><td style=padding:10px;text-align:center;font-weight:700>{l[chr(39)]weight{chr(39)]} kg</td></tr>" for l in logs)}</tbody></table>'
-    else:
-        lh=f'<div class="al ali">{"سجل وزنك اليوم!" if is_ar else "Log your weight today!"}</div>'
-    ct=f'<div class="pt"><span style="font-size:26px">📈</span> {"سجل الوزن" if is_ar else "Weight Log"}</div><div class="cd"><div class="cdt">⚖️ {"سجل وزنك اليوم" if is_ar else "Log Today"}</div><form method="POST" action="/log_weight"><div class="g2"><div class="fg"><label class="fl">{"الوزن (كجم)" if is_ar else "Weight (kg)"}</label><input class="fi" type="number" name="weight" step="0.1" placeholder="70.5" required></div><div style="display:flex;align-items:flex-end"><button type="submit" class="bt btp bff">✅ {"تسجيل" if is_ar else "Log"}</button></div></div></form></div><div class="cd">{lh}</div>'
-    return base(ct, u, lang, "history")
-
-@app.route("/log_weight", methods=["POST"])
-@lr
-def log_weight():
-    w=request.form.get("weight")
-    if w: c=db(); c.execute("INSERT INTO weight_log (user_id,weight) VALUES (?,?)",(session["uid"],w)); c.commit(); c.close()
-    return redirect("/history")
+    return render_template("analyzer.html", user=guid(session["uid"]), lang=session.get("lang","ar"))
 
 @app.route("/planner")
 @lr
 def planner():
-    u=guid(session["uid"]); lang=session.get("lang","ar"); is_ar=lang=="ar"
-    if not u["height"] or not u["weight"]:
-        ct=f'<div class="pt"><span style="font-size:26px">📅</span> {"مصمم الجدول" if is_ar else "Meal Planner"}</div><div class="al alw">⚙️ {"أكمل إعداداتك أولاً" if is_ar else "Complete your profile first"}</div><a href="/settings" class="bt btp">⚙️ {"الإعدادات" if is_ar else "Settings"}</a>'
-        return base(ct, u, lang, "planner")
-    h=float(u["height"]); w=float(u["weight"]); age=int(u["age"] or 25); act=float(u["activity"] or 1.55)
-    bmr=int(10*w+6.25*h-5*age+5); tdee=int(bmr*act)
-    cal=tdee-400 if u["goal"]=="fat_loss" else tdee+400 if u["goal"]=="muscle_gain" else tdee
-    prot=int(cal*0.30/4)
-    dar=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"]
-    den=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
-    mar=[("🌅","فطار"),("☀️","غداء"),("🌙","عشاء"),("🍎","سناك")]
-    men=[("🌅","Breakfast"),("☀️","Lunch"),("🌙","Dinner"),("🍎","Snack")]
-    meals=mar if is_ar else men; days=dar if is_ar else den
-    dh="".join(f'<div class="cd"><div class="cdt">📆 {"اليوم" if is_ar else "Day"} {i+1} — {days[i]}</div><div class="g2">{"".join(f"""<div class="fg"><label class="fl">{ic} {name}</label><input class="fi" type="text" name="day{i+1}_{name.lower()}" placeholder="{"اكتب الوجبة..." if is_ar else "Enter meal..."}"></div>""" for ic,name in meals)}</div></div>' for i in range(7))
-    ct=f'<div class="pt"><span style="font-size:26px">📅</span> {"مصمم الجدول الغذائي" if is_ar else "Meal Planner"}</div><div style="background:var(--blp);border:1.5px solid #93c5fd;border-radius:12px;padding:14px 18px;margin-bottom:16px;font-size:14px;font-weight:700;color:#1e3a8a">🎯 {"هدفك اليومي" if is_ar else "Daily Target"}: <strong>{cal} kcal</strong> | 💪 {prot}{"ج" if is_ar else "g"} {"بروتين" if is_ar else "protein"}</div><form method="POST" action="/save_plan">{dh}<div class="cd"><div class="cdt">💾 {"حفظ الجدول" if is_ar else "Save Plan"}</div><div class="g2"><div class="fg"><label class="fl">{"اسم الجدول" if is_ar else "Plan Name"}</label><input class="fi" type="text" name="plan_name" placeholder="{"جدولي الأسبوعي" if is_ar else "My Weekly Plan"}" required></div><div class="fg"><label class="fl">{"النوع" if is_ar else "Type"}</label><select class="fs" name="plan_type"><option value="personal">{"خاص بي" if is_ar else "Personal"}</option><option value="client">{"للعميل" if is_ar else "For Client"}</option></select></div></div><button type="submit" class="bt bts bff">💾 {"حفظ الجدول" if is_ar else "Save Plan"}</button></div></form>'
-    return base(ct, u, lang, "planner")
-
-@app.route("/save_plan", methods=["POST"])
-@lr
-def save_plan():
-    n=request.form.get("plan_name","خطتي"); pt=request.form.get("plan_type","personal"); d=json.dumps(dict(request.form))
-    c=db(); c.execute("INSERT INTO saved_plans (user_id,name,plan_data,plan_type) VALUES (?,?,?,?)",(session["uid"],n,d,pt)); c.commit(); c.close()
-    return redirect("/saved")
-
-@app.route("/saved")
-@lr
-def saved():
-    u=guid(session["uid"]); lang=session.get("lang","ar"); is_ar=lang=="ar"
-    c=db(); plans=c.execute("SELECT * FROM saved_plans WHERE user_id=? ORDER BY created_at DESC",(session["uid"],)).fetchall(); c.close()
-    ph="".join(f'<div class="cd"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:16px;font-weight:800">📋 {p["name"]}</div><div style="font-size:12px;color:var(--mt);margin-top:4px">{str(p["created_at"])[:10]} — {p["plan_type"]}</div></div><form method="POST" action="/delete_plan/{p["id"]}"><button type="submit" class="bt" style="background:var(--rdp);color:var(--rd);border:1px solid #fca5a5;padding:7px 14px;font-size:13px">🗑️</button></form></div></div>' for p in plans) if plans else f'<div class="al ali">{"لا توجد جداول محفوظة بعد." if is_ar else "No saved plans yet."}</div><a href="/planner" class="bt btp">📅 {"مصمم الجدول" if is_ar else "Meal Planner"}</a>'
-    ct=f'<div class="pt"><span style="font-size:26px">💾</span> {"جداولي المحفوظة" if is_ar else "My Saved Plans"}</div>{ph}'
-    return base(ct, u, lang, "saved")
-
-@app.route("/delete_plan/<int:pid>", methods=["POST"])
-@lr
-def delete_plan(pid):
-    c=db(); c.execute("DELETE FROM saved_plans WHERE id=? AND user_id=?",(pid,session["uid"])); c.commit(); c.close()
-    return redirect("/saved")
+    return render_template("planner.html", user=guid(session["uid"]), lang=session.get("lang","ar"))
 
 @app.route("/clinical")
 @lr
 def clinical():
-    u=guid(session["uid"]); lang=session.get("lang","ar"); is_ar=lang=="ar"
-    conds=[("🩸","السكري النوع الثاني","Type 2 Diabetes","مقاومة للأنسولين. فقدان 5-10% من الوزن يُحسّن التحكم في السكر.","Insulin resistance. Losing 5-10% weight improves blood sugar control.",[("🔥","السعرات","عجز 500-750 kcal/يوم"),("💪","البروتين","15-20%"),("🍞","الكارب","45-60% حبوب كاملة"),("🌾","الألياف","25-38 جم/يوم")],["شوفان","عدس","خضروات","أسماك","دجاج مشوي"],["Oats","Lentils","Vegetables","Fish","Grilled chicken"],["خبز أبيض","مشروبات محلاة","حلويات"],["White bread","Sweet drinks","Sweets"]),("❤️","أمراض القلب","Cardiovascular","TLC يستهدف خفض LDL والكوليسترول.","TLC diet targets lowering LDL.",[("🥑","الدهون","مشبعة < 7%"),("🐟","أوميغا 3","سمك مرتين/أسبوع"),("🧂","الصوديوم","< 2300 مجم/يوم"),("🌾","الألياف","25-30 جم/يوم")],["سمك دهني","شوفان","زيت زيتون","مكسرات"],["Fatty fish","Oats","Olive oil","Nuts"],["لحوم دهنية","زبدة","أكل مقلي"],["Fatty meats","Butter","Fried food"]),("🤰","الحمل","Pregnancy","الاحتياجات ترتفع خاصة للحديد وحمض الفوليك والكالسيوم.","Needs increase especially for iron, folate, calcium.",[("🔥","سعرات إضافية","+340 ثلث ثاني +452 ثالث"),("💪","البروتين","+25 جم/يوم"),("🩸","حمض الفوليك","600 ميكروجرام/يوم"),("🐟","DHA","200-300 مجم/يوم")],["كبدة الدجاج","سلمون","بيض","بقوليات"],["Chicken liver","Salmon","Eggs","Legumes"],["جبن غير مبستر","أسماك زئبق"],["Unpasteurized cheese","High-mercury fish"]),("🫘","الفشل الكلوي","CKD","تقليل البروتين وضبط الصوديوم والبوتاسيوم والفوسفور.","Protein restriction and control of sodium, potassium, phosphorus.",[("🔥","السعرات","35 kcal/كجم/يوم"),("💪","البروتين","0.6-0.75 جم/كجم"),("🧂","الصوديوم","1000-3000 مجم/يوم"),("🔵","الفوسفور","800-1000 مجم/يوم")],["بياض بيض","سمك أبيض","أرز أبيض"],["Egg whites","White fish","White rice"],["ألبان بكثرة","مكسرات","مشروبات غازية"],["Large dairy","Nuts","Soft drinks"]),("🫃","القولون العصبي","IBS","Low-FODMAP فعّالة لدى 75% من المرضى.","Low-FODMAP effective in 75% of patients.",[("🌾","الألياف","psyllium للإمساك"),("💧","الماء","8 أكواب يومياً"),("🍽️","الوجبات","صغيرة ومتكررة"),("🧘","التوتر","إدارة التوتر أساسية")],["موز","كيوي","جزر","أرز"],["Banana","Kiwi","Carrots","Rice"],["تفاح","بصل وثوم","حليب كامل"],["Apple","Onion","Whole milk"]),("⚖️","السمنة وزيادة الوزن","Obesity","خسارة 0.5-1 كجم/أسبوع بعجز 500-1000 kcal/يوم.","Lose 0.5-1 kg/week with 500-1000 kcal/day deficit.",[("🔥","السعرات","1200-1500 نساء 1500-1800 رجال"),("💪","البروتين","25-30%"),("🌾","الألياف","25-38 جم/يوم"),("🏃","نشاط","150 دقيقة/أسبوع")],["بروتين في كل وجبة","خضروات كثيرة","ماء قبل الأكل"],["Protein each meal","Lots of veg","Water before meals"],["مشروبات محلاة","أكل مقلي","حلويات"],["Sweet drinks","Fried food","Sweets"])]
-    ch="".join(f'<div style="background:#fff;border:1.5px solid var(--gy2);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer" onclick="tg(this)"><div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:12px"><span style="font-size:28px">{ic}</span><div><div style="font-size:16px;font-weight:800">{na if is_ar else ne}</div><div style="font-size:13px;color:var(--mt);margin-top:2px">{(oa if is_ar else oe)[:70]}...</div></div></div><span style="font-size:20px;color:var(--mt);transition:transform .2s" class="arr">▼</span></div><div style="display:none;margin-top:14px;padding-top:14px;border-top:1.5px solid var(--gy2)" class="det"><p style="font-size:14px;color:var(--tx2);margin-bottom:12px;line-height:1.7">{oa if is_ar else oe}</p><div style="font-size:13px;font-weight:700;color:var(--bl);margin-bottom:8px">⚖️ {"التوصيات" if is_ar else "Recommendations"}</div>{"".join(f"""<div style="background:var(--blp);border-right:3px solid var(--bll);border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:13px"><div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:2px">{mic} {ml}</div><div>{mv}</div></div>""" for mic,ml,mv in mac)}<div class="g2" style="margin-top:12px"><div><div style="font-size:13px;font-weight:700;color:var(--gr);margin-bottom:8px">✅ {"مُشجَّعة" if is_ar else "Recommended"}</div><div style="display:flex;gap:6px;flex-wrap:wrap">{"".join(f"""<span style="background:var(--grp);color:var(--gr);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">{f}</span>""" for f in (ga if is_ar else ge))}</div></div><div><div style="font-size:13px;font-weight:700;color:var(--rd);margin-bottom:8px">⛔ {"تُقلَّل" if is_ar else "Limit"}</div><div style="display:flex;gap:6px;flex-wrap:wrap">{"".join(f"""<span style="background:var(--rdp);color:var(--rd);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">{f}</span>""" for f in (ba if is_ar else be))}</div></div></div></div></div>' for ic,na,ne,oa,oe,mac,ga,ge,ba,be in conds)
-    ct=f'<div class="pt"><span style="font-size:26px">📚</span> {"المرجع الكلينيكي" if is_ar else "Clinical Reference"}</div><div class="al ali" style="margin-bottom:16px">📖 {"مستخلص من: Understanding Normal and Clinical Nutrition, 8th Ed" if is_ar else "Based on: Understanding Normal and Clinical Nutrition, 8th Ed"}</div>{ch}<script>function tg(card){{const d=card.querySelector(".det");const a=card.querySelector(".arr");const o=d.style.display==="block";d.style.display=o?"none":"block";a.style.transform=o?"":"rotate(180deg)"}}</script>'
-    return base(ct, u, lang, "clinical")
+    return render_template("clinical.html", user=guid(session["uid"]), lang=session.get("lang","ar"))
+
+@app.route("/history")
+@lr
+def history():
+    u = guid(session["uid"])
+    c = db()
+    logs = c.execute("SELECT * FROM weight_log WHERE user_id=? ORDER BY logged_at DESC LIMIT 30", (session["uid"],)).fetchall()
+    c.close()
+    return render_template("history.html", user=u, lang=session.get("lang","ar"), logs=logs)
+
+@app.route("/saved")
+@lr
+def saved():
+    u = guid(session["uid"])
+    c = db()
+    plans = c.execute("SELECT * FROM saved_plans WHERE user_id=? ORDER BY created_at DESC", (session["uid"],)).fetchall()
+    c.close()
+    return render_template("saved.html", user=u, lang=session.get("lang","ar"), plans=plans)
+
+@app.route("/log_weight", methods=["POST"])
+@lr
+def log_weight():
+    w = request.form.get("weight")
+    if w:
+        c = db(); c.execute("INSERT INTO weight_log (user_id,weight) VALUES (?,?)", (session["uid"],w)); c.commit(); c.close()
+    return redirect("/history")
+
+@app.route("/save_plan", methods=["POST"])
+@lr
+def save_plan():
+    n = request.form.get("plan_name","خطتي"); pt = request.form.get("plan_type","personal")
+    c = db(); c.execute("INSERT INTO saved_plans (user_id,name,plan_data,plan_type) VALUES (?,?,?,?)", (session["uid"],n,json.dumps(dict(request.form)),pt)); c.commit(); c.close()
+    return redirect("/saved")
+
+@app.route("/delete_plan/<int:pid>", methods=["POST"])
+@lr
+def delete_plan(pid):
+    c = db(); c.execute("DELETE FROM saved_plans WHERE id=? AND user_id=?", (pid,session["uid"])); c.commit(); c.close()
+    return redirect("/saved")
 
 if __name__ == "__main__":
     app.run(debug=True)
