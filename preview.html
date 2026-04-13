@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ 'مراجعة الجدول' if (lang or 'ar')=='ar' else 'Review Plan' }}{% endblock %}
+
+{% block extra_style %}
+<style>
+.day-row{background:#fff;border:1.5px solid var(--gray-2);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.day-header{font-size:15px;font-weight:800;color:var(--blue);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.meal-item{display:flex;align-items:flex-start;gap:10px;padding:6px 0;border-bottom:1px solid var(--gray-2)}
+.meal-item:last-child{border-bottom:none}
+.meal-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px}
+.meal-name{font-size:12px;font-weight:700;color:var(--muted)}
+.meal-val{font-size:13px;font-weight:600;color:var(--text)}
+.cal-badge{background:var(--blue-pale);color:var(--blue);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
+</style>
+{% endblock %}
+
+{% block content %}
+{% set is_ar = (lang or 'ar') == 'ar' %}
+
+<div class="page-title">
+  <i class="fa-solid fa-eye"></i>
+  {{ 'مراجعة الجدول قبل التحميل' if is_ar else 'Review Plan Before Download' }}
+</div>
+
+<!-- بيانات المريض -->
+<div class="card">
+  <div class="card-title">
+    <i class="fa-solid fa-user"></i>
+    {{ 'بيانات المريض' if is_ar else 'Patient Data' }}
+  </div>
+  <div class="grid-3">
+    <div class="metric">
+      <i class="fa-solid fa-user" style="color:var(--blue-light)"></i>
+      <div class="metric-label">{{ 'الاسم' if is_ar else 'Name' }}</div>
+      <div style="font-size:16px;font-weight:800;color:var(--text)">{{ data.name }}</div>
+    </div>
+    <div class="metric">
+      <i class="fa-solid fa-weight-scale" style="color:var(--blue-light)"></i>
+      <div class="metric-label">{{ 'الوزن / الطول' if is_ar else 'Weight / Height' }}</div>
+      <div style="font-size:16px;font-weight:800;color:var(--text)">{{ data.weight }} kg | {{ data.height }} cm</div>
+    </div>
+    <div class="metric">
+      <i class="fa-solid fa-fire" style="color:var(--blue-light)"></i>
+      <div class="metric-label">{{ 'الهدف اليومي' if is_ar else 'Daily Target' }}</div>
+      <div style="font-size:20px;font-weight:900;color:var(--blue-light)">{{ data.goal_cal }} <span style="font-size:12px">kcal</span></div>
+    </div>
+  </div>
+  {% if data.symptoms %}
+  <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+    {% for s in data.symptoms %}
+    <span style="background:var(--red-pale);color:var(--red);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">
+      <i class="fa-solid fa-stethoscope"></i> {{ s }}
+    </span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- الجدول الاسبوعي -->
+<div class="card-title" style="font-size:18px;margin-bottom:12px">
+  <i class="fa-solid fa-calendar-week"></i>
+  {{ 'الجدول الغذائي الاسبوعي' if is_ar else 'Weekly Meal Plan' }}
+</div>
+
+{% set meal_icons = [
+  ('fa-sun', '#f59e0b', 'الفطار', 'Breakfast', 'breakfast'),
+  ('fa-cloud-sun', '#2563eb', 'الغداء', 'Lunch', 'lunch'),
+  ('fa-moon', '#7c3aed', 'العشاء', 'Dinner', 'dinner'),
+  ('fa-apple-whole', '#16a34a', 'السناك', 'Snack', 'snack'),
+  ('fa-star-and-crescent', '#64748b', 'قبل النوم', 'Before Sleep', 'before_sleep'),
+] %}
+
+{% for day in plan %}
+<div class="day-row">
+  <div class="day-header">
+    <i class="fa-solid fa-calendar-day"></i>
+    {{ day.day }}
+    <span class="cal-badge" style="margin-right:auto">{{ day.total_cal }} kcal | {{ day.total_p }}{{ 'ج' if is_ar else 'g' }} {{ 'بروتين' if is_ar else 'protein' }}</span>
+  </div>
+  {% for icon, color, ar_name, en_name, key in meal_icons %}
+  <div class="meal-item">
+    <div class="meal-icon" style="background:{{ color }}20">
+      <i class="fa-solid {{ icon }}" style="color:{{ color }}"></i>
+    </div>
+    <div>
+      <div class="meal-name">{{ ar_name if is_ar else en_name }}</div>
+      <div class="meal-val">{{ day[key] }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+
+<!-- ازرار -->
+<div class="grid-2" style="margin-top:20px">
+  <a href="/generate" class="btn btn-outline btn-full">
+    <i class="fa-solid fa-arrow-right"></i>
+    {{ 'تعديل البيانات' if is_ar else 'Edit Data' }}
+  </a>
+  <a href="/download_pdf" class="btn btn-success btn-full" style="font-size:15px">
+    <i class="fa-solid fa-file-pdf"></i>
+    {{ 'تحميل PDF' if is_ar else 'Download PDF' }}
+  </a>
+</div>
+
+{% endblock %}
