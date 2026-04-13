@@ -1,6 +1,20 @@
-{% extends "base.html" %}
-{% block title %}مصمم الجدول{% endblock %}
-{% block content %}
-<div class="page-title"><span class="icon">📅</span> مصمم الجدول الغذائي</div>
-<div class="alert alert-info">⏳ هذه الصفحة قيد التطوير — قريباً!</div>
-{% endblock %}
+{% extends "base.html" %} {% block title %}{{ 'مصمم الجدول' if (lang or 'ar')=='ar' else 'Meal Planner' }}{% endblock %} {% block extra_style %} {% endblock %} {% block content %} {% set is_ar = (lang or 'ar') == 'ar' %}
+📅 {{ 'مصمم الجدول الغذائي' if is_ar else 'Meal Planner' }}
+{% if not user.height or not user.weight %}
+⚙️ {{ 'أكمل إعداداتك أولاً لحساب أهدافك' if is_ar else 'Complete your profile first to calculate your targets' }}
+⚙️ {{ 'الإعدادات' if is_ar else 'Settings' }} {% else %} {% set h = user.height|float %} {% set w = user.weight|float %} {% set age = user.age|int %} {% set act = user.activity|float %} {% set bmr = (10*w + 6.25*h - 5*age + 5)|int %} {% set tdee = (bmr * act)|int %} {% if user.goal == 'fat_loss' %}{% set cal = tdee - 400 %}{% elif user.goal == 'muscle_gain' %}{% set cal = tdee + 400 %}{% else %}{% set cal = tdee %}{% endif %} {% set prot = (cal * 0.30 / 4)|int %}
+🎯 {{ 'هدفك اليومي' if is_ar else 'Daily Target' }}: {{ cal }} kcal  |  💪 {{ prot }}{{ 'ج بروتين' if is_ar else 'g protein' }}
+{% for day in range(1, 8) %}
+📆 {{ 'اليوم' if is_ar else 'Day' }} {{ day }} {% set days_ar = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'] %} {% set days_en = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] %} — {{ days_ar[day-1] if is_ar else days_en[day-1] }}
+{% for meal_ar, meal_en, icon in [('فطار','Breakfast','🌅'),('غداء','Lunch','☀️'),('عشاء','Dinner','🌙'),('سناك','Snack','🍎')] %}
+{{ icon }} {{ meal_ar if is_ar else meal_en }} 
+{{ 'اكتب الوجبة...' if is_ar else 'Enter meal...' }}
+{% endfor %}
+{% endfor %}
+💾 {{ 'حفظ الجدول' if is_ar else 'Save Plan' }}
+{{ 'اسم الجدول' if is_ar else 'Plan Name' }} 
+{{ 'جدولي الأسبوعي' if is_ar else 'My Weekly Plan' }}
+{{ 'النوع' if is_ar else 'Type' }} 
+{{ 'خاص بي' if is_ar else 'Personal' }}
+💾 {{ 'حفظ الجدول' if is_ar else 'Save Plan' }}
+{% endif %} {% endblock %}
