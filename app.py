@@ -133,16 +133,11 @@ def settings():
     u = get_user_by_id(session["uid"])
     saved = False
     if request.method == "POST":
-        conn = get_db()
-        conn.execute("""UPDATE users SET
-            height=?, weight=?, age=?, gender=?, goal=?, activity=?
-            WHERE id=?""",
+        db_run("UPDATE users SET height=?, weight=?, age=?, gender=?, goal=?, activity=? WHERE id=?",
             (request.form.get("height"), request.form.get("weight"),
              request.form.get("age"), request.form.get("gender"),
              request.form.get("goal"), request.form.get("activity"),
              session["uid"]))
-        conn.commit()
-        conn.close()
         u = get_user_by_id(session["uid"])
         saved = True
     return render_template("settings.html", user=u,
@@ -173,11 +168,7 @@ def clinical():
 @login_required
 def history():
     u = get_user_by_id(session["uid"])
-    conn = get_db()
-    logs = conn.execute("""SELECT * FROM weight_log WHERE user_id=?
-                           ORDER BY logged_at DESC LIMIT 30""",
-                        (session["uid"],)).fetchall()
-    conn.close()
+    logs = db_rows("SELECT * FROM weight_log WHERE user_id=? ORDER BY logged_at DESC LIMIT 30", (session["uid"],))
     return render_template("history.html", user=u,
                            lang=session.get("lang","ar"), logs=logs)
 
@@ -185,11 +176,7 @@ def history():
 @login_required
 def saved():
     u = get_user_by_id(session["uid"])
-    conn = get_db()
-    plans = conn.execute("""SELECT * FROM saved_plans WHERE user_id=?
-                            ORDER BY created_at DESC""",
-                         (session["uid"],)).fetchall()
-    conn.close()
+    plans = db_rows("SELECT * FROM saved_plans WHERE user_id=? ORDER BY created_at DESC", (session["uid"],))
     return render_template("saved.html", user=u,
                            lang=session.get("lang","ar"), plans=plans)
 
@@ -198,11 +185,7 @@ def saved():
 def log_weight():
     w = request.form.get("weight")
     if w:
-        conn = get_db()
-        conn.execute("INSERT INTO weight_log (user_id,weight) VALUES (?,?)",
-                     (session["uid"], w))
-        conn.commit()
-        conn.close()
+        db_run("INSERT INTO weight_log (user_id,weight) VALUES (?,?)", (session["uid"], w))
     return redirect("/history")
 
 @app.route("/save_plan", methods=["POST"])
@@ -210,22 +193,14 @@ def log_weight():
 def save_plan():
     n = request.form.get("plan_name", "خطتي")
     pt = request.form.get("plan_type", "personal")
-    conn = get_db()
-    conn.execute("""INSERT INTO saved_plans (user_id,name,plan_data,plan_type)
-                    VALUES (?,?,?,?)""",
-                 (session["uid"], n, json.dumps(dict(request.form)), pt))
-    conn.commit()
-    conn.close()
+    db_run("INSERT INTO saved_plans (user_id,name,plan_data,plan_type) VALUES (?,?,?,?)",
+           (session["uid"], n, json.dumps(dict(request.form)), pt))
     return redirect("/saved")
 
 @app.route("/delete_plan/<int:pid>", methods=["POST"])
 @login_required
 def delete_plan(pid):
-    conn = get_db()
-    conn.execute("DELETE FROM saved_plans WHERE id=? AND user_id=?",
-                 (pid, session["uid"]))
-    conn.commit()
-    conn.close()
+    db_run("DELETE FROM saved_plans WHERE id=? AND user_id=?", (pid, session["uid"]))
     return redirect("/saved")
 
 # ══════════════════════════════════════════════
