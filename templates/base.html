@@ -187,6 +187,10 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
     <i class="fa-solid fa-calendar-days"></i>
     {{ 'مصمم الجدول' if is_ar else 'Meal Planner' }}
   </a>
+  <a href="/generate" class="nav-item {% if request.endpoint in ['generate','preview'] %}active{% endif %}" style="background:{% if request.endpoint in ['generate','preview'] %}var(--green-pale){% endif %}">
+    <i class="fa-solid fa-file-medical" style="color:var(--green-light)"></i>
+    {{ 'توليد جدول PDF' if is_ar else 'Generate PDF Plan' }}
+  </a>
   <a href="/saved" class="nav-item {% if request.endpoint=='saved' %}active{% endif %}">
     <i class="fa-solid fa-bookmark"></i>
     {{ 'جداولي' if is_ar else 'My Plans' }}
