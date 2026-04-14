@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}{{ patient.name }}{% endblock %}
+{% block content %}
+{% set is_ar = (lang or 'ar') == 'ar' %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+  <div class="page-title" style="margin:0">
+    <i class="fa-solid fa-user"></i> {{ patient.name }}
+    <span class="bmi-badge {% if patient.status=='published' %}bmi-normal{% else %}bmi-over{% endif %}" style="margin-right:10px;font-size:13px">
+      {{ 'منشور' if patient.status=='published' else 'مسودة' }}
+    </span>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a href="/patients" class="btn btn-outline"><i class="fa-solid fa-arrow-right"></i> {{ 'رجوع' if is_ar else 'Back' }}</a>
+    <a href="/patients/{{ patient.id }}/generate" class="btn btn-primary"><i class="fa-solid fa-file-pdf"></i> {{ 'توليد PDF' if is_ar else 'Generate PDF' }}</a>
+    {% if patient.status == 'draft' %}
+    <a href="/patients/{{ patient.id }}/status/published" class="btn btn-success"><i class="fa-solid fa-circle-check"></i> {{ 'نشر' if is_ar else 'Publish' }}</a>
+    {% else %}
+    <a href="/patients/{{ patient.id }}/status/draft" class="btn btn-outline"><i class="fa-solid fa-pencil"></i> {{ 'ارجاع لمسودة' if is_ar else 'Back to Draft' }}</a>
+    {% endif %}
+    <form method="POST" action="/patients/{{ patient.id }}/delete" onsubmit="return confirm('{{ 'حذف المريض؟' if is_ar else 'Delete patient?' }}')">
+      <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash"></i></button>
+    </form>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-ruler"></i> {{ 'القياسات' if is_ar else 'Measurements' }}</div>
+    <div class="grid-2">
+      <div class="metric"><div class="metric-label">{{ 'العمر' if is_ar else 'Age' }}</div><div class="metric-value">{{ patient.age }}</div><div class="metric-unit">{{ 'سنة' if is_ar else 'yrs' }}</div></div>
+      <div class="metric"><div class="metric-label">{{ 'الجنس' if is_ar else 'Gender' }}</div><div class="metric-value" style="font-size:16px">{{ patient.gender }}</div></div>
+      <div class="metric"><div class="metric-label">{{ 'الطول' if is_ar else 'Height' }}</div><div class="metric-value">{{ patient.height }}</div><div class="metric-unit">cm</div></div>
+      <div class="metric"><div class="metric-label">{{ 'الوزن' if is_ar else 'Weight' }}</div><div class="metric-value">{{ patient.weight }}</div><div class="metric-unit">kg</div></div>
+      <div class="metric"><div class="metric-label">BMI</div>
+        <div class="metric-value">{{ patient.bmi }}</div>
+        <span class="bmi-badge {% set b=patient.bmi|float %}{% if b<18.5%}bmi-under{% elif b<25%}bmi-normal{% elif b<30%}bmi-over{% else%}bmi-obese{% endif %}">
+          {% set b=patient.bmi|float %}{% if b<18.5%}{{ 'نحافة' if is_ar else 'Underweight' }}{% elif b<25%}{{ 'مثالي' if is_ar else 'Normal' }}{% elif b<30%}{{ 'زيادة' if is_ar else 'Overweight' }}{% else%}{{ 'سمنة' if is_ar else 'Obese' }}{% endif %}
+        </span>
+      </div>
+      <div class="metric"><div class="metric-label">{{ 'الدهون' if is_ar else 'Fat %' }}</div><div class="metric-value">{{ patient.fat_pct }}</div><div class="metric-unit">%</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-fire"></i> {{ 'الأهداف الغذائية' if is_ar else 'Nutrition Goals' }}</div>
+    <div class="metric" style="margin-bottom:12px"><div class="metric-label">TDEE</div><div class="metric-value" style="color:var(--blue-light)">{{ patient.tdee }}</div><div class="metric-unit">kcal</div></div>
+    <div class="metric"><div class="metric-label">{{ 'الهدف اليومي' if is_ar else 'Daily Target' }}</div><div class="metric-value" style="color:var(--green-light)">{{ patient.goal_cal }}</div><div class="metric-unit">kcal</div></div>
+    {% if patient.conditions and patient.conditions != '[]' %}
+    <div style="margin-top:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:8px"><i class="fa-solid fa-stethoscope"></i> {{ 'الحالات المرضية' if is_ar else 'Conditions' }}</div>
+      {% for c in patient.conditions | replace('[','') | replace(']','') | replace('"','') | split(',') %}
+      {% if c.strip() %}
+      <span style="background:var(--red-pale);color:var(--red);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-block;margin:2px">{{ c.strip() }}</span>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if patient.notes %}
+    <div style="margin-top:12px;background:var(--gray);border-radius:10px;padding:10px;font-size:13px;color:var(--text-2)">
+      <i class="fa-solid fa-note-sticky" style="color:var(--blue)"></i> {{ patient.notes }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div style="font-size:13px;color:var(--muted);margin-top:4px">
+  <i class="fa-solid fa-clock"></i> {{ 'تاريخ الاضافة' if is_ar else 'Added' }}: {{ patient.created_at | string | truncate(16, true, '') }}
+</div>
+{% endblock %}
