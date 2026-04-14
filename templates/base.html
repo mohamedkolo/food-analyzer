@@ -196,6 +196,10 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
     {{ 'جداولي' if is_ar else 'My Plans' }}
   </a>
 
+  <a href="/patients" class="nav-item {% if request.endpoint in ['patients','new_patient','view_patient'] %}active{% endif %}">
+    <i class="fa-solid fa-users" style="color:var(--green-light)"></i>
+    {{ 'المرضى' if is_ar else 'Patients' }}
+  </a>
   <div class="nav-divider"></div>
   <div class="nav-section">{{ 'المتابعة' if is_ar else 'Tracking' }}</div>
 
