@@ -643,5 +643,91 @@ def build_pdf(data):
     doc.build(story)
     return buf.getvalue()
 
+@app.route("/patients")
+@login_required
+def patients():
+    u = get_user_by_id(session["uid"])
+    search = request.args.get("q","")
+    status = request.args.get("status","")
+    sql = "SELECT * FROM patients WHERE user_id=?"
+    params = [session["uid"]]
+    if search:
+        sql += " AND name ILIKE ?" if DATABASE_URL else " AND name LIKE ?"
+        params.append(f"%{search}%")
+    if status:
+        sql += " AND status=?"
+        params.append(status)
+    sql += " ORDER BY created_at DESC"
+    pts = db_rows(sql, params)
+    return render_template("patients.html", user=u,
+                           lang=session.get("lang","ar"),
+                           patients=pts, search=search, status=status)
+
+@app.route("/patients/new", methods=["GET","POST"])
+@login_required
+def new_patient():
+    u = get_user_by_id(session["uid"])
+    if request.method == "POST":
+        name = request.form.get("name","")
+        age = request.form.get("age",0)
+        gender = request.form.get("gender","ذكر")
+        height = request.form.get("height",0)
+        weight = request.form.get("weight",0)
+        fat_pct = request.form.get("fat_pct",0)
+        bmi = request.form.get("bmi",0)
+        tdee = request.form.get("tdee",0)
+        goal_cal = request.form.get("goal_cal",1400)
+        conditions = json.dumps(request.form.getlist("conditions"))
+        notes = request.form.get("notes","")
+        db_run("""INSERT INTO patients
+            (user_id,name,age,gender,height,weight,fat_pct,bmi,tdee,goal_cal,conditions,notes)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (session["uid"],name,age,gender,height,weight,fat_pct,bmi,tdee,goal_cal,conditions,notes))
+        return redirect("/patients")
+    return render_template("new_patient.html", user=u, lang=session.get("lang","ar"))
+
+@app.route("/patients/<int:pid>")
+@login_required
+def view_patient(pid):
+    u = get_user_by_id(session["uid"])
+    pt = db_row("SELECT * FROM patients WHERE id=? AND user_id=?", (pid, session["uid"]))
+    if not pt:
+        return redirect("/patients")
+    plans = db_rows("SELECT * FROM saved_plans WHERE user_id=? ORDER BY created_at DESC LIMIT 10", (session["uid"],))
+    return render_template("view_patient.html", user=u,
+                           lang=session.get("lang","ar"),
+                           patient=pt, plans=plans)
+
+@app.route("/patients/<int:pid>/generate")
+@login_required
+def patient_generate(pid):
+    pt = db_row("SELECT * FROM patients WHERE id=? AND user_id=?", (pid, session["uid"]))
+    if not pt:
+        return redirect("/patients")
+    data = {
+        "name": pt["name"], "age": pt["age"], "gender": pt["gender"],
+        "height": pt["height"], "weight": pt["weight"],
+        "fat_pct": pt["fat_pct"], "bmi": pt["bmi"],
+        "tdee": pt["tdee"], "goal_cal": pt["goal_cal"],
+        "symptoms": json.loads(pt["conditions"] or "[]"),
+        "notes": pt["notes"] or "",
+    }
+    session["pdf_data"] = data
+    return redirect("/preview")
+
+@app.route("/patients/<int:pid>/status/<s>")
+@login_required
+def update_patient_status(pid, s):
+    if s in ["draft","published"]:
+        db_run("UPDATE patients SET status=? WHERE id=? AND user_id=?",
+               (s, pid, session["uid"]))
+    return redirect(f"/patients/{pid}")
+
+@app.route("/patients/<int:pid>/delete", methods=["POST"])
+@login_required
+def delete_patient(pid):
+    db_run("DELETE FROM patients WHERE id=? AND user_id=?", (pid, session["uid"]))
+    return redirect("/patients")
+
 if __name__ == "__main__":
     app.run(debug=True)
