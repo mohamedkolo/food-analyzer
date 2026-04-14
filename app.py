@@ -648,20 +648,23 @@ def build_pdf(data):
 def patients():
     u = get_user_by_id(session["uid"])
     search = request.args.get("q","")
-    status = request.args.get("status","")
+    status_filter = request.args.get("status","")
     sql = "SELECT * FROM patients WHERE user_id=?"
     params = [session["uid"]]
     if search:
-        sql += " AND name ILIKE ?" if DATABASE_URL else " AND name LIKE ?"
+        sql += " AND name LIKE ?"
         params.append(f"%{search}%")
-    if status:
+    if status_filter:
         sql += " AND status=?"
-        params.append(status)
+        params.append(status_filter)
     sql += " ORDER BY created_at DESC"
-    pts = db_rows(sql, params)
+    try:
+        pts = db_rows(sql, tuple(params))
+    except:
+        pts = []
     return render_template("patients.html", user=u,
                            lang=session.get("lang","ar"),
-                           patients=pts, search=search, status=status)
+                           patients=pts, search=search, status=status_filter)
 
 @app.route("/patients/new", methods=["GET","POST"])
 @login_required
