@@ -1,77 +1,67 @@
 from flask import Flask, render_template, request, redirect, session, send_file
-import sqlite3, hashlib, os, json, io
+import hashlib, os, json, io
 from datetime import timedelta
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "nutrax2025")
 app.permanent_session_lifetime = timedelta(days=30)
-DB = "/tmp/nutrax.db"
 
-# ══════════════════════════════════════════════
-# DATABASE
-# ══════════════════════════════════════════════
-def get_db():
-    conn = sqlite3.connect(DB)
-    conn.row_factory = sqlite3.Row
-    return conn
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
-def hp(p):
-    return hashlib.sha256(p.encode()).hexdigest()
+if DATABASE_URL:
+    import psycopg2, psycopg2.extras
+    def get_db():
+        return psycopg2.connect(DATABASE_URL)
+    def db_row(sql, params=()):
+        sql = sql.replace("?","%s")
+        conn = get_db(); cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(sql, params); r = cur.fetchone(); conn.close(); return r
+    def db_rows(sql, params=()):
+        sql = sql.replace("?","%s")
+        conn = get_db(); cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(sql, params); r = cur.fetchall(); conn.close(); return r
+    def db_run(sql, params=(), commit=True):
+        sql = sql.replace("?","%s")
+        conn = get_db(); cur = conn.cursor()
+        try: cur.execute(sql, params);
+        except: conn.rollback(); conn.close(); raise
+        if commit: conn.commit()
+        conn.close()
+else:
+    import sqlite3
+    DB = "/tmp/nutrax.db"
+    def get_db():
+        conn = sqlite3.connect(DB); conn.row_factory = sqlite3.Row; return conn
+    def db_row(sql, params=()):
+        conn = get_db(); r = conn.execute(sql, params).fetchone(); conn.close(); return r
+    def db_rows(sql, params=()):
+        conn = get_db(); r = conn.execute(sql, params).fetchall(); conn.close(); return r
+    def db_run(sql, params=(), commit=True):
+        conn = get_db(); conn.execute(sql, params)
+        if commit: conn.commit()
+        conn.close()
+
+def hp(p): return hashlib.sha256(p.encode()).hexdigest()
 
 def init_db():
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("""CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT, email TEXT UNIQUE, password TEXT,
-        country TEXT, lang TEXT DEFAULT 'ar',
-        height REAL, weight REAL, age INTEGER,
-        gender TEXT DEFAULT 'male',
-        goal TEXT DEFAULT 'maintain',
-        activity REAL DEFAULT 1.55,
-        is_admin INTEGER DEFAULT 0)""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS weight_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER, weight REAL,
-        logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS saved_plans (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER, name TEXT, plan_data TEXT,
-        plan_type TEXT DEFAULT 'personal',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-    cur.execute("SELECT id FROM users WHERE is_admin=1")
-    if not cur.fetchone():
-        cur.execute("INSERT INTO users (name,email,password,is_admin) VALUES (?,?,?,1)",
-                    ("Admin","admin@nutrax.com",hp("nutrax2025")))
-    conn.commit()
-    conn.close()
+    if DATABASE_URL:
+        db_run("""CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0)""")
+        db_run("""CREATE TABLE IF NOT EXISTS weight_log (id SERIAL PRIMARY KEY, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+        db_run("""CREATE TABLE IF NOT EXISTS saved_plans (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+    else:
+        db_run("""CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0)""")
+        db_run("""CREATE TABLE IF NOT EXISTS weight_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+        db_run("""CREATE TABLE IF NOT EXISTS saved_plans (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+    if not db_row("SELECT id FROM users WHERE is_admin=1"):
+        db_run("INSERT INTO users (name,email,password,is_admin) VALUES (?,?,?,1)", ("Admin","admin@nutrax.com",hp("nutrax2025")))
 
 init_db()
 
-def get_user(email, pw):
-    conn = get_db()
-    u = conn.execute("SELECT * FROM users WHERE email=? AND password=?",
-                     (email, hp(pw))).fetchone()
-    conn.close()
-    return u
-
-def get_user_by_id(uid):
-    conn = get_db()
-    u = conn.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
-    conn.close()
-    return u
-
+def get_user(email, pw): return db_row("SELECT * FROM users WHERE email=? AND password=?", (email, hp(pw)))
+def get_user_by_id(uid): return db_row("SELECT * FROM users WHERE id=?", (uid,))
 def register(name, email, pw, country):
-    conn = get_db()
-    try:
-        conn.execute("INSERT INTO users (name,email,password,country) VALUES (?,?,?,?)",
-                     (name, email, hp(pw), country))
-        conn.commit()
-        return "ok"
-    except:
-        return "exists"
-    finally:
-        conn.close()
+    try: db_run("INSERT INTO users (name,email,password,country) VALUES (?,?,?,?)", (name,email,hp(pw),country)); return "ok"
+    except: return "exists"
 
 def login_required(f):
     from functools import wraps
