@@ -409,7 +409,10 @@ def build_pdf(data):
     from reportlab.pdfbase.ttfonts import TTFont
     from reportlab.lib.enums import TA_RIGHT, TA_CENTER
     import arabic_reshaper
+   try:
     from bidi.algorithm import get_display
+except ImportError:
+    def get_display(t): return t
     import tempfile, urllib.request
 
     # Font setup
