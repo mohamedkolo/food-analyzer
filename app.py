@@ -50,10 +50,12 @@ def init_db():
         db_run("""CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0)""")
         db_run("""CREATE TABLE IF NOT EXISTS weight_log (id SERIAL PRIMARY KEY, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS saved_plans (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+        db_run("""CREATE TABLE IF NOT EXISTS patients (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
     else:
         db_run("""CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0)""")
         db_run("""CREATE TABLE IF NOT EXISTS weight_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS saved_plans (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+        db_run("""CREATE TABLE IF NOT EXISTS patients (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
     if not db_row("SELECT id FROM users WHERE is_admin=1"):
         db_run("INSERT INTO users (name,email,password,is_admin) VALUES (?,?,?,1)", ("Admin","admin@nutrax.com",hp("nutrax2025")))
 
@@ -213,7 +215,6 @@ def delete_plan(pid):
 def generate():
     u = get_user_by_id(session["uid"])
     if request.method == "POST":
-        # حفظ البيانات في الـ session للمراجعة
         data = {
             "name":       request.form.get("name",""),
             "age":        request.form.get("age",""),
@@ -239,7 +240,6 @@ def preview():
     data = session.get("pdf_data")
     if not data:
         return redirect("/generate")
-    # توليد الجدول الأسبوعي
     plan = generate_weekly_plan(data)
     return render_template("preview.html", user=u,
                            lang=session.get("lang","ar"),
@@ -263,16 +263,48 @@ def download_pdf():
         return f"خطأ في توليد الـ PDF: {str(e)}", 500
 
 # ══════════════════════════════════════════════
+# CLINICAL CONDITION HELPERS
+# ══════════════════════════════════════════════
+def _has(symptoms, keywords):
+    """Check if any keyword matches any symptom (case-insensitive partial match)"""
+    for s in symptoms:
+        s_low = str(s).lower().strip()
+        for k in keywords:
+            if k.lower() in s_low:
+                return True
+    return False
+
+def _filter_unsafe(meals, unsafe_keywords, alternatives):
+    """Replace unsafe meals with safe alternatives"""
+    result = []
+    alt_idx = 0
+    for meal in meals:
+        txt = meal["meal"]
+        unsafe = any(kw in txt for kw in unsafe_keywords)
+        if unsafe and alternatives:
+            result.append(alternatives[alt_idx % len(alternatives)])
+            alt_idx += 1
+        else:
+            result.append(meal)
+    return result
+
+# ══════════════════════════════════════════════
 # MEAL PLAN GENERATOR
 # ══════════════════════════════════════════════
 def generate_weekly_plan(data):
     symptoms = data.get("symptoms", [])
-    has_colon    = any(s in symptoms for s in ["قولون عصبي","ibs"])
-    has_diabetes = any(s in symptoms for s in ["سكري النوع الثاني","سكري النوع الاول"])
-    has_cardiac  = any(s in symptoms for s in ["امراض القلب","ضغط الدم المرتفع"])
-    has_kidney   = any(s in symptoms for s in ["الفشل الكلوي المزمن"])
-    has_pregnant = any(s in symptoms for s in ["الحمل"])
 
+    has_colon    = _has(symptoms, ["قولون عصبي","ibs"])
+    has_diabetes = _has(symptoms, ["سكري"])
+    has_cardiac  = _has(symptoms, ["امراض القلب","ضغط الدم"])
+    has_kidney   = _has(symptoms, ["الفشل الكلوي"])
+    has_pregnant = _has(symptoms, ["الحمل"])
+    has_g6pd     = _has(symptoms, ["g6pd","g6bd","فافيزم","انزيم G6"])
+    has_thal     = _has(symptoms, ["ثلاسيميا","thalassemia"])
+    needs_iron   = _has(symptoms, ["نقص الحديد","فقر دم","انيميا"])
+    needs_d3     = _has(symptoms, ["نقص فيتامين d","نقص d3","فيتامين D"])
+
+    # ─── FATHAR (Breakfast) pools ───
     breakfasts = [
         {"meal":"فول مدمس بزيت الزيتون + بيضتان مسلوقتان + خبز اسمر", "cal":446, "p":20},
         {"meal":"شوفان بالحليب + موزة + لوز", "cal":400, "p":12},
@@ -282,6 +314,18 @@ def generate_weekly_plan(data):
         {"meal":"فول مدمس + بيضتان + طماطم وخيار", "cal":406, "p":21},
         {"meal":"شوفان بالكيوي والعسل", "cal":370, "p":10},
     ]
+
+    # ⚠️ G6PD SAFETY: Replace all fava bean (فول) meals
+    if has_g6pd:
+        g6pd_safe = [
+            {"meal":"بيض مسلوق + جبن قريش + خبز اسمر + طماطم", "cal":340, "p":22},
+            {"meal":"زبادي يوناني + عسل + مكسرات + تفاح", "cal":350, "p":16},
+            {"meal":"توست اسمر + افوكادو + بيضة مسلوقة", "cal":380, "p":18},
+            {"meal":"شوفان بالحليب + موز + لوز + بذور شيا", "cal":410, "p":13},
+        ]
+        breakfasts = _filter_unsafe(breakfasts, ["فول","حمص"], g6pd_safe)
+
+    # ─── GHADA (Lunch) pools ───
     lunches = [
         {"meal":"صدر دجاج مشوي + ارز بني + سلطة خضار", "cal":478, "p":49},
         {"meal":"سمك بلطي مشوي + بطاطا حلوة + كوسة مشوية", "cal":417, "p":42},
@@ -292,6 +336,26 @@ def generate_weekly_plan(data):
         {"meal":"سمك بلطي مشوي + برغل + سلطة فتوش", "cal":392, "p":44},
     ]
 
+    # ⚠️ THALASSEMIA SAFETY: Replace liver (iron overload risk)
+    if has_thal:
+        thal_safe = [
+            {"meal":"دجاج مشوي بالزعتر + ارز بني + ملوخية", "cal":440, "p":44},
+            {"meal":"سمك سلمون مشوي + ارز + سلطة", "cal":450, "p":45},
+            {"meal":"صدر ديك رومي + خضار مشوية + برغل", "cal":420, "p":46},
+        ]
+        lunches = _filter_unsafe(lunches, ["كبدة","كبد"], thal_safe)
+
+    # 🌟 VITAMIN D3: Boost with fatty fish and eggs
+    if needs_d3:
+        d3_boost = [
+            {"meal":"سلمون مشوي + ارز بني + بروكلي", "cal":460, "p":48},
+            {"meal":"سردين بزيت الزيتون + خبز اسمر + سلطة", "cal":400, "p":35},
+            {"meal":"سمك مكاريل مشوي + بطاطا مسلوقة", "cal":430, "p":40},
+        ]
+        lunches[1] = d3_boost[0]
+        lunches[4] = d3_boost[1]
+
+    # ─── ESHA (Dinner) pools — based on colon/diabetes ───
     if has_colon:
         dinners = [
             {"meal":"شوربة عدس احمر + خبز اسمر", "cal":250, "p":12},
@@ -322,6 +386,15 @@ def generate_weekly_plan(data):
             {"meal":"عدس مطهو + جبن قريش", "cal":249, "p":16},
             {"meal":"كشري مصري (كمية معتدلة)", "cal":280, "p":12},
         ]
+
+    # G6PD safety on dinners too (remove لوبيا, فول, حمص)
+    if has_g6pd:
+        g6pd_dinner_safe = [
+            {"meal":"شوربة خضار + جبن قريش + خبز اسمر", "cal":240, "p":12},
+            {"meal":"صدر دجاج مشوي + سلطة خضراء", "cal":280, "p":38},
+            {"meal":"بيض مسلوق + خضار مطبوخة", "cal":220, "p":16},
+        ]
+        dinners = _filter_unsafe(dinners, ["فول","حمص","لوبيا"], g6pd_dinner_safe)
 
     snacks = [
         "تفاحة بالقشر (80 kcal)",
@@ -363,288 +436,164 @@ def generate_weekly_plan(data):
     return plan
 
 # ══════════════════════════════════════════════
-# PDF BUILDER
+# ALLOWED / FORBIDDEN FOODS BY CONDITION
 # ══════════════════════════════════════════════
-def build_pdf(data):
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib import colors
-    from reportlab.lib.units import cm
-    from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
-                                     Table, TableStyle, HRFlowable, PageBreak)
-    from reportlab.lib.styles import ParagraphStyle
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
-    from reportlab.lib.enums import TA_RIGHT, TA_CENTER
-    import arabic_reshaper
-    try:
-        from bidi.algorithm import get_display
-    except ImportError:
-        def get_display(t): return t
-    import tempfile, urllib.request
-
-    # Font setup
-    _tmp = tempfile.gettempdir()
-    _reg = os.path.join(_tmp, "Amiri-Regular.ttf")
-    _bold = os.path.join(_tmp, "Amiri-Bold.ttf")
-    _base = "https://github.com/alif-type/amiri/raw/master/"
-
-    def _get_font(tmp_path, url):
-        candidates = [
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.basename(tmp_path)),
-            tmp_path,
-            f"/usr/share/fonts/opentype/fonts-hosny-amiri/{os.path.basename(tmp_path)}",
-        ]
-        for p in candidates:
-            if os.path.exists(p):
-                return p
-        urllib.request.urlretrieve(url, tmp_path)
-        return tmp_path
-
-    font_reg  = _get_font(_reg,  _base + "Amiri-Regular.ttf")
-    font_bold = _get_font(_bold, _base + "Amiri-Bold.ttf")
-    pdfmetrics.registerFont(TTFont("Amiri",     font_reg))
-    pdfmetrics.registerFont(TTFont("AmiriBold", font_bold))
-
-    def ar(t):
-        try:
-            return get_display(arabic_reshaper.reshape(str(t)))
-        except:
-            return str(t)
-
-    def S(size=11, bold=False, color=colors.HexColor("#111111"), align=TA_RIGHT):
-        return ParagraphStyle("s", fontName="AmiriBold" if bold else "Amiri",
-                             fontSize=size, textColor=color, alignment=align,
-                             spaceAfter=4, leading=size*1.5, rightIndent=4, leftIndent=4)
-
-    C_BLUE   = colors.HexColor("#1a3a6b")
-    C_GREEN  = colors.HexColor("#1a5c3a")
-    C_RED    = colors.HexColor("#8b0000")
-    C_ORANGE = colors.HexColor("#b34700")
-    C_LBLUE  = colors.HexColor("#dce8f5")
-    C_LGREEN = colors.HexColor("#e8f5ec")
-    C_LRED   = colors.HexColor("#ffeef0")
-    C_GRAY   = colors.HexColor("#f5f5f5")
-    C_WHITE  = colors.white
-
-    def tbl(rows, col_ws, hdr_bg=C_BLUE, row_bgs=(C_WHITE, C_GRAY)):
-        t = Table([[Paragraph(ar(c), S(9, ri==0,
-                    colors.white if ri==0 else colors.HexColor("#111")))
-                   for c in row] for ri, row in enumerate(rows)],
-                  colWidths=col_ws)
-        t.setStyle(TableStyle([
-            ("FONTNAME",  (0,0),(-1,-1),"Amiri"),
-            ("FONTNAME",  (0,0),(-1,0), "AmiriBold"),
-            ("FONTSIZE",  (0,0),(-1,-1),9),
-            ("ALIGN",     (0,0),(-1,-1),"RIGHT"),
-            ("VALIGN",    (0,0),(-1,-1),"MIDDLE"),
-            ("BACKGROUND",(0,0),(-1,0), hdr_bg),
-            ("TEXTCOLOR", (0,0),(-1,0), colors.white),
-            ("ROWBACKGROUNDS",(0,1),(-1,-1),list(row_bgs)),
-            ("GRID",      (0,0),(-1,-1),0.4,colors.HexColor("#cccccc")),
-            ("TOPPADDING",(0,0),(-1,-1),5),
-            ("BOTTOMPADDING",(0,0),(-1,-1),5),
-            ("RIGHTPADDING",(0,0),(-1,-1),6),
-            ("LEFTPADDING",(0,0),(-1,-1),6),
-        ]))
-        return t
-
-    buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=A4,
-                           rightMargin=1.5*cm, leftMargin=1.5*cm,
-                           topMargin=1.2*cm, bottomMargin=1.2*cm)
-    story = []
-    import datetime
-
-    symptoms = data.get("symptoms", [])
-
-    # ── صفحة 1: بيانات المريض + مسموح/ممنوع ──
-    story.append(Paragraph(ar("NutraX  —  النظام الغذائي الاسبوعي المتخصص"),
-                           S(16, True, C_BLUE, TA_CENTER)))
-    story.append(Paragraph(ar(f"تاريخ: {datetime.date.today().strftime('%d/%m/%Y')}"),
-                           S(10, False, colors.HexColor("#666"), TA_CENTER)))
-    story.append(HRFlowable(width="100%", thickness=2, color=C_BLUE,
-                            spaceAfter=8, spaceBefore=6))
-
-    # بيانات المريض
-    pat = [
-        ["الاسم", data.get("name","—"), "العمر", f"{data.get('age','—')} سنة",
-         "الجنس", data.get("gender","—")],
-        ["الطول", f"{data.get('height','—')} سم", "الوزن",
-         f"{data.get('weight','—')} كجم", "BMI", str(data.get("bmi","—"))],
-        ["دهون الجسم", f"{data.get('fat_pct','—')}%", "TDEE",
-         f"{data.get('tdee','—')} kcal", "الهدف اليومي",
-         f"{data.get('goal_cal','—')} kcal"],
-    ]
-    pt = Table([[Paragraph(ar(c), S(9, i%2==0, C_BLUE if i%2==0 else colors.HexColor("#111")))
-                for i,c in enumerate(row)] for row in pat],
-               colWidths=[2.4*cm,3*cm,2.4*cm,3*cm,2.4*cm,3*cm])
-    pt.setStyle(TableStyle([
-        ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),9),
-        ("ALIGN",(0,0),(-1,-1),"CENTER"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-        ("BACKGROUND",(0,0),(0,-1),C_LBLUE),("BACKGROUND",(2,0),(2,-1),C_LBLUE),
-        ("BACKGROUND",(4,0),(4,-1),C_LBLUE),
-        ("GRID",(0,0),(-1,-1),0.4,colors.HexColor("#aaa")),
-        ("TOPPADDING",(0,0),(-1,-1),5),("BOTTOMPADDING",(0,0),(-1,-1),5),
-        ("ROWBACKGROUNDS",(0,0),(-1,-1),[C_WHITE,C_GRAY]),
-    ]))
-    story.append(pt)
-
-    if symptoms:
-        story.append(Spacer(1,6))
-        story.append(Paragraph(ar("الاعراض والحالات: " + " | ".join(symptoms)),
-                               S(9, False, C_RED)))
-    if data.get("notes"):
-        story.append(Paragraph(ar(f"ملاحظات: {data['notes']}"),
-                               S(9, False, colors.HexColor("#555"))))
-
-    story.append(HRFlowable(width="100%", thickness=1, color=C_GREEN,
-                            spaceAfter=6, spaceBefore=6))
-
-    # مسموح / ممنوع
-    story.append(Paragraph(ar("المسموح والممنوع"), S(13, True, C_BLUE, TA_CENTER)))
-    story.append(Spacer(1,4))
+def get_allowed_forbidden(symptoms):
+    has_g6pd  = _has(symptoms, ["g6pd","g6bd","فافيزم"])
+    has_thal  = _has(symptoms, ["ثلاسيميا","thalassemia"])
+    has_colon = _has(symptoms, ["قولون عصبي","ibs"])
+    needs_d3  = _has(symptoms, ["نقص فيتامين d","نقص d3"])
+    needs_fe  = _has(symptoms, ["نقص الحديد","فقر دم"])
 
     allowed = [
-        "فول مدمس + عدس + شوربات + سمك مشوي",
-        "دجاج مشوي او فرن (بدون جلد) + بيض",
-        "شوفان + خبز اسمر + ارز بني + برغل",
+        "دجاج مشوي أو فرن (بدون جلد) + بيض",
+        "شوفان + خبز أسمر + أرز بني + برغل",
         "زبادي يوناني سادة + جبن قريش",
         "ملوخية + كوسة + خضار مطبوخة",
         "زيت زيتون (ملعقة) + فاكهة طازجة",
-        "شاي اخضر + ماء دافئ بالليمون صباحا",
+        "شاي أخضر + ماء دافئ بالليمون صباحاً",
     ]
-    forbidden = [
-        "الخبز الابيض والعيش الفينو",
-        "الاكل المقلي + الدهانة + السمن",
-        "المشروبات الغازية + العصائر المعلبة",
-        "البهارات الحارة (تستفز القولون)",
-        "الحلويات والسكريات المضافة",
-        "الكافيين الزائد (اكثر من كوب)",
-        "البقوليات بكميات كبيرة دفعة واحدة",
-    ]
-    ar_rows = [["المسموح — بحرية", "الممنوع او المقلل"]]
-    for a, f in zip(allowed, forbidden):
-        ar_rows.append([f"  {a}", f"  {f}"])
-    ar_t = Table([[Paragraph(ar(c), S(9, ri==0,
-                    C_GREEN if (ri==0 and ci==0) else C_RED if (ri==0 and ci==1)
-                    else colors.HexColor("#14532d") if ci==0
-                    else colors.HexColor("#991b1b")))
-                  for ci,c in enumerate(row)]
-                 for ri,row in enumerate(ar_rows)],
-                colWidths=[9.15*cm, 9.15*cm])
-    ar_t.setStyle(TableStyle([
-        ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),9),
-        ("ALIGN",(0,0),(-1,-1),"RIGHT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-        ("BACKGROUND",(0,0),(0,0),C_GREEN),("BACKGROUND",(1,0),(1,0),C_RED),
-        ("ROWBACKGROUNDS",(0,1),(-1,-1),[C_LGREEN,C_WHITE]),
-        ("GRID",(0,0),(-1,-1),0.4,colors.HexColor("#ccc")),
-        ("TOPPADDING",(0,0),(-1,-1),4),("BOTTOMPADDING",(0,0),(-1,-1),4),
-        ("RIGHTPADDING",(0,0),(-1,-1),6),("LEFTPADDING",(0,0),(-1,-1),6),
-    ]))
-    story.append(ar_t)
-    story.append(PageBreak())
 
-    # ── صفحة 2: الجدول الاسبوعي ──
-    story.append(Paragraph(ar("الجدول الغذائي الاسبوعي التفصيلي"),
-                           S(14, True, C_BLUE, TA_CENTER)))
-    story.append(Paragraph(ar(f"الهدف اليومي: {data.get('goal_cal','—')} kcal"),
-                           S(10, False, C_GREEN, TA_CENTER)))
-    story.append(HRFlowable(width="100%", thickness=1.5, color=C_BLUE,
-                            spaceAfter=6, spaceBefore=4))
+    forbidden = [
+        "الخبز الأبيض والعيش الفينو",
+        "الأكل المقلي + الدهانة + السمن",
+        "المشروبات الغازية + العصائر المعلبة",
+        "الحلويات والسكريات المضافة",
+    ]
+
+    # Adjust by condition
+    if has_g6pd:
+        forbidden = ["❗ الفول بكل أنواعه (مدمس/أخضر/ناشف)",
+                     "❗ الحمص والبقوليات الحمراء",
+                     "❗ الأطعمة المحتوية على نيتروفورانتوين"] + forbidden
+        allowed = ["عدس أصفر بكميات محدودة (آمن نسبياً)"] + allowed
+    else:
+        allowed = ["فول مدمس + عدس + شوربات + سمك مشوي"] + allowed
+
+    if has_thal:
+        forbidden = ["❗ الكبدة والأعضاء الداخلية (حديد مرتفع)",
+                     "❗ اللحوم الحمراء بإفراط",
+                     "❗ مكملات الحديد بدون استشارة"] + forbidden
+        allowed = ["شاي مع الوجبات (يقلل امتصاص الحديد)"] + allowed
+
+    if has_colon:
+        forbidden.append("التوابل الحارة (تستفز القولون)")
+        forbidden.append("البقوليات بكميات كبيرة دفعة واحدة")
+        forbidden.append("الكافيين الزائد (أكثر من كوب)")
+
+    if needs_d3:
+        allowed = ["⭐ أسماك دهنية: سلمون • سردين • تونة",
+                   "⭐ صفار البيض + الفطر",
+                   "⭐ تعرض للشمس 15 دقيقة يومياً"] + allowed
+
+    if needs_fe and not has_thal:
+        allowed = ["⭐ لحوم حمراء + كبدة (مع فيتامين C)",
+                   "⭐ سبانخ + عدس + فاصوليا"] + allowed
+
+    return allowed[:8], forbidden[:8]
+
+# ══════════════════════════════════════════════
+# PDF BUILDER — WeasyPrint + Beautiful Template
+# ══════════════════════════════════════════════
+def build_pdf(data):
+    """
+    Generate PDF using WeasyPrint + meal_plan.html template.
+    Arabic renders perfectly in RTL — no reshaping needed.
+    """
+    from weasyprint import HTML
+    import datetime
 
     plan = generate_weekly_plan(data)
-    week_rows = [["اليوم","الفطار","الغداء","العشاء","سناك / قبل النوم","kcal"]]
-    for d in plan:
-        week_rows.append([
-            d["day"],
-            d["breakfast"][:35],
-            d["lunch"][:35],
-            d["dinner"][:35],
-            f"{d['snack'][:20]} | {d['before_sleep']}",
-            str(d["total_cal"]),
-        ])
+    symptoms = data.get("symptoms", [])
+    allowed, forbidden = get_allowed_forbidden(symptoms)
 
-    wt = Table([[Paragraph(ar(c), S(8, ri==0,
-                colors.white if ri==0 else colors.HexColor("#111")))
-               for c in row] for ri,row in enumerate(week_rows)],
-               colWidths=[1.8*cm, 4*cm, 4*cm, 3.5*cm, 3.5*cm, 1.5*cm])
-    wt.setStyle(TableStyle([
-        ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),8),
-        ("FONTNAME",(0,0),(-1,0),"AmiriBold"),("FONTSIZE",(0,0),(-1,0),9),
-        ("ALIGN",(0,0),(-1,-1),"RIGHT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-        ("BACKGROUND",(0,0),(-1,0),C_BLUE),("TEXTCOLOR",(0,0),(-1,0),C_WHITE),
-        ("BACKGROUND",(0,1),(0,-1),C_LBLUE),("TEXTCOLOR",(0,1),(0,-1),C_BLUE),
-        ("FONTNAME",(0,1),(0,-1),"AmiriBold"),
-        ("ROWBACKGROUNDS",(0,1),(-1,-1),[C_WHITE,C_GRAY]),
-        ("TEXTCOLOR",(5,1),(5,-1),C_RED),("FONTNAME",(5,1),(5,-1),"AmiriBold"),
-        ("GRID",(0,0),(-1,-1),0.4,colors.HexColor("#bbb")),
-        ("TOPPADDING",(0,0),(-1,-1),5),("BOTTOMPADDING",(0,0),(-1,-1),5),
-        ("RIGHTPADDING",(0,0),(-1,-1),4),("LEFTPADDING",(0,0),(-1,-1),4),
-    ]))
-    story.append(wt)
-    story.append(PageBreak())
+    # Calculate deficit safely
+    try:
+        tdee = float(data.get("tdee", 0) or 0)
+        target = float(data.get("goal_cal", 0) or 0)
+        deficit = int(tdee - target) if tdee and target else 0
+    except:
+        deficit = 0
 
-    # ── صفحة 3: النصايح والبروتوكولات ──
-    story.append(Paragraph(ar("النصايح العامة والبروتوكولات"),
-                           S(14, True, C_BLUE, TA_CENTER)))
-    story.append(HRFlowable(width="100%", thickness=1.5, color=C_BLUE,
-                            spaceAfter=6, spaceBefore=4))
+    # Build clinical notes string from symptoms + notes
+    notes_parts = []
+    if symptoms:
+        notes_parts.append(" • ".join(symptoms))
+    if data.get("notes"):
+        notes_parts.append(data.get("notes"))
+    clinical_notes = " | ".join(notes_parts) if notes_parts else "لا توجد ملاحظات إضافية"
 
-    sections = [
-        (C_BLUE, "الماء اساس كل شيء", [
-            "كوب ماء دافئ + نصف ليمون فور الاستيقاظ",
-            "8 اكواب ماء على مدار اليوم (2 لتر على الاقل)",
-            "كوب ماء قبل كل وجبة بـ 30 دقيقة يقلل الشهية",
-            "تجنب الماء البارد جدا مع الاكل",
-        ]),
-        (C_GREEN, "عادات الاكل الصحيحة", [
-            "3 وجبات رئيسية + سناك واحد — لا تقطع اكثر من 6 ساعات",
-            "امضغ ببطء — الاحساس بالشبع يأتي بعد 20 دقيقة",
-            "لا تأكل امام الشاشة — الاكل المشتت يزيد الكمية",
-            "الفطار الزامي خلال ساعة من الاستيقاظ",
-        ]),
-        (C_ORANGE, "رفع معدل الحرق", [
-            "بروتين في كل وجبة (بيض / دجاج / سمك / عدس)",
-            "البهارات الامنة: كركم + قرفة + زنجبيل ترفع الحرق",
-            "مشي 30 دقيقة بعد الغداء يرفع الحرق ويهدئ القولون",
-            "الجلوس المستمر يقلل الحرق — قم وتحرك 5 دقائق كل ساعة",
-        ]),
-        (C_RED, "تحذيرات مهمة", [
-            "لا تخفض السعرات اكثر من المحدد — يوقف الحرق",
-            "لو جاعك بين الوجبات: اشرب ماء اولا ثم فاكهة",
-            "راجع مع اخصائي التغذية كل 4 اسابيع",
-            "اي اعراض غير عادية — راجع طبيبك فورا",
-        ]),
-    ]
+    # Prepare template data
+    uid = session.get("uid", 0)
+    file_num = f"NX-{datetime.datetime.now().year}-{uid:03d}"
 
-    for color, title, items in sections:
-        t_rows = [[title]] + [[f"  {item}"] for item in items]
-        sec_t = Table([[Paragraph(ar(c), S(9.5, ri==0,
-                       colors.white if ri==0 else colors.HexColor("#1a1a1a")))
-                       for c in row] for ri,row in enumerate(t_rows)],
-                     colWidths=[18.3*cm])
-        sec_t.setStyle(TableStyle([
-            ("FONTNAME",(0,0),(-1,-1),"Amiri"),("FONTSIZE",(0,0),(-1,-1),9.5),
-            ("ALIGN",(0,0),(-1,-1),"RIGHT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-            ("BACKGROUND",(0,0),(0,0),color),
-            ("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.HexColor("#f8f8f8"),C_WHITE]),
-            ("GRID",(0,0),(-1,-1),0.4,colors.HexColor("#ddd")),
-            ("TOPPADDING",(0,0),(-1,-1),5),("BOTTOMPADDING",(0,0),(-1,-1),5),
-            ("RIGHTPADDING",(0,0),(-1,-1),8),
-        ]))
-        story.append(sec_t)
-        story.append(Spacer(1,6))
+    template_data = {
+        'file_number': file_num,
+        'date': datetime.date.today().strftime('%d/%m/%Y'),
+        'client': {
+            'name':        data.get('name', '—'),
+            'age':         data.get('age', '—'),
+            'gender':      data.get('gender', '—'),
+            'height':      data.get('height', '—'),
+            'weight':      data.get('weight', '—'),
+            'bmi':         data.get('bmi', '—'),
+            'body_fat':    data.get('fat_pct', '—'),
+            'tdee':        data.get('tdee', '—'),
+            'target_kcal': data.get('goal_cal', '—'),
+            'deficit':     deficit,
+        },
+        'conditions':     symptoms if symptoms else ["لا توجد حالات مسجلة"],
+        'clinical_notes': clinical_notes,
+        'allowed':        allowed,
+        'forbidden':      forbidden,
+        'days': [
+            {
+                'name':       d['day'],
+                'total_kcal': d['total_cal'],
+                'breakfast':  d['breakfast'],
+                'lunch':      d['lunch'],
+                'dinner':     d['dinner'],
+                'snack':      f"{d['snack']} | {d['before_sleep']}",
+            } for d in plan
+        ],
+        'tips': {
+            'water': [
+                'كوب ماء دافئ + نصف ليمونة فور الاستيقاظ',
+                '8 أكواب ماء يومياً (2 لتر على الأقل)',
+                'كوب ماء قبل كل وجبة بـ 30 دقيقة',
+                'تجنب الماء البارد جداً مع الأكل',
+            ],
+            'habits': [
+                '3 وجبات رئيسية + سناك واحد',
+                'مضغ بطيء — الشبع بعد 20 دقيقة',
+                'لا تأكل أمام الشاشة — يزيد الكمية',
+                'الفطار إجباري خلال ساعة من الاستيقاظ',
+            ],
+            'metabolism': [
+                'بروتين في كل وجبة (بيض / دجاج / سمك / عدس)',
+                'توابل آمنة: كركم + قرفة + زنجبيل',
+                'مشي 30 دقيقة بعد الغداء',
+                'قم وتحرك 5 دقائق كل ساعة',
+            ],
+            'warnings': [
+                'لا تخفض السعرات أكثر من المحدد — يوقف الحرق',
+                'لو جعت بين الوجبات: ماء أولاً ثم فاكهة',
+                'راجع مع أخصائي التغذية كل 4 أسابيع',
+                'أي أعراض غير عادية — راجع طبيبك فوراً',
+            ],
+        },
+        'clinic_name':   'NutraX Clinical Nutrition',
+        'author':        'إعداد د. محمد — أخصائي التغذية الإكلينيكية',
+        'review_weeks':  4,
+    }
 
-    # Footer
-    story.append(HRFlowable(width="100%", thickness=1, color=C_BLUE,
-                            spaceAfter=4, spaceBefore=8))
-    story.append(Paragraph(
-        ar(f"NutraX  |  {data.get('name','المريض')}  |  {datetime.date.today().strftime('%d/%m/%Y')}  |  يراجع بعد 4 اسابيع"),
-        S(9, False, colors.HexColor("#888"), TA_CENTER)))
+    html_string = render_template('meal_plan.html', **template_data)
+    pdf_bytes = HTML(string=html_string).write_pdf()
+    return pdf_bytes
 
-    doc.build(story)
-    return buf.getvalue()
-
+# ══════════════════════════════════════════════
+# PATIENTS MANAGEMENT
+# ══════════════════════════════════════════════
 @app.route("/patients")
 @login_required
 def patients():
