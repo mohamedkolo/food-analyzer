@@ -58,7 +58,7 @@
   <div class="card">
     <div class="card-title"><i class="fa-solid fa-stethoscope"></i> {{ 'الحالات المرضية' if is_ar else 'Clinical Conditions' }}</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
-      {% for cond in [('قولون عصبي','IBS'),('سكري النوع الثاني','Type 2 Diabetes'),('سكري النوع الاول','Type 1 Diabetes'),('ضغط الدم المرتفع','Hypertension'),('امراض القلب','Cardiovascular'),('الفشل الكلوي المزمن','CKD'),('الحمل','Pregnancy'),('الرضاعة الطبيعية','Lactation'),('السمنة','Obesity'),('تليف الكبد','Liver Cirrhosis'),('السرطان','Cancer'),('المتلازمة الايضية','Metabolic Syndrome'),('نحافة','Underweight')] %}
+      {% for cond in [('قولون عصبي','IBS'),('سكري النوع الثاني','Type 2 Diabetes'),('سكري النوع الاول','Type 1 Diabetes'),('ضغط الدم المرتفع','Hypertension'),('امراض القلب','Cardiovascular'),('الفشل الكلوي المزمن','CKD'),('الحمل','Pregnancy'),('الرضاعة الطبيعية','Lactation'),('السمنة','Obesity'),('تليف الكبد','Liver Cirrhosis'),('السرطان','Cancer'),('المتلازمة الايضية','Metabolic Syndrome'),('نحافة','Underweight'),('G6PD','G6PD Deficiency'),('ثلاسيميا','Thalassemia'),('نقص الحديد','Iron Deficiency'),('نقص فيتامين D3','Vit D3 Deficiency'),('حرق بطيء','Slow Metabolism'),('امساك مزمن','Chronic Constipation')] %}
       <label style="display:flex;align-items:center;gap:8px;background:var(--gray);border:1.5px solid var(--gray-2);border-radius:10px;padding:10px;cursor:pointer">
         <input type="checkbox" name="conditions" value="{{ cond[0] }}" style="width:18px;height:18px;accent-color:var(--blue-light)">
         <span style="font-size:13px;font-weight:600">{{ cond[0] if is_ar else cond[1] }}</span>
