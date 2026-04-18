@@ -3,6 +3,8 @@ import hashlib, os, json, io
 from datetime import timedelta
 
 app = Flask(__name__)
+from pdf_generator import pdf_bp
+app.register_blueprint(pdf_bp)
 app.secret_key = os.environ.get("SECRET_KEY", "nutrax2025")
 app.permanent_session_lifetime = timedelta(days=30)
 
