@@ -9,7 +9,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "nutrax2025")
 app.permanent_session_lifetime = timedelta(days=30)
 
 from meal_database import (
-    get_meal_pool, get_snacks_for_goal,
+    get_meal_pool, get_snacks_for_goal, filter_by_conditions,
     WEIGHT_LOSS, MUSCLE_GAIN, BULKING, MAINTENANCE
 )
 
