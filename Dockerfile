@@ -1,6 +1,5 @@
 FROM python:3.11-slim
 
-# تثبيت مكتبات النظام المطلوبة لـ WeasyPrint
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
@@ -8,6 +7,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcairo2 \
     libfontconfig1 \
     shared-mime-info \
+    fonts-noto \
+    fonts-noto-core \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
