@@ -1,5 +1,5 @@
-from flask import Flask, render_template, request, redirect, session, send_file
-import hashlib, os, json, io
+from flask import Flask, render_template, request, redirect, session, send_file, jsonify
+import hashlib, os, json, io, random
 from datetime import timedelta
 
 app = Flask(__name__)
@@ -8,12 +8,16 @@ app.register_blueprint(pdf_bp)
 app.secret_key = os.environ.get("SECRET_KEY", "nutrax2025")
 app.permanent_session_lifetime = timedelta(days=30)
 
+from meal_database import (
+    get_meal_pool, get_snacks_for_goal,
+    WEIGHT_LOSS, MUSCLE_GAIN, BULKING, MAINTENANCE
+)
+
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if DATABASE_URL:
     import psycopg2, psycopg2.extras
-    def get_db():
-        return psycopg2.connect(DATABASE_URL)
+    def get_db(): return psycopg2.connect(DATABASE_URL)
     def db_row(sql, params=()):
         sql = sql.replace("?","%s")
         conn = get_db(); cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -25,7 +29,7 @@ if DATABASE_URL:
     def db_run(sql, params=(), commit=True):
         sql = sql.replace("?","%s")
         conn = get_db(); cur = conn.cursor()
-        try: cur.execute(sql, params);
+        try: cur.execute(sql, params)
         except: conn.rollback(); conn.close(); raise
         if commit: conn.commit()
         conn.close()
@@ -71,26 +75,20 @@ def login_required(f):
     from functools import wraps
     @wraps(f)
     def decorated(*args, **kwargs):
-        if "uid" not in session:
-            return redirect("/")
+        if "uid" not in session: return redirect("/")
         return f(*args, **kwargs)
     return decorated
 
-# ══════════════════════════════════════════════
-# AUTH
-# ══════════════════════════════════════════════
 @app.route("/", methods=["GET","POST"])
 def login():
-    if "uid" in session:
-        return redirect("/dashboard")
+    if "uid" in session: return redirect("/dashboard")
     lang = session.get("lang", "ar")
     error = ""
     tab = request.args.get("tab", "login")
     if request.method == "POST":
         action = request.form.get("action")
         if action == "login":
-            u = get_user(request.form.get("email","").lower(),
-                         request.form.get("password",""))
+            u = get_user(request.form.get("email","").lower(), request.form.get("password",""))
             if u:
                 session.permanent = True
                 session["uid"] = u["id"]
@@ -99,15 +97,12 @@ def login():
             error = "البريد او كلمة المرور غير صحيحة"
         elif action == "register":
             tab = "register"
-            r = register(request.form.get("name",""),
-                        request.form.get("reg_email","").lower(),
-                        request.form.get("reg_password",""),
-                        request.form.get("country",""))
+            r = register(request.form.get("name",""), request.form.get("reg_email","").lower(),
+                        request.form.get("reg_password",""), request.form.get("country",""))
             if r == "ok":
                 error = "تم التسجيل! سجل دخولك."
                 tab = "login"
-            else:
-                error = "البريد مستخدم بالفعل"
+            else: error = "البريد مستخدم بالفعل"
     return render_template("login.html", error=error, tab=tab, lang=lang)
 
 @app.route("/logout")
@@ -117,19 +112,13 @@ def logout():
 
 @app.route("/lang/<l>")
 def set_lang(l):
-    if l in ["ar","en"]:
-        session["lang"] = l
+    if l in ["ar","en"]: session["lang"] = l
     return redirect(request.referrer or "/dashboard")
 
-# ══════════════════════════════════════════════
-# MAIN PAGES
-# ══════════════════════════════════════════════
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    return render_template("dashboard.html",
-                           user=get_user_by_id(session["uid"]),
-                           lang=session.get("lang","ar"))
+    return render_template("dashboard.html", user=get_user_by_id(session["uid"]), lang=session.get("lang","ar"))
 
 @app.route("/settings", methods=["GET","POST"])
 @login_required
@@ -138,58 +127,46 @@ def settings():
     saved = False
     if request.method == "POST":
         db_run("UPDATE users SET height=?, weight=?, age=?, gender=?, goal=?, activity=? WHERE id=?",
-            (request.form.get("height"), request.form.get("weight"),
-             request.form.get("age"), request.form.get("gender"),
-             request.form.get("goal"), request.form.get("activity"),
-             session["uid"]))
+            (request.form.get("height"), request.form.get("weight"), request.form.get("age"),
+             request.form.get("gender"), request.form.get("goal"), request.form.get("activity"), session["uid"]))
         u = get_user_by_id(session["uid"])
         saved = True
-    return render_template("settings.html", user=u,
-                           lang=session.get("lang","ar"), saved=saved)
+    return render_template("settings.html", user=u, lang=session.get("lang","ar"), saved=saved)
 
 @app.route("/analyzer")
 @login_required
 def analyzer():
-    return render_template("analyzer.html",
-                           user=get_user_by_id(session["uid"]),
-                           lang=session.get("lang","ar"))
+    return render_template("analyzer.html", user=get_user_by_id(session["uid"]), lang=session.get("lang","ar"))
 
 @app.route("/planner")
 @login_required
 def planner():
-    return render_template("planner.html",
-                           user=get_user_by_id(session["uid"]),
-                           lang=session.get("lang","ar"))
+    return render_template("planner.html", user=get_user_by_id(session["uid"]), lang=session.get("lang","ar"))
 
 @app.route("/clinical")
 @login_required
 def clinical():
-    return render_template("clinical.html",
-                           user=get_user_by_id(session["uid"]),
-                           lang=session.get("lang","ar"))
+    return render_template("clinical.html", user=get_user_by_id(session["uid"]), lang=session.get("lang","ar"))
 
 @app.route("/history")
 @login_required
 def history():
     u = get_user_by_id(session["uid"])
     logs = db_rows("SELECT * FROM weight_log WHERE user_id=? ORDER BY logged_at DESC LIMIT 30", (session["uid"],))
-    return render_template("history.html", user=u,
-                           lang=session.get("lang","ar"), logs=logs)
+    return render_template("history.html", user=u, lang=session.get("lang","ar"), logs=logs)
 
 @app.route("/saved")
 @login_required
 def saved():
     u = get_user_by_id(session["uid"])
     plans = db_rows("SELECT * FROM saved_plans WHERE user_id=? ORDER BY created_at DESC", (session["uid"],))
-    return render_template("saved.html", user=u,
-                           lang=session.get("lang","ar"), plans=plans)
+    return render_template("saved.html", user=u, lang=session.get("lang","ar"), plans=plans)
 
 @app.route("/log_weight", methods=["POST"])
 @login_required
 def log_weight():
     w = request.form.get("weight")
-    if w:
-        db_run("INSERT INTO weight_log (user_id,weight) VALUES (?,?)", (session["uid"], w))
+    if w: db_run("INSERT INTO weight_log (user_id,weight) VALUES (?,?)", (session["uid"], w))
     return redirect("/history")
 
 @app.route("/save_plan", methods=["POST"])
@@ -207,393 +184,256 @@ def delete_plan(pid):
     db_run("DELETE FROM saved_plans WHERE id=? AND user_id=?", (pid, session["uid"]))
     return redirect("/saved")
 
-# ══════════════════════════════════════════════
-# PDF GENERATOR — مولد الجدول الغذائي
-# ══════════════════════════════════════════════
 @app.route("/generate", methods=["GET","POST"])
 @login_required
 def generate():
     u = get_user_by_id(session["uid"])
     if request.method == "POST":
         data = {
-            "name":       request.form.get("name",""),
-            "age":        request.form.get("age",""),
-            "gender":     request.form.get("gender",""),
-            "height":     request.form.get("height",""),
-            "weight":     request.form.get("weight",""),
-            "fat_pct":    request.form.get("fat_pct",""),
-            "bmi":        request.form.get("bmi",""),
-            "tdee":       request.form.get("tdee",""),
-            "goal_cal":   request.form.get("goal_cal","1400"),
-            "symptoms":   request.form.getlist("symptoms"),
-            "notes":      request.form.get("notes",""),
+            "name": request.form.get("name",""), "age": request.form.get("age",""),
+            "gender": request.form.get("gender",""), "height": request.form.get("height",""),
+            "weight": request.form.get("weight",""), "fat_pct": request.form.get("fat_pct",""),
+            "bmi": request.form.get("bmi",""), "tdee": request.form.get("tdee",""),
+            "goal_cal": request.form.get("goal_cal","1400"),
+            "goal_type": request.form.get("goal_type","weight_loss"),
+            "culture": request.form.get("culture","مصري"),
+            "symptoms": request.form.getlist("symptoms"),
+            "notes": request.form.get("notes",""),
         }
         session["pdf_data"] = data
+        session["current_plan"] = generate_weekly_plan(data)
         return redirect("/preview")
-    return render_template("generate.html", user=u,
-                           lang=session.get("lang","ar"))
+    return render_template("generate.html", user=u, lang=session.get("lang","ar"))
 
 @app.route("/preview")
 @login_required
 def preview():
     u = get_user_by_id(session["uid"])
     data = session.get("pdf_data")
-    if not data:
-        return redirect("/generate")
-    plan = generate_weekly_plan(data)
-    return render_template("preview.html", user=u,
-                           lang=session.get("lang","ar"),
-                           data=data, plan=plan)
+    plan = session.get("current_plan")
+    if not data or not plan: return redirect("/generate")
+    return render_template("preview.html", user=u, lang=session.get("lang","ar"), data=data, plan=plan)
+
+@app.route("/swap_meal", methods=["POST"])
+@login_required
+def swap_meal():
+    data = session.get("pdf_data")
+    plan = session.get("current_plan")
+    if not data or not plan: return jsonify({"ok": False, "error": "no plan"}), 400
+    day_idx = int(request.form.get("day_idx", 0))
+    meal_type = request.form.get("meal_type", "breakfast")
+    goal = data.get("goal_type", "weight_loss")
+    culture = data.get("culture", "مصري")
+    pool = get_meal_pool(goal, culture)
+    if meal_type in pool and pool[meal_type]:
+        current = plan[day_idx].get(meal_type, "")
+        options = [m for m in pool[meal_type] if m["meal"] != current]
+        if options:
+            new_meal = random.choice(options)
+            plan[day_idx][meal_type] = new_meal["meal"]
+            total_cal = 0
+            for mt in ["breakfast","lunch","dinner"]:
+                meal_text = plan[day_idx].get(mt, "")
+                for m in pool.get(mt, []):
+                    if m["meal"] == meal_text:
+                        total_cal += m.get("cal",0); break
+            total_cal += 150
+            plan[day_idx]["total_cal"] = total_cal
+            session["current_plan"] = plan
+            return jsonify({"ok": True, "new_meal": new_meal["meal"], "total_cal": total_cal})
+    return jsonify({"ok": False, "error": "no alternatives"}), 400
+
+@app.route("/regenerate_plan", methods=["POST"])
+@login_required
+def regenerate_plan():
+    data = session.get("pdf_data")
+    if not data: return redirect("/generate")
+    session["current_plan"] = generate_weekly_plan(data)
+    return redirect("/preview")
 
 @app.route("/download_pdf")
 @login_required
 def download_pdf():
     data = session.get("pdf_data")
-    if not data:
-        return redirect("/generate")
+    plan = session.get("current_plan")
+    if not data: return redirect("/generate")
     try:
-        pdf_bytes = build_pdf(data)
-        buf = io.BytesIO(pdf_bytes)
-        buf.seek(0)
+        pdf_bytes = build_pdf(data, plan)
+        buf = io.BytesIO(pdf_bytes); buf.seek(0)
         name = data.get("name","patient").replace(" ","_")
-        return send_file(buf, as_attachment=True,
-                        download_name=f"NutraX_{name}.pdf",
-                        mimetype="application/pdf")
+        return send_file(buf, as_attachment=True, download_name=f"NutraX_{name}.pdf", mimetype="application/pdf")
     except Exception as e:
+        import traceback; traceback.print_exc()
         return f"خطأ في توليد الـ PDF: {str(e)}", 500
 
-# ══════════════════════════════════════════════
-# CLINICAL CONDITION HELPERS
-# ══════════════════════════════════════════════
 def _has(symptoms, keywords):
-    """Check if any keyword matches any symptom (case-insensitive partial match)"""
     for s in symptoms:
         s_low = str(s).lower().strip()
         for k in keywords:
-            if k.lower() in s_low:
-                return True
+            if k.lower() in s_low: return True
     return False
 
 def _filter_unsafe(meals, unsafe_keywords, alternatives):
-    """Replace unsafe meals with safe alternatives"""
-    result = []
-    alt_idx = 0
+    result = []; alt_idx = 0
     for meal in meals:
         txt = meal["meal"]
         unsafe = any(kw in txt for kw in unsafe_keywords)
         if unsafe and alternatives:
             result.append(alternatives[alt_idx % len(alternatives)])
             alt_idx += 1
-        else:
-            result.append(meal)
+        else: result.append(meal)
     return result
 
-# ══════════════════════════════════════════════
-# MEAL PLAN GENERATOR
-# ══════════════════════════════════════════════
 def generate_weekly_plan(data):
     symptoms = data.get("symptoms", [])
-
-    has_colon    = _has(symptoms, ["قولون عصبي","ibs"])
-    has_diabetes = _has(symptoms, ["سكري"])
-    has_cardiac  = _has(symptoms, ["امراض القلب","ضغط الدم"])
-    has_kidney   = _has(symptoms, ["الفشل الكلوي"])
-    has_pregnant = _has(symptoms, ["الحمل"])
-    has_g6pd     = _has(symptoms, ["g6pd","g6bd","فافيزم","انزيم G6"])
-    has_thal     = _has(symptoms, ["ثلاسيميا","thalassemia"])
-    needs_iron   = _has(symptoms, ["نقص الحديد","فقر دم","انيميا"])
-    needs_d3     = _has(symptoms, ["نقص فيتامين d","نقص d3","فيتامين D"])
-
-    # ─── FATHAR (Breakfast) pools ───
-    breakfasts = [
-        {"meal":"فول مدمس بزيت الزيتون + بيضتان مسلوقتان + خبز اسمر", "cal":446, "p":20},
-        {"meal":"شوفان بالحليب + موزة + لوز", "cal":400, "p":12},
-        {"meal":"بيض اومليت بالخضار + خبز اسمر", "cal":320, "p":18},
-        {"meal":"فول مع طحينة وليمون + خبز اسمر", "cal":360, "p":14},
-        {"meal":"شوفان بالموز والقرفة + لوز نيئ", "cal":430, "p":11},
-        {"meal":"فول مدمس + بيضتان + طماطم وخيار", "cal":406, "p":21},
-        {"meal":"شوفان بالكيوي والعسل", "cal":370, "p":10},
-    ]
-
-    # ⚠️ G6PD SAFETY: Replace all fava bean (فول) meals
+    goal = data.get("goal_type", "weight_loss")
+    culture = data.get("culture", "مصري")
+    has_g6pd = _has(symptoms, ["g6pd","g6bd","فافيزم"])
+    has_thal = _has(symptoms, ["ثلاسيميا","thalassemia"])
+    needs_d3 = _has(symptoms, ["نقص فيتامين d","نقص d3"])
+    pool = get_meal_pool(goal, culture)
+    breakfasts = list(pool.get("breakfast", []))
+    lunches = list(pool.get("lunch", []))
+    dinners = list(pool.get("dinner", []))
+    if len(breakfasts) < 7: breakfasts = list(WEIGHT_LOSS["مصري"]["breakfast"])
+    if len(lunches) < 7: lunches = list(WEIGHT_LOSS["مصري"]["lunch"])
+    if len(dinners) < 7: dinners = list(WEIGHT_LOSS["مصري"]["dinner"])
     if has_g6pd:
         g6pd_safe = [
-            {"meal":"بيض مسلوق + جبن قريش + خبز اسمر + طماطم", "cal":340, "p":22},
-            {"meal":"زبادي يوناني + عسل + مكسرات + تفاح", "cal":350, "p":16},
-            {"meal":"توست اسمر + افوكادو + بيضة مسلوقة", "cal":380, "p":18},
-            {"meal":"شوفان بالحليب + موز + لوز + بذور شيا", "cal":410, "p":13},
+            {"meal":"بيض مسلوق + جبن قريش + خبز اسمر + طماطم","cal":340,"p":22},
+            {"meal":"زبادي يوناني + عسل + مكسرات + تفاح","cal":350,"p":16},
+            {"meal":"توست اسمر + افوكادو + بيضة مسلوقة","cal":380,"p":18},
+            {"meal":"شوفان بالحليب + موز + لوز + بذور شيا","cal":410,"p":13},
         ]
         breakfasts = _filter_unsafe(breakfasts, ["فول","حمص"], g6pd_safe)
-
-    # ─── GHADA (Lunch) pools ───
-    lunches = [
-        {"meal":"صدر دجاج مشوي + ارز بني + سلطة خضار", "cal":478, "p":49},
-        {"meal":"سمك بلطي مشوي + بطاطا حلوة + كوسة مشوية", "cal":417, "p":42},
-        {"meal":"فخذ دجاج فرن + برغل + سلطة فتوش", "cal":450, "p":38},
-        {"meal":"كبدة دجاج مشوية + ارز بني + ملوخية", "cal":389, "p":33},
-        {"meal":"سمكة بلطي كاملة + بطاطا مسلوقة + سلطة", "cal":436, "p":52},
-        {"meal":"صدر دجاج فرن بالخضار + ارز بني", "cal":460, "p":52},
-        {"meal":"سمك بلطي مشوي + برغل + سلطة فتوش", "cal":392, "p":44},
-    ]
-
-    # ⚠️ THALASSEMIA SAFETY: Replace liver (iron overload risk)
+        dinners = _filter_unsafe(dinners, ["فول","حمص","لوبيا"], g6pd_safe)
     if has_thal:
         thal_safe = [
-            {"meal":"دجاج مشوي بالزعتر + ارز بني + ملوخية", "cal":440, "p":44},
-            {"meal":"سمك سلمون مشوي + ارز + سلطة", "cal":450, "p":45},
-            {"meal":"صدر ديك رومي + خضار مشوية + برغل", "cal":420, "p":46},
+            {"meal":"دجاج مشوي بالزعتر + ارز بني + ملوخية","cal":440,"p":44},
+            {"meal":"سمك سلمون مشوي + ارز + سلطة","cal":450,"p":45},
+            {"meal":"صدر ديك رومي + خضار مشوية + برغل","cal":420,"p":46},
         ]
         lunches = _filter_unsafe(lunches, ["كبدة","كبد"], thal_safe)
-
-    # 🌟 VITAMIN D3: Boost with fatty fish and eggs
     if needs_d3:
         d3_boost = [
-            {"meal":"سلمون مشوي + ارز بني + بروكلي", "cal":460, "p":48},
-            {"meal":"سردين بزيت الزيتون + خبز اسمر + سلطة", "cal":400, "p":35},
-            {"meal":"سمك مكاريل مشوي + بطاطا مسلوقة", "cal":430, "p":40},
+            {"meal":"سلمون مشوي + ارز بني + بروكلي","cal":460,"p":48},
+            {"meal":"سردين بزيت الزيتون + خبز اسمر + سلطة","cal":400,"p":35},
         ]
-        lunches[1] = d3_boost[0]
-        lunches[4] = d3_boost[1]
-
-    # ─── ESHA (Dinner) pools — based on colon/diabetes ───
-    if has_colon:
-        dinners = [
-            {"meal":"شوربة عدس احمر + خبز اسمر", "cal":250, "p":12},
-            {"meal":"عدس مطهو بجزر وكرفس + خبز", "cal":270, "p":13},
-            {"meal":"شوربة خضار + جبن قريش", "cal":199, "p":10},
-            {"meal":"حمص بطحينة + خبز اسمر", "cal":320, "p":13},
-            {"meal":"شوربة عدس + خبز اسمر", "cal":250, "p":12},
-            {"meal":"عدس مطهو + جبن قريش", "cal":249, "p":16},
-            {"meal":"شوربة خضار خفيفة + خبز", "cal":220, "p":8},
-        ]
-    elif has_diabetes:
-        dinners = [
-            {"meal":"صدر دجاج مشوي + خضار مشوية", "cal":280, "p":46},
-            {"meal":"سمك مشوي + سلطة خضار", "cal":240, "p":40},
-            {"meal":"عدس مطهو + خبز اسمر", "cal":270, "p":13},
-            {"meal":"دجاج فرن + بروكلي مطهو", "cal":290, "p":48},
-            {"meal":"تونة بالخضار + خبز اسمر", "cal":260, "p":28},
-            {"meal":"شوربة عدس + سلطة", "cal":250, "p":12},
-            {"meal":"بيض مسلوق + خضار نيئة", "cal":200, "p":15},
-        ]
-    else:
-        dinners = [
-            {"meal":"شوربة عدس احمر + خبز اسمر", "cal":250, "p":12},
-            {"meal":"عدس مطهو بجزر وكرفس + خبز", "cal":270, "p":13},
-            {"meal":"شوربة خضار + جبن قريش", "cal":199, "p":10},
-            {"meal":"حمص بطحينة + خبز اسمر + طماطم", "cal":320, "p":13},
-            {"meal":"شوربة عدس اصفر + خبز", "cal":250, "p":12},
-            {"meal":"عدس مطهو + جبن قريش", "cal":249, "p":16},
-            {"meal":"كشري مصري (كمية معتدلة)", "cal":280, "p":12},
-        ]
-
-    # G6PD safety on dinners too (remove لوبيا, فول, حمص)
-    if has_g6pd:
-        g6pd_dinner_safe = [
-            {"meal":"شوربة خضار + جبن قريش + خبز اسمر", "cal":240, "p":12},
-            {"meal":"صدر دجاج مشوي + سلطة خضراء", "cal":280, "p":38},
-            {"meal":"بيض مسلوق + خضار مطبوخة", "cal":220, "p":16},
-        ]
-        dinners = _filter_unsafe(dinners, ["فول","حمص","لوبيا"], g6pd_dinner_safe)
-
-    snacks = [
-        "تفاحة بالقشر (80 kcal)",
-        "لوز نيئ 20 جم (120 kcal)",
-        "برتقالة (62 kcal)",
-        "تمرتان (66 kcal)",
-        "كيوي (61 kcal)",
-        "رمانة نصف (53 kcal)",
-        "موزة صغيرة (89 kcal)",
-    ]
-    before_sleep = [
-        "زبادي يوناني سادة",
-        "كمثرى",
-        "حليب دافئ خالي الدسم",
-        "زبادي يوناني",
-        "تفاحة بالقشر",
-        "زبادي يوناني",
-        "موزة صغيرة",
-    ]
-
+        if len(lunches) >= 2: lunches[1] = d3_boost[0]
+        if len(lunches) >= 5: lunches[4] = d3_boost[1]
+    snacks = get_snacks_for_goal(goal)
+    pool_snacks = pool.get("snack", [])
+    if pool_snacks: snacks = pool_snacks[:7]
+    while len(snacks) < 7: snacks.append("فاكهة + مكسرات (120 kcal)")
+    before_sleep = ["زبادي يوناني سادة","كمثرى","حليب دافئ","زبادي يوناني","تفاحة","زبادي","موزة"]
     days = ["الاحد","الاثنين","الثلاثاء","الاربعاء","الخميس","الجمعة","السبت"]
     plan = []
     for i in range(7):
-        b = breakfasts[i]
-        l = lunches[i]
-        d = dinners[i]
-        total_cal = b["cal"] + l["cal"] + d["cal"] + 100
-        total_p   = b["p"]   + l["p"]   + d["p"]
+        b = breakfasts[i % len(breakfasts)]
+        l = lunches[i % len(lunches)]
+        d = dinners[i % len(dinners)]
+        total_cal = b.get("cal",300) + l.get("cal",400) + d.get("cal",300) + 150
+        total_p = b.get("p",15) + l.get("p",30) + d.get("p",15)
         plan.append({
-            "day":         days[i],
-            "breakfast":   b["meal"],
-            "lunch":       l["meal"],
-            "dinner":      d["meal"],
-            "snack":       snacks[i],
-            "before_sleep":before_sleep[i],
-            "total_cal":   total_cal,
-            "total_p":     total_p,
+            "day": days[i], "breakfast": b["meal"], "lunch": l["meal"], "dinner": d["meal"],
+            "snack": snacks[i] if i < len(snacks) else snacks[0],
+            "before_sleep": before_sleep[i], "total_cal": total_cal, "total_p": total_p,
         })
     return plan
 
-# ══════════════════════════════════════════════
-# ALLOWED / FORBIDDEN FOODS BY CONDITION
-# ══════════════════════════════════════════════
-def get_allowed_forbidden(symptoms):
-    has_g6pd  = _has(symptoms, ["g6pd","g6bd","فافيزم"])
-    has_thal  = _has(symptoms, ["ثلاسيميا","thalassemia"])
+def get_allowed_forbidden(symptoms, goal="weight_loss"):
+    has_g6pd = _has(symptoms, ["g6pd","g6bd","فافيزم"])
+    has_thal = _has(symptoms, ["ثلاسيميا","thalassemia"])
     has_colon = _has(symptoms, ["قولون عصبي","ibs"])
-    needs_d3  = _has(symptoms, ["نقص فيتامين d","نقص d3"])
-    needs_fe  = _has(symptoms, ["نقص الحديد","فقر دم"])
-
-    allowed = [
-        "دجاج مشوي أو فرن (بدون جلد) + بيض",
-        "شوفان + خبز أسمر + أرز بني + برغل",
-        "زبادي يوناني سادة + جبن قريش",
-        "ملوخية + كوسة + خضار مطبوخة",
-        "زيت زيتون (ملعقة) + فاكهة طازجة",
-        "شاي أخضر + ماء دافئ بالليمون صباحاً",
-    ]
-
-    forbidden = [
-        "الخبز الأبيض والعيش الفينو",
-        "الأكل المقلي + الدهانة + السمن",
-        "المشروبات الغازية + العصائر المعلبة",
-        "الحلويات والسكريات المضافة",
-    ]
-
-    # Adjust by condition
-    if has_g6pd:
-        forbidden = ["❗ الفول بكل أنواعه (مدمس/أخضر/ناشف)",
-                     "❗ الحمص والبقوليات الحمراء",
-                     "❗ الأطعمة المحتوية على نيتروفورانتوين"] + forbidden
-        allowed = ["عدس أصفر بكميات محدودة (آمن نسبياً)"] + allowed
+    needs_d3 = _has(symptoms, ["نقص فيتامين d","نقص d3"])
+    needs_fe = _has(symptoms, ["نقص الحديد","فقر دم"])
+    if goal in ["muscle_gain","bulking"]:
+        allowed = ["مصادر بروتين عالية: دجاج + لحم + سمك + بيض","كاربوهيدرات معقدة: ارز بني + شوفان + بطاطا",
+                   "مكسرات + افوكادو + زيت زيتون","حليب كامل + زبادي يوناني","بروتين شيك بعد التمرين"]
+        forbidden = ["الأكل المقلي الزائد","السكريات المضافة والحلويات","المشروبات الغازية","الوجبات السريعة المصنعة"]
     else:
-        allowed = ["فول مدمس + عدس + شوربات + سمك مشوي"] + allowed
-
+        allowed = ["دجاج مشوي أو فرن (بدون جلد) + بيض","شوفان + خبز أسمر + أرز بني + برغل",
+                   "زبادي يوناني سادة + جبن قريش","ملوخية + كوسة + خضار مطبوخة",
+                   "زيت زيتون (ملعقة) + فاكهة طازجة","شاي أخضر + ماء دافئ بالليمون"]
+        forbidden = ["الخبز الأبيض والعيش الفينو","الأكل المقلي + الدهانة + السمن",
+                     "المشروبات الغازية + العصائر المعلبة","الحلويات والسكريات المضافة"]
+    if has_g6pd:
+        forbidden = ["❗ الفول بكل أنواعه","❗ الحمص والبقوليات الحمراء"] + forbidden
+        allowed = ["عدس أصفر بكميات محدودة"] + allowed
+    else:
+        if goal in ["weight_loss","maintenance"]:
+            allowed = ["فول مدمس + عدس + شوربات + سمك مشوي"] + allowed
     if has_thal:
-        forbidden = ["❗ الكبدة والأعضاء الداخلية (حديد مرتفع)",
-                     "❗ اللحوم الحمراء بإفراط",
-                     "❗ مكملات الحديد بدون استشارة"] + forbidden
-        allowed = ["شاي مع الوجبات (يقلل امتصاص الحديد)"] + allowed
-
+        forbidden = ["❗ الكبدة والأعضاء الداخلية","❗ اللحوم الحمراء بإفراط"] + forbidden
+        allowed = ["شاي مع الوجبات"] + allowed
     if has_colon:
-        forbidden.append("التوابل الحارة (تستفز القولون)")
-        forbidden.append("البقوليات بكميات كبيرة دفعة واحدة")
-        forbidden.append("الكافيين الزائد (أكثر من كوب)")
-
+        forbidden.append("التوابل الحارة")
+        forbidden.append("الكافيين الزائد")
     if needs_d3:
-        allowed = ["⭐ أسماك دهنية: سلمون • سردين • تونة",
-                   "⭐ صفار البيض + الفطر",
-                   "⭐ تعرض للشمس 15 دقيقة يومياً"] + allowed
-
+        allowed = ["⭐ أسماك دهنية: سلمون • سردين • تونة","⭐ صفار البيض + الفطر","⭐ تعرض للشمس 15 دقيقة"] + allowed
     if needs_fe and not has_thal:
-        allowed = ["⭐ لحوم حمراء + كبدة (مع فيتامين C)",
-                   "⭐ سبانخ + عدس + فاصوليا"] + allowed
-
+        allowed = ["⭐ لحوم حمراء + كبدة","⭐ سبانخ + عدس + فاصوليا"] + allowed
     return allowed[:8], forbidden[:8]
 
-# ══════════════════════════════════════════════
-# PDF BUILDER — WeasyPrint + Beautiful Template
-# ══════════════════════════════════════════════
-def build_pdf(data):
-    """
-    Generate PDF using WeasyPrint + meal_plan.html template.
-    Arabic renders perfectly in RTL — no reshaping needed.
-    """
+def build_pdf(data, plan=None):
     from weasyprint import HTML
     import datetime
-
-    plan = generate_weekly_plan(data)
+    if plan is None: plan = generate_weekly_plan(data)
     symptoms = data.get("symptoms", [])
-    allowed, forbidden = get_allowed_forbidden(symptoms)
-
-    # Calculate deficit safely
+    goal = data.get("goal_type", "weight_loss")
+    allowed, forbidden = get_allowed_forbidden(symptoms, goal)
     try:
         tdee = float(data.get("tdee", 0) or 0)
         target = float(data.get("goal_cal", 0) or 0)
         deficit = int(tdee - target) if tdee and target else 0
-    except:
-        deficit = 0
-
-    # Build clinical notes string from symptoms + notes
+    except: deficit = 0
     notes_parts = []
-    if symptoms:
-        notes_parts.append(" • ".join(symptoms))
-    if data.get("notes"):
-        notes_parts.append(data.get("notes"))
+    if symptoms: notes_parts.append(" • ".join(symptoms))
+    if data.get("notes"): notes_parts.append(data.get("notes"))
     clinical_notes = " | ".join(notes_parts) if notes_parts else "لا توجد ملاحظات إضافية"
-
-    # Prepare template data
     uid = session.get("uid", 0)
     file_num = f"NX-{datetime.datetime.now().year}-{uid:03d}"
-
+    goal_labels = {"weight_loss":"خطة تخسيس","muscle_gain":"خطة زيادة عضل","bulking":"خطة تضخيم","maintenance":"خطة مكتنز"}
+    plan_title = goal_labels.get(goal, "خطة غذائية")
     template_data = {
         'file_number': file_num,
         'date': datetime.date.today().strftime('%d/%m/%Y'),
+        'plan_title': plan_title,
+        'culture': data.get("culture","مصري"),
         'client': {
-            'name':        data.get('name', '—'),
-            'age':         data.get('age', '—'),
-            'gender':      data.get('gender', '—'),
-            'height':      data.get('height', '—'),
-            'weight':      data.get('weight', '—'),
-            'bmi':         data.get('bmi', '—'),
-            'body_fat':    data.get('fat_pct', '—'),
-            'tdee':        data.get('tdee', '—'),
-            'target_kcal': data.get('goal_cal', '—'),
-            'deficit':     deficit,
+            'name': data.get('name','—'), 'age': data.get('age','—'),
+            'gender': data.get('gender','—'), 'height': data.get('height','—'),
+            'weight': data.get('weight','—'), 'bmi': data.get('bmi','—'),
+            'body_fat': data.get('fat_pct','—'), 'tdee': data.get('tdee','—'),
+            'target_kcal': data.get('goal_cal','—'), 'deficit': deficit,
         },
-        'conditions':     symptoms if symptoms else ["لا توجد حالات مسجلة"],
+        'conditions': symptoms if symptoms else ["لا توجد حالات مسجلة"],
         'clinical_notes': clinical_notes,
-        'allowed':        allowed,
-        'forbidden':      forbidden,
-        'days': [
-            {
-                'name':       d['day'],
-                'total_kcal': d['total_cal'],
-                'breakfast':  d['breakfast'],
-                'lunch':      d['lunch'],
-                'dinner':     d['dinner'],
-                'snack':      f"{d['snack']} | {d['before_sleep']}",
-            } for d in plan
-        ],
+        'allowed': allowed, 'forbidden': forbidden,
+        'days': [{'name':d['day'],'total_kcal':d['total_cal'],'breakfast':d['breakfast'],
+                  'lunch':d['lunch'],'dinner':d['dinner'],
+                  'snack':f"{d['snack']} | {d['before_sleep']}"} for d in plan],
         'tips': {
-            'water': [
-                'كوب ماء دافئ + نصف ليمونة فور الاستيقاظ',
-                '8 أكواب ماء يومياً (2 لتر على الأقل)',
-                'كوب ماء قبل كل وجبة بـ 30 دقيقة',
-                'تجنب الماء البارد جداً مع الأكل',
-            ],
-            'habits': [
-                '3 وجبات رئيسية + سناك واحد',
-                'مضغ بطيء — الشبع بعد 20 دقيقة',
-                'لا تأكل أمام الشاشة — يزيد الكمية',
-                'الفطار إجباري خلال ساعة من الاستيقاظ',
-            ],
-            'metabolism': [
-                'بروتين في كل وجبة (بيض / دجاج / سمك / عدس)',
-                'توابل آمنة: كركم + قرفة + زنجبيل',
-                'مشي 30 دقيقة بعد الغداء',
-                'قم وتحرك 5 دقائق كل ساعة',
-            ],
-            'warnings': [
-                'لا تخفض السعرات أكثر من المحدد — يوقف الحرق',
-                'لو جعت بين الوجبات: ماء أولاً ثم فاكهة',
-                'راجع مع أخصائي التغذية كل 4 أسابيع',
-                'أي أعراض غير عادية — راجع طبيبك فوراً',
-            ],
+            'water': ['كوب ماء دافئ + نصف ليمونة فور الاستيقاظ','8 أكواب ماء يومياً',
+                      'كوب ماء قبل كل وجبة بـ 30 دقيقة','تجنب الماء البارد جداً'],
+            'habits': ['3 وجبات رئيسية + سناك','مضغ بطيء — الشبع بعد 20 دقيقة',
+                       'لا تأكل أمام الشاشة','الفطار إجباري خلال ساعة من الاستيقاظ'],
+            'metabolism': (['بروتين في كل وجبة','توابل آمنة: كركم + قرفة + زنجبيل',
+                            'مشي 30 دقيقة بعد الغداء','قم وتحرك 5 دقائق كل ساعة']
+                           if goal in ["weight_loss","maintenance"] else
+                           ['بروتين في كل وجبة (1.6-2.2 جم/كجم)','كارب حول التمرين',
+                            'تدريب مقاومة 4-5 مرات أسبوعياً','نوم 7-9 ساعات لبناء العضل']),
+            'warnings': ['لا تخفض السعرات أكثر من المحدد','لو جعت: ماء أولاً ثم فاكهة',
+                         'راجع مع أخصائي التغذية كل 4 أسابيع','أي أعراض غير عادية — راجع طبيبك'],
         },
-        'clinic_name':   'NutraX Clinical Nutrition',
-        'author':        'إعداد د. محمد — أخصائي التغذية الإكلينيكية',
-        'review_weeks':  4,
+        'clinic_name': 'NutraX Clinical Nutrition',
+        'author': 'إعداد د. محمد — أخصائي التغذية الإكلينيكية',
+        'review_weeks': 4,
     }
-
     html_string = render_template('meal_plan.html', **template_data)
     pdf_bytes = HTML(string=html_string).write_pdf()
     return pdf_bytes
 
-# ══════════════════════════════════════════════
-# PATIENTS MANAGEMENT
-# ══════════════════════════════════════════════
 @app.route("/patients")
 @login_required
 def patients():
@@ -602,19 +442,12 @@ def patients():
     status_filter = request.args.get("status","")
     sql = "SELECT * FROM patients WHERE user_id=?"
     params = [session["uid"]]
-    if search:
-        sql += " AND name LIKE ?"
-        params.append(f"%{search}%")
-    if status_filter:
-        sql += " AND status=?"
-        params.append(status_filter)
+    if search: sql += " AND name LIKE ?"; params.append(f"%{search}%")
+    if status_filter: sql += " AND status=?"; params.append(status_filter)
     sql += " ORDER BY created_at DESC"
-    try:
-        pts = db_rows(sql, tuple(params))
-    except:
-        pts = []
-    return render_template("patients.html", user=u,
-                           lang=session.get("lang","ar"),
+    try: pts = db_rows(sql, tuple(params))
+    except: pts = []
+    return render_template("patients.html", user=u, lang=session.get("lang","ar"),
                            patients=pts, search=search, status=status_filter)
 
 @app.route("/patients/new", methods=["GET","POST"])
@@ -633,8 +466,7 @@ def new_patient():
         goal_cal = request.form.get("goal_cal",1400)
         conditions = json.dumps(request.form.getlist("conditions"))
         notes = request.form.get("notes","")
-        db_run("""INSERT INTO patients
-            (user_id,name,age,gender,height,weight,fat_pct,bmi,tdee,goal_cal,conditions,notes)
+        db_run("""INSERT INTO patients (user_id,name,age,gender,height,weight,fat_pct,bmi,tdee,goal_cal,conditions,notes)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
             (session["uid"],name,age,gender,height,weight,fat_pct,bmi,tdee,goal_cal,conditions,notes))
         return redirect("/patients")
@@ -645,36 +477,31 @@ def new_patient():
 def view_patient(pid):
     u = get_user_by_id(session["uid"])
     pt = db_row("SELECT * FROM patients WHERE id=? AND user_id=?", (pid, session["uid"]))
-    if not pt:
-        return redirect("/patients")
+    if not pt: return redirect("/patients")
     plans = db_rows("SELECT * FROM saved_plans WHERE user_id=? ORDER BY created_at DESC LIMIT 10", (session["uid"],))
-    return render_template("view_patient.html", user=u,
-                           lang=session.get("lang","ar"),
-                           patient=pt, plans=plans)
+    return render_template("view_patient.html", user=u, lang=session.get("lang","ar"), patient=pt, plans=plans)
 
 @app.route("/patients/<int:pid>/generate")
 @login_required
 def patient_generate(pid):
     pt = db_row("SELECT * FROM patients WHERE id=? AND user_id=?", (pid, session["uid"]))
-    if not pt:
-        return redirect("/patients")
+    if not pt: return redirect("/patients")
     data = {
         "name": pt["name"], "age": pt["age"], "gender": pt["gender"],
-        "height": pt["height"], "weight": pt["weight"],
-        "fat_pct": pt["fat_pct"], "bmi": pt["bmi"],
-        "tdee": pt["tdee"], "goal_cal": pt["goal_cal"],
-        "symptoms": json.loads(pt["conditions"] or "[]"),
-        "notes": pt["notes"] or "",
+        "height": pt["height"], "weight": pt["weight"], "fat_pct": pt["fat_pct"],
+        "bmi": pt["bmi"], "tdee": pt["tdee"], "goal_cal": pt["goal_cal"],
+        "goal_type": "weight_loss", "culture": "مصري",
+        "symptoms": json.loads(pt["conditions"] or "[]"), "notes": pt["notes"] or "",
     }
     session["pdf_data"] = data
+    session["current_plan"] = generate_weekly_plan(data)
     return redirect("/preview")
 
 @app.route("/patients/<int:pid>/status/<s>")
 @login_required
 def update_patient_status(pid, s):
     if s in ["draft","published"]:
-        db_run("UPDATE patients SET status=? WHERE id=? AND user_id=?",
-               (s, pid, session["uid"]))
+        db_run("UPDATE patients SET status=? WHERE id=? AND user_id=?", (s, pid, session["uid"]))
     return redirect(f"/patients/{pid}")
 
 @app.route("/patients/<int:pid>/delete", methods=["POST"])
