@@ -141,7 +141,7 @@ def analyzer():
 @app.route("/planner")
 @login_required
 def planner():
-    return render_template("planner.html", user=get_user_by_id(session["uid"]), lang=session.get("lang","ar"))
+    return redirect("/generate")
 
 @app.route("/clinical")
 @login_required
