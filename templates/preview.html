@@ -1,106 +1,168 @@
 {% extends "base.html" %}
-{% block title %}{{ 'مراجعة الجدول' if (lang or 'ar')=='ar' else 'Review Plan' }}{% endblock %}
-
-{% block extra_style %}
-<style>
-.day-row{background:#fff;border:1.5px solid var(--gray-2);border-radius:12px;padding:14px 16px;margin-bottom:10px}
-.day-header{font-size:15px;font-weight:800;color:var(--blue);margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.meal-item{display:flex;align-items:flex-start;gap:10px;padding:6px 0;border-bottom:1px solid var(--gray-2)}
-.meal-item:last-child{border-bottom:none}
-.meal-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px}
-.meal-name{font-size:12px;font-weight:700;color:var(--muted)}
-.meal-val{font-size:13px;font-weight:600;color:var(--text)}
-.cal-badge{background:var(--blue-pale);color:var(--blue);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
-</style>
-{% endblock %}
-
+{% block title %}معاينة الخطة{% endblock %}
 {% block content %}
-{% set is_ar = (lang or 'ar') == 'ar' %}
 
-<div class="page-title">
-  <i class="fa-solid fa-eye"></i>
-  {{ 'مراجعة الجدول قبل التحميل' if is_ar else 'Review Plan Before Download' }}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+  <div class="page-title" style="margin:0">
+    <i class="fa-solid fa-eye"></i> معاينة الخطة
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a href="/generate" class="btn btn-outline">
+      <i class="fa-solid fa-arrow-right"></i> تعديل البيانات
+    </a>
+    <form method="POST" action="/regenerate_plan" style="display:inline">
+      <button type="submit" class="btn btn-outline" style="background:#fff3cd;border-color:#ffc107;color:#856404">
+        <i class="fa-solid fa-shuffle"></i> تجديد الخطة كاملة
+      </button>
+    </form>
+    <a href="/download_pdf" class="btn btn-success">
+      <i class="fa-solid fa-download"></i> تحميل PDF
+    </a>
+  </div>
 </div>
 
-<!-- بيانات المريض -->
-<div class="card">
-  <div class="card-title">
-    <i class="fa-solid fa-user"></i>
-    {{ 'بيانات المريض' if is_ar else 'Patient Data' }}
-  </div>
-  <div class="grid-3">
-    <div class="metric">
-      <i class="fa-solid fa-user" style="color:var(--blue-light)"></i>
-      <div class="metric-label">{{ 'الاسم' if is_ar else 'Name' }}</div>
-      <div style="font-size:16px;font-weight:800;color:var(--text)">{{ data.name }}</div>
-    </div>
-    <div class="metric">
-      <i class="fa-solid fa-weight-scale" style="color:var(--blue-light)"></i>
-      <div class="metric-label">{{ 'الوزن / الطول' if is_ar else 'Weight / Height' }}</div>
-      <div style="font-size:16px;font-weight:800;color:var(--text)">{{ data.weight }} kg | {{ data.height }} cm</div>
-    </div>
-    <div class="metric">
-      <i class="fa-solid fa-fire" style="color:var(--blue-light)"></i>
-      <div class="metric-label">{{ 'الهدف اليومي' if is_ar else 'Daily Target' }}</div>
-      <div style="font-size:20px;font-weight:900;color:var(--blue-light)">{{ data.goal_cal }} <span style="font-size:12px">kcal</span></div>
-    </div>
-  </div>
-  {% if data.symptoms %}
-  <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
-    {% for s in data.symptoms %}
-    <span style="background:var(--red-pale);color:var(--red);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">
-      <i class="fa-solid fa-stethoscope"></i> {{ s }}
-    </span>
-    {% endfor %}
-  </div>
-  {% endif %}
-</div>
-
-<!-- الجدول الاسبوعي -->
-<div class="card-title" style="font-size:18px;margin-bottom:12px">
-  <i class="fa-solid fa-calendar-week"></i>
-  {{ 'الجدول الغذائي الاسبوعي' if is_ar else 'Weekly Meal Plan' }}
-</div>
-
-{% set meal_icons = [
-  ('fa-sun', '#f59e0b', 'الفطار', 'Breakfast', 'breakfast'),
-  ('fa-cloud-sun', '#2563eb', 'الغداء', 'Lunch', 'lunch'),
-  ('fa-moon', '#7c3aed', 'العشاء', 'Dinner', 'dinner'),
-  ('fa-apple-whole', '#16a34a', 'السناك', 'Snack', 'snack'),
-  ('fa-star-and-crescent', '#64748b', 'قبل النوم', 'Before Sleep', 'before_sleep'),
-] %}
-
-{% for day in plan %}
-<div class="day-row">
-  <div class="day-header">
-    <i class="fa-solid fa-calendar-day"></i>
-    {{ day.day }}
-    <span class="cal-badge" style="margin-right:auto">{{ day.total_cal }} kcal | {{ day.total_p }}{{ 'ج' if is_ar else 'g' }} {{ 'بروتين' if is_ar else 'protein' }}</span>
-  </div>
-  {% for icon, color, ar_name, en_name, key in meal_icons %}
-  <div class="meal-item">
-    <div class="meal-icon" style="background:{{ color }}20">
-      <i class="fa-solid {{ icon }}" style="color:{{ color }}"></i>
-    </div>
+<div class="card" style="background:linear-gradient(135deg,#1b4332 0%,#2d6a4f 100%);color:white">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
     <div>
-      <div class="meal-name">{{ ar_name if is_ar else en_name }}</div>
-      <div class="meal-val">{{ day[key] }}</div>
+      <div style="font-size:13px;opacity:0.8">العميل</div>
+      <div style="font-size:22px;font-weight:800">{{ data.name }}</div>
+    </div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+      <div style="text-align:center">
+        <div style="font-size:22px;font-weight:800">{{ data.goal_cal }}</div>
+        <div style="font-size:11px;opacity:0.8">الهدف kcal</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:22px;font-weight:800">
+          {% set goal_names = {'weight_loss':'تخسيس','maintenance':'مكتنز','muscle_gain':'عضل','bulking':'تضخيم'} %}
+          {{ goal_names.get(data.goal_type, 'خطة') }}
+        </div>
+        <div style="font-size:11px;opacity:0.8">نوع الخطة</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:22px;font-weight:800">{{ data.culture }}</div>
+        <div style="font-size:11px;opacity:0.8">المطبخ</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="background:#e7f3ff;border:1px solid #b3d9ff;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#003d7a">
+  💡 <strong>تقدر تستبدل اي وجبة مش عاجباك!</strong> اضغط على زرار <i class="fa-solid fa-shuffle"></i> بجانب اي وجبة عشان تغيرها تلقائياً.
+</div>
+
+<div style="display:grid;gap:12px">
+  {% for day in plan %}
+  <div class="card" style="padding:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--gray-2)">
+      <div style="font-size:17px;font-weight:800;color:var(--blue-dark)">
+        <i class="fa-solid fa-calendar-day"></i> {{ day.day }}
+      </div>
+      <div style="background:#d8e2dc;color:#1b4332;padding:4px 12px;border-radius:100px;font-weight:700;font-size:13px">
+        {{ day.total_cal }} kcal
+      </div>
+    </div>
+
+    <div style="display:grid;gap:8px">
+      <div class="meal-row" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--gray);border-radius:8px">
+        <div style="font-size:20px">🌅</div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#bc6c25;font-weight:700;letter-spacing:0.5px">الفطار</div>
+          <div class="meal-text" data-day="{{ loop.index0 }}" data-type="breakfast" style="font-size:13px;font-weight:600">{{ day.breakfast }}</div>
+        </div>
+        <button class="swap-btn" data-day="{{ loop.index0 }}" data-type="breakfast" style="background:white;border:1px solid var(--gray-2);border-radius:8px;padding:8px 10px;cursor:pointer;color:var(--blue-light)">
+          <i class="fa-solid fa-shuffle"></i>
+        </button>
+      </div>
+
+      <div class="meal-row" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--gray);border-radius:8px">
+        <div style="font-size:20px">☀️</div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#bc6c25;font-weight:700;letter-spacing:0.5px">الغداء</div>
+          <div class="meal-text" data-day="{{ loop.index0 }}" data-type="lunch" style="font-size:13px;font-weight:600">{{ day.lunch }}</div>
+        </div>
+        <button class="swap-btn" data-day="{{ loop.index0 }}" data-type="lunch" style="background:white;border:1px solid var(--gray-2);border-radius:8px;padding:8px 10px;cursor:pointer;color:var(--blue-light)">
+          <i class="fa-solid fa-shuffle"></i>
+        </button>
+      </div>
+
+      <div class="meal-row" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--gray);border-radius:8px">
+        <div style="font-size:20px">🌙</div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#bc6c25;font-weight:700;letter-spacing:0.5px">العشاء</div>
+          <div class="meal-text" data-day="{{ loop.index0 }}" data-type="dinner" style="font-size:13px;font-weight:600">{{ day.dinner }}</div>
+        </div>
+        <button class="swap-btn" data-day="{{ loop.index0 }}" data-type="dinner" style="background:white;border:1px solid var(--gray-2);border-radius:8px;padding:8px 10px;cursor:pointer;color:var(--blue-light)">
+          <i class="fa-solid fa-shuffle"></i>
+        </button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff8e7;border-radius:8px">
+        <div style="font-size:20px">🍎</div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#bc6c25;font-weight:700;letter-spacing:0.5px">سناك</div>
+          <div style="font-size:13px;font-weight:600">{{ day.snack }}</div>
+        </div>
+      </div>
     </div>
   </div>
   {% endfor %}
 </div>
-{% endfor %}
 
-<!-- ازرار -->
-<div class="grid-2" style="margin-top:20px">
-  <a href="/generate" class="btn btn-outline btn-full">
-    <i class="fa-solid fa-arrow-right"></i>
-    {{ 'تعديل البيانات' if is_ar else 'Edit Data' }}
-  </a>
-  <a href="/download_pdf" class="btn btn-success btn-full" style="font-size:15px">
-    <i class="fa-solid fa-file-pdf"></i>
-    {{ 'تحميل PDF' if is_ar else 'Download PDF' }}
+<div style="position:sticky;bottom:10px;margin-top:20px">
+  <a href="/download_pdf" class="btn btn-success btn-full" style="font-size:17px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.2)">
+    <i class="fa-solid fa-file-pdf"></i> تحميل الخطة كـ PDF
   </a>
 </div>
 
+<script>
+document.querySelectorAll('.swap-btn').forEach(btn => {
+  btn.addEventListener('click', async function() {
+    const day = this.dataset.day;
+    const type = this.dataset.type;
+    const icon = this.querySelector('i');
+
+    icon.className = 'fa-solid fa-spinner fa-spin';
+    this.disabled = true;
+
+    try {
+      const res = await fetch('/swap_meal', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `day_idx=${day}&meal_type=${type}`
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        const textEl = document.querySelector(`.meal-text[data-day="${day}"][data-type="${type}"]`);
+        if (textEl) {
+          textEl.style.opacity = '0';
+          setTimeout(() => {
+            textEl.textContent = data.new_meal;
+            textEl.style.opacity = '1';
+          }, 150);
+        }
+        const dayCard = this.closest('.card');
+        const kcalBadge = dayCard.querySelector('[style*="100px"]');
+        if (kcalBadge && data.total_cal) {
+          kcalBadge.textContent = `${data.total_cal} kcal`;
+        }
+      } else {
+        alert('مفيش بدائل متاحة للوجبة دي');
+      }
+    } catch(e) {
+      alert('حصل خطأ، حاول تاني');
+    } finally {
+      icon.className = 'fa-solid fa-shuffle';
+      this.disabled = false;
+    }
+  });
+});
+</script>
+
+<style>
+  .meal-text { transition: opacity 0.15s ease; }
+  .swap-btn:hover { background: var(--blue-light) !important; color: white !important; }
+  .swap-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
 {% endblock %}
