@@ -1,58 +1,73 @@
 {% extends "base.html" %}
-{% block title %}{{ 'توليد جدول غذائي' if (lang or 'ar')=='ar' else 'Generate Meal Plan' }}{% endblock %}
-
-{% block extra_style %}
-<style>
-.sym-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:8px}
-.sym-item{display:flex;align-items:center;gap:8px;background:var(--gray);border:1.5px solid var(--gray-2);border-radius:10px;padding:10px 14px;cursor:pointer;transition:all .2s}
-.sym-item:hover,.sym-item.checked{background:var(--blue-pale);border-color:var(--blue-light)}
-.sym-item input{width:18px;height:18px;accent-color:var(--blue-light);cursor:pointer;flex-shrink:0}
-.sym-item label{font-size:14px;font-weight:600;cursor:pointer;color:var(--text-2)}
-</style>
-{% endblock %}
-
+{% block title %}{{ 'توليد خطة' if (lang or 'ar')=='ar' else 'Generate Plan' }}{% endblock %}
 {% block content %}
 {% set is_ar = (lang or 'ar') == 'ar' %}
 
-<div class="page-title">
-  <i class="fa-solid fa-file-medical"></i>
-  {{ 'توليد جدول غذائي للمريض' if is_ar else 'Generate Patient Meal Plan' }}
-</div>
-
-<div class="alert alert-info">
-  <i class="fa-solid fa-circle-info"></i>
-  {{ 'ادخل بيانات المريض واضغط توليد — سيظهر الجدول للمراجعة قبل تحميل الـ PDF' if is_ar else 'Enter patient data and click generate — the plan will appear for review before PDF download' }}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+  <div class="page-title" style="margin:0">
+    <i class="fa-solid fa-wand-magic-sparkles"></i>
+    {{ 'توليد خطة غذائية' if is_ar else 'Generate Meal Plan' }}
+  </div>
 </div>
 
 <form method="POST" action="/generate">
 
-  <!-- بيانات المريض -->
   <div class="card">
     <div class="card-title">
-      <i class="fa-solid fa-user"></i>
-      {{ 'بيانات المريض' if is_ar else 'Patient Data' }}
+      <i class="fa-solid fa-bullseye"></i>
+      {{ 'اختر الهدف من الخطة' if is_ar else 'Choose Goal' }}
     </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+      {% for goal in [
+        ('weight_loss','🥗','تخسيس','1200-1500 kcal'),
+        ('maintenance','🍽️','مكتنز','1800-2200 kcal'),
+        ('muscle_gain','💪','زيادة عضل','2200-2600 kcal'),
+        ('bulking','🔥','تضخيم','3000-3500 kcal')
+      ] %}
+      <label style="cursor:pointer">
+        <input type="radio" name="goal_type" value="{{ goal[0] }}" {% if loop.first %}checked{% endif %} style="display:none" class="goal-radio">
+        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:12px;padding:16px;text-align:center;transition:all 0.2s;background:white">
+          <div style="font-size:32px;margin-bottom:8px">{{ goal[1] }}</div>
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">{{ goal[2] }}</div>
+          <div style="font-size:11px;color:var(--gray-dark)">{{ goal[3] }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <i class="fa-solid fa-utensils"></i>
+      {{ 'اختر المطبخ المفضل' if is_ar else 'Preferred Cuisine' }}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+      {% for cul in [('مصري','🇪🇬'),('خليجي','🇸🇦'),('شامي','🇱🇧'),('مغربي','🇲🇦')] %}
+      <label style="cursor:pointer">
+        <input type="radio" name="culture" value="{{ cul[0] }}" {% if loop.first %}checked{% endif %} style="display:none" class="culture-radio">
+        <div class="culture-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:14px;text-align:center;transition:all 0.2s;background:white">
+          <div style="font-size:28px">{{ cul[1] }}</div>
+          <div style="font-weight:700;font-size:14px;margin-top:4px">{{ cul[0] }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-user"></i> {{ 'بيانات العميل' if is_ar else 'Client Data' }}</div>
     <div class="grid-2">
       <div class="form-group">
-        <label class="form-label">{{ 'الاسم الكامل' if is_ar else 'Full Name' }}</label>
-        <input class="form-input" type="text" name="name"
-               placeholder="{{ 'محمد احمد' if is_ar else 'John Doe' }}" required>
+        <label class="form-label">{{ 'الاسم' if is_ar else 'Name' }}</label>
+        <input class="form-input" type="text" name="name" required placeholder="محمد احمد">
       </div>
       <div class="form-group">
         <label class="form-label">{{ 'الجنس' if is_ar else 'Gender' }}</label>
         <select class="form-select" name="gender">
-          <option value="ذكر">{{ 'ذكر' if is_ar else 'Male' }}</option>
-          <option value="انثى">{{ 'انثى' if is_ar else 'Female' }}</option>
+          <option value="ذكر">ذكر</option>
+          <option value="انثى">انثى</option>
         </select>
       </div>
-    </div>
-  </div>
-
-  <!-- القياسات -->
-  <div class="card">
-    <div class="card-title">
-      <i class="fa-solid fa-ruler"></i>
-      {{ 'القياسات الجسمية' if is_ar else 'Body Measurements' }}
     </div>
     <div class="grid-3">
       <div class="form-group">
@@ -60,119 +75,86 @@
         <input class="form-input" type="number" name="age" placeholder="30">
       </div>
       <div class="form-group">
-        <label class="form-label">{{ 'الطول (سم)' if is_ar else 'Height (cm)' }}</label>
-        <input class="form-input" type="number" name="height" placeholder="170" step="0.5">
+        <label class="form-label">{{ 'الطول (سم)' if is_ar else 'Height' }}</label>
+        <input class="form-input" type="number" name="height" step="0.5" id="hField">
       </div>
       <div class="form-group">
-        <label class="form-label">{{ 'الوزن (كجم)' if is_ar else 'Weight (kg)' }}</label>
-        <input class="form-input" type="number" name="weight" placeholder="80" step="0.1">
+        <label class="form-label">{{ 'الوزن (كجم)' if is_ar else 'Weight' }}</label>
+        <input class="form-input" type="number" name="weight" step="0.1" id="wField">
       </div>
     </div>
     <div class="grid-3">
       <div class="form-group">
-        <label class="form-label">{{ 'نسبة الدهون %' if is_ar else 'Body Fat %' }}</label>
-        <input class="form-input" type="number" name="fat_pct" placeholder="25" step="0.1">
+        <label class="form-label">{{ 'دهون الجسم %' if is_ar else 'Body Fat %' }}</label>
+        <input class="form-input" type="number" name="fat_pct" step="0.1">
       </div>
       <div class="form-group">
         <label class="form-label">BMI</label>
-        <input class="form-input" type="number" name="bmi" placeholder="27.5" step="0.1" id="bmiField">
+        <input class="form-input" type="number" name="bmi" step="0.1" id="bmiField">
       </div>
       <div class="form-group">
         <label class="form-label">TDEE (kcal)</label>
-        <input class="form-input" type="number" name="tdee" placeholder="2200" id="tdeeField">
+        <input class="form-input" type="number" name="tdee" id="tdeeField">
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">
-        {{ 'الهدف اليومي من السعرات (kcal)' if is_ar else 'Daily Calorie Target (kcal)' }}
-      </label>
-      <input class="form-input" type="number" name="goal_cal"
-             placeholder="1400" id="goalField" value="1400">
-      <div style="font-size:12px;color:var(--muted);margin-top:4px">
-        <i class="fa-solid fa-circle-info"></i>
-        {{ 'عادة 500-750 kcal اقل من TDEE لخسارة الوزن' if is_ar else 'Usually 500-750 kcal below TDEE for weight loss' }}
-      </div>
+      <label class="form-label">{{ 'الهدف اليومي (kcal)' if is_ar else 'Daily Target' }}</label>
+      <input class="form-input" type="number" name="goal_cal" id="goalField" value="1400">
     </div>
   </div>
 
-  <!-- الحالات المرضية -->
   <div class="card">
-    <div class="card-title">
-      <i class="fa-solid fa-stethoscope"></i>
-      {{ 'الحالات المرضية والاعراض' if is_ar else 'Clinical Conditions & Symptoms' }}
-    </div>
-    <div class="sym-grid">
-      {% set conditions = [
-        ('قولون عصبي','IBS','fa-stomach','#b34700'),
-        ('امساك مزمن','Chronic Constipation','fa-circle-stop','#b34700'),
-        ('حرق بطيء','Slow Metabolism','fa-fire','#b34700'),
-        ('سمنة','Obesity','fa-weight-scale','#b34700'),
-        ('سكري النوع الثاني','Type 2 Diabetes','fa-droplet','#dc2626'),
-        ('سكري النوع الاول','Type 1 Diabetes','fa-syringe','#dc2626'),
-        ('ضغط الدم المرتفع','Hypertension','fa-heart-pulse','#dc2626'),
-        ('امراض القلب','Cardiovascular Disease','fa-heart','#dc2626'),
-        ('الفشل الكلوي المزمن','Chronic Kidney Disease','fa-filter','#2563eb'),
-        ('تليف الكبد','Liver Cirrhosis','fa-liver','#b34700'),
-        ('الحمل','Pregnancy','fa-person-pregnant','#9333ea'),
-        ('الرضاعة الطبيعية','Lactation','fa-baby','#9333ea'),
-        ('السرطان','Cancer','fa-ribbon','#9333ea'),
-        ('المتلازمة الايضية','Metabolic Syndrome','fa-flask','#2563eb'),
-        ('نحافة وضعف شهية','Underweight / Poor Appetite','fa-person-arrow-up-from-line','#16a34a'),
-      ] %}
-      {% for ar_name, en_name, icon, color in conditions %}
-      <div class="sym-item" onclick="toggleSym(this)">
-        <input type="checkbox" name="symptoms" value="{{ ar_name }}" id="s_{{ loop.index }}">
-        <i class="fa-solid {{ icon }}" style="color:{{ color }};font-size:16px;flex-shrink:0"></i>
-        <label for="s_{{ loop.index }}">{{ ar_name if is_ar else en_name }}</label>
-      </div>
+    <div class="card-title"><i class="fa-solid fa-stethoscope"></i> {{ 'الحالات المرضية' if is_ar else 'Conditions' }}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
+      {% for cond in ['قولون عصبي','سكري النوع الثاني','ضغط الدم المرتفع','امراض القلب','الفشل الكلوي المزمن','الحمل','الرضاعة الطبيعية','السمنة','G6PD','ثلاسيميا','نقص الحديد','نقص فيتامين D3','حرق بطيء','امساك مزمن'] %}
+      <label style="display:flex;align-items:center;gap:8px;background:var(--gray);border:1.5px solid var(--gray-2);border-radius:10px;padding:10px;cursor:pointer">
+        <input type="checkbox" name="symptoms" value="{{ cond }}" style="width:18px;height:18px">
+        <span style="font-size:13px;font-weight:600">{{ cond }}</span>
+      </label>
       {% endfor %}
     </div>
   </div>
 
-  <!-- ملاحظات -->
   <div class="card">
-    <div class="card-title">
-      <i class="fa-solid fa-note-sticky"></i>
-      {{ 'ملاحظات اضافية' if is_ar else 'Additional Notes' }}
-    </div>
-    <textarea class="form-input" name="notes" rows="3"
-      placeholder="{{ 'مثال: دهون البطن مرتفعة، مشاكل في النوم...' if is_ar else 'e.g.: High visceral fat, sleep issues...' }}"
-      style="resize:vertical"></textarea>
+    <div class="card-title"><i class="fa-solid fa-note-sticky"></i> {{ 'ملاحظات' if is_ar else 'Notes' }}</div>
+    <textarea class="form-input" name="notes" rows="3" placeholder="{{ 'اي ملاحظات اضافية...' if is_ar else 'Any notes...' }}" style="resize:vertical"></textarea>
   </div>
 
-  <button type="submit" class="btn btn-primary btn-full" style="font-size:16px;padding:14px">
+  <button type="submit" class="btn btn-success btn-full" style="font-size:17px;padding:16px">
     <i class="fa-solid fa-wand-magic-sparkles"></i>
-    {{ 'توليد الجدول الغذائي' if is_ar else 'Generate Meal Plan' }}
+    {{ 'ولّد الخطة الآن' if is_ar else 'Generate Plan Now' }}
   </button>
 </form>
 
+<style>
+  .goal-card:hover, .culture-card:hover { border-color: var(--blue-light) !important; transform: translateY(-2px); }
+  input[type="radio"]:checked + .goal-card, input[type="radio"]:checked + .culture-card {
+    border-color: var(--blue-dark) !important;
+    background: linear-gradient(135deg, #e8f4fd 0%, #d1e9fc 100%) !important;
+    box-shadow: 0 4px 12px rgba(30,82,171,0.2);
+  }
+</style>
+
 <script>
-function toggleSym(div) {
-  const cb = div.querySelector('input[type=checkbox]');
-  if (event.target !== cb) cb.checked = !cb.checked;
-  div.classList.toggle('checked', cb.checked);
+const h=document.getElementById('hField'),w=document.getElementById('wField');
+const bmi=document.getElementById('bmiField'),tdee=document.getElementById('tdeeField'),goal=document.getElementById('goalField');
+function calc(){
+  const hv=parseFloat(h.value),wv=parseFloat(w.value);
+  if(hv&&wv) bmi.value=(wv/((hv/100)**2)).toFixed(1);
 }
-
-// Auto-calculate BMI and goal
-const hField = document.querySelector('[name=height]');
-const wField = document.querySelector('[name=weight]');
-const tdeeField = document.getElementById('tdeeField');
-const goalField = document.getElementById('goalField');
-const bmiField = document.getElementById('bmiField');
-
-function autoCalc() {
-  const h = parseFloat(hField.value);
-  const w = parseFloat(wField.value);
-  if (h && w) {
-    bmiField.value = (w / ((h/100)**2)).toFixed(1);
+function calcGoal(){
+  const t=parseFloat(tdee.value);
+  const gt=document.querySelector('input[name="goal_type"]:checked')?.value || 'weight_loss';
+  if(t){
+    if(gt==='weight_loss') goal.value=Math.round(t-600);
+    else if(gt==='maintenance') goal.value=Math.round(t);
+    else if(gt==='muscle_gain') goal.value=Math.round(t+300);
+    else if(gt==='bulking') goal.value=Math.round(t+600);
   }
 }
-function autoGoal() {
-  const tdee = parseFloat(tdeeField.value);
-  if (tdee) goalField.value = Math.round(tdee - 600);
-}
-hField && hField.addEventListener('input', autoCalc);
-wField && wField.addEventListener('input', autoCalc);
-tdeeField && tdeeField.addEventListener('input', autoGoal);
+h.addEventListener('input',calc);
+w.addEventListener('input',calc);
+tdee.addEventListener('input',calcGoal);
+document.querySelectorAll('input[name="goal_type"]').forEach(r=>r.addEventListener('change',calcGoal));
 </script>
 {% endblock %}
