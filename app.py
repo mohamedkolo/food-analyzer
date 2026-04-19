@@ -288,44 +288,28 @@ def generate_weekly_plan(data):
     symptoms = data.get("symptoms", [])
     goal = data.get("goal_type", "weight_loss")
     culture = data.get("culture", "مصري")
-    has_g6pd = _has(symptoms, ["g6pd","g6bd","فافيزم"])
-    has_thal = _has(symptoms, ["ثلاسيميا","thalassemia"])
-    needs_d3 = _has(symptoms, ["نقص فيتامين d","نقص d3"])
+
     pool = get_meal_pool(goal, culture)
     breakfasts = list(pool.get("breakfast", []))
     lunches = list(pool.get("lunch", []))
     dinners = list(pool.get("dinner", []))
+
     if len(breakfasts) < 7: breakfasts = list(WEIGHT_LOSS["مصري"]["breakfast"])
     if len(lunches) < 7: lunches = list(WEIGHT_LOSS["مصري"]["lunch"])
     if len(dinners) < 7: dinners = list(WEIGHT_LOSS["مصري"]["dinner"])
-    if has_g6pd:
-        g6pd_safe = [
-            {"meal":"بيض مسلوق + جبن قريش + خبز اسمر + طماطم","cal":340,"p":22},
-            {"meal":"زبادي يوناني + عسل + مكسرات + تفاح","cal":350,"p":16},
-            {"meal":"توست اسمر + افوكادو + بيضة مسلوقة","cal":380,"p":18},
-            {"meal":"شوفان بالحليب + موز + لوز + بذور شيا","cal":410,"p":13},
-        ]
-        breakfasts = _filter_unsafe(breakfasts, ["فول","حمص"], g6pd_safe)
-        dinners = _filter_unsafe(dinners, ["فول","حمص","لوبيا"], g6pd_safe)
-    if has_thal:
-        thal_safe = [
-            {"meal":"دجاج مشوي بالزعتر + ارز بني + ملوخية","cal":440,"p":44},
-            {"meal":"سمك سلمون مشوي + ارز + سلطة","cal":450,"p":45},
-            {"meal":"صدر ديك رومي + خضار مشوية + برغل","cal":420,"p":46},
-        ]
-        lunches = _filter_unsafe(lunches, ["كبدة","كبد"], thal_safe)
-    if needs_d3:
-        d3_boost = [
-            {"meal":"سلمون مشوي + ارز بني + بروكلي","cal":460,"p":48},
-            {"meal":"سردين بزيت الزيتون + خبز اسمر + سلطة","cal":400,"p":35},
-        ]
-        if len(lunches) >= 2: lunches[1] = d3_boost[0]
-        if len(lunches) >= 5: lunches[4] = d3_boost[1]
+
+    # ✨ فلتر ذكي للأمراض — يشيل الأكل الخطر تلقائياً
+    breakfasts = filter_by_conditions(breakfasts, symptoms)
+    lunches = filter_by_conditions(lunches, symptoms)
+    dinners = filter_by_conditions(dinners, symptoms)
+
     snacks = get_snacks_for_goal(goal)
     pool_snacks = pool.get("snack", [])
     if pool_snacks: snacks = pool_snacks[:7]
     while len(snacks) < 7: snacks.append("فاكهة + مكسرات (120 kcal)")
+
     before_sleep = ["زبادي يوناني سادة","كمثرى","حليب دافئ","زبادي يوناني","تفاحة","زبادي","موزة"]
+
     days = ["الاحد","الاثنين","الثلاثاء","الاربعاء","الخميس","الجمعة","السبت"]
     plan = []
     for i in range(7):
@@ -340,7 +324,6 @@ def generate_weekly_plan(data):
             "before_sleep": before_sleep[i], "total_cal": total_cal, "total_p": total_p,
         })
     return plan
-
 def get_allowed_forbidden(symptoms, goal="weight_loss"):
     has_g6pd = _has(symptoms, ["g6pd","g6bd","فافيزم"])
     has_thal = _has(symptoms, ["ثلاسيميا","thalassemia"])
