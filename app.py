@@ -49,7 +49,12 @@ else:
         conn.close()
 
 def hp(p): return hashlib.sha256(p.encode()).hexdigest()
-
+# Jinja filter for JSON parsing
+@app.template_filter('from_json')
+def from_json_filter(s):
+    if not s: return {}
+    try: return json.loads(s)
+    except: return {}
 def init_db():
     # Users table with role
     if DATABASE_URL:
