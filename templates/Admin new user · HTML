@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}إضافة مستخدم{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+  <div class="page-title" style="margin:0">
+    <i class="fa-solid fa-user-plus"></i> إضافة مستخدم جديد
+  </div>
+  <a href="/admin/users" class="btn btn-outline">
+    <i class="fa-solid fa-arrow-right"></i> رجوع
+  </a>
+</div>
+
+{% if error %}
+<div class="alert alert-error">
+  <i class="fa-solid fa-circle-exclamation"></i> {{ error }}
+</div>
+{% endif %}
+
+<form method="POST">
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-id-card"></i> البيانات الأساسية</div>
+
+    <div class="form-group">
+      <label class="form-label">الاسم الكامل *</label>
+      <input class="form-input" type="text" name="name" required placeholder="محمد أحمد">
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">الإيميل *</label>
+        <input class="form-input" type="email" name="email" required placeholder="user@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">رقم الهاتف (واتساب)</label>
+        <input class="form-input" type="tel" name="phone" placeholder="+971501234567">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">كلمة السر *</label>
+      <input class="form-input" type="text" name="password" required placeholder="كلمة سر للمستخدم" value="nutrax123">
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">
+        <i class="fa-solid fa-lightbulb" style="color:#f59e0b"></i>
+        ممكن تبعتها للعميل وهو يغيرها بعد الدخول
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">الدور *</label>
+      <select class="form-select" name="role" required>
+        <option value="client">عميل (Client) - يرى خطته فقط</option>
+        <option value="nutritionist">أخصائي تغذية (Nutritionist) - يولد خطط</option>
+      </select>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-success btn-full" style="font-size:16px;padding:14px">
+    <i class="fa-solid fa-check"></i> إنشاء الحساب
+  </button>
+</form>
+
+{% endblock %}
