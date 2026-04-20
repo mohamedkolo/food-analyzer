@@ -1,6 +1,6 @@
-from flask import Flask, render_template, request, redirect, session, send_file, jsonify
+from flask import Flask, render_template, request, redirect, session, send_file, jsonify, flash
 import hashlib, os, json, io, random
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 app = Flask(__name__)
 from pdf_generator import pdf_bp
@@ -10,6 +10,7 @@ app.permanent_session_lifetime = timedelta(days=30)
 
 from meal_database import (
     get_meal_pool, get_snacks_for_goal, filter_by_conditions,
+    get_diet_plan_info, DIET_PLAN_TYPES,
     WEIGHT_LOSS, MUSCLE_GAIN, BULKING, MAINTENANCE
 )
 
@@ -50,26 +51,51 @@ else:
 def hp(p): return hashlib.sha256(p.encode()).hexdigest()
 
 def init_db():
+    # Users table with role
     if DATABASE_URL:
-        db_run("""CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0)""")
+        db_run("""CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS weight_log (id SERIAL PRIMARY KEY, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS saved_plans (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS patients (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+        db_run("""CREATE TABLE IF NOT EXISTS plan_requests (id SERIAL PRIMARY KEY, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
     else:
-        db_run("""CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0)""")
+        db_run("""CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS weight_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS saved_plans (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS patients (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-    if not db_row("SELECT id FROM users WHERE is_admin=1"):
-        db_run("INSERT INTO users (name,email,password,is_admin) VALUES (?,?,?,1)", ("Admin","admin@nutrax.com",hp("nutrax2025")))
+        db_run("""CREATE TABLE IF NOT EXISTS plan_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+
+    # Try to add columns if missing (for existing databases)
+    for col_sql in [
+        "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'client'",
+        "ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1",
+        "ALTER TABLE users ADD COLUMN phone TEXT",
+        "ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+    ]:
+        try: db_run(col_sql)
+        except: pass
+
+    # Ensure admin exists with role
+    admin = db_row("SELECT id FROM users WHERE is_admin=1")
+    if not admin:
+        db_run("INSERT INTO users (name,email,password,is_admin,role) VALUES (?,?,?,1,'admin')", ("Admin","admin@nutrax.com",hp("nutrax2025")))
+    else:
+        db_run("UPDATE users SET role='admin' WHERE is_admin=1")
 
 init_db()
 
-def get_user(email, pw): return db_row("SELECT * FROM users WHERE email=? AND password=?", (email, hp(pw)))
-def get_user_by_id(uid): return db_row("SELECT * FROM users WHERE id=?", (uid,))
+def get_user(email, pw):
+    return db_row("SELECT * FROM users WHERE email=? AND password=?", (email, hp(pw)))
+
+def get_user_by_id(uid):
+    return db_row("SELECT * FROM users WHERE id=?", (uid,))
+
 def register(name, email, pw, country):
-    try: db_run("INSERT INTO users (name,email,password,country) VALUES (?,?,?,?)", (name,email,hp(pw),country)); return "ok"
-    except: return "exists"
+    try:
+        db_run("INSERT INTO users (name,email,password,country,role) VALUES (?,?,?,?,'client')", (name,email,hp(pw),country))
+        return "ok"
+    except:
+        return "exists"
 
 def login_required(f):
     from functools import wraps
@@ -79,6 +105,46 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def admin_required(f):
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if "uid" not in session: return redirect("/")
+        u = get_user_by_id(session["uid"])
+        if not u or (u.get("role") != "admin" and not u.get("is_admin")):
+            return redirect("/dashboard")
+        return f(*args, **kwargs)
+    return decorated
+
+def staff_required(f):
+    """Admin or Nutritionist only"""
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if "uid" not in session: return redirect("/")
+        u = get_user_by_id(session["uid"])
+        if not u or u.get("role") not in ["admin", "nutritionist"]:
+            if not u.get("is_admin"):
+                return redirect("/my-plan")
+        return f(*args, **kwargs)
+    return decorated
+
+def get_user_role(u):
+    """Get role with fallback for legacy users"""
+    if not u: return "client"
+    if u.get("is_admin"): return "admin"
+    return u.get("role") or "client"
+
+def get_pending_requests_count():
+    try:
+        r = db_row("SELECT COUNT(*) as cnt FROM plan_requests WHERE status='pending'")
+        return r.get("cnt", 0) if r else 0
+    except:
+        return 0
+
+# ═══════════════════════════════════════════════
+# AUTH
+# ═══════════════════════════════════════════════
 @app.route("/", methods=["GET","POST"])
 def login():
     if "uid" in session: return redirect("/dashboard")
@@ -90,11 +156,16 @@ def login():
         if action == "login":
             u = get_user(request.form.get("email","").lower(), request.form.get("password",""))
             if u:
-                session.permanent = True
-                session["uid"] = u["id"]
-                session["lang"] = u["lang"] or "ar"
-                return redirect("/dashboard")
-            error = "البريد او كلمة المرور غير صحيحة"
+                if not u.get("active", 1):
+                    error = "هذا الحساب غير مفعل. تواصل مع الإدارة."
+                else:
+                    session.permanent = True
+                    session["uid"] = u["id"]
+                    session["lang"] = u["lang"] or "ar"
+                    session["role"] = get_user_role(u)
+                    return redirect("/dashboard")
+            else:
+                error = "البريد او كلمة المرور غير صحيحة"
         elif action == "register":
             tab = "register"
             r = register(request.form.get("name",""), request.form.get("reg_email","").lower(),
@@ -102,7 +173,8 @@ def login():
             if r == "ok":
                 error = "تم التسجيل! سجل دخولك."
                 tab = "login"
-            else: error = "البريد مستخدم بالفعل"
+            else:
+                error = "البريد مستخدم بالفعل"
     return render_template("login.html", error=error, tab=tab, lang=lang)
 
 @app.route("/logout")
@@ -115,11 +187,228 @@ def set_lang(l):
     if l in ["ar","en"]: session["lang"] = l
     return redirect(request.referrer or "/dashboard")
 
+# ═══════════════════════════════════════════════
+# DASHBOARD — different for each role
+# ═══════════════════════════════════════════════
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    return render_template("dashboard.html", user=get_user_by_id(session["uid"]), lang=session.get("lang","ar"))
+    u = get_user_by_id(session["uid"])
+    role = get_user_role(u)
 
+    if role == "client":
+        return redirect("/my-plan")
+
+    # Admin/Nutritionist dashboard
+    pending_count = 0
+    total_clients = 0
+    try:
+        pending_count = get_pending_requests_count()
+        r = db_row("SELECT COUNT(*) as cnt FROM users WHERE role='client'")
+        total_clients = r.get("cnt", 0) if r else 0
+    except:
+        pass
+
+    return render_template("dashboard.html",
+                           user=u,
+                           lang=session.get("lang","ar"),
+                           role=role,
+                           pending_count=pending_count,
+                           total_clients=total_clients)
+
+# ═══════════════════════════════════════════════
+# CLIENT-FACING PAGES
+# ═══════════════════════════════════════════════
+@app.route("/my-plan")
+@login_required
+def my_plan():
+    u = get_user_by_id(session["uid"])
+    role = get_user_role(u)
+
+    # If staff, redirect back
+    if role in ["admin", "nutritionist"]:
+        return redirect("/dashboard")
+
+    # Get client's latest approved plan
+    latest_plan = None
+    pending_request = None
+    try:
+        latest_plan = db_row("""SELECT * FROM plan_requests
+                                WHERE client_id=? AND status='approved'
+                                ORDER BY updated_at DESC LIMIT 1""", (session["uid"],))
+        pending_request = db_row("""SELECT * FROM plan_requests
+                                    WHERE client_id=? AND status='pending'
+                                    ORDER BY created_at DESC LIMIT 1""", (session["uid"],))
+    except:
+        pass
+
+    return render_template("my_plan.html",
+                           user=u,
+                           lang=session.get("lang","ar"),
+                           latest_plan=latest_plan,
+                           pending_request=pending_request)
+
+@app.route("/request-plan", methods=["GET","POST"])
+@login_required
+def request_plan():
+    u = get_user_by_id(session["uid"])
+
+    if request.method == "POST":
+        # Client submits request for a plan
+        request_data = {
+            "height": request.form.get("height", u.get("height", "")),
+            "weight": request.form.get("weight", u.get("weight", "")),
+            "age": request.form.get("age", u.get("age", "")),
+            "gender": request.form.get("gender", u.get("gender", "ذكر")),
+            "fat_pct": request.form.get("fat_pct", ""),
+            "bmi": request.form.get("bmi", ""),
+            "tdee": request.form.get("tdee", ""),
+            "goal_cal": request.form.get("goal_cal", ""),
+            "goal_type": request.form.get("goal_type", "weight_loss"),
+            "culture": request.form.get("culture", "مصري"),
+            "diet_plan_type": request.form.get("diet_plan_type", "standard"),
+            "symptoms": request.form.getlist("symptoms"),
+            "notes": request.form.get("notes", ""),
+        }
+        try:
+            db_run("""INSERT INTO plan_requests (client_id, client_name, request_data, status)
+                      VALUES (?, ?, ?, 'pending')""",
+                   (session["uid"], u.get("name","Client"), json.dumps(request_data)))
+        except Exception as e:
+            return f"خطأ في حفظ الطلب: {e}", 500
+
+        return redirect("/my-plan")
+
+    return render_template("request_plan.html",
+                           user=u,
+                           lang=session.get("lang","ar"),
+                           diet_plans=DIET_PLAN_TYPES)
+
+# ═══════════════════════════════════════════════
+# ADMIN / NUTRITIONIST PAGES
+# ═══════════════════════════════════════════════
+@app.route("/admin/users")
+@admin_required
+def admin_users():
+    u = get_user_by_id(session["uid"])
+    try:
+        all_users = db_rows("SELECT * FROM users ORDER BY id DESC")
+    except:
+        all_users = []
+    return render_template("admin_users.html",
+                           user=u,
+                           lang=session.get("lang","ar"),
+                           users=all_users)
+
+@app.route("/admin/users/new", methods=["GET","POST"])
+@admin_required
+def admin_new_user():
+    u = get_user_by_id(session["uid"])
+    if request.method == "POST":
+        name = request.form.get("name","")
+        email = request.form.get("email","").lower()
+        pw = request.form.get("password","")
+        role = request.form.get("role","client")
+        phone = request.form.get("phone","")
+
+        if not email or not pw:
+            return render_template("admin_new_user.html", user=u, lang=session.get("lang","ar"),
+                                   error="الإيميل وكلمة السر مطلوبة")
+
+        try:
+            db_run("INSERT INTO users (name,email,password,role,phone,active) VALUES (?,?,?,?,?,1)",
+                   (name, email, hp(pw), role, phone))
+            return redirect("/admin/users")
+        except:
+            return render_template("admin_new_user.html", user=u, lang=session.get("lang","ar"),
+                                   error="الإيميل موجود بالفعل")
+
+    return render_template("admin_new_user.html", user=u, lang=session.get("lang","ar"))
+
+@app.route("/admin/users/<int:uid>/toggle")
+@admin_required
+def admin_toggle_user(uid):
+    target = db_row("SELECT * FROM users WHERE id=?", (uid,))
+    if target and not target.get("is_admin"):
+        new_active = 0 if target.get("active", 1) else 1
+        db_run("UPDATE users SET active=? WHERE id=?", (new_active, uid))
+    return redirect("/admin/users")
+
+@app.route("/admin/users/<int:uid>/role/<role>")
+@admin_required
+def admin_change_role(uid, role):
+    if role in ["client", "nutritionist", "admin"]:
+        target = db_row("SELECT * FROM users WHERE id=?", (uid,))
+        if target and not target.get("is_admin"):
+            db_run("UPDATE users SET role=? WHERE id=?", (role, uid))
+    return redirect("/admin/users")
+
+@app.route("/admin/users/<int:uid>/delete", methods=["POST"])
+@admin_required
+def admin_delete_user(uid):
+    target = db_row("SELECT * FROM users WHERE id=?", (uid,))
+    if target and not target.get("is_admin"):
+        db_run("DELETE FROM users WHERE id=?", (uid,))
+    return redirect("/admin/users")
+
+# ═══════════════════════════════════════════════
+# PLAN REQUESTS (Notifications)
+# ═══════════════════════════════════════════════
+@app.route("/admin/requests")
+@staff_required
+def admin_requests():
+    u = get_user_by_id(session["uid"])
+    try:
+        requests_list = db_rows("SELECT * FROM plan_requests ORDER BY created_at DESC LIMIT 50")
+    except:
+        requests_list = []
+    return render_template("admin_requests.html",
+                           user=u,
+                           lang=session.get("lang","ar"),
+                           requests=requests_list)
+
+@app.route("/admin/requests/<int:rid>/generate")
+@staff_required
+def admin_request_generate(rid):
+    """Generate AI plan for a client request"""
+    req = db_row("SELECT * FROM plan_requests WHERE id=?", (rid,))
+    if not req:
+        return redirect("/admin/requests")
+
+    try:
+        rdata = json.loads(req["request_data"])
+    except:
+        return redirect("/admin/requests")
+
+    client = get_user_by_id(req["client_id"])
+    data = {
+        "name": client.get("name","") if client else req.get("client_name",""),
+        **rdata,
+    }
+    session["pdf_data"] = data
+    session["current_plan"] = generate_weekly_plan(data)
+    session["current_request_id"] = rid
+    return redirect("/preview")
+
+@app.route("/admin/requests/<int:rid>/approve", methods=["POST"])
+@staff_required
+def admin_request_approve(rid):
+    """Approve and save plan for client"""
+    plan = session.get("current_plan")
+    data = session.get("pdf_data")
+    if not plan or not data:
+        return redirect("/admin/requests")
+
+    db_run("""UPDATE plan_requests SET status='approved', plan_data=?, updated_at=?
+              WHERE id=?""",
+           (json.dumps({"plan": plan, "data": data}), datetime.now().isoformat(), rid))
+
+    session.pop("current_request_id", None)
+    return redirect("/admin/requests")
+
+# ═══════════════════════════════════════════════
+# STAFF-ONLY PAGES
+# ═══════════════════════════════════════════════
 @app.route("/settings", methods=["GET","POST"])
 @login_required
 def settings():
@@ -134,17 +423,17 @@ def settings():
     return render_template("settings.html", user=u, lang=session.get("lang","ar"), saved=saved)
 
 @app.route("/analyzer")
-@login_required
+@staff_required
 def analyzer():
     return render_template("analyzer.html", user=get_user_by_id(session["uid"]), lang=session.get("lang","ar"))
 
 @app.route("/planner")
-@login_required
+@staff_required
 def planner():
     return redirect("/generate")
 
 @app.route("/clinical")
-@login_required
+@staff_required
 def clinical():
     return render_template("clinical.html", user=get_user_by_id(session["uid"]), lang=session.get("lang","ar"))
 
@@ -156,7 +445,7 @@ def history():
     return render_template("history.html", user=u, lang=session.get("lang","ar"), logs=logs)
 
 @app.route("/saved")
-@login_required
+@staff_required
 def saved():
     u = get_user_by_id(session["uid"])
     plans = db_rows("SELECT * FROM saved_plans WHERE user_id=? ORDER BY created_at DESC", (session["uid"],))
@@ -170,7 +459,7 @@ def log_weight():
     return redirect("/history")
 
 @app.route("/save_plan", methods=["POST"])
-@login_required
+@staff_required
 def save_plan():
     n = request.form.get("plan_name", "خطتي")
     pt = request.form.get("plan_type", "personal")
@@ -179,13 +468,16 @@ def save_plan():
     return redirect("/saved")
 
 @app.route("/delete_plan/<int:pid>", methods=["POST"])
-@login_required
+@staff_required
 def delete_plan(pid):
     db_run("DELETE FROM saved_plans WHERE id=? AND user_id=?", (pid, session["uid"]))
     return redirect("/saved")
 
+# ═══════════════════════════════════════════════
+# GENERATE / PREVIEW / DOWNLOAD
+# ═══════════════════════════════════════════════
 @app.route("/generate", methods=["GET","POST"])
-@login_required
+@staff_required
 def generate():
     u = get_user_by_id(session["uid"])
     if request.method == "POST":
@@ -197,54 +489,65 @@ def generate():
             "goal_cal": request.form.get("goal_cal","1400"),
             "goal_type": request.form.get("goal_type","weight_loss"),
             "culture": request.form.get("culture","مصري"),
+            "diet_plan_type": request.form.get("diet_plan_type","standard"),
             "symptoms": request.form.getlist("symptoms"),
             "notes": request.form.get("notes",""),
         }
         session["pdf_data"] = data
         session["current_plan"] = generate_weekly_plan(data)
         return redirect("/preview")
-    return render_template("generate.html", user=u, lang=session.get("lang","ar"))
+    return render_template("generate.html",
+                           user=u,
+                           lang=session.get("lang","ar"),
+                           diet_plans=DIET_PLAN_TYPES)
 
 @app.route("/preview")
-@login_required
+@staff_required
 def preview():
     u = get_user_by_id(session["uid"])
     data = session.get("pdf_data")
     plan = session.get("current_plan")
     if not data or not plan: return redirect("/generate")
-    return render_template("preview.html", user=u, lang=session.get("lang","ar"), data=data, plan=plan)
+    current_request_id = session.get("current_request_id")
+    return render_template("preview.html",
+                           user=u,
+                           lang=session.get("lang","ar"),
+                           data=data, plan=plan,
+                           current_request_id=current_request_id)
 
 @app.route("/swap_meal", methods=["POST"])
-@login_required
+@staff_required
 def swap_meal():
     data = session.get("pdf_data")
     plan = session.get("current_plan")
-    if not data or not plan: return jsonify({"ok": False, "error": "no plan"}), 400
+    if not data or not plan: return jsonify({"ok": False}), 400
     day_idx = int(request.form.get("day_idx", 0))
     meal_type = request.form.get("meal_type", "breakfast")
     goal = data.get("goal_type", "weight_loss")
     culture = data.get("culture", "مصري")
     pool = get_meal_pool(goal, culture)
-    if meal_type in pool and pool[meal_type]:
+
+    # Map meal_type to pool key (handle diet plan types)
+    pool_key = meal_type
+    if meal_type in ["meal1", "meal2", "iftar", "suhoor", "snack1", "snack2", "pre_workout", "post_workout"]:
+        if meal_type in ["meal1", "iftar"]: pool_key = "lunch"
+        elif meal_type in ["meal2", "suhoor"]: pool_key = "dinner"
+        elif meal_type in ["snack1", "snack2"]: pool_key = "breakfast"
+        elif meal_type == "pre_workout": pool_key = "breakfast"
+        elif meal_type == "post_workout": pool_key = "lunch"
+
+    if pool_key in pool and pool[pool_key]:
         current = plan[day_idx].get(meal_type, "")
-        options = [m for m in pool[meal_type] if m["meal"] != current]
+        options = [m for m in pool[pool_key] if m["meal"] != current]
         if options:
             new_meal = random.choice(options)
             plan[day_idx][meal_type] = new_meal["meal"]
-            total_cal = 0
-            for mt in ["breakfast","lunch","dinner"]:
-                meal_text = plan[day_idx].get(mt, "")
-                for m in pool.get(mt, []):
-                    if m["meal"] == meal_text:
-                        total_cal += m.get("cal",0); break
-            total_cal += 150
-            plan[day_idx]["total_cal"] = total_cal
             session["current_plan"] = plan
-            return jsonify({"ok": True, "new_meal": new_meal["meal"], "total_cal": total_cal})
-    return jsonify({"ok": False, "error": "no alternatives"}), 400
+            return jsonify({"ok": True, "new_meal": new_meal["meal"]})
+    return jsonify({"ok": False}), 400
 
 @app.route("/regenerate_plan", methods=["POST"])
-@login_required
+@staff_required
 def regenerate_plan():
     data = session.get("pdf_data")
     if not data: return redirect("/generate")
@@ -256,16 +559,34 @@ def regenerate_plan():
 def download_pdf():
     data = session.get("pdf_data")
     plan = session.get("current_plan")
-    if not data: return redirect("/generate")
+
+    # For clients: load their approved plan
+    u = get_user_by_id(session["uid"])
+    role = get_user_role(u)
+    if role == "client":
+        try:
+            latest = db_row("""SELECT * FROM plan_requests WHERE client_id=? AND status='approved'
+                               ORDER BY updated_at DESC LIMIT 1""", (session["uid"],))
+            if latest and latest.get("plan_data"):
+                pd = json.loads(latest["plan_data"])
+                data = pd.get("data")
+                plan = pd.get("plan")
+        except:
+            pass
+
+    if not data: return redirect("/dashboard")
     try:
         pdf_bytes = build_pdf(data, plan)
         buf = io.BytesIO(pdf_bytes); buf.seek(0)
-        name = data.get("name","patient").replace(" ","_")
+        name = data.get("name","plan").replace(" ","_")
         return send_file(buf, as_attachment=True, download_name=f"NutraX_{name}.pdf", mimetype="application/pdf")
     except Exception as e:
         import traceback; traceback.print_exc()
         return f"خطأ في توليد الـ PDF: {str(e)}", 500
 
+# ═══════════════════════════════════════════════
+# PLAN GENERATION LOGIC
+# ═══════════════════════════════════════════════
 def _has(symptoms, keywords):
     for s in symptoms:
         s_low = str(s).lower().strip()
@@ -273,21 +594,11 @@ def _has(symptoms, keywords):
             if k.lower() in s_low: return True
     return False
 
-def _filter_unsafe(meals, unsafe_keywords, alternatives):
-    result = []; alt_idx = 0
-    for meal in meals:
-        txt = meal["meal"]
-        unsafe = any(kw in txt for kw in unsafe_keywords)
-        if unsafe and alternatives:
-            result.append(alternatives[alt_idx % len(alternatives)])
-            alt_idx += 1
-        else: result.append(meal)
-    return result
-
 def generate_weekly_plan(data):
     symptoms = data.get("symptoms", [])
     goal = data.get("goal_type", "weight_loss")
     culture = data.get("culture", "مصري")
+    diet_type = data.get("diet_plan_type", "standard")
 
     pool = get_meal_pool(goal, culture)
     breakfasts = list(pool.get("breakfast", []))
@@ -298,38 +609,109 @@ def generate_weekly_plan(data):
     if len(lunches) < 7: lunches = list(WEIGHT_LOSS["مصري"]["lunch"])
     if len(dinners) < 7: dinners = list(WEIGHT_LOSS["مصري"]["dinner"])
 
-    # ✨ فلتر ذكي للأمراض — يشيل الأكل الخطر تلقائياً
+    # Apply clinical filters
     breakfasts = filter_by_conditions(breakfasts, symptoms)
     lunches = filter_by_conditions(lunches, symptoms)
     dinners = filter_by_conditions(dinners, symptoms)
 
     snacks = get_snacks_for_goal(goal)
     pool_snacks = pool.get("snack", [])
-    if pool_snacks: snacks = pool_snacks[:7]
+    if pool_snacks: snacks = pool_snacks[:10]
     while len(snacks) < 7: snacks.append("فاكهة + مكسرات (120 kcal)")
 
-    before_sleep = ["زبادي يوناني سادة","كمثرى","حليب دافئ","زبادي يوناني","تفاحة","زبادي","موزة"]
-
     days = ["الاحد","الاثنين","الثلاثاء","الاربعاء","الخميس","الجمعة","السبت"]
+    plan_info = get_diet_plan_info(diet_type)
+    meal_keys = plan_info["meals"]
+
+    # Randomize pools
+    random.shuffle(breakfasts)
+    random.shuffle(lunches)
+    random.shuffle(dinners)
+
     plan = []
     for i in range(7):
-        b = breakfasts[i % len(breakfasts)]
-        l = lunches[i % len(lunches)]
-        d = dinners[i % len(dinners)]
-        total_cal = b.get("cal",300) + l.get("cal",400) + d.get("cal",300) + 150
-        total_p = b.get("p",15) + l.get("p",30) + d.get("p",15)
-        plan.append({
-            "day": days[i], "breakfast": b["meal"], "lunch": l["meal"], "dinner": d["meal"],
-            "snack": snacks[i] if i < len(snacks) else snacks[0],
-            "before_sleep": before_sleep[i], "total_cal": total_cal, "total_p": total_p,
-        })
+        day_plan = {
+            "day": days[i],
+            "diet_type": diet_type,
+            "meal_labels": plan_info["meal_labels"],
+            "meal_emojis": plan_info["meal_emojis"],
+        }
+
+        # Track total calories
+        total_cal = 0
+
+        if diet_type == "standard":
+            b = breakfasts[i % len(breakfasts)]
+            l = lunches[i % len(lunches)]
+            d = dinners[i % len(dinners)]
+            day_plan["breakfast"] = b["meal"]
+            day_plan["lunch"] = l["meal"]
+            day_plan["dinner"] = d["meal"]
+            day_plan["snack"] = snacks[i % len(snacks)]
+            total_cal = b.get("cal",300) + l.get("cal",400) + d.get("cal",300) + 150
+
+        elif diet_type == "five_meals":
+            # Split into 5 smaller meals
+            b = breakfasts[i % len(breakfasts)]
+            l = lunches[i % len(lunches)]
+            d = dinners[i % len(dinners)]
+            day_plan["breakfast"] = b["meal"]
+            day_plan["snack1"] = snacks[i % len(snacks)]
+            day_plan["lunch"] = l["meal"]
+            day_plan["snack2"] = snacks[(i+3) % len(snacks)]
+            day_plan["dinner"] = d["meal"]
+            total_cal = b.get("cal",300) + l.get("cal",400) + d.get("cal",300) + 300
+
+        elif diet_type == "intermittent_16_8":
+            # 2 main meals + 1 snack within 8 hours
+            l = lunches[i % len(lunches)]
+            d = dinners[i % len(dinners)]
+            day_plan["meal1"] = l["meal"]
+            day_plan["snack"] = snacks[i % len(snacks)]
+            day_plan["meal2"] = d["meal"]
+            total_cal = l.get("cal",400) + d.get("cal",400) + 150
+
+        elif diet_type == "intermittent_18_6":
+            # 2 meals only in 6-hour window
+            l = lunches[i % len(lunches)]
+            d = dinners[i % len(dinners)]
+            day_plan["meal1"] = l["meal"]
+            day_plan["meal2"] = d["meal"]
+            total_cal = l.get("cal",400) + d.get("cal",400)
+
+        elif diet_type == "ramadan":
+            # Iftar (big) + snack + suhoor (light)
+            l = lunches[i % len(lunches)]
+            b = breakfasts[i % len(breakfasts)]
+            day_plan["iftar"] = l["meal"]
+            day_plan["snack"] = snacks[i % len(snacks)]
+            day_plan["suhoor"] = b["meal"]
+            total_cal = l.get("cal",400) + b.get("cal",300) + 150
+
+        elif diet_type == "workout":
+            # Pre-workout + breakfast + post-workout + lunch + dinner
+            b = breakfasts[i % len(breakfasts)]
+            l = lunches[i % len(lunches)]
+            d = dinners[i % len(dinners)]
+            day_plan["pre_workout"] = "موزة + زبدة فول سوداني + قهوة"
+            day_plan["breakfast"] = b["meal"]
+            day_plan["post_workout"] = "بروتين شيك + موز + لوز"
+            day_plan["lunch"] = l["meal"]
+            day_plan["dinner"] = d["meal"]
+            total_cal = 200 + b.get("cal",300) + 250 + l.get("cal",400) + d.get("cal",300)
+
+        day_plan["total_cal"] = total_cal
+        plan.append(day_plan)
+
     return plan
+
 def get_allowed_forbidden(symptoms, goal="weight_loss"):
     has_g6pd = _has(symptoms, ["g6pd","g6bd","فافيزم"])
     has_thal = _has(symptoms, ["ثلاسيميا","thalassemia"])
     has_colon = _has(symptoms, ["قولون عصبي","ibs"])
     needs_d3 = _has(symptoms, ["نقص فيتامين d","نقص d3"])
     needs_fe = _has(symptoms, ["نقص الحديد","فقر دم"])
+
     if goal in ["muscle_gain","bulking"]:
         allowed = ["مصادر بروتين عالية: دجاج + لحم + سمك + بيض","كاربوهيدرات معقدة: ارز بني + شوفان + بطاطا",
                    "مكسرات + افوكادو + زيت زيتون","حليب كامل + زبادي يوناني","بروتين شيك بعد التمرين"]
@@ -340,30 +722,38 @@ def get_allowed_forbidden(symptoms, goal="weight_loss"):
                    "زيت زيتون (ملعقة) + فاكهة طازجة","شاي أخضر + ماء دافئ بالليمون"]
         forbidden = ["الخبز الأبيض والعيش الفينو","الأكل المقلي + الدهانة + السمن",
                      "المشروبات الغازية + العصائر المعلبة","الحلويات والسكريات المضافة"]
+
     if has_g6pd:
         forbidden = ["❗ الفول بكل أنواعه","❗ الحمص والبقوليات الحمراء"] + forbidden
         allowed = ["عدس أصفر بكميات محدودة"] + allowed
     else:
         if goal in ["weight_loss","maintenance"]:
             allowed = ["فول مدمس + عدس + شوربات + سمك مشوي"] + allowed
+
     if has_thal:
         forbidden = ["❗ الكبدة والأعضاء الداخلية","❗ اللحوم الحمراء بإفراط"] + forbidden
         allowed = ["شاي مع الوجبات"] + allowed
+
     if has_colon:
         forbidden.append("التوابل الحارة")
         forbidden.append("الكافيين الزائد")
+
     if needs_d3:
         allowed = ["⭐ أسماك دهنية: سلمون • سردين • تونة","⭐ صفار البيض + الفطر","⭐ تعرض للشمس 15 دقيقة"] + allowed
+
     if needs_fe and not has_thal:
         allowed = ["⭐ لحوم حمراء + كبدة","⭐ سبانخ + عدس + فاصوليا"] + allowed
+
     return allowed[:8], forbidden[:8]
 
 def build_pdf(data, plan=None):
     from weasyprint import HTML
-    import datetime
+    import datetime as dt
     if plan is None: plan = generate_weekly_plan(data)
     symptoms = data.get("symptoms", [])
     goal = data.get("goal_type", "weight_loss")
+    diet_type = data.get("diet_plan_type", "standard")
+    plan_info = get_diet_plan_info(diet_type)
     allowed, forbidden = get_allowed_forbidden(symptoms, goal)
     try:
         tdee = float(data.get("tdee", 0) or 0)
@@ -375,13 +765,31 @@ def build_pdf(data, plan=None):
     if data.get("notes"): notes_parts.append(data.get("notes"))
     clinical_notes = " | ".join(notes_parts) if notes_parts else "لا توجد ملاحظات إضافية"
     uid = session.get("uid", 0)
-    file_num = f"NX-{datetime.datetime.now().year}-{uid:03d}"
+    file_num = f"NX-{dt.datetime.now().year}-{uid:03d}"
     goal_labels = {"weight_loss":"خطة تخسيس","muscle_gain":"خطة زيادة عضل","bulking":"خطة تضخيم","maintenance":"خطة مكتنز"}
     plan_title = goal_labels.get(goal, "خطة غذائية")
+
+    # Build days for PDF with meal entries based on diet type
+    pdf_days = []
+    for d in plan:
+        meals_html = []
+        for meal_key in plan_info["meals"]:
+            label = plan_info["meal_labels"].get(meal_key, meal_key)
+            emoji = plan_info["meal_emojis"].get(meal_key, "•")
+            meal_text = d.get(meal_key, "")
+            if meal_text:
+                meals_html.append({"label": label, "emoji": emoji, "text": meal_text})
+        pdf_days.append({
+            "name": d["day"],
+            "total_kcal": d["total_cal"],
+            "meals": meals_html,
+        })
+
     template_data = {
         'file_number': file_num,
-        'date': datetime.date.today().strftime('%d/%m/%Y'),
+        'date': dt.date.today().strftime('%d/%m/%Y'),
         'plan_title': plan_title,
+        'diet_plan_name': plan_info["name"],
         'culture': data.get("culture","مصري"),
         'client': {
             'name': data.get('name','—'), 'age': data.get('age','—'),
@@ -393,14 +801,12 @@ def build_pdf(data, plan=None):
         'conditions': symptoms if symptoms else ["لا توجد حالات مسجلة"],
         'clinical_notes': clinical_notes,
         'allowed': allowed, 'forbidden': forbidden,
-        'days': [{'name':d['day'],'total_kcal':d['total_cal'],'breakfast':d['breakfast'],
-                  'lunch':d['lunch'],'dinner':d['dinner'],
-                  'snack':f"{d['snack']} | {d['before_sleep']}"} for d in plan],
+        'days': pdf_days,
         'tips': {
             'water': ['كوب ماء دافئ + نصف ليمونة فور الاستيقاظ','8 أكواب ماء يومياً',
                       'كوب ماء قبل كل وجبة بـ 30 دقيقة','تجنب الماء البارد جداً'],
-            'habits': ['3 وجبات رئيسية + سناك','مضغ بطيء — الشبع بعد 20 دقيقة',
-                       'لا تأكل أمام الشاشة','الفطار إجباري خلال ساعة من الاستيقاظ'],
+            'habits': ['مضغ بطيء — الشبع بعد 20 دقيقة','لا تأكل أمام الشاشة',
+                       'نوم 7-8 ساعات','تعرض للشمس يومياً'],
             'metabolism': (['بروتين في كل وجبة','توابل آمنة: كركم + قرفة + زنجبيل',
                             'مشي 30 دقيقة بعد الغداء','قم وتحرك 5 دقائق كل ساعة']
                            if goal in ["weight_loss","maintenance"] else
@@ -417,8 +823,11 @@ def build_pdf(data, plan=None):
     pdf_bytes = HTML(string=html_string).write_pdf()
     return pdf_bytes
 
+# ═══════════════════════════════════════════════
+# PATIENTS (Legacy - staff only)
+# ═══════════════════════════════════════════════
 @app.route("/patients")
-@login_required
+@staff_required
 def patients():
     u = get_user_by_id(session["uid"])
     search = request.args.get("q","")
@@ -434,29 +843,24 @@ def patients():
                            patients=pts, search=search, status=status_filter)
 
 @app.route("/patients/new", methods=["GET","POST"])
-@login_required
+@staff_required
 def new_patient():
     u = get_user_by_id(session["uid"])
     if request.method == "POST":
-        name = request.form.get("name","")
-        age = request.form.get("age",0)
-        gender = request.form.get("gender","ذكر")
-        height = request.form.get("height",0)
-        weight = request.form.get("weight",0)
-        fat_pct = request.form.get("fat_pct",0)
-        bmi = request.form.get("bmi",0)
-        tdee = request.form.get("tdee",0)
-        goal_cal = request.form.get("goal_cal",1400)
-        conditions = json.dumps(request.form.getlist("conditions"))
-        notes = request.form.get("notes","")
         db_run("""INSERT INTO patients (user_id,name,age,gender,height,weight,fat_pct,bmi,tdee,goal_cal,conditions,notes)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (session["uid"],name,age,gender,height,weight,fat_pct,bmi,tdee,goal_cal,conditions,notes))
+            (session["uid"], request.form.get("name",""), request.form.get("age",0),
+             request.form.get("gender","ذكر"), request.form.get("height",0),
+             request.form.get("weight",0), request.form.get("fat_pct",0),
+             request.form.get("bmi",0), request.form.get("tdee",0),
+             request.form.get("goal_cal",1400),
+             json.dumps(request.form.getlist("conditions")),
+             request.form.get("notes","")))
         return redirect("/patients")
     return render_template("new_patient.html", user=u, lang=session.get("lang","ar"))
 
 @app.route("/patients/<int:pid>")
-@login_required
+@staff_required
 def view_patient(pid):
     u = get_user_by_id(session["uid"])
     pt = db_row("SELECT * FROM patients WHERE id=? AND user_id=?", (pid, session["uid"]))
@@ -465,7 +869,7 @@ def view_patient(pid):
     return render_template("view_patient.html", user=u, lang=session.get("lang","ar"), patient=pt, plans=plans)
 
 @app.route("/patients/<int:pid>/generate")
-@login_required
+@staff_required
 def patient_generate(pid):
     pt = db_row("SELECT * FROM patients WHERE id=? AND user_id=?", (pid, session["uid"]))
     if not pt: return redirect("/patients")
@@ -473,7 +877,7 @@ def patient_generate(pid):
         "name": pt["name"], "age": pt["age"], "gender": pt["gender"],
         "height": pt["height"], "weight": pt["weight"], "fat_pct": pt["fat_pct"],
         "bmi": pt["bmi"], "tdee": pt["tdee"], "goal_cal": pt["goal_cal"],
-        "goal_type": "weight_loss", "culture": "مصري",
+        "goal_type": "weight_loss", "culture": "مصري", "diet_plan_type": "standard",
         "symptoms": json.loads(pt["conditions"] or "[]"), "notes": pt["notes"] or "",
     }
     session["pdf_data"] = data
@@ -481,14 +885,14 @@ def patient_generate(pid):
     return redirect("/preview")
 
 @app.route("/patients/<int:pid>/status/<s>")
-@login_required
+@staff_required
 def update_patient_status(pid, s):
     if s in ["draft","published"]:
         db_run("UPDATE patients SET status=? WHERE id=? AND user_id=?", (s, pid, session["uid"]))
     return redirect(f"/patients/{pid}")
 
 @app.route("/patients/<int:pid>/delete", methods=["POST"])
-@login_required
+@staff_required
 def delete_patient(pid):
     db_run("DELETE FROM patients WHERE id=? AND user_id=?", (pid, session["uid"]))
     return redirect("/patients")
