@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}إدارة المستخدمين{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+  <div class="page-title" style="margin:0">
+    <i class="fa-solid fa-user-shield"></i> إدارة المستخدمين
+  </div>
+  <a href="/admin/users/new" class="btn btn-success">
+    <i class="fa-solid fa-user-plus"></i> إضافة مستخدم
+  </a>
+</div>
+
+<div class="card">
+  <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:var(--gray);border-bottom:2px solid var(--gray-2)">
+          <th style="text-align:right;padding:12px;font-weight:800;color:var(--blue)">الاسم</th>
+          <th style="text-align:right;padding:12px;font-weight:800;color:var(--blue)">الإيميل</th>
+          <th style="text-align:center;padding:12px;font-weight:800;color:var(--blue)">الدور</th>
+          <th style="text-align:center;padding:12px;font-weight:800;color:var(--blue)">الحالة</th>
+          <th style="text-align:center;padding:12px;font-weight:800;color:var(--blue)">إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr style="border-bottom:1px solid var(--gray-2)">
+          <td style="padding:12px;font-weight:700">
+            {{ u.name or '—' }}
+            {% if u.is_admin %}<span class="role-badge role-admin">👑</span>{% endif %}
+          </td>
+          <td style="padding:12px;color:var(--muted)">{{ u.email }}</td>
+          <td style="padding:12px;text-align:center">
+            {% set rl = u.role or 'client' %}
+            {% if rl == 'admin' %}
+              <span class="role-badge role-admin">Admin</span>
+            {% elif rl == 'nutritionist' %}
+              <span class="role-badge role-nutritionist">أخصائي</span>
+            {% else %}
+              <span class="role-badge role-client">عميل</span>
+            {% endif %}
+          </td>
+          <td style="padding:12px;text-align:center">
+            {% if u.active or u.active is none %}
+              <span style="background:#dcfce7;color:#14532d;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700">✓ نشط</span>
+            {% else %}
+              <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700">✗ معطل</span>
+            {% endif %}
+          </td>
+          <td style="padding:12px;text-align:center">
+            {% if not u.is_admin %}
+            <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap">
+              <a href="/admin/users/{{ u.id }}/toggle" style="background:#fff3cd;color:#856404;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none">
+                {% if u.active or u.active is none %}تعطيل{% else %}تفعيل{% endif %}
+              </a>
+              {% set curr_role = u.role or 'client' %}
+              {% if curr_role == 'client' %}
+                <a href="/admin/users/{{ u.id }}/role/nutritionist" style="background:#dcfce7;color:#14532d;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none">→ أخصائي</a>
+              {% elif curr_role == 'nutritionist' %}
+                <a href="/admin/users/{{ u.id }}/role/client" style="background:#dbeafe;color:#1e3a8a;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none">→ عميل</a>
+              {% endif %}
+              <form method="POST" action="/admin/users/{{ u.id }}/delete" style="display:inline" onsubmit="return confirm('هل أنت متأكد من الحذف؟')">
+                <button type="submit" style="background:#fee2e2;color:#991b1b;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:'Cairo',sans-serif">حذف</button>
+              </form>
+            </div>
+            {% else %}
+            <span style="color:var(--muted);font-size:11px">— محمي —</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" style="padding:40px;text-align:center;color:var(--muted)">
+            <i class="fa-solid fa-users-slash" style="font-size:32px;display:block;margin-bottom:8px"></i>
+            لا يوجد مستخدمين
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="alert alert-info">
+  <i class="fa-solid fa-circle-info"></i>
+  <div>
+    <strong>كيف يعمل النظام:</strong>
+    <ul style="margin-top:6px;padding-right:20px;line-height:1.8">
+      <li><strong>Admin:</strong> صلاحيات كاملة + إدارة كل شيء</li>
+      <li><strong>أخصائي:</strong> يولد خطط ويدير المرضى (لا يدير المستخدمين)</li>
+      <li><strong>عميل:</strong> يرى خطته فقط + يقدر يطلب خطة جديدة</li>
+    </ul>
+  </div>
+</div>
+
+{% endblock %}
