@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}خطتي الغذائية{% endblock %}
+{% block content %}
+
+<div class="page-title">
+  <i class="fa-solid fa-clipboard-list"></i> خطتي الغذائية
+</div>
+
+{% if pending_request %}
+<div class="alert alert-warn">
+  <i class="fa-solid fa-clock"></i>
+  <div>
+    <strong>طلبك قيد المعالجة ⏳</strong><br>
+    د. محمد شاف طلبك وبيجهزلك خطة مخصصة. هتوصلك قريباً إن شاء الله.
+  </div>
+</div>
+{% endif %}
+
+{% if latest_plan %}
+<div class="card" style="background:linear-gradient(135deg,#1b4332 0%,#2d6a4f 100%);color:white">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
+    <div>
+      <div style="font-size:13px;opacity:0.8">خطتك الحالية</div>
+      <div style="font-size:22px;font-weight:800">خطة غذائية شخصية</div>
+      <div style="font-size:12px;opacity:0.8;margin-top:4px">
+        <i class="fa-regular fa-calendar"></i> {{ latest_plan.updated_at }}
+      </div>
+    </div>
+    <a href="/download_pdf" class="btn" style="background:white;color:#1b4332;font-weight:800">
+      <i class="fa-solid fa-download"></i> تحميل PDF
+    </a>
+  </div>
+</div>
+
+<div class="alert alert-success">
+  <i class="fa-solid fa-circle-check"></i>
+  <div>
+    <strong>خطتك جاهزة!</strong> تقدر تحملها PDF وتطبعها، وأي استفسار كلمنا على واتساب.
+  </div>
+</div>
+
+{% else %}
+<div class="card" style="text-align:center;padding:40px">
+  <i class="fa-solid fa-clipboard-question" style="font-size:64px;color:var(--muted-2);margin-bottom:16px"></i>
+  <h2 style="color:var(--text);margin-bottom:8px">مفيش خطة حالياً</h2>
+  <p style="color:var(--muted);margin-bottom:20px">اطلب خطة غذائية جديدة وهتوصلك بعد المراجعة</p>
+  <a href="/request-plan" class="btn btn-success" style="font-size:15px;padding:14px 30px">
+    <i class="fa-solid fa-paper-plane"></i> اطلب خطة جديدة
+  </a>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-title"><i class="fa-solid fa-circle-info"></i> إزاي الموضوع شغال؟</div>
+  <div style="display:grid;gap:10px">
+    <div style="display:flex;gap:12px;align-items:start;padding:10px;background:var(--gray);border-radius:10px">
+      <div style="background:var(--blue);color:white;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">1</div>
+      <div>
+        <strong>اطلب خطة</strong><br>
+        <span style="color:var(--muted);font-size:13px">املا بياناتك وحالتك الصحية</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:start;padding:10px;background:var(--gray);border-radius:10px">
+      <div style="background:var(--orange);color:white;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">2</div>
+      <div>
+        <strong>د. محمد يراجعها</strong><br>
+        <span style="color:var(--muted);font-size:13px">يجهزلك خطة مخصصة لحالتك</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:start;padding:10px;background:var(--gray);border-radius:10px">
+      <div style="background:var(--green);color:white;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">3</div>
+      <div>
+        <strong>استلم خطتك</strong><br>
+        <span style="color:var(--muted);font-size:13px">هتوصلك هنا وتقدر تحملها PDF</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
