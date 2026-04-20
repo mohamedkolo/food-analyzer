@@ -3,113 +3,100 @@
 <head>
 <meta charset="UTF-8">
 <title>NutraX — {{ client.name }}</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+  @page { size: A4; margin: 15mm; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
     --primary: #1b4332; --primary-light: #2d6a4f; --primary-soft: #d8e2dc;
     --accent: #bc6c25; --accent-soft: #f5e9da;
     --warn: #9d0208; --warn-soft: #fde8e8;
     --ok: #2d6a4f;
-    --bg: #ffffff; --surface: #faf9f6; --surface-alt: #f1efe8;
+    --surface: #faf9f6; --surface-alt: #f1efe8;
     --border: #e5e7e0; --text: #1a1a1a; --text-muted: #6c757d;
   }
-  html { background: #f0efe9; }
-  body { font-family: 'Cairo', sans-serif; color: var(--text); line-height: 1.55; direction: rtl; font-size: 14px; padding: 16px 0; }
-  .document { max-width: 820px; margin: 0 auto; background: var(--bg); box-shadow: 0 10px 40px rgba(0,0,0,0.08); overflow: hidden; }
+  body {
+    font-family: "Noto Sans Arabic", "Noto Naskh Arabic", "Cairo", Arial, sans-serif;
+    color: var(--text); line-height: 1.6; direction: rtl; font-size: 11px;
+  }
 
-  .header { background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%); color: white; padding: 28px 32px; position: relative; overflow: hidden; }
-  .header::before { content: ''; position: absolute; left: -40px; top: -40px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(212,163,115,0.25) 0%, transparent 70%); border-radius: 50%; }
-  .header-inner { display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1; flex-wrap: wrap; gap: 16px; }
-  .brand { display: flex; align-items: center; gap: 12px; }
-  .brand-logo { width: 46px; height: 46px; background: white; color: var(--primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 20px; }
-  .brand-text h1 { font-size: 22px; font-weight: 800; letter-spacing: 0.3px; line-height: 1.2; }
-  .brand-text p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
-  .doc-meta { text-align: left; font-size: 12px; }
-  .doc-meta .label { opacity: 0.7; }
-  .doc-meta .value { font-weight: 700; font-size: 14px; }
+  .header { background: linear-gradient(135deg, #1b4332, #2d6a4f); color: white; padding: 20px 24px; border-radius: 8px; margin-bottom: 14px; }
+  .header-inner { display: flex; justify-content: space-between; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-logo { width: 40px; height: 40px; background: white; color: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; }
+  .brand-text h1 { font-size: 18px; font-weight: 800; }
+  .brand-text p { font-size: 10px; opacity: 0.85; margin-top: 2px; }
+  .doc-meta { text-align: left; font-size: 10px; }
+  .doc-meta .value { font-weight: 700; font-size: 12px; }
 
-  .title-band { background: #faf9f6; padding: 20px 32px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-  .title-band h2 { font-size: 19px; font-weight: 700; color: var(--primary); }
-  .pill { display: inline-block; padding: 5px 14px; background: var(--primary-soft); color: var(--primary); border-radius: 100px; font-size: 12px; font-weight: 700; }
+  .title-band { background: #faf9f6; padding: 12px 18px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .title-band h2 { font-size: 15px; font-weight: 700; color: var(--primary); }
+  .pill { padding: 3px 10px; background: var(--primary-soft); color: var(--primary); border-radius: 100px; font-size: 10px; font-weight: 700; }
 
-  .section { padding: 24px 32px; border-bottom: 1px solid var(--border); }
-  .section-title { font-size: 14px; font-weight: 800; color: var(--primary); margin-bottom: 14px; padding-right: 12px; border-right: 3px solid var(--accent); letter-spacing: 0.3px; }
+  .section { margin-bottom: 12px; }
+  .section-title { font-size: 12px; font-weight: 800; color: var(--primary); margin-bottom: 8px; padding: 7px 12px; background: var(--surface); border-right: 3px solid var(--accent); border-radius: 4px; }
 
-  .client-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
-  .info-tile { background: var(--surface); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); }
-  .info-tile .lbl { font-size: 11px; color: var(--text-muted); font-weight: 500; margin-bottom: 4px; }
-  .info-tile .val { font-size: 16px; font-weight: 700; color: var(--text); }
+  .client-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
+  .info-tile { background: var(--surface); padding: 8px; border-radius: 6px; border: 1px solid var(--border); }
+  .info-tile .lbl { font-size: 9px; color: var(--text-muted); margin-bottom: 2px; }
+  .info-tile .val { font-size: 12px; font-weight: 700; }
 
-  .metrics-bar { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
-  .metric { padding: 14px; text-align: center; border-left: 1px solid var(--border); }
+  .metrics-bar { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 8px; }
+  .metric { padding: 8px; text-align: center; border-left: 1px solid var(--border); }
   .metric:last-child { border-left: none; }
-  .metric .big { font-size: 22px; font-weight: 800; color: var(--primary); line-height: 1.1; }
-  .metric .big .unit { font-size: 12px; color: var(--text-muted); margin-right: 3px; font-weight: 500; }
-  .metric .small { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .metric .big { font-size: 16px; font-weight: 800; color: var(--primary); }
+  .metric .big .unit { font-size: 10px; color: var(--text-muted); margin-right: 2px; }
+  .metric .small { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
 
-  .target-card { margin-top:14px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color:white; padding:14px 20px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
-  .target-card .t-label { font-size:11px; opacity:0.85; }
-  .target-card .t-big { font-size:26px; font-weight:800; line-height:1.1; }
-  .target-card .t-big .u { font-size:14px; opacity:0.8; }
+  .target-card { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .target-card .t-label { font-size: 9px; opacity: 0.85; }
+  .target-card .t-big { font-size: 20px; font-weight: 800; }
 
-  .conditions-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-  .badge { padding: 5px 12px; background: var(--accent-soft); color: var(--accent); border-radius: 8px; font-size: 12px; font-weight: 600; }
-  .badge.warn { background: var(--warn-soft); color: var(--warn); }
-  .notes-strip { background: var(--surface-alt); padding: 10px 14px; border-radius: 8px; font-size: 13px; color: var(--text-muted); margin-top: 10px; border-right: 3px solid var(--accent); }
-  .notes-strip strong { color: var(--text); font-weight: 700; }
+  .conditions-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
+  .badge { padding: 3px 8px; background: var(--warn-soft); color: var(--warn); border-radius: 6px; font-size: 10px; font-weight: 600; }
+  .notes-strip { background: var(--surface-alt); padding: 7px 10px; border-radius: 6px; font-size: 10px; color: var(--text-muted); border-right: 3px solid var(--accent); }
 
-  .food-rules { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .rule-card { border-radius: 12px; padding: 16px 18px; border: 1px solid; }
+  .food-rules { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .rule-card { border-radius: 8px; padding: 10px; border: 1px solid; }
   .rule-card.ok { background: #f0f7f2; border-color: #c8e0cf; }
   .rule-card.no { background: #fdf2f2; border-color: #f5c8c8; }
-  .rule-card h4 { font-size: 13px; font-weight: 800; margin-bottom: 10px; }
+  .rule-card h4 { font-size: 11px; font-weight: 800; margin-bottom: 6px; }
   .rule-card.ok h4 { color: var(--ok); }
   .rule-card.no h4 { color: var(--warn); }
   .rule-card ul { list-style: none; padding: 0; }
-  .rule-card li { font-size: 12.5px; padding: 4px 0; display: flex; gap: 6px; line-height: 1.5; }
-  .rule-card li::before { flex-shrink: 0; font-weight: bold; }
-  .rule-card.ok li::before { content: '✓'; color: var(--ok); }
-  .rule-card.no li::before { content: '✕'; color: var(--warn); }
+  .rule-card li { font-size: 10px; padding: 2px 0; line-height: 1.5; }
+  .rule-card.ok li::before { content: '✓ '; color: var(--ok); font-weight: bold; }
+  .rule-card.no li::before { content: '✕ '; color: var(--warn); font-weight: bold; }
 
-  .meal-plan { display: grid; gap: 10px; }
-  .day-card { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: white; }
-  .day-header { background: linear-gradient(90deg, var(--surface) 0%, white 100%); padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-  .day-name { font-weight: 800; color: var(--primary); font-size: 14px; }
-  .day-kcal { background: var(--primary-soft); color: var(--primary); padding: 3px 10px; border-radius: 100px; font-weight: 700; font-size: 12px; }
-  .meals { display: grid; grid-template-columns: repeat(4, 1fr); }
-  .meal { padding: 10px 14px; border-left: 1px solid var(--border); }
-  .meal:last-child { border-left: none; }
-  .meal-label { font-size: 10px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .meal-content { font-size: 12px; color: var(--text); line-height: 1.55; }
+  .meal-plan { display: flex; flex-direction: column; gap: 6px; }
+  .day-card { border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; background: white; page-break-inside: avoid; }
+  .day-header { background: var(--surface); padding: 7px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+  .day-name { font-weight: 800; color: var(--primary); font-size: 12px; }
+  .day-kcal { background: var(--primary-soft); color: var(--primary); padding: 2px 9px; border-radius: 100px; font-weight: 700; font-size: 10px; }
 
-  .tips-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .tip-box { background: var(--surface); border-radius: 10px; padding: 14px 16px; border-right: 3px solid var(--primary); }
-  .tip-box h5 { font-size: 13px; font-weight: 800; color: var(--primary); margin-bottom: 8px; }
+  .meals-list { padding: 6px 10px; }
+  .meal-row { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px dashed var(--border); }
+  .meal-row:last-child { border-bottom: none; }
+  .meal-emoji { font-size: 14px; flex-shrink: 0; min-width: 20px; text-align: center; }
+  .meal-content { flex: 1; }
+  .meal-label { font-size: 9px; font-weight: 800; color: var(--accent); letter-spacing: 0.3px; margin-bottom: 1px; }
+  .meal-text { font-size: 11px; color: var(--text); line-height: 1.6; font-weight: 500; }
+
+  .tips-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .tip-box { background: var(--surface); border-radius: 6px; padding: 8px 10px; border-right: 3px solid var(--primary); }
+  .tip-box h5 { font-size: 11px; font-weight: 800; color: var(--primary); margin-bottom: 5px; }
   .tip-box ul { list-style: none; padding: 0; }
-  .tip-box li { font-size: 12px; padding: 3px 0; position: relative; padding-right: 14px; }
+  .tip-box li { font-size: 9.5px; padding: 2px 0; padding-right: 10px; position: relative; }
   .tip-box li::before { content: '•'; position: absolute; right: 0; color: var(--accent); font-weight: bold; }
   .tip-box.warn { background: var(--warn-soft); border-right-color: var(--warn); }
   .tip-box.warn h5 { color: var(--warn); }
-  .tip-box.warn li::before { color: var(--warn); }
 
-  .footer { background: #1b4332; color: white; padding: 18px 32px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 12px; }
-  .footer-brand { display: flex; align-items: center; gap: 10px; }
-  .footer .f-logo { width:32px; height:32px; background:white; color:var(--primary); border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:900; }
-  .footer .micro { opacity: 0.7; font-size: 11px; }
-  .footer .next-review { background: rgba(255,255,255,0.12); padding: 6px 14px; border-radius: 100px; font-weight: 600; }
-
-  @media print {
-    @page { size: A4; margin: 12mm; }
-    html, body { background: white; }
-    body { padding: 0; font-size: 11px; }
-    .document { box-shadow: none; max-width: none; }
-    .day-card { page-break-inside: avoid; }
-  }
+  .footer { background: #1b4332; color: white; padding: 12px 18px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; margin-top: 12px; }
+  .footer-brand { display: flex; align-items: center; gap: 8px; }
+  .footer .f-logo { width: 26px; height: 26px; background: white; color: var(--primary); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; }
+  .footer .next-review { background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 100px; font-weight: 600; }
 </style>
 </head>
 <body>
-<div class="document">
 
   <div class="header">
     <div class="header-inner">
@@ -121,14 +108,14 @@
         </div>
       </div>
       <div class="doc-meta">
-        <div class="label">رقم الملف</div>
+        <div>رقم الملف</div>
         <div class="value">{{ file_number }}</div>
       </div>
     </div>
   </div>
 
   <div class="title-band">
-    <h2>النظام الغذائي الأسبوعي المتخصص</h2>
+    <h2>{{ plan_title or 'النظام الغذائي الأسبوعي المتخصص' }}</h2>
     <span class="pill">{{ date }}</span>
   </div>
 
@@ -143,38 +130,36 @@
 
     <div class="metrics-bar">
       <div class="metric"><div class="big">{{ client.weight }}<span class="unit">كجم</span></div><div class="small">الوزن</div></div>
-      <div class="metric"><div class="big">{{ client.bmi }}</div><div class="small">مؤشر كتلة الجسم</div></div>
-      <div class="metric"><div class="big">{{ client.body_fat }}<span class="unit">%</span></div><div class="small">نسبة الدهون</div></div>
-      <div class="metric"><div class="big">{{ client.tdee }}<span class="unit">kcal</span></div><div class="small">TDEE اليومي</div></div>
+      <div class="metric"><div class="big">{{ client.bmi }}</div><div class="small">BMI</div></div>
+      <div class="metric"><div class="big">{{ client.body_fat }}<span class="unit">%</span></div><div class="small">الدهون</div></div>
+      <div class="metric"><div class="big">{{ client.tdee }}<span class="unit">kcal</span></div><div class="small">TDEE</div></div>
     </div>
 
     <div class="target-card">
       <div>
-        <div class="t-label">الهدف اليومي من السعرات</div>
-        <div class="t-big">{{ client.target_kcal }} <span class="u">kcal</span></div>
+        <div class="t-label">الهدف اليومي</div>
+        <div class="t-big">{{ client.target_kcal }} <span style="font-size:11px;opacity:0.8">kcal</span></div>
       </div>
       <div style="text-align:left;">
-        <div class="t-label">عجز يومي</div>
-        <div style="font-size:16px; font-weight:700;">-{{ client.deficit }} kcal</div>
+        <div class="t-label">العجز / الفائض</div>
+        <div style="font-size:13px; font-weight:700;">{{ client.deficit }} kcal</div>
       </div>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-title">الحالة الصحية</div>
+    <div class="section-title">الحالة الصحية والملاحظات</div>
     <div class="conditions-row">
-      {% for c in conditions %}<span class="badge warn">{{ c }}</span>{% endfor %}
+      {% for c in conditions %}<span class="badge">{{ c }}</span>{% endfor %}
     </div>
-    <div class="notes-strip">
-      <strong>ملاحظات كلينيكية:</strong> {{ clinical_notes }}
-    </div>
+    <div class="notes-strip"><strong>ملاحظات:</strong> {{ clinical_notes }}</div>
   </div>
 
   <div class="section">
     <div class="section-title">قوائم الطعام</div>
     <div class="food-rules">
       <div class="rule-card ok">
-        <h4>✓ مسموح بحرية</h4>
+        <h4>✓ مسموح</h4>
         <ul>{% for item in allowed %}<li>{{ item }}</li>{% endfor %}</ul>
       </div>
       <div class="rule-card no">
@@ -185,19 +170,63 @@
   </div>
 
   <div class="section">
-    <div class="section-title">الجدول الأسبوعي التفصيلي</div>
+    <div class="section-title">الجدول الأسبوعي التفصيلي{% if diet_plan_name %} — {{ diet_plan_name }}{% endif %}</div>
     <div class="meal-plan">
       {% for day in days %}
       <div class="day-card">
         <div class="day-header">
-          <div class="day-name">{{ day.name }}</div>
+          <div class="day-name">📅 {{ day.name }}</div>
           <div class="day-kcal">{{ day.total_kcal }} kcal</div>
         </div>
-        <div class="meals">
-          <div class="meal"><div class="meal-label">🌅 الفطار</div><div class="meal-content">{{ day.breakfast }}</div></div>
-          <div class="meal"><div class="meal-label">☀️ الغداء</div><div class="meal-content">{{ day.lunch }}</div></div>
-          <div class="meal"><div class="meal-label">🌙 العشاء</div><div class="meal-content">{{ day.dinner }}</div></div>
-          <div class="meal"><div class="meal-label">🍎 سناك</div><div class="meal-content">{{ day.snack }}</div></div>
+        <div class="meals-list">
+          {% if day.meals %}
+            {% for meal in day.meals %}
+            <div class="meal-row">
+              <div class="meal-emoji">{{ meal.emoji }}</div>
+              <div class="meal-content">
+                <div class="meal-label">{{ meal.label }}</div>
+                <div class="meal-text">{{ meal.text }}</div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            {% if day.breakfast %}
+            <div class="meal-row">
+              <div class="meal-emoji">🌅</div>
+              <div class="meal-content">
+                <div class="meal-label">الفطار</div>
+                <div class="meal-text">{{ day.breakfast }}</div>
+              </div>
+            </div>
+            {% endif %}
+            {% if day.lunch %}
+            <div class="meal-row">
+              <div class="meal-emoji">☀️</div>
+              <div class="meal-content">
+                <div class="meal-label">الغداء</div>
+                <div class="meal-text">{{ day.lunch }}</div>
+              </div>
+            </div>
+            {% endif %}
+            {% if day.dinner %}
+            <div class="meal-row">
+              <div class="meal-emoji">🌙</div>
+              <div class="meal-content">
+                <div class="meal-label">العشاء</div>
+                <div class="meal-text">{{ day.dinner }}</div>
+              </div>
+            </div>
+            {% endif %}
+            {% if day.snack %}
+            <div class="meal-row">
+              <div class="meal-emoji">🍎</div>
+              <div class="meal-content">
+                <div class="meal-label">سناك</div>
+                <div class="meal-text">{{ day.snack }}</div>
+              </div>
+            </div>
+            {% endif %}
+          {% endif %}
         </div>
       </div>
       {% endfor %}
@@ -231,12 +260,11 @@
       <div class="f-logo">Nx</div>
       <div>
         <div style="font-weight:700;">{{ clinic_name }}</div>
-        <div class="micro">{{ author }}</div>
+        <div style="opacity:0.7; font-size:9px;">{{ author }}</div>
       </div>
     </div>
     <div class="next-review">🗓 مراجعة بعد {{ review_weeks }} أسابيع</div>
   </div>
 
-</div>
 </body>
 </html>
