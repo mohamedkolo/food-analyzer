@@ -15,12 +15,20 @@
         <i class="fa-solid fa-shuffle"></i> تجديد الخطة كاملة
       </button>
     </form>
+    {% if current_request_id %}
+    <form method="POST" action="/admin/requests/{{ current_request_id }}/approve" style="display:inline">
+      <button type="submit" class="btn btn-success">
+        <i class="fa-solid fa-paper-plane"></i> اعتماد وإرسال للعميل
+      </button>
+    </form>
+    {% endif %}
     <a href="/download_pdf" class="btn btn-success">
       <i class="fa-solid fa-download"></i> تحميل PDF
     </a>
   </div>
 </div>
 
+<!-- Summary card -->
 <div class="card" style="background:linear-gradient(135deg,#1b4332 0%,#2d6a4f 100%);color:white">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
     <div>
@@ -47,10 +55,22 @@
   </div>
 </div>
 
-<div style="background:#e7f3ff;border:1px solid #b3d9ff;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#003d7a">
-  💡 <strong>تقدر تستبدل اي وجبة مش عاجباك!</strong> اضغط على زرار <i class="fa-solid fa-shuffle"></i> بجانب اي وجبة عشان تغيرها تلقائياً.
+<!-- Edit Mode Info -->
+<div style="background:linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%);border:2px solid #86efac;border-radius:12px;padding:14px 18px;margin-bottom:16px">
+  <div style="display:flex;align-items:flex-start;gap:12px">
+    <div style="font-size:24px">✏️</div>
+    <div style="flex:1">
+      <div style="font-weight:800;color:#14532d;margin-bottom:4px">طرق تعديل الجدول:</div>
+      <ul style="color:#166534;font-size:13px;margin:0;padding-right:18px;line-height:1.8">
+        <li><strong>اضغط على نص أي وجبة</strong> عشان تعدلها بإيدك (مثلاً: غير الجرامات أو الكمية)</li>
+        <li>اضغط زرار <i class="fa-solid fa-shuffle" style="color:#2563eb"></i> عشان تستبدلها بوجبة من القاعدة</li>
+        <li>لما تخلص، اضغط <strong>"اعتماد وإرسال"</strong> أو <strong>"تحميل PDF"</strong></li>
+      </ul>
+    </div>
+  </div>
 </div>
 
+<!-- Days grid -->
 <div style="display:grid;gap:12px">
   {% for day in plan %}
   <div class="card" style="padding:16px">
@@ -64,46 +84,141 @@
     </div>
 
     <div style="display:grid;gap:8px">
+      {# Standard meals #}
+      {% if day.breakfast %}
       <div class="meal-row" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--gray);border-radius:8px">
         <div style="font-size:20px">🌅</div>
         <div style="flex:1">
           <div style="font-size:11px;color:#bc6c25;font-weight:700;letter-spacing:0.5px">الفطار</div>
-          <div class="meal-text" data-day="{{ loop.index0 }}" data-type="breakfast" style="font-size:13px;font-weight:600">{{ day.breakfast }}</div>
+          <div class="meal-text editable" data-day="{{ loop.index0 }}" data-type="breakfast" style="font-size:13px;font-weight:600;cursor:text">{{ day.breakfast }}</div>
         </div>
-        <button class="swap-btn" data-day="{{ loop.index0 }}" data-type="breakfast" style="background:white;border:1px solid var(--gray-2);border-radius:8px;padding:8px 10px;cursor:pointer;color:var(--blue-light)">
+        <button class="swap-btn" data-day="{{ loop.index0 }}" data-type="breakfast">
           <i class="fa-solid fa-shuffle"></i>
         </button>
       </div>
+      {% endif %}
 
+      {% if day.lunch %}
       <div class="meal-row" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--gray);border-radius:8px">
         <div style="font-size:20px">☀️</div>
         <div style="flex:1">
           <div style="font-size:11px;color:#bc6c25;font-weight:700;letter-spacing:0.5px">الغداء</div>
-          <div class="meal-text" data-day="{{ loop.index0 }}" data-type="lunch" style="font-size:13px;font-weight:600">{{ day.lunch }}</div>
+          <div class="meal-text editable" data-day="{{ loop.index0 }}" data-type="lunch" style="font-size:13px;font-weight:600;cursor:text">{{ day.lunch }}</div>
         </div>
-        <button class="swap-btn" data-day="{{ loop.index0 }}" data-type="lunch" style="background:white;border:1px solid var(--gray-2);border-radius:8px;padding:8px 10px;cursor:pointer;color:var(--blue-light)">
+        <button class="swap-btn" data-day="{{ loop.index0 }}" data-type="lunch">
           <i class="fa-solid fa-shuffle"></i>
         </button>
       </div>
+      {% endif %}
 
+      {% if day.dinner %}
       <div class="meal-row" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--gray);border-radius:8px">
         <div style="font-size:20px">🌙</div>
         <div style="flex:1">
           <div style="font-size:11px;color:#bc6c25;font-weight:700;letter-spacing:0.5px">العشاء</div>
-          <div class="meal-text" data-day="{{ loop.index0 }}" data-type="dinner" style="font-size:13px;font-weight:600">{{ day.dinner }}</div>
+          <div class="meal-text editable" data-day="{{ loop.index0 }}" data-type="dinner" style="font-size:13px;font-weight:600;cursor:text">{{ day.dinner }}</div>
         </div>
-        <button class="swap-btn" data-day="{{ loop.index0 }}" data-type="dinner" style="background:white;border:1px solid var(--gray-2);border-radius:8px;padding:8px 10px;cursor:pointer;color:var(--blue-light)">
+        <button class="swap-btn" data-day="{{ loop.index0 }}" data-type="dinner">
           <i class="fa-solid fa-shuffle"></i>
         </button>
       </div>
+      {% endif %}
 
+      {% if day.snack %}
       <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff8e7;border-radius:8px">
         <div style="font-size:20px">🍎</div>
         <div style="flex:1">
           <div style="font-size:11px;color:#bc6c25;font-weight:700;letter-spacing:0.5px">سناك</div>
-          <div style="font-size:13px;font-weight:600">{{ day.snack }}</div>
+          <div class="meal-text editable" data-day="{{ loop.index0 }}" data-type="snack" style="font-size:13px;font-weight:600;cursor:text">{{ day.snack }}</div>
         </div>
       </div>
+      {% endif %}
+
+      {# IF/Ramadan/Workout meals #}
+      {% if day.meal1 %}
+      <div class="meal-row" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--gray);border-radius:8px">
+        <div style="font-size:20px">🕛</div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#bc6c25;font-weight:700">الوجبة الأولى</div>
+          <div class="meal-text editable" data-day="{{ loop.index0 }}" data-type="meal1" style="font-size:13px;font-weight:600;cursor:text">{{ day.meal1 }}</div>
+        </div>
+        <button class="swap-btn" data-day="{{ loop.index0 }}" data-type="meal1"><i class="fa-solid fa-shuffle"></i></button>
+      </div>
+      {% endif %}
+
+      {% if day.meal2 %}
+      <div class="meal-row" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--gray);border-radius:8px">
+        <div style="font-size:20px">🕖</div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#bc6c25;font-weight:700">الوجبة الثانية</div>
+          <div class="meal-text editable" data-day="{{ loop.index0 }}" data-type="meal2" style="font-size:13px;font-weight:600;cursor:text">{{ day.meal2 }}</div>
+        </div>
+        <button class="swap-btn" data-day="{{ loop.index0 }}" data-type="meal2"><i class="fa-solid fa-shuffle"></i></button>
+      </div>
+      {% endif %}
+
+      {% if day.iftar %}
+      <div class="meal-row" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--gray);border-radius:8px">
+        <div style="font-size:20px">🌙</div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#bc6c25;font-weight:700">الفطار (رمضان)</div>
+          <div class="meal-text editable" data-day="{{ loop.index0 }}" data-type="iftar" style="font-size:13px;font-weight:600;cursor:text">{{ day.iftar }}</div>
+        </div>
+        <button class="swap-btn" data-day="{{ loop.index0 }}" data-type="iftar"><i class="fa-solid fa-shuffle"></i></button>
+      </div>
+      {% endif %}
+
+      {% if day.suhoor %}
+      <div class="meal-row" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--gray);border-radius:8px">
+        <div style="font-size:20px">🌄</div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#bc6c25;font-weight:700">السحور</div>
+          <div class="meal-text editable" data-day="{{ loop.index0 }}" data-type="suhoor" style="font-size:13px;font-weight:600;cursor:text">{{ day.suhoor }}</div>
+        </div>
+        <button class="swap-btn" data-day="{{ loop.index0 }}" data-type="suhoor"><i class="fa-solid fa-shuffle"></i></button>
+      </div>
+      {% endif %}
+
+      {% if day.snack1 %}
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff8e7;border-radius:8px">
+        <div style="font-size:20px">☕</div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#bc6c25;font-weight:700">سناك صباحي</div>
+          <div class="meal-text editable" data-day="{{ loop.index0 }}" data-type="snack1" style="font-size:13px;font-weight:600;cursor:text">{{ day.snack1 }}</div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if day.snack2 %}
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff8e7;border-radius:8px">
+        <div style="font-size:20px">🍎</div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#bc6c25;font-weight:700">سناك عصر</div>
+          <div class="meal-text editable" data-day="{{ loop.index0 }}" data-type="snack2" style="font-size:13px;font-weight:600;cursor:text">{{ day.snack2 }}</div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if day.pre_workout %}
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fef3c7;border-radius:8px">
+        <div style="font-size:20px">💪</div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#bc6c25;font-weight:700">قبل التمرين</div>
+          <div class="meal-text editable" data-day="{{ loop.index0 }}" data-type="pre_workout" style="font-size:13px;font-weight:600;cursor:text">{{ day.pre_workout }}</div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if day.post_workout %}
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fef3c7;border-radius:8px">
+        <div style="font-size:20px">🏋️</div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#bc6c25;font-weight:700">بعد التمرين</div>
+          <div class="meal-text editable" data-day="{{ loop.index0 }}" data-type="post_workout" style="font-size:13px;font-weight:600;cursor:text">{{ day.post_workout }}</div>
+        </div>
+      </div>
+      {% endif %}
+
     </div>
   </div>
   {% endfor %}
@@ -115,7 +230,122 @@
   </a>
 </div>
 
+<!-- Save indicator -->
+<div id="saveIndicator" style="position:fixed;bottom:80px;left:20px;background:#16a34a;color:white;padding:10px 18px;border-radius:100px;font-weight:700;font-size:13px;display:none;box-shadow:0 4px 16px rgba(22,163,74,0.4);z-index:1000">
+  <i class="fa-solid fa-check-circle"></i> تم الحفظ
+</div>
+
+<style>
+  .meal-text { transition: all 0.2s ease; padding:6px 10px;border-radius:6px;border:1.5px dashed transparent; }
+  .meal-text.editable:hover { background:rgba(37,99,235,0.05);border-color:#dbeafe; }
+  .meal-text.editing {
+    background:#eff6ff !important;
+    border:1.5px solid #2563eb !important;
+    outline:none;
+  }
+  .swap-btn {
+    background:white;border:1px solid var(--gray-2);border-radius:8px;
+    padding:8px 10px;cursor:pointer;color:var(--blue-light);
+    font-family:inherit;font-size:14px;
+  }
+  .swap-btn:hover { background: var(--blue-light) !important; color: white !important; }
+  .swap-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .meal-edit-textarea {
+    width:100%;padding:8px 10px;border:1.5px solid #2563eb;border-radius:6px;
+    font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;
+    background:#eff6ff;outline:none;resize:vertical;min-height:50px;
+  }
+</style>
+
 <script>
+// ═══════ Click to Edit ═══════
+function showSaveIndicator() {
+  const ind = document.getElementById('saveIndicator');
+  ind.style.display = 'block';
+  setTimeout(() => { ind.style.display = 'none'; }, 2000);
+}
+
+document.querySelectorAll('.meal-text.editable').forEach(el => {
+  el.addEventListener('click', function() {
+    if (this.classList.contains('editing')) return;
+
+    const currentText = this.textContent.trim();
+    const day = this.dataset.day;
+    const type = this.dataset.type;
+    const parent = this.parentElement;
+
+    // Replace with textarea
+    const textarea = document.createElement('textarea');
+    textarea.className = 'meal-edit-textarea';
+    textarea.value = currentText;
+    textarea.rows = 2;
+
+    // Hide original and insert textarea
+    this.style.display = 'none';
+    this.classList.add('editing');
+    parent.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    // Save function
+    const saveEdit = async () => {
+      const newText = textarea.value.trim();
+      if (!newText) {
+        cancelEdit();
+        return;
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append('day_idx', day);
+        formData.append('meal_type', type);
+        formData.append('new_text', newText);
+
+        const res = await fetch('/edit_meal', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          el.textContent = newText;
+          showSaveIndicator();
+        } else {
+          alert('فشل الحفظ: ' + (data.error || 'خطأ غير معروف'));
+        }
+      } catch (e) {
+        alert('خطأ في الاتصال');
+      }
+
+      cleanup();
+    };
+
+    const cancelEdit = () => {
+      cleanup();
+    };
+
+    const cleanup = () => {
+      el.style.display = '';
+      el.classList.remove('editing');
+      if (textarea.parentNode) textarea.parentNode.removeChild(textarea);
+    };
+
+    // Save on blur or Ctrl+Enter, cancel on Escape
+    textarea.addEventListener('blur', saveEdit);
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        textarea.removeEventListener('blur', saveEdit);
+        cancelEdit();
+      } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        textarea.blur();
+      }
+    });
+  });
+});
+
+// ═══════ Swap Meal Button ═══════
 document.querySelectorAll('.swap-btn').forEach(btn => {
   btn.addEventListener('click', async function() {
     const day = this.dataset.day;
@@ -142,16 +372,12 @@ document.querySelectorAll('.swap-btn').forEach(btn => {
             textEl.style.opacity = '1';
           }, 150);
         }
-        const dayCard = this.closest('.card');
-        const kcalBadge = dayCard.querySelector('[style*="100px"]');
-        if (kcalBadge && data.total_cal) {
-          kcalBadge.textContent = `${data.total_cal} kcal`;
-        }
+        showSaveIndicator();
       } else {
-        alert('مفيش بدائل متاحة للوجبة دي');
+        alert('مفيش بدائل متاحة');
       }
     } catch(e) {
-      alert('حصل خطأ، حاول تاني');
+      alert('حصل خطأ');
     } finally {
       icon.className = 'fa-solid fa-shuffle';
       this.disabled = false;
@@ -160,9 +386,4 @@ document.querySelectorAll('.swap-btn').forEach(btn => {
 });
 </script>
 
-<style>
-  .meal-text { transition: opacity 0.15s ease; }
-  .swap-btn:hover { background: var(--blue-light) !important; color: white !important; }
-  .swap-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-</style>
 {% endblock %}
