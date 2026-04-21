@@ -9,7 +9,7 @@
 <div class="alert alert-info">
   <i class="fa-solid fa-circle-info"></i>
   <div>
-    هنا هتشوف كل طلبات الخطط من العملاء. تقدر تولدلهم خطة AI أو تصممها بإيدك. بعد ما توافق، هتظهر للعميل في حسابه.
+    هنا تشوف كل طلبات الخطط من العملاء. تقدر تولدلهم خطة AI أو تصممها بإيدك. بعد الموافقة، تقدر تبعتلهم لينك الخطة بالواتساب مباشرة.
   </div>
 </div>
 
@@ -45,14 +45,33 @@
 
     <!-- Request details -->
     <div style="background:var(--gray);padding:12px;border-radius:10px;margin-bottom:12px">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;font-size:12px">
-        <div><strong>الهدف:</strong> {{ {'weight_loss':'تخسيس','maintenance':'مكتنز','muscle_gain':'عضل','bulking':'تضخيم'}.get(req.status, '—') }}</div>
-        <div><strong>المطبخ:</strong> مصري / خليجي / شامي</div>
-        <div><strong>العمر:</strong> —</div>
-        <div><strong>الوزن:</strong> —</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;font-size:12px">
+        {% set goal_names = {'weight_loss':'تخسيس','maintenance':'مكتنز','muscle_gain':'زيادة عضل','bulking':'تضخيم'} %}
+        <div><strong>🎯 الهدف:</strong> {{ goal_names.get(rdata.goal_type, '—') }}</div>
+        <div><strong>🍽️ المطبخ:</strong> {{ rdata.culture or '—' }}</div>
+        <div><strong>📊 السعرات:</strong> {{ rdata.goal_cal or '—' }} kcal</div>
+        <div><strong>👤 الجنس:</strong> {{ rdata.gender or '—' }}</div>
+        <div><strong>📏 الطول:</strong> {{ rdata.height or '—' }} سم</div>
+        <div><strong>⚖️ الوزن:</strong> {{ rdata.weight or '—' }} كجم</div>
       </div>
+      {% if rdata.symptoms and rdata.symptoms|length > 0 %}
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-2)">
+        <strong style="font-size:12px;color:var(--warn);">🩺 حالات صحية:</strong>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          {% for s in rdata.symptoms %}
+          <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">{{ s }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      {% if rdata.notes %}
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-2);font-size:12px">
+        <strong>📝 ملاحظات:</strong> {{ rdata.notes }}
+      </div>
+      {% endif %}
     </div>
 
+    <!-- Action buttons -->
     {% if req.status == 'pending' %}
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <a href="/admin/requests/{{ req.id }}/generate" class="btn btn-primary" style="flex:1;min-width:150px">
@@ -60,8 +79,21 @@
       </a>
     </div>
     {% else %}
-    <div style="text-align:center;padding:10px;color:var(--muted);font-size:13px">
-      <i class="fa-solid fa-check-circle" style="color:var(--green-light)"></i> تم تسليم الخطة
+    <!-- Approved: show WhatsApp button -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="sendWhatsApp({{ req.id }}, '{{ req.client_name|e }}', '{{ rdata.goal_type or 'weight_loss' }}', '{{ rdata.culture or 'مصري' }}', '{{ rdata.goal_cal or '1400' }}')"
+              class="btn"
+              style="flex:1;min-width:200px;background:#25D366;color:white;border:none">
+        <i class="fa-brands fa-whatsapp" style="font-size:18px"></i> إرسال للعميل بالواتساب
+      </button>
+      <button onclick="copyMessage({{ req.id }}, '{{ req.client_name|e }}', '{{ rdata.goal_type or 'weight_loss' }}', '{{ rdata.culture or 'مصري' }}', '{{ rdata.goal_cal or '1400' }}')"
+              class="btn btn-outline"
+              style="min-width:120px">
+        <i class="fa-solid fa-copy"></i> نسخ الرسالة
+      </button>
+    </div>
+    <div style="text-align:center;padding:8px;color:var(--green);font-size:12px;font-weight:600;margin-top:8px">
+      <i class="fa-solid fa-check-circle"></i> تم تسليم الخطة - جاهزة للإرسال
     </div>
     {% endif %}
   </div>
@@ -75,5 +107,149 @@
   </div>
   {% endfor %}
 </div>
+
+<!-- Phone number prompt modal -->
+<div id="phoneModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:white;border-radius:16px;padding:24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:48px">📱</div>
+      <h3 style="color:var(--blue);margin-top:8px">رقم العميل</h3>
+      <p style="color:var(--muted);font-size:13px;margin-top:4px">اكتب رقم واتساب العميل (بالكود الدولي)</p>
+    </div>
+    <div class="form-group">
+      <input type="tel" id="phoneInput" class="form-input" placeholder="971501234567+ أو 201001234567+" style="font-size:16px;text-align:left;direction:ltr">
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">
+        💡 مثال: 971501234567 (الإمارات) أو 201001234567 (مصر) - <strong>بدون + في البداية</strong>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button onclick="closeModal()" class="btn btn-outline" style="flex:1">إلغاء</button>
+      <button onclick="confirmPhone()" class="btn btn-success" style="flex:2">
+        <i class="fa-brands fa-whatsapp"></i> فتح الواتساب
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div id="toast" style="display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#16a34a;color:white;padding:14px 24px;border-radius:100px;font-weight:700;z-index:2000;box-shadow:0 8px 24px rgba(22,163,74,0.4)">
+  <i class="fa-solid fa-check-circle"></i> <span id="toastMsg">تم النسخ</span>
+</div>
+
+<script>
+const SITE_URL = window.location.origin;
+let pendingMessage = '';
+
+function buildMessage(name, goalType, culture, goalCal) {
+  const goalNames = {
+    'weight_loss': '🥗 خطة تخسيس',
+    'maintenance': '🍽️ خطة الحفاظ على الوزن',
+    'muscle_gain': '💪 خطة زيادة عضل',
+    'bulking': '🔥 خطة تضخيم'
+  };
+  const goal = goalNames[goalType] || 'خطة غذائية';
+
+  return `أهلاً ${name} 👋
+
+خطتك الغذائية الجديدة جاهزة! 🎉
+
+✅ ${goal}
+✅ ${goalCal} سعرة حرارية يومياً
+✅ مطبخ ${culture}
+✅ 7 أيام كاملة
+
+تقدر تستلمها من الموقع:
+🔗 ${SITE_URL}/my-plan
+
+اعمل تسجيل دخول بحسابك وهتلاقيها جاهزة للتحميل PDF.
+
+أي استفسار، أنا في الخدمة 💚
+
+د. محمد
+أخصائي التغذية الإكلينيكية
+NutraX Clinical Nutrition`;
+}
+
+function sendWhatsApp(reqId, name, goalType, culture, goalCal) {
+  const message = buildMessage(name, goalType, culture, goalCal);
+  pendingMessage = message;
+
+  // Show phone input modal
+  document.getElementById('phoneModal').style.display = 'flex';
+  document.getElementById('phoneInput').focus();
+}
+
+function copyMessage(reqId, name, goalType, culture, goalCal) {
+  const message = buildMessage(name, goalType, culture, goalCal);
+
+  navigator.clipboard.writeText(message).then(() => {
+    showToast('✓ تم نسخ الرسالة - الصقها في أي شات');
+  }).catch(() => {
+    // Fallback for older browsers
+    const textarea = document.createElement('textarea');
+    textarea.value = message;
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      showToast('✓ تم نسخ الرسالة');
+    } catch(e) {
+      alert('انسخ الرسالة يدوياً:\n\n' + message);
+    }
+    document.body.removeChild(textarea);
+  });
+}
+
+function closeModal() {
+  document.getElementById('phoneModal').style.display = 'none';
+  document.getElementById('phoneInput').value = '';
+  pendingMessage = '';
+}
+
+function confirmPhone() {
+  const phone = document.getElementById('phoneInput').value.trim().replace(/[^0-9]/g, '');
+
+  if (!phone || phone.length < 9) {
+    alert('من فضلك اكتب رقم واتساب صحيح');
+    return;
+  }
+
+  if (!pendingMessage) {
+    alert('حصل خطأ. حاول تاني.');
+    closeModal();
+    return;
+  }
+
+  // Open WhatsApp with pre-filled message
+  const encodedMsg = encodeURIComponent(pendingMessage);
+  const waUrl = `https://wa.me/${phone}?text=${encodedMsg}`;
+
+  window.open(waUrl, '_blank');
+  closeModal();
+  showToast('✓ تم فتح الواتساب');
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  toast.style.display = 'block';
+  setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+// Allow Enter to confirm phone
+document.getElementById('phoneInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    confirmPhone();
+  }
+});
+
+// Close modal on ESC
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('phoneModal').style.display === 'flex') {
+    closeModal();
+  }
+});
+</script>
 
 {% endblock %}
