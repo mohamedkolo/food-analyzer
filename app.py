@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, send_file, jsonify, flash
+from flask import Flask, render_template, request, redirect, session, send_file, jsonify
 import hashlib, os, json, io, random
 from datetime import timedelta, datetime
 
@@ -49,14 +49,15 @@ else:
         conn.close()
 
 def hp(p): return hashlib.sha256(p.encode()).hexdigest()
+
 # Jinja filter for JSON parsing
 @app.template_filter('from_json')
 def from_json_filter(s):
     if not s: return {}
     try: return json.loads(s)
     except: return {}
+
 def init_db():
-    # Users table with role
     if DATABASE_URL:
         db_run("""CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS weight_log (id SERIAL PRIMARY KEY, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
@@ -70,7 +71,6 @@ def init_db():
         db_run("""CREATE TABLE IF NOT EXISTS patients (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS plan_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
 
-    # Try to add columns if missing (for existing databases)
     for col_sql in [
         "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'client'",
         "ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1",
@@ -80,27 +80,19 @@ def init_db():
         try: db_run(col_sql)
         except: pass
 
-    # Ensure admin exists with role
-    admin = db_row("SELECT id FROM users WHERE is_admin=1")
+    admin = db_row("SELECT id FROM users WHERE email='admin@nutrax.com'")
     if not admin:
-        db_run("INSERT INTO users (name,email,password,is_admin,role) VALUES (?,?,?,1,'admin')", ("Admin","admin@nutrax.com",hp("nutrax2025")))
+        db_run("INSERT INTO users (name,email,password,is_admin,role,active) VALUES (?,?,?,1,'admin',1)", ("Admin","admin@nutrax.com",hp("nutrax2025")))
     else:
-        db_run("UPDATE users SET role='admin' WHERE is_admin=1")
+        db_run("UPDATE users SET password=?, is_admin=1, role='admin', active=1 WHERE email='admin@nutrax.com'", (hp("nutrax2025"),))
 
 init_db()
 
-def get_user(email, pw):
-    return db_row("SELECT * FROM users WHERE email=? AND password=?", (email, hp(pw)))
-
-def get_user_by_id(uid):
-    return db_row("SELECT * FROM users WHERE id=?", (uid,))
-
+def get_user(email, pw): return db_row("SELECT * FROM users WHERE email=? AND password=?", (email, hp(pw)))
+def get_user_by_id(uid): return db_row("SELECT * FROM users WHERE id=?", (uid,))
 def register(name, email, pw, country):
-    try:
-        db_run("INSERT INTO users (name,email,password,country,role) VALUES (?,?,?,?,'client')", (name,email,hp(pw),country))
-        return "ok"
-    except:
-        return "exists"
+    try: db_run("INSERT INTO users (name,email,password,country,role) VALUES (?,?,?,?,'client')", (name,email,hp(pw),country)); return "ok"
+    except: return "exists"
 
 def login_required(f):
     from functools import wraps
@@ -122,7 +114,6 @@ def admin_required(f):
     return decorated
 
 def staff_required(f):
-    """Admin or Nutritionist only"""
     from functools import wraps
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -135,7 +126,6 @@ def staff_required(f):
     return decorated
 
 def get_user_role(u):
-    """Get role with fallback for legacy users"""
     if not u: return "client"
     if u.get("is_admin"): return "admin"
     return u.get("role") or "client"
@@ -146,6 +136,53 @@ def get_pending_requests_count():
         return r.get("cnt", 0) if r else 0
     except:
         return 0
+
+# ═══════════════════════════════════════════════
+# 7-DAY COOLDOWN HELPER
+# ═══════════════════════════════════════════════
+def can_request_new_plan(client_id):
+    """
+    Check if client can request a new plan.
+    Returns: (can_request: bool, days_left: int, hours_left: int, last_plan_date: str)
+    """
+    try:
+        # Check for any plan request (pending or approved) in the last 7 days
+        latest = db_row("""SELECT * FROM plan_requests
+                           WHERE client_id=?
+                           ORDER BY created_at DESC LIMIT 1""", (client_id,))
+
+        if not latest:
+            return (True, 0, 0, None)
+
+        # Parse the date
+        date_str = latest.get("created_at")
+        if isinstance(date_str, str):
+            try:
+                last_date = datetime.fromisoformat(date_str.replace('Z', ''))
+            except:
+                try:
+                    last_date = datetime.strptime(date_str.split('.')[0], "%Y-%m-%d %H:%M:%S")
+                except:
+                    return (True, 0, 0, None)
+        else:
+            last_date = date_str
+
+        now = datetime.now()
+        diff = now - last_date
+        seconds_passed = diff.total_seconds()
+        seconds_in_week = 7 * 24 * 60 * 60
+
+        if seconds_passed >= seconds_in_week:
+            return (True, 0, 0, last_date.strftime("%Y-%m-%d"))
+
+        seconds_left = seconds_in_week - seconds_passed
+        days_left = int(seconds_left // (24 * 60 * 60))
+        hours_left = int((seconds_left % (24 * 60 * 60)) // 3600)
+
+        return (False, days_left, hours_left, last_date.strftime("%Y-%m-%d"))
+    except Exception as e:
+        print(f"Error in can_request_new_plan: {e}")
+        return (True, 0, 0, None)
 
 # ═══════════════════════════════════════════════
 # AUTH
@@ -178,8 +215,7 @@ def login():
             if r == "ok":
                 error = "تم التسجيل! سجل دخولك."
                 tab = "login"
-            else:
-                error = "البريد مستخدم بالفعل"
+            else: error = "البريد مستخدم بالفعل"
     return render_template("login.html", error=error, tab=tab, lang=lang)
 
 @app.route("/logout")
@@ -192,9 +228,6 @@ def set_lang(l):
     if l in ["ar","en"]: session["lang"] = l
     return redirect(request.referrer or "/dashboard")
 
-# ═══════════════════════════════════════════════
-# DASHBOARD — different for each role
-# ═══════════════════════════════════════════════
 @app.route("/dashboard")
 @login_required
 def dashboard():
@@ -204,7 +237,6 @@ def dashboard():
     if role == "client":
         return redirect("/my-plan")
 
-    # Admin/Nutritionist dashboard
     pending_count = 0
     total_clients = 0
     try:
@@ -215,26 +247,21 @@ def dashboard():
         pass
 
     return render_template("dashboard.html",
-                           user=u,
-                           lang=session.get("lang","ar"),
-                           role=role,
-                           pending_count=pending_count,
+                           user=u, lang=session.get("lang","ar"),
+                           role=role, pending_count=pending_count,
                            total_clients=total_clients)
 
 # ═══════════════════════════════════════════════
-# CLIENT-FACING PAGES
+# CLIENT-FACING PAGES (with 7-day cooldown)
 # ═══════════════════════════════════════════════
 @app.route("/my-plan")
 @login_required
 def my_plan():
     u = get_user_by_id(session["uid"])
     role = get_user_role(u)
-
-    # If staff, redirect back
     if role in ["admin", "nutritionist"]:
         return redirect("/dashboard")
 
-    # Get client's latest approved plan
     latest_plan = None
     pending_request = None
     try:
@@ -247,19 +274,39 @@ def my_plan():
     except:
         pass
 
+    # Check 7-day cooldown
+    can_request, days_left, hours_left, last_date = can_request_new_plan(session["uid"])
+
     return render_template("my_plan.html",
-                           user=u,
-                           lang=session.get("lang","ar"),
-                           latest_plan=latest_plan,
-                           pending_request=pending_request)
+                           user=u, lang=session.get("lang","ar"),
+                           latest_plan=latest_plan, pending_request=pending_request,
+                           can_request=can_request, days_left=days_left,
+                           hours_left=hours_left, last_request_date=last_date)
 
 @app.route("/request-plan", methods=["GET","POST"])
 @login_required
 def request_plan():
     u = get_user_by_id(session["uid"])
+    role = get_user_role(u)
+
+    if role in ["admin", "nutritionist"]:
+        return redirect("/dashboard")
+
+    # Enforce 7-day cooldown
+    can_request, days_left, hours_left, last_date = can_request_new_plan(session["uid"])
+
+    if not can_request:
+        return render_template("request_plan_blocked.html",
+                               user=u, lang=session.get("lang","ar"),
+                               days_left=days_left, hours_left=hours_left,
+                               last_request_date=last_date)
 
     if request.method == "POST":
-        # Client submits request for a plan
+        # Double-check on submit (prevent race condition)
+        can_request_now, _, _, _ = can_request_new_plan(session["uid"])
+        if not can_request_now:
+            return redirect("/my-plan")
+
         request_data = {
             "height": request.form.get("height", u.get("height", "")),
             "weight": request.form.get("weight", u.get("weight", "")),
@@ -280,17 +327,15 @@ def request_plan():
                       VALUES (?, ?, ?, 'pending')""",
                    (session["uid"], u.get("name","Client"), json.dumps(request_data)))
         except Exception as e:
-            return f"خطأ في حفظ الطلب: {e}", 500
-
+            return f"خطأ: {e}", 500
         return redirect("/my-plan")
 
     return render_template("request_plan.html",
-                           user=u,
-                           lang=session.get("lang","ar"),
+                           user=u, lang=session.get("lang","ar"),
                            diet_plans=DIET_PLAN_TYPES)
 
 # ═══════════════════════════════════════════════
-# ADMIN / NUTRITIONIST PAGES
+# ADMIN PAGES
 # ═══════════════════════════════════════════════
 @app.route("/admin/users")
 @admin_required
@@ -300,10 +345,7 @@ def admin_users():
         all_users = db_rows("SELECT * FROM users ORDER BY id DESC")
     except:
         all_users = []
-    return render_template("admin_users.html",
-                           user=u,
-                           lang=session.get("lang","ar"),
-                           users=all_users)
+    return render_template("admin_users.html", user=u, lang=session.get("lang","ar"), users=all_users)
 
 @app.route("/admin/users/new", methods=["GET","POST"])
 @admin_required
@@ -315,11 +357,9 @@ def admin_new_user():
         pw = request.form.get("password","")
         role = request.form.get("role","client")
         phone = request.form.get("phone","")
-
         if not email or not pw:
             return render_template("admin_new_user.html", user=u, lang=session.get("lang","ar"),
                                    error="الإيميل وكلمة السر مطلوبة")
-
         try:
             db_run("INSERT INTO users (name,email,password,role,phone,active) VALUES (?,?,?,?,?,1)",
                    (name, email, hp(pw), role, phone))
@@ -327,7 +367,6 @@ def admin_new_user():
         except:
             return render_template("admin_new_user.html", user=u, lang=session.get("lang","ar"),
                                    error="الإيميل موجود بالفعل")
-
     return render_template("admin_new_user.html", user=u, lang=session.get("lang","ar"))
 
 @app.route("/admin/users/<int:uid>/toggle")
@@ -357,7 +396,7 @@ def admin_delete_user(uid):
     return redirect("/admin/users")
 
 # ═══════════════════════════════════════════════
-# PLAN REQUESTS (Notifications)
+# PLAN REQUESTS
 # ═══════════════════════════════════════════════
 @app.route("/admin/requests")
 @staff_required
@@ -367,24 +406,18 @@ def admin_requests():
         requests_list = db_rows("SELECT * FROM plan_requests ORDER BY created_at DESC LIMIT 50")
     except:
         requests_list = []
-    return render_template("admin_requests.html",
-                           user=u,
-                           lang=session.get("lang","ar"),
-                           requests=requests_list)
+    return render_template("admin_requests.html", user=u, lang=session.get("lang","ar"), requests=requests_list)
 
 @app.route("/admin/requests/<int:rid>/generate")
 @staff_required
 def admin_request_generate(rid):
-    """Generate AI plan for a client request"""
     req = db_row("SELECT * FROM plan_requests WHERE id=?", (rid,))
     if not req:
         return redirect("/admin/requests")
-
     try:
         rdata = json.loads(req["request_data"])
     except:
         return redirect("/admin/requests")
-
     client = get_user_by_id(req["client_id"])
     data = {
         "name": client.get("name","") if client else req.get("client_name",""),
@@ -398,21 +431,18 @@ def admin_request_generate(rid):
 @app.route("/admin/requests/<int:rid>/approve", methods=["POST"])
 @staff_required
 def admin_request_approve(rid):
-    """Approve and save plan for client"""
     plan = session.get("current_plan")
     data = session.get("pdf_data")
     if not plan or not data:
         return redirect("/admin/requests")
-
     db_run("""UPDATE plan_requests SET status='approved', plan_data=?, updated_at=?
               WHERE id=?""",
            (json.dumps({"plan": plan, "data": data}), datetime.now().isoformat(), rid))
-
     session.pop("current_request_id", None)
     return redirect("/admin/requests")
 
 # ═══════════════════════════════════════════════
-# STAFF-ONLY PAGES
+# OTHER PAGES
 # ═══════════════════════════════════════════════
 @app.route("/settings", methods=["GET","POST"])
 @login_required
@@ -479,7 +509,7 @@ def delete_plan(pid):
     return redirect("/saved")
 
 # ═══════════════════════════════════════════════
-# GENERATE / PREVIEW / DOWNLOAD
+# GENERATE / PREVIEW / SWAP / EDIT / DOWNLOAD
 # ═══════════════════════════════════════════════
 @app.route("/generate", methods=["GET","POST"])
 @staff_required
@@ -501,10 +531,7 @@ def generate():
         session["pdf_data"] = data
         session["current_plan"] = generate_weekly_plan(data)
         return redirect("/preview")
-    return render_template("generate.html",
-                           user=u,
-                           lang=session.get("lang","ar"),
-                           diet_plans=DIET_PLAN_TYPES)
+    return render_template("generate.html", user=u, lang=session.get("lang","ar"), diet_plans=DIET_PLAN_TYPES)
 
 @app.route("/preview")
 @staff_required
@@ -515,8 +542,7 @@ def preview():
     if not data or not plan: return redirect("/generate")
     current_request_id = session.get("current_request_id")
     return render_template("preview.html",
-                           user=u,
-                           lang=session.get("lang","ar"),
+                           user=u, lang=session.get("lang","ar"),
                            data=data, plan=plan,
                            current_request_id=current_request_id)
 
@@ -532,7 +558,6 @@ def swap_meal():
     culture = data.get("culture", "مصري")
     pool = get_meal_pool(goal, culture)
 
-    # Map meal_type to pool key (handle diet plan types)
     pool_key = meal_type
     if meal_type in ["meal1", "meal2", "iftar", "suhoor", "snack1", "snack2", "pre_workout", "post_workout"]:
         if meal_type in ["meal1", "iftar"]: pool_key = "lunch"
@@ -551,6 +576,36 @@ def swap_meal():
             return jsonify({"ok": True, "new_meal": new_meal["meal"]})
     return jsonify({"ok": False}), 400
 
+# ═══════════════════════════════════════════════
+# ✨ NEW: EDIT MEAL MANUALLY (Click to Edit)
+# ═══════════════════════════════════════════════
+@app.route("/edit_meal", methods=["POST"])
+@staff_required
+def edit_meal():
+    """Save manual edit to a specific meal"""
+    plan = session.get("current_plan")
+    if not plan:
+        return jsonify({"ok": False, "error": "no plan"}), 400
+
+    try:
+        day_idx = int(request.form.get("day_idx", 0))
+        meal_type = request.form.get("meal_type", "")
+        new_text = request.form.get("new_text", "").strip()
+
+        if not new_text or not meal_type:
+            return jsonify({"ok": False, "error": "missing data"}), 400
+
+        if day_idx < 0 or day_idx >= len(plan):
+            return jsonify({"ok": False, "error": "invalid day"}), 400
+
+        # Update the meal
+        plan[day_idx][meal_type] = new_text
+        session["current_plan"] = plan
+
+        return jsonify({"ok": True, "saved_text": new_text})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @app.route("/regenerate_plan", methods=["POST"])
 @staff_required
 def regenerate_plan():
@@ -565,7 +620,6 @@ def download_pdf():
     data = session.get("pdf_data")
     plan = session.get("current_plan")
 
-    # For clients: load their approved plan
     u = get_user_by_id(session["uid"])
     role = get_user_role(u)
     if role == "client":
@@ -587,10 +641,10 @@ def download_pdf():
         return send_file(buf, as_attachment=True, download_name=f"NutraX_{name}.pdf", mimetype="application/pdf")
     except Exception as e:
         import traceback; traceback.print_exc()
-        return f"خطأ في توليد الـ PDF: {str(e)}", 500
+        return f"خطأ: {str(e)}", 500
 
 # ═══════════════════════════════════════════════
-# PLAN GENERATION LOGIC
+# PLAN GENERATION
 # ═══════════════════════════════════════════════
 def _has(symptoms, keywords):
     for s in symptoms:
@@ -614,7 +668,6 @@ def generate_weekly_plan(data):
     if len(lunches) < 7: lunches = list(WEIGHT_LOSS["مصري"]["lunch"])
     if len(dinners) < 7: dinners = list(WEIGHT_LOSS["مصري"]["dinner"])
 
-    # Apply clinical filters
     breakfasts = filter_by_conditions(breakfasts, symptoms)
     lunches = filter_by_conditions(lunches, symptoms)
     dinners = filter_by_conditions(dinners, symptoms)
@@ -628,7 +681,6 @@ def generate_weekly_plan(data):
     plan_info = get_diet_plan_info(diet_type)
     meal_keys = plan_info["meals"]
 
-    # Randomize pools
     random.shuffle(breakfasts)
     random.shuffle(lunches)
     random.shuffle(dinners)
@@ -641,8 +693,6 @@ def generate_weekly_plan(data):
             "meal_labels": plan_info["meal_labels"],
             "meal_emojis": plan_info["meal_emojis"],
         }
-
-        # Track total calories
         total_cal = 0
 
         if diet_type == "standard":
@@ -656,7 +706,6 @@ def generate_weekly_plan(data):
             total_cal = b.get("cal",300) + l.get("cal",400) + d.get("cal",300) + 150
 
         elif diet_type == "five_meals":
-            # Split into 5 smaller meals
             b = breakfasts[i % len(breakfasts)]
             l = lunches[i % len(lunches)]
             d = dinners[i % len(dinners)]
@@ -668,7 +717,6 @@ def generate_weekly_plan(data):
             total_cal = b.get("cal",300) + l.get("cal",400) + d.get("cal",300) + 300
 
         elif diet_type == "intermittent_16_8":
-            # 2 main meals + 1 snack within 8 hours
             l = lunches[i % len(lunches)]
             d = dinners[i % len(dinners)]
             day_plan["meal1"] = l["meal"]
@@ -677,7 +725,6 @@ def generate_weekly_plan(data):
             total_cal = l.get("cal",400) + d.get("cal",400) + 150
 
         elif diet_type == "intermittent_18_6":
-            # 2 meals only in 6-hour window
             l = lunches[i % len(lunches)]
             d = dinners[i % len(dinners)]
             day_plan["meal1"] = l["meal"]
@@ -685,7 +732,6 @@ def generate_weekly_plan(data):
             total_cal = l.get("cal",400) + d.get("cal",400)
 
         elif diet_type == "ramadan":
-            # Iftar (big) + snack + suhoor (light)
             l = lunches[i % len(lunches)]
             b = breakfasts[i % len(breakfasts)]
             day_plan["iftar"] = l["meal"]
@@ -694,7 +740,6 @@ def generate_weekly_plan(data):
             total_cal = l.get("cal",400) + b.get("cal",300) + 150
 
         elif diet_type == "workout":
-            # Pre-workout + breakfast + post-workout + lunch + dinner
             b = breakfasts[i % len(breakfasts)]
             l = lunches[i % len(lunches)]
             d = dinners[i % len(dinners)]
@@ -707,7 +752,6 @@ def generate_weekly_plan(data):
 
         day_plan["total_cal"] = total_cal
         plan.append(day_plan)
-
     return plan
 
 def get_allowed_forbidden(symptoms, goal="weight_loss"):
@@ -720,13 +764,12 @@ def get_allowed_forbidden(symptoms, goal="weight_loss"):
     if goal in ["muscle_gain","bulking"]:
         allowed = ["مصادر بروتين عالية: دجاج + لحم + سمك + بيض","كاربوهيدرات معقدة: ارز بني + شوفان + بطاطا",
                    "مكسرات + افوكادو + زيت زيتون","حليب كامل + زبادي يوناني","بروتين شيك بعد التمرين"]
-        forbidden = ["الأكل المقلي الزائد","السكريات المضافة والحلويات","المشروبات الغازية","الوجبات السريعة المصنعة"]
+        forbidden = ["الأكل المقلي الزائد","السكريات المضافة","المشروبات الغازية","الوجبات السريعة"]
     else:
-        allowed = ["دجاج مشوي أو فرن (بدون جلد) + بيض","شوفان + خبز أسمر + أرز بني + برغل",
+        allowed = ["دجاج مشوي أو فرن + بيض","شوفان + خبز أسمر + أرز بني",
                    "زبادي يوناني سادة + جبن قريش","ملوخية + كوسة + خضار مطبوخة",
-                   "زيت زيتون (ملعقة) + فاكهة طازجة","شاي أخضر + ماء دافئ بالليمون"]
-        forbidden = ["الخبز الأبيض والعيش الفينو","الأكل المقلي + الدهانة + السمن",
-                     "المشروبات الغازية + العصائر المعلبة","الحلويات والسكريات المضافة"]
+                   "زيت زيتون (ملعقة) + فاكهة طازجة","شاي أخضر + ماء بالليمون"]
+        forbidden = ["الخبز الأبيض","الأكل المقلي + السمن","المشروبات الغازية","الحلويات والسكريات"]
 
     if has_g6pd:
         forbidden = ["❗ الفول بكل أنواعه","❗ الحمص والبقوليات الحمراء"] + forbidden
@@ -744,10 +787,10 @@ def get_allowed_forbidden(symptoms, goal="weight_loss"):
         forbidden.append("الكافيين الزائد")
 
     if needs_d3:
-        allowed = ["⭐ أسماك دهنية: سلمون • سردين • تونة","⭐ صفار البيض + الفطر","⭐ تعرض للشمس 15 دقيقة"] + allowed
+        allowed = ["⭐ أسماك دهنية: سلمون","⭐ صفار البيض + الفطر","⭐ تعرض للشمس 15 دقيقة"] + allowed
 
     if needs_fe and not has_thal:
-        allowed = ["⭐ لحوم حمراء + كبدة","⭐ سبانخ + عدس + فاصوليا"] + allowed
+        allowed = ["⭐ لحوم حمراء + كبدة","⭐ سبانخ + عدس"] + allowed
 
     return allowed[:8], forbidden[:8]
 
@@ -768,13 +811,12 @@ def build_pdf(data, plan=None):
     notes_parts = []
     if symptoms: notes_parts.append(" • ".join(symptoms))
     if data.get("notes"): notes_parts.append(data.get("notes"))
-    clinical_notes = " | ".join(notes_parts) if notes_parts else "لا توجد ملاحظات إضافية"
+    clinical_notes = " | ".join(notes_parts) if notes_parts else "لا توجد ملاحظات"
     uid = session.get("uid", 0)
     file_num = f"NX-{dt.datetime.now().year}-{uid:03d}"
     goal_labels = {"weight_loss":"خطة تخسيس","muscle_gain":"خطة زيادة عضل","bulking":"خطة تضخيم","maintenance":"خطة مكتنز"}
     plan_title = goal_labels.get(goal, "خطة غذائية")
 
-    # Build days for PDF with meal entries based on diet type
     pdf_days = []
     for d in plan:
         meals_html = []
@@ -816,7 +858,7 @@ def build_pdf(data, plan=None):
                             'مشي 30 دقيقة بعد الغداء','قم وتحرك 5 دقائق كل ساعة']
                            if goal in ["weight_loss","maintenance"] else
                            ['بروتين في كل وجبة (1.6-2.2 جم/كجم)','كارب حول التمرين',
-                            'تدريب مقاومة 4-5 مرات أسبوعياً','نوم 7-9 ساعات لبناء العضل']),
+                            'تدريب مقاومة 4-5 مرات أسبوعياً','نوم 7-9 ساعات']),
             'warnings': ['لا تخفض السعرات أكثر من المحدد','لو جعت: ماء أولاً ثم فاكهة',
                          'راجع مع أخصائي التغذية كل 4 أسابيع','أي أعراض غير عادية — راجع طبيبك'],
         },
@@ -829,7 +871,7 @@ def build_pdf(data, plan=None):
     return pdf_bytes
 
 # ═══════════════════════════════════════════════
-# PATIENTS (Legacy - staff only)
+# PATIENTS
 # ═══════════════════════════════════════════════
 @app.route("/patients")
 @staff_required
