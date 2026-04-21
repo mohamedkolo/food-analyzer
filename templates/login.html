@@ -3,32 +3,42 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NutraX - Login</title>
+<title>NutraX - {{ 'تسجيل الدخول' if (lang or 'ar')=='ar' else 'Login' }}</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(135deg,#1a3a6b 0%,#2563eb 100%);display:flex;align-items:center;justify-content:center;padding:20px}
-.container{max-width:420px;width:100%}
-.logo{text-align:center;margin-bottom:30px;color:#fff}
-.logo i{font-size:48px;color:#4ade80;margin-bottom:10px;display:block}
-.logo h1{font-size:32px;font-weight:900;letter-spacing:1px}
-.logo p{font-size:14px;opacity:0.9;margin-top:4px}
-.card{background:#fff;border-radius:20px;padding:32px 28px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-.tabs{display:flex;background:#f4f6fa;border-radius:10px;padding:4px;margin-bottom:24px}
+.container{max-width:480px;width:100%}
+.logo{text-align:center;margin-bottom:24px;color:#fff}
+.logo i{font-size:42px;color:#4ade80;margin-bottom:8px;display:block}
+.logo h1{font-size:28px;font-weight:900;letter-spacing:1px}
+.logo p{font-size:13px;opacity:0.9;margin-top:4px}
+.card{background:#fff;border-radius:20px;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.tabs{display:flex;background:#f4f6fa;border-radius:10px;padding:4px;margin-bottom:20px}
 .tab{flex:1;padding:10px;text-align:center;font-size:14px;font-weight:700;color:#64748b;cursor:pointer;border-radius:8px;transition:all .2s;border:none;background:none;font-family:'Cairo',sans-serif}
 .tab.active{background:#fff;color:#1a3a6b;box-shadow:0 2px 6px rgba(0,0,0,.08)}
-.form-group{margin-bottom:14px}
+.form-group{margin-bottom:12px}
 .form-label{display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:5px}
-.form-input{width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;color:#0f172a;outline:none;transition:border .2s}
-.form-input:focus{border-color:#2563eb}
-.btn{width:100%;padding:13px;border:none;border-radius:10px;font-family:'Cairo',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:8px;background:linear-gradient(135deg,#1a3a6b,#2563eb);color:#fff;transition:all .2s}
+.form-label .req{color:#dc2626}
+.form-input,.form-select{width:100%;padding:11px 14px;border:2px solid #e2e8f0;border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;color:#0f172a;outline:none;transition:border .2s;background:#fff}
+.form-input:focus,.form-select:focus{border-color:#2563eb}
+.form-input.with-icon{padding-right:40px}
+.input-wrap{position:relative}
+.input-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:14px;pointer-events:none}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{width:100%;padding:13px;border:none;border-radius:10px;font-family:'Cairo',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:10px;background:linear-gradient(135deg,#1a3a6b,#2563eb);color:#fff;transition:all .2s}
 .btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(37,99,235,.3)}
-.msg{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;background:#fee;color:#8b0000;border:1px solid #fca5a5}
-.info{padding:12px 14px;border-radius:8px;font-size:13px;margin-top:16px;background:#dbeafe;color:#1e3a8a;border:1px solid #93c5fd;text-align:center;line-height:1.6}
-.info i{margin-left:4px}
-.lang-switch{text-align:center;margin-top:20px}
+.btn-success{background:linear-gradient(135deg,#1b4332,#16a34a)}
+.msg{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px}
+.msg-error{background:#fee;color:#8b0000;border:1px solid #fca5a5}
+.msg-success{background:#dcfce7;color:#14532d;border:1px solid #86efac}
+.info{padding:10px 14px;border-radius:8px;font-size:12px;margin-top:14px;background:#dbeafe;color:#1e3a8a;border:1px solid #93c5fd;text-align:center;line-height:1.6}
+.lang-switch{text-align:center;margin-top:18px}
 .lang-switch a{color:#fff;font-size:13px;text-decoration:none;opacity:0.9}
+.hint{font-size:11px;color:#64748b;margin-top:4px}
+.section-divider{height:1px;background:#e2e8f0;margin:14px 0}
+.section-title{font-size:12px;font-weight:800;color:#1a3a6b;margin-bottom:10px;letter-spacing:0.5px;text-transform:uppercase}
 </style>
 </head>
 <body>
@@ -40,28 +50,131 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(
   </div>
 
   <div class="card">
-    {% if error %}<div class="msg">{{ error }}</div>{% endif %}
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab {% if tab != 'register' %}active{% endif %}" onclick="switchTab('login')" id="tabLogin">
+        <i class="fa-solid fa-arrow-right-to-bracket"></i> تسجيل الدخول
+      </button>
+      <button class="tab {% if tab == 'register' %}active{% endif %}" onclick="switchTab('register')" id="tabRegister">
+        <i class="fa-solid fa-user-plus"></i> إنشاء حساب
+      </button>
+    </div>
 
-    <form method="POST">
+    {% if error %}
+    <div class="msg {% if 'تم التسجيل' in error %}msg-success{% else %}msg-error{% endif %}">
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- ═══════ LOGIN FORM ═══════ -->
+    <form method="POST" id="loginForm" {% if tab == 'register' %}style="display:none"{% endif %}>
       <input type="hidden" name="action" value="login">
+
       <div class="form-group">
-        <label class="form-label">{{ 'البريد الإلكتروني' if (lang or 'ar')=='ar' else 'Email' }}</label>
-        <input class="form-input" type="email" name="email" required placeholder="you@example.com">
+        <label class="form-label">البريد الإلكتروني</label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-envelope input-icon"></i>
+          <input class="form-input with-icon" type="email" name="email" required placeholder="you@example.com" style="text-align:left;direction:ltr">
+        </div>
       </div>
+
       <div class="form-group">
-        <label class="form-label">{{ 'كلمة المرور' if (lang or 'ar')=='ar' else 'Password' }}</label>
-        <input class="form-input" type="password" name="password" required>
+        <label class="form-label">كلمة المرور</label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-lock input-icon"></i>
+          <input class="form-input with-icon" type="password" name="password" required>
+        </div>
       </div>
+
       <button type="submit" class="btn">
         <i class="fa-solid fa-arrow-right-to-bracket"></i>
-        {{ 'تسجيل الدخول' if (lang or 'ar')=='ar' else 'Login' }}
+        تسجيل الدخول
       </button>
     </form>
 
-    <div class="info">
-      <i class="fa-solid fa-circle-info"></i>
-      {{ 'للحصول على حساب، تواصل معنا عبر واتساب' if (lang or 'ar')=='ar' else 'To get an account, contact us via WhatsApp' }}
-    </div>
+    <!-- ═══════ REGISTER FORM ═══════ -->
+    <form method="POST" id="registerForm" {% if tab != 'register' %}style="display:none"{% endif %}>
+      <input type="hidden" name="action" value="register">
+
+      <div class="section-title">📝 المعلومات الأساسية</div>
+
+      <div class="form-group">
+        <label class="form-label">الاسم الكامل <span class="req">*</span></label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-user input-icon"></i>
+          <input class="form-input with-icon" type="text" name="name" required placeholder="محمد أحمد">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label class="form-label">السن <span class="req">*</span></label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-calendar input-icon"></i>
+            <input class="form-input with-icon" type="number" name="age" required placeholder="30" min="10" max="100">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">البلد <span class="req">*</span></label>
+          <select class="form-select" name="country" required>
+            <option value="">اختر</option>
+            <option value="EG">🇪🇬 مصر</option>
+            <option value="AE">🇦🇪 الإمارات</option>
+            <option value="SA">🇸🇦 السعودية</option>
+            <option value="KW">🇰🇼 الكويت</option>
+            <option value="QA">🇶🇦 قطر</option>
+            <option value="BH">🇧🇭 البحرين</option>
+            <option value="OM">🇴🇲 عمان</option>
+            <option value="JO">🇯🇴 الأردن</option>
+            <option value="LB">🇱🇧 لبنان</option>
+            <option value="SY">🇸🇾 سوريا</option>
+            <option value="MA">🇲🇦 المغرب</option>
+            <option value="DZ">🇩🇿 الجزائر</option>
+            <option value="TN">🇹🇳 تونس</option>
+            <option value="OTHER">🌍 دولة أخرى</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">رقم الواتساب <span class="req">*</span></label>
+        <div class="input-wrap">
+          <i class="fa-brands fa-whatsapp input-icon" style="color:#25D366"></i>
+          <input class="form-input with-icon" type="tel" name="phone" required placeholder="+971501234567" style="text-align:left;direction:ltr">
+        </div>
+        <div class="hint">📱 لازم يكون مع كود الدولة (مثلاً +971 أو +20)</div>
+      </div>
+
+      <div class="section-divider"></div>
+      <div class="section-title">🔐 بيانات الدخول</div>
+
+      <div class="form-group">
+        <label class="form-label">البريد الإلكتروني <span class="req">*</span></label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-envelope input-icon"></i>
+          <input class="form-input with-icon" type="email" name="reg_email" required placeholder="you@example.com" style="text-align:left;direction:ltr">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">كلمة المرور <span class="req">*</span></label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-lock input-icon"></i>
+          <input class="form-input with-icon" type="password" name="reg_password" required minlength="6" placeholder="6 أحرف على الأقل">
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-success">
+        <i class="fa-solid fa-user-plus"></i>
+        إنشاء حسابي الجديد
+      </button>
+
+      <div class="info" style="margin-top:14px">
+        <i class="fa-solid fa-circle-info"></i>
+        بعد التسجيل، تقدر تطلب خطة غذائية مخصصة من د. محمد
+      </div>
+    </form>
   </div>
 
   <div class="lang-switch">
@@ -70,5 +183,26 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(
     </a>
   </div>
 </div>
+
+<script>
+function switchTab(which) {
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+  const tabLogin = document.getElementById('tabLogin');
+  const tabRegister = document.getElementById('tabRegister');
+
+  if (which === 'login') {
+    loginForm.style.display = 'block';
+    registerForm.style.display = 'none';
+    tabLogin.classList.add('active');
+    tabRegister.classList.remove('active');
+  } else {
+    loginForm.style.display = 'none';
+    registerForm.style.display = 'block';
+    tabRegister.classList.add('active');
+    tabLogin.classList.remove('active');
+  }
+}
+</script>
 </body>
 </html>
