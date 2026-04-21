@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}طلب خطة جديدة{% endblock %}
+{% block content %}
+
+<div class="page-title">
+  <i class="fa-solid fa-clock"></i> طلب خطة جديدة
+</div>
+
+<div class="card" style="background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border:2px solid #f59e0b">
+  <div style="text-align:center;padding:30px 20px">
+    <div style="font-size:64px;margin-bottom:16px">🔒</div>
+    <h2 style="color:#78350f;margin-bottom:12px;font-weight:800">مينفعش تطلب خطة جديدة دلوقتي</h2>
+    <p style="color:#92400e;font-size:15px;margin-bottom:24px;max-width:500px;margin-right:auto;margin-left:auto;line-height:1.7">
+      الخطط الغذائية بتتعمل أسبوعياً لضمان أفضل نتيجة.<br>
+      تقدر تطلب خطة جديدة كل <strong>7 أيام</strong> بس.
+    </p>
+
+    <div style="background:white;border-radius:16px;padding:24px;display:inline-block;min-width:300px;box-shadow:0 8px 24px rgba(0,0,0,0.1)">
+      <div style="font-size:13px;color:#92400e;font-weight:700;margin-bottom:12px">⏰ متبقي على الطلب الجديد:</div>
+      <div style="font-size:36px;font-weight:900;color:#78350f;margin-bottom:8px">
+        {% if days_left > 0 %}
+          {{ days_left }} يوم
+        {% endif %}
+        {% if hours_left > 0 %}
+          {% if days_left > 0 %} و {% endif %}{{ hours_left }} ساعة
+        {% endif %}
+        {% if days_left == 0 and hours_left == 0 %}
+          أقل من ساعة
+        {% endif %}
+      </div>
+      {% if last_request_date %}
+      <div style="font-size:12px;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-2)">
+        آخر طلب: <strong>{{ last_request_date }}</strong>
+      </div>
+      {% endif %}
+    </div>
+
+    <div style="margin-top:30px">
+      <a href="/my-plan" class="btn btn-primary">
+        <i class="fa-solid fa-arrow-right"></i> الرجوع لخطتي الحالية
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="alert alert-info" style="margin-top:20px">
+  <i class="fa-solid fa-circle-info"></i>
+  <div>
+    <strong>ليه فيه فترة انتظار 7 أيام؟</strong>
+    <ul style="margin-top:8px;padding-right:20px;line-height:1.8">
+      <li>الخطة الغذائية مصممة لتدوم أسبوع كامل</li>
+      <li>عشان تستفيد منها وتشوف نتايجها على وزنك ومزاجك</li>
+      <li>د. محمد يقدر يكرس وقته لتجهيز خطط أحسن للعملاء</li>
+      <li>لو عندك أي استفسار عاجل، تواصل عبر الواتساب</li>
+    </ul>
+  </div>
+</div>
+
+{% endblock %}
