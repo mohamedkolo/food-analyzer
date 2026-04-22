@@ -144,14 +144,7 @@ return r.get(“cnt”, 0) if r else 0
 except:
 return 0
 
-# ═══════════════════════════════════════════════
-
-# WEIGHT LOG COOLDOWN (7 days)
-
-# ═══════════════════════════════════════════════
-
 def can_log_weight(user_id):
-“”“Check if user can log a new weight (7-day cooldown)”””
 try:
 latest = db_row(””“SELECT * FROM weight_log WHERE user_id=?
 ORDER BY logged_at DESC LIMIT 1”””, (user_id,))
@@ -179,14 +172,8 @@ days_left = int(seconds_left // (24 * 60 * 60))
 hours_left = int((seconds_left % (24 * 60 * 60)) // 3600)
 return (False, days_left, hours_left)
 except Exception as e:
-print(f”Error can_log_weight: {e}”)
+print(f”Error: {e}”)
 return (True, 0, 0)
-
-# ═══════════════════════════════════════════════
-
-# PLAN REQUEST COOLDOWN (7 days)
-
-# ═══════════════════════════════════════════════
 
 def can_request_new_plan(client_id):
 try:
@@ -218,12 +205,6 @@ return (False, days_left, hours_left, last_date.strftime(”%Y-%m-%d”))
 except Exception as e:
 print(f”Error: {e}”)
 return (True, 0, 0, None)
-
-# ═══════════════════════════════════════════════
-
-# AUTH
-
-# ═══════════════════════════════════════════════
 
 @app.route(”/”, methods=[“GET”,“POST”])
 def login():
@@ -299,12 +280,6 @@ pass
 return render_template(“dashboard.html”, user=u, lang=session.get(“lang”,“ar”),
 role=role, pending_count=pending_count, total_clients=total_clients)
 
-# ═══════════════════════════════════════════════
-
-# CLIENT PAGES
-
-# ═══════════════════════════════════════════════
-
 @app.route(”/my-plan”)
 @login_required
 def my_plan():
@@ -367,12 +342,6 @@ return redirect(”/my-plan”)
 return render_template(“request_plan.html”, user=u, lang=session.get(“lang”,“ar”),
 diet_plans=DIET_PLAN_TYPES)
 
-# ═══════════════════════════════════════════════
-
-# ADMIN PAGES
-
-# ═══════════════════════════════════════════════
-
 @app.route(”/admin/users”)
 @admin_required
 def admin_users():
@@ -431,12 +400,6 @@ if target and not target.get(“is_admin”):
 db_run(“DELETE FROM users WHERE id=?”, (uid,))
 return redirect(”/admin/users”)
 
-# ═══════════════════════════════════════════════
-
-# PLAN REQUESTS
-
-# ═══════════════════════════════════════════════
-
 @app.route(”/admin/requests”)
 @staff_required
 def admin_requests():
@@ -480,12 +443,6 @@ WHERE id=?”””,
 session.pop(“current_request_id”, None)
 return redirect(”/admin/requests”)
 
-# ═══════════════════════════════════════════════
-
-# OTHER ROUTES
-
-# ═══════════════════════════════════════════════
-
 @app.route(”/settings”, methods=[“GET”,“POST”])
 @login_required
 def settings():
@@ -514,12 +471,6 @@ return redirect(”/generate”)
 def clinical():
 return render_template(“clinical.html”, user=get_user_by_id(session[“uid”]), lang=session.get(“lang”,“ar”))
 
-# ═══════════════════════════════════════════════
-
-# WEIGHT TRACKING
-
-# ═══════════════════════════════════════════════
-
 @app.route(”/history”)
 @login_required
 def history():
@@ -533,7 +484,6 @@ days_left=days_left, hours_left=hours_left)
 @app.route(”/log_weight”, methods=[“POST”])
 @login_required
 def log_weight():
-# Check 7-day cooldown
 can_log, _, _ = can_log_weight(session[“uid”])
 if not can_log:
 return redirect(”/history”)
@@ -541,7 +491,7 @@ w = request.form.get(“weight”)
 if w:
 try:
 w_float = float(w)
-if 20 < w_float < 300:  # sanity check
+if 20 < w_float < 300:
 db_run(“INSERT INTO weight_log (user_id,weight) VALUES (?,?)”, (session[“uid”], w_float))
 except:
 pass
@@ -568,12 +518,6 @@ return redirect(”/saved”)
 def delete_plan(pid):
 db_run(“DELETE FROM saved_plans WHERE id=? AND user_id=?”, (pid, session[“uid”]))
 return redirect(”/saved”)
-
-# ═══════════════════════════════════════════════
-
-# GENERATE / PREVIEW / EDIT
-
-# ═══════════════════════════════════════════════
 
 @app.route(”/generate”, methods=[“GET”,“POST”])
 @staff_required
@@ -636,6 +580,103 @@ session[“current_plan”] = plan
 return jsonify({“ok”: True, “new_meal”: new_meal[“meal”]})
 return jsonify({“ok”: False}), 400
 
+# ═══════════════════════════════════════════════
+
+# ✨ NEW: GET MEAL OPTIONS (for manual picking)
+
+# ═══════════════════════════════════════════════
+
+@app.route(”/get_meal_options”, methods=[“POST”])
+@staff_required
+def get_meal_options():
+“”“Return all available meal options for manual selection”””
+data = session.get(“pdf_data”)
+if not data:
+return jsonify({“ok”: False, “options”: []}), 400
+
+```
+meal_type = request.form.get("meal_type", "breakfast")
+goal = data.get("goal_type", "weight_loss")
+culture = data.get("culture", "مصري")
+pool = get_meal_pool(goal, culture)
+
+# Map diet types to pool keys
+pool_key = meal_type
+if meal_type in ["meal1", "meal2", "iftar", "suhoor", "snack1", "snack2", "pre_workout", "post_workout"]:
+    if meal_type in ["meal1", "iftar"]: pool_key = "lunch"
+    elif meal_type in ["meal2", "suhoor"]: pool_key = "dinner"
+    elif meal_type in ["snack1", "snack2"]: pool_key = "breakfast"
+    elif meal_type == "pre_workout": pool_key = "breakfast"
+    elif meal_type == "post_workout": pool_key = "lunch"
+
+# Get all meals from the pool + also from other cuisines
+all_options = []
+
+# 1. Current cuisine
+if pool_key in pool and pool[pool_key]:
+    for m in pool[pool_key]:
+        all_options.append({
+            "meal": m["meal"],
+            "cal": m.get("cal", 0),
+            "p": m.get("p", 0),
+            "source": culture
+        })
+
+# 2. Other cuisines (for variety)
+pools_map = {
+    "weight_loss": WEIGHT_LOSS,
+    "muscle_gain": MUSCLE_GAIN,
+    "bulking": BULKING,
+}
+main_pool = pools_map.get(goal, WEIGHT_LOSS)
+
+for other_culture, other_pool in main_pool.items():
+    if other_culture != culture and pool_key in other_pool:
+        for m in other_pool[pool_key][:5]:  # only top 5 from each
+            all_options.append({
+                "meal": m["meal"],
+                "cal": m.get("cal", 0),
+                "p": m.get("p", 0),
+                "source": other_culture
+            })
+
+return jsonify({"ok": True, "options": all_options})
+```
+
+# ═══════════════════════════════════════════════
+
+# ✨ NEW: REPLACE MEAL (manual selection)
+
+# ═══════════════════════════════════════════════
+
+@app.route(”/replace_meal”, methods=[“POST”])
+@staff_required
+def replace_meal():
+“”“Replace a meal with a specific selected meal”””
+plan = session.get(“current_plan”)
+if not plan:
+return jsonify({“ok”: False, “error”: “no plan”}), 400
+
+```
+try:
+    day_idx = int(request.form.get("day_idx", 0))
+    meal_type = request.form.get("meal_type", "")
+    new_meal = request.form.get("new_meal", "").strip()
+
+    if not new_meal or not meal_type:
+        return jsonify({"ok": False, "error": "missing data"}), 400
+
+    if day_idx < 0 or day_idx >= len(plan):
+        return jsonify({"ok": False, "error": "invalid day"}), 400
+
+    plan[day_idx][meal_type] = new_meal
+    session["current_plan"] = plan
+
+    return jsonify({"ok": True, "new_meal": new_meal})
+except Exception as e:
+    return jsonify({"ok": False, "error": str(e)}), 500
+```
+
 @app.route(”/edit_meal”, methods=[“POST”])
 @staff_required
 def edit_meal():
@@ -690,12 +731,6 @@ return send_file(buf, as_attachment=True, download_name=f”NutraX*{name}.pdf”
 except Exception as e:
 import traceback; traceback.print_exc()
 return f”خطأ: {str(e)}”, 500
-
-# ═══════════════════════════════════════════════
-
-# PLAN GENERATION
-
-# ═══════════════════════════════════════════════
 
 def _has(symptoms, keywords):
 for s in symptoms:
@@ -885,12 +920,6 @@ if goal in [“weight_loss”,“maintenance”] else
 html_string = render_template(‘meal_plan.html’, **template_data)
 pdf_bytes = HTML(string=html_string).write_pdf()
 return pdf_bytes
-
-# ═══════════════════════════════════════════════
-
-# PATIENTS (legacy)
-
-# ═══════════════════════════════════════════════
 
 @app.route(”/patients”)
 @staff_required
