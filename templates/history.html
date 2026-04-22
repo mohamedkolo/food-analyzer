@@ -1,125 +1,244 @@
-{% extends "base.html" %}
-{% block title %}{{ 'سجل الوزن' if (lang or 'ar')=='ar' else 'Weight Log' }}{% endblock %}
+{% extends “base.html” %}
+{% block title %}سجل وزني{% endblock %}
+{% block extra_style %}
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+{% endblock %}
 {% block content %}
-{% set is_ar = (lang or 'ar') == 'ar' %}
 
 <div class="page-title">
-  <i class="fa-solid fa-chart-line"></i>
-  {{ 'سجل الوزن' if is_ar else 'Weight Log' }}
+  <i class="fa-solid fa-chart-line"></i> سجل وزني
 </div>
 
-<!-- Log form -->
-<div class="card">
-  <div class="card-title">
-    <i class="fa-solid fa-scale-unbalanced"></i>
-    {{ 'سجل وزنك اليوم' if is_ar else 'Log Your Weight Today' }}
-  </div>
-  <form method="POST" action="/log_weight">
-    <div class="grid-2">
-      <div class="form-group">
-        <label class="form-label">{{ 'الوزن (كجم)' if is_ar else 'Weight (kg)' }}</label>
-        <input class="form-input" type="number" name="weight" step="0.1" placeholder="70.5" required>
-      </div>
-      <div style="display:flex;align-items:flex-end">
-        <button type="submit" class="btn btn-success btn-full">
-          <i class="fa-solid fa-check"></i>
-          {{ 'تسجيل' if is_ar else 'Log' }}
-        </button>
-      </div>
+{% if not logs or logs|length == 0 %}
+
+<!-- First time - no data -->
+
+<div class="card" style="text-align:center;padding:40px">
+  <i class="fa-solid fa-weight-scale" style="font-size:64px;color:var(--muted-2);margin-bottom:16px"></i>
+  <h2 style="color:var(--text);margin-bottom:8px">مرحباً في رحلة التقدم! 🚀</h2>
+  <p style="color:var(--muted);margin-bottom:20px;line-height:1.7">
+    سجل وزنك دلوقتي عشان نتابع تقدمك<br>
+    وتقدر تسجل وزن جديد كل 7 أيام
+  </p>
+
+  <form method="POST" action="/log_weight" style="max-width:320px;margin:0 auto">
+    <div class="form-group">
+      <label class="form-label" style="text-align:right">وزنك الحالي (كجم)</label>
+      <input class="form-input" type="number" name="weight" step="0.1" required placeholder="70" style="font-size:18px;text-align:center">
     </div>
+    <button type="submit" class="btn btn-success btn-full" style="font-size:16px;padding:14px">
+      <i class="fa-solid fa-plus-circle"></i> سجل وزني الأول
+    </button>
   </form>
 </div>
 
-{% if logs %}
+{% else %}
 
-<!-- Stats -->
-{% set weights = logs | map(attribute='weight') | list %}
-<div class="grid-3" style="margin-bottom:16px">
-  <div class="metric">
-    <i class="fa-solid fa-arrow-down" style="color:var(--green-light)"></i>
-    <div class="metric-label">{{ 'أقل وزن' if is_ar else 'Lowest' }}</div>
-    <div class="metric-value" style="color:var(--green-light)">{{ weights | min }}</div>
-    <div class="metric-unit">kg</div>
+{% set latest = logs[0] %}
+{% set previous = logs[1] if logs|length > 1 else None %}
+{% set first = logs[-1] %}
+
+<!-- Current Weight Card -->
+
+<div class="card" style="background:linear-gradient(135deg,#1b4332 0%,#2d6a4f 100%);color:white;text-align:center;padding:30px 20px">
+  <div style="font-size:14px;opacity:0.85;margin-bottom:8px">وزنك الحالي</div>
+  <div style="font-size:54px;font-weight:900;line-height:1;margin-bottom:4px">
+    {{ "%.1f"|format(latest.weight) }}
+    <span style="font-size:22px;opacity:0.7">كجم</span>
   </div>
-  <div class="metric">
-    <i class="fa-solid fa-arrow-up" style="color:var(--red)"></i>
-    <div class="metric-label">{{ 'أعلى وزن' if is_ar else 'Highest' }}</div>
-    <div class="metric-value" style="color:var(--red)">{{ weights | max }}</div>
-    <div class="metric-unit">kg</div>
-  </div>
-  <div class="metric">
-    <i class="fa-solid fa-clock-rotate-left" style="color:var(--blue-light)"></i>
-    <div class="metric-label">{{ 'آخر وزن' if is_ar else 'Latest' }}</div>
-    <div class="metric-value" style="color:var(--blue-light)">{{ logs[0].weight }}</div>
-    <div class="metric-unit">kg</div>
+  <div style="font-size:12px;opacity:0.7;margin-top:8px">
+    <i class="fa-regular fa-calendar"></i> {{ latest.logged_at }}
   </div>
 </div>
 
-{% if logs | length > 1 %}
-{% set diff = (logs[0].weight - logs[-1].weight) | round(1) %}
-<div class="alert {{ 'alert-success' if diff > 0 else 'alert-info' }}">
-  <i class="fa-solid fa-{{ 'arrow-trend-down' if diff > 0 else 'arrow-trend-up' }}"></i>
-  {% if diff > 0 %}
-    {{ 'خسرت' if is_ar else 'Lost' }} {{ diff }} kg {{ 'منذ البداية' if is_ar else 'since start' }} 🎉
-  {% elif diff < 0 %}
-    {{ 'زدت' if is_ar else 'Gained' }} {{ diff | abs }} kg {{ 'منذ البداية' if is_ar else 'since start' }}
-  {% else %}
-    {{ 'وزنك ثابت' if is_ar else 'Weight stable' }} ⚖️
+<!-- Stats Cards -->
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+
+{% if previous %}
+{% set diff_last = latest.weight - previous.weight %}
+
+  <div class="card" style="padding:16px;margin:0">
+    <div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px">
+      <i class="fa-solid fa-arrow-trend-down"></i> من آخر قياس
+    </div>
+    <div style="font-size:26px;font-weight:900;color:{% if diff_last < 0 %}#16a34a{% elif diff_last > 0 %}#dc2626{% else %}#64748b{% endif %}">
+      {% if diff_last > 0 %}+{% endif %}{{ "%.1f"|format(diff_last) }}
+      <span style="font-size:13px;opacity:0.7">كجم</span>
+    </div>
+  </div>
   {% endif %}
+
+{% if logs|length > 1 %}
+{% set diff_total = latest.weight - first.weight %}
+
+  <div class="card" style="padding:16px;margin:0">
+    <div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px">
+      <i class="fa-solid fa-flag-checkered"></i> من أول قياس
+    </div>
+    <div style="font-size:26px;font-weight:900;color:{% if diff_total < 0 %}#16a34a{% elif diff_total > 0 %}#dc2626{% else %}#64748b{% endif %}">
+      {% if diff_total > 0 %}+{% endif %}{{ "%.1f"|format(diff_total) }}
+      <span style="font-size:13px;opacity:0.7">كجم</span>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Chart -->
+
+{% if logs|length >= 2 %}
+
+<div class="card">
+  <div class="card-title">
+    <i class="fa-solid fa-chart-line"></i> تطور وزنك
+  </div>
+  <div style="position:relative;height:280px">
+    <canvas id="weightChart"></canvas>
+  </div>
 </div>
 {% endif %}
 
-<!-- Table -->
+<!-- Log new weight or cooldown -->
+
+{% if can_log_weight %}
+
 <div class="card">
   <div class="card-title">
-    <i class="fa-solid fa-table"></i>
-    {{ 'سجل القياسات' if is_ar else 'Measurements Log' }}
+    <i class="fa-solid fa-plus-circle"></i> سجل وزن جديد
   </div>
-  <table style="width:100%;border-collapse:collapse;font-size:14px">
-    <thead>
-      <tr style="background:var(--blue-pale)">
-        <th style="padding:10px 14px;text-align:right;color:var(--blue);font-weight:700">
-          <i class="fa-solid fa-calendar"></i> {{ 'التاريخ' if is_ar else 'Date' }}
-        </th>
-        <th style="padding:10px 14px;text-align:center;color:var(--blue);font-weight:700">
-          <i class="fa-solid fa-weight-scale"></i> {{ 'الوزن' if is_ar else 'Weight' }}
-        </th>
-        <th style="padding:10px 14px;text-align:center;color:var(--blue);font-weight:700">
-          {{ 'التغيير' if is_ar else 'Change' }}
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for i, log in logs | enumerate %}
-      {% if i < logs | length - 1 %}
-        {% set change = (log.weight - logs[i+1].weight) | round(1) %}
-      {% else %}
-        {% set change = 0 %}
+  <form method="POST" action="/log_weight">
+    <div class="form-group">
+      <label class="form-label">الوزن (كجم)</label>
+      <input class="form-input" type="number" name="weight" step="0.1" required placeholder="70" style="font-size:18px;text-align:center">
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center">
+        💡 الأحسن تقيس صباحاً على الريق بعد دخول الحمام
+      </div>
+    </div>
+    <button type="submit" class="btn btn-success btn-full" style="font-size:15px;padding:12px">
+      <i class="fa-solid fa-check"></i> حفظ الوزن
+    </button>
+  </form>
+</div>
+{% else %}
+<div class="card" style="background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border:2px solid #f59e0b">
+  <div style="text-align:center;padding:20px 10px">
+    <div style="font-size:48px;margin-bottom:10px">⏰</div>
+    <h3 style="color:#78350f;margin-bottom:6px;font-weight:800">قياس الوزن القادم</h3>
+    <p style="color:#92400e;font-size:13px;margin-bottom:14px">
+      القياس الأسبوعي أدق من اليومي
+    </p>
+    <div style="background:white;border-radius:12px;padding:14px;display:inline-block;min-width:240px">
+      <div style="font-size:11px;color:#92400e;font-weight:700;margin-bottom:6px">⏳ متبقي:</div>
+      <div style="font-size:26px;font-weight:900;color:#78350f">
+        {% if days_left > 0 %}{{ days_left }} يوم{% endif %}
+        {% if hours_left > 0 %}{% if days_left > 0 %} و {% endif %}{{ hours_left }} ساعة{% endif %}
+        {% if days_left == 0 and hours_left == 0 %}أقل من ساعة{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- History -->
+
+<div class="card">
+  <div class="card-title">
+    <i class="fa-solid fa-clock-rotate-left"></i> آخر القياسات
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    {% for log in logs[:10] %}
+    {% set next_log = logs[loop.index0 + 1] if loop.index0 + 1 < logs|length else None %}
+    {% set change = (log.weight - next_log.weight) if next_log else None %}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:{% if loop.first %}linear-gradient(90deg,#dcfce7,#fff){% else %}var(--gray){% endif %};border-radius:10px;border-right:3px solid {% if loop.first %}#16a34a{% else %}#e2e8f0{% endif %}">
+      <div>
+        <div style="font-weight:700;font-size:15px;color:var(--text)">
+          {{ "%.1f"|format(log.weight) }} <span style="font-size:11px;color:var(--muted)">كجم</span>
+          {% if loop.first %}<span style="background:#16a34a;color:white;font-size:9px;padding:2px 8px;border-radius:10px;margin-right:6px">الحالي</span>{% endif %}
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">
+          <i class="fa-regular fa-calendar"></i> {{ log.logged_at }}
+        </div>
+      </div>
+      {% if change is not none %}
+      <div style="font-size:14px;font-weight:700;color:{% if change < 0 %}#16a34a{% elif change > 0 %}#dc2626{% else %}#64748b{% endif %}">
+        {% if change > 0 %}+{% endif %}{{ "%.1f"|format(change) }}
+      </div>
       {% endif %}
-      <tr style="border-bottom:1px solid var(--gray-2)">
-        <td style="padding:10px 14px">{{ log.logged_at[:10] }}</td>
-        <td style="padding:10px 14px;text-align:center;font-weight:700">{{ log.weight }} kg</td>
-        <td style="padding:10px 14px;text-align:center">
-          {% if i > 0 and change != 0 %}
-            <span style="color:{{ '#16a34a' if change < 0 else '#dc2626' }};font-weight:700;font-size:13px">
-              {{ '+' if change > 0 else '' }}{{ change }} kg
-            </span>
-          {% else %}
-            <span style="color:var(--muted)">—</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    </div>
+    {% endfor %}
+  </div>
 </div>
 
-{% else %}
-<div class="alert alert-info">
-  <i class="fa-solid fa-circle-info"></i>
-  {{ 'سجل وزنك اليوم لتبدأ متابعة تقدمك!' if is_ar else 'Log your weight today to start tracking your progress!' }}
-</div>
+{% endif %}
+
+{% if logs and logs|length >= 2 %}
+
+<script>
+const weightData = [
+  {% for log in logs|reverse %}
+  { date: '{{ log.logged_at }}', weight: {{ log.weight }} }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+
+const ctx = document.getElementById('weightChart').getContext('2d');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: weightData.map((_, i) => `قياس ${i + 1}`),
+    datasets: [{
+      label: 'الوزن (كجم)',
+      data: weightData.map(d => d.weight),
+      borderColor: '#1b4332',
+      backgroundColor: 'rgba(27, 67, 50, 0.1)',
+      borderWidth: 3,
+      pointBackgroundColor: '#1b4332',
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      pointRadius: 6,
+      pointHoverRadius: 9,
+      tension: 0.3,
+      fill: true
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1b4332',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        bodyFont: { family: 'Cairo', size: 13 },
+        titleFont: { family: 'Cairo', size: 12 },
+        padding: 12,
+        cornerRadius: 8,
+        callbacks: {
+          label: (ctx) => ctx.parsed.y + ' كجم'
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: false,
+        ticks: {
+          font: { family: 'Cairo', size: 11 },
+          callback: (v) => v + ' كجم'
+        },
+        grid: { color: 'rgba(0,0,0,0.05)' }
+      },
+      x: {
+        ticks: { font: { family: 'Cairo', size: 10 } },
+        grid: { display: false }
+      }
+    }
+  }
+});
+</script>
+
 {% endif %}
 
 {% endblock %}
