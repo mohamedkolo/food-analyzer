@@ -471,8 +471,6 @@ def clinical():
 
 @app.route("/history")
 @login_required
-@app.route("/knowledge-hub")
-@login_required
 def history():
     u = get_user_by_id(session["uid"])
     logs = db_rows("SELECT * FROM weight_log WHERE user_id=? ORDER BY logged_at DESC LIMIT 30", (session["uid"],))
@@ -882,18 +880,18 @@ def build_pdf(data, plan=None):
         'file_number': file_num, 'date': dt.date.today().strftime('%d/%m/%Y'),
         'plan_title': plan_title, 'diet_plan_name': plan_info["name"],
         'culture': data.get("culture","مصري"),
-        'client': {'name': data.get('name','—'), 'age': data.get('age','—'),
-            'gender': data.get('gender','—'), 'height': data.get('height','—'),
-            'weight': data.get('weight','—'), 'bmi': data.get('bmi','—'),
-            'body_fat': data.get('fat_pct','—'), 'tdee': data.get('tdee','—'),
-            'target_kcal': data.get('goal_cal','—'), 'deficit': deficit},
+        'client': {'name': data.get('name','-'), 'age': data.get('age','-'),
+            'gender': data.get('gender','-'), 'height': data.get('height','-'),
+            'weight': data.get('weight','-'), 'bmi': data.get('bmi','-'),
+            'body_fat': data.get('fat_pct','-'), 'tdee': data.get('tdee','-'),
+            'target_kcal': data.get('goal_cal','-'), 'deficit': deficit},
         'conditions': symptoms if symptoms else ["لا توجد حالات مسجلة"],
         'clinical_notes': clinical_notes,
         'allowed': allowed, 'forbidden': forbidden, 'days': pdf_days,
         'tips': {
             'water': ['كوب ماء دافئ + نصف ليمونة فور الاستيقاظ','8 أكواب ماء يومياً',
                       'كوب ماء قبل كل وجبة بـ 30 دقيقة','تجنب الماء البارد جداً'],
-            'habits': ['مضغ بطيء — الشبع بعد 20 دقيقة','لا تأكل أمام الشاشة',
+            'habits': ['مضغ بطيء - الشبع بعد 20 دقيقة','لا تأكل أمام الشاشة',
                        'نوم 7-8 ساعات','تعرض للشمس يومياً'],
             'metabolism': (['بروتين في كل وجبة','توابل آمنة: كركم + قرفة + زنجبيل',
                             'مشي 30 دقيقة بعد الغداء','قم وتحرك 5 دقائق كل ساعة']
@@ -901,10 +899,10 @@ def build_pdf(data, plan=None):
                            ['بروتين في كل وجبة (1.6-2.2 جم/كجم)','كارب حول التمرين',
                             'تدريب مقاومة 4-5 مرات أسبوعياً','نوم 7-9 ساعات']),
             'warnings': ['لا تخفض السعرات أكثر من المحدد','لو جعت: ماء أولاً ثم فاكهة',
-                         'راجع مع أخصائي التغذية كل 4 أسابيع','أي أعراض غير عادية — راجع طبيبك'],
+                         'راجع مع أخصائي التغذية كل 4 أسابيع','أي أعراض غير عادية - راجع طبيبك'],
         },
         'clinic_name': 'NutraX Clinical Nutrition',
-        'author': 'إعداد د. محمد — أخصائي التغذية الإكلينيكية',
+        'author': 'إعداد د. محمد - أخصائي التغذية الإكلينيكية',
         'review_weeks': 4,
     }
     html_string = render_template('meal_plan.html', **template_data)
