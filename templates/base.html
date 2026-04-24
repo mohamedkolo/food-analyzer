@@ -233,7 +233,7 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
     <a href="/history" class="nav-item {% if request.endpoint=='history' %}active{% endif %}">
       <i class="fa-solid fa-chart-line"></i> {{ 'سجل الوزن' if is_ar else 'Weight Log' }}
     </a>
-    <a href="/knowledge" class="nav-item {% if request.endpoint=='knowledge' %}active{% endif %}">
+   <a href="/knowledge-hub" class="nav-item... {% if request.endpoint=='knowledge' %}active{% endif %}">
       <i class="fa-solid fa-book-open" style="color:#f59e0b"></i> {{ 'مركز المعرفة' if is_ar else 'Knowledge' }}
     </a>
   {% endif %}
