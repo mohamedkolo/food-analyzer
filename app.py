@@ -473,9 +473,6 @@ def clinical():
 @login_required
 @app.route("/knowledge-hub")
 @login_required
-def knowledge_hub():
-    u = get_user_by_id(session["uid"])
-    return render_template("knowledge_hub.html", user=u, lang=session.get("lang","ar"))
 def history():
     u = get_user_by_id(session["uid"])
     logs = db_rows("SELECT * FROM weight_log WHERE user_id=? ORDER BY logged_at DESC LIMIT 30", (session["uid"],))
