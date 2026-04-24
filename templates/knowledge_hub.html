@@ -1,0 +1,643 @@
+{% extends "base.html" %}
+{% block title %}مركز المعرفة{% endblock %}
+{% block content %}
+
+<div class="page-title">
+  <i class="fa-solid fa-book-open"></i> مركز المعرفة الصحية
+</div>
+
+<!-- Welcome Banner -->
+<div class="card" style="background:linear-gradient(135deg,#1b4332 0%,#2d6a4f 100%);color:white;padding:24px">
+  <div style="font-size:22px;font-weight:800;margin-bottom:6px">
+    👋 أهلاً بيك في مركز المعرفة
+  </div>
+  <div style="font-size:14px;opacity:0.9;line-height:1.7">
+    مقالات، نصائح، فيديوهات، وحاسبات مجانية عن التغذية والصحة — كلها في مكان واحد
+  </div>
+</div>
+
+<!-- Quick Tools Grid -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:20px">
+
+  <!-- Food Analyzer -->
+  <div class="card" style="cursor:pointer;transition:all 0.2s" onclick="scrollTo('analyzer-section')">
+    <div style="font-size:36px;margin-bottom:8px">🥗</div>
+    <div style="font-weight:800;color:var(--blue);font-size:16px;margin-bottom:4px">محلل الأطعمة</div>
+    <div style="font-size:12px;color:var(--muted)">اعرف السعرات والقيمة الغذائية لأي وجبة</div>
+  </div>
+
+  <!-- TDEE Calculator -->
+  <div class="card" style="cursor:pointer;transition:all 0.2s" onclick="scrollTo('calc-section')">
+    <div style="font-size:36px;margin-bottom:8px">🔢</div>
+    <div style="font-weight:800;color:var(--blue);font-size:16px;margin-bottom:4px">حاسبة السعرات</div>
+    <div style="font-size:12px;color:var(--muted)">احسب احتياجك اليومي من السعرات</div>
+  </div>
+
+  <!-- BMI -->
+  <div class="card" style="cursor:pointer;transition:all 0.2s" onclick="scrollTo('bmi-section')">
+    <div style="font-size:36px;margin-bottom:8px">⚖️</div>
+    <div style="font-weight:800;color:var(--blue);font-size:16px;margin-bottom:4px">حاسبة BMI</div>
+    <div style="font-size:12px;color:var(--muted)">اعرف مؤشر كتلة جسمك</div>
+  </div>
+
+  <!-- Articles -->
+  <div class="card" style="cursor:pointer;transition:all 0.2s" onclick="scrollTo('articles-section')">
+    <div style="font-size:36px;margin-bottom:8px">📰</div>
+    <div style="font-weight:800;color:var(--blue);font-size:16px;margin-bottom:4px">مقالات صحية</div>
+    <div style="font-size:12px;color:var(--muted)">اقرا نصائح وإرشادات من خبراء</div>
+  </div>
+
+</div>
+
+<!-- Daily Tip -->
+<div class="card" style="background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border:2px solid #f59e0b">
+  <div style="display:flex;gap:14px;align-items:flex-start">
+    <div style="font-size:42px">💡</div>
+    <div style="flex:1">
+      <div style="font-weight:800;color:#78350f;font-size:15px;margin-bottom:6px">نصيحة اليوم</div>
+      <div id="dailyTip" style="font-size:14px;color:#78350f;line-height:1.8;font-weight:600">
+        اشرب كوب ماء فاتر مع نصف ليمونة على الريق — بيحفز الهضم ويساعد على التخسيس
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ FOOD ANALYZER ════════ -->
+<div id="analyzer-section" class="card">
+  <div class="card-title">
+    <i class="fa-solid fa-magnifying-glass-chart"></i> محلل الأطعمة المجاني
+  </div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+    اكتب اسم أي وجبة أو مكون واعرف سعراتها والقيمة الغذائية
+  </p>
+
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <input type="text" id="foodInput" class="form-input" placeholder="مثلاً: صدر دجاج مشوي" style="flex:1;min-width:200px">
+    <button onclick="analyzeFood()" class="btn btn-primary" style="min-width:130px">
+      <i class="fa-solid fa-search"></i> حلل
+    </button>
+  </div>
+
+  <div id="foodResult"></div>
+
+  <!-- Quick examples -->
+  <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-2)">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700">أمثلة:</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button onclick="quickAnalyze('صدر دجاج مشوي 150جم')" class="example-btn">صدر دجاج مشوي</button>
+      <button onclick="quickAnalyze('أرز أبيض 100جم')" class="example-btn">أرز أبيض</button>
+      <button onclick="quickAnalyze('بيض مسلوق')" class="example-btn">بيض مسلوق</button>
+      <button onclick="quickAnalyze('فول مدمس')" class="example-btn">فول مدمس</button>
+      <button onclick="quickAnalyze('موز')" class="example-btn">موز</button>
+      <button onclick="quickAnalyze('تفاح')" class="example-btn">تفاح</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ TDEE CALCULATOR ════════ -->
+<div id="calc-section" class="card">
+  <div class="card-title">
+    <i class="fa-solid fa-calculator"></i> حاسبة السعرات (TDEE)
+  </div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+    احسب احتياجك اليومي من السعرات الحرارية
+  </p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">
+    <div>
+      <label class="form-label">الجنس</label>
+      <select id="gender" class="form-select">
+        <option value="male">ذكر</option>
+        <option value="female">أنثى</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">العمر</label>
+      <input type="number" id="age" class="form-input" placeholder="30">
+    </div>
+    <div>
+      <label class="form-label">الطول (سم)</label>
+      <input type="number" id="height" class="form-input" placeholder="170">
+    </div>
+    <div>
+      <label class="form-label">الوزن (كجم)</label>
+      <input type="number" id="weight" class="form-input" placeholder="70">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">مستوى النشاط</label>
+    <select id="activity" class="form-select">
+      <option value="1.2">خامل (مكتب طول اليوم)</option>
+      <option value="1.375">نشاط خفيف (تمرين 1-3 مرات/أسبوع)</option>
+      <option value="1.55" selected>نشاط متوسط (تمرين 3-5 مرات/أسبوع)</option>
+      <option value="1.725">نشاط عالي (تمرين 6-7 مرات/أسبوع)</option>
+      <option value="1.9">نشاط جداً عالي (رياضي محترف)</option>
+    </select>
+  </div>
+
+  <button onclick="calcTDEE()" class="btn btn-success btn-full">
+    <i class="fa-solid fa-calculator"></i> احسب
+  </button>
+
+  <div id="tdeeResult" style="margin-top:14px"></div>
+</div>
+
+<!-- ════════ BMI CALCULATOR ════════ -->
+<div id="bmi-section" class="card">
+  <div class="card-title">
+    <i class="fa-solid fa-weight-scale"></i> حاسبة مؤشر كتلة الجسم (BMI)
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+    <div>
+      <label class="form-label">الطول (سم)</label>
+      <input type="number" id="bmiHeight" class="form-input" placeholder="170">
+    </div>
+    <div>
+      <label class="form-label">الوزن (كجم)</label>
+      <input type="number" id="bmiWeight" class="form-input" placeholder="70">
+    </div>
+  </div>
+
+  <button onclick="calcBMI()" class="btn btn-primary btn-full">
+    <i class="fa-solid fa-calculator"></i> احسب BMI
+  </button>
+
+  <div id="bmiResult" style="margin-top:14px"></div>
+</div>
+
+<!-- ════════ ARTICLES ════════ -->
+<div id="articles-section">
+  <div class="page-title" style="font-size:18px">
+    <i class="fa-solid fa-newspaper"></i> مقالات صحية
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+
+    <div class="article-card" onclick="openArticle('water')">
+      <div style="font-size:42px;margin-bottom:10px">💧</div>
+      <div style="font-weight:800;color:var(--blue);font-size:15px;margin-bottom:6px">8 أكواب ماء يومياً — أسطورة أم حقيقة؟</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6">اعرف كمية الماء اللي فعلاً محتاجها جسمك حسب وزنك ونشاطك...</div>
+      <div style="margin-top:10px;font-size:11px;color:#16a34a;font-weight:700">📖 اقرا المزيد</div>
+    </div>
+
+    <div class="article-card" onclick="openArticle('breakfast')">
+      <div style="font-size:42px;margin-bottom:10px">🌅</div>
+      <div style="font-weight:800;color:var(--blue);font-size:15px;margin-bottom:6px">الفطار الصحي — مكوناته الأساسية</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6">إيه اللي لازم يكون في الفطار عشان ابدأ يومك بطاقة وتركيز...</div>
+      <div style="margin-top:10px;font-size:11px;color:#16a34a;font-weight:700">📖 اقرا المزيد</div>
+    </div>
+
+    <div class="article-card" onclick="openArticle('protein')">
+      <div style="font-size:42px;margin-bottom:10px">💪</div>
+      <div style="font-weight:800;color:var(--blue);font-size:15px;margin-bottom:6px">البروتين: كم تحتاج يومياً؟</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6">دليل شامل عن احتياجات البروتين حسب هدفك ومستوى نشاطك...</div>
+      <div style="margin-top:10px;font-size:11px;color:#16a34a;font-weight:700">📖 اقرا المزيد</div>
+    </div>
+
+    <div class="article-card" onclick="openArticle('weightloss')">
+      <div style="font-size:42px;margin-bottom:10px">📉</div>
+      <div style="font-weight:800;color:var(--blue);font-size:15px;margin-bottom:6px">خسارة الوزن الصحية — 10 قواعد ذهبية</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6">طرق علمية مجربة لخسارة الوزن بدون حرمان أو أضرار صحية...</div>
+      <div style="margin-top:10px;font-size:11px;color:#16a34a;font-weight:700">📖 اقرا المزيد</div>
+    </div>
+
+    <div class="article-card" onclick="openArticle('myths')">
+      <div style="font-size:42px;margin-bottom:10px">🚫</div>
+      <div style="font-weight:800;color:var(--blue);font-size:15px;margin-bottom:6px">5 أساطير شائعة عن الرجيم</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6">لا تصدق كل ما تسمعه — الحقيقة العلمية عن الكارب والدهون...</div>
+      <div style="margin-top:10px;font-size:11px;color:#16a34a;font-weight:700">📖 اقرا المزيد</div>
+    </div>
+
+    <div class="article-card" onclick="openArticle('sugar')">
+      <div style="font-size:42px;margin-bottom:10px">🍬</div>
+      <div style="font-weight:800;color:var(--blue);font-size:15px;margin-bottom:6px">السكر المضاف — العدو الخفي</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6">كيف تكتشف السكريات المخبأة في الأطعمة وتتجنبها...</div>
+      <div style="margin-top:10px;font-size:11px;color:#16a34a;font-weight:700">📖 اقرا المزيد</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════ VIDEOS ════════ -->
+<div style="margin-top:24px">
+  <div class="page-title" style="font-size:18px">
+    <i class="fa-solid fa-video"></i> فيديوهات مفيدة
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="position:relative;padding-top:56.25%;background:#000">
+        <iframe style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" src="https://www.youtube.com/embed/videoseries?list=PLxqjrsaekyzXk3QfjbQGSPmH9HJRq5Dj6" allowfullscreen></iframe>
+      </div>
+      <div style="padding:12px">
+        <div style="font-weight:800;font-size:14px;color:var(--blue)">قناة التغذية الصحية</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">سلسلة فيديوهات عن التغذية السليمة</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ ARTICLE MODAL ════════ -->
+<div id="articleModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;padding:20px;align-items:flex-start;justify-content:center;overflow-y:auto">
+  <div style="background:white;border-radius:16px;max-width:700px;width:100%;margin:20px 0;max-height:90vh;overflow-y:auto">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--gray-2);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:white;z-index:1">
+      <div id="articleTitle" style="font-size:18px;font-weight:800;color:var(--blue)"></div>
+      <button onclick="closeArticle()" style="background:var(--gray);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;flex-shrink:0">✕</button>
+    </div>
+    <div id="articleContent" style="padding:20px 24px;line-height:1.8;color:var(--text);font-size:14px"></div>
+  </div>
+</div>
+
+<style>
+.example-btn {
+  background: var(--gray); border: 1px solid var(--gray-2); border-radius: 20px;
+  padding: 5px 12px; font-family: 'Cairo', sans-serif; font-size: 12px;
+  cursor: pointer; color: var(--blue); font-weight: 600;
+}
+.example-btn:hover { background: var(--blue-pale); }
+
+.article-card {
+  background: white; border: 1.5px solid var(--gray-2); border-radius: 14px;
+  padding: 18px; cursor: pointer; transition: all 0.2s;
+}
+.article-card:hover {
+  transform: translateY(-2px); border-color: #16a34a;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+
+.card[onclick]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+.nutrition-card {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border: 2px solid #86efac; border-radius: 12px;
+  padding: 14px; text-align: center;
+}
+</style>
+
+<script>
+// Daily tip rotation
+var tips = [
+  "اشرب كوب ماء فاتر مع نصف ليمونة على الريق — بيحفز الهضم ويساعد على التخسيس",
+  "مضغ الأكل ببطء (20 مرة لكل لقمة) يساعد على الشبع بسرعة ويقلل السعرات",
+  "البروتين بيحرق سعرات أكتر في الهضم — اهدف لـ 20-30جم بروتين في كل وجبة",
+  "النوم 7-8 ساعات مهم زي الأكل والتمرين للحفاظ على وزن صحي",
+  "تجنب الأكل قدام الشاشة — بيخليك تاكل كميات أكبر بدون ما تحس",
+  "المشي 30 دقيقة بعد الغداء يساعد على الهضم وتنظيم السكر",
+  "الخضار والفواكه الملونة = فيتامينات مختلفة، نوّع عشان تاخد كل الفوائد"
+];
+document.getElementById('dailyTip').textContent = tips[new Date().getDate() % tips.length];
+
+// Scroll helper
+function scrollTo(id) {
+  document.getElementById(id).scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+// ═══════ Food Analyzer (local database) ═══════
+var foodDB = {
+  'صدر دجاج': {cal: 165, p: 31, c: 0, f: 3.6, per: '100جم'},
+  'دجاج': {cal: 165, p: 31, c: 0, f: 3.6, per: '100جم'},
+  'أرز أبيض': {cal: 130, p: 2.7, c: 28, f: 0.3, per: '100جم'},
+  'أرز بني': {cal: 112, p: 2.6, c: 24, f: 0.9, per: '100جم'},
+  'ارز': {cal: 130, p: 2.7, c: 28, f: 0.3, per: '100جم'},
+  'بيض': {cal: 78, p: 6, c: 0.6, f: 5, per: 'بيضة'},
+  'بيض مسلوق': {cal: 78, p: 6, c: 0.6, f: 5, per: 'بيضة'},
+  'فول': {cal: 140, p: 8, c: 20, f: 3, per: '150جم'},
+  'فول مدمس': {cal: 140, p: 8, c: 20, f: 3, per: '150جم'},
+  'خبز أسمر': {cal: 160, p: 6, c: 30, f: 2, per: 'رغيف'},
+  'خبز ابيض': {cal: 200, p: 6, c: 40, f: 1, per: 'رغيف'},
+  'خبز': {cal: 180, p: 6, c: 35, f: 1.5, per: 'رغيف'},
+  'موز': {cal: 89, p: 1.1, c: 23, f: 0.3, per: '100جم'},
+  'تفاح': {cal: 52, p: 0.3, c: 14, f: 0.2, per: '100جم'},
+  'برتقال': {cal: 47, p: 0.9, c: 12, f: 0.1, per: '100جم'},
+  'شوفان': {cal: 389, p: 17, c: 66, f: 7, per: '100جم'},
+  'لبن': {cal: 42, p: 3.4, c: 5, f: 1, per: '100مل'},
+  'حليب': {cal: 42, p: 3.4, c: 5, f: 1, per: '100مل'},
+  'زبادي': {cal: 59, p: 10, c: 3.6, f: 0.4, per: '100جم'},
+  'جبن قريش': {cal: 98, p: 11, c: 3.4, f: 4.3, per: '100جم'},
+  'جبن': {cal: 350, p: 25, c: 2, f: 28, per: '100جم'},
+  'سلمون': {cal: 208, p: 20, c: 0, f: 13, per: '100جم'},
+  'تونة': {cal: 132, p: 28, c: 0, f: 1, per: '100جم'},
+  'سمك': {cal: 150, p: 22, c: 0, f: 6, per: '100جم'},
+  'لحم': {cal: 250, p: 26, c: 0, f: 15, per: '100جم'},
+  'بطاطا': {cal: 77, p: 2, c: 17, f: 0.1, per: '100جم'},
+  'بطاطس': {cal: 77, p: 2, c: 17, f: 0.1, per: '100جم'},
+  'طماطم': {cal: 18, p: 0.9, c: 3.9, f: 0.2, per: '100جم'},
+  'خيار': {cal: 15, p: 0.7, c: 3.6, f: 0.1, per: '100جم'},
+  'كوسة': {cal: 17, p: 1.2, c: 3.1, f: 0.3, per: '100جم'},
+  'ملوخية': {cal: 35, p: 4, c: 7, f: 0.5, per: '100جم'},
+  'سبانخ': {cal: 23, p: 2.9, c: 3.6, f: 0.4, per: '100جم'},
+  'عدس': {cal: 116, p: 9, c: 20, f: 0.4, per: '100جم'},
+  'حمص': {cal: 164, p: 9, c: 27, f: 2.6, per: '100جم'},
+  'لوز': {cal: 579, p: 21, c: 22, f: 50, per: '100جم'},
+  'تمر': {cal: 66, p: 0.4, c: 18, f: 0.1, per: 'تمرة'},
+  'زيت زيتون': {cal: 120, p: 0, c: 0, f: 14, per: 'ملعقة'},
+  'افوكادو': {cal: 160, p: 2, c: 9, f: 15, per: '100جم'},
+  'شوفان مطبوخ': {cal: 71, p: 2.5, c: 12, f: 1.5, per: '100جم'},
+  'كينوا': {cal: 120, p: 4.4, c: 21, f: 1.9, per: '100جم'},
+  'بطاطا حلوة': {cal: 86, p: 1.6, c: 20, f: 0.1, per: '100جم'}
+};
+
+function analyzeFood() {
+  var input = document.getElementById('foodInput').value.trim().toLowerCase();
+  var result = document.getElementById('foodResult');
+
+  if (!input) {
+    result.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">اكتب اسم الوجبة</div>';
+    return;
+  }
+
+  // Find matching food
+  var found = null;
+  var foundKey = '';
+  for (var key in foodDB) {
+    if (input.indexOf(key) !== -1 || key.indexOf(input) !== -1) {
+      found = foodDB[key];
+      foundKey = key;
+      break;
+    }
+  }
+
+  if (found) {
+    result.innerHTML =
+      '<div class="nutrition-card">' +
+        '<div style="font-size:14px;color:#14532d;font-weight:800;margin-bottom:12px">' +
+          '<i class="fa-solid fa-apple-whole"></i> ' + foundKey +
+          ' <span style="font-size:11px;opacity:0.7">(' + found.per + ')</span>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">' +
+          '<div><div style="font-size:20px;font-weight:900;color:#dc2626">' + found.cal + '</div><div style="font-size:10px;color:#166534">kcal سعرات</div></div>' +
+          '<div><div style="font-size:20px;font-weight:900;color:#1e3a8a">' + found.p + 'جم</div><div style="font-size:10px;color:#166534">بروتين</div></div>' +
+          '<div><div style="font-size:20px;font-weight:900;color:#b45309">' + found.c + 'جم</div><div style="font-size:10px;color:#166534">كارب</div></div>' +
+          '<div><div style="font-size:20px;font-weight:900;color:#7c2d12">' + found.f + 'جم</div><div style="font-size:10px;color:#166534">دهون</div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="margin-top:10px;padding:10px;background:#fef3c7;border-radius:8px;font-size:12px;color:#78350f">' +
+        '💡 <strong>نصيحة:</strong> احسب الكمية اللي بتاكلها وضربها × السعرات عشان تعرف مجموع السعرات الحقيقي' +
+      '</div>';
+  } else {
+    result.innerHTML =
+      '<div style="background:#fef2f2;border:1px solid #fca5a5;padding:14px;border-radius:10px;color:#991b1b;text-align:center">' +
+        '<i class="fa-solid fa-info-circle"></i> ' +
+        'ماوجدتش الوجبة في قاعدة البيانات. جرب اسم أبسط (مثل: دجاج، أرز، خبز)' +
+      '</div>';
+  }
+}
+
+function quickAnalyze(name) {
+  document.getElementById('foodInput').value = name;
+  analyzeFood();
+}
+
+// ═══════ TDEE Calculator ═══════
+function calcTDEE() {
+  var gender = document.getElementById('gender').value;
+  var age = parseFloat(document.getElementById('age').value);
+  var height = parseFloat(document.getElementById('height').value);
+  var weight = parseFloat(document.getElementById('weight').value);
+  var activity = parseFloat(document.getElementById('activity').value);
+
+  if (!age || !height || !weight) {
+    document.getElementById('tdeeResult').innerHTML = '<div style="color:#dc2626;text-align:center;padding:14px">املا كل البيانات</div>';
+    return;
+  }
+
+  // Mifflin-St Jeor
+  var bmr;
+  if (gender === 'male') {
+    bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+  } else {
+    bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+  }
+
+  var tdee = Math.round(bmr * activity);
+  var cutting = Math.round(tdee - 500);
+  var bulking = Math.round(tdee + 300);
+
+  document.getElementById('tdeeResult').innerHTML =
+    '<div class="nutrition-card" style="margin-bottom:10px">' +
+      '<div style="font-size:12px;color:#166534;font-weight:700;margin-bottom:6px">TDEE (احتياجك اليومي)</div>' +
+      '<div style="font-size:36px;font-weight:900;color:#14532d">' + tdee + ' <span style="font-size:14px">kcal</span></div>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">' +
+      '<div style="background:#fef2f2;border-radius:10px;padding:10px;text-align:center">' +
+        '<div style="font-size:11px;color:#991b1b;font-weight:700">تخسيس</div>' +
+        '<div style="font-size:18px;font-weight:800;color:#dc2626">' + cutting + '</div>' +
+      '</div>' +
+      '<div style="background:#eff6ff;border-radius:10px;padding:10px;text-align:center">' +
+        '<div style="font-size:11px;color:#1e3a8a;font-weight:700">ثبات</div>' +
+        '<div style="font-size:18px;font-weight:800;color:#2563eb">' + tdee + '</div>' +
+      '</div>' +
+      '<div style="background:#f0fdf4;border-radius:10px;padding:10px;text-align:center">' +
+        '<div style="font-size:11px;color:#14532d;font-weight:700">زيادة</div>' +
+        '<div style="font-size:18px;font-weight:800;color:#16a34a">' + bulking + '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+// ═══════ BMI Calculator ═══════
+function calcBMI() {
+  var height = parseFloat(document.getElementById('bmiHeight').value) / 100;
+  var weight = parseFloat(document.getElementById('bmiWeight').value);
+
+  if (!height || !weight) {
+    document.getElementById('bmiResult').innerHTML = '<div style="color:#dc2626;text-align:center;padding:14px">املا الطول والوزن</div>';
+    return;
+  }
+
+  var bmi = (weight / (height * height)).toFixed(1);
+  var status, color, advice;
+
+  if (bmi < 18.5) {
+    status = 'نحافة'; color = '#2563eb';
+    advice = 'وزنك تحت الطبيعي — احتاج زيادة وزن صحية';
+  } else if (bmi < 25) {
+    status = 'طبيعي'; color = '#16a34a';
+    advice = 'مبروك! وزنك في المعدل الطبيعي — حافظ على نمط حياتك الصحي';
+  } else if (bmi < 30) {
+    status = 'زيادة وزن'; color = '#f59e0b';
+    advice = 'وزنك فوق الطبيعي شوية — ابدأ خطة تخسيس صحية';
+  } else {
+    status = 'سمنة'; color = '#dc2626';
+    advice = 'وزنك في منطقة السمنة — يفضل استشارة أخصائي تغذية';
+  }
+
+  document.getElementById('bmiResult').innerHTML =
+    '<div class="nutrition-card">' +
+      '<div style="font-size:40px;font-weight:900;color:' + color + ';margin-bottom:6px">' + bmi + '</div>' +
+      '<div style="font-size:16px;font-weight:800;color:' + color + ';margin-bottom:10px">' + status + '</div>' +
+      '<div style="font-size:13px;color:#14532d;line-height:1.6">' + advice + '</div>' +
+    '</div>';
+}
+
+// ═══════ Articles ═══════
+var articles = {
+  water: {
+    title: '💧 8 أكواب ماء يومياً — أسطورة أم حقيقة؟',
+    content:
+      '<p><strong>القاعدة الشهيرة "8 أكواب يومياً" ليست دقيقة 100%.</strong> الاحتياج الفعلي يختلف حسب:</p>' +
+      '<ul style="margin-right:20px;line-height:2">' +
+        '<li>الوزن (35 مل لكل كيلوجرام)</li>' +
+        '<li>مستوى النشاط</li>' +
+        '<li>الطقس (الصيف يحتاج أكثر)</li>' +
+        '<li>نوع الطعام</li>' +
+      '</ul>' +
+      '<h3 style="color:#16a34a;margin-top:16px">كيف تحسب احتياجك؟</h3>' +
+      '<p>القاعدة: <strong>الوزن × 35 مل</strong></p>' +
+      '<p>مثال: شخص 70 كجم = 70 × 35 = 2450 مل (حوالي 10 أكواب)</p>' +
+      '<h3 style="color:#16a34a;margin-top:16px">علامات أنك تشرب كمية كافية:</h3>' +
+      '<ul style="margin-right:20px;line-height:2">' +
+        '<li>لون البول فاتح (أصفر شاحب)</li>' +
+        '<li>لا تشعر بالعطش كثيراً</li>' +
+        '<li>بشرتك مرنة وحيوية</li>' +
+      '</ul>'
+  },
+  breakfast: {
+    title: '🌅 الفطار الصحي — مكوناته الأساسية',
+    content:
+      '<p>الفطار هو الوجبة الأهم في اليوم. <strong>يجب أن يحتوي على:</strong></p>' +
+      '<h3 style="color:#16a34a;margin-top:16px">1. بروتين (20-30 جم)</h3>' +
+      '<p>يشبع لفترة أطول ويحافظ على العضلات:</p>' +
+      '<ul style="margin-right:20px;line-height:2">' +
+        '<li>بيض (2-3 بيضات)</li>' +
+        '<li>جبن قريش</li>' +
+        '<li>زبادي يوناني</li>' +
+      '</ul>' +
+      '<h3 style="color:#16a34a;margin-top:16px">2. كربوهيدرات معقدة</h3>' +
+      '<ul style="margin-right:20px;line-height:2">' +
+        '<li>شوفان</li>' +
+        '<li>خبز أسمر</li>' +
+        '<li>بطاطا حلوة</li>' +
+      '</ul>' +
+      '<h3 style="color:#16a34a;margin-top:16px">3. دهون صحية</h3>' +
+      '<ul style="margin-right:20px;line-height:2">' +
+        '<li>أفوكادو</li>' +
+        '<li>مكسرات</li>' +
+        '<li>زيت زيتون</li>' +
+      '</ul>' +
+      '<h3 style="color:#16a34a;margin-top:16px">4. فواكه أو خضار</h3>' +
+      '<p>للألياف والفيتامينات</p>' +
+      '<div style="background:#fef3c7;padding:12px;border-radius:8px;margin-top:14px;color:#78350f">' +
+        '<strong>⚠️ تجنب:</strong> الكورنفليكس المحلى، المخبوزات البيضاء، العصائر المعلبة' +
+      '</div>'
+  },
+  protein: {
+    title: '💪 البروتين: كم تحتاج يومياً؟',
+    content:
+      '<h3 style="color:#16a34a">الاحتياج حسب الهدف:</h3>' +
+      '<ul style="margin-right:20px;line-height:2">' +
+        '<li><strong>شخص عادي:</strong> 0.8 جم/كجم من وزن الجسم</li>' +
+        '<li><strong>رياضي معتدل:</strong> 1.2-1.6 جم/كجم</li>' +
+        '<li><strong>بناء عضل:</strong> 1.6-2.2 جم/كجم</li>' +
+        '<li><strong>تخسيس:</strong> 1.6-2.4 جم/كجم (للحفاظ على العضلات)</li>' +
+      '</ul>' +
+      '<h3 style="color:#16a34a;margin-top:16px">أفضل مصادر البروتين:</h3>' +
+      '<ul style="margin-right:20px;line-height:2">' +
+        '<li>صدر دجاج (31 جم / 100 جم)</li>' +
+        '<li>سلمون (20 جم / 100 جم)</li>' +
+        '<li>بيض (6 جم / بيضة)</li>' +
+        '<li>لحم بقر (26 جم / 100 جم)</li>' +
+        '<li>عدس (9 جم / 100 جم)</li>' +
+        '<li>زبادي يوناني (10 جم / 100 جم)</li>' +
+      '</ul>' +
+      '<h3 style="color:#16a34a;margin-top:16px">نصيحة:</h3>' +
+      '<p>وزع البروتين على 3-4 وجبات بدل تركيزه في وجبة واحدة — جسمك يستفيد أكثر من 25-30 جم في كل وجبة.</p>'
+  },
+  weightloss: {
+    title: '📉 خسارة الوزن الصحية — 10 قواعد ذهبية',
+    content:
+      '<ol style="margin-right:20px;line-height:2.2">' +
+        '<li><strong>العجز الحراري الثابت</strong> — اخفض 300-500 سعرة عن احتياجك اليومي (TDEE)</li>' +
+        '<li><strong>بروتين عالي</strong> — 1.6-2.4 جم/كجم للحفاظ على العضلات</li>' +
+        '<li><strong>تمرين مقاومة</strong> — 3-4 مرات أسبوعياً</li>' +
+        '<li><strong>نوم 7-8 ساعات</strong> — قلة النوم تبطئ الحرق</li>' +
+        '<li><strong>شرب ماء قبل الوجبات</strong> — يقلل الجوع</li>' +
+        '<li><strong>مضغ بطيء</strong> — الشبع يحصل بعد 20 دقيقة</li>' +
+        '<li><strong>تجنب السعرات السائلة</strong> — عصائر، صودا، قهوة بسكر</li>' +
+        '<li><strong>خضار في كل وجبة</strong> — ألياف تشبع وقليلة السعرات</li>' +
+        '<li><strong>لا تحرم نفسك تماماً</strong> — سمح لنفسك بوجبة مفضلة أسبوعياً</li>' +
+        '<li><strong>الصبر</strong> — الخسارة الصحية 0.5-1 كجم أسبوعياً</li>' +
+      '</ol>' +
+      '<div style="background:#fef2f2;padding:12px;border-radius:8px;margin-top:14px;color:#991b1b">' +
+        '<strong>❌ تجنب:</strong> الدايت القاسي، الحرمان الكامل، التخلي عن مجموعة غذائية كاملة' +
+      '</div>'
+  },
+  myths: {
+    title: '🚫 5 أساطير شائعة عن الرجيم',
+    content:
+      '<h3 style="color:#dc2626">1. الكارب يسمن ❌</h3>' +
+      '<p>الكارب مش السبب — السعرات الزائدة هي السبب. الكارب ضروري للطاقة.</p>' +
+      '<h3 style="color:#dc2626;margin-top:14px">2. الدهون مضرة ❌</h3>' +
+      '<p>الدهون الصحية (أفوكادو، مكسرات، زيت زيتون) مفيدة جداً للهرمونات.</p>' +
+      '<h3 style="color:#dc2626;margin-top:14px">3. لازم تاكل بعد التمرين فوراً ❌</h3>' +
+      '<p>"النافذة الأنابولية" مبالغ فيها — لك ساعات لتأكل.</p>' +
+      '<h3 style="color:#dc2626;margin-top:14px">4. الأكل بعد 6 مساءً يسمن ❌</h3>' +
+      '<p>السعرات اليومية الكلية هي اللي تحدد — مش وقت الأكل.</p>' +
+      '<h3 style="color:#dc2626;margin-top:14px">5. التعرق يحرق دهون ❌</h3>' +
+      '<p>التعرق = فقد ماء فقط. حرق الدهون يحصل بالعجز الحراري.</p>'
+  },
+  sugar: {
+    title: '🍬 السكر المضاف — العدو الخفي',
+    content:
+      '<p>السكر المضاف موجود في أطعمة مش متوقعة!</p>' +
+      '<h3 style="color:#dc2626;margin-top:16px">أطعمة تحتوي سكر مخفي:</h3>' +
+      '<ul style="margin-right:20px;line-height:2">' +
+        '<li>صلصة الطماطم الجاهزة</li>' +
+        '<li>الزبادي بالفواكه</li>' +
+        '<li>الكاتشب</li>' +
+        '<li>خبز التوست الأبيض</li>' +
+        '<li>حبوب الفطار</li>' +
+        '<li>عصائر "طبيعية" معلبة</li>' +
+        '<li>الكافيه لاتيه</li>' +
+        '<li>البروتين بار</li>' +
+      '</ul>' +
+      '<h3 style="color:#16a34a;margin-top:16px">أسماء السكر على الملصقات:</h3>' +
+      '<ul style="margin-right:20px;line-height:2">' +
+        '<li>Sucrose / Fructose / Glucose</li>' +
+        '<li>Corn syrup / High fructose corn syrup</li>' +
+        '<li>Dextrose / Maltose</li>' +
+        '<li>Molasses / Honey / Agave</li>' +
+      '</ul>' +
+      '<h3 style="color:#16a34a;margin-top:16px">الحد الأقصى المسموح:</h3>' +
+      '<ul style="margin-right:20px;line-height:2">' +
+        '<li>رجال: 37 جم / يوم (9 ملاعق صغيرة)</li>' +
+        '<li>نساء: 25 جم / يوم (6 ملاعق صغيرة)</li>' +
+      '</ul>'
+  }
+};
+
+function openArticle(key) {
+  var article = articles[key];
+  if (!article) return;
+  document.getElementById('articleTitle').textContent = article.title;
+  document.getElementById('articleContent').innerHTML = article.content;
+  document.getElementById('articleModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeArticle() {
+  document.getElementById('articleModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.getElementById('articleModal').addEventListener('click', function(e) {
+  if (e.target === this) closeArticle();
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && document.getElementById('articleModal').style.display === 'flex') {
+    closeArticle();
+  }
+});
+
+// Enter key on food input
+document.getElementById('foodInput').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') analyzeFood();
+});
+</script>
+
+{% endblock %}
