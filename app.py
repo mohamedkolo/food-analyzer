@@ -471,9 +471,9 @@ def clinical():
 
 @app.route("/history")
 @login_required
-@app.route("/knowledge")
+@app.route("/knowledge-hub")
 @login_required
-def knowledge():
+def knowledge_hub():
     u = get_user_by_id(session["uid"])
     return render_template("knowledge_hub.html", user=u, lang=session.get("lang","ar"))
 def history():
