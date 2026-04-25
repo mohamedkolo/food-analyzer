@@ -496,6 +496,39 @@ def admin_request_generate(rid):
     session["current_request_id"] = rid
     return redirect("/preview")
 
+
+@app.route("/admin/requests/<int:rid>/manual")
+@staff_required
+def admin_request_manual(rid):
+    """Generate empty plan for manual filling"""
+    req = db_row("SELECT * FROM plan_requests WHERE id=?", (rid,))
+    if not req: return redirect("/admin/requests")
+    try: rdata = json.loads(req["request_data"])
+    except: return redirect("/admin/requests")
+    client = get_user_by_id(req["client_id"])
+    data = {
+        "name": client.get("name","") if client else req.get("client_name",""),
+        **rdata,
+    }
+    # Generate EMPTY plan structure (no AI)
+    diet_type = data.get("diet_plan_type", "standard")
+    plan_info = get_diet_plan_info(diet_type)
+    days = ["الاحد","الاثنين","الثلاثاء","الاربعاء","الخميس","الجمعة","السبت"]
+    empty_plan = []
+    for i in range(7):
+        day_plan = {"day": days[i], "diet_type": diet_type,
+                    "meal_labels": plan_info["meal_labels"],
+                    "meal_emojis": plan_info["meal_emojis"], "total_cal": 0}
+        for meal_key in plan_info["meals"]:
+            day_plan[meal_key] = ""  # Empty - to be filled manually
+        empty_plan.append(day_plan)
+    session["pdf_data"] = data
+    session["current_plan"] = empty_plan
+    session["current_request_id"] = rid
+    session["manual_mode"] = True
+    return redirect("/preview")
+
+
 @app.route("/admin/requests/<int:rid>/approve", methods=["POST"])
 @staff_required
 def admin_request_approve(rid):
