@@ -29,14 +29,12 @@
     {
       "name": "خطتي الغذائية",
       "short_name": "خطتي",
-      "description": "عرض خطتي الحالية",
       "url": "/my-plan",
       "icons": [{ "src": "/static/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "سجل وزني",
       "short_name": "الوزن",
-      "description": "تسجيل الوزن ومتابعة التقدم",
       "url": "/history",
       "icons": [{ "src": "/static/icon-192.png", "sizes": "192x192" }]
     }
