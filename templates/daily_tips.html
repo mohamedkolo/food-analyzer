@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% block title %}النصائح اليومية{% endblock %}
+{% block content %}
+
+<div class="page-title">
+  <i class="fa-solid fa-bell"></i> نصائحك اليومية
+</div>
+
+<!-- Today's Featured Tip -->
+{% if tips and tips|length > 0 %}
+{% set today_tip = tips[today_index] %}
+<div class="card" style="background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border:3px solid #f59e0b;padding:24px">
+  <div style="text-align:center">
+    <div style="font-size:14px;color:#78350f;font-weight:700;margin-bottom:10px">
+      💫 نصيحة اليوم
+    </div>
+    <div style="font-size:64px;margin-bottom:14px">{{ today_tip.icon }}</div>
+    <div style="font-size:20px;font-weight:900;color:#78350f;margin-bottom:10px">{{ today_tip.title }}</div>
+    <div style="font-size:15px;color:#78350f;line-height:1.8;font-weight:600;max-width:400px;margin:0 auto">
+      {{ today_tip.tip }}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Notification Permission -->
+<div class="card" id="notifBanner" style="display:none;background:linear-gradient(135deg,#dbeafe,#bfdbfe);border:2px solid #2563eb">
+  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+    <div style="font-size:38px">🔔</div>
+    <div style="flex:1;min-width:200px">
+      <div style="font-weight:800;color:#1e3a8a;margin-bottom:4px">شغل الإشعارات اليومية</div>
+      <div style="font-size:12px;color:#1e3a8a">هنبعتلك نصيحة كل يوم على وقت الفطار</div>
+    </div>
+    <button onclick="enableNotifications()" class="btn btn-primary">
+      <i class="fa-solid fa-bell"></i> تشغيل
+    </button>
+  </div>
+</div>
+
+<!-- All Tips -->
+<div class="card">
+  <div class="card-title">
+    <i class="fa-solid fa-list"></i> كل النصائح
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+    {% for tip in tips %}
+    <div class="tip-card">
+      <div style="font-size:32px;margin-bottom:8px">{{ tip.icon }}</div>
+      <div style="font-weight:800;color:var(--blue);font-size:14px;margin-bottom:6px">{{ tip.title }}</div>
+      <div style="font-size:13px;color:var(--text-2);line-height:1.7">{{ tip.tip }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Reminder Settings -->
+<div class="card">
+  <div class="card-title">
+    <i class="fa-solid fa-clock"></i> أوقات التذكير
+  </div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+    اختار الأوقات اللي عايز تتذكر فيها (لما الإشعارات شغالة)
+  </p>
+
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <label class="reminder-row">
+      <input type="checkbox" id="rem1" checked onchange="saveReminders()">
+      <div>
+        <div style="font-weight:700">🌅 الفطار - 8:00 صباحاً</div>
+        <div style="font-size:11px;color:var(--muted)">نصيحة الصباح</div>
+      </div>
+    </label>
+
+    <label class="reminder-row">
+      <input type="checkbox" id="rem2" checked onchange="saveReminders()">
+      <div>
+        <div style="font-weight:700">💧 شرب الماء - 11:00 صباحاً</div>
+        <div style="font-size:11px;color:var(--muted)">تذكير بالماء</div>
+      </div>
+    </label>
+
+    <label class="reminder-row">
+      <input type="checkbox" id="rem3" checked onchange="saveReminders()">
+      <div>
+        <div style="font-weight:700">🍽️ الغداء - 1:30 ظهراً</div>
+        <div style="font-size:11px;color:var(--muted)">تذكير بوقت الأكل</div>
+      </div>
+    </label>
+
+    <label class="reminder-row">
+      <input type="checkbox" id="rem4" onchange="saveReminders()">
+      <div>
+        <div style="font-weight:700">🚶 المشي - 5:00 مساءً</div>
+        <div style="font-size:11px;color:var(--muted)">تذكير بالنشاط</div>
+      </div>
+    </label>
+
+    <label class="reminder-row">
+      <input type="checkbox" id="rem5" checked onchange="saveReminders()">
+      <div>
+        <div style="font-weight:700">🌙 العشاء - 8:00 مساءً</div>
+        <div style="font-size:11px;color:var(--muted)">تذكير بالعشاء</div>
+      </div>
+    </label>
+  </div>
+
+  <div id="notifStatus" style="margin-top:14px;padding:10px;border-radius:8px;text-align:center;font-size:12px;font-weight:700"></div>
+</div>
+
+<style>
+.tip-card {
+  background: var(--gray);
+  border: 1.5px solid var(--gray-2);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s;
+}
+.tip-card:hover {
+  background: white;
+  border-color: var(--blue-light);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.reminder-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--gray);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.reminder-row:hover { background: #e2e8f0; }
+.reminder-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--blue);
+}
+</style>
+
+<script>
+// Tips data for notifications
+var allTips = [
+  {% for tip in tips %}
+  {icon: '{{ tip.icon }}', title: '{{ tip.title }}', tip: '{{ tip.tip|e }}'}{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+
+// Check notification status
+function checkNotificationStatus() {
+  if (!('Notification' in window)) {
+    document.getElementById('notifStatus').innerHTML = '<span style="color:#dc2626">❌ المتصفح ده مش بيدعم الإشعارات</span>';
+    return;
+  }
+
+  if (Notification.permission === 'granted') {
+    document.getElementById('notifStatus').innerHTML = '<span style="color:#16a34a;background:#dcfce7;padding:6px 14px;border-radius:8px">✅ الإشعارات شغالة</span>';
+    document.getElementById('notifBanner').style.display = 'none';
+    scheduleNotifications();
+  } else if (Notification.permission === 'denied') {
+    document.getElementById('notifStatus').innerHTML = '<span style="color:#dc2626;background:#fee2e2;padding:6px 14px;border-radius:8px">❌ الإشعارات مرفوضة - فعلها من إعدادات المتصفح</span>';
+  } else {
+    document.getElementById('notifBanner').style.display = 'flex';
+  }
+}
+
+function enableNotifications() {
+  if (!('Notification' in window)) {
+    alert('المتصفح ده مش بيدعم الإشعارات');
+    return;
+  }
+
+  Notification.requestPermission().then(function(permission) {
+    if (permission === 'granted') {
+      checkNotificationStatus();
+      // Send a test notification
+      var testTip = allTips[Math.floor(Math.random() * allTips.length)];
+      new Notification('NutraX - ' + testTip.title, {
+        body: testTip.tip,
+        icon: '/static/icon-192.png',
+        badge: '/static/icon-192.png'
+      });
+    } else {
+      alert('لازم توافق على الإشعارات عشان تشتغل');
+    }
+  });
+}
+
+function saveReminders() {
+  var reminders = {
+    breakfast: document.getElementById('rem1').checked,
+    water: document.getElementById('rem2').checked,
+    lunch: document.getElementById('rem3').checked,
+    walk: document.getElementById('rem4').checked,
+    dinner: document.getElementById('rem5').checked
+  };
+  localStorage.setItem('nutrax_reminders', JSON.stringify(reminders));
+}
+
+function loadReminders() {
+  var saved = localStorage.getItem('nutrax_reminders');
+  if (saved) {
+    try {
+      var r = JSON.parse(saved);
+      if (r.breakfast !== undefined) document.getElementById('rem1').checked = r.breakfast;
+      if (r.water !== undefined) document.getElementById('rem2').checked = r.water;
+      if (r.lunch !== undefined) document.getElementById('rem3').checked = r.lunch;
+      if (r.walk !== undefined) document.getElementById('rem4').checked = r.walk;
+      if (r.dinner !== undefined) document.getElementById('rem5').checked = r.dinner;
+    } catch(e) {}
+  }
+}
+
+function scheduleNotifications() {
+  // Schedule notifications based on times
+  // Note: Real scheduled notifications require service worker + push notifications
+  // This is a basic version using setTimeout for the current session
+  var now = new Date();
+  var times = [
+    {hour: 8, minute: 0, key: 'rem1', tip: allTips[0]},
+    {hour: 11, minute: 0, key: 'rem2', tip: allTips[Math.min(1, allTips.length-1)]},
+    {hour: 13, minute: 30, key: 'rem3', tip: allTips[Math.min(2, allTips.length-1)]},
+    {hour: 17, minute: 0, key: 'rem4', tip: allTips[Math.min(3, allTips.length-1)]},
+    {hour: 20, minute: 0, key: 'rem5', tip: allTips[Math.min(4, allTips.length-1)]}
+  ];
+
+  times.forEach(function(t) {
+    var checkbox = document.getElementById(t.key);
+    if (!checkbox || !checkbox.checked) return;
+
+    var target = new Date();
+    target.setHours(t.hour, t.minute, 0, 0);
+    if (target < now) return; // Past, skip
+
+    var diff = target - now;
+    setTimeout(function() {
+      if (Notification.permission === 'granted') {
+        new Notification('NutraX - ' + t.tip.title, {
+          body: t.tip.tip,
+          icon: '/static/icon-192.png',
+          badge: '/static/icon-192.png',
+          tag: 'nutrax-' + t.key
+        });
+      }
+    }, diff);
+  });
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+  loadReminders();
+  checkNotificationStatus();
+});
+</script>
+
+{% endblock %}
