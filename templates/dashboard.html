@@ -1,159 +1,137 @@
 {% extends "base.html" %}
-{% block title %}{{ 'الرئيسية' if (lang or 'ar')=='ar' else 'Dashboard' }}{% endblock %}
-
+{% block title %}الرئيسية{% endblock %}
 {% block content %}
-{% set is_ar = (lang or 'ar') == 'ar' %}
 
-<!-- Welcome -->
-<div style="background:linear-gradient(135deg,#1a3a6b,#7c3aed);border-radius:18px;padding:22px 24px;margin-bottom:20px;color:#fff">
-  <div style="font-size:13px;opacity:.8;margin-bottom:4px">{{ 'أهلاً بك' if is_ar else 'Welcome' }} 👋</div>
-  <div style="font-size:22px;font-weight:900">{{ user.name }}</div>
-  <div style="font-size:12px;opacity:.7;margin-top:4px">{{ user.email }}</div>
+<!-- Welcome Banner -->
+<div class="card" style="background:linear-gradient(135deg,#1b4332 0%,#2d6a4f 100%);color:white;padding:24px;margin-bottom:20px">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+    <div>
+      <div style="font-size:14px;opacity:0.85;margin-bottom:4px">أهلا</div>
+      <div style="font-size:24px;font-weight:900">د. {{ user.name if user else '' }}</div>
+      <div style="font-size:13px;opacity:0.85;margin-top:6px">
+        {% if role == 'admin' %}مدير النظام
+        {% elif role == 'nutritionist' %}أخصائي تغذية
+        {% endif %}
+      </div>
+    </div>
+    <div style="font-size:50px">👨‍⚕️</div>
+  </div>
 </div>
 
-{% if user.height and user.weight and user.age %}
+<!-- Quick Stats -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px">
 
-  {% set h = user.height | float %}
-  {% set w = user.weight | float %}
-  {% set age = user.age | int %}
-  {% set act = user.activity | float if user.activity else 1.55 %}
-  {% set bmr = (10 * w + 6.25 * h - 5 * age + 5) | int %}
-  {% set tdee = (bmr * act) | int %}
+  <div class="card" style="text-align:center;padding:18px;border-top:4px solid #f59e0b">
+    <div style="font-size:34px;margin-bottom:6px">🔔</div>
+    <div style="font-size:32px;font-weight:900;color:#f59e0b">{{ pending_count or 0 }}</div>
+    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">طلبات جديدة</div>
+    {% if pending_count and pending_count > 0 %}
+    <a href="/admin/requests" style="display:block;margin-top:10px;font-size:12px;color:#f59e0b;font-weight:700">شوف الطلبات ←</a>
+    {% endif %}
+  </div>
 
-  {% if user.goal == 'fat_loss' %}
-    {% set cal = tdee - 400 %}
-    {% set prot = (cal * 0.35 / 4) | int %}
-    {% set carb = (cal * 0.35 / 4) | int %}
-    {% set fat  = (cal * 0.30 / 9) | int %}
-    {% set goal_label = ('🔥 خسارة دهون' if is_ar else '🔥 Fat Loss') %}
-  {% elif user.goal == 'muscle_gain' %}
-    {% set cal = tdee + 400 %}
-    {% set prot = (cal * 0.30 / 4) | int %}
-    {% set carb = (cal * 0.45 / 4) | int %}
-    {% set fat  = (cal * 0.25 / 9) | int %}
-    {% set goal_label = ('💪 بناء عضل' if is_ar else '💪 Muscle Gain') %}
-  {% else %}
-    {% set cal = tdee %}
-    {% set prot = (cal * 0.25 / 4) | int %}
-    {% set carb = (cal * 0.45 / 4) | int %}
-    {% set fat  = (cal * 0.30 / 9) | int %}
-    {% set goal_label = ('⚖️ ثبات الوزن' if is_ar else '⚖️ Maintain Weight') %}
-  {% endif %}
+  <div class="card" style="text-align:center;padding:18px;border-top:4px solid #2563eb">
+    <div style="font-size:34px;margin-bottom:6px">👥</div>
+    <div style="font-size:32px;font-weight:900;color:#2563eb">{{ total_clients or 0 }}</div>
+    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">إجمالي العملاء</div>
+  </div>
 
-  {% set bmi = (w / ((h / 100) ** 2)) | round(1) %}
-  {% set ideal = (22 * ((h / 100) ** 2)) | round(1) %}
+  <div class="card" style="text-align:center;padding:18px;border-top:4px solid #16a34a">
+    <div style="font-size:34px;margin-bottom:6px">✅</div>
+    <div style="font-size:32px;font-weight:900;color:#16a34a">{{ total_plans or 0 }}</div>
+    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">خطط مكتملة</div>
+  </div>
 
-  <!-- Goal Bar -->
-  <div style="background:#dce8f5;border:1.5px solid #93c5fd;border-radius:12px;padding:14px 18px;margin-bottom:16px">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+</div>
+
+<!-- Quick Actions -->
+<div class="card">
+  <div class="card-title">
+    <i class="fa-solid fa-bolt"></i> إجراءات سريعة
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+
+    <a href="/admin/requests" class="quick-action">
+      <div style="font-size:28px;margin-bottom:6px">📋</div>
+      <div style="font-weight:700;color:var(--blue)">طلبات العملاء</div>
+      {% if pending_count and pending_count > 0 %}
+      <div style="font-size:11px;color:#dc2626;font-weight:800;margin-top:3px">⚠️ {{ pending_count }} جديد</div>
+      {% endif %}
+    </a>
+
+    <a href="/generate" class="quick-action">
+      <div style="font-size:28px;margin-bottom:6px">⚡</div>
+      <div style="font-weight:700;color:var(--blue)">توليد خطة جديدة</div>
+    </a>
+
+    <a href="/patients" class="quick-action">
+      <div style="font-size:28px;margin-bottom:6px">👥</div>
+      <div style="font-weight:700;color:var(--blue)">المرضى</div>
+    </a>
+
+    <a href="/saved" class="quick-action">
+      <div style="font-size:28px;margin-bottom:6px">🔖</div>
+      <div style="font-weight:700;color:var(--blue)">جداول محفوظة</div>
+    </a>
+
+    {% if role == 'admin' %}
+    <a href="/admin/users" class="quick-action">
+      <div style="font-size:28px;margin-bottom:6px">⚙️</div>
+      <div style="font-weight:700;color:var(--blue)">إدارة المستخدمين</div>
+    </a>
+    {% endif %}
+
+    <a href="/clinical" class="quick-action">
+      <div style="font-size:28px;margin-bottom:6px">📚</div>
+      <div style="font-weight:700;color:var(--blue)">المرجع الكلينيكي</div>
+    </a>
+
+  </div>
+</div>
+
+<!-- Recent Requests -->
+{% if recent_requests and recent_requests|length > 0 %}
+<div class="card">
+  <div class="card-title">
+    <i class="fa-solid fa-clock"></i> آخر الطلبات
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    {% for req in recent_requests %}
+    <a href="/admin/requests" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--gray);border-radius:10px;text-decoration:none;color:var(--text);transition:all 0.2s" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='var(--gray)'">
       <div>
-        <div style="font-size:11px;font-weight:700;color:#64748b">{{ 'هدفك' if is_ar else 'Your Goal' }}</div>
-        <div style="font-size:16px;font-weight:800;color:#1a3a6b">{{ goal_label }}</div>
+        <div style="font-weight:700;font-size:14px">{{ req.client_name or 'عميل' }}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">{{ req.created_at }}</div>
       </div>
-      <div style="text-align:center">
-        <div style="font-size:11px;font-weight:700;color:#64748b">TDEE</div>
-        <div style="font-size:18px;font-weight:900;color:#0f172a">{{ tdee }}</div>
-        <div style="font-size:11px;color:#94a3b8">kcal</div>
+      <div>
+        {% if req.status == 'pending' %}
+        <span style="background:#fff3cd;color:#856404;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">⏳ جديد</span>
+        {% elif req.status == 'approved' %}
+        <span style="background:#dcfce7;color:#14532d;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">✓ مكتمل</span>
+        {% endif %}
       </div>
-      <div style="text-align:center">
-        <div style="font-size:11px;font-weight:700;color:#64748b">{{ 'الهدف اليومي' if is_ar else 'Daily Target' }}</div>
-        <div style="font-size:22px;font-weight:900;color:#2563eb">{{ cal }}</div>
-        <div style="font-size:11px;color:#94a3b8">kcal</div>
-      </div>
-    </div>
+    </a>
+    {% endfor %}
   </div>
-
-  <!-- Macros -->
-  <div class="metrics">
-    <div class="metric">
-      <i class="fa-solid fa-fire" style="color:#2563eb"></i>
-      <div class="metric-label">{{ 'السعرات' if is_ar else 'Calories' }}</div>
-      <div class="metric-value" style="color:#2563eb">{{ cal }}</div>
-      <div class="metric-unit">kcal</div>
-    </div>
-    <div class="metric">
-      <i class="fa-solid fa-dumbbell" style="color:#16a34a"></i>
-      <div class="metric-label">{{ 'البروتين' if is_ar else 'Protein' }}</div>
-      <div class="metric-value" style="color:#16a34a">{{ prot }}</div>
-      <div class="metric-unit">{{ 'جرام' if is_ar else 'g' }}</div>
-    </div>
-    <div class="metric">
-      <i class="fa-solid fa-wheat-awn" style="color:#b34700"></i>
-      <div class="metric-label">{{ 'الكارب' if is_ar else 'Carbs' }}</div>
-      <div class="metric-value" style="color:#b34700">{{ carb }}</div>
-      <div class="metric-unit">{{ 'جرام' if is_ar else 'g' }}</div>
-    </div>
-    <div class="metric">
-      <i class="fa-solid fa-droplet" style="color:#8b0000"></i>
-      <div class="metric-label">{{ 'الدهون' if is_ar else 'Fat' }}</div>
-      <div class="metric-value" style="color:#8b0000">{{ fat }}</div>
-      <div class="metric-unit">{{ 'جرام' if is_ar else 'g' }}</div>
-    </div>
-  </div>
-
-  <!-- BMI Row -->
-  <div class="grid-3" style="margin-bottom:20px">
-    <div class="metric">
-      <i class="fa-solid fa-weight-scale" style="color:#64748b"></i>
-      <div class="metric-label">BMI</div>
-      <div class="metric-value">{{ bmi }}</div>
-      <div class="bmi-badge {% if bmi < 18.5 %}bmi-under{% elif bmi < 25 %}bmi-normal{% elif bmi < 30 %}bmi-over{% else %}bmi-obese{% endif %}" style="margin-top:6px">
-        {% if bmi < 18.5 %}{{ 'نحافة' if is_ar else 'Underweight' }}
-        {% elif bmi < 25 %}{{ 'مثالي' if is_ar else 'Normal' }} ✅
-        {% elif bmi < 30 %}{{ 'زيادة وزن' if is_ar else 'Overweight' }}
-        {% else %}{{ 'سمنة' if is_ar else 'Obese' }}{% endif %}
-      </div>
-    </div>
-    <div class="metric">
-      <i class="fa-solid fa-user" style="color:#64748b"></i>
-      <div class="metric-label">{{ 'وزنك الحالي' if is_ar else 'Current Weight' }}</div>
-      <div class="metric-value">{{ w }}</div>
-      <div class="metric-unit">kg</div>
-    </div>
-    <div class="metric">
-      <i class="fa-solid fa-star" style="color:#64748b"></i>
-      <div class="metric-label">{{ 'الوزن المثالي' if is_ar else 'Ideal Weight' }}</div>
-      <div class="metric-value">{{ ideal }}</div>
-      <div class="metric-unit">kg</div>
-    </div>
-  </div>
-
-{% else %}
-
-  <!-- Setup prompt -->
-  <div class="alert alert-warn">
-    <i class="fa-solid fa-triangle-exclamation"></i>
-    {{ 'أكمل إعداداتك الشخصية لحساب أهدافك الغذائية اليومية' if is_ar else 'Complete your profile to calculate your daily nutrition goals' }}
-  </div>
-  <a href="/settings" class="btn btn-primary btn-full" style="margin-bottom:20px">
-    <i class="fa-solid fa-gear"></i>
-    {{ 'اذهب للإعدادات' if is_ar else 'Go to Settings' }}
-  </a>
-
+</div>
 {% endif %}
 
-<!-- Quick Access -->
-<div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:14px">
-  <i class="fa-solid fa-bolt" style="color:#2563eb"></i>
-  {{ 'وصول سريع' if is_ar else 'Quick Access' }}
-</div>
-<div class="grid-2">
-  <a href="/analyzer" class="btn btn-primary">
-    <i class="fa-solid fa-magnifying-glass"></i>
-    {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
-  </a>
-  <a href="/planner" class="btn btn-success">
-    <i class="fa-solid fa-calendar-days"></i>
-    {{ 'مصمم الجدول' if is_ar else 'Meal Planner' }}
-  </a>
-  <a href="/clinical" class="btn btn-outline">
-    <i class="fa-solid fa-book-medical"></i>
-    {{ 'المرجع الكلينيكي' if is_ar else 'Clinical Reference' }}
-  </a>
-  <a href="/history" class="btn btn-outline">
-    <i class="fa-solid fa-chart-line"></i>
-    {{ 'سجل الوزن' if is_ar else 'Weight Log' }}
-  </a>
-</div>
+<style>
+.quick-action {
+  display: block;
+  text-align: center;
+  padding: 18px 14px;
+  background: var(--gray);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.quick-action:hover {
+  background: var(--blue-pale);
+  border-color: var(--blue-light);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37,99,235,0.15);
+}
+</style>
 
 {% endblock %}
