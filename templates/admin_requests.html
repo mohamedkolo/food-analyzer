@@ -64,8 +64,11 @@
       </div>
 
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <a href="/admin/requests/{{ req.id }}/generate" class="btn btn-primary" style="flex:1;min-width:150px">
+        <a href="/admin/requests/{{ req.id }}/generate" class="btn btn-primary" style="flex:1;min-width:140px">
           <i class="fa-solid fa-wand-magic-sparkles"></i> توليد AI
+        </a>
+        <a href="/admin/requests/{{ req.id }}/manual" class="btn" style="flex:1;min-width:140px;background:#f97316;color:white">
+          <i class="fa-solid fa-pen-to-square"></i> توليد يدوي
         </a>
       </div>
     </div>
