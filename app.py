@@ -58,13 +58,13 @@ def from_json_filter(s):
 
 def init_db():
     if DATABASE_URL:
-        db_run("""CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+        db_run("""CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, conditions TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS weight_log (id SERIAL PRIMARY KEY, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS saved_plans (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS patients (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS plan_requests (id SERIAL PRIMARY KEY, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
     else:
-        db_run("""CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+        db_run("""CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, conditions TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS weight_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS saved_plans (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS patients (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
@@ -74,6 +74,7 @@ def init_db():
         "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'client'",
         "ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1",
         "ALTER TABLE users ADD COLUMN phone TEXT",
+        "ALTER TABLE users ADD COLUMN conditions TEXT",
         "ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
     ]:
         try: db_run(col_sql)
@@ -92,8 +93,7 @@ def get_user_by_id(uid): return db_row("SELECT * FROM users WHERE id=?", (uid,))
 
 def register(name, email, pw, country, age=None, phone=None):
     try:
-        db_run("""INSERT INTO users (name,email,password,country,age,phone,role,active)
-                  VALUES (?,?,?,?,?,?,'client',1)""",
+        db_run("""INSERT INTO users (name,email,password,country,age,phone,role,active) VALUES (?,?,?,?,?,?,'client',1)""",
                (name, email, hp(pw), country, age, phone))
         return "ok"
     except:
@@ -144,65 +144,131 @@ def get_pending_requests_count():
 
 def can_log_weight(user_id):
     try:
-        latest = db_row("""SELECT * FROM weight_log WHERE user_id=?
-                           ORDER BY logged_at DESC LIMIT 1""", (user_id,))
-        if not latest:
-            return (True, 0, 0)
+        latest = db_row("SELECT * FROM weight_log WHERE user_id=? ORDER BY logged_at DESC LIMIT 1", (user_id,))
+        if not latest: return (True, 0, 0)
         date_str = latest.get("logged_at")
         if isinstance(date_str, str):
-            try:
-                last_date = datetime.fromisoformat(date_str.replace('Z', ''))
+            try: last_date = datetime.fromisoformat(date_str.replace('Z', ''))
             except:
-                try:
-                    last_date = datetime.strptime(date_str.split('.')[0], "%Y-%m-%d %H:%M:%S")
-                except:
-                    return (True, 0, 0)
+                try: last_date = datetime.strptime(date_str.split('.')[0], "%Y-%m-%d %H:%M:%S")
+                except: return (True, 0, 0)
         else:
             last_date = date_str
-        now = datetime.now()
-        diff = now - last_date
-        seconds_passed = diff.total_seconds()
-        seconds_in_week = 7 * 24 * 60 * 60
-        if seconds_passed >= seconds_in_week:
-            return (True, 0, 0)
-        seconds_left = seconds_in_week - seconds_passed
-        days_left = int(seconds_left // (24 * 60 * 60))
-        hours_left = int((seconds_left % (24 * 60 * 60)) // 3600)
-        return (False, days_left, hours_left)
-    except Exception as e:
-        print(f"Error: {e}")
+        diff = datetime.now() - last_date
+        seconds = diff.total_seconds()
+        week = 7 * 24 * 60 * 60
+        if seconds >= week: return (True, 0, 0)
+        left = week - seconds
+        days = int(left // (24 * 60 * 60))
+        hours = int((left % (24 * 60 * 60)) // 3600)
+        return (False, days, hours)
+    except:
         return (True, 0, 0)
 
 def can_request_new_plan(client_id):
     try:
-        latest = db_row("""SELECT * FROM plan_requests WHERE client_id=?
-                           ORDER BY created_at DESC LIMIT 1""", (client_id,))
-        if not latest:
-            return (True, 0, 0, None)
+        latest = db_row("SELECT * FROM plan_requests WHERE client_id=? ORDER BY created_at DESC LIMIT 1", (client_id,))
+        if not latest: return (True, 0, 0, None)
         date_str = latest.get("created_at")
         if isinstance(date_str, str):
-            try:
-                last_date = datetime.fromisoformat(date_str.replace('Z', ''))
+            try: last_date = datetime.fromisoformat(date_str.replace('Z', ''))
             except:
-                try:
-                    last_date = datetime.strptime(date_str.split('.')[0], "%Y-%m-%d %H:%M:%S")
-                except:
-                    return (True, 0, 0, None)
+                try: last_date = datetime.strptime(date_str.split('.')[0], "%Y-%m-%d %H:%M:%S")
+                except: return (True, 0, 0, None)
         else:
             last_date = date_str
-        now = datetime.now()
-        diff = now - last_date
-        seconds_passed = diff.total_seconds()
-        seconds_in_week = 7 * 24 * 60 * 60
-        if seconds_passed >= seconds_in_week:
-            return (True, 0, 0, last_date.strftime("%Y-%m-%d"))
-        seconds_left = seconds_in_week - seconds_passed
-        days_left = int(seconds_left // (24 * 60 * 60))
-        hours_left = int((seconds_left % (24 * 60 * 60)) // 3600)
-        return (False, days_left, hours_left, last_date.strftime("%Y-%m-%d"))
-    except Exception as e:
-        print(f"Error: {e}")
+        diff = datetime.now() - last_date
+        seconds = diff.total_seconds()
+        week = 7 * 24 * 60 * 60
+        if seconds >= week: return (True, 0, 0, last_date.strftime("%Y-%m-%d"))
+        left = week - seconds
+        days = int(left // (24 * 60 * 60))
+        hours = int((left % (24 * 60 * 60)) // 3600)
+        return (False, days, hours, last_date.strftime("%Y-%m-%d"))
+    except:
         return (True, 0, 0, None)
+
+# ═══════════════════════════════════════════════
+# DAILY TIPS BASED ON CONDITIONS
+# ═══════════════════════════════════════════════
+DAILY_TIPS_GENERAL = [
+    {"icon": "💧", "title": "اشرب المياه", "tip": "اشرب كوب ماء فاتر مع نصف ليمونة على الريق - يحفز الهضم"},
+    {"icon": "🚶", "title": "تمشى شوية", "tip": "30 دقيقة مشي بعد الغداء ينظم السكر ويساعد على الهضم"},
+    {"icon": "😴", "title": "نام كويس", "tip": "النوم 7-8 ساعات مهم زي الأكل والتمرين للوزن الصحي"},
+    {"icon": "🍎", "title": "فاكهة بدل الحلويات", "tip": "لو حسيت برغبة في حاجة حلوة، خد فاكهة بدل البسكويت"},
+    {"icon": "🥗", "title": "خضار في كل وجبة", "tip": "حط نصف الطبق خضار - شبع أكتر وسعرات أقل"},
+    {"icon": "⏰", "title": "متاكلش بسرعة", "tip": "مضغ الأكل ببطء يخليك تشبع أسرع وتاكل أقل"},
+    {"icon": "🧂", "title": "قلل الملح", "tip": "الأكل الجاهز فيه ملح كتير - حضر أكلك في البيت"},
+]
+
+CONDITION_TIPS = {
+    "قولون": [
+        {"icon": "⚠️", "title": "خلي بالك من القولون", "tip": "تجنب الفول والحمص والكرنب والبروكلي - بتعمل غازات"},
+        {"icon": "🌶️", "title": "بعيداً عن الحار", "tip": "تجنب الفلفل الحار والبهارات الحارة - بتهيج القولون"},
+        {"icon": "☕", "title": "قلل الكافيين", "tip": "القهوة والشاي بكميات كبيرة بتزود اضطراب القولون"},
+    ],
+    "سكري": [
+        {"icon": "🍞", "title": "خد بالك من الكارب", "tip": "ابعد عن الأرز الأبيض والخبز الأبيض - الأسمر أفضل"},
+        {"icon": "🍯", "title": "السكر عدو", "tip": "تجنب السكر المضاف، العسل، والعصائر المحلاة"},
+        {"icon": "📊", "title": "اقيس السكر", "tip": "قيس السكر قبل الفطار وبعد الأكل بساعتين"},
+    ],
+    "ضغط": [
+        {"icon": "🧂", "title": "ملح أقل", "tip": "تجنب المخللات والصوصات الجاهزة والشاورما"},
+        {"icon": "🥬", "title": "خضار ورقية", "tip": "السبانخ والجرجير والبقدونس بيخفضوا الضغط"},
+        {"icon": "🚫", "title": "ابعد عن المعلبات", "tip": "الأكل المعلب فيه ملح كتير جداً"},
+    ],
+    "كلوي": [
+        {"icon": "💧", "title": "اشرب باعتدال", "tip": "اتبع تعليمات الدكتور بخصوص كمية المياه"},
+        {"icon": "🍌", "title": "احذر البوتاسيوم", "tip": "قلل من الموز والطماطم والبطاطا والمكسرات"},
+        {"icon": "🥩", "title": "بروتين معتدل", "tip": "كميات قليلة من البروتين الحيواني"},
+    ],
+    "قلب": [
+        {"icon": "🐟", "title": "أوميجا 3", "tip": "السمك مرتين في الأسبوع - السلمون والسردين أفضل"},
+        {"icon": "🥑", "title": "دهون صحية", "tip": "زيت الزيتون والأفوكادو بدل السمن والزبدة"},
+        {"icon": "🚭", "title": "قلل الملح", "tip": "الملح يرفع الضغط ويهد القلب"},
+    ],
+    "حامل": [
+        {"icon": "🤰", "title": "حمض الفوليك", "tip": "السبانخ والبروكلي والعدس مهمين جداً للحمل"},
+        {"icon": "🥛", "title": "كالسيوم يومياً", "tip": "اللبن والزبادي والجبن لعظام الجنين"},
+        {"icon": "🚫", "title": "تجنبي", "tip": "الكبدة، السمك النيء، والكافيين الكتير"},
+    ],
+    "g6pd": [
+        {"icon": "🚫", "title": "ابعد عن الفول", "tip": "تجنب الفول، الحمص، اللوبيا والبقوليات الحمراء"},
+        {"icon": "💊", "title": "احذر الأدوية", "tip": "بعض الأدوية ممنوعة - استشر الدكتور قبل أي علاج"},
+        {"icon": "🌿", "title": "أعشاب آمنة", "tip": "تجنب الحناء والكافور وبعض الأعشاب"},
+    ],
+    "ثلاسيميا": [
+        {"icon": "🚫", "title": "قلل الحديد", "tip": "ابعد عن الكبدة واللحوم الحمراء بكميات كبيرة"},
+        {"icon": "☕", "title": "شاي مع الأكل", "tip": "الشاي يقلل امتصاص الحديد - اشربه مع الأكل"},
+        {"icon": "🥬", "title": "خضار آمنة", "tip": "البروكلي والكرنب والجزر مفيدين"},
+    ],
+}
+
+def get_tips_for_user(user):
+    """Get personalized tips based on user's conditions"""
+    tips = list(DAILY_TIPS_GENERAL)
+
+    if user and user.get("conditions"):
+        try:
+            conditions = json.loads(user["conditions"])
+            condition_map = {
+                "قولون عصبي": "قولون", "IBS": "قولون",
+                "سكري": "سكري", "diabetes": "سكري",
+                "ضغط الدم": "ضغط", "hypertension": "ضغط",
+                "فشل كلوي": "كلوي", "كلى": "كلوي",
+                "أمراض القلب": "قلب", "قلب": "قلب",
+                "حمل": "حامل", "رضاعة": "حامل",
+                "G6PD": "g6pd", "نقص G6PD": "g6pd",
+                "ثلاسيميا": "ثلاسيميا",
+            }
+            for cond in conditions:
+                key = condition_map.get(cond)
+                if key and key in CONDITION_TIPS:
+                    tips = CONDITION_TIPS[key] + tips
+        except:
+            pass
+
+    return tips
 
 @app.route("/", methods=["GET","POST"])
 def login():
@@ -238,13 +304,11 @@ def login():
             elif len(pw) < 6:
                 error = "كلمة السر لازم 6 أحرف على الأقل"
             else:
-                try:
-                    age_int = int(age) if age else None
-                except:
-                    age_int = None
+                try: age_int = int(age) if age else None
+                except: age_int = None
                 r = register(name, email, pw, country, age_int, phone)
                 if r == "ok":
-                    error = "✓ تم التسجيل بنجاح! سجل دخولك دلوقتي."
+                    error = "تم التسجيل بنجاح! سجل دخولك دلوقتي."
                     tab = "login"
                 else:
                     error = "البريد الإلكتروني مستخدم بالفعل"
@@ -267,16 +331,23 @@ def dashboard():
     role = get_user_role(u)
     if role == "client":
         return redirect("/my-plan")
+
     pending_count = 0
     total_clients = 0
+    total_plans = 0
+    recent_requests = []
     try:
         pending_count = get_pending_requests_count()
         r = db_row("SELECT COUNT(*) as cnt FROM users WHERE role='client'")
         total_clients = r.get("cnt", 0) if r else 0
+        r2 = db_row("SELECT COUNT(*) as cnt FROM plan_requests WHERE status='approved'")
+        total_plans = r2.get("cnt", 0) if r2 else 0
+        recent_requests = db_rows("SELECT * FROM plan_requests ORDER BY created_at DESC LIMIT 5")
     except:
         pass
     return render_template("dashboard.html", user=u, lang=session.get("lang","ar"),
-                           role=role, pending_count=pending_count, total_clients=total_clients)
+                           role=role, pending_count=pending_count, total_clients=total_clients,
+                           total_plans=total_plans, recent_requests=recent_requests)
 
 @app.route("/my-plan")
 @login_required
@@ -288,17 +359,21 @@ def my_plan():
     latest_plan = None
     pending_request = None
     try:
-        latest_plan = db_row("""SELECT * FROM plan_requests WHERE client_id=? AND status='approved'
-                                ORDER BY updated_at DESC LIMIT 1""", (session["uid"],))
-        pending_request = db_row("""SELECT * FROM plan_requests WHERE client_id=? AND status='pending'
-                                    ORDER BY created_at DESC LIMIT 1""", (session["uid"],))
+        latest_plan = db_row("SELECT * FROM plan_requests WHERE client_id=? AND status='approved' ORDER BY updated_at DESC LIMIT 1", (session["uid"],))
+        pending_request = db_row("SELECT * FROM plan_requests WHERE client_id=? AND status='pending' ORDER BY created_at DESC LIMIT 1", (session["uid"],))
     except:
         pass
     can_request, days_left, hours_left, last_date = can_request_new_plan(session["uid"])
+
+    # Get personalized daily tip
+    tips = get_tips_for_user(u)
+    today_tip = tips[datetime.now().day % len(tips)] if tips else None
+
     return render_template("my_plan.html", user=u, lang=session.get("lang","ar"),
                            latest_plan=latest_plan, pending_request=pending_request,
                            can_request=can_request, days_left=days_left,
-                           hours_left=hours_left, last_request_date=last_date)
+                           hours_left=hours_left, last_request_date=last_date,
+                           today_tip=today_tip)
 
 @app.route("/request-plan", methods=["GET","POST"])
 @login_required
@@ -315,6 +390,7 @@ def request_plan():
         can_request_now, _, _, _ = can_request_new_plan(session["uid"])
         if not can_request_now:
             return redirect("/my-plan")
+        symptoms = request.form.getlist("symptoms")
         request_data = {
             "height": request.form.get("height", u.get("height", "")),
             "weight": request.form.get("weight", u.get("weight", "")),
@@ -327,27 +403,26 @@ def request_plan():
             "goal_type": request.form.get("goal_type", "weight_loss"),
             "culture": request.form.get("culture", "مصري"),
             "diet_plan_type": request.form.get("diet_plan_type", "standard"),
-            "symptoms": request.form.getlist("symptoms"),
+            "symptoms": symptoms,
             "notes": request.form.get("notes", ""),
         }
         try:
-            db_run("""INSERT INTO plan_requests (client_id, client_name, request_data, status)
-                      VALUES (?, ?, ?, 'pending')""",
+            db_run("""INSERT INTO plan_requests (client_id, client_name, request_data, status) VALUES (?, ?, ?, 'pending')""",
                    (session["uid"], u.get("name","Client"), json.dumps(request_data)))
+            # Save conditions to user profile for personalized tips
+            if symptoms:
+                db_run("UPDATE users SET conditions=? WHERE id=?", (json.dumps(symptoms), session["uid"]))
         except Exception as e:
             return f"خطأ: {e}", 500
         return redirect("/my-plan")
-    return render_template("request_plan.html", user=u, lang=session.get("lang","ar"),
-                           diet_plans=DIET_PLAN_TYPES)
+    return render_template("request_plan.html", user=u, lang=session.get("lang","ar"), diet_plans=DIET_PLAN_TYPES)
 
 @app.route("/admin/users")
 @admin_required
 def admin_users():
     u = get_user_by_id(session["uid"])
-    try:
-        all_users = db_rows("SELECT * FROM users ORDER BY id DESC")
-    except:
-        all_users = []
+    try: all_users = db_rows("SELECT * FROM users ORDER BY id DESC")
+    except: all_users = []
     return render_template("admin_users.html", user=u, lang=session.get("lang","ar"), users=all_users)
 
 @app.route("/admin/users/new", methods=["GET","POST"])
@@ -361,15 +436,13 @@ def admin_new_user():
         role = request.form.get("role","client")
         phone = request.form.get("phone","")
         if not email or not pw:
-            return render_template("admin_new_user.html", user=u, lang=session.get("lang","ar"),
-                                   error="الإيميل وكلمة السر مطلوبة")
+            return render_template("admin_new_user.html", user=u, lang=session.get("lang","ar"), error="الإيميل وكلمة السر مطلوبة")
         try:
             db_run("INSERT INTO users (name,email,password,role,phone,active) VALUES (?,?,?,?,?,1)",
                    (name, email, hp(pw), role, phone))
             return redirect("/admin/users")
         except:
-            return render_template("admin_new_user.html", user=u, lang=session.get("lang","ar"),
-                                   error="الإيميل موجود بالفعل")
+            return render_template("admin_new_user.html", user=u, lang=session.get("lang","ar"), error="الإيميل موجود بالفعل")
     return render_template("admin_new_user.html", user=u, lang=session.get("lang","ar"))
 
 @app.route("/admin/users/<int:uid>/toggle")
@@ -402,22 +475,17 @@ def admin_delete_user(uid):
 @staff_required
 def admin_requests():
     u = get_user_by_id(session["uid"])
-    try:
-        requests_list = db_rows("SELECT * FROM plan_requests ORDER BY created_at DESC LIMIT 50")
-    except:
-        requests_list = []
+    try: requests_list = db_rows("SELECT * FROM plan_requests ORDER BY created_at DESC LIMIT 50")
+    except: requests_list = []
     return render_template("admin_requests.html", user=u, lang=session.get("lang","ar"), requests=requests_list)
 
 @app.route("/admin/requests/<int:rid>/generate")
 @staff_required
 def admin_request_generate(rid):
     req = db_row("SELECT * FROM plan_requests WHERE id=?", (rid,))
-    if not req:
-        return redirect("/admin/requests")
-    try:
-        rdata = json.loads(req["request_data"])
-    except:
-        return redirect("/admin/requests")
+    if not req: return redirect("/admin/requests")
+    try: rdata = json.loads(req["request_data"])
+    except: return redirect("/admin/requests")
     client = get_user_by_id(req["client_id"])
     data = {
         "name": client.get("name","") if client else req.get("client_name",""),
@@ -433,10 +501,8 @@ def admin_request_generate(rid):
 def admin_request_approve(rid):
     plan = session.get("current_plan")
     data = session.get("pdf_data")
-    if not plan or not data:
-        return redirect("/admin/requests")
-    db_run("""UPDATE plan_requests SET status='approved', plan_data=?, updated_at=?
-              WHERE id=?""",
+    if not plan or not data: return redirect("/admin/requests")
+    db_run("UPDATE plan_requests SET status='approved', plan_data=?, updated_at=? WHERE id=?",
            (json.dumps({"plan": plan, "data": data}), datetime.now().isoformat(), rid))
     session.pop("current_request_id", None)
     return redirect("/admin/requests")
@@ -476,24 +542,35 @@ def history():
     logs = db_rows("SELECT * FROM weight_log WHERE user_id=? ORDER BY logged_at DESC LIMIT 30", (session["uid"],))
     can_log, days_left, hours_left = can_log_weight(session["uid"])
     return render_template("history.html", user=u, lang=session.get("lang","ar"),
-                           logs=logs, can_log_weight=can_log,
-                           days_left=days_left, hours_left=hours_left)
+                           logs=logs, can_log_weight=can_log, days_left=days_left, hours_left=hours_left)
 
 @app.route("/log_weight", methods=["POST"])
 @login_required
 def log_weight():
     can_log, _, _ = can_log_weight(session["uid"])
-    if not can_log:
-        return redirect("/history")
+    if not can_log: return redirect("/history")
     w = request.form.get("weight")
     if w:
         try:
             w_float = float(w)
             if 20 < w_float < 300:
                 db_run("INSERT INTO weight_log (user_id,weight) VALUES (?,?)", (session["uid"], w_float))
-        except:
-            pass
+        except: pass
     return redirect("/history")
+
+@app.route("/knowledge")
+@login_required
+def knowledge():
+    u = get_user_by_id(session["uid"])
+    return render_template("knowledge_hub.html", user=u, lang=session.get("lang","ar"))
+
+@app.route("/daily-tips")
+@login_required
+def daily_tips():
+    u = get_user_by_id(session["uid"])
+    tips = get_tips_for_user(u)
+    return render_template("daily_tips.html", user=u, lang=session.get("lang","ar"),
+                           tips=tips, today_index=datetime.now().day % len(tips) if tips else 0)
 
 @app.route("/saved")
 @staff_required
@@ -578,23 +655,15 @@ def swap_meal():
             return jsonify({"ok": True, "new_meal": new_meal["meal"]})
     return jsonify({"ok": False}), 400
 
-# ═══════════════════════════════════════════════
-# ✨ NEW: GET MEAL OPTIONS (for manual picking)
-# ═══════════════════════════════════════════════
 @app.route("/get_meal_options", methods=["POST"])
 @staff_required
 def get_meal_options():
-    """Return all available meal options for manual selection"""
     data = session.get("pdf_data")
-    if not data:
-        return jsonify({"ok": False, "options": []}), 400
-
+    if not data: return jsonify({"ok": False, "options": []}), 400
     meal_type = request.form.get("meal_type", "breakfast")
     goal = data.get("goal_type", "weight_loss")
     culture = data.get("culture", "مصري")
     pool = get_meal_pool(goal, culture)
-
-    # Map diet types to pool keys
     pool_key = meal_type
     if meal_type in ["meal1", "meal2", "iftar", "suhoor", "snack1", "snack2", "pre_workout", "post_workout"]:
         if meal_type in ["meal1", "iftar"]: pool_key = "lunch"
@@ -602,65 +671,31 @@ def get_meal_options():
         elif meal_type in ["snack1", "snack2"]: pool_key = "breakfast"
         elif meal_type == "pre_workout": pool_key = "breakfast"
         elif meal_type == "post_workout": pool_key = "lunch"
-
-    # Get all meals from the pool + also from other cuisines
     all_options = []
-
-    # 1. Current cuisine
     if pool_key in pool and pool[pool_key]:
         for m in pool[pool_key]:
-            all_options.append({
-                "meal": m["meal"],
-                "cal": m.get("cal", 0),
-                "p": m.get("p", 0),
-                "source": culture
-            })
-
-    # 2. Other cuisines (for variety)
-    pools_map = {
-        "weight_loss": WEIGHT_LOSS,
-        "muscle_gain": MUSCLE_GAIN,
-        "bulking": BULKING,
-    }
+            all_options.append({"meal": m["meal"], "cal": m.get("cal", 0), "p": m.get("p", 0), "source": culture})
+    pools_map = {"weight_loss": WEIGHT_LOSS, "muscle_gain": MUSCLE_GAIN, "bulking": BULKING}
     main_pool = pools_map.get(goal, WEIGHT_LOSS)
-
     for other_culture, other_pool in main_pool.items():
         if other_culture != culture and pool_key in other_pool:
-            for m in other_pool[pool_key][:5]:  # only top 5 from each
-                all_options.append({
-                    "meal": m["meal"],
-                    "cal": m.get("cal", 0),
-                    "p": m.get("p", 0),
-                    "source": other_culture
-                })
-
+            for m in other_pool[pool_key][:5]:
+                all_options.append({"meal": m["meal"], "cal": m.get("cal", 0), "p": m.get("p", 0), "source": other_culture})
     return jsonify({"ok": True, "options": all_options})
 
-# ═══════════════════════════════════════════════
-# ✨ NEW: REPLACE MEAL (manual selection)
-# ═══════════════════════════════════════════════
 @app.route("/replace_meal", methods=["POST"])
 @staff_required
 def replace_meal():
-    """Replace a meal with a specific selected meal"""
     plan = session.get("current_plan")
-    if not plan:
-        return jsonify({"ok": False, "error": "no plan"}), 400
-
+    if not plan: return jsonify({"ok": False, "error": "no plan"}), 400
     try:
         day_idx = int(request.form.get("day_idx", 0))
         meal_type = request.form.get("meal_type", "")
         new_meal = request.form.get("new_meal", "").strip()
-
-        if not new_meal or not meal_type:
-            return jsonify({"ok": False, "error": "missing data"}), 400
-
-        if day_idx < 0 or day_idx >= len(plan):
-            return jsonify({"ok": False, "error": "invalid day"}), 400
-
+        if not new_meal or not meal_type: return jsonify({"ok": False, "error": "missing data"}), 400
+        if day_idx < 0 or day_idx >= len(plan): return jsonify({"ok": False, "error": "invalid day"}), 400
         plan[day_idx][meal_type] = new_meal
         session["current_plan"] = plan
-
         return jsonify({"ok": True, "new_meal": new_meal})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -669,16 +704,13 @@ def replace_meal():
 @staff_required
 def edit_meal():
     plan = session.get("current_plan")
-    if not plan:
-        return jsonify({"ok": False, "error": "no plan"}), 400
+    if not plan: return jsonify({"ok": False, "error": "no plan"}), 400
     try:
         day_idx = int(request.form.get("day_idx", 0))
         meal_type = request.form.get("meal_type", "")
         new_text = request.form.get("new_text", "").strip()
-        if not new_text or not meal_type:
-            return jsonify({"ok": False, "error": "missing data"}), 400
-        if day_idx < 0 or day_idx >= len(plan):
-            return jsonify({"ok": False, "error": "invalid day"}), 400
+        if not new_text or not meal_type: return jsonify({"ok": False, "error": "missing data"}), 400
+        if day_idx < 0 or day_idx >= len(plan): return jsonify({"ok": False, "error": "invalid day"}), 400
         plan[day_idx][meal_type] = new_text
         session["current_plan"] = plan
         return jsonify({"ok": True, "saved_text": new_text})
@@ -702,14 +734,12 @@ def download_pdf():
     role = get_user_role(u)
     if role == "client":
         try:
-            latest = db_row("""SELECT * FROM plan_requests WHERE client_id=? AND status='approved'
-                               ORDER BY updated_at DESC LIMIT 1""", (session["uid"],))
+            latest = db_row("SELECT * FROM plan_requests WHERE client_id=? AND status='approved' ORDER BY updated_at DESC LIMIT 1", (session["uid"],))
             if latest and latest.get("plan_data"):
                 pd = json.loads(latest["plan_data"])
                 data = pd.get("data")
                 plan = pd.get("plan")
-        except:
-            pass
+        except: pass
     if not data: return redirect("/dashboard")
     try:
         pdf_bytes = build_pdf(data, plan)
@@ -825,21 +855,21 @@ def get_allowed_forbidden(symptoms, goal="weight_loss"):
                    "زيت زيتون (ملعقة) + فاكهة طازجة","شاي أخضر + ماء بالليمون"]
         forbidden = ["الخبز الأبيض","الأكل المقلي + السمن","المشروبات الغازية","الحلويات والسكريات"]
     if has_g6pd:
-        forbidden = ["❗ الفول بكل أنواعه","❗ الحمص والبقوليات الحمراء"] + forbidden
+        forbidden = ["الفول بكل أنواعه","الحمص والبقوليات الحمراء"] + forbidden
         allowed = ["عدس أصفر بكميات محدودة"] + allowed
     else:
         if goal in ["weight_loss","maintenance"]:
             allowed = ["فول مدمس + عدس + شوربات + سمك مشوي"] + allowed
     if has_thal:
-        forbidden = ["❗ الكبدة والأعضاء الداخلية","❗ اللحوم الحمراء بإفراط"] + forbidden
+        forbidden = ["الكبدة والأعضاء الداخلية","اللحوم الحمراء بإفراط"] + forbidden
         allowed = ["شاي مع الوجبات"] + allowed
     if has_colon:
         forbidden.append("التوابل الحارة")
         forbidden.append("الكافيين الزائد")
     if needs_d3:
-        allowed = ["⭐ أسماك دهنية: سلمون","⭐ صفار البيض + الفطر","⭐ تعرض للشمس 15 دقيقة"] + allowed
+        allowed = ["أسماك دهنية: سلمون","صفار البيض + الفطر","تعرض للشمس 15 دقيقة"] + allowed
     if needs_fe and not has_thal:
-        allowed = ["⭐ لحوم حمراء + كبدة","⭐ سبانخ + عدس"] + allowed
+        allowed = ["لحوم حمراء + كبدة","سبانخ + عدس"] + allowed
     return allowed[:8], forbidden[:8]
 
 def build_pdf(data, plan=None):
@@ -857,7 +887,7 @@ def build_pdf(data, plan=None):
         deficit = int(tdee - target) if tdee and target else 0
     except: deficit = 0
     notes_parts = []
-    if symptoms: notes_parts.append(" • ".join(symptoms))
+    if symptoms: notes_parts.append(" - ".join(symptoms))
     if data.get("notes"): notes_parts.append(data.get("notes"))
     clinical_notes = " | ".join(notes_parts) if notes_parts else "لا توجد ملاحظات"
     uid = session.get("uid", 0)
@@ -869,7 +899,7 @@ def build_pdf(data, plan=None):
         meals_html = []
         for meal_key in plan_info["meals"]:
             label = plan_info["meal_labels"].get(meal_key, meal_key)
-            emoji = plan_info["meal_emojis"].get(meal_key, "•")
+            emoji = plan_info["meal_emojis"].get(meal_key, "-")
             meal_text = d.get(meal_key, "")
             if meal_text:
                 meals_html.append({"label": label, "emoji": emoji, "text": meal_text})
@@ -930,8 +960,7 @@ def patients():
 def new_patient():
     u = get_user_by_id(session["uid"])
     if request.method == "POST":
-        db_run("""INSERT INTO patients (user_id,name,age,gender,height,weight,fat_pct,bmi,tdee,goal_cal,conditions,notes)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+        db_run("""INSERT INTO patients (user_id,name,age,gender,height,weight,fat_pct,bmi,tdee,goal_cal,conditions,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
             (session["uid"], request.form.get("name",""), request.form.get("age",0),
              request.form.get("gender","ذكر"), request.form.get("height",0),
              request.form.get("weight",0), request.form.get("fat_pct",0),
