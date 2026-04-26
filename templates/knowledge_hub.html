@@ -55,13 +55,14 @@
 <div id="analyzer-section" class="card">
   <div class="card-title">
     <i class="fa-solid fa-magnifying-glass-chart"></i> {{ 'محلل الأطعمة المجاني' if is_ar else 'Free Food Analyzer' }}
+    <span style="background:#dcfce7;color:#14532d;padding:2px 10px;border-radius:20px;font-size:11px;margin-right:auto">300+ {{ 'أكلة' if is_ar else 'foods' }}</span>
   </div>
   <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
-    {{ 'اكتب اسم أي وجبة أو مكون واعرف سعراتها والقيمة الغذائية' if is_ar else 'Type any food name to know its calories and nutrition' }}
+    {{ 'اكتب اسم أي وجبة أو تصفح حسب الفئة' if is_ar else 'Type any food or browse by category' }}
   </p>
 
   <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-    <input type="text" id="foodInput" class="form-input" placeholder="{{ 'مثلاً: صدر دجاج' if is_ar else 'e.g. chicken breast' }}" style="flex:1;min-width:200px">
+    <input type="text" id="foodInput" class="form-input" placeholder="{{ 'مثلاً: صدر دجاج' if is_ar else 'e.g. chicken breast' }}" style="flex:1;min-width:200px" oninput="filterFoodList()">
     <button onclick="analyzeFood()" class="btn btn-primary" style="min-width:130px">
       <i class="fa-solid fa-search"></i> {{ 'حلل' if is_ar else 'Analyze' }}
     </button>
@@ -69,13 +70,31 @@
 
   <div id="foodResult"></div>
 
+  <!-- Category filter -->
   <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-2)">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700">{{ 'أمثلة شائعة:' if is_ar else 'Quick Examples:' }}</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap" id="exampleBtns">
-      <!-- filled by JS -->
-    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700">{{ 'الفئات:' if is_ar else 'Categories:' }}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="catBtns"></div>
+
+    <!-- Food list -->
+    <div id="foodList" style="max-height:400px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px"></div>
+    <div id="foodCount" style="text-align:center;font-size:12px;color:var(--muted);margin-top:10px"></div>
   </div>
 </div>
+
+<style>
+.food-item {
+  background:var(--gray);border:1px solid var(--gray-2);border-radius:8px;
+  padding:10px;cursor:pointer;transition:all 0.2s;display:flex;justify-content:space-between;align-items:center;gap:8px
+}
+.food-item:hover {background:var(--blue-pale);border-color:var(--blue-light);transform:translateY(-1px)}
+.cat-btn {
+  background:var(--gray);border:1px solid var(--gray-2);border-radius:20px;
+  padding:5px 12px;font-family:'Cairo',sans-serif;font-size:12px;
+  cursor:pointer;color:var(--text-2);font-weight:600;
+}
+.cat-btn:hover {background:var(--blue-pale)}
+.cat-btn.active {background:var(--blue);color:white;border-color:var(--blue)}
+</style>
 
 <!-- ════════ PLAN MEALS SEARCH (ALL 600+ meals from system) ════════ -->
 <div class="card">
@@ -1029,188 +1048,326 @@ renderPlanMeals();
 <script>
 var IS_AR = {{ 'true' if is_ar else 'false' }};
 
-// ═══════ MASSIVE FOOD DATABASE (200+ foods) ═══════
-var foodDB = {
-  // Egyptian / Arabic foods
-  'صدر دجاج': {ar:'صدر دجاج',en:'Chicken Breast',cal:165,p:31,c:0,f:3.6,per:'100جم'},
-  'دجاج مشوي': {ar:'دجاج مشوي',en:'Grilled Chicken',cal:165,p:31,c:0,f:3.6,per:'100جم'},
-  'فخذ دجاج': {ar:'فخذ دجاج',en:'Chicken Thigh',cal:209,p:26,c:0,f:11,per:'100جم'},
-  'كبدة فراخ': {ar:'كبدة فراخ',en:'Chicken Liver',cal:172,p:26,c:1,f:6.5,per:'100جم'},
-  'كبدة بقري': {ar:'كبدة بقري',en:'Beef Liver',cal:175,p:27,c:4,f:5,per:'100جم'},
-  'لحم بقري': {ar:'لحم بقري',en:'Beef',cal:250,p:26,c:0,f:15,per:'100جم'},
-  'لحم ضاني': {ar:'لحم ضاني',en:'Lamb',cal:294,p:25,c:0,f:21,per:'100جم'},
-  'كفتة': {ar:'كفتة',en:'Kofta',cal:280,p:24,c:1,f:20,per:'100جم'},
-  'برجر بقري': {ar:'برجر بقري',en:'Beef Burger',cal:295,p:17,c:0,f:25,per:'100جم'},
-  'سجق': {ar:'سجق',en:'Sausage',cal:301,p:13,c:1,f:27,per:'100جم'},
+// ═══════ COMPREHENSIVE FOOD DATABASE (300+ foods with categories) ═══════
+var bigFoodDB = [
+  {ar:'مانجو',en:'Mango',cal:60,p:0.8,c:15,f:0.4,cat:'fruit'},
+  {ar:'موز',en:'Banana',cal:89,p:1.1,c:23,f:0.3,cat:'fruit'},
+  {ar:'تفاح',en:'Apple',cal:52,p:0.3,c:14,f:0.2,cat:'fruit'},
+  {ar:'برتقال',en:'Orange',cal:47,p:0.9,c:12,f:0.1,cat:'fruit'},
+  {ar:'يوسفي',en:'Tangerine',cal:53,p:0.8,c:13,f:0.3,cat:'fruit'},
+  {ar:'زنباع',en:'Pomelo',cal:38,p:0.8,c:10,f:0.0,cat:'fruit'},
+  {ar:'مشمش',en:'Apricot',cal:48,p:1.4,c:11,f:0.4,cat:'fruit'},
+  {ar:'خوخ',en:'Peach',cal:39,p:0.9,c:10,f:0.3,cat:'fruit'},
+  {ar:'نكتارين',en:'Nectarine',cal:44,p:1.1,c:11,f:0.3,cat:'fruit'},
+  {ar:'برقوق',en:'Plum',cal:46,p:0.7,c:11,f:0.3,cat:'fruit'},
+  {ar:'كرز',en:'Cherry',cal:50,p:1.0,c:12,f:0.3,cat:'fruit'},
+  {ar:'فراولة',en:'Strawberry',cal:32,p:0.7,c:8,f:0.3,cat:'fruit'},
+  {ar:'توت أزرق',en:'Blueberry',cal:57,p:0.7,c:14,f:0.3,cat:'fruit'},
+  {ar:'توت أحمر',en:'Raspberry',cal:52,p:1.2,c:12,f:0.7,cat:'fruit'},
+  {ar:'توت أسود',en:'Blackberry',cal:43,p:1.4,c:10,f:0.5,cat:'fruit'},
+  {ar:'توت',en:'Mulberry',cal:43,p:1.4,c:10,f:0.4,cat:'fruit'},
+  {ar:'عنب',en:'Grapes',cal:69,p:0.7,c:18,f:0.2,cat:'fruit'},
+  {ar:'كيوي',en:'Kiwi',cal:61,p:1.1,c:15,f:0.5,cat:'fruit'},
+  {ar:'أناناس',en:'Pineapple',cal:50,p:0.5,c:13,f:0.1,cat:'fruit'},
+  {ar:'مانجوستين',en:'Mangosteen',cal:73,p:0.4,c:18,f:0.6,cat:'fruit'},
+  {ar:'رمان',en:'Pomegranate',cal:83,p:1.7,c:19,f:1.2,cat:'fruit'},
+  {ar:'تين',en:'Fig',cal:74,p:0.8,c:19,f:0.3,cat:'fruit'},
+  {ar:'تمر',en:'Date',cal:277,p:1.8,c:75,f:0.2,cat:'fruit'},
+  {ar:'كاكا',en:'Persimmon',cal:70,p:0.6,c:19,f:0.2,cat:'fruit'},
+  {ar:'سفرجل',en:'Quince',cal:57,p:0.4,c:15,f:0.1,cat:'fruit'},
+  {ar:'كمثرى',en:'Pear',cal:57,p:0.4,c:15,f:0.1,cat:'fruit'},
+  {ar:'جوافة',en:'Guava',cal:68,p:2.6,c:14,f:1.0,cat:'fruit'},
+  {ar:'بطيخ أحمر',en:'Watermelon',cal:30,p:0.6,c:8,f:0.2,cat:'fruit'},
+  {ar:'شمام',en:'Cantaloupe',cal:34,p:0.8,c:8,f:0.2,cat:'fruit'},
+  {ar:'ليمون',en:'Lemon',cal:29,p:1.1,c:9,f:0.3,cat:'fruit'},
+  {ar:'ليم',en:'Lime',cal:30,p:0.7,c:11,f:0.2,cat:'fruit'},
+  {ar:'أفوكادو',en:'Avocado',cal:160,p:2.0,c:9,f:15,cat:'fruit'},
+  {ar:'جوز الهند',en:'Coconut',cal:354,p:3.3,c:15,f:33,cat:'fruit'},
+  {ar:'زيتون أخضر',en:'Green Olive',cal:145,p:1.0,c:4,f:15,cat:'fruit'},
+  {ar:'زيتون أسود',en:'Black Olive',cal:115,p:0.8,c:6,f:11,cat:'fruit'},
+  {ar:'توت بري',en:'Cranberry',cal:46,p:0.4,c:12,f:0.1,cat:'fruit'},
+  {ar:'عنبة',en:'Gooseberry',cal:44,p:0.9,c:10,f:0.6,cat:'fruit'},
+  {ar:'ليتشي',en:'Lychee',cal:66,p:0.8,c:17,f:0.4,cat:'fruit'},
+  {ar:'بابايا',en:'Papaya',cal:43,p:0.5,c:11,f:0.3,cat:'fruit'},
+  {ar:'باشن فروت',en:'Passion Fruit',cal:97,p:2.2,c:23,f:0.7,cat:'fruit'},
+  {ar:'زبيب',en:'Raisins',cal:299,p:3.1,c:79,f:0.5,cat:'fruit'},
+  {ar:'تين مجفف',en:'Dried Fig',cal:249,p:3.3,c:64,f:0.9,cat:'fruit'},
+  {ar:'مشمش مجفف',en:'Dried Apricot',cal:241,p:3.4,c:63,f:0.5,cat:'fruit'},
+  {ar:'برقوق مجفف',en:'Prune',cal:240,p:2.2,c:64,f:0.4,cat:'fruit'},
+  {ar:'طماطم',en:'Tomato',cal:18,p:0.9,c:3.9,f:0.2,cat:'veg'},
+  {ar:'خيار',en:'Cucumber',cal:15,p:0.7,c:3.6,f:0.1,cat:'veg'},
+  {ar:'بصل',en:'Onion',cal:40,p:1.1,c:9,f:0.1,cat:'veg'},
+  {ar:'بصل أخضر',en:'Green Onion',cal:32,p:1.8,c:7,f:0.2,cat:'veg'},
+  {ar:'كراث',en:'Shallot',cal:72,p:2.5,c:17,f:0.1,cat:'veg'},
+  {ar:'ثوم',en:'Garlic',cal:149,p:6.4,c:33,f:0.5,cat:'veg'},
+  {ar:'جزر',en:'Carrot',cal:41,p:0.9,c:10,f:0.2,cat:'veg'},
+  {ar:'بطاطس',en:'Potato',cal:77,p:2.0,c:17,f:0.1,cat:'veg'},
+  {ar:'بطاطا حلوة',en:'Sweet Potato',cal:86,p:1.6,c:20,f:0.1,cat:'veg'},
+  {ar:'قرع',en:'Pumpkin',cal:26,p:1.0,c:7,f:0.1,cat:'veg'},
+  {ar:'باذنجان',en:'Eggplant',cal:25,p:1.0,c:6,f:0.2,cat:'veg'},
+  {ar:'كوسى',en:'Zucchini',cal:17,p:1.2,c:3.1,f:0.3,cat:'veg'},
+  {ar:'فلفل أخضر',en:'Green Pepper',cal:20,p:0.9,c:4.6,f:0.2,cat:'veg'},
+  {ar:'فلفل ألوان',en:'Bell Pepper',cal:31,p:1.0,c:6,f:0.3,cat:'veg'},
+  {ar:'سبانخ',en:'Spinach',cal:23,p:2.9,c:3.6,f:0.4,cat:'veg'},
+  {ar:'خس',en:'Lettuce',cal:15,p:1.4,c:2.9,f:0.2,cat:'veg'},
+  {ar:'ملفوف',en:'Cabbage',cal:25,p:1.3,c:6,f:0.1,cat:'veg'},
+  {ar:'ملفوف أحمر',en:'Red Cabbage',cal:31,p:1.4,c:7,f:0.2,cat:'veg'},
+  {ar:'بروكلي',en:'Broccoli',cal:34,p:2.8,c:7,f:0.4,cat:'veg'},
+  {ar:'قرنبيط',en:'Cauliflower',cal:25,p:2.0,c:5,f:0.3,cat:'veg'},
+  {ar:'فطر',en:'Mushroom',cal:22,p:3.1,c:3.3,f:0.3,cat:'veg'},
+  {ar:'بنجر',en:'Beetroot',cal:43,p:1.6,c:10,f:0.2,cat:'veg'},
+  {ar:'لفت',en:'Turnip',cal:28,p:0.9,c:6,f:0.1,cat:'veg'},
+  {ar:'فجل',en:'Radish',cal:16,p:0.7,c:3.4,f:0.1,cat:'veg'},
+  {ar:'فاصوليا خضراء',en:'Green Beans',cal:31,p:1.8,c:7,f:0.2,cat:'veg'},
+  {ar:'بازلاء',en:'Peas',cal:81,p:5.0,c:14,f:0.4,cat:'veg'},
+  {ar:'بامية',en:'Okra',cal:33,p:1.9,c:7,f:0.2,cat:'veg'},
+  {ar:'ذرة',en:'Corn',cal:96,p:3.4,c:21,f:1.5,cat:'veg'},
+  {ar:'هليون',en:'Asparagus',cal:20,p:2.2,c:3.9,f:0.1,cat:'veg'},
+  {ar:'خرشوف',en:'Artichoke',cal:47,p:3.3,c:11,f:0.2,cat:'veg'},
+  {ar:'كرفس',en:'Celery',cal:16,p:0.7,c:3,f:0.2,cat:'veg'},
+  {ar:'بقدونس',en:'Parsley',cal:36,p:3.0,c:6,f:0.8,cat:'veg'},
+  {ar:'كزبرة',en:'Cilantro',cal:23,p:2.1,c:3.7,f:0.5,cat:'veg'},
+  {ar:'شبت',en:'Dill',cal:43,p:3.5,c:7,f:1.1,cat:'veg'},
+  {ar:'نعناع',en:'Mint',cal:70,p:3.8,c:15,f:0.9,cat:'veg'},
+  {ar:'جرجير',en:'Arugula',cal:25,p:2.6,c:3.7,f:0.7,cat:'veg'},
+  {ar:'ملوخية',en:'Molokhia',cal:35,p:4.0,c:7,f:0.5,cat:'veg'},
+  {ar:'كرات',en:'Leek',cal:61,p:1.5,c:14,f:0.3,cat:'veg'},
+  {ar:'شومر',en:'Fennel',cal:31,p:1.2,c:7,f:0.2,cat:'veg'},
+  {ar:'كرنب',en:'Kale',cal:49,p:4.3,c:9,f:0.9,cat:'veg'},
+  {ar:'حشيشة الملاك',en:'Watercress',cal:11,p:2.3,c:1.3,f:0.1,cat:'veg'},
+  {ar:'صدر دجاج',en:'Chicken Breast',cal:165,p:31,c:0,f:3.6,cat:'meat'},
+  {ar:'فخذ دجاج',en:'Chicken Thigh',cal:209,p:26,c:0,f:11,cat:'meat'},
+  {ar:'جناح دجاج',en:'Chicken Wing',cal:203,p:30,c:0,f:8.1,cat:'meat'},
+  {ar:'كبدة فراخ',en:'Chicken Liver',cal:172,p:26,c:1,f:6.5,cat:'meat'},
+  {ar:'ديك رومي',en:'Turkey',cal:189,p:29,c:0,f:7,cat:'meat'},
+  {ar:'بط',en:'Duck',cal:337,p:19,c:0,f:28,cat:'meat'},
+  {ar:'لحم بقري',en:'Beef',cal:250,p:26,c:0,f:15,cat:'meat'},
+  {ar:'لحم بقر قليل دهن',en:'Lean Beef',cal:186,p:27,c:0,f:8,cat:'meat'},
+  {ar:'لحم ضأن',en:'Lamb',cal:294,p:25,c:0,f:21,cat:'meat'},
+  {ar:'لحم عجل',en:'Veal',cal:172,p:24,c:0,f:8,cat:'meat'},
+  {ar:'كبدة بقر',en:'Beef Liver',cal:175,p:27,c:4,f:5,cat:'meat'},
+  {ar:'كلاوي',en:'Kidney',cal:99,p:17,c:0.3,f:3.1,cat:'meat'},
+  {ar:'لسان',en:'Tongue',cal:224,p:22,c:3.7,f:14,cat:'meat'},
+  {ar:'كفتة',en:'Kofta',cal:280,p:24,c:1,f:20,cat:'meat'},
+  {ar:'سجق',en:'Sausage',cal:301,p:13,c:1,f:27,cat:'meat'},
+  {ar:'هام',en:'Ham',cal:145,p:21,c:1.5,f:6,cat:'meat'},
+  {ar:'بيكون',en:'Bacon',cal:541,p:37,c:1.4,f:42,cat:'meat'},
+  {ar:'بسطرمة',en:'Pastrami',cal:147,p:22,c:3.3,f:5,cat:'meat'},
+  {ar:'مرتديلا',en:'Mortadella',cal:311,p:16,c:3,f:25,cat:'meat'},
+  {ar:'بلطي',en:'Tilapia',cal:128,p:26,c:0,f:3,cat:'fish'},
+  {ar:'سلمون',en:'Salmon',cal:208,p:20,c:0,f:13,cat:'fish'},
+  {ar:'تونة',en:'Tuna',cal:132,p:28,c:0,f:1,cat:'fish'},
+  {ar:'تونة معلبة',en:'Canned Tuna',cal:116,p:26,c:0,f:1,cat:'fish'},
+  {ar:'ماكريل',en:'Mackerel',cal:205,p:19,c:0,f:14,cat:'fish'},
+  {ar:'سردين',en:'Sardine',cal:208,p:25,c:0,f:11,cat:'fish'},
+  {ar:'قد',en:'Cod',cal:82,p:18,c:0,f:0.7,cat:'fish'},
+  {ar:'جمبري',en:'Shrimp',cal:99,p:24,c:0.2,f:0.3,cat:'fish'},
+  {ar:'سرطان البحر',en:'Crab',cal:87,p:18,c:0,f:1.1,cat:'fish'},
+  {ar:'استاكوزا',en:'Lobster',cal:89,p:19,c:0,f:0.9,cat:'fish'},
+  {ar:'كاليماري',en:'Calamari',cal:92,p:15,c:3,f:1.4,cat:'fish'},
+  {ar:'أخطبوط',en:'Octopus',cal:82,p:15,c:2.2,f:1,cat:'fish'},
+  {ar:'كافيار',en:'Caviar',cal:264,p:25,c:4,f:18,cat:'fish'},
+  {ar:'بيض مسلوق',en:'Boiled Egg',cal:155,p:13,c:1.1,f:11,cat:'dairy'},
+  {ar:'بيض مقلي',en:'Fried Egg',cal:196,p:14,c:0.8,f:15,cat:'dairy'},
+  {ar:'بياض البيض',en:'Egg White',cal:52,p:11,c:0.7,f:0.2,cat:'dairy'},
+  {ar:'صفار البيض',en:'Egg Yolk',cal:322,p:16,c:3.6,f:27,cat:'dairy'},
+  {ar:'أومليت',en:'Omelet',cal:154,p:11,c:1,f:12,cat:'dairy'},
+  {ar:'بيض السمان',en:'Quail Egg',cal:158,p:13,c:0.4,f:11,cat:'dairy'},
+  {ar:'حليب كامل',en:'Whole Milk',cal:61,p:3.2,c:5,f:3.3,cat:'dairy'},
+  {ar:'حليب قليل دسم',en:'Low-Fat Milk',cal:42,p:3.4,c:5,f:1,cat:'dairy'},
+  {ar:'حليب خالي دسم',en:'Skim Milk',cal:34,p:3.4,c:5,f:0.1,cat:'dairy'},
+  {ar:'حليب جوز الهند',en:'Coconut Milk',cal:230,p:2.3,c:5.5,f:24,cat:'dairy'},
+  {ar:'حليب اللوز',en:'Almond Milk',cal:17,p:0.6,c:1.5,f:1.1,cat:'dairy'},
+  {ar:'حليب الصويا',en:'Soy Milk',cal:54,p:3.3,c:6,f:1.8,cat:'dairy'},
+  {ar:'زبادي',en:'Yogurt',cal:59,p:10,c:3.6,f:0.4,cat:'dairy'},
+  {ar:'زبادي يوناني',en:'Greek Yogurt',cal:97,p:9,c:4,f:5,cat:'dairy'},
+  {ar:'لبنة',en:'Labneh',cal:174,p:8,c:6,f:14,cat:'dairy'},
+  {ar:'جبن قريش',en:'Cottage Cheese',cal:98,p:11,c:3.4,f:4.3,cat:'dairy'},
+  {ar:'جبن فيتا',en:'Feta Cheese',cal:264,p:14,c:4,f:21,cat:'dairy'},
+  {ar:'جبن شيدر',en:'Cheddar Cheese',cal:402,p:25,c:1.3,f:33,cat:'dairy'},
+  {ar:'موزاريلا',en:'Mozzarella',cal:280,p:28,c:3,f:17,cat:'dairy'},
+  {ar:'بارميزان',en:'Parmesan',cal:431,p:38,c:4,f:29,cat:'dairy'},
+  {ar:'جبن رومي',en:'Romi Cheese',cal:380,p:25,c:0.5,f:30,cat:'dairy'},
+  {ar:'جبنة كريمية',en:'Cream Cheese',cal:342,p:6,c:4,f:34,cat:'dairy'},
+  {ar:'زبدة',en:'Butter',cal:717,p:0.9,c:0.1,f:81,cat:'dairy'},
+  {ar:'سمن بلدي',en:'Ghee',cal:900,p:0,c:0,f:100,cat:'dairy'},
+  {ar:'قشدة',en:'Cream',cal:340,p:2.8,c:3,f:36,cat:'dairy'},
+  {ar:'كريمة حامضة',en:'Sour Cream',cal:198,p:2.4,c:4.6,f:19,cat:'dairy'},
+  {ar:'أرز أبيض',en:'White Rice',cal:130,p:2.7,c:28,f:0.3,cat:'grain'},
+  {ar:'أرز بني',en:'Brown Rice',cal:112,p:2.6,c:24,f:0.9,cat:'grain'},
+  {ar:'أرز بسمتي',en:'Basmati Rice',cal:121,p:3,c:25,f:0.4,cat:'grain'},
+  {ar:'أرز بالحليب',en:'Rice Pudding',cal:115,p:2.5,c:22,f:1.5,cat:'grain'},
+  {ar:'مكرونة',en:'Pasta',cal:131,p:5,c:25,f:1.1,cat:'grain'},
+  {ar:'مكرونة قمح كامل',en:'Whole Wheat Pasta',cal:124,p:5,c:25,f:0.9,cat:'grain'},
+  {ar:'سباغيتي',en:'Spaghetti',cal:158,p:5.8,c:31,f:0.9,cat:'grain'},
+  {ar:'خبز أبيض',en:'White Bread',cal:265,p:9,c:49,f:3.2,cat:'grain'},
+  {ar:'خبز أسمر',en:'Brown Bread',cal:247,p:13,c:41,f:4,cat:'grain'},
+  {ar:'خبز بلدي',en:'Egyptian Bread',cal:230,p:8,c:48,f:1,cat:'grain'},
+  {ar:'خبز عربي',en:'Pita Bread',cal:165,p:5.5,c:33,f:0.8,cat:'grain'},
+  {ar:'نان',en:'Naan',cal:310,p:9,c:51,f:7,cat:'grain'},
+  {ar:'تورتيلا',en:'Tortilla',cal:218,p:5.7,c:36,f:5.6,cat:'grain'},
+  {ar:'توست',en:'Toast',cal:313,p:10,c:57,f:4,cat:'grain'},
+  {ar:'كرواسون',en:'Croissant',cal:406,p:8,c:46,f:21,cat:'grain'},
+  {ar:'كعك بيغل',en:'Bagel',cal:257,p:10,c:50,f:1.6,cat:'grain'},
+  {ar:'بريتزل',en:'Pretzel',cal:380,p:10,c:80,f:3,cat:'grain'},
+  {ar:'بسكويت مالح',en:'Cracker',cal:440,p:9,c:62,f:17,cat:'grain'},
+  {ar:'شوفان',en:'Oats',cal:389,p:17,c:66,f:7,cat:'grain'},
+  {ar:'شوفان مطبوخ',en:'Oatmeal',cal:71,p:2.5,c:12,f:1.5,cat:'grain'},
+  {ar:'كورن فليكس',en:'Corn Flakes',cal:357,p:7,c:84,f:0.9,cat:'grain'},
+  {ar:'جرانولا',en:'Granola',cal:471,p:13,c:64,f:20,cat:'grain'},
+  {ar:'موسلي',en:'Muesli',cal:362,p:10,c:66,f:6,cat:'grain'},
+  {ar:'كينوا',en:'Quinoa',cal:120,p:4.4,c:21,f:1.9,cat:'grain'},
+  {ar:'برغل',en:'Bulgur',cal:83,p:3,c:19,f:0.2,cat:'grain'},
+  {ar:'فريكة',en:'Freekeh',cal:99,p:5,c:21,f:1,cat:'grain'},
+  {ar:'شعير',en:'Barley',cal:354,p:12,c:73,f:2.3,cat:'grain'},
+  {ar:'جاودار',en:'Rye',cal:338,p:10,c:76,f:1.6,cat:'grain'},
+  {ar:'خبز الذرة',en:'Cornbread',cal:198,p:4,c:34,f:5,cat:'grain'},
+  {ar:'دقيق الأرز',en:'Rice Flour',cal:366,p:6,c:80,f:1.4,cat:'grain'},
+  {ar:'دقيق',en:'All-Purpose Flour',cal:364,p:10,c:76,f:1,cat:'grain'},
+  {ar:'فول',en:'Fava Beans',cal:341,p:26,c:58,f:1.5,cat:'legume'},
+  {ar:'فول مدمس',en:'Fava (Cooked)',cal:110,p:7.6,c:19,f:0.4,cat:'legume'},
+  {ar:'حمص',en:'Chickpeas',cal:164,p:9,c:27,f:2.6,cat:'legume'},
+  {ar:'عدس',en:'Lentils',cal:116,p:9,c:20,f:0.4,cat:'legume'},
+  {ar:'فول الصويا',en:'Soybean',cal:172,p:18,c:8,f:9,cat:'legume'},
+  {ar:'لوبيا',en:'Cowpeas',cal:116,p:8,c:21,f:0.5,cat:'legume'},
+  {ar:'فاصوليا حمراء',en:'Kidney Beans',cal:127,p:9,c:23,f:0.5,cat:'legume'},
+  {ar:'فاصوليا بيضاء',en:'Navy Beans',cal:139,p:9,c:25,f:0.6,cat:'legume'},
+  {ar:'فاصوليا سوداء',en:'Black Beans',cal:132,p:9,c:24,f:0.5,cat:'legume'},
+  {ar:'فاصوليا مونج',en:'Mung Bean',cal:105,p:7,c:19,f:0.4,cat:'legume'},
+  {ar:'إدامامي',en:'Edamame',cal:121,p:12,c:9,f:5,cat:'legume'},
+  {ar:'فلافل',en:'Falafel',cal:333,p:13,c:32,f:18,cat:'legume'},
+  {ar:'حمص بطحينة',en:'Hummus',cal:166,p:8,c:14,f:10,cat:'legume'},
+  {ar:'لوز',en:'Almond',cal:579,p:21,c:22,f:50,cat:'nuts'},
+  {ar:'عين الجمل',en:'Walnut',cal:654,p:15,c:14,f:65,cat:'nuts'},
+  {ar:'كاجو',en:'Cashew',cal:553,p:18,c:30,f:44,cat:'nuts'},
+  {ar:'فستق',en:'Pistachio',cal:560,p:20,c:28,f:45,cat:'nuts'},
+  {ar:'بندق',en:'Hazelnut',cal:628,p:15,c:17,f:61,cat:'nuts'},
+  {ar:'جوز البقان',en:'Pecan',cal:691,p:9,c:14,f:72,cat:'nuts'},
+  {ar:'مكاديميا',en:'Macadamia',cal:718,p:8,c:14,f:76,cat:'nuts'},
+  {ar:'جوز برازيلي',en:'Brazil Nut',cal:659,p:14,c:12,f:67,cat:'nuts'},
+  {ar:'فول سوداني',en:'Peanut',cal:567,p:26,c:16,f:49,cat:'nuts'},
+  {ar:'بذور دوار الشمس',en:'Sunflower Seed',cal:584,p:21,c:20,f:51,cat:'nuts'},
+  {ar:'بذور القرع',en:'Pumpkin Seed',cal:559,p:30,c:11,f:49,cat:'nuts'},
+  {ar:'سمسم',en:'Sesame',cal:573,p:18,c:23,f:50,cat:'nuts'},
+  {ar:'بذر الكتان',en:'Flaxseed',cal:534,p:18,c:29,f:42,cat:'nuts'},
+  {ar:'شيا',en:'Chia Seeds',cal:486,p:17,c:42,f:31,cat:'nuts'},
+  {ar:'طحينة',en:'Tahini',cal:595,p:17,c:21,f:53,cat:'nuts'},
+  {ar:'زبدة فول سوداني',en:'Peanut Butter',cal:588,p:25,c:20,f:50,cat:'nuts'},
+  {ar:'زبدة لوز',en:'Almond Butter',cal:614,p:21,c:19,f:56,cat:'nuts'},
+  {ar:'زيت زيتون',en:'Olive Oil',cal:884,p:0,c:0,f:100,cat:'oil'},
+  {ar:'زيت جوز الهند',en:'Coconut Oil',cal:862,p:0,c:0,f:100,cat:'oil'},
+  {ar:'زيت دوار الشمس',en:'Sunflower Oil',cal:884,p:0,c:0,f:100,cat:'oil'},
+  {ar:'زيت كانولا',en:'Canola Oil',cal:884,p:0,c:0,f:100,cat:'oil'},
+  {ar:'زيت السمسم',en:'Sesame Oil',cal:884,p:0,c:0,f:100,cat:'oil'},
+  {ar:'زيت النخيل',en:'Palm Oil',cal:884,p:0,c:0,f:100,cat:'oil'},
+  {ar:'زيت الذرة',en:'Corn Oil',cal:884,p:0,c:0,f:100,cat:'oil'},
+  {ar:'ماء',en:'Water',cal:0,p:0,c:0,f:0,cat:'drink'},
+  {ar:'قهوة سادة',en:'Black Coffee',cal:2,p:0.3,c:0,f:0,cat:'drink'},
+  {ar:'قهوة بحليب',en:'Coffee with Milk',cal:50,p:3,c:5,f:2,cat:'drink'},
+  {ar:'شاي',en:'Tea',cal:2,p:0,c:0.5,f:0,cat:'drink'},
+  {ar:'شاي أخضر',en:'Green Tea',cal:1,p:0,c:0,f:0,cat:'drink'},
+  {ar:'شاي بنعناع',en:'Mint Tea',cal:2,p:0,c:0.5,f:0,cat:'drink'},
+  {ar:'كركديه',en:'Hibiscus Tea',cal:5,p:0,c:1,f:0,cat:'drink'},
+  {ar:'عصير برتقال',en:'Orange Juice',cal:45,p:0.7,c:10,f:0.2,cat:'drink'},
+  {ar:'عصير تفاح',en:'Apple Juice',cal:46,p:0.1,c:11,f:0.1,cat:'drink'},
+  {ar:'عصير مانجو',en:'Mango Juice',cal:54,p:0.4,c:13,f:0.2,cat:'drink'},
+  {ar:'عصير رمان',en:'Pomegranate Juice',cal:54,p:0.2,c:13,f:0.3,cat:'drink'},
+  {ar:'ليمونادة',en:'Lemonade',cal:40,p:0.1,c:10,f:0,cat:'drink'},
+  {ar:'مياه غازية',en:'Soda',cal:42,p:0,c:11,f:0,cat:'drink'},
+  {ar:'صودا دايت',en:'Diet Soda',cal:1,p:0,c:0,f:0,cat:'drink'},
+  {ar:'مشروب طاقة',en:'Energy Drink',cal:45,p:0,c:11,f:0,cat:'drink'},
+  {ar:'بيرة',en:'Beer',cal:43,p:0.5,c:3.6,f:0,cat:'drink'},
+  {ar:'ميلك شيك',en:'Milkshake',cal:112,p:3.4,c:18,f:3.1,cat:'drink'},
+  {ar:'شوكولاتة ساخنة',en:'Hot Chocolate',cal:77,p:3.5,c:10,f:2.5,cat:'drink'},
+  {ar:'سكر',en:'Sugar',cal:387,p:0,c:100,f:0,cat:'sweet'},
+  {ar:'عسل',en:'Honey',cal:304,p:0.3,c:82,f:0,cat:'sweet'},
+  {ar:'مربى',en:'Jam',cal:278,p:0.4,c:69,f:0.1,cat:'sweet'},
+  {ar:'شوكولاتة دارك',en:'Dark Chocolate',cal:546,p:5,c:61,f:31,cat:'sweet'},
+  {ar:'شوكولاتة بحليب',en:'Milk Chocolate',cal:535,p:7,c:59,f:30,cat:'sweet'},
+  {ar:'شوكولاتة بيضاء',en:'White Chocolate',cal:539,p:6,c:59,f:32,cat:'sweet'},
+  {ar:'بسكويت',en:'Cookies',cal:480,p:6,c:65,f:22,cat:'sweet'},
+  {ar:'كنافة',en:'Kunafa',cal:380,p:6,c:50,f:18,cat:'sweet'},
+  {ar:'بقلاوة',en:'Baklava',cal:430,p:5,c:55,f:22,cat:'sweet'},
+  {ar:'أم علي',en:'Om Ali',cal:280,p:6,c:38,f:12,cat:'sweet'},
+  {ar:'مهلبية',en:'Mahalabia',cal:130,p:3,c:22,f:3,cat:'sweet'},
+  {ar:'أرز بحليب',en:'Rice Pudding',cal:115,p:2.5,c:22,f:1.5,cat:'sweet'},
+  {ar:'آيس كريم فانيلا',en:'Vanilla Ice Cream',cal:207,p:3.5,c:24,f:11,cat:'sweet'},
+  {ar:'آيس كريم شوكولاتة',en:'Chocolate Ice Cream',cal:216,p:3.8,c:28,f:11,cat:'sweet'},
+  {ar:'مصاصة ثلج',en:'Popsicle',cal:52,p:0,c:13,f:0,cat:'sweet'},
+  {ar:'جيلي',en:'Jelly',cal:62,p:1.2,c:14,f:0,cat:'sweet'},
+  {ar:'فلان',en:'Flan',cal:145,p:4,c:23,f:4,cat:'sweet'},
+  {ar:'كعكة',en:'Cake',cal:257,p:4,c:46,f:6,cat:'sweet'},
+  {ar:'كيكة إسفنجية',en:'Sponge Cake',cal:297,p:5,c:49,f:8,cat:'sweet'},
+  {ar:'فطيرة التفاح',en:'Apple Pie',cal:237,p:2.4,c:34,f:11,cat:'sweet'},
+  {ar:'دونات',en:'Doughnut',cal:452,p:5,c:51,f:25,cat:'sweet'},
+  {ar:'بان كيك',en:'Pancake',cal:227,p:6,c:28,f:10,cat:'sweet'},
+  {ar:'وافل',en:'Waffle',cal:291,p:6,c:33,f:14,cat:'sweet'},
+  {ar:'بيتزا',en:'Pizza',cal:266,p:11,c:33,f:10,cat:'meal'},
+  {ar:'برجر',en:'Hamburger',cal:295,p:17,c:30,f:14,cat:'meal'},
+  {ar:'تشيز برجر',en:'Cheeseburger',cal:303,p:16,c:25,f:16,cat:'meal'},
+  {ar:'برجر دجاج',en:'Chicken Burger',cal:280,p:18,c:30,f:12,cat:'meal'},
+  {ar:'ساندويتش',en:'Sandwich',cal:250,p:12,c:30,f:10,cat:'meal'},
+  {ar:'كلوب ساندويتش',en:'Club Sandwich',cal:340,p:16,c:30,f:18,cat:'meal'},
+  {ar:'شاورما دجاج',en:'Chicken Shawarma',cal:280,p:20,c:25,f:12,cat:'meal'},
+  {ar:'شاورما لحم',en:'Beef Shawarma',cal:340,p:22,c:25,f:18,cat:'meal'},
+  {ar:'كباب',en:'Kebab',cal:240,p:18,c:5,f:16,cat:'meal'},
+  {ar:'كشري',en:'Koshary',cal:240,p:8,c:42,f:5,cat:'meal'},
+  {ar:'محشي',en:'Stuffed Veg',cal:215,p:5,c:30,f:9,cat:'meal'},
+  {ar:'ملوخية بفراخ',en:'Molokhia Dish',cal:155,p:12,c:10,f:7,cat:'meal'},
+  {ar:'منسف',en:'Mansaf',cal:260,p:18,c:22,f:12,cat:'meal'},
+  {ar:'كبسة',en:'Kabsa',cal:240,p:15,c:28,f:9,cat:'meal'},
+  {ar:'مندي',en:'Mandi',cal:255,p:17,c:28,f:10,cat:'meal'},
+  {ar:'فتة',en:'Fattah',cal:290,p:14,c:30,f:13,cat:'meal'},
+  {ar:'مكرونة بشاميل',en:'Pasta Bechamel',cal:250,p:9,c:27,f:11,cat:'meal'},
+  {ar:'لازانيا',en:'Lasagna',cal:135,p:8,c:14,f:5,cat:'meal'},
+  {ar:'تبولة',en:'Tabouleh',cal:150,p:4,c:14,f:9,cat:'meal'},
+  {ar:'فتوش',en:'Fattoush',cal:130,p:3,c:15,f:7,cat:'meal'},
+  {ar:'سلطة بطاطس',en:'Potato Salad',cal:143,p:2.6,c:12,f:9,cat:'meal'},
+  {ar:'سلطة تونة',en:'Tuna Salad',cal:183,p:16,c:9,f:10,cat:'meal'},
+  {ar:'سلطة سيزر',en:'Caesar Salad',cal:190,p:7,c:7,f:16,cat:'meal'},
+  {ar:'سلطة يونانية',en:'Greek Salad',cal:130,p:4,c:6,f:10,cat:'meal'},
+  {ar:'كولسلو',en:'Coleslaw',cal:153,p:1.4,c:13,f:11,cat:'meal'},
+  {ar:'سوشي',en:'Sushi',cal:150,p:6,c:30,f:1,cat:'meal'},
+  {ar:'رامن',en:'Ramen',cal:188,p:5,c:27,f:7,cat:'meal'},
+  {ar:'كاري',en:'Curry',cal:150,p:10,c:10,f:8,cat:'meal'},
+  {ar:'شيبس',en:'Potato Chips',cal:536,p:7,c:53,f:35,cat:'snack'},
+  {ar:'بطاطا مقلية',en:'French Fries',cal:312,p:3.4,c:41,f:15,cat:'snack'},
+  {ar:'فشار',en:'Popcorn',cal:387,p:13,c:78,f:5,cat:'snack'},
+  {ar:'كرات الجبن',en:'Cheese Puffs',cal:542,p:6,c:54,f:33,cat:'snack'},
+  {ar:'تورتيلا شيبس',en:'Tortilla Chips',cal:489,p:7,c:63,f:24,cat:'snack'},
+  {ar:'بروتين بار',en:'Protein Bar',cal:400,p:35,c:38,f:10,cat:'snack'},
+  {ar:'ملح',en:'Salt',cal:0,p:0,c:0,f:0,cat:'condiment'},
+  {ar:'فلفل أسود',en:'Black Pepper',cal:251,p:10,c:64,f:3.3,cat:'condiment'},
+  {ar:'كمون',en:'Cumin',cal:375,p:18,c:44,f:22,cat:'condiment'},
+  {ar:'كركم',en:'Turmeric',cal:354,p:8,c:65,f:10,cat:'condiment'},
+  {ar:'قرفة',en:'Cinnamon',cal:247,p:4,c:81,f:1.2,cat:'condiment'},
+  {ar:'زنجبيل',en:'Ginger',cal:80,p:1.8,c:18,f:0.8,cat:'condiment'},
+  {ar:'هيل',en:'Cardamom',cal:311,p:11,c:68,f:7,cat:'condiment'},
+  {ar:'قرنفل',en:'Cloves',cal:274,p:6,c:66,f:13,cat:'condiment'},
+  {ar:'بهارات كاري',en:'Curry Powder',cal:325,p:14,c:56,f:14,cat:'condiment'},
+  {ar:'زعفران',en:'Saffron',cal:310,p:11,c:65,f:6,cat:'condiment'},
+  {ar:'سماق',en:'Sumac',cal:318,p:5,c:70,f:7,cat:'condiment'},
+  {ar:'زعتر',en:'Za\'atar',cal:276,p:9,c:56,f:7,cat:'condiment'},
+  {ar:'كتشب',en:'Ketchup',cal:112,p:1.3,c:27,f:0.4,cat:'condiment'},
+  {ar:'مايونيز',en:'Mayonnaise',cal:680,p:1,c:1,f:75,cat:'condiment'},
+  {ar:'سس خردل',en:'Mustard',cal:66,p:4,c:6,f:4,cat:'condiment'},
+  {ar:'صلصة الصويا',en:'Soy Sauce',cal:53,p:8,c:5,f:0.6,cat:'condiment'},
+  {ar:'سس صدف',en:'Oyster Sauce',cal:51,p:1.4,c:11,f:0.3,cat:'condiment'},
+  {ar:'صلصة السمك',en:'Fish Sauce',cal:35,p:5,c:3.6,f:0,cat:'condiment'},
+  {ar:'خل بلسمي',en:'Balsamic Vinegar',cal:88,p:0.5,c:17,f:0,cat:'condiment'},
+  {ar:'خل التفاح',en:'Apple Vinegar',cal:21,p:0,c:0.9,f:0,cat:'condiment'},
+  {ar:'صلصة طماطم',en:'Tomato Paste',cal:82,p:4.3,c:19,f:0.5,cat:'condiment'},
+  {ar:'كاكاو',en:'Cocoa Powder',cal:228,p:20,c:58,f:14,cat:'condiment'},
+  {ar:'بيكنج باودر',en:'Baking Powder',cal:53,p:0,c:28,f:0,cat:'condiment'}
+];
 
-  // Fish
-  'سمك بلطي': {ar:'سمك بلطي',en:'Tilapia',cal:128,p:26,c:0,f:3,per:'100جم'},
-  'سمك سلمون': {ar:'سمك سلمون',en:'Salmon',cal:208,p:20,c:0,f:13,per:'100جم'},
-  'سمك تونة': {ar:'سمك تونة',en:'Tuna',cal:132,p:28,c:0,f:1,per:'100جم'},
-  'تونة علب': {ar:'تونة علبة',en:'Canned Tuna',cal:116,p:26,c:0,f:1,per:'100جم'},
-  'سمك مكرونة': {ar:'سمك مكرونة',en:'Mackerel',cal:205,p:19,c:0,f:14,per:'100جم'},
-  'سمك سردين': {ar:'سمك سردين',en:'Sardines',cal:208,p:25,c:0,f:11,per:'100جم'},
-  'جمبري': {ar:'جمبري',en:'Shrimp',cal:99,p:24,c:0.2,f:0.3,per:'100جم'},
-  'كاليماري': {ar:'كاليماري',en:'Calamari',cal:92,p:15,c:3,f:1.4,per:'100جم'},
 
-  // Eggs & Dairy
-  'بيض مسلوق': {ar:'بيض مسلوق',en:'Boiled Egg',cal:78,p:6,c:0.6,f:5,per:'بيضة'},
-  'بيض اومليت': {ar:'بيض اومليت',en:'Omelet',cal:154,p:11,c:1,f:12,per:'2 بيضة'},
-  'بيض مقلي': {ar:'بيض مقلي',en:'Fried Egg',cal:90,p:6,c:0.4,f:7,per:'بيضة'},
-  'بياض البيض': {ar:'بياض البيض',en:'Egg White',cal:17,p:3.6,c:0.2,f:0,per:'بيضة'},
-  'لبن كامل': {ar:'لبن كامل الدسم',en:'Whole Milk',cal:61,p:3.2,c:5,f:3.3,per:'100مل'},
-  'لبن قليل': {ar:'لبن قليل الدسم',en:'Low-Fat Milk',cal:42,p:3.4,c:5,f:1,per:'100مل'},
-  'لبن خالي': {ar:'لبن خالي الدسم',en:'Skim Milk',cal:34,p:3.4,c:5,f:0.1,per:'100مل'},
-  'زبادي': {ar:'زبادي',en:'Yogurt',cal:59,p:10,c:3.6,f:0.4,per:'100جم'},
-  'زبادي يوناني': {ar:'زبادي يوناني',en:'Greek Yogurt',cal:97,p:9,c:4,f:5,per:'100جم'},
-  'جبن قريش': {ar:'جبن قريش',en:'Cottage Cheese',cal:98,p:11,c:3.4,f:4.3,per:'100جم'},
-  'جبن فيتا': {ar:'جبن فيتا',en:'Feta Cheese',cal:264,p:14,c:4,f:21,per:'100جم'},
-  'جبن رومي': {ar:'جبن رومي',en:'Romi Cheese',cal:380,p:25,c:0.5,f:30,per:'100جم'},
-  'جبن شيدر': {ar:'جبن شيدر',en:'Cheddar',cal:402,p:25,c:1.3,f:33,per:'100جم'},
-  'جبن موزاريلا': {ar:'جبن موزاريلا',en:'Mozzarella',cal:280,p:28,c:3,f:17,per:'100جم'},
-  'لبنة': {ar:'لبنة',en:'Labneh',cal:174,p:8,c:6,f:14,per:'100جم'},
-
-  // Grains & Carbs
-  'أرز أبيض': {ar:'أرز أبيض',en:'White Rice',cal:130,p:2.7,c:28,f:0.3,per:'100جم'},
-  'أرز بني': {ar:'أرز بني',en:'Brown Rice',cal:112,p:2.6,c:24,f:0.9,per:'100جم'},
-  'أرز بسمتي': {ar:'أرز بسمتي',en:'Basmati Rice',cal:121,p:3,c:25,f:0.4,per:'100جم'},
-  'مكرونة': {ar:'مكرونة',en:'Pasta',cal:131,p:5,c:25,f:1.1,per:'100جم'},
-  'مكرونة قمح': {ar:'مكرونة قمح كامل',en:'Whole Wheat Pasta',cal:124,p:5,c:25,f:0.9,per:'100جم'},
-  'خبز أبيض': {ar:'خبز أبيض',en:'White Bread',cal:265,p:9,c:49,f:3.2,per:'100جم'},
-  'خبز أسمر': {ar:'خبز أسمر',en:'Brown Bread',cal:247,p:13,c:41,f:4,per:'100جم'},
-  'خبز بلدي': {ar:'خبز بلدي',en:'Egyptian Bread',cal:230,p:8,c:48,f:1,per:'رغيف'},
-  'خبز عربي': {ar:'خبز عربي',en:'Pita Bread',cal:165,p:5.5,c:33,f:0.8,per:'رغيف'},
-  'توست': {ar:'توست',en:'Toast',cal:75,p:2.5,c:14,f:1,per:'شريحة'},
-  'شوفان': {ar:'شوفان',en:'Oats',cal:389,p:17,c:66,f:7,per:'100جم'},
-  'شوفان مطبوخ': {ar:'شوفان مطبوخ',en:'Cooked Oats',cal:71,p:2.5,c:12,f:1.5,per:'100جم'},
-  'كورن فليكس': {ar:'كورن فليكس',en:'Corn Flakes',cal:357,p:7,c:84,f:0.9,per:'100جم'},
-  'كينوا': {ar:'كينوا',en:'Quinoa',cal:120,p:4.4,c:21,f:1.9,per:'100جم'},
-  'برغل': {ar:'برغل',en:'Bulgur',cal:83,p:3,c:19,f:0.2,per:'100جم'},
-  'فريكة': {ar:'فريكة',en:'Freekeh',cal:99,p:5,c:21,f:1,per:'100جم'},
-
-  // Legumes
-  'فول': {ar:'فول مدمس',en:'Fava Beans',cal:140,p:8,c:20,f:3,per:'150جم'},
-  'حمص': {ar:'حمص',en:'Chickpeas',cal:164,p:9,c:27,f:2.6,per:'100جم'},
-  'فول صويا': {ar:'فول صويا',en:'Soybeans',cal:172,p:18,c:8,f:9,per:'100جم'},
-  'عدس': {ar:'عدس',en:'Lentils',cal:116,p:9,c:20,f:0.4,per:'100جم'},
-  'لوبيا': {ar:'لوبيا',en:'Cowpeas',cal:116,p:8,c:21,f:0.5,per:'100جم'},
-  'فاصوليا بيضاء': {ar:'فاصوليا بيضاء',en:'White Beans',cal:139,p:9,c:25,f:0.6,per:'100جم'},
-  'فاصوليا حمراء': {ar:'فاصوليا حمراء',en:'Red Beans',cal:127,p:9,c:23,f:0.5,per:'100جم'},
-  'فلافل': {ar:'فلافل',en:'Falafel',cal:333,p:13,c:32,f:18,per:'100جم'},
-
-  // Vegetables
-  'طماطم': {ar:'طماطم',en:'Tomato',cal:18,p:0.9,c:3.9,f:0.2,per:'100جم'},
-  'خيار': {ar:'خيار',en:'Cucumber',cal:15,p:0.7,c:3.6,f:0.1,per:'100جم'},
-  'كوسة': {ar:'كوسة',en:'Zucchini',cal:17,p:1.2,c:3.1,f:0.3,per:'100جم'},
-  'باذنجان': {ar:'باذنجان',en:'Eggplant',cal:25,p:1,c:6,f:0.2,per:'100جم'},
-  'فلفل أخضر': {ar:'فلفل أخضر',en:'Green Pepper',cal:20,p:0.9,c:4.6,f:0.2,per:'100جم'},
-  'فلفل ألوان': {ar:'فلفل ألوان',en:'Bell Pepper',cal:31,p:1,c:6,f:0.3,per:'100جم'},
-  'بصل': {ar:'بصل',en:'Onion',cal:40,p:1.1,c:9,f:0.1,per:'100جم'},
-  'ثوم': {ar:'ثوم',en:'Garlic',cal:149,p:6.4,c:33,f:0.5,per:'100جم'},
-  'جزر': {ar:'جزر',en:'Carrot',cal:41,p:0.9,c:10,f:0.2,per:'100جم'},
-  'بطاطس': {ar:'بطاطس',en:'Potato',cal:77,p:2,c:17,f:0.1,per:'100جم'},
-  'بطاطا حلوة': {ar:'بطاطا حلوة',en:'Sweet Potato',cal:86,p:1.6,c:20,f:0.1,per:'100جم'},
-  'سبانخ': {ar:'سبانخ',en:'Spinach',cal:23,p:2.9,c:3.6,f:0.4,per:'100جم'},
-  'ملوخية': {ar:'ملوخية',en:'Molokhia',cal:35,p:4,c:7,f:0.5,per:'100جم'},
-  'بقدونس': {ar:'بقدونس',en:'Parsley',cal:36,p:3,c:6,f:0.8,per:'100جم'},
-  'جرجير': {ar:'جرجير',en:'Arugula',cal:25,p:2.6,c:3.7,f:0.7,per:'100جم'},
-  'خس': {ar:'خس',en:'Lettuce',cal:15,p:1.4,c:2.9,f:0.2,per:'100جم'},
-  'كرنب': {ar:'كرنب',en:'Cabbage',cal:25,p:1.3,c:6,f:0.1,per:'100جم'},
-  'قرنبيط': {ar:'قرنبيط',en:'Cauliflower',cal:25,p:2,c:5,f:0.3,per:'100جم'},
-  'بروكلي': {ar:'بروكلي',en:'Broccoli',cal:34,p:2.8,c:7,f:0.4,per:'100جم'},
-  'بامية': {ar:'بامية',en:'Okra',cal:33,p:1.9,c:7,f:0.2,per:'100جم'},
-  'فاصوليا خضراء': {ar:'فاصوليا خضراء',en:'Green Beans',cal:31,p:1.8,c:7,f:0.2,per:'100جم'},
-  'بسلة': {ar:'بسلة',en:'Peas',cal:81,p:5,c:14,f:0.4,per:'100جم'},
-  'فطر': {ar:'فطر',en:'Mushroom',cal:22,p:3.1,c:3.3,f:0.3,per:'100جم'},
-  'ذرة': {ar:'ذرة',en:'Corn',cal:96,p:3.4,c:21,f:1.5,per:'100جم'},
-
-  // Fruits
-  'موز': {ar:'موز',en:'Banana',cal:89,p:1.1,c:23,f:0.3,per:'100جم'},
-  'تفاح': {ar:'تفاح',en:'Apple',cal:52,p:0.3,c:14,f:0.2,per:'100جم'},
-  'برتقال': {ar:'برتقال',en:'Orange',cal:47,p:0.9,c:12,f:0.1,per:'100جم'},
-  'يوسفي': {ar:'يوسفي',en:'Mandarin',cal:53,p:0.8,c:13,f:0.3,per:'100جم'},
-  'فراولة': {ar:'فراولة',en:'Strawberry',cal:32,p:0.7,c:8,f:0.3,per:'100جم'},
-  'عنب': {ar:'عنب',en:'Grapes',cal:69,p:0.7,c:18,f:0.2,per:'100جم'},
-  'بطيخ': {ar:'بطيخ',en:'Watermelon',cal:30,p:0.6,c:8,f:0.2,per:'100جم'},
-  'شمام': {ar:'شمام',en:'Cantaloupe',cal:34,p:0.8,c:8,f:0.2,per:'100جم'},
-  'مانجو': {ar:'مانجو',en:'Mango',cal:60,p:0.8,c:15,f:0.4,per:'100جم'},
-  'أناناس': {ar:'أناناس',en:'Pineapple',cal:50,p:0.5,c:13,f:0.1,per:'100جم'},
-  'كيوي': {ar:'كيوي',en:'Kiwi',cal:61,p:1.1,c:15,f:0.5,per:'100جم'},
-  'تين': {ar:'تين',en:'Fig',cal:74,p:0.8,c:19,f:0.3,per:'100جم'},
-  'جوافة': {ar:'جوافة',en:'Guava',cal:68,p:2.6,c:14,f:1,per:'100جم'},
-  'رمان': {ar:'رمان',en:'Pomegranate',cal:83,p:1.7,c:19,f:1.2,per:'100جم'},
-  'تمر': {ar:'تمر',en:'Date',cal:66,p:0.4,c:18,f:0.1,per:'تمرة'},
-  'تمر مجدول': {ar:'تمر مجدول',en:'Medjool Date',cal:80,p:0.5,c:21,f:0.1,per:'تمرة'},
-  'زبيب': {ar:'زبيب',en:'Raisins',cal:299,p:3,c:79,f:0.5,per:'100جم'},
-  'مشمش مجفف': {ar:'مشمش مجفف',en:'Dried Apricot',cal:241,p:3.4,c:63,f:0.5,per:'100جم'},
-  'توت أزرق': {ar:'توت أزرق',en:'Blueberry',cal:57,p:0.7,c:14,f:0.3,per:'100جم'},
-  'توت أحمر': {ar:'توت أحمر',en:'Raspberry',cal:52,p:1.2,c:12,f:0.7,per:'100جم'},
-
-  // Nuts & Seeds
-  'لوز': {ar:'لوز',en:'Almonds',cal:579,p:21,c:22,f:50,per:'100جم'},
-  'عين الجمل': {ar:'عين الجمل',en:'Walnuts',cal:654,p:15,c:14,f:65,per:'100جم'},
-  'فول سوداني': {ar:'فول سوداني',en:'Peanuts',cal:567,p:26,c:16,f:49,per:'100جم'},
-  'كاجو': {ar:'كاجو',en:'Cashews',cal:553,p:18,c:30,f:44,per:'100جم'},
-  'بندق': {ar:'بندق',en:'Hazelnuts',cal:628,p:15,c:17,f:61,per:'100جم'},
-  'فستق': {ar:'فستق',en:'Pistachios',cal:560,p:20,c:28,f:45,per:'100جم'},
-  'جوز برازيلي': {ar:'جوز برازيلي',en:'Brazil Nuts',cal:659,p:14,c:12,f:67,per:'100جم'},
-  'بذور شيا': {ar:'بذور شيا',en:'Chia Seeds',cal:486,p:17,c:42,f:31,per:'100جم'},
-  'بذور كتان': {ar:'بذور كتان',en:'Flax Seeds',cal:534,p:18,c:29,f:42,per:'100جم'},
-  'سمسم': {ar:'سمسم',en:'Sesame Seeds',cal:573,p:18,c:23,f:50,per:'100جم'},
-  'بذور دوار الشمس': {ar:'بذور دوار الشمس',en:'Sunflower Seeds',cal:584,p:21,c:20,f:51,per:'100جم'},
-
-  // Healthy Fats
-  'زيت زيتون': {ar:'زيت زيتون',en:'Olive Oil',cal:120,p:0,c:0,f:14,per:'ملعقة'},
-  'زبدة فول سوداني': {ar:'زبدة فول سوداني',en:'Peanut Butter',cal:588,p:25,c:20,f:50,per:'100جم'},
-  'زبدة لوز': {ar:'زبدة لوز',en:'Almond Butter',cal:614,p:21,c:19,f:56,per:'100جم'},
-  'طحينة': {ar:'طحينة',en:'Tahini',cal:595,p:17,c:21,f:53,per:'100جم'},
-  'أفوكادو': {ar:'أفوكادو',en:'Avocado',cal:160,p:2,c:9,f:15,per:'100جم'},
-  'زيتون': {ar:'زيتون',en:'Olives',cal:115,p:0.8,c:6,f:11,per:'100جم'},
-  'زبدة': {ar:'زبدة',en:'Butter',cal:717,p:0.9,c:0.1,f:81,per:'100جم'},
-  'سمن بلدي': {ar:'سمن بلدي',en:'Ghee',cal:900,p:0,c:0,f:100,per:'100جم'},
-  'مايونيز': {ar:'مايونيز',en:'Mayonnaise',cal:680,p:1,c:1,f:75,per:'100جم'},
-
-  // Drinks
-  'قهوة سادة': {ar:'قهوة سادة',en:'Black Coffee',cal:2,p:0.3,c:0,f:0,per:'كوب'},
-  'قهوة باللبن': {ar:'قهوة باللبن',en:'Coffee with Milk',cal:50,p:3,c:5,f:2,per:'كوب'},
-  'شاي': {ar:'شاي',en:'Tea',cal:2,p:0,c:0.5,f:0,per:'كوب'},
-  'شاي بنعناع': {ar:'شاي بنعناع',en:'Mint Tea',cal:2,p:0,c:0.5,f:0,per:'كوب'},
-  'كركديه': {ar:'كركديه',en:'Hibiscus',cal:5,p:0,c:1,f:0,per:'كوب'},
-  'عصير برتقال': {ar:'عصير برتقال',en:'Orange Juice',cal:45,p:0.7,c:10,f:0.2,per:'100مل'},
-  'عصير مانجو': {ar:'عصير مانجو',en:'Mango Juice',cal:54,p:0.4,c:13,f:0.2,per:'100مل'},
-  'مياه غازية': {ar:'مياه غازية',en:'Soda',cal:42,p:0,c:11,f:0,per:'100مل'},
-  'بيبسي دايت': {ar:'بيبسي دايت',en:'Diet Soda',cal:1,p:0,c:0,f:0,per:'100مل'},
-
-  // Sweets
-  'شوكولاتة دارك': {ar:'شوكولاتة دارك',en:'Dark Chocolate',cal:546,p:5,c:61,f:31,per:'100جم'},
-  'شوكولاتة بالحليب': {ar:'شوكولاتة بالحليب',en:'Milk Chocolate',cal:535,p:7,c:59,f:30,per:'100جم'},
-  'بسكوت': {ar:'بسكوت',en:'Cookies',cal:480,p:6,c:65,f:22,per:'100جم'},
-  'كنافة': {ar:'كنافة',en:'Kunafa',cal:380,p:6,c:50,f:18,per:'100جم'},
-  'بقلاوة': {ar:'بقلاوة',en:'Baklava',cal:430,p:5,c:55,f:22,per:'100جم'},
-  'أم علي': {ar:'أم علي',en:'Om Ali',cal:280,p:6,c:38,f:12,per:'100جم'},
-  'مهلبية': {ar:'مهلبية',en:'Mahalabia',cal:130,p:3,c:22,f:3,per:'100جم'},
-
-  // Egyptian/Arabic Dishes
-  'كشري': {ar:'كشري',en:'Koshary',cal:240,p:8,c:42,f:5,per:'200جم'},
-  'محشي ورق عنب': {ar:'محشي ورق عنب',en:'Stuffed Vine Leaves',cal:215,p:5,c:30,f:9,per:'100جم'},
-  'محشي كرنب': {ar:'محشي كرنب',en:'Stuffed Cabbage',cal:180,p:6,c:22,f:8,per:'100جم'},
-  'مسقعة': {ar:'مسقعة',en:'Eggplant Moussaka',cal:170,p:4,c:14,f:11,per:'100جم'},
-  'بيض بالبسطرمة': {ar:'بيض بالبسطرمة',en:'Eggs with Pastrami',cal:220,p:18,c:1,f:16,per:'100جم'},
-  'حمام محشي': {ar:'حمام محشي',en:'Stuffed Pigeon',cal:380,p:25,c:25,f:18,per:'100جم'},
-  'مكرونة بشاميل': {ar:'مكرونة بشاميل',en:'Pasta Bechamel',cal:250,p:9,c:27,f:11,per:'100جم'},
-  'فتة': {ar:'فتة',en:'Fattah',cal:290,p:14,c:30,f:13,per:'100جم'},
-  'شاورما دجاج': {ar:'شاورما دجاج',en:'Chicken Shawarma',cal:280,p:20,c:25,f:12,per:'100جم'},
-  'شاورما لحم': {ar:'شاورما لحم',en:'Beef Shawarma',cal:340,p:22,c:25,f:18,per:'100جم'},
-  'كباب': {ar:'كباب',en:'Kebab',cal:240,p:18,c:5,f:16,per:'100جم'},
-  'بيتزا': {ar:'بيتزا',en:'Pizza',cal:266,p:11,c:33,f:10,per:'100جم'},
-  'بيرجر مع بطاطس': {ar:'بيرجر بطاطس',en:'Burger Meal',cal:850,p:30,c:80,f:42,per:'وجبة'},
-
-  // Snacks
-  'بطاطس شيبس': {ar:'بطاطس شيبس',en:'Potato Chips',cal:536,p:7,c:53,f:35,per:'100جم'},
-  'بوب كورن': {ar:'بوب كورن',en:'Popcorn',cal:387,p:13,c:78,f:5,per:'100جم'},
-  'بروتين بار': {ar:'بروتين بار',en:'Protein Bar',cal:215,p:20,c:23,f:7,per:'بار'},
-  'جرانولا': {ar:'جرانولا',en:'Granola',cal:471,p:13,c:64,f:20,per:'100جم'},
-};
+// Build legacy foodDB for backward compatibility
+var foodDB = {};
+bigFoodDB.forEach(function(f) {
+  foodDB[f.ar] = {ar: f.ar, en: f.en, cal: f.cal, p: f.p, c: f.c, f: f.f, per: '100جم'};
+  foodDB[f.en.toLowerCase()] = {ar: f.ar, en: f.en, cal: f.cal, p: f.p, c: f.c, f: f.f, per: '100جم'};
+});
 
 // ═══════ DISEASES DATABASE ═══════
 var diseases = [
@@ -1454,14 +1611,72 @@ function quickAnalyze(name) {
   analyzeFood();
 }
 
-// Build example buttons
-var exampleNames = ['صدر دجاج','أرز أبيض','بيض مسلوق','فول','موز','تفاح','شوفان','زبادي يوناني','سلمون','أفوكادو','لوز','تمر'];
-var exHtml = '';
-exampleNames.forEach(function(n) {
-  var label = IS_AR ? (foodDB[n] ? foodDB[n].ar : n) : (foodDB[n] ? foodDB[n].en : n);
-  exHtml += '<button onclick="quickAnalyze(\'' + n + '\')" class="example-btn">' + label + '</button>';
-});
-document.getElementById('exampleBtns').innerHTML = exHtml;
+// Build category filter & food list
+var catNames = {
+  fruit: {ar:'🍎 فواكه', en:'🍎 Fruits'},
+  veg: {ar:'🥬 خضروات', en:'🥬 Vegetables'},
+  meat: {ar:'🥩 لحوم', en:'🥩 Meat'},
+  fish: {ar:'🐟 أسماك', en:'🐟 Fish'},
+  dairy: {ar:'🥛 ألبان وبيض', en:'🥛 Dairy & Eggs'},
+  grain: {ar:'🌾 حبوب وخبز', en:'🌾 Grains'},
+  legume: {ar:'🫘 بقوليات', en:'🫘 Legumes'},
+  nuts: {ar:'🌰 مكسرات وبذور', en:'🌰 Nuts & Seeds'},
+  oil: {ar:'🫒 زيوت', en:'🫒 Oils'},
+  drink: {ar:'☕ مشروبات', en:'☕ Drinks'},
+  sweet: {ar:'🍬 حلويات', en:'🍬 Sweets'},
+  meal: {ar:'🍽️ وجبات', en:'🍽️ Dishes'},
+  snack: {ar:'🍿 سناكس', en:'🍿 Snacks'},
+  condiment: {ar:'🧂 توابل وصلصات', en:'🧂 Condiments'}
+};
+
+var currentCat = 'all';
+
+function buildCatButtons() {
+  var html = '<button onclick="setCat(\'all\')" class="cat-btn active" id="cat-all">' + (IS_AR?'الكل':'All') + ' (' + bigFoodDB.length + ')</button>';
+  for (var c in catNames) {
+    var count = bigFoodDB.filter(function(f){return f.cat===c;}).length;
+    var label = IS_AR ? catNames[c].ar : catNames[c].en;
+    html += '<button onclick="setCat(\'' + c + '\')" class="cat-btn" id="cat-' + c + '">' + label + ' (' + count + ')</button>';
+  }
+  document.getElementById('catBtns').innerHTML = html;
+}
+
+function setCat(c) {
+  currentCat = c;
+  document.querySelectorAll('.cat-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('cat-' + c).classList.add('active');
+  filterFoodList();
+}
+
+function filterFoodList() {
+  var search = document.getElementById('foodInput').value.trim().toLowerCase();
+  var filtered = bigFoodDB.filter(function(f) {
+    if (currentCat !== 'all' && f.cat !== currentCat) return false;
+    if (!search) return true;
+    return f.ar.toLowerCase().indexOf(search) !== -1 || f.en.toLowerCase().indexOf(search) !== -1;
+  });
+
+  var displayed = filtered.slice(0, 60);
+  var html = '';
+  displayed.forEach(function(f) {
+    var name = IS_AR ? f.ar : f.en;
+    html += '<div class="food-item" onclick="quickAnalyze(\'' + f.ar.replace(/'/g, "\\'") + '\')">' +
+      '<div style="flex:1;font-size:12px;font-weight:600">' + name + '</div>' +
+      '<div style="background:#d8e2dc;color:#1b4332;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">' + f.cal + 'k</div>' +
+    '</div>';
+  });
+
+  document.getElementById('foodList').innerHTML = html || '<div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1">' + (IS_AR?'مفيش نتائج':'No results') + '</div>';
+
+  var total = filtered.length;
+  document.getElementById('foodCount').textContent =
+    total > 60
+      ? (IS_AR ? 'عرض 60 من ' + total : 'Showing 60 of ' + total)
+      : total + ' ' + (IS_AR?'نتيجة':'results');
+}
+
+buildCatButtons();
+filterFoodList();
 
 // ═══════ Diseases ═══════
 function renderDiseases(filter) {
