@@ -115,6 +115,10 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
       <i class="fa-solid fa-bell" style="color:#f59e0b"></i> {{ 'طلبات العملاء' if is_ar else 'Client Requests' }}
       {% if pending_count and pending_count > 0 %}<span class="nav-badge">{{ pending_count }}</span>{% endif %}
     </a>
+    <a href="/messages" class="nav-item {% if request.endpoint in ['messages','chat'] %}active{% endif %}">
+      <i class="fa-solid fa-comments" style="color:#2563eb"></i> {{ 'الرسائل' if is_ar else 'Messages' }}
+      {% if unread_messages and unread_messages > 0 %}<span class="nav-badge">{{ unread_messages }}</span>{% endif %}
+    </a>
     <a href="/generate" class="nav-item {% if request.endpoint in ['generate','preview'] %}active{% endif %}">
       <i class="fa-solid fa-file-medical" style="color:var(--green-light)"></i> {{ 'توليد جدول' if is_ar else 'Generate' }}
     </a>
@@ -132,6 +136,9 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
     <div class="nav-section">{{ 'الإدارة' if is_ar else 'Admin' }}</div>
     <a href="/admin/users" class="nav-item {% if request.endpoint in ['admin_users','admin_new_user'] %}active{% endif %}">
       <i class="fa-solid fa-user-shield" style="color:#dc2626"></i> {{ 'إدارة المستخدمين' if is_ar else 'Manage Users' }}
+    </a>
+    <a href="/admin/blocked" class="nav-item {% if request.endpoint=='admin_blocked_list' %}active{% endif %}">
+      <i class="fa-solid fa-ban" style="color:#7f1d1d"></i> {{ 'الحسابات المحظورة' if is_ar else 'Blocked Users' }}
     </a>
     {% endif %}
     <div class="nav-divider"></div>
@@ -152,6 +159,10 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
     </a>
     <a href="/daily-tips" class="nav-item {% if request.endpoint=='daily_tips' %}active{% endif %}">
       <i class="fa-solid fa-bell" style="color:#f59e0b"></i> {{ 'نصائحك اليومية' if is_ar else 'Daily Tips' }}
+    </a>
+    <a href="/messages" class="nav-item {% if request.endpoint in ['messages','chat'] %}active{% endif %}">
+      <i class="fa-solid fa-comments" style="color:#2563eb"></i> {{ 'الرسائل' if is_ar else 'Messages' }}
+      {% if unread_messages and unread_messages > 0 %}<span class="nav-badge">{{ unread_messages }}</span>{% endif %}
     </a>
     <a href="/knowledge" class="nav-item {% if request.endpoint=='knowledge' %}active{% endif %}">
       <i class="fa-solid fa-book-open" style="color:#16a34a"></i> {{ 'مركز المعرفة' if is_ar else 'Knowledge Hub' }}
