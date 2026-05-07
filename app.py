@@ -57,22 +57,35 @@ def from_json_filter(s):
     except: return {}
 
 def init_db():
+    """Initialize database - safe with try/except for each table"""
     if DATABASE_URL:
-        db_run("""CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, conditions TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-        db_run("""CREATE TABLE IF NOT EXISTS weight_log (id SERIAL PRIMARY KEY, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-        db_run("""CREATE TABLE IF NOT EXISTS saved_plans (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-        db_run("""CREATE TABLE IF NOT EXISTS patients (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-        db_run("""CREATE TABLE IF NOT EXISTS plan_requests (id SERIAL PRIMARY KEY, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-        db_run("""CREATE TABLE IF NOT EXISTS messages (id SERIAL PRIMARY KEY, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-        db_run("""CREATE TABLE IF NOT EXISTS blocked_users (id SERIAL PRIMARY KEY, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""")
+        # PostgreSQL
+        tables_pg = [
+            """CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, conditions TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS weight_log (id SERIAL PRIMARY KEY, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS saved_plans (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS patients (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS plan_requests (id SERIAL PRIMARY KEY, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS messages (id SERIAL PRIMARY KEY, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS blocked_users (id SERIAL PRIMARY KEY, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""",
+        ]
+        for sql in tables_pg:
+            try: db_run(sql)
+            except Exception as e: print(f"Table create warning: {e}")
     else:
-        db_run("""CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, conditions TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-        db_run("""CREATE TABLE IF NOT EXISTS weight_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-        db_run("""CREATE TABLE IF NOT EXISTS saved_plans (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-        db_run("""CREATE TABLE IF NOT EXISTS patients (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-        db_run("""CREATE TABLE IF NOT EXISTS plan_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-        db_run("""CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
-        db_run("""CREATE TABLE IF NOT EXISTS blocked_users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""")
+        # SQLite
+        tables_sq = [
+            """CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, conditions TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS weight_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS saved_plans (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS patients (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS plan_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS blocked_users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""",
+        ]
+        for sql in tables_sq:
+            try: db_run(sql)
+            except Exception as e: print(f"Table create warning: {e}")
 
     for col_sql in [
         "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'client'",
@@ -276,15 +289,21 @@ def get_tips_for_user(user):
 
 
 def is_email_blocked(email):
-    """Check if email is in blocked list"""
+    """Check if email is in blocked list - safe if table missing"""
     if not email: return False
-    row = db_row("SELECT id FROM blocked_users WHERE email=?", (email.lower().strip(),))
-    return row is not None
+    try:
+        row = db_row("SELECT id FROM blocked_users WHERE email=?", (email.lower().strip(),))
+        return row is not None
+    except Exception:
+        return False
 
 def get_unread_messages_count(user_id):
-    """Get count of unread messages for user"""
-    row = db_row("SELECT COUNT(*) as c FROM messages WHERE receiver_id=? AND is_read=0", (user_id,))
-    return row["c"] if row else 0
+    """Get count of unread messages - safe if table missing"""
+    try:
+        row = db_row("SELECT COUNT(*) as c FROM messages WHERE receiver_id=? AND is_read=0", (user_id,))
+        return row["c"] if row else 0
+    except Exception:
+        return 0
 
 
 
@@ -899,31 +918,40 @@ def edit_meal():
 @app.route("/messages")
 @login_required
 def messages():
-    """View all conversations - for staff: list of clients, for client: chat with admin"""
+    """View all conversations - safe if table missing"""
+    # Ensure messages table exists
+    try:
+        if DATABASE_URL:
+            db_run("""CREATE TABLE IF NOT EXISTS messages (id SERIAL PRIMARY KEY, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+        else:
+            db_run("""CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+    except: pass
+    
     user = get_user_by_id(session["uid"])
     role = get_user_role(user)
     
     if role in ['admin', 'nutritionist']:
-        # Staff: show list of all clients with last message
         clients = db_all("SELECT * FROM users WHERE role='client' OR role IS NULL ORDER BY name")
         conversations = []
         for c in clients:
-            last_msg = db_row("""SELECT message, created_at FROM messages 
-                                WHERE (sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)
-                                ORDER BY created_at DESC LIMIT 1""", 
-                              (user["id"], c["id"], c["id"], user["id"]))
-            unread = db_row("""SELECT COUNT(*) as c FROM messages 
-                              WHERE sender_id=? AND receiver_id=? AND is_read=0""",
-                            (c["id"], user["id"]))
-            conversations.append({
-                "user": c,
-                "last_message": last_msg["message"][:60] if last_msg else None,
-                "last_at": last_msg["created_at"] if last_msg else None,
-                "unread": unread["c"] if unread else 0
-            })
+            try:
+                last_msg = db_row("""SELECT message, created_at FROM messages 
+                                    WHERE (sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)
+                                    ORDER BY created_at DESC LIMIT 1""", 
+                                  (user["id"], c["id"], c["id"], user["id"]))
+                unread = db_row("""SELECT COUNT(*) as c FROM messages 
+                                  WHERE sender_id=? AND receiver_id=? AND is_read=0""",
+                                (c["id"], user["id"]))
+                conversations.append({
+                    "user": c,
+                    "last_message": last_msg["message"][:60] if last_msg else None,
+                    "last_at": last_msg["created_at"] if last_msg else None,
+                    "unread": unread["c"] if unread else 0
+                })
+            except:
+                conversations.append({"user": c, "last_message": None, "last_at": None, "unread": 0})
         return render_template("messages_list.html", conversations=conversations, user=user, lang=session.get("lang","ar"))
     else:
-        # Client: go directly to chat with admin
         admin = db_row("SELECT * FROM users WHERE role='admin' OR is_admin=1 ORDER BY id LIMIT 1")
         if not admin: return redirect("/dashboard")
         return redirect(f"/messages/{admin['id']}")
@@ -1013,7 +1041,17 @@ def admin_unblock_user(uid):
 @app.route("/admin/blocked")
 @admin_required
 def admin_blocked_list():
-    blocked = db_all("SELECT * FROM blocked_users ORDER BY blocked_at DESC")
+    try:
+        blocked = db_all("SELECT * FROM blocked_users ORDER BY blocked_at DESC")
+    except Exception:
+        # Table doesn't exist yet - try to create
+        try:
+            if DATABASE_URL:
+                db_run("""CREATE TABLE IF NOT EXISTS blocked_users (id SERIAL PRIMARY KEY, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""")
+            else:
+                db_run("""CREATE TABLE IF NOT EXISTS blocked_users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""")
+        except: pass
+        blocked = []
     user = get_user_by_id(session["uid"])
     return render_template("admin_blocked.html", blocked=blocked, user=user, lang=session.get("lang","ar"))
 
