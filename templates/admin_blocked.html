@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ 'الحسابات المحظورة' if (lang or 'ar') == 'ar' else 'Blocked Users' }}{% endblock %}
+{% block content %}
+
+{% set is_ar = (lang or 'ar') == 'ar' %}
+
+<div class="page-title">
+  <i class="fa-solid fa-ban" style="color:#7f1d1d"></i> {{ 'الحسابات المحظورة' if is_ar else 'Blocked Accounts' }}
+</div>
+
+<div class="alert alert-warn" style="margin-bottom:16px">
+  <i class="fa-solid fa-circle-info"></i>
+  {{ 'الإيميلات هنا ممنوعة من الدخول أو التسجيل من جديد. تقدر تفك الحظر في أي وقت.' if is_ar else 'These emails cannot login or register again. You can unblock anytime.' }}
+</div>
+
+{% if blocked|length == 0 %}
+<div class="card" style="text-align:center;padding:40px">
+  <div style="font-size:64px;margin-bottom:14px">✅</div>
+  <h3 style="color:var(--text);margin-bottom:6px">{{ 'مفيش حسابات محظورة' if is_ar else 'No blocked accounts' }}</h3>
+  <p style="color:var(--muted);font-size:14px">{{ 'القائمة فاضية - كله تمام' if is_ar else 'List is empty - all good' }}</p>
+</div>
+{% else %}
+
+<div class="card" style="padding:0">
+  {% for b in blocked %}
+  <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--gray-2)">
+    <div style="width:42px;height:42px;border-radius:50%;background:#fef2f2;color:#7f1d1d;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
+      <i class="fa-solid fa-ban"></i>
+    </div>
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:700;color:var(--text);font-size:14px;overflow:hidden;text-overflow:ellipsis">{{ b.email }}</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:3px;flex-wrap:wrap">
+        {% if b.reason %}
+        <div style="font-size:11px;color:var(--muted)">
+          <i class="fa-solid fa-circle-info"></i> {{ b.reason }}
+        </div>
+        {% endif %}
+        <div style="font-size:10px;color:var(--muted-2)">
+          <i class="fa-regular fa-calendar"></i> {{ b.blocked_at[:10] if b.blocked_at else '' }}
+        </div>
+      </div>
+    </div>
+    <form method="POST" action="/admin/blocked/{{ b.id }}/remove" onsubmit="return confirm('{{ 'فك الحظر عن هذا الإيميل؟' if is_ar else 'Unblock this email?' }}');" style="margin:0">
+      <button type="submit" class="btn" style="background:#16a34a;color:white;font-size:12px;padding:7px 14px">
+        <i class="fa-solid fa-unlock"></i> {{ 'فك الحظر' if is_ar else 'Unblock' }}
+      </button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+
+{% endif %}
+
+{% endblock %}
