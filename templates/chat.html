@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ other.name }} - {{ 'محادثة' if (lang or 'ar') == 'ar' else 'Chat' }}{% endblock %}
+{% block content %}
+
+{% set is_ar = (lang or 'ar') == 'ar' %}
+
+<div style="display:flex;flex-direction:column;height:calc(100vh - 110px);max-width:800px;margin:0 auto">
+
+  <!-- Header -->
+  <div class="card" style="margin-bottom:8px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+    <a href="/messages" style="color:var(--blue);text-decoration:none;font-size:18px">
+      <i class="fa-solid fa-arrow-{{ 'right' if is_ar else 'left' }}"></i>
+    </a>
+    <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#1b4332,#2d6a4f);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">
+      {{ other.name[0] if other.name else '?' }}
+    </div>
+    <div style="flex:1">
+      <div style="font-weight:800;color:var(--text);font-size:15px">{{ other.name }}</div>
+      <div style="font-size:11px;color:var(--muted)">{{ other.email }}</div>
+    </div>
+  </div>
+
+  <!-- Messages area -->
+  <div id="msgArea" style="flex:1;background:#f0f2f5;border-radius:14px;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;background-image:linear-gradient(rgba(0,0,0,0.02),rgba(0,0,0,0.02))">
+    {% if messages|length == 0 %}
+    <div style="text-align:center;padding:40px 20px;color:var(--muted)">
+      <div style="font-size:48px;margin-bottom:10px">👋</div>
+      <div style="font-size:14px">{{ 'ابدأ المحادثة' if is_ar else 'Start the conversation' }}</div>
+    </div>
+    {% endif %}
+
+    {% for m in messages %}
+    {% set is_mine = m.sender_id == user.id %}
+    <div style="display:flex;justify-content:{{ 'flex-end' if is_mine else 'flex-start' }}">
+      <div style="max-width:75%;background:{{ '#dcf8c6' if is_mine else 'white' }};padding:8px 12px;border-radius:12px;{{ 'border-top-right-radius:2px' if is_mine else 'border-top-left-radius:2px' }};box-shadow:0 1px 2px rgba(0,0,0,0.08);position:relative">
+        <div style="font-size:14px;color:#111;line-height:1.5;white-space:pre-wrap;word-break:break-word">{{ m.message }}</div>
+        <div style="font-size:10px;color:#667;margin-top:3px;text-align:{{ 'left' if is_ar else 'right' }}">
+          {{ m.created_at[11:16] if m.created_at and m.created_at|length >= 16 else '' }}
+          {% if is_mine %}
+          <i class="fa-solid fa-check-double" style="color:{{ '#3b82f6' if m.is_read else '#94a3b8' }};font-size:11px;margin-{{ 'right' if is_ar else 'left' }}:4px"></i>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Input -->
+  <form method="POST" style="display:flex;gap:8px;margin-top:8px;padding:8px;background:white;border-radius:14px;border:1.5px solid var(--gray-2)">
+    <input type="text" name="message" required autofocus autocomplete="off" placeholder="{{ 'اكتب رسالة...' if is_ar else 'Type a message...' }}" style="flex:1;padding:11px 14px;border:none;font-family:'Cairo',sans-serif;font-size:14px;outline:none;background:transparent">
+    <button type="submit" style="background:linear-gradient(135deg,#1b4332,#2d6a4f);color:white;border:none;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">
+      <i class="fa-solid fa-paper-plane"></i>
+    </button>
+  </form>
+
+</div>
+
+<script>
+// Auto-scroll to bottom
+var area = document.getElementById('msgArea');
+if (area) area.scrollTop = area.scrollHeight;
+</script>
+
+{% endblock %}
