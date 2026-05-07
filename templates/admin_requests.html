@@ -1,5 +1,42 @@
 {% extends "base.html" %}
-{% block title %}طلبات العملاء{% endblock %}
+{% block title %}طلبات العملاء
+
+<!-- Reject Modal -->
+<div id="rejectModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;padding:20px;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:14px;max-width:480px;width:100%;padding:24px">
+    <h3 style="color:#dc2626;font-weight:800;margin-bottom:8px">
+      <i class="fa-solid fa-xmark-circle"></i> رفض طلب الخطة
+    </h3>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px">
+      رفض طلب: <strong id="rejectClientName"></strong>
+    </p>
+    <form id="rejectForm" method="POST">
+      <textarea name="reason" class="form-textarea" placeholder="سبب الرفض (هيتبعت رساله للعميل)" rows="4" required style="width:100%;padding:11px;border:2px solid var(--gray-2);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;resize:vertical;margin-bottom:14px"></textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" onclick="closeRejectModal()" class="btn" style="background:var(--gray);color:var(--text)">إلغاء</button>
+        <button type="submit" class="btn" style="background:#dc2626;color:white">
+          <i class="fa-solid fa-check"></i> تأكيد الرفض
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function rejectRequest(id, name) {
+  document.getElementById('rejectClientName').textContent = name || '';
+  document.getElementById('rejectForm').action = '/admin/requests/' + id + '/reject';
+  document.getElementById('rejectModal').style.display = 'flex';
+}
+function closeRejectModal() {
+  document.getElementById('rejectModal').style.display = 'none';
+}
+document.getElementById('rejectModal').addEventListener('click', function(e) {
+  if (e.target === this) closeRejectModal();
+});
+</script>
+
+{% endblock %}
 {% block content %}
 
 <div class="page-title">
@@ -70,6 +107,9 @@
         <a href="/admin/requests/{{ req.id }}/manual" class="btn" style="flex:1;min-width:140px;background:#f97316;color:white">
           <i class="fa-solid fa-pen-to-square"></i> توليد يدوي
         </a>
+        <button onclick="rejectRequest({{ req.id }}, '{{ req.client_name }}')" class="btn" style="flex:1;min-width:140px;background:#dc2626;color:white">
+          <i class="fa-solid fa-xmark"></i> رفض الطلب
+        </button>
       </div>
     </div>
     {% endif %}
@@ -256,6 +296,43 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape' && document.getElementById('phoneModal').style.display === 'flex') {
     closeModal();
   }
+});
+</script>
+
+
+
+<!-- Reject Modal -->
+<div id="rejectModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;padding:20px;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:14px;max-width:480px;width:100%;padding:24px">
+    <h3 style="color:#dc2626;font-weight:800;margin-bottom:8px">
+      <i class="fa-solid fa-xmark-circle"></i> رفض طلب الخطة
+    </h3>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px">
+      رفض طلب: <strong id="rejectClientName"></strong>
+    </p>
+    <form id="rejectForm" method="POST">
+      <textarea name="reason" class="form-textarea" placeholder="سبب الرفض (هيتبعت رساله للعميل)" rows="4" required style="width:100%;padding:11px;border:2px solid var(--gray-2);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;resize:vertical;margin-bottom:14px"></textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" onclick="closeRejectModal()" class="btn" style="background:var(--gray);color:var(--text)">إلغاء</button>
+        <button type="submit" class="btn" style="background:#dc2626;color:white">
+          <i class="fa-solid fa-check"></i> تأكيد الرفض
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function rejectRequest(id, name) {
+  document.getElementById('rejectClientName').textContent = name || '';
+  document.getElementById('rejectForm').action = '/admin/requests/' + id + '/reject';
+  document.getElementById('rejectModal').style.display = 'flex';
+}
+function closeRejectModal() {
+  document.getElementById('rejectModal').style.display = 'none';
+}
+document.getElementById('rejectModal').addEventListener('click', function(e) {
+  if (e.target === this) closeRejectModal();
 });
 </script>
 
