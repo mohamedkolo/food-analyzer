@@ -1,5 +1,43 @@
 {% extends "base.html" %}
-{% block title %}إدارة المستخدمين{% endblock %}
+{% block title %}إدارة المستخدمين
+
+<!-- Block Modal -->
+<div id="blockModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;padding:20px;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:14px;max-width:480px;width:100%;padding:24px">
+    <h3 style="color:#7f1d1d;font-weight:800;margin-bottom:8px">
+      <i class="fa-solid fa-ban"></i> حظر إيميل
+    </h3>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px">
+      حظر الإيميل: <strong id="blockEmail" style="color:#dc2626"></strong><br>
+      <span style="color:var(--muted);font-size:12px">المستخدم مش هيقدر يدخل أو يسجل من جديد بنفس الإيميل</span>
+    </p>
+    <form id="blockForm" method="POST">
+      <textarea name="reason" class="form-textarea" placeholder="سبب الحظر (اختياري)" rows="3" style="width:100%;padding:11px;border:2px solid var(--gray-2);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;resize:vertical;margin-bottom:14px"></textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" onclick="closeBlockModal()" class="btn" style="background:var(--gray);color:var(--text)">إلغاء</button>
+        <button type="submit" class="btn" style="background:#7f1d1d;color:white">
+          <i class="fa-solid fa-ban"></i> تأكيد الحظر
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function blockUser(uid, email) {
+  document.getElementById('blockEmail').textContent = email || '';
+  document.getElementById('blockForm').action = '/admin/users/' + uid + '/block';
+  document.getElementById('blockModal').style.display = 'flex';
+}
+function closeBlockModal() {
+  document.getElementById('blockModal').style.display = 'none';
+}
+document.getElementById('blockModal').addEventListener('click', function(e) {
+  if (e.target === this) closeBlockModal();
+});
+</script>
+
+{% endblock %}
 {% block content %}
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
@@ -27,7 +65,7 @@
         {% for u in users %}
         <tr style="border-bottom:1px solid var(--gray-2)">
           <td style="padding:12px;font-weight:700">
-            {{ u.name or '—' }}
+            {{ u.name or '-' }}
             {% if u.is_admin %}<span class="role-badge role-admin">👑</span>{% endif %}
           </td>
           <td style="padding:12px;color:var(--muted)">{{ u.email }}</td>
@@ -60,12 +98,15 @@
               {% elif curr_role == 'nutritionist' %}
                 <a href="/admin/users/{{ u.id }}/role/client" style="background:#dbeafe;color:#1e3a8a;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none">→ عميل</a>
               {% endif %}
+              <button type="button" onclick="blockUser({{ u.id }}, '{{ u.email }}')" style="background:#fef2f2;color:#7f1d1d;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #fca5a5;cursor:pointer;font-family:'Cairo',sans-serif">
+                🚫 حظر
+              </button>
               <form method="POST" action="/admin/users/{{ u.id }}/delete" style="display:inline" onsubmit="return confirm('هل أنت متأكد من الحذف؟')">
                 <button type="submit" style="background:#fee2e2;color:#991b1b;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:'Cairo',sans-serif">حذف</button>
               </form>
             </div>
             {% else %}
-            <span style="color:var(--muted);font-size:11px">— محمي —</span>
+            <span style="color:var(--muted);font-size:11px">- محمي -</span>
             {% endif %}
           </td>
         </tr>
@@ -93,5 +134,43 @@
     </ul>
   </div>
 </div>
+
+
+
+<!-- Block Modal -->
+<div id="blockModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;padding:20px;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:14px;max-width:480px;width:100%;padding:24px">
+    <h3 style="color:#7f1d1d;font-weight:800;margin-bottom:8px">
+      <i class="fa-solid fa-ban"></i> حظر إيميل
+    </h3>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px">
+      حظر الإيميل: <strong id="blockEmail" style="color:#dc2626"></strong><br>
+      <span style="color:var(--muted);font-size:12px">المستخدم مش هيقدر يدخل أو يسجل من جديد بنفس الإيميل</span>
+    </p>
+    <form id="blockForm" method="POST">
+      <textarea name="reason" class="form-textarea" placeholder="سبب الحظر (اختياري)" rows="3" style="width:100%;padding:11px;border:2px solid var(--gray-2);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;resize:vertical;margin-bottom:14px"></textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" onclick="closeBlockModal()" class="btn" style="background:var(--gray);color:var(--text)">إلغاء</button>
+        <button type="submit" class="btn" style="background:#7f1d1d;color:white">
+          <i class="fa-solid fa-ban"></i> تأكيد الحظر
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function blockUser(uid, email) {
+  document.getElementById('blockEmail').textContent = email || '';
+  document.getElementById('blockForm').action = '/admin/users/' + uid + '/block';
+  document.getElementById('blockModal').style.display = 'flex';
+}
+function closeBlockModal() {
+  document.getElementById('blockModal').style.display = 'none';
+}
+document.getElementById('blockModal').addEventListener('click', function(e) {
+  if (e.target === this) closeBlockModal();
+});
+</script>
 
 {% endblock %}
