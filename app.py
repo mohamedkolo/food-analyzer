@@ -63,12 +63,16 @@ def init_db():
         db_run("""CREATE TABLE IF NOT EXISTS saved_plans (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS patients (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS plan_requests (id SERIAL PRIMARY KEY, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+        db_run("""CREATE TABLE IF NOT EXISTS messages (id SERIAL PRIMARY KEY, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+        db_run("""CREATE TABLE IF NOT EXISTS blocked_users (id SERIAL PRIMARY KEY, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""")
     else:
         db_run("""CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, conditions TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS weight_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS saved_plans (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS patients (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         db_run("""CREATE TABLE IF NOT EXISTS plan_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+        db_run("""CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+        db_run("""CREATE TABLE IF NOT EXISTS blocked_users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""")
 
     for col_sql in [
         "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'client'",
@@ -270,6 +274,34 @@ def get_tips_for_user(user):
 
     return tips
 
+
+def is_email_blocked(email):
+    """Check if email is in blocked list"""
+    if not email: return False
+    row = db_row("SELECT id FROM blocked_users WHERE email=?", (email.lower().strip(),))
+    return row is not None
+
+def get_unread_messages_count(user_id):
+    """Get count of unread messages for user"""
+    row = db_row("SELECT COUNT(*) as c FROM messages WHERE receiver_id=? AND is_read=0", (user_id,))
+    return row["c"] if row else 0
+
+
+
+@app.context_processor
+def inject_globals():
+    """Make unread message count and pending count available in all templates"""
+    ctx = {"unread_messages": 0, "pending_count": 0}
+    if "uid" in session:
+        try:
+            ctx["unread_messages"] = get_unread_messages_count(session["uid"])
+            user = get_user_by_id(session["uid"])
+            if user and (user.get("is_admin") or user.get("role") in ["admin", "nutritionist"]):
+                ctx["pending_count"] = get_pending_requests_count()
+        except: pass
+    return ctx
+
+
 @app.route("/", methods=["GET","POST"])
 def login():
     if "uid" in session: return redirect("/dashboard")
@@ -277,6 +309,10 @@ def login():
     error = ""
     tab = request.args.get("tab", "login")
     if request.method == "POST":
+        check_email = request.form.get("email", "").lower().strip()
+        if is_email_blocked(check_email):
+            flash("هذا الحساب محظور. تواصل مع الإدارة.", "error")
+            return redirect("/")
         action = request.form.get("action")
         if action == "login":
             u = get_user(request.form.get("email","").lower(), request.form.get("password",""))
@@ -510,17 +546,121 @@ def admin_request_manual(rid):
         "name": client.get("name","") if client else req.get("client_name",""),
         **rdata,
     }
-    # Generate EMPTY plan structure (no AI)
+    # Generate STARTER plan with smart suggestions based on case
     diet_type = data.get("diet_plan_type", "standard")
     plan_info = get_diet_plan_info(diet_type)
     days = ["الاحد","الاثنين","الثلاثاء","الاربعاء","الخميس","الجمعة","السبت"]
+    
+    # Determine case characteristics
+    goal = (data.get("goal") or "").lower()
+    conditions_raw = data.get("symptoms") or data.get("conditions") or ""
+    conditions = conditions_raw.lower() if isinstance(conditions_raw, str) else ""
+    is_diabetes = any(k in conditions for k in ["سكري", "سكر", "diabet"])
+    is_kidney = any(k in conditions for k in ["كلى", "كلي", "kidney"])
+    is_heart = any(k in conditions for k in ["قلب", "ضغط", "heart", "hyperten"])
+    is_loss = any(k in goal for k in ["تخسيس", "نزول", "loss", "خساره"])
+    is_gain = any(k in goal for k in ["زياده", "تضخيم", "gain", "bulk"])
+    
+    # Define starter meals per type based on case
+    def get_starter(meal_key, day_idx):
+        # Breakfast options
+        breakfasts_general = [
+            "🥣 شوفان بالحليب 40جم + 🍌 موز + 🌰 لوز 10جم",
+            "🥚 بيضتين مسلوق + 🧀 جبن قريش 50جم + 🍞 خبز اسمر",
+            "🥘 فول مدمس 150جم + 🥚 بيضة + 🍞 خبز اسمر",
+            "🥞 توست بالأفوكادو + 🥚 بيضة + 🍅 طماطم",
+            "🥛 زبادي يوناني 200جم + 🍓 فراولة + 🥜 جوز",
+            "🥚 اومليت بالسبانخ + 🍞 خبز اسمر + 🧀 جبن قريش",
+            "🥣 موسلي بالحليب + 🍎 تفاح + 🌰 لوز",
+        ]
+        breakfasts_diabetes = [
+            "🥣 شوفان مطبوخ 40جم + 🥜 لوز 10جم + 🥚 بيضة مسلوقة",
+            "🥚 بيضتين + 🥒 خيار + 🍞 خبز اسمر شريحة + 🥑 أفوكادو",
+            "🥘 فول 100جم + 🥚 بيضة + 🥬 سلطة خضراء",
+            "🥛 زبادي يوناني سادة + 🌰 جوز 10جم + 🍓 فراولة قليلة",
+            "🥚 اومليت 2 بيضة + 🥬 سبانخ + 🍞 خبز اسمر شريحة",
+            "🥚 بيض مسلوق + 🧀 جبن قريش + 🥒 خيار",
+            "🥣 شوفان + 🥜 لوز + 🥛 حليب قليل دسم",
+        ]
+        breakfasts_kidney = [
+            "🥚 بياض بيض 3 + 🍞 خبز ابيض + 🥒 خيار",
+            "🥣 شوفان بماء + 🍎 تفاح + 🌰 لوز قليل",
+            "🥚 بيضتين + 🍞 خبز ابيض + 🥒 خيار",
+            "🥚 اومليت ببياض البيض + 🥬 خس",
+            "🥖 توست + 🧈 زبدة قليلة + 🍯 عسل",
+            "🥚 بياض بيض + 🍞 خبز ابيض + 🍎 تفاح",
+            "🥣 شوفان + 🍓 فراولة قليلة",
+        ]
+        # Lunch options
+        lunches_general = [
+            "🍗 صدر دجاج مشوي 150جم + 🍚 أرز 100جم + 🥗 سلطة",
+            "🐟 سمك مشوي 150جم + 🍠 بطاطا حلوة 100جم + 🥦 بروكلي",
+            "🥩 لحم مشوي 120جم + 🍚 أرز بني 80جم + 🥗 سلطة",
+            "🍗 دجاج بالخضار + 🍚 أرز 80جم + 🥒 خيار",
+            "🐟 سلمون 150جم + 🍠 بطاطا حلوة + 🥬 سبانخ",
+            "🍗 شيش طاووق 150جم + 🍚 أرز 100جم + 🥗 طبق سلطة",
+            "🥚 طاجن فول + 🍞 خبز اسمر + 🥗 سلطة بلدي",
+        ]
+        lunches_diabetes = [
+            "🍗 صدر دجاج 150جم + 🍚 أرز بني 70جم + 🥗 سلطة كبيرة",
+            "🐟 سمك مشوي 150جم + 🥦 بروكلي + 🍠 بطاطا حلوة 80جم",
+            "🥩 لحم 100جم + 🍚 أرز بني 60جم + 🥬 سبانخ",
+            "🍗 دجاج مشوي + 🥗 سلطة كبيرة + 🍞 خبز اسمر شريحة",
+            "🐟 تونة + 🥗 سلطة بأفوكادو + 🥖 خبز اسمر",
+            "🥚 طاجن خضار بالبيض + 🍞 خبز اسمر شريحة",
+            "🍗 صدر دجاج + 🥦 بروكلي + 🥕 جزر",
+        ]
+        lunches_kidney = [
+            "🍗 صدر دجاج 100جم + 🍚 أرز ابيض + 🥒 خيار",
+            "🐟 سمك ابيض 120جم + 🍚 أرز + 🥗 خس",
+            "🍗 دجاج 100جم + 🍚 أرز + 🥒 خيار",
+            "🥚 بيضتين + 🍚 أرز + 🥬 خس",
+            "🍗 صدر دجاج + 🍚 أرز + 🍆 كوسى",
+            "🐟 سمك مسلوق + 🍚 أرز + 🍎 تفاح",
+            "🍗 دجاج + 🍚 أرز + 🥒 خيار + 🥬 خس",
+        ]
+        # Dinner
+        dinners_general = [
+            "🥗 سلطة دجاج + 🍞 خبز اسمر + 🧀 جبن قريش",
+            "🥚 بيضتين + 🧀 جبن + 🥒 خضار + 🍞 خبز اسمر",
+            "🐟 تونة + 🥗 سلطة كبيرة + 🍞 توست",
+            "🥛 زبادي يوناني + 🍓 فاكهة + 🥜 مكسرات",
+            "🍗 صدر دجاج صغير + 🥗 سلطة + 🥖 خبز",
+            "🥚 اومليت بالخضار + 🍞 خبز",
+            "🥗 سلطة قيصر بالدجاج",
+        ]
+        # Snack
+        snacks_general = [
+            "🍎 تفاحة + 🌰 لوز 10 حبات",
+            "🥛 زبادي + 🍓 فراولة",
+            "🥜 مكسرات 30جم",
+            "🍌 موزة + 🥜 زبدة فول سوداني ملعقة",
+            "🥕 جزر + حمص",
+            "🍐 كمثرى + 🧀 جبن قريش",
+            "🥚 بيضة مسلوقة + 🥒 خيار",
+        ]
+        
+        # Pick the right list
+        if "breakfast" in meal_key or "فطار" in meal_key.lower() or "فطور" in meal_key.lower():
+            pool = breakfasts_kidney if is_kidney else (breakfasts_diabetes if is_diabetes else breakfasts_general)
+        elif "lunch" in meal_key or "غدا" in meal_key.lower():
+            pool = lunches_kidney if is_kidney else (lunches_diabetes if is_diabetes else lunches_general)
+        elif "dinner" in meal_key or "عشا" in meal_key.lower():
+            pool = dinners_general
+        elif "snack" in meal_key or "سناك" in meal_key.lower() or "وجبة خفيفة" in meal_key.lower():
+            pool = snacks_general
+        else:
+            pool = breakfasts_general
+        
+        return pool[day_idx % len(pool)]
+    
     empty_plan = []
     for i in range(7):
         day_plan = {"day": days[i], "diet_type": diet_type,
                     "meal_labels": plan_info["meal_labels"],
                     "meal_emojis": plan_info["meal_emojis"], "total_cal": 0}
         for meal_key in plan_info["meals"]:
-            day_plan[meal_key] = ""  # Empty - to be filled manually
+            day_plan[meal_key] = get_starter(meal_key, i)
         empty_plan.append(day_plan)
     session["pdf_data"] = data
     session["current_plan"] = empty_plan
@@ -749,6 +889,144 @@ def edit_meal():
         return jsonify({"ok": True, "saved_text": new_text})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+
+# ═══════════════════════════════════════════════════
+# CHAT/MESSAGING SYSTEM
+# ═══════════════════════════════════════════════════
+
+@app.route("/messages")
+@login_required
+def messages():
+    """View all conversations - for staff: list of clients, for client: chat with admin"""
+    user = get_user_by_id(session["uid"])
+    role = get_user_role(user)
+    
+    if role in ['admin', 'nutritionist']:
+        # Staff: show list of all clients with last message
+        clients = db_all("SELECT * FROM users WHERE role='client' OR role IS NULL ORDER BY name")
+        conversations = []
+        for c in clients:
+            last_msg = db_row("""SELECT message, created_at FROM messages 
+                                WHERE (sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)
+                                ORDER BY created_at DESC LIMIT 1""", 
+                              (user["id"], c["id"], c["id"], user["id"]))
+            unread = db_row("""SELECT COUNT(*) as c FROM messages 
+                              WHERE sender_id=? AND receiver_id=? AND is_read=0""",
+                            (c["id"], user["id"]))
+            conversations.append({
+                "user": c,
+                "last_message": last_msg["message"][:60] if last_msg else None,
+                "last_at": last_msg["created_at"] if last_msg else None,
+                "unread": unread["c"] if unread else 0
+            })
+        return render_template("messages_list.html", conversations=conversations, user=user, lang=session.get("lang","ar"))
+    else:
+        # Client: go directly to chat with admin
+        admin = db_row("SELECT * FROM users WHERE role='admin' OR is_admin=1 ORDER BY id LIMIT 1")
+        if not admin: return redirect("/dashboard")
+        return redirect(f"/messages/{admin['id']}")
+
+
+@app.route("/messages/<int:other_id>", methods=["GET","POST"])
+@login_required
+def chat(other_id):
+    user = get_user_by_id(session["uid"])
+    other = get_user_by_id(other_id)
+    if not other: return redirect("/messages")
+    
+    if request.method == "POST":
+        msg = request.form.get("message", "").strip()
+        if msg:
+            db_run("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?,?,?)",
+                   (user["id"], other_id, msg))
+        return redirect(f"/messages/{other_id}")
+    
+    # Mark received messages as read
+    db_run("UPDATE messages SET is_read=1 WHERE sender_id=? AND receiver_id=?", (other_id, user["id"]))
+    
+    # Get all messages between these two
+    msgs = db_all("""SELECT * FROM messages 
+                    WHERE (sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)
+                    ORDER BY created_at ASC""",
+                  (user["id"], other_id, other_id, user["id"]))
+    
+    return render_template("chat.html", messages=msgs, user=user, other=other, lang=session.get("lang","ar"))
+
+
+# ═══════════════════════════════════════════════════
+# REJECT PLAN REQUEST
+# ═══════════════════════════════════════════════════
+
+@app.route("/admin/requests/<int:rid>/reject", methods=["POST"])
+@staff_required
+def admin_request_reject(rid):
+    reason = request.form.get("reason", "").strip()
+    db_run("UPDATE plan_requests SET status='rejected', notes=?, updated_at=? WHERE id=?",
+           (reason, datetime.now().isoformat(), rid))
+    
+    # Send a system message to the client about rejection
+    req = db_row("SELECT client_id FROM plan_requests WHERE id=?", (rid,))
+    if req:
+        admin = db_row("SELECT id FROM users WHERE role='admin' OR is_admin=1 LIMIT 1")
+        if admin:
+            msg = f"⚠️ طلبك للخطة تم رفضه. السبب: {reason}" if reason else "⚠️ طلبك للخطة تم رفضه. تواصل معنا للمزيد."
+            db_run("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?,?,?)",
+                   (admin["id"], req["client_id"], msg))
+    return redirect("/admin/requests")
+
+
+# ═══════════════════════════════════════════════════
+# BLOCK / UNBLOCK USERS  
+# ═══════════════════════════════════════════════════
+
+@app.route("/admin/users/<int:uid>/block", methods=["POST"])
+@admin_required
+def admin_block_user(uid):
+    user = get_user_by_id(uid)
+    if not user: return redirect("/admin/users")
+    reason = request.form.get("reason", "").strip()
+    
+    # Add to blocked list
+    try:
+        db_run("INSERT INTO blocked_users (email, reason) VALUES (?,?)", (user["email"].lower(), reason))
+    except:
+        pass  # already blocked
+    
+    # Deactivate user
+    db_run("UPDATE users SET active=0 WHERE id=?", (uid,))
+    return redirect("/admin/users")
+
+
+@app.route("/admin/users/<int:uid>/unblock", methods=["POST"])
+@admin_required
+def admin_unblock_user(uid):
+    user = get_user_by_id(uid)
+    if not user: return redirect("/admin/users")
+    
+    db_run("DELETE FROM blocked_users WHERE email=?", (user["email"].lower(),))
+    db_run("UPDATE users SET active=1 WHERE id=?", (uid,))
+    return redirect("/admin/users")
+
+
+@app.route("/admin/blocked")
+@admin_required
+def admin_blocked_list():
+    blocked = db_all("SELECT * FROM blocked_users ORDER BY blocked_at DESC")
+    user = get_user_by_id(session["uid"])
+    return render_template("admin_blocked.html", blocked=blocked, user=user, lang=session.get("lang","ar"))
+
+
+@app.route("/admin/blocked/<int:bid>/remove", methods=["POST"])
+@admin_required
+def admin_blocked_remove(bid):
+    row = db_row("SELECT email FROM blocked_users WHERE id=?", (bid,))
+    if row:
+        db_run("UPDATE users SET active=1 WHERE email=?", (row["email"],))
+    db_run("DELETE FROM blocked_users WHERE id=?", (bid,))
+    return redirect("/admin/blocked")
+
 
 @app.route("/regenerate_plan", methods=["POST"])
 @staff_required
