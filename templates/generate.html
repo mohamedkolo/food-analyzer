@@ -12,6 +12,7 @@
 
 <form method="POST" action="/generate">
 
+  <!-- ═══════════ الهدف ═══════════ -->
   <div class="card">
     <div class="card-title">
       <i class="fa-solid fa-bullseye"></i>
@@ -36,13 +37,14 @@
     </div>
   </div>
 
+  <!-- ═══════════ المطبخ ═══════════ -->
   <div class="card">
     <div class="card-title">
       <i class="fa-solid fa-utensils"></i>
       {{ 'اختر المطبخ المفضل' if is_ar else 'Preferred Cuisine' }}
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
-      {% for cul in [('مصري','🇪🇬'),('خليجي','🇸🇦'),('شامي','🇱🇧'),('مغربي','🇲🇦')] %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
+      {% for cul in [('مصري','🇪🇬'),('خليجي','🇸🇦'),('شامي','🇱🇧'),('مغربي','🇲🇦'),('عالمي','🌍')] %}
       <label style="cursor:pointer">
         <input type="radio" name="culture" value="{{ cul[0] }}" {% if loop.first %}checked{% endif %} style="display:none" class="culture-radio">
         <div class="culture-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:14px;text-align:center;transition:all 0.2s;background:white">
@@ -54,6 +56,25 @@
     </div>
   </div>
 
+  <!-- ═══════════ نظام التغذية ═══════════ -->
+  {% if diet_plans %}
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-clock"></i> نظام الأكل</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
+      {% for key, info in diet_plans.items() %}
+      <label style="cursor:pointer">
+        <input type="radio" name="diet_plan_type" value="{{ key }}" {% if loop.first %}checked{% endif %} style="display:none">
+        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:12px;background:white;transition:all .2s">
+          <div style="font-weight:700;font-size:13px">{{ info.name }}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">{{ info.description }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ═══════════ بيانات العميل ═══════════ -->
   <div class="card">
     <div class="card-title"><i class="fa-solid fa-user"></i> {{ 'بيانات العميل' if is_ar else 'Client Data' }}</div>
     <div class="grid-2">
@@ -103,10 +124,15 @@
     </div>
   </div>
 
+  <!-- ═══════════ الأمراض ═══════════ -->
   <div class="card">
     <div class="card-title"><i class="fa-solid fa-stethoscope"></i> {{ 'الحالات المرضية' if is_ar else 'Conditions' }}</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
-      {% for cond in ['قولون عصبي','سكري النوع الثاني','ضغط الدم المرتفع','امراض القلب','الفشل الكلوي المزمن','الحمل','الرضاعة الطبيعية','السمنة','G6PD','ثلاسيميا','نقص الحديد','نقص فيتامين D3','حرق بطيء','امساك مزمن'] %}
+      {% for cond in [
+        'قولون عصبي','سكري النوع الثاني','ضغط الدم المرتفع','امراض القلب',
+        'الفشل الكلوي المزمن','الحمل','الرضاعة الطبيعية','السمنة','G6PD',
+        'ثلاسيميا','نقص الحديد','نقص فيتامين D3','حرق بطيء','امساك مزمن','حساسية اللاكتوز'
+      ] %}
       <label style="display:flex;align-items:center;gap:8px;background:var(--gray);border:1.5px solid var(--gray-2);border-radius:10px;padding:10px;cursor:pointer">
         <input type="checkbox" name="symptoms" value="{{ cond }}" style="width:18px;height:18px">
         <span style="font-size:13px;font-weight:600">{{ cond }}</span>
@@ -115,9 +141,45 @@
     </div>
   </div>
 
+  <!-- ═══════════ الحساسية الغذائية ═══════════ -->
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-note-sticky"></i> {{ 'ملاحظات' if is_ar else 'Notes' }}</div>
-    <textarea class="form-input" name="notes" rows="3" placeholder="{{ 'اي ملاحظات اضافية...' if is_ar else 'Any notes...' }}" style="resize:vertical"></textarea>
+    <div class="card-title"><i class="fa-solid fa-triangle-exclamation" style="color:#dc2626"></i> الحساسية الغذائية</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">اختر أي حساسية عند العميل (الأكلات هتتشال من الخطة):</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
+      {% for allergy in ['اللاكتوز','الجلوتين','المكسرات','البيض','الأسماك','الفول السوداني','الصويا','المحار','السمسم'] %}
+      <label style="display:flex;align-items:center;gap:8px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:10px;cursor:pointer">
+        <input type="checkbox" name="allergies" value="{{ allergy }}" style="width:18px;height:18px">
+        <span style="font-size:12px;font-weight:600;color:#991b1b">{{ allergy }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ═══════════ الأكلات المفضلة ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-heart" style="color:#16a34a"></i> الأكلات المفضلة عند العميل</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">اكتب الأكلات اللي بيحبها مفصولة بفواصل:</p>
+    <textarea class="form-input" name="liked_foods" rows="2" 
+      placeholder="مثلاً: شوفان، سلمون، افوكادو، دجاج مشوي، تفاح" 
+      style="resize:vertical"></textarea>
+  </div>
+
+  <!-- ═══════════ الأكلات اللي مش بيحبها ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-ban" style="color:#dc2626"></i> أكلات لازم تتشال من الخطة</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">اكتب الأكلات اللي مش بياكلها أو مش بيحبها مفصولة بفواصل (هتتشال من الخطة):</p>
+    <textarea class="form-input" name="disliked_foods" rows="2" 
+      placeholder="مثلاً: كبدة، باذنجان، بصل، فلفل حار، كوسة" 
+      style="resize:vertical"></textarea>
+  </div>
+
+  <!-- ═══════════ ملاحظات ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-note-sticky"></i> {{ 'ملاحظات إضافية' if is_ar else 'Notes' }}</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">أي ملاحظة فيها كلمة "اشيل" أو "بدون" أو "تجنب" + اسم أكل، هيتم استثناء الأكل ده تلقائياً من الخطة</p>
+    <textarea class="form-input" name="notes" rows="3" 
+      placeholder="{{ 'مثلاً: اشيل الموز، بدون فلفل حار، تجنب الجبن...' if is_ar else 'Any notes...' }}" 
+      style="resize:vertical"></textarea>
   </div>
 
   <button type="submit" class="btn btn-success btn-full" style="font-size:17px;padding:16px">
