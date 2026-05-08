@@ -8,14 +8,15 @@
 
 <div class="alert alert-info">
   <i class="fa-solid fa-circle-info"></i>
-  املا البيانات دي بدقة، وهنراجع طلبك ونبعتلك الخطة في أقرب وقت.
+  املا الاستمارة كاملة بدقة - كل اللي تكتبه هيتأخد في الاعتبار في خطتك.
 </div>
 
 <form method="POST">
-  <!-- الهدف -->
+
+  <!-- ═══════════ 1. الهدف ═══════════ -->
   <div class="card">
     <div class="card-title">
-      <i class="fa-solid fa-bullseye"></i> ما هو هدفك؟
+      <i class="fa-solid fa-bullseye"></i> الخطوة 1: ما هو هدفك؟
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
       {% for goal in [
@@ -35,11 +36,11 @@
     </div>
   </div>
 
-  <!-- المطبخ -->
+  <!-- ═══════════ 2. المطبخ ═══════════ -->
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-utensils"></i> المطبخ المفضل</div>
+    <div class="card-title"><i class="fa-solid fa-utensils"></i> الخطوة 2: المطبخ المفضل</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
-      {% for cul in [('مصري','🇪🇬'),('خليجي','🇸🇦'),('شامي','🇱🇧'),('مغربي','🇲🇦')] %}
+      {% for cul in [('مصري','🇪🇬'),('خليجي','🇸🇦'),('شامي','🇱🇧'),('مغربي','🇲🇦'),('عالمي','🌍')] %}
       <label style="cursor:pointer">
         <input type="radio" name="culture" value="{{ cul[0] }}" {% if loop.first %}checked{% endif %} style="display:none">
         <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:12px;text-align:center;background:white;transition:all .2s">
@@ -51,9 +52,9 @@
     </div>
   </div>
 
-  <!-- نظام التغذية -->
+  <!-- ═══════════ 3. نظام التغذية ═══════════ -->
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-clock"></i> نظام الأكل</div>
+    <div class="card-title"><i class="fa-solid fa-clock"></i> الخطوة 3: نظام الأكل</div>
     <div style="display:grid;gap:8px">
       {% for key, info in diet_plans.items() %}
       <label style="cursor:pointer">
@@ -70,9 +71,9 @@
     </div>
   </div>
 
-  <!-- البيانات الشخصية -->
+  <!-- ═══════════ 4. البيانات الشخصية ═══════════ -->
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-user"></i> بياناتك</div>
+    <div class="card-title"><i class="fa-solid fa-user"></i> الخطوة 4: بياناتك الشخصية</div>
     <div class="grid-2">
       <div class="form-group">
         <label class="form-label">الجنس</label>
@@ -108,11 +109,15 @@
     </div>
   </div>
 
-  <!-- الحالات الصحية -->
+  <!-- ═══════════ 5. الأمراض والحالات ═══════════ -->
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-stethoscope"></i> الحالات الصحية (اختياري)</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
-      {% for cond in ['قولون عصبي','سكري النوع الثاني','ضغط الدم المرتفع','امراض القلب','الفشل الكلوي المزمن','الحمل','الرضاعة الطبيعية','G6PD','ثلاسيميا','نقص الحديد','نقص فيتامين D3','حرق بطيء'] %}
+    <div class="card-title"><i class="fa-solid fa-stethoscope"></i> الخطوة 5: أمراضك أو حالاتك (اختر كل اللي ينطبق عليك)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px">
+      {% for cond in [
+        'قولون عصبي','سكري النوع الثاني','ضغط الدم المرتفع','امراض القلب',
+        'الفشل الكلوي المزمن','الحمل','الرضاعة الطبيعية','G6PD','ثلاسيميا',
+        'نقص الحديد','نقص فيتامين D3','حرق بطيء','حساسية اللاكتوز'
+      ] %}
       <label style="display:flex;align-items:center;gap:8px;background:var(--gray);border:1.5px solid var(--gray-2);border-radius:10px;padding:10px;cursor:pointer">
         <input type="checkbox" name="symptoms" value="{{ cond }}" style="width:18px;height:18px">
         <span style="font-size:12px;font-weight:600">{{ cond }}</span>
@@ -121,10 +126,45 @@
     </div>
   </div>
 
-  <!-- ملاحظات -->
+  <!-- ═══════════ 6. الحساسية ═══════════ -->
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-note-sticky"></i> ملاحظات إضافية</div>
-    <textarea class="form-input" name="notes" rows="3" placeholder="أي أكلات ما تحبهاش، حساسيات، أدوية، أو أي تفاصيل..." style="resize:vertical"></textarea>
+    <div class="card-title"><i class="fa-solid fa-triangle-exclamation"></i> الخطوة 6: الحساسية الغذائية</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">اختر أي حساسية عندك (أكلات هتتشال نهائياً من خطتك):</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
+      {% for allergy in ['اللاكتوز','الجلوتين','المكسرات','البيض','الأسماك','الفول السوداني','الصويا','المحار','السمسم'] %}
+      <label style="display:flex;align-items:center;gap:8px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:10px;cursor:pointer">
+        <input type="checkbox" name="allergies" value="{{ allergy }}" style="width:18px;height:18px">
+        <span style="font-size:12px;font-weight:600;color:#991b1b">{{ allergy }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ═══════════ 7. الأكلات المفضلة ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-heart" style="color:#16a34a"></i> الخطوة 7: الأكلات اللي بتحبها</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">اكتب الأكلات اللي بتحبها مفصولة بفواصل (هنحاول نضعها في خطتك):</p>
+    <textarea class="form-input" name="liked_foods" rows="2" 
+      placeholder="مثلاً: شوفان، سلمون، افوكادو، دجاج مشوي، تفاح" 
+      style="resize:vertical"></textarea>
+  </div>
+
+  <!-- ═══════════ 8. الأكلات اللي مش بتحبها ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-ban" style="color:#dc2626"></i> الخطوة 8: الأكلات اللي مش بتحبها</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">اكتب الأكلات اللي مش بتحبها أو مش بتاكلها مفصولة بفواصل (هتتشال من خطتك):</p>
+    <textarea class="form-input" name="disliked_foods" rows="2" 
+      placeholder="مثلاً: كبدة، باذنجان، بصل، فلفل حار، كوسة" 
+      style="resize:vertical"></textarea>
+  </div>
+
+  <!-- ═══════════ 9. ملاحظات إضافية ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-note-sticky"></i> الخطوة 9: ملاحظات إضافية للدكتور</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">أي تفاصيل تانية: أدوية، عادات، مواعيد التمرين، ميزانية الأكل، تفضيلات...</p>
+    <textarea class="form-input" name="notes" rows="3" 
+      placeholder="مثلاً: بتمرن المغرب، باكل في الشغل، بتاخد دواء معين..." 
+      style="resize:vertical"></textarea>
   </div>
 
   <button type="submit" class="btn btn-success btn-full" style="font-size:16px;padding:16px">
