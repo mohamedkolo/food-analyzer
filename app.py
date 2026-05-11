@@ -59,7 +59,6 @@ def from_json_filter(s):
 def init_db():
     """Initialize database - safe with try/except for each table"""
     if DATABASE_URL:
-        # PostgreSQL
         tables_pg = [
             """CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, conditions TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS weight_log (id SERIAL PRIMARY KEY, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
@@ -73,7 +72,6 @@ def init_db():
             try: db_run(sql)
             except Exception as e: print(f"Table create warning: {e}")
     else:
-        # SQLite
         tables_sq = [
             """CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, conditions TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS weight_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
@@ -259,6 +257,11 @@ CONDITION_TIPS = {
         {"icon": "☕", "title": "شاي مع الأكل", "tip": "الشاي يقلل امتصاص الحديد - اشربه مع الأكل"},
         {"icon": "🥬", "title": "خضار آمنة", "tip": "البروكلي والكرنب والجزر مفيدين"},
     ],
+    "لاكتوز": [
+        {"icon": "🥛", "title": "ابعد عن الألبان", "tip": "تجنب الحليب والزبادي والجبن الطازج"},
+        {"icon": "🌱", "title": "بدائل نباتية", "tip": "حليب اللوز والصويا وجوز الهند بدائل ممتازة"},
+        {"icon": "💊", "title": "أنزيم اللاكتيز", "tip": "ممكن تاخده قبل الأكل لو مضطر تاكل لبن"},
+    ],
 }
 
 def get_tips_for_user(user):
@@ -277,6 +280,7 @@ def get_tips_for_user(user):
                 "حمل": "حامل", "رضاعة": "حامل",
                 "G6PD": "g6pd", "نقص G6PD": "g6pd",
                 "ثلاسيميا": "ثلاسيميا",
+                "حساسية اللاكتوز": "لاكتوز", "lactose": "لاكتوز",
             }
             for cond in conditions:
                 key = condition_map.get(cond)
@@ -330,8 +334,8 @@ def login():
     if request.method == "POST":
         check_email = request.form.get("email", "").lower().strip()
         if is_email_blocked(check_email):
-            flash("هذا الحساب محظور. تواصل مع الإدارة.", "error")
-            return redirect("/")
+            error = "هذا الحساب محظور. تواصل مع الإدارة."
+            return render_template("login.html", error=error, tab="login", lang=lang)
         action = request.form.get("action")
         if action == "login":
             u = get_user(request.form.get("email","").lower(), request.form.get("password",""))
@@ -420,7 +424,6 @@ def my_plan():
         pass
     can_request, days_left, hours_left, last_date = can_request_new_plan(session["uid"])
 
-    # Get personalized daily tip
     tips = get_tips_for_user(u)
     today_tip = tips[datetime.now().day % len(tips)] if tips else None
 
@@ -446,6 +449,7 @@ def request_plan():
         if not can_request_now:
             return redirect("/my-plan")
         symptoms = request.form.getlist("symptoms")
+        allergies = request.form.getlist("allergies")
         request_data = {
             "height": request.form.get("height", u.get("height", "")),
             "weight": request.form.get("weight", u.get("weight", "")),
@@ -459,12 +463,14 @@ def request_plan():
             "culture": request.form.get("culture", "مصري"),
             "diet_plan_type": request.form.get("diet_plan_type", "standard"),
             "symptoms": symptoms,
+            "allergies": allergies,
+            "liked_foods": request.form.get("liked_foods", ""),
+            "disliked_foods": request.form.get("disliked_foods", ""),
             "notes": request.form.get("notes", ""),
         }
         try:
             db_run("""INSERT INTO plan_requests (client_id, client_name, request_data, status) VALUES (?, ?, ?, 'pending')""",
                    (session["uid"], u.get("name","Client"), json.dumps(request_data)))
-            # Save conditions to user profile for personalized tips
             if symptoms:
                 db_run("UPDATE users SET conditions=? WHERE id=?", (json.dumps(symptoms), session["uid"]))
         except Exception as e:
@@ -565,24 +571,17 @@ def admin_request_manual(rid):
         "name": client.get("name","") if client else req.get("client_name",""),
         **rdata,
     }
-    # Generate STARTER plan with smart suggestions based on case
     diet_type = data.get("diet_plan_type", "standard")
     plan_info = get_diet_plan_info(diet_type)
     days = ["الاحد","الاثنين","الثلاثاء","الاربعاء","الخميس","الجمعة","السبت"]
-    
-    # Determine case characteristics
+
     goal = (data.get("goal") or "").lower()
     conditions_raw = data.get("symptoms") or data.get("conditions") or ""
     conditions = conditions_raw.lower() if isinstance(conditions_raw, str) else ""
     is_diabetes = any(k in conditions for k in ["سكري", "سكر", "diabet"])
     is_kidney = any(k in conditions for k in ["كلى", "كلي", "kidney"])
-    is_heart = any(k in conditions for k in ["قلب", "ضغط", "heart", "hyperten"])
-    is_loss = any(k in goal for k in ["تخسيس", "نزول", "loss", "خساره"])
-    is_gain = any(k in goal for k in ["زياده", "تضخيم", "gain", "bulk"])
-    
-    # Define starter meals per type based on case
+
     def get_starter(meal_key, day_idx):
-        # Breakfast options
         breakfasts_general = [
             "🥣 شوفان بالحليب 40جم + 🍌 موز + 🌰 لوز 10جم",
             "🥚 بيضتين مسلوق + 🧀 جبن قريش 50جم + 🍞 خبز اسمر",
@@ -610,7 +609,6 @@ def admin_request_manual(rid):
             "🥚 بياض بيض + 🍞 خبز ابيض + 🍎 تفاح",
             "🥣 شوفان + 🍓 فراولة قليلة",
         ]
-        # Lunch options
         lunches_general = [
             "🍗 صدر دجاج مشوي 150جم + 🍚 أرز 100جم + 🥗 سلطة",
             "🐟 سمك مشوي 150جم + 🍠 بطاطا حلوة 100جم + 🥦 بروكلي",
@@ -638,7 +636,6 @@ def admin_request_manual(rid):
             "🐟 سمك مسلوق + 🍚 أرز + 🍎 تفاح",
             "🍗 دجاج + 🍚 أرز + 🥒 خيار + 🥬 خس",
         ]
-        # Dinner
         dinners_general = [
             "🥗 سلطة دجاج + 🍞 خبز اسمر + 🧀 جبن قريش",
             "🥚 بيضتين + 🧀 جبن + 🥒 خضار + 🍞 خبز اسمر",
@@ -648,7 +645,6 @@ def admin_request_manual(rid):
             "🥚 اومليت بالخضار + 🍞 خبز",
             "🥗 سلطة قيصر بالدجاج",
         ]
-        # Snack
         snacks_general = [
             "🍎 تفاحة + 🌰 لوز 10 حبات",
             "🥛 زبادي + 🍓 فراولة",
@@ -658,8 +654,7 @@ def admin_request_manual(rid):
             "🍐 كمثرى + 🧀 جبن قريش",
             "🥚 بيضة مسلوقة + 🥒 خيار",
         ]
-        
-        # Pick the right list
+
         if "breakfast" in meal_key or "فطار" in meal_key.lower() or "فطور" in meal_key.lower():
             pool = breakfasts_kidney if is_kidney else (breakfasts_diabetes if is_diabetes else breakfasts_general)
         elif "lunch" in meal_key or "غدا" in meal_key.lower():
@@ -670,9 +665,9 @@ def admin_request_manual(rid):
             pool = snacks_general
         else:
             pool = breakfasts_general
-        
+
         return pool[day_idx % len(pool)]
-    
+
     empty_plan = []
     for i in range(7):
         day_plan = {"day": days[i], "diet_type": diet_type,
@@ -801,6 +796,9 @@ def generate():
             "culture": request.form.get("culture","مصري"),
             "diet_plan_type": request.form.get("diet_plan_type","standard"),
             "symptoms": request.form.getlist("symptoms"),
+            "allergies": request.form.getlist("allergies"),
+            "liked_foods": request.form.get("liked_foods",""),
+            "disliked_foods": request.form.get("disliked_foods",""),
             "notes": request.form.get("notes",""),
         }
         session["pdf_data"] = data
@@ -912,32 +910,31 @@ def edit_meal():
 
 
 # ═══════════════════════════════════════════════════
-# CHAT/MESSAGING SYSTEM
+# CHAT/MESSAGING SYSTEM (FIXED - was using db_all)
 # ═══════════════════════════════════════════════════
 
 @app.route("/messages")
 @login_required
 def messages():
     """View all conversations - safe if table missing"""
-    # Ensure messages table exists
     try:
         if DATABASE_URL:
             db_run("""CREATE TABLE IF NOT EXISTS messages (id SERIAL PRIMARY KEY, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         else:
             db_run("""CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
     except: pass
-    
+
     user = get_user_by_id(session["uid"])
     role = get_user_role(user)
-    
+
     if role in ['admin', 'nutritionist']:
-        clients = db_all("SELECT * FROM users WHERE role='client' OR role IS NULL ORDER BY name")
+        clients = db_rows("SELECT * FROM users WHERE role='client' OR role IS NULL ORDER BY name")
         conversations = []
         for c in clients:
             try:
                 last_msg = db_row("""SELECT message, created_at FROM messages 
                                     WHERE (sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)
-                                    ORDER BY created_at DESC LIMIT 1""", 
+                                    ORDER BY created_at DESC LIMIT 1""",
                                   (user["id"], c["id"], c["id"], user["id"]))
                 unread = db_row("""SELECT COUNT(*) as c FROM messages 
                                   WHERE sender_id=? AND receiver_id=? AND is_read=0""",
@@ -963,23 +960,21 @@ def chat(other_id):
     user = get_user_by_id(session["uid"])
     other = get_user_by_id(other_id)
     if not other: return redirect("/messages")
-    
+
     if request.method == "POST":
         msg = request.form.get("message", "").strip()
         if msg:
             db_run("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?,?,?)",
                    (user["id"], other_id, msg))
         return redirect(f"/messages/{other_id}")
-    
-    # Mark received messages as read
+
     db_run("UPDATE messages SET is_read=1 WHERE sender_id=? AND receiver_id=?", (other_id, user["id"]))
-    
-    # Get all messages between these two
-    msgs = db_all("""SELECT * FROM messages 
+
+    msgs = db_rows("""SELECT * FROM messages 
                     WHERE (sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)
                     ORDER BY created_at ASC""",
                   (user["id"], other_id, other_id, user["id"]))
-    
+
     return render_template("chat.html", messages=msgs, user=user, other=other, lang=session.get("lang","ar"))
 
 
@@ -993,8 +988,7 @@ def admin_request_reject(rid):
     reason = request.form.get("reason", "").strip()
     db_run("UPDATE plan_requests SET status='rejected', notes=?, updated_at=? WHERE id=?",
            (reason, datetime.now().isoformat(), rid))
-    
-    # Send a system message to the client about rejection
+
     req = db_row("SELECT client_id FROM plan_requests WHERE id=?", (rid,))
     if req:
         admin = db_row("SELECT id FROM users WHERE role='admin' OR is_admin=1 LIMIT 1")
@@ -1015,14 +1009,12 @@ def admin_block_user(uid):
     user = get_user_by_id(uid)
     if not user: return redirect("/admin/users")
     reason = request.form.get("reason", "").strip()
-    
-    # Add to blocked list
+
     try:
         db_run("INSERT INTO blocked_users (email, reason) VALUES (?,?)", (user["email"].lower(), reason))
     except:
-        pass  # already blocked
-    
-    # Deactivate user
+        pass
+
     db_run("UPDATE users SET active=0 WHERE id=?", (uid,))
     return redirect("/admin/users")
 
@@ -1032,7 +1024,7 @@ def admin_block_user(uid):
 def admin_unblock_user(uid):
     user = get_user_by_id(uid)
     if not user: return redirect("/admin/users")
-    
+
     db_run("DELETE FROM blocked_users WHERE email=?", (user["email"].lower(),))
     db_run("UPDATE users SET active=1 WHERE id=?", (uid,))
     return redirect("/admin/users")
@@ -1042,9 +1034,8 @@ def admin_unblock_user(uid):
 @admin_required
 def admin_blocked_list():
     try:
-        blocked = db_all("SELECT * FROM blocked_users ORDER BY blocked_at DESC")
+        blocked = db_rows("SELECT * FROM blocked_users ORDER BY blocked_at DESC")
     except Exception:
-        # Table doesn't exist yet - try to create
         try:
             if DATABASE_URL:
                 db_run("""CREATE TABLE IF NOT EXISTS blocked_users (id SERIAL PRIMARY KEY, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""")
@@ -1106,11 +1097,92 @@ def _has(symptoms, keywords):
             if k.lower() in s_low: return True
     return False
 
+
+# ═══════════════════════════════════════════════
+# USER EXCLUSIONS PARSING
+# (notes + dislikes + allergies → list of words to exclude)
+# ═══════════════════════════════════════════════
+
+ALLERGY_KEYWORDS = {
+    "اللاكتوز": ["حليب", "لبن", "زبادي", "جبن", "قشدة", "كريمة", "لبنة", "حلوم", "فيتا", "موزاريلا", "بارميزان", "ايس كريم", "بوظة", "كاكاو بحليب"],
+    "الجلوتين": ["قمح", "خبز", "مكرونة", "برغل", "كسكس", "سميد", "شعير", "فريكة", "بسكويت", "كرواسون", "توست", "فطير"],
+    "المكسرات": ["لوز", "كاجو", "بندق", "فستق", "جوز", "مكسرات", "بقان"],
+    "البيض": ["بيض", "اومليت", "عجة", "شكشوكة", "بيضة", "بيضتين"],
+    "الأسماك": ["سمك", "سلمون", "تونة", "بلطي", "هامور", "ماكريل", "سردين"],
+    "الفول السوداني": ["فول سوداني", "زبدة فول"],
+    "الصويا": ["صويا", "توفو", "تمبيه", "ادامامي"],
+    "المحار": ["جمبري", "محار", "كركند", "اسكالوب", "اخطبوط"],
+    "السمسم": ["سمسم", "طحينة", "حلاوة طحينية"],
+}
+
+def parse_user_exclusions(notes_text, disliked_foods, allergies):
+    """يحوّل الملحوظات والحساسية والأكلات اللي مش بيحبها إلى قايمة كلمات تتشال من الوجبات."""
+    exclusions = set()
+
+    # 1. الأكلات اللي مش بيحبها (نص حر مفصول بفواصل)
+    if disliked_foods:
+        for item in disliked_foods.replace("،", ",").replace(";", ",").split(","):
+            item = item.strip()
+            if len(item) > 1:
+                exclusions.add(item)
+
+    # 2. الحساسية (list من الـ checkboxes)
+    if allergies:
+        for allergy in allergies:
+            for key, kws in ALLERGY_KEYWORDS.items():
+                if key in allergy:
+                    exclusions.update(kws)
+
+    # 3. الملحوظات النصية - دور على triggers
+    if notes_text:
+        text = notes_text.strip()
+        triggers = ["اشيل", "شيل", "بدون", "تجنب", "مش بحب", "مش باكل",
+                    "ما بحب", "لا اكل", "حساسية من", "remove", "no ", "avoid",
+                    "without", "allergic to"]
+        for trigger in triggers:
+            idx = 0
+            while True:
+                pos = text.find(trigger, idx)
+                if pos == -1:
+                    break
+                rest = text[pos + len(trigger):pos + len(trigger) + 60]
+                rest = rest.replace("،", ".").replace(",", ".").replace(" و ", ".").replace("\n", ".")
+                first_chunk = rest.split(".")[0].strip()
+                if first_chunk:
+                    words = first_chunk.split()[:3]
+                    for w in words:
+                        w = w.strip(":،.,!؟")
+                        if len(w) > 2:
+                            exclusions.add(w)
+                idx = pos + 1
+
+    return list(exclusions)
+
+
+def filter_meals_by_exclusions(meals, exclusions):
+    """شيل أي وجبة فيها كلمة من الـ exclusions. لو شلنا كل الوجبات نرجّع الأصلية."""
+    if not exclusions:
+        return meals
+    result = []
+    for meal in meals:
+        meal_text = meal.get("meal", "") if isinstance(meal, dict) else str(meal)
+        if not any(ex in meal_text for ex in exclusions):
+            result.append(meal)
+    return result if result else meals
+
+
 def generate_weekly_plan(data):
     symptoms = data.get("symptoms", [])
     goal = data.get("goal_type", "weight_loss")
     culture = data.get("culture", "مصري")
     diet_type = data.get("diet_plan_type", "standard")
+
+    # NEW: قراية الحقول الجديدة من الاستمارة الموحدة
+    notes = data.get("notes", "")
+    disliked = data.get("disliked_foods", "")
+    allergies = data.get("allergies", []) if isinstance(data.get("allergies"), list) else []
+    user_exclusions = parse_user_exclusions(notes, disliked, allergies)
+
     pool = get_meal_pool(goal, culture)
     breakfasts = list(pool.get("breakfast", []))
     lunches = list(pool.get("lunch", []))
@@ -1121,10 +1193,20 @@ def generate_weekly_plan(data):
     breakfasts = filter_by_conditions(breakfasts, symptoms)
     lunches = filter_by_conditions(lunches, symptoms)
     dinners = filter_by_conditions(dinners, symptoms)
+
+    # NEW: شيل الأكلات اللي العميل مش عاوزها (notes / dislikes / allergies)
+    breakfasts = filter_meals_by_exclusions(breakfasts, user_exclusions)
+    lunches = filter_meals_by_exclusions(lunches, user_exclusions)
+    dinners = filter_meals_by_exclusions(dinners, user_exclusions)
+
     snacks = get_snacks_for_goal(goal)
     pool_snacks = pool.get("snack", [])
     if pool_snacks: snacks = pool_snacks[:10]
     while len(snacks) < 7: snacks.append("فاكهة + مكسرات (120 kcal)")
+
+    # NEW: شيل من الـ snacks كمان
+    snacks = [s for s in snacks if not any(ex in (s if isinstance(s, str) else s.get("meal","")) for ex in user_exclusions)] or snacks
+
     days = ["الاحد","الاثنين","الثلاثاء","الاربعاء","الخميس","الجمعة","السبت"]
     plan_info = get_diet_plan_info(diet_type)
     random.shuffle(breakfasts)
@@ -1192,6 +1274,7 @@ def get_allowed_forbidden(symptoms, goal="weight_loss"):
     has_g6pd = _has(symptoms, ["g6pd","g6bd","فافيزم"])
     has_thal = _has(symptoms, ["ثلاسيميا","thalassemia"])
     has_colon = _has(symptoms, ["قولون عصبي","ibs"])
+    has_lactose = _has(symptoms, ["لاكتوز","lactose"])
     needs_d3 = _has(symptoms, ["نقص فيتامين d","نقص d3"])
     needs_fe = _has(symptoms, ["نقص الحديد","فقر دم"])
     if goal in ["muscle_gain","bulking"]:
@@ -1215,6 +1298,9 @@ def get_allowed_forbidden(symptoms, goal="weight_loss"):
     if has_colon:
         forbidden.append("التوابل الحارة")
         forbidden.append("الكافيين الزائد")
+    if has_lactose:
+        forbidden = ["الحليب والألبان كاملة الدسم","الجبن الطازج","الايس كريم"] + forbidden
+        allowed = ["حليب اللوز / الصويا / جوز الهند","جبن معتق بكميات قليلة"] + allowed
     if needs_d3:
         allowed = ["أسماك دهنية: سلمون","صفار البيض + الفطر","تعرض للشمس 15 دقيقة"] + allowed
     if needs_fe and not has_thal:
@@ -1237,6 +1323,9 @@ def build_pdf(data, plan=None):
     except: deficit = 0
     notes_parts = []
     if symptoms: notes_parts.append(" - ".join(symptoms))
+    allergies_data = data.get("allergies", [])
+    if allergies_data: notes_parts.append("حساسية: " + " - ".join(allergies_data))
+    if data.get("disliked_foods"): notes_parts.append("لا يأكل: " + data.get("disliked_foods"))
     if data.get("notes"): notes_parts.append(data.get("notes"))
     clinical_notes = " | ".join(notes_parts) if notes_parts else "لا توجد ملاحظات"
     uid = session.get("uid", 0)
