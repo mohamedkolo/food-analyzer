@@ -1,0 +1,527 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .pricing-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 16px 60px;
+    font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
+  }
+
+  .pricing-hero {
+    text-align: center;
+    padding: 40px 20px 50px;
+  }
+
+  .pricing-hero h1 {
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 800;
+    background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0 0 16px;
+    line-height: 1.2;
+  }
+
+  .pricing-hero p {
+    font-size: 18px;
+    color: #64748b;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* Currency Switcher */
+  .currency-switcher {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 30px auto 40px;
+    flex-wrap: wrap;
+    background: #f1f5f9;
+    padding: 6px;
+    border-radius: 16px;
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  .currency-btn {
+    background: transparent;
+    border: 0;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .currency-btn:hover {
+    color: #059669;
+    transform: translateY(-1px);
+  }
+
+  .currency-btn.active {
+    background: #fff;
+    color: #059669;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+  }
+
+  /* Cards Grid */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    align-items: stretch;
+  }
+
+  .pricing-card {
+    background: #fff;
+    border-radius: 24px;
+    padding: 36px 28px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    border: 2px solid #f1f5f9;
+    position: relative;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .pricing-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: var(--accent);
+  }
+
+  .pricing-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .pricing-card.featured {
+    border-color: #f59e0b;
+    transform: scale(1.04);
+    box-shadow: 0 12px 30px rgba(245, 158, 11, 0.18);
+    background: linear-gradient(180deg, #fffbeb 0%, #fff 80%);
+  }
+
+  .pricing-card.featured:hover {
+    transform: scale(1.04) translateY(-6px);
+    box-shadow: 0 16px 40px rgba(245, 158, 11, 0.25);
+  }
+
+  .badge {
+    position: absolute;
+    top: 16px;
+    inset-inline-end: 16px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    animation: badgePulse 2s infinite;
+  }
+
+  @keyframes badgePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  .card-icon {
+    font-size: 48px;
+    margin-bottom: 18px;
+    display: inline-block;
+  }
+
+  .card-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 8px;
+  }
+
+  .card-desc {
+    font-size: 15px;
+    color: #64748b;
+    margin: 0 0 24px;
+    line-height: 1.5;
+    min-height: 45px;
+  }
+
+  .card-price {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .price-amount {
+    font-size: 48px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1;
+  }
+
+  .price-currency {
+    font-size: 18px;
+    font-weight: 600;
+    color: #475569;
+  }
+
+  .price-period {
+    font-size: 14px;
+    color: #94a3b8;
+    margin-right: 4px;
+  }
+
+  .trial-info {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #065f46;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    margin: 14px 0 22px;
+    text-align: center;
+    border: 1px solid #6ee7b7;
+  }
+
+  .features-list {
+    list-style: none;
+    padding: 0;
+    margin: 22px 0;
+    flex-grow: 1;
+  }
+
+  .features-list li {
+    padding: 10px 0;
+    color: #334155;
+    font-size: 15px;
+    line-height: 1.5;
+    border-bottom: 1px dashed #e2e8f0;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .features-list li::before {
+    content: '✓';
+    color: var(--accent);
+    font-weight: 800;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .features-list li:last-child {
+    border-bottom: 0;
+  }
+
+  .cta-btn {
+    width: 100%;
+    padding: 16px 24px;
+    border-radius: 14px;
+    border: 0;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 12px var(--accent-shadow);
+    text-decoration: none;
+    text-align: center;
+    display: inline-block;
+    margin-top: 12px;
+  }
+
+  .cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px var(--accent-shadow);
+    filter: brightness(1.05);
+  }
+
+  .cta-btn:active { transform: translateY(0); }
+
+  /* Trust strip */
+  .trust-strip {
+    margin: 50px auto 30px;
+    padding: 24px;
+    background: #f8fafc;
+    border-radius: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    text-align: center;
+    max-width: 900px;
+  }
+
+  .trust-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .trust-icon { font-size: 28px; }
+  .trust-text { font-size: 13px; color: #475569; font-weight: 600; }
+
+  /* FAQ */
+  .faq-section {
+    max-width: 800px;
+    margin: 40px auto 0;
+  }
+
+  .faq-section h2 {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 28px;
+  }
+
+  details {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    margin-bottom: 12px;
+    padding: 18px 22px;
+    transition: all 0.2s ease;
+  }
+
+  details[open] {
+    border-color: #10b981;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.1);
+  }
+
+  summary {
+    font-weight: 700;
+    color: #0f172a;
+    cursor: pointer;
+    font-size: 16px;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  summary::-webkit-details-marker { display: none; }
+
+  summary::after {
+    content: '+';
+    font-size: 24px;
+    color: #10b981;
+    font-weight: 300;
+    transition: transform 0.2s;
+  }
+
+  details[open] summary::after {
+    content: '−';
+  }
+
+  details p {
+    margin: 14px 0 0;
+    color: #475569;
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  .access-banner {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    border: 2px solid #10b981;
+    border-radius: 16px;
+    padding: 18px 24px;
+    margin-bottom: 30px;
+    text-align: center;
+    color: #065f46;
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  @media (max-width: 768px) {
+    .pricing-card.featured { transform: scale(1); }
+    .pricing-card.featured:hover { transform: translateY(-4px); }
+    .price-amount { font-size: 40px; }
+  }
+</style>
+
+<div class="pricing-wrap">
+
+  {% if active_access and active_access.has_access %}
+  <div class="access-banner">
+    ✅ عندك اشتراك نشط: <strong>{{ active_access.plan_name }}</strong>
+    {% if active_access.is_trial %} (فترة تجريبية){% endif %}
+    — متبقي {{ active_access.days_left }} يوم
+  </div>
+  {% endif %}
+
+  <!-- Hero -->
+  <div class="pricing-hero">
+    <h1>اختر الخطة المناسبة ليك</h1>
+    <p>خطط مرنة تناسب احتياجاتك — ادفع مرة واحدة أو اشترك شهرياً مع 7 أيام تجربة مجانية</p>
+  </div>
+
+  <!-- Currency Switcher -->
+  <div class="currency-switcher" id="currencySwitcher">
+    <button class="currency-btn" data-currency="EGP">🇪🇬 جنيه</button>
+    <button class="currency-btn" data-currency="AED">🇦🇪 درهم</button>
+    <button class="currency-btn" data-currency="SAR">🇸🇦 ريال</button>
+    <button class="currency-btn" data-currency="USD">🌍 دولار</button>
+  </div>
+
+  <!-- Pricing Cards -->
+  <div class="pricing-grid">
+    {% for plan_key, plan in pricing.items() %}
+    {% set is_sub = plan.type == 'subscription' %}
+    <div class="pricing-card {% if is_sub %}featured{% endif %}"
+         style="--accent: {{ plan.color }}; --accent-shadow: {{ plan.color }}33;">
+
+      {% if plan.badge %}<div class="badge">{{ plan.badge }}</div>{% endif %}
+
+      <div class="card-icon">{{ plan.icon }}</div>
+      <h2 class="card-title">{{ plan.name }}</h2>
+      <p class="card-desc">{{ plan.description }}</p>
+
+      <div class="card-price"
+           data-prices='{"EGP":{{ plan.prices.EGP }},"AED":{{ plan.prices.AED }},"USD":{{ plan.prices.USD }},"SAR":{{ plan.prices.SAR }}}'>
+        <span class="price-amount" data-amount>{{ "%.0f"|format(plan.prices.EGP / 100) }}</span>
+        <span class="price-currency" data-currency-label>ج.م</span>
+        {% if is_sub %}<span class="price-period">/ شهرياً</span>{% endif %}
+      </div>
+
+      {% if plan.trial_days %}
+      <div class="trial-info">🎁 جرّبه مجاناً {{ plan.trial_days }} أيام — مفيش حاجة هتتخصم قبل كده</div>
+      {% endif %}
+
+      <ul class="features-list">
+        {% for feat in plan.features_ar %}
+        <li>{{ feat }}</li>
+        {% endfor %}
+      </ul>
+
+      <a href="/checkout/{{ plan_key }}" class="cta-btn" data-checkout="{{ plan_key }}">
+        {% if is_sub %}ابدأ التجربة المجانية{% else %}ادفع دلوقتي{% endif %}
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Trust Strip -->
+  <div class="trust-strip">
+    <div class="trust-item">
+      <div class="trust-icon">🔒</div>
+      <div class="trust-text">دفع آمن 100%<br/>عبر Stripe</div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">💳</div>
+      <div class="trust-text">كل البطاقات<br/>Visa / Master / Apple Pay</div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">🌍</div>
+      <div class="trust-text">عملات متعددة<br/>EGP / AED / USD / SAR</div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">↩️</div>
+      <div class="trust-text">إلغاء الاشتراك<br/>أي وقت بدون التزام</div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="faq-section">
+    <h2>أسئلة شائعة</h2>
+
+    <details>
+      <summary>هل التجربة المجانية حقيقية؟ هيتخصم مني قبل 7 أيام؟</summary>
+      <p>التجربة 7 أيام مجانية تماماً. لو ألغيت قبل اليوم السابع، مفيش أي مبلغ هيتخصم منك. لو كملت، الاشتراك بيبدأ تلقائياً.</p>
+    </details>
+
+    <details>
+      <summary>أقدر أغير العملة بعد ما أدفع؟</summary>
+      <p>العملة بتتحدد عند الدفع وبتفضل نفسها للاشتراك. لو عاوز تغيرها لازم تلغي الاشتراك وتسجّل من جديد بعملة تانية.</p>
+    </details>
+
+    <details>
+      <summary>إيه الفرق بين "خطة واحدة" و"اشتراك شهري"؟</summary>
+      <p>الخطة الواحدة بتفتحلك خطة واحدة + متابعة 7 أيام (دفع مرة واحدة). الاشتراك الشهري بيفتحلك خطط غير محدودة + شات مفتوح + متابعة مستمرة (متجدد كل شهر).</p>
+    </details>
+
+    <details>
+      <summary>أقدر أحوّل من خطة لخطة تانية؟</summary>
+      <p>أيوة. لو دفعت "استشارة فردية" وحبيت تطلع لـ"اشتراك شهري" قبل ما تنتهي، تواصل معانا في الشات وهنحسبلك الفرق.</p>
+    </details>
+
+    <details>
+      <summary>هل بياناتي البنكية آمنة؟</summary>
+      <p>الموقع مش بيشوف بطاقتك خالص — كل بيانات الدفع بتمر مباشرة لـ Stripe (شركة عالمية معتمدة من البنوك الكبرى وبرلين موكل بحماية ملايين الشركات).</p>
+    </details>
+
+    <details>
+      <summary>إزاي ألغي الاشتراك؟</summary>
+      <p>من صفحة "حسابي" → الاشتراك → "إلغاء". الاشتراك هيستمر للنهاية الفترة المدفوعة وبعدها هيوقف تلقائياً.</p>
+    </details>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  // Currency switcher
+  const switcher = document.getElementById('currencySwitcher');
+  const labels = { EGP: 'ج.م', AED: 'د.إ', USD: '$', SAR: 'ر.س' };
+  const USDFirst = (cur, amount) => cur === 'USD' ? `$${amount}` : `${amount} ${labels[cur]}`;
+
+  function updatePrices(currency) {
+    document.querySelectorAll('.card-price').forEach(el => {
+      const prices = JSON.parse(el.dataset.prices);
+      const cents = prices[currency] || prices.USD;
+      const amount = (cents / 100).toFixed(currency === 'USD' ? 2 : 0);
+      el.querySelector('[data-amount]').textContent = amount;
+      el.querySelector('[data-currency-label]').textContent = labels[currency];
+    });
+    document.querySelectorAll('.currency-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.currency === currency);
+    });
+    // Update checkout links
+    document.querySelectorAll('[data-checkout]').forEach(a => {
+      a.href = `/checkout/${a.dataset.checkout}?currency=${currency}`;
+    });
+    try { localStorage.setItem('nutrax_currency', currency); } catch(e) {}
+  }
+
+  // Auto-detect from user country or saved preference
+  let defaultCurrency = 'EGP';
+  try {
+    const saved = localStorage.getItem('nutrax_currency');
+    if (saved) defaultCurrency = saved;
+  } catch(e) {}
+  {% if user_currency %}
+  defaultCurrency = '{{ user_currency }}';
+  {% endif %}
+
+  updatePrices(defaultCurrency);
+
+  switcher.addEventListener('click', (e) => {
+    const btn = e.target.closest('.currency-btn');
+    if (!btn) return;
+    updatePrices(btn.dataset.currency);
+  });
+})();
+</script>
+
+{% endblock %}
