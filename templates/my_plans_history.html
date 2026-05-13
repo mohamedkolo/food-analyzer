@@ -1,0 +1,448 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .history-wrap {
+    max-width: 1100px;
+    margin: 20px auto;
+    padding: 16px;
+    font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
+  }
+
+  .history-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .history-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .history-subtitle {
+    color: #64748b;
+    font-size: 15px;
+    margin-top: 4px;
+  }
+
+  .new-plan-btn {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: 0;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 15px;
+    text-decoration: none;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    transition: all 0.25s;
+  }
+
+  .new-plan-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.45);
+  }
+
+  /* Stats summary */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+    border: 1px solid #f1f5f9;
+  }
+
+  .stat-item {
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #10b981, #059669);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+  }
+
+  .stat-lbl {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 6px;
+    font-weight: 600;
+  }
+
+  /* Filter tabs */
+  .filter-tabs {
+    display: flex;
+    gap: 6px;
+    background: #f1f5f9;
+    padding: 5px;
+    border-radius: 12px;
+    width: fit-content;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .filter-tab {
+    background: transparent;
+    border: 0;
+    padding: 9px 18px;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .filter-tab.active {
+    background: #fff;
+    color: #059669;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Plan cards grid */
+  .plans-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 18px;
+  }
+
+  .plan-card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    position: relative;
+    transition: all 0.25s;
+    overflow: hidden;
+  }
+
+  .plan-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    background: var(--accent);
+  }
+
+  .plan-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  .plan-card.active-plan {
+    border-color: #10b981;
+    background: linear-gradient(180deg, #f0fdf4 0%, #fff 30%);
+  }
+
+  .plan-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 14px;
+  }
+
+  .plan-emoji {
+    font-size: 38px;
+    line-height: 1;
+  }
+
+  .plan-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .status-active { background: #d1fae5; color: #065f46; }
+  .status-expired { background: #f1f5f9; color: #475569; }
+  .status-archived { background: #fef3c7; color: #92400e; }
+
+  .plan-name {
+    font-size: 19px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 6px;
+  }
+
+  .plan-date {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .plan-meta {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+
+  .meta-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    color: #475569;
+  }
+
+  .meta-row strong { color: #0f172a; font-weight: 700; }
+
+  .plan-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .action-btn {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 0;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .btn-view {
+    background: #10b981;
+    color: #fff;
+    grid-column: 1 / -1;
+  }
+
+  .btn-view:hover {
+    background: #059669;
+  }
+
+  .btn-pdf {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .btn-pdf:hover { background: #bfdbfe; }
+
+  .btn-reactivate {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .btn-reactivate:hover { background: #fde68a; }
+
+  .btn-edit {
+    background: #ede9fe;
+    color: #5b21b6;
+  }
+
+  .btn-edit:hover { background: #ddd6fe; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    background: #fff;
+    border-radius: 20px;
+    padding: 60px 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  }
+
+  .empty-icon {
+    font-size: 72px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .empty-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 8px;
+  }
+
+  .empty-desc {
+    color: #64748b;
+    margin: 0 0 24px;
+    font-size: 15px;
+  }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 640px) {
+    .history-head { flex-direction: column; align-items: stretch; }
+    .plans-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="history-wrap">
+
+  <div class="history-head">
+    <div>
+      <h1 class="history-title">📚 خططك السابقة</h1>
+      <p class="history-subtitle">شوف كل الخطط اللي اتعملت ليك من قبل وأعد تفعيل أو عدّل أي منها</p>
+    </div>
+    <a href="/request-plan" class="new-plan-btn">+ اطلب خطة جديدة</a>
+  </div>
+
+  <!-- Stats Summary -->
+  {% if plans %}
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-num">{{ plans|length }}</div>
+      <div class="stat-lbl">إجمالي الخطط</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">{{ active_count or 0 }}</div>
+      <div class="stat-lbl">خطط نشطة</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">{{ archived_count or 0 }}</div>
+      <div class="stat-lbl">خطط منتهية</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">{{ days_following or 0 }}</div>
+      <div class="stat-lbl">يوم في المتابعة</div>
+    </div>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div class="filter-tabs">
+    <button class="filter-tab active" onclick="filterPlans('all', this)">الكل ({{ plans|length }})</button>
+    <button class="filter-tab" onclick="filterPlans('active', this)">النشطة ({{ active_count or 0 }})</button>
+    <button class="filter-tab" onclick="filterPlans('expired', this)">المنتهية ({{ archived_count or 0 }})</button>
+  </div>
+
+  <!-- Plans Grid -->
+  <div class="plans-grid" id="plansGrid">
+    {% for plan in plans %}
+    {% set goal = plan.goal_type or 'weight_loss' %}
+    {% set is_active = plan.is_currently_active %}
+    {% set emoji_map = {'weight_loss': '🥗', 'muscle_gain': '💪', 'bulking': '🔥', 'maintenance': '🍽️'} %}
+    {% set color_map = {'weight_loss': '#10b981', 'muscle_gain': '#3b82f6', 'bulking': '#f59e0b', 'maintenance': '#8b5cf6'} %}
+    {% set name_map = {'weight_loss': 'خطة تخسيس', 'muscle_gain': 'زيادة عضل', 'bulking': 'خطة تضخيم', 'maintenance': 'خطة مكتنز'} %}
+
+    <div class="plan-card {% if is_active %}active-plan{% endif %}"
+         data-status="{% if is_active %}active{% else %}expired{% endif %}"
+         style="--accent: {{ color_map.get(goal, '#10b981') }}">
+
+      <div class="plan-card-head">
+        <span class="plan-emoji">{{ emoji_map.get(goal, '📋') }}</span>
+        {% if is_active %}
+        <span class="plan-status status-active">● نشطة دلوقتي</span>
+        {% else %}
+        <span class="plan-status status-expired">منتهية</span>
+        {% endif %}
+      </div>
+
+      <h3 class="plan-name">{{ name_map.get(goal, 'خطة غذائية') }}</h3>
+      <div class="plan-date">
+        📅 {{ plan.created_date or 'تاريخ غير محدد' }}
+      </div>
+
+      <div class="plan-meta">
+        <div class="meta-row">
+          <span>الوزن وقتها:</span>
+          <strong>{{ plan.weight or '-' }} كجم</strong>
+        </div>
+        <div class="meta-row">
+          <span>السعرات المستهدفة:</span>
+          <strong>{{ plan.goal_cal or '-' }} kcal</strong>
+        </div>
+        <div class="meta-row">
+          <span>المطبخ:</span>
+          <strong>{{ plan.culture or 'مصري' }}</strong>
+        </div>
+        {% if plan.conditions_count %}
+        <div class="meta-row">
+          <span>الحالات الطبية:</span>
+          <strong>{{ plan.conditions_count }}</strong>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="plan-actions">
+        <a href="/my-plans-history/{{ plan.id }}" class="action-btn btn-view">
+          👁️ عرض الخطة كاملة
+        </a>
+
+        <a href="/my-plans-history/{{ plan.id }}/pdf" class="action-btn btn-pdf">
+          📄 PDF
+        </a>
+
+        {% if not is_active %}
+        <form method="POST" action="/my-plans-history/{{ plan.id }}/reactivate" style="display: contents;">
+          <button type="submit" class="action-btn btn-reactivate"
+                  onclick="return confirm('تأكيد إعادة تفعيل الخطة دي كخطتك الحالية؟')">
+            ↻ إعادة تفعيل
+          </button>
+        </form>
+        {% else %}
+        <a href="/my-plans-history/{{ plan.id }}/edit" class="action-btn btn-edit">
+          ✏️ تعديل
+        </a>
+        {% endif %}
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📋</div>
+    <h2 class="empty-title">لسه ماعملتش أي خطط</h2>
+    <p class="empty-desc">أول خطة هتيجي ليك بعد ما تطلبها من د. محمد. كل الخطط بعد كده هتظهر هنا.</p>
+    <a href="/request-plan" class="new-plan-btn">+ اطلب أول خطة دلوقتي</a>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function filterPlans(status, btn) {
+  // Update active tab
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+
+  // Filter cards
+  document.querySelectorAll('.plan-card').forEach(card => {
+    const cardStatus = card.dataset.status;
+    if (status === 'all' || cardStatus === status) {
+      card.style.display = '';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+</script>
+
+{% endblock %}
