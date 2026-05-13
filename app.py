@@ -14,6 +14,18 @@ from meal_database import (
     WEIGHT_LOSS, MUSCLE_GAIN, BULKING, MAINTENANCE
 )
 
+# ═══════════════════════════════════════════════
+# PAYMENTS MODULE (Stripe Integration)
+# ═══════════════════════════════════════════════
+from payments import (
+    PRICING, create_checkout_session, verify_webhook,
+    handle_checkout_completed, handle_invoice_paid,
+    handle_subscription_updated, handle_subscription_canceled,
+    has_active_access, get_user_access_info,
+    cancel_user_subscription, detect_currency,
+    get_supported_currencies, STRIPE_PUBLIC_KEY
+)
+
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if DATABASE_URL:
@@ -67,6 +79,8 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS plan_requests (id SERIAL PRIMARY KEY, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS messages (id SERIAL PRIMARY KEY, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS blocked_users (id SERIAL PRIMARY KEY, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""",
+            """CREATE TABLE IF NOT EXISTS subscriptions (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, stripe_customer_id TEXT, stripe_subscription_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, current_period_start TIMESTAMP, current_period_end TIMESTAMP, trial_end TIMESTAMP, cancel_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS payments (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, stripe_session_id TEXT UNIQUE, stripe_payment_intent_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, expires_at TIMESTAMP, metadata TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         ]
         for sql in tables_pg:
             try: db_run(sql)
@@ -80,6 +94,8 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS plan_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS blocked_users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""",
+            """CREATE TABLE IF NOT EXISTS subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, stripe_customer_id TEXT, stripe_subscription_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, current_period_start TIMESTAMP, current_period_end TIMESTAMP, trial_end TIMESTAMP, cancel_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS payments (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, stripe_session_id TEXT UNIQUE, stripe_payment_intent_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, expires_at TIMESTAMP, metadata TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         ]
         for sql in tables_sq:
             try: db_run(sql)
@@ -142,6 +158,28 @@ def staff_required(f):
         if not u or u.get("role") not in ["admin", "nutritionist"]:
             if not u.get("is_admin"):
                 return redirect("/my-plan")
+        return f(*args, **kwargs)
+    return decorated
+
+
+# ═══════════════════════════════════════════════
+# SUBSCRIPTION/PAYMENT MIDDLEWARE
+# ═══════════════════════════════════════════════
+
+def subscription_required(f):
+    """Decorator: العميل لازم يكون عنده اشتراك نشط أو دفعة سارية"""
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if "uid" not in session:
+            return redirect("/")
+        u = get_user_by_id(session["uid"])
+        # Admin/Nutritionist always allowed
+        if u and (u.get("is_admin") or u.get("role") in ["admin", "nutritionist"]):
+            return f(*args, **kwargs)
+        # Client must have active access
+        if not has_active_access(session["uid"], db_row):
+            return redirect("/subscription-required?reason=" + (request.path or ""))
         return f(*args, **kwargs)
     return decorated
 
@@ -314,13 +352,17 @@ def get_unread_messages_count(user_id):
 @app.context_processor
 def inject_globals():
     """Make unread message count and pending count available in all templates"""
-    ctx = {"unread_messages": 0, "pending_count": 0}
+    ctx = {"unread_messages": 0, "pending_count": 0, "active_access": None}
     if "uid" in session:
         try:
             ctx["unread_messages"] = get_unread_messages_count(session["uid"])
             user = get_user_by_id(session["uid"])
             if user and (user.get("is_admin") or user.get("role") in ["admin", "nutritionist"]):
                 ctx["pending_count"] = get_pending_requests_count()
+            # Get active access info for all users
+            try:
+                ctx["active_access"] = get_user_access_info(session["uid"], db_row)
+            except: pass
         except: pass
     return ctx
 
@@ -917,6 +959,12 @@ def edit_meal():
 @login_required
 def messages():
     """View all conversations - safe if table missing"""
+    # Check subscription for clients
+    user = get_user_by_id(session["uid"])
+    role = get_user_role(user)
+    if role == "client" and not has_active_access(session["uid"], db_row):
+        return redirect("/subscription-required?reason=chat")
+
     try:
         if DATABASE_URL:
             db_run("""CREATE TABLE IF NOT EXISTS messages (id SERIAL PRIMARY KEY, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
@@ -958,6 +1006,11 @@ def messages():
 @login_required
 def chat(other_id):
     user = get_user_by_id(session["uid"])
+    # Subscription gate for clients
+    role = get_user_role(user)
+    if role == "client" and not has_active_access(session["uid"], db_row):
+        return redirect("/subscription-required?reason=chat")
+
     other = get_user_by_id(other_id)
     if not other: return redirect("/messages")
 
@@ -1446,6 +1499,281 @@ def update_patient_status(pid, s):
 def delete_patient(pid):
     db_run("DELETE FROM patients WHERE id=? AND user_id=?", (pid, session["uid"]))
     return redirect("/patients")
+
+
+# ═══════════════════════════════════════════════════════════════════
+# PAYMENT ROUTES (Stripe Integration)
+# ═══════════════════════════════════════════════════════════════════
+
+@app.route("/pricing")
+def pricing():
+    """صفحة عرض الأسعار - متاحة للجميع حتى بدون تسجيل دخول"""
+    user = None
+    user_currency = "EGP"
+    active_access = None
+    if "uid" in session:
+        user = get_user_by_id(session["uid"])
+        if user:
+            user_currency = detect_currency(user.get("country"))
+            try:
+                active_access = get_user_access_info(session["uid"], db_row)
+            except: pass
+    return render_template("pricing.html",
+                           user=user,
+                           lang=session.get("lang", "ar"),
+                           pricing=PRICING,
+                           user_currency=user_currency,
+                           active_access=active_access)
+
+
+@app.route("/subscription-required")
+@login_required
+def subscription_required_page():
+    """صفحة الـ paywall - بتظهر لما العميل يحاول يدخل حاجة محتاجة اشتراك"""
+    user = get_user_by_id(session["uid"])
+    reason_key = request.args.get("reason", "")
+    reasons_map = {
+        "chat": "محتاج اشتراك علشان تكلم د. محمد مباشرة في الشات.",
+        "plan": "محتاج اشتراك أو خطة مدفوعة علشان تطلب خطة جديدة.",
+    }
+    reason = reasons_map.get(reason_key, "محتاج اشتراك علشان تستخدم الخدمة دي.")
+    return render_template("subscription_required.html",
+                           user=user, lang=session.get("lang", "ar"),
+                           reason=reason, pricing=PRICING)
+
+
+@app.route("/checkout/<plan_key>")
+@login_required
+def checkout(plan_key):
+    """بدء جلسة دفع Stripe"""
+    user = get_user_by_id(session["uid"])
+    if not user:
+        return redirect("/")
+
+    # Validate plan
+    if plan_key not in PRICING:
+        return redirect("/pricing")
+
+    # Get currency from query param or detect from country
+    currency = request.args.get("currency", "").upper()
+    if currency not in get_supported_currencies():
+        currency = detect_currency(user.get("country"))
+
+    try:
+        checkout_session = create_checkout_session(user, plan_key, currency)
+        return redirect(checkout_session.url, code=303)
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return render_template("payment_cancel.html",
+                               user=user, lang=session.get("lang", "ar"),
+                               error=f"خطأ في إنشاء جلسة الدفع: {str(e)}"), 500
+
+
+@app.route("/payment/success")
+@login_required
+def payment_success():
+    """صفحة نجاح الدفع - بتعرض تأكيد للعميل"""
+    import stripe
+    user = get_user_by_id(session["uid"])
+    session_id = request.args.get("session_id", "")
+
+    plan_name = None
+    amount = None
+    expires_at = None
+    is_trial = False
+
+    # Try to fetch session details from Stripe
+    if session_id and os.environ.get("STRIPE_SECRET_KEY"):
+        try:
+            stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+            cs = stripe.checkout.Session.retrieve(session_id)
+            metadata = cs.get("metadata", {}) or {}
+            plan_key = metadata.get("plan_key", "")
+            if plan_key in PRICING:
+                plan_name = PRICING[plan_key]["name"]
+            currency = metadata.get("currency", "USD")
+            amt = cs.get("amount_total", 0)
+            if amt:
+                amount = f"{amt / 100:.0f} {currency}"
+            if cs.get("subscription"):
+                try:
+                    sub = stripe.Subscription.retrieve(cs.subscription)
+                    if sub.trial_end:
+                        is_trial = True
+                        from datetime import datetime as dt
+                        expires_at = dt.fromtimestamp(sub.trial_end).strftime("%Y-%m-%d")
+                except: pass
+        except Exception as e:
+            print(f"Stripe fetch error: {e}")
+
+    # Fallback: check our DB
+    if not plan_name:
+        try:
+            access = get_user_access_info(session["uid"], db_row)
+            if access and access.get("has_access"):
+                plan_name = access.get("plan_name")
+                is_trial = access.get("is_trial", False)
+                exp = access.get("expires_at")
+                if exp:
+                    expires_at = exp.strftime("%Y-%m-%d") if hasattr(exp, "strftime") else str(exp)[:10]
+        except: pass
+
+    return render_template("payment_success.html",
+                           user=user, lang=session.get("lang", "ar"),
+                           plan_name=plan_name, amount=amount,
+                           expires_at=expires_at, is_trial=is_trial)
+
+
+@app.route("/payment/cancel")
+def payment_cancel():
+    """صفحة إلغاء الدفع"""
+    user = None
+    if "uid" in session:
+        user = get_user_by_id(session["uid"])
+    return render_template("payment_cancel.html",
+                           user=user, lang=session.get("lang", "ar"))
+
+
+@app.route("/webhook/stripe", methods=["POST"])
+def stripe_webhook():
+    """استقبال أحداث Stripe (الدفع نجح، اشتراك اتجدد، إلخ)"""
+    payload = request.data
+    sig_header = request.headers.get("Stripe-Signature", "")
+
+    event = verify_webhook(payload, sig_header)
+    if not event:
+        return jsonify({"error": "Invalid signature"}), 400
+
+    event_type = event.get("type") if isinstance(event, dict) else event["type"]
+    data_obj = event["data"]["object"] if isinstance(event, dict) else event.data.object
+
+    try:
+        if event_type == "checkout.session.completed":
+            handle_checkout_completed(data_obj, db_run, db_row)
+        elif event_type == "invoice.payment_succeeded":
+            handle_invoice_paid(data_obj, db_run, db_row)
+        elif event_type in ("customer.subscription.updated", "customer.subscription.trial_will_end"):
+            handle_subscription_updated(data_obj, db_run)
+        elif event_type == "customer.subscription.deleted":
+            handle_subscription_canceled(data_obj, db_run)
+    except Exception as e:
+        print(f"Webhook handler error: {e}")
+        import traceback; traceback.print_exc()
+
+    return jsonify({"status": "ok"}), 200
+
+
+@app.route("/subscription/cancel", methods=["POST"])
+@login_required
+def cancel_subscription():
+    """إلغاء الاشتراك (سيستمر حتى نهاية الفترة المدفوعة)"""
+    success, msg = cancel_user_subscription(session["uid"], db_row, db_run)
+    if success:
+        return redirect("/my-plan?msg=" + msg)
+    return redirect("/my-plan?error=" + msg)
+
+
+# ═══════════════════════════════════════════════
+# ADMIN PAYMENTS DASHBOARD
+# ═══════════════════════════════════════════════
+
+@app.route("/admin/payments")
+@admin_required
+def admin_payments_view():
+    """لوحة admin لمتابعة كل المدفوعات والاشتراكات"""
+    user = get_user_by_id(session["uid"])
+    payments = []
+    subscriptions = []
+    try:
+        payments = db_rows("""
+            SELECT p.*, u.name as user_name, u.email as user_email 
+            FROM payments p 
+            LEFT JOIN users u ON p.user_id = u.id 
+            ORDER BY p.created_at DESC LIMIT 200
+        """)
+    except: pass
+
+    try:
+        subscriptions = db_rows("""
+            SELECT s.*, u.name as user_name, u.email as user_email 
+            FROM subscriptions s 
+            LEFT JOIN users u ON s.user_id = u.id 
+            ORDER BY s.created_at DESC LIMIT 200
+        """)
+    except: pass
+
+    # Compute stats
+    stats = {
+        "total_revenue": 0,
+        "total_revenue_currency": None,
+        "active_subscriptions": 0,
+        "trialing_count": 0,
+        "successful_payments": 0,
+        "total_attempts": len(payments) if payments else 0,
+        "paying_customers": 0,
+        "total_users": 0,
+    }
+
+    try:
+        # Sum all completed payments (note: simplification - mixed currencies)
+        currencies_seen = set()
+        for p in payments:
+            if p.get("status") == "completed":
+                stats["total_revenue"] += (p.get("amount") or 0)
+                stats["successful_payments"] += 1
+                if p.get("currency"):
+                    currencies_seen.add(p["currency"])
+
+        if len(currencies_seen) == 1:
+            stats["total_revenue_currency"] = list(currencies_seen)[0]
+        elif len(currencies_seen) > 1:
+            stats["total_revenue_currency"] = "مختلط"
+
+        # Active subscriptions
+        from datetime import datetime as dt
+        now = dt.now()
+        unique_paying_users = set()
+
+        for s in subscriptions:
+            status = s.get("status", "")
+            if status in ("active", "trialing"):
+                stats["active_subscriptions"] += 1
+                unique_paying_users.add(s.get("user_id"))
+                if status == "trialing":
+                    stats["trialing_count"] += 1
+
+        for p in payments:
+            if p.get("status") == "completed":
+                unique_paying_users.add(p.get("user_id"))
+
+        stats["paying_customers"] = len(unique_paying_users)
+
+        # Total users
+        r = db_row("SELECT COUNT(*) as cnt FROM users WHERE role='client' OR role IS NULL")
+        stats["total_users"] = r.get("cnt", 0) if r else 0
+    except Exception as e:
+        print(f"Stats compute error: {e}")
+
+    return render_template("admin_payments.html",
+                           user=user, lang=session.get("lang", "ar"),
+                           payments=payments, subscriptions=subscriptions,
+                           stats=stats)
+
+
+# ═══════════════════════════════════════════════
+# UPDATE request_plan TO CHECK SUBSCRIPTION
+# (Note: keeping old request_plan logic but adding gate)
+# ═══════════════════════════════════════════════
+
+@app.route("/check-access")
+@login_required
+def check_access_endpoint():
+    """API endpoint للتحقق من حالة الاشتراك"""
+    info = get_user_access_info(session["uid"], db_row)
+    if info.get("expires_at") and hasattr(info["expires_at"], "isoformat"):
+        info["expires_at"] = info["expires_at"].isoformat()
+    return jsonify(info)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
