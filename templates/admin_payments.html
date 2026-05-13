@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .admin-pay {
+    max-width: 1300px;
+    margin: 20px auto;
+    padding: 16px;
+    font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
+  }
+
+  .page-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .page-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .refresh-btn {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    padding: 8px 16px;
+    border-radius: 10px;
+    color: #475569;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .refresh-btn:hover { background: #e2e8f0; }
+
+  /* Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--c);
+  }
+
+  .stat-label {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .stat-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1;
+  }
+
+  .stat-trend {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 6px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    width: fit-content;
+  }
+
+  .tab-btn {
+    background: transparent;
+    border: 0;
+    padding: 10px 22px;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    background: #fff;
+    color: #059669;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Filters */
+  .filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+
+  .filter-input {
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    background: #fff;
+    color: #0f172a;
+    min-width: 180px;
+  }
+
+  .filter-input:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+
+  /* Table */
+  .table-wrap {
+    background: #fff;
+    border-radius: 16px;
+    overflow-x: auto;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  thead { background: #f8fafc; }
+
+  th {
+    text-align: right;
+    padding: 14px 16px;
+    font-weight: 700;
+    color: #475569;
+    font-size: 13px;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 14px 16px;
+    color: #0f172a;
+    border-bottom: 1px solid #f1f5f9;
+    white-space: nowrap;
+  }
+
+  tbody tr:hover { background: #f8fafc; }
+  tbody tr:last-child td { border-bottom: 0; }
+
+  /* Badges */
+  .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+
+  .badge-success { background: #d1fae5; color: #065f46; }
+  .badge-warning { background: #fef3c7; color: #92400e; }
+  .badge-danger { background: #fee2e2; color: #991b1b; }
+  .badge-info { background: #dbeafe; color: #1e40af; }
+  .badge-gray { background: #f1f5f9; color: #475569; }
+
+  /* Plan colors */
+  .plan-consultation { color: #3b82f6; font-weight: 700; }
+  .plan-single_plan { color: #10b981; font-weight: 700; }
+  .plan-monthly_subscription { color: #f59e0b; font-weight: 700; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #94a3b8;
+  }
+
+  .empty-state .icon {
+    font-size: 64px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+
+  .user-cell { display: flex; flex-direction: column; gap: 2px; }
+  .user-name { font-weight: 700; color: #0f172a; }
+  .user-email { font-size: 12px; color: #94a3b8; }
+
+  .amount-cell { font-weight: 700; color: #059669; }
+
+  .date-cell { font-size: 13px; color: #64748b; }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 768px) {
+    .stat-value { font-size: 24px; }
+    th, td { padding: 10px 12px; font-size: 13px; }
+  }
+</style>
+
+<div class="admin-pay">
+
+  <div class="page-head">
+    <h1 class="page-title">💰 لوحة المدفوعات</h1>
+    <a href="/admin/payments" class="refresh-btn">🔄 تحديث</a>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card" style="--c: #10b981">
+      <div class="stat-label">إجمالي الإيرادات (الكل)</div>
+      <div class="stat-value">{{ "%.0f"|format(stats.total_revenue / 100) if stats.total_revenue else 0 }}</div>
+      <div class="stat-trend">{{ stats.total_revenue_currency or 'مختلط' }}</div>
+    </div>
+
+    <div class="stat-card" style="--c: #f59e0b">
+      <div class="stat-label">المشتركين النشطين</div>
+      <div class="stat-value">{{ stats.active_subscriptions or 0 }}</div>
+      <div class="stat-trend">{{ stats.trialing_count or 0 }} في فترة تجريبية</div>
+    </div>
+
+    <div class="stat-card" style="--c: #3b82f6">
+      <div class="stat-label">الدفعات الناجحة</div>
+      <div class="stat-value">{{ stats.successful_payments or 0 }}</div>
+      <div class="stat-trend">من إجمالي {{ stats.total_attempts or 0 }} محاولة</div>
+    </div>
+
+    <div class="stat-card" style="--c: #8b5cf6">
+      <div class="stat-label">عملاء مدفوعين</div>
+      <div class="stat-value">{{ stats.paying_customers or 0 }}</div>
+      <div class="stat-trend">من إجمالي {{ stats.total_users or 0 }} مستخدم</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('subs')">📋 الاشتراكات ({{ subscriptions|length }})</button>
+    <button class="tab-btn" onclick="showTab('pays')">💳 الدفعات ({{ payments|length }})</button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <input type="text" id="searchInput" class="filter-input" placeholder="🔍 ابحث بإسم العميل أو الإيميل...">
+    <select id="statusFilter" class="filter-input">
+      <option value="">كل الحالات</option>
+      <option value="active">نشط</option>
+      <option value="trialing">فترة تجريبية</option>
+      <option value="completed">مكتمل</option>
+      <option value="canceled">ملغي</option>
+      <option value="failed">فاشل</option>
+      <option value="past_due">متأخر</option>
+    </select>
+    <select id="planFilter" class="filter-input">
+      <option value="">كل الخطط</option>
+      <option value="consultation">استشارة فردية</option>
+      <option value="single_plan">خطة واحدة</option>
+      <option value="monthly_subscription">اشتراك شهري</option>
+    </select>
+  </div>
+
+  <!-- Subscriptions Table -->
+  <div id="tab-subs" class="tab-content">
+    {% if subscriptions %}
+    <div class="table-wrap">
+      <table id="subsTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>العميل</th>
+            <th>الخطة</th>
+            <th>الحالة</th>
+            <th>المبلغ</th>
+            <th>تاريخ البداية</th>
+            <th>التجديد القادم</th>
+            <th>Stripe ID</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in subscriptions %}
+          <tr data-name="{{ (sub.user_name or '')|lower }}" data-email="{{ (sub.user_email or '')|lower }}" data-status="{{ sub.status }}" data-plan="{{ sub.plan_key }}">
+            <td>{{ sub.id }}</td>
+            <td>
+              <div class="user-cell">
+                <span class="user-name">{{ sub.user_name or 'مجهول' }}</span>
+                <span class="user-email">{{ sub.user_email or '-' }}</span>
+              </div>
+            </td>
+            <td><span class="plan-{{ sub.plan_key }}">
+              {% if sub.plan_key == 'monthly_subscription' %}👑 اشتراك شهري
+              {% elif sub.plan_key == 'single_plan' %}📋 خطة واحدة
+              {% elif sub.plan_key == 'consultation' %}💬 استشارة
+              {% else %}{{ sub.plan_key }}{% endif %}
+            </span></td>
+            <td>
+              {% if sub.status == 'active' %}<span class="badge badge-success">نشط</span>
+              {% elif sub.status == 'trialing' %}<span class="badge badge-info">تجريبي</span>
+              {% elif sub.status == 'canceled' %}<span class="badge badge-gray">ملغي</span>
+              {% elif sub.status == 'past_due' %}<span class="badge badge-warning">متأخر</span>
+              {% elif sub.status == 'unpaid' %}<span class="badge badge-danger">غير مدفوع</span>
+              {% else %}<span class="badge badge-gray">{{ sub.status }}</span>{% endif %}
+            </td>
+            <td class="amount-cell">{{ "%.0f"|format((sub.amount or 0) / 100) }} {{ sub.currency or 'USD' }}</td>
+            <td class="date-cell">{{ sub.current_period_start.strftime('%Y-%m-%d') if sub.current_period_start and sub.current_period_start.__class__.__name__ != 'str' else (sub.current_period_start[:10] if sub.current_period_start else '-') }}</td>
+            <td class="date-cell">{{ sub.current_period_end.strftime('%Y-%m-%d') if sub.current_period_end and sub.current_period_end.__class__.__name__ != 'str' else (sub.current_period_end[:10] if sub.current_period_end else '-') }}</td>
+            <td class="date-cell" style="font-family: monospace; font-size: 11px;">{{ (sub.stripe_subscription_id or '-')[:20] }}{% if sub.stripe_subscription_id and sub.stripe_subscription_id|length > 20 %}...{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="table-wrap">
+      <div class="empty-state">
+        <div class="icon">📋</div>
+        <p><strong>مفيش اشتراكات لسه</strong></p>
+        <p style="font-size: 14px; margin-top: 6px;">أول اشتراك هيظهر هنا تلقائياً</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Payments Table -->
+  <div id="tab-pays" class="tab-content hidden">
+    {% if payments %}
+    <div class="table-wrap">
+      <table id="paysTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>العميل</th>
+            <th>الخطة</th>
+            <th>الحالة</th>
+            <th>المبلغ</th>
+            <th>التاريخ</th>
+            <th>تنتهي في</th>
+            <th>Stripe ID</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pay in payments %}
+          <tr data-name="{{ (pay.user_name or '')|lower }}" data-email="{{ (pay.user_email or '')|lower }}" data-status="{{ pay.status }}" data-plan="{{ pay.plan_key }}">
+            <td>{{ pay.id }}</td>
+            <td>
+              <div class="user-cell">
+                <span class="user-name">{{ pay.user_name or 'مجهول' }}</span>
+                <span class="user-email">{{ pay.user_email or '-' }}</span>
+              </div>
+            </td>
+            <td><span class="plan-{{ pay.plan_key }}">
+              {% if pay.plan_key == 'monthly_subscription' %}👑 اشتراك شهري
+              {% elif pay.plan_key == 'single_plan' %}📋 خطة واحدة
+              {% elif pay.plan_key == 'consultation' %}💬 استشارة
+              {% else %}{{ pay.plan_key }}{% endif %}
+            </span></td>
+            <td>
+              {% if pay.status == 'completed' %}<span class="badge badge-success">مكتمل</span>
+              {% elif pay.status == 'pending' %}<span class="badge badge-warning">قيد المعالجة</span>
+              {% elif pay.status == 'failed' %}<span class="badge badge-danger">فاشل</span>
+              {% elif pay.status == 'refunded' %}<span class="badge badge-gray">مسترد</span>
+              {% else %}<span class="badge badge-gray">{{ pay.status }}</span>{% endif %}
+            </td>
+            <td class="amount-cell">{{ "%.0f"|format((pay.amount or 0) / 100) }} {{ pay.currency or 'USD' }}</td>
+            <td class="date-cell">{{ pay.created_at.strftime('%Y-%m-%d %H:%M') if pay.created_at and pay.created_at.__class__.__name__ != 'str' else (pay.created_at[:16] if pay.created_at else '-') }}</td>
+            <td class="date-cell">{{ pay.expires_at.strftime('%Y-%m-%d') if pay.expires_at and pay.expires_at.__class__.__name__ != 'str' else (pay.expires_at[:10] if pay.expires_at else '-') }}</td>
+            <td class="date-cell" style="font-family: monospace; font-size: 11px;">{{ (pay.stripe_session_id or '-')[:20] }}{% if pay.stripe_session_id and pay.stripe_session_id|length > 20 %}...{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="table-wrap">
+      <div class="empty-state">
+        <div class="icon">💳</div>
+        <p><strong>مفيش دفعات لسه</strong></p>
+        <p style="font-size: 14px; margin-top: 6px;">أول دفعة هتظهر هنا تلقائياً</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+  document.getElementById('tab-' + name).classList.remove('hidden');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const search = (document.getElementById('searchInput').value || '').toLowerCase();
+  const status = document.getElementById('statusFilter').value;
+  const plan = document.getElementById('planFilter').value;
+
+  ['subsTable', 'paysTable'].forEach(id => {
+    const table = document.getElementById(id);
+    if (!table) return;
+    table.querySelectorAll('tbody tr').forEach(row => {
+      const name = row.dataset.name || '';
+      const email = row.dataset.email || '';
+      const rstatus = row.dataset.status || '';
+      const rplan = row.dataset.plan || '';
+
+      const matchSearch = !search || name.includes(search) || email.includes(search);
+      const matchStatus = !status || rstatus === status;
+      const matchPlan = !plan || rplan === plan;
+
+      row.style.display = (matchSearch && matchStatus && matchPlan) ? '' : 'none';
+    });
+  });
+}
+
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('statusFilter').addEventListener('change', applyFilters);
+document.getElementById('planFilter').addEventListener('change', applyFilters);
+</script>
+
+{% endblock %}
