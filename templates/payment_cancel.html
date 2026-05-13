@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .cancel-wrap {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 20px 16px;
+    font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
+  }
+
+  .cancel-card {
+    background: #fff;
+    border-radius: 24px;
+    padding: 48px 32px;
+    text-align: center;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    border: 2px solid #fef3c7;
+  }
+
+  .cancel-icon {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 44px;
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+  }
+
+  .cancel-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #92400e;
+    margin: 0 0 12px;
+  }
+
+  .cancel-msg {
+    font-size: 16px;
+    color: #475569;
+    line-height: 1.7;
+    margin: 0 0 28px;
+  }
+
+  .reassure-box {
+    background: #fffbeb;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 20px 0;
+    font-size: 14px;
+    color: #78350f;
+    line-height: 1.6;
+  }
+
+  .actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn {
+    padding: 14px 28px;
+    border-radius: 12px;
+    border: 0;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    display: inline-block;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.45);
+  }
+
+  .btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+  }
+
+  .btn-secondary:hover { background: #e2e8f0; }
+
+  .support-link {
+    margin-top: 20px;
+    font-size: 13px;
+    color: #94a3b8;
+  }
+
+  .support-link a {
+    color: #10b981;
+    font-weight: 600;
+    text-decoration: none;
+  }
+</style>
+
+<div class="cancel-wrap">
+  <div class="cancel-card">
+    <div class="cancel-icon">✕</div>
+
+    <h1 class="cancel-title">تم إلغاء الدفع</h1>
+    <p class="cancel-msg">
+      مفيش مشكلة - مفيش أي مبلغ اتخصم منك.<br/>
+      ممكن تجرّب تاني في أي وقت أو تختار خطة تانية تناسبك.
+    </p>
+
+    <div class="reassure-box">
+      💡 <strong>للعلم:</strong> الاشتراك الشهري بيجي مع <strong>7 أيام تجربة مجانية</strong> - تقدر تجرّب الخدمة كاملة قبل ما تدفع جنيه واحد.
+    </div>
+
+    <div class="actions">
+      <a href="/pricing" class="btn btn-primary">شوف الخطط تاني</a>
+      <a href="/dashboard" class="btn btn-secondary">العودة للرئيسية</a>
+    </div>
+
+    <p class="support-link">
+      عندك مشكلة في الدفع؟ <a href="/messages">كلمنا دلوقتي</a>
+    </p>
+  </div>
+</div>
+
+{% endblock %}
