@@ -2057,5 +2057,108 @@ def admin_user_payments(uid):
     return redirect(f"/admin/payments?user={uid}")
 
 
+# ═══════════════════════════════════════════════════════════════════
+# ONBOARDING WIZARD - استبيان العملاء الجداد
+# ═══════════════════════════════════════════════════════════════════
+
+# قائمة الـ endpoints اللي ما تتأثرش بالـ onboarding redirect
+ONBOARDING_EXEMPT = {
+    "login", "logout", "set_lang", "onboarding", "static",
+    "stripe_webhook", "check_access_endpoint"
+}
+
+@app.before_request
+def check_onboarding_status():
+    """Middleware: العملاء الجداد بيتحولوا للاستبيان تلقائياً"""
+    # Skip for static files and exempt endpoints
+    if not request.endpoint or request.endpoint in ONBOARDING_EXEMPT:
+        return None
+    if request.path.startswith("/static") or request.path.startswith("/webhook"):
+        return None
+    # Skip if not logged in
+    if "uid" not in session:
+        return None
+    # Skip for admin/nutritionist
+    try:
+        user = get_user_by_id(session["uid"])
+        if not user:
+            return None
+        if user.get("is_admin") or user.get("role") in ("admin", "nutritionist"):
+            return None
+        # Skip if already onboarded
+        if user.get("onboarded_at"):
+            return None
+        # Client without onboarding -> redirect
+        if request.path != "/onboarding":
+            return redirect("/onboarding")
+    except Exception as e:
+        print(f"Onboarding middleware error: {e}")
+    return None
+
+
+@app.route("/onboarding", methods=["GET", "POST"])
+@login_required
+def onboarding():
+    """صفحة الاستبيان المبدئي للعميل الجديد"""
+    user = get_user_by_id(session["uid"])
+    if not user:
+        return redirect("/")
+
+    # Admin/Nutritionist shouldn't access onboarding
+    if user.get("is_admin") or user.get("role") in ("admin", "nutritionist"):
+        return redirect("/dashboard")
+
+    if request.method == "POST":
+        try:
+            # Required fields
+            age = request.form.get("age", "").strip()
+            gender = request.form.get("gender", "").strip()
+            height = request.form.get("height", "").strip()
+            weight = request.form.get("weight", "").strip()
+            goal = request.form.get("goal", "weight_loss").strip()
+            activity = request.form.get("activity", "1.55").strip()
+
+            # Optional fields
+            liked_foods = request.form.get("liked_foods", "[]")
+            disliked_foods = request.form.get("disliked_foods", "[]")
+            conditions = request.form.get("conditions", "[]")
+            allergies = request.form.get("allergies", "[]")
+
+            # Validate required
+            if not (age and gender and height and weight):
+                return render_template("onboarding.html",
+                                       user=user, lang=session.get("lang", "ar"),
+                                       error="من فضلك املأ كل الحقول المطلوبة")
+
+            # Save to users table
+            db_run("""UPDATE users SET 
+                      age=?, gender=?, height=?, weight=?, goal=?, activity=?,
+                      liked_foods=?, disliked_foods=?, conditions=?, allergies=?,
+                      onboarded_at=?
+                      WHERE id=?""",
+                   (int(age) if age else None, gender,
+                    float(height) if height else None,
+                    float(weight) if weight else None,
+                    goal, float(activity) if activity else 1.55,
+                    liked_foods, disliked_foods, conditions, allergies,
+                    datetime.now(), session["uid"]))
+
+            # Log initial weight
+            try:
+                db_run("INSERT INTO weight_log (user_id, weight) VALUES (?, ?)",
+                       (session["uid"], float(weight)))
+            except: pass
+
+            return redirect("/dashboard?welcome=1")
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            return render_template("onboarding.html",
+                                   user=user, lang=session.get("lang", "ar"),
+                                   error=f"خطأ في الحفظ: {str(e)}")
+
+    return render_template("onboarding.html",
+                           user=user, lang=session.get("lang", "ar"))
+
+
 if __name__ == "__main__":
     app.run(debug=True)
