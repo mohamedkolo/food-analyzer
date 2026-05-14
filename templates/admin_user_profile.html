@@ -1,0 +1,612 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .profile-wrap {
+    max-width: 1200px;
+    margin: 16px auto;
+    padding: 16px;
+    font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
+  }
+
+  /* Back link */
+  .back-link {
+    color: #64748b;
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: #059669; }
+
+  /* User header */
+  .user-head {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    border-radius: 20px;
+    padding: 28px 24px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    font-weight: 800;
+    flex-shrink: 0;
+    backdrop-filter: blur(10px);
+  }
+
+  .user-info { flex: 1; min-width: 200px; }
+  .user-name { font-size: 26px; font-weight: 800; margin: 0 0 6px; }
+  .user-meta { font-size: 14px; opacity: 0.95; line-height: 1.7; }
+  .user-meta span { margin-left: 12px; }
+
+  .head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .head-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    backdrop-filter: blur(10px);
+    transition: all 0.2s;
+  }
+  .head-btn:hover { background: rgba(255, 255, 255, 0.3); }
+
+  /* Quick stats */
+  .quick-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .qstat {
+    background: #fff;
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #f1f5f9;
+  }
+  .qstat-icon { font-size: 24px; margin-bottom: 6px; }
+  .qstat-val { font-size: 22px; font-weight: 800; color: #0f172a; line-height: 1; }
+  .qstat-lbl { font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 600; }
+
+  /* Section card */
+  .section {
+    background: #fff;
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #f1f5f9;
+  }
+  .section-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f1f5f9;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .info-item {
+    padding: 10px 12px;
+    background: #f8fafc;
+    border-radius: 10px;
+  }
+  .info-lbl { font-size: 12px; color: #94a3b8; font-weight: 600; margin-bottom: 2px; }
+  .info-val { font-size: 15px; color: #0f172a; font-weight: 700; }
+
+  /* Tags */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    padding: 5px 12px;
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .tag-medical { background: #fee2e2; color: #991b1b; }
+  .tag-allergy { background: #fef3c7; color: #92400e; }
+  .tag-liked { background: #d1fae5; color: #065f46; }
+  .tag-disliked { background: #e0e7ff; color: #3730a3; }
+
+  /* Subscription card */
+  .sub-card {
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 12px;
+  }
+  .sub-active { background: linear-gradient(135deg, #d1fae5, #f0fdf4); border: 2px solid #10b981; }
+  .sub-trial { background: linear-gradient(135deg, #dbeafe, #eff6ff); border: 2px solid #3b82f6; }
+  .sub-none { background: #fef3c7; border: 2px solid #f59e0b; }
+  .sub-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+  .sub-row strong { color: #0f172a; font-weight: 700; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: right; padding: 10px 12px; background: #f8fafc; font-weight: 700; color: #475569; font-size: 13px; border-bottom: 1px solid #e2e8f0; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #0f172a; }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .b-success { background: #d1fae5; color: #065f46; }
+  .b-info { background: #dbeafe; color: #1e40af; }
+  .b-warn { background: #fef3c7; color: #92400e; }
+  .b-danger { background: #fee2e2; color: #991b1b; }
+  .b-gray { background: #f1f5f9; color: #475569; }
+
+  /* Action buttons */
+  .actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .act-btn {
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 0;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .act-primary { background: #10b981; color: #fff; }
+  .act-primary:hover { background: #059669; }
+  .act-warning { background: #f59e0b; color: #fff; }
+  .act-warning:hover { background: #d97706; }
+  .act-danger { background: #ef4444; color: #fff; }
+  .act-danger:hover { background: #dc2626; }
+  .act-secondary { background: #f1f5f9; color: #475569; }
+  .act-secondary:hover { background: #e2e8f0; }
+
+  /* Forms */
+  .inline-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .inline-form input, .inline-form select, .inline-form textarea {
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    flex: 1;
+    min-width: 140px;
+  }
+  .inline-form input:focus, .inline-form select:focus, .inline-form textarea:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+
+  /* Plan card mini */
+  .plans-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+  }
+  .plan-mini {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 14px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s;
+  }
+  .plan-mini:hover { border-color: #10b981; }
+  .plan-mini-head { display: flex; justify-content: space-between; margin-bottom: 8px; }
+  .plan-mini-title { font-weight: 700; color: #0f172a; font-size: 14px; }
+  .plan-mini-date { color: #94a3b8; font-size: 12px; margin-bottom: 8px; }
+
+  .empty-mini { color: #94a3b8; text-align: center; padding: 20px; font-size: 14px; }
+
+  textarea { min-height: 80px; resize: vertical; }
+
+  @media (max-width: 640px) {
+    .user-head { flex-direction: column; text-align: center; }
+    .head-actions { width: 100%; justify-content: center; }
+  }
+</style>
+
+<div class="profile-wrap">
+
+  <a href="/admin/users" class="back-link">← الرجوع لقائمة العملاء</a>
+
+  <!-- User Header -->
+  <div class="user-head">
+    <div class="avatar">{{ (user.name or 'U')[0]|upper }}</div>
+    <div class="user-info">
+      <h1 class="user-name">{{ user.name or 'بدون اسم' }}</h1>
+      <div class="user-meta">
+        <span>📧 {{ user.email }}</span>
+        {% if user.phone %}<span>📱 {{ user.phone }}</span>{% endif %}
+        {% if user.country %}<span>🌍 {{ user.country }}</span>{% endif %}
+        {% if user.age %}<span>🎂 {{ user.age }} سنة</span>{% endif %}
+        {% if user.gender %}<span>{% if user.gender == 'ذكر' or user.gender == 'male' %}♂️{% else %}♀️{% endif %} {{ user.gender }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="head-actions">
+      <a href="/messages/{{ user.id }}" class="head-btn">💬 بدء محادثة</a>
+      <a href="/admin/users" class="head-btn">→ رجوع</a>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="quick-stats">
+    <div class="qstat">
+      <div class="qstat-icon">📏</div>
+      <div class="qstat-val">{{ user.height or '-' }}</div>
+      <div class="qstat-lbl">الطول (cm)</div>
+    </div>
+    <div class="qstat">
+      <div class="qstat-icon">⚖️</div>
+      <div class="qstat-val">{{ user.weight or '-' }}</div>
+      <div class="qstat-lbl">الوزن (kg)</div>
+    </div>
+    <div class="qstat">
+      <div class="qstat-icon">📊</div>
+      <div class="qstat-val">{{ "%.1f"|format(bmi) if bmi else '-' }}</div>
+      <div class="qstat-lbl">BMI</div>
+    </div>
+    <div class="qstat">
+      <div class="qstat-icon">🔥</div>
+      <div class="qstat-val">{{ tdee or '-' }}</div>
+      <div class="qstat-lbl">TDEE (kcal)</div>
+    </div>
+    <div class="qstat">
+      <div class="qstat-icon">📋</div>
+      <div class="qstat-val">{{ plan_requests|length }}</div>
+      <div class="qstat-lbl">خطط</div>
+    </div>
+    <div class="qstat">
+      <div class="qstat-icon">💰</div>
+      <div class="qstat-val">{{ payments|length }}</div>
+      <div class="qstat-lbl">دفعات</div>
+    </div>
+  </div>
+
+  <!-- Subscription Status -->
+  <div class="section">
+    <h2 class="section-title">💎 حالة الاشتراك</h2>
+    {% if active_sub %}
+      <div class="sub-card {% if active_sub.status == 'trialing' %}sub-trial{% else %}sub-active{% endif %}">
+        <div class="sub-row"><span>الخطة</span><strong>{{ active_sub.plan_name or active_sub.plan_key }}</strong></div>
+        <div class="sub-row"><span>الحالة</span><strong>
+          {% if active_sub.status == 'active' %}<span class="badge b-success">نشط</span>
+          {% elif active_sub.status == 'trialing' %}<span class="badge b-info">فترة تجريبية</span>
+          {% else %}<span class="badge b-warn">{{ active_sub.status }}</span>{% endif %}
+        </strong></div>
+        <div class="sub-row"><span>تاريخ البداية</span><strong>{{ active_sub.start_date or '-' }}</strong></div>
+        <div class="sub-row"><span>التجديد القادم</span><strong>{{ active_sub.end_date or '-' }}</strong></div>
+        <div class="sub-row"><span>المبلغ الشهري</span><strong>{{ "%.0f"|format((active_sub.amount or 0) / 100) }} {{ active_sub.currency }}</strong></div>
+      </div>
+    {% elif active_payment %}
+      <div class="sub-card sub-active">
+        <div class="sub-row"><span>الخطة المدفوعة</span><strong>{{ active_payment.plan_name or active_payment.plan_key }}</strong></div>
+        <div class="sub-row"><span>تنتهي في</span><strong>{{ active_payment.expires or '-' }}</strong></div>
+        <div class="sub-row"><span>المبلغ</span><strong>{{ "%.0f"|format((active_payment.amount or 0) / 100) }} {{ active_payment.currency }}</strong></div>
+      </div>
+    {% else %}
+      <div class="sub-card sub-none">
+        <strong>⚠️ مفيش اشتراك نشط</strong> - العميل ده مش بيقدر يدخل الشات أو يطلب خطط جديدة.
+      </div>
+    {% endif %}
+
+    <!-- Subscription Actions -->
+    <div class="actions-grid">
+      <form method="POST" action="/admin/users/{{ user.id }}/grant-trial" style="display: contents;">
+        <button type="submit" class="act-btn act-primary"
+                onclick="return confirm('إعطاء العميل 7 أيام تجربة مجانية؟')">
+          🎁 إعطاء 7 أيام تجربة
+        </button>
+      </form>
+
+      {% if active_sub and active_sub.status in ['active', 'trialing'] %}
+      <form method="POST" action="/admin/users/{{ user.id }}/cancel-subscription" style="display: contents;">
+        <button type="submit" class="act-btn act-danger"
+                onclick="return confirm('إلغاء اشتراك العميل؟ هيستمر حتى نهاية الفترة المدفوعة.')">
+          ❌ إلغاء الاشتراك
+        </button>
+      </form>
+      {% endif %}
+
+      <a href="/admin/users/{{ user.id }}/payments" class="act-btn act-secondary">📊 كل عمليات الدفع</a>
+    </div>
+  </div>
+
+  <!-- Medical Conditions & Preferences -->
+  <div class="section">
+    <h2 class="section-title">🏥 الحالات الطبية والتفضيلات</h2>
+    <div class="info-grid">
+
+      <div style="grid-column: 1 / -1;">
+        <div class="info-lbl">الحالات الطبية</div>
+        <div class="tags" style="margin-top: 6px;">
+          {% if conditions %}
+            {% for c in conditions %}<span class="tag tag-medical">⚕️ {{ c }}</span>{% endfor %}
+          {% else %}<span class="tag">مفيش حالات مسجلة</span>{% endif %}
+        </div>
+      </div>
+
+      <div style="grid-column: 1 / -1;">
+        <div class="info-lbl">الحساسية الغذائية</div>
+        <div class="tags" style="margin-top: 6px;">
+          {% if allergies %}
+            {% for a in allergies %}<span class="tag tag-allergy">⚠️ {{ a }}</span>{% endfor %}
+          {% else %}<span class="tag">مفيش حساسية مسجلة</span>{% endif %}
+        </div>
+      </div>
+
+      <div style="grid-column: 1 / -1;">
+        <div class="info-lbl">أكلات بيحبها</div>
+        <div class="tags" style="margin-top: 6px;">
+          {% if liked_foods %}
+            {% for f in liked_foods %}<span class="tag tag-liked">😋 {{ f }}</span>{% endfor %}
+          {% else %}<span class="tag">مفيش بيانات</span>{% endif %}
+        </div>
+      </div>
+
+      <div style="grid-column: 1 / -1;">
+        <div class="info-lbl">أكلات مش بيحبها</div>
+        <div class="tags" style="margin-top: 6px;">
+          {% if disliked_foods %}
+            {% for f in disliked_foods %}<span class="tag tag-disliked">🚫 {{ f }}</span>{% endfor %}
+          {% else %}<span class="tag">مفيش بيانات</span>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit User Data -->
+  <div class="section">
+    <h2 class="section-title">✏️ تعديل البيانات</h2>
+    <form method="POST" action="/admin/users/{{ user.id }}/update">
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-lbl">الوزن (kg)</div>
+          <input type="number" step="0.1" name="weight" value="{{ user.weight or '' }}"
+                 style="width:100%; padding:6px 10px; border:1px solid #e2e8f0; border-radius:6px; margin-top:4px;">
+        </div>
+        <div class="info-item">
+          <div class="info-lbl">الطول (cm)</div>
+          <input type="number" step="0.5" name="height" value="{{ user.height or '' }}"
+                 style="width:100%; padding:6px 10px; border:1px solid #e2e8f0; border-radius:6px; margin-top:4px;">
+        </div>
+        <div class="info-item">
+          <div class="info-lbl">الهدف</div>
+          <select name="goal" style="width:100%; padding:6px 10px; border:1px solid #e2e8f0; border-radius:6px; margin-top:4px;">
+            <option value="weight_loss" {% if user.goal == 'weight_loss' %}selected{% endif %}>تخسيس</option>
+            <option value="muscle_gain" {% if user.goal == 'muscle_gain' %}selected{% endif %}>زيادة عضل</option>
+            <option value="bulking" {% if user.goal == 'bulking' %}selected{% endif %}>تضخيم</option>
+            <option value="maintenance" {% if user.goal == 'maintenance' %}selected{% endif %}>مكتنز</option>
+          </select>
+        </div>
+        <div class="info-item">
+          <div class="info-lbl">مستوى النشاط</div>
+          <select name="activity" style="width:100%; padding:6px 10px; border:1px solid #e2e8f0; border-radius:6px; margin-top:4px;">
+            <option value="1.2" {% if user.activity == 1.2 %}selected{% endif %}>قليل</option>
+            <option value="1.375" {% if user.activity == 1.375 %}selected{% endif %}>خفيف</option>
+            <option value="1.55" {% if user.activity == 1.55 %}selected{% endif %}>متوسط</option>
+            <option value="1.725" {% if user.activity == 1.725 %}selected{% endif %}>عالي</option>
+            <option value="1.9" {% if user.activity == 1.9 %}selected{% endif %}>عالي جداً</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="act-btn act-primary" style="margin-top: 12px;">💾 حفظ التعديلات</button>
+    </form>
+  </div>
+
+  <!-- Plans History -->
+  <div class="section">
+    <h2 class="section-title">📋 الخطط السابقة ({{ plan_requests|length }})</h2>
+    {% if plan_requests %}
+      <div class="plans-mini-grid">
+        {% for p in plan_requests %}
+        <div class="plan-mini">
+          <div class="plan-mini-head">
+            <span class="plan-mini-title">طلب #{{ p.id }}</span>
+            {% if p.status == 'approved' %}<span class="badge b-success">معتمد</span>
+            {% elif p.status == 'pending' %}<span class="badge b-warn">قيد المراجعة</span>
+            {% elif p.status == 'rejected' %}<span class="badge b-danger">مرفوض</span>
+            {% else %}<span class="badge b-gray">{{ p.status }}</span>{% endif %}
+          </div>
+          <div class="plan-mini-date">📅 {{ p.created_date or '-' }}</div>
+          {% if p.status == 'approved' %}
+          <a href="/admin/requests/{{ p.id }}/generate" class="act-btn act-primary" style="display:block; font-size: 13px; padding: 8px;">عرض الخطة</a>
+          {% else %}
+          <a href="/admin/requests" class="act-btn act-secondary" style="display:block; font-size: 13px; padding: 8px;">عرض في الطلبات</a>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-mini">📭 العميل لسه ما طلبش أي خطة</div>
+    {% endif %}
+  </div>
+
+  <!-- Payments History -->
+  <div class="section">
+    <h2 class="section-title">💰 سجل الدفعات ({{ payments|length }})</h2>
+    {% if payments %}
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>التاريخ</th>
+              <th>الخطة</th>
+              <th>المبلغ</th>
+              <th>الحالة</th>
+              <th>تنتهي في</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pay in payments %}
+            <tr>
+              <td>{{ pay.created_date or '-' }}</td>
+              <td>{{ pay.plan_label or pay.plan_key }}</td>
+              <td><strong>{{ "%.0f"|format((pay.amount or 0) / 100) }} {{ pay.currency }}</strong></td>
+              <td>
+                {% if pay.status == 'completed' %}<span class="badge b-success">مكتمل</span>
+                {% elif pay.status == 'pending' %}<span class="badge b-warn">معلق</span>
+                {% elif pay.status == 'failed' %}<span class="badge b-danger">فشل</span>
+                {% else %}<span class="badge b-gray">{{ pay.status }}</span>{% endif %}
+              </td>
+              <td>{{ pay.expires_date or '-' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-mini">💸 مفيش دفعات لسه</div>
+    {% endif %}
+  </div>
+
+  <!-- Weight Progress -->
+  <div class="section">
+    <h2 class="section-title">📈 تطور الوزن</h2>
+
+    <!-- Add weight form -->
+    <form method="POST" action="/admin/users/{{ user.id }}/add-weight" class="inline-form" style="margin-bottom: 18px;">
+      <input type="number" step="0.1" name="weight" placeholder="الوزن الجديد (kg)" required>
+      <input type="date" name="logged_date" value="{{ today_date or '' }}">
+      <button type="submit" class="act-btn act-primary" style="padding: 8px 18px;">+ إضافة قياس وزن</button>
+    </form>
+
+    {% if weight_logs and weight_logs|length > 0 %}
+      <!-- Chart -->
+      <div style="background: #f8fafc; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+        <canvas id="weightChart" height="80"></canvas>
+      </div>
+
+      <!-- Table -->
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>التاريخ</th>
+              <th>الوزن (kg)</th>
+              <th>الفرق</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for w in weight_logs %}
+            <tr>
+              <td>{{ w.logged_date or '-' }}</td>
+              <td><strong>{{ w.weight }}</strong></td>
+              <td>
+                {% if w.diff is defined and w.diff is not none %}
+                  {% if w.diff > 0 %}<span style="color:#dc2626">▲ +{{ "%.1f"|format(w.diff) }}</span>
+                  {% elif w.diff < 0 %}<span style="color:#059669">▼ {{ "%.1f"|format(w.diff) }}</span>
+                  {% else %}<span style="color:#94a3b8">— 0</span>{% endif %}
+                {% else %}<span style="color:#94a3b8">—</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-mini">⚖️ مفيش قياسات وزن مسجلة لسه</div>
+    {% endif %}
+  </div>
+
+  <!-- Doctor's Notes -->
+  <div class="section">
+    <h2 class="section-title">📝 ملاحظاتك على العميل</h2>
+    <form method="POST" action="/admin/users/{{ user.id }}/notes">
+      <textarea name="notes" placeholder="اكتب ملاحظاتك عن العميل (ممنوع للعميل يشوفها)..."
+                style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:10px; font-family:inherit; font-size: 14px;">{{ doctor_notes or '' }}</textarea>
+      <button type="submit" class="act-btn act-primary" style="margin-top: 10px;">💾 حفظ الملاحظات</button>
+    </form>
+  </div>
+
+</div>
+
+{% if weight_logs and weight_logs|length > 0 %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const labels = {{ weight_logs|map(attribute='logged_date')|list|tojson }};
+  const data = {{ weight_logs|map(attribute='weight')|list|tojson }};
+
+  const ctx = document.getElementById('weightChart');
+  if (!ctx) return;
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels.reverse(),
+      datasets: [{
+        label: 'الوزن (kg)',
+        data: data.reverse(),
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        borderWidth: 3,
+        tension: 0.3,
+        pointRadius: 5,
+        pointBackgroundColor: '#10b981',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f172a',
+          padding: 12,
+          titleFont: { family: 'Cairo, sans-serif' },
+          bodyFont: { family: 'Cairo, sans-serif' }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: false,
+          grid: { color: '#f1f5f9' },
+          ticks: { font: { family: 'Cairo, sans-serif' } }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: 'Cairo, sans-serif' } }
+        }
+      }
+    }
+  });
+})();
+</script>
+{% endif %}
+
+{% endblock %}
