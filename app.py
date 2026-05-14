@@ -107,6 +107,11 @@ def init_db():
         "ALTER TABLE users ADD COLUMN phone TEXT",
         "ALTER TABLE users ADD COLUMN conditions TEXT",
         "ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN doctor_notes TEXT",
+        "ALTER TABLE users ADD COLUMN liked_foods TEXT",
+        "ALTER TABLE users ADD COLUMN disliked_foods TEXT",
+        "ALTER TABLE users ADD COLUMN allergies TEXT",
+        "ALTER TABLE users ADD COLUMN onboarded_at TIMESTAMP",
     ]:
         try: db_run(col_sql)
         except: pass
@@ -1773,6 +1778,283 @@ def check_access_endpoint():
     if info.get("expires_at") and hasattr(info["expires_at"], "isoformat"):
         info["expires_at"] = info["expires_at"].isoformat()
     return jsonify(info)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# ADMIN USER PROFILE - صفحة العميل الشاملة
+# ═══════════════════════════════════════════════════════════════════
+
+@app.route("/admin/users/<int:uid>")
+@admin_required
+def admin_user_profile(uid):
+    """عرض صفحة الملف الشامل للعميل"""
+    target_user = get_user_by_id(uid)
+    if not target_user:
+        return redirect("/admin/users")
+
+    # Parse JSON fields
+    conditions = []
+    allergies = []
+    liked_foods = []
+    disliked_foods = []
+    try:
+        if target_user.get("conditions"):
+            conditions = json.loads(target_user["conditions"])
+    except: pass
+    try:
+        if target_user.get("allergies"):
+            allergies = json.loads(target_user["allergies"])
+    except: pass
+    try:
+        if target_user.get("liked_foods"):
+            liked_foods = json.loads(target_user["liked_foods"])
+    except: pass
+    try:
+        if target_user.get("disliked_foods"):
+            disliked_foods = json.loads(target_user["disliked_foods"])
+    except: pass
+
+    # BMI calculation
+    bmi = None
+    try:
+        h = float(target_user.get("height") or 0)
+        w = float(target_user.get("weight") or 0)
+        if h > 0 and w > 0:
+            bmi = w / ((h / 100) ** 2)
+    except: pass
+
+    # TDEE calculation (Mifflin-St Jeor)
+    tdee = None
+    try:
+        h = float(target_user.get("height") or 0)
+        w = float(target_user.get("weight") or 0)
+        a = float(target_user.get("age") or 0)
+        gender = (target_user.get("gender") or "ذكر").lower()
+        activity = float(target_user.get("activity") or 1.55)
+        if h > 0 and w > 0 and a > 0:
+            if gender in ("ذكر", "male", "m"):
+                bmr = 10 * w + 6.25 * h - 5 * a + 5
+            else:
+                bmr = 10 * w + 6.25 * h - 5 * a - 161
+            tdee = int(bmr * activity)
+    except: pass
+
+    # Active subscription
+    active_sub = None
+    try:
+        sub = db_row("""SELECT * FROM subscriptions 
+                        WHERE user_id=? AND status IN ('active', 'trialing') 
+                        ORDER BY current_period_end DESC LIMIT 1""", (uid,))
+        if sub:
+            active_sub = dict(sub)
+            plan_info = PRICING.get(sub.get("plan_key"), {})
+            active_sub["plan_name"] = plan_info.get("name", sub.get("plan_key"))
+            # Format dates
+            for k in ("current_period_start", "current_period_end", "trial_end"):
+                v = active_sub.get(k)
+                if v:
+                    if hasattr(v, "strftime"):
+                        active_sub[k.replace("current_period_", "") + "_date" if k.startswith("current_period_") else k] = v.strftime("%Y-%m-%d")
+                    else:
+                        active_sub[k.replace("current_period_", "") + "_date" if k.startswith("current_period_") else k] = str(v)[:10]
+            active_sub["start_date"] = active_sub.get("start_date") or "-"
+            active_sub["end_date"] = active_sub.get("end_date") or "-"
+    except: pass
+
+    # Active one-time payment
+    active_payment = None
+    try:
+        pay = db_row("""SELECT * FROM payments 
+                        WHERE user_id=? AND status='completed' 
+                        AND expires_at > ? 
+                        ORDER BY expires_at DESC LIMIT 1""", (uid, datetime.now()))
+        if pay:
+            active_payment = dict(pay)
+            plan_info = PRICING.get(pay.get("plan_key"), {})
+            active_payment["plan_name"] = plan_info.get("name", pay.get("plan_key"))
+            v = active_payment.get("expires_at")
+            if v:
+                active_payment["expires"] = v.strftime("%Y-%m-%d") if hasattr(v, "strftime") else str(v)[:10]
+    except: pass
+
+    # Plan requests
+    plan_requests = []
+    try:
+        plans = db_rows("SELECT * FROM plan_requests WHERE client_id=? ORDER BY created_at DESC LIMIT 50", (uid,))
+        for p in plans:
+            pd = dict(p)
+            v = pd.get("created_at")
+            if v:
+                pd["created_date"] = v.strftime("%Y-%m-%d") if hasattr(v, "strftime") else str(v)[:10]
+            plan_requests.append(pd)
+    except: pass
+
+    # Payments
+    payments = []
+    try:
+        pays = db_rows("SELECT * FROM payments WHERE user_id=? ORDER BY created_at DESC LIMIT 50", (uid,))
+        for p in pays:
+            pd = dict(p)
+            plan_info = PRICING.get(pd.get("plan_key"), {})
+            pd["plan_label"] = plan_info.get("name", pd.get("plan_key"))
+            v = pd.get("created_at")
+            if v:
+                pd["created_date"] = v.strftime("%Y-%m-%d %H:%M") if hasattr(v, "strftime") else str(v)[:16]
+            v2 = pd.get("expires_at")
+            if v2:
+                pd["expires_date"] = v2.strftime("%Y-%m-%d") if hasattr(v2, "strftime") else str(v2)[:10]
+            payments.append(pd)
+    except: pass
+
+    # Weight logs (with diff calculation)
+    weight_logs = []
+    try:
+        logs = db_rows("SELECT * FROM weight_log WHERE user_id=? ORDER BY logged_at DESC LIMIT 30", (uid,))
+        prev = None
+        # Process oldest first to calc diff
+        logs_list = list(logs)
+        for i, w in enumerate(logs_list):
+            wd = dict(w)
+            v = wd.get("logged_at")
+            if v:
+                wd["logged_date"] = v.strftime("%Y-%m-%d") if hasattr(v, "strftime") else str(v)[:10]
+            # Diff vs next (older)
+            if i + 1 < len(logs_list):
+                try:
+                    diff = float(wd["weight"]) - float(logs_list[i + 1]["weight"])
+                    wd["diff"] = diff
+                except: wd["diff"] = None
+            else:
+                wd["diff"] = None
+            weight_logs.append(wd)
+    except: pass
+
+    return render_template("admin_user_profile.html",
+                           user=target_user, lang=session.get("lang", "ar"),
+                           conditions=conditions, allergies=allergies,
+                           liked_foods=liked_foods, disliked_foods=disliked_foods,
+                           bmi=bmi, tdee=tdee,
+                           active_sub=active_sub, active_payment=active_payment,
+                           plan_requests=plan_requests, payments=payments,
+                           weight_logs=weight_logs,
+                           doctor_notes=target_user.get("doctor_notes") or "",
+                           today_date=datetime.now().strftime("%Y-%m-%d"))
+
+
+@app.route("/admin/users/<int:uid>/update", methods=["POST"])
+@admin_required
+def admin_user_update(uid):
+    """تعديل بيانات العميل الأساسية"""
+    target = get_user_by_id(uid)
+    if not target:
+        return redirect("/admin/users")
+    try:
+        weight = request.form.get("weight") or target.get("weight")
+        height = request.form.get("height") or target.get("height")
+        goal = request.form.get("goal") or target.get("goal")
+        activity = request.form.get("activity") or target.get("activity")
+        db_run("UPDATE users SET weight=?, height=?, goal=?, activity=? WHERE id=?",
+               (weight, height, goal, activity, uid))
+    except Exception as e:
+        print(f"Update error: {e}")
+    return redirect(f"/admin/users/{uid}")
+
+
+@app.route("/admin/users/<int:uid>/notes", methods=["POST"])
+@admin_required
+def admin_user_notes(uid):
+    """حفظ ملاحظات الدكتور الخاصة عن العميل"""
+    notes = request.form.get("notes", "").strip()
+    try:
+        db_run("UPDATE users SET doctor_notes=? WHERE id=?", (notes, uid))
+    except Exception as e:
+        print(f"Notes save error: {e}")
+    return redirect(f"/admin/users/{uid}")
+
+
+@app.route("/admin/users/<int:uid>/add-weight", methods=["POST"])
+@admin_required
+def admin_user_add_weight(uid):
+    """إضافة قياس وزن يدوياً للعميل"""
+    try:
+        w = float(request.form.get("weight", 0))
+        if 20 < w < 300:
+            logged_date = request.form.get("logged_date", "")
+            if logged_date:
+                db_run("INSERT INTO weight_log (user_id, weight, logged_at) VALUES (?, ?, ?)",
+                       (uid, w, logged_date))
+            else:
+                db_run("INSERT INTO weight_log (user_id, weight) VALUES (?, ?)", (uid, w))
+            # Update users table too
+            db_run("UPDATE users SET weight=? WHERE id=?", (w, uid))
+    except Exception as e:
+        print(f"Add weight error: {e}")
+    return redirect(f"/admin/users/{uid}")
+
+
+@app.route("/admin/users/<int:uid>/grant-trial", methods=["POST"])
+@admin_required
+def admin_grant_trial(uid):
+    """إعطاء العميل 7 أيام تجربة مجاناً (يدوي - بدون Stripe)"""
+    target = get_user_by_id(uid)
+    if not target:
+        return redirect("/admin/users")
+    try:
+        # Check if user already has active access
+        if has_active_access(uid, db_row):
+            return redirect(f"/admin/users/{uid}")
+        # Insert manual trial subscription
+        now = datetime.now()
+        trial_end = now + timedelta(days=7)
+        db_run("""INSERT INTO subscriptions 
+                  (user_id, plan_key, status, currency, amount,
+                   current_period_start, current_period_end, trial_end,
+                   stripe_subscription_id)
+                  VALUES (?, 'monthly_subscription', 'trialing', 'EGP', 0, ?, ?, ?, ?)""",
+               (uid, now, trial_end, trial_end, f"manual_trial_{uid}_{int(now.timestamp())}"))
+        # Send notification message
+        admin = db_row("SELECT id FROM users WHERE role='admin' OR is_admin=1 LIMIT 1")
+        if admin:
+            msg = "🎁 تم منحك فترة تجريبية مجانية 7 أيام! تقدر تستخدم كل خدمات الموقع مجاناً."
+            db_run("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)",
+                   (admin["id"], uid, msg))
+    except Exception as e:
+        print(f"Grant trial error: {e}")
+    return redirect(f"/admin/users/{uid}")
+
+
+@app.route("/admin/users/<int:uid>/cancel-subscription", methods=["POST"])
+@admin_required
+def admin_cancel_subscription(uid):
+    """إلغاء اشتراك العميل من جهة admin"""
+    try:
+        # Get active subscription
+        sub = db_row("""SELECT * FROM subscriptions 
+                        WHERE user_id=? AND status IN ('active', 'trialing') 
+                        ORDER BY current_period_end DESC LIMIT 1""", (uid,))
+        if sub:
+            sub_id = sub.get("stripe_subscription_id", "")
+            # If real Stripe subscription, cancel in Stripe
+            if sub_id and not sub_id.startswith("manual_"):
+                try:
+                    import stripe as _stripe
+                    _stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
+                    _stripe.Subscription.modify(sub_id, cancel_at_period_end=True)
+                except Exception as e:
+                    print(f"Stripe cancel error: {e}")
+            # Update DB
+            db_run("""UPDATE subscriptions SET status='canceled', cancel_at=?, updated_at=? 
+                      WHERE id=?""", (datetime.now(), datetime.now(), sub["id"]))
+    except Exception as e:
+        print(f"Cancel subscription error: {e}")
+    return redirect(f"/admin/users/{uid}")
+
+
+@app.route("/admin/users/<int:uid>/payments")
+@admin_required
+def admin_user_payments(uid):
+    """صفحة كل دفعات العميل (redirect لصفحة الـ admin payments مع filter)"""
+    return redirect(f"/admin/payments?user={uid}")
 
 
 if __name__ == "__main__":
