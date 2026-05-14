@@ -1,118 +1,405 @@
 {% extends "base.html" %}
-{% block title %}{{ 'خطتي الغذائية' if (lang or 'ar') == 'ar' else 'My Plan' }}{% endblock %}
 {% block content %}
 
-{% set is_ar = (lang or 'ar') == 'ar' %}
+<style>
+  .mp-wrap {
+    max-width: 1100px;
+    margin: 20px auto;
+    padding: 16px;
+    font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
+  }
 
-<div class="page-title">
-  <i class="fa-solid fa-clipboard-list"></i> {{ 'خطتي الغذائية' if is_ar else 'My Diet Plan' }}
-</div>
+  /* Welcome banner */
+  .welcome-banner {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    border-radius: 20px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .welcome-banner h1 {
+    margin: 0 0 4px;
+    font-size: 24px;
+    font-weight: 800;
+  }
+  .welcome-banner p { margin: 0; opacity: 0.95; font-size: 14px; }
+  .welcome-emoji { font-size: 48px; line-height: 1; }
 
-<!-- Daily Tip Banner -->
-{% if today_tip %}
-<div class="card" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:2px solid #f59e0b;margin-bottom:16px">
-  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
-    <div style="font-size:42px">{{ today_tip.icon }}</div>
-    <div style="flex:1;min-width:200px">
-      <div style="font-weight:800;color:#78350f;font-size:14px;margin-bottom:4px">
-        💫 {{ 'نصيحة اليوم' if is_ar else 'Tip of the Day' }} - {{ today_tip.title }}
+  /* New user celebration */
+  .celebration {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border: 2px solid #f59e0b;
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    color: #92400e;
+    text-align: center;
+    font-weight: 700;
+    animation: slideDown 0.6s ease;
+  }
+  @keyframes slideDown {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  /* Quick stats */
+  .quick-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .qstat {
+    background: #fff;
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #f1f5f9;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .qstat::before { content: ''; position: absolute; top: 0; right: 0; left: 0; height: 4px; background: var(--c); }
+  .qstat-icon { font-size: 26px; margin-bottom: 6px; }
+  .qstat-val { font-size: 26px; font-weight: 800; color: #0f172a; line-height: 1; }
+  .qstat-lbl { font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 600; }
+
+  /* Section card */
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #f1f5f9;
+  }
+  .card-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Subscription status */
+  .sub-banner {
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .sub-active { background: linear-gradient(135deg, #d1fae5, #f0fdf4); border: 2px solid #10b981; }
+  .sub-trial { background: linear-gradient(135deg, #dbeafe, #eff6ff); border: 2px solid #3b82f6; }
+  .sub-none { background: linear-gradient(135deg, #fef3c7, #fffbeb); border: 2px solid #f59e0b; }
+
+  .sub-status-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .sub-info strong { display: block; font-size: 16px; color: #0f172a; margin-bottom: 4px; }
+  .sub-info span { color: #475569; font-size: 14px; }
+
+  .sub-btn {
+    background: #fff;
+    color: #059669;
+    padding: 10px 20px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 14px;
+    border: 2px solid #10b981;
+    transition: all 0.2s;
+  }
+  .sub-btn:hover { background: #10b981; color: #fff; }
+  .sub-btn-warn { color: #92400e; border-color: #f59e0b; }
+  .sub-btn-warn:hover { background: #f59e0b; color: #fff; }
+
+  /* Daily tip */
+  .tip-card {
+    background: linear-gradient(135deg, #f0fdf4, #d1fae5);
+    border: 1px solid #86efac;
+    border-radius: 14px;
+    padding: 18px 22px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .tip-icon { font-size: 36px; flex-shrink: 0; }
+  .tip-content strong { display: block; color: #065f46; font-size: 16px; margin-bottom: 4px; }
+  .tip-content p { margin: 0; color: #047857; font-size: 14px; line-height: 1.6; }
+
+  /* Action grid */
+  .actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .action-card {
+    background: #fff;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 20px;
+    text-decoration: none;
+    transition: all 0.25s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+  }
+  .action-card:hover {
+    transform: translateY(-3px);
+    border-color: #10b981;
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.12);
+  }
+  .action-icon { font-size: 38px; }
+  .action-name { font-weight: 800; color: #0f172a; font-size: 15px; }
+  .action-desc { color: #64748b; font-size: 12px; }
+
+  /* Current plan box */
+  .plan-box {
+    background: linear-gradient(135deg, #f0fdf4, #fff);
+    border: 2px solid #10b981;
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .plan-box h3 {
+    margin: 0 0 8px;
+    color: #065f46;
+    font-size: 18px;
+  }
+  .plan-box-meta {
+    color: #475569;
+    font-size: 14px;
+    margin-bottom: 14px;
+  }
+  .plan-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .plan-act {
+    padding: 9px 18px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+  .pa-primary { background: #10b981; color: #fff; }
+  .pa-primary:hover { background: #059669; }
+  .pa-secondary { background: #fff; color: #059669; border: 1px solid #10b981; }
+  .pa-secondary:hover { background: #f0fdf4; }
+
+  /* Request status */
+  .pending-box {
+    background: #fffbeb;
+    border: 2px dashed #f59e0b;
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+    color: #92400e;
+  }
+  .pending-icon { font-size: 40px; margin-bottom: 8px; }
+
+  .waiting-box {
+    background: #f8fafc;
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+    color: #64748b;
+  }
+  .countdown {
+    display: inline-block;
+    background: #fff;
+    padding: 8px 16px;
+    border-radius: 10px;
+    margin: 10px 0;
+    font-weight: 700;
+    color: #f59e0b;
+    border: 1px solid #fde68a;
+  }
+</style>
+
+<div class="mp-wrap">
+
+  <!-- Welcome message (لو جاي من الـ onboarding) -->
+  {% if request.args.get('welcome') %}
+  <div class="celebration">
+    🎉 <strong>أهلاً بيك في نوتراكس!</strong> تم حفظ بياناتك بنجاح. ابدأ رحلتك الصحية دلوقتي.
+  </div>
+  {% endif %}
+
+  <!-- Welcome Banner -->
+  <div class="welcome-banner">
+    <div>
+      <h1>أهلاً {{ user.name or '' }} 👋</h1>
+      <p>سعيدين برؤيتك. متابعتك مع د. محمد بدأت من هنا.</p>
+    </div>
+    <div class="welcome-emoji">🌟</div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="quick-stats">
+    <div class="qstat" style="--c: #10b981">
+      <div class="qstat-icon">⚖️</div>
+      <div class="qstat-val">{{ user.weight or '-' }}</div>
+      <div class="qstat-lbl">الوزن الحالي (kg)</div>
+    </div>
+    <div class="qstat" style="--c: #3b82f6">
+      <div class="qstat-icon">📏</div>
+      <div class="qstat-val">{{ user.height or '-' }}</div>
+      <div class="qstat-lbl">الطول (cm)</div>
+    </div>
+    <div class="qstat" style="--c: #f59e0b">
+      <div class="qstat-icon">🎯</div>
+      <div class="qstat-val" style="font-size: 16px;">
+        {% if user.goal == 'weight_loss' %}تخسيس
+        {% elif user.goal == 'muscle_gain' %}عضل
+        {% elif user.goal == 'bulking' %}تضخيم
+        {% else %}مكتنز{% endif %}
       </div>
-      <div style="font-size:13px;color:#78350f;line-height:1.7">
-        {{ today_tip.tip }}
+      <div class="qstat-lbl">الهدف</div>
+    </div>
+    <div class="qstat" style="--c: #8b5cf6">
+      <div class="qstat-icon">📅</div>
+      <div class="qstat-val">{{ user.age or '-' }}</div>
+      <div class="qstat-lbl">العمر</div>
+    </div>
+  </div>
+
+  <!-- Subscription Status Banner -->
+  {% if active_access and active_access.has_access %}
+    <div class="sub-banner {% if active_access.is_trial %}sub-trial{% else %}sub-active{% endif %}">
+      <div class="sub-status-line">
+        <div class="sub-info">
+          <strong>
+            {% if active_access.is_trial %}🎁 فترة تجريبية{% else %}💎 اشتراك نشط{% endif %}
+            - {{ active_access.plan_name }}
+          </strong>
+          <span>متبقي {{ active_access.days_left }} يوم</span>
+        </div>
+        <a href="/pricing" class="sub-btn">إدارة الاشتراك</a>
       </div>
     </div>
-    <a href="/daily-tips" class="btn btn-outline" style="background:white;border-color:#f59e0b;color:#78350f">
-      <i class="fa-solid fa-bell"></i> {{ 'كل النصائح' if is_ar else 'All Tips' }}
-    </a>
-  </div>
-</div>
-{% endif %}
-
-<!-- Pending Request -->
-{% if pending_request %}
-<div class="card" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe);border:2px solid #2563eb">
-  <div style="text-align:center;padding:20px 10px">
-    <div style="font-size:48px;margin-bottom:10px">⏳</div>
-    <h3 style="color:#1e3a8a;font-weight:800;margin-bottom:6px">
-      {{ 'طلبك قيد المراجعة' if is_ar else 'Request Under Review' }}
-    </h3>
-    <p style="color:#1e40af;font-size:13px;line-height:1.7">
-      {{ 'دكتور محمد بيراجع طلبك وهيرسلك الخطة قريباً' if is_ar else 'Dr. Mohamed is reviewing your request' }}
-    </p>
-  </div>
-</div>
-{% endif %}
-
-<!-- Latest Plan -->
-{% if latest_plan %}
-<div class="card" style="background:linear-gradient(135deg,#1b4332,#2d6a4f);color:white;text-align:center;padding:30px 20px">
-  <div style="font-size:48px;margin-bottom:10px">✅</div>
-  <h2 style="font-weight:900;margin-bottom:8px">
-    {{ 'خطتك جاهزة!' if is_ar else 'Your Plan is Ready!' }}
-  </h2>
-  <p style="opacity:0.9;font-size:14px;margin-bottom:20px">
-    {{ 'حمل خطتك الغذائية المفصلة' if is_ar else 'Download your detailed diet plan' }}
-  </p>
-  <a href="/download_pdf" class="btn" style="background:white;color:#1b4332;font-size:16px;padding:14px 28px">
-    <i class="fa-solid fa-download"></i> {{ 'تحميل PDF' if is_ar else 'Download PDF' }}
-  </a>
-  <div style="font-size:11px;opacity:0.7;margin-top:14px">
-    {{ 'آخر تحديث:' if is_ar else 'Last updated:' }} {{ latest_plan.updated_at or latest_plan.created_at }}
-  </div>
-</div>
-{% endif %}
-
-<!-- Request New Plan -->
-{% if can_request %}
-<div class="card">
-  <div style="text-align:center;padding:20px 10px">
-    <div style="font-size:48px;margin-bottom:10px">🚀</div>
-    <h3 style="font-weight:800;margin-bottom:6px;color:var(--blue)">
-      {{ 'اطلب خطة جديدة' if is_ar else 'Request New Plan' }}
-    </h3>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:16px">
-      {{ 'احصل على خطة غذائية مخصصة من د. محمد' if is_ar else 'Get a personalized plan from Dr. Mohamed' }}
-    </p>
-    <a href="/request-plan" class="btn btn-success" style="font-size:15px">
-      <i class="fa-solid fa-paper-plane"></i> {{ 'اطلب خطتك' if is_ar else 'Request Now' }}
-    </a>
-  </div>
-</div>
-{% else %}
-<!-- Cooldown -->
-<div class="card" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:2px solid #f59e0b">
-  <div style="text-align:center;padding:20px 10px">
-    <div style="font-size:48px;margin-bottom:10px">🔒</div>
-    <h3 style="color:#78350f;font-weight:800;margin-bottom:6px">
-      {{ 'مينفعش تطلب خطة جديدة دلوقتي' if is_ar else 'Cannot request a new plan yet' }}
-    </h3>
-    <p style="color:#92400e;font-size:13px;margin-bottom:14px">
-      {{ 'الخطط الغذائية بتتعمل أسبوعياً لضمان أفضل نتيجة' if is_ar else 'Diet plans are weekly for best results' }}
-    </p>
-    <div style="background:white;border-radius:12px;padding:14px;display:inline-block;min-width:240px">
-      <div style="font-size:11px;color:#92400e;font-weight:700;margin-bottom:6px">
-        ⏳ {{ 'متبقي على الطلب الجديد:' if is_ar else 'Time remaining:' }}
+  {% else %}
+    <div class="sub-banner sub-none">
+      <div class="sub-status-line">
+        <div class="sub-info">
+          <strong>⚠️ مفيش اشتراك نشط</strong>
+          <span>عشان تكلم د. محمد وتطلب خطط، محتاج اشتراك. جرّب 7 أيام مجاناً!</span>
+        </div>
+        <a href="/pricing" class="sub-btn sub-btn-warn">شوف الخطط 🚀</a>
       </div>
-      <div style="font-size:26px;font-weight:900;color:#78350f">
-        {% if days_left > 0 %}{{ days_left }} {{ 'يوم' if is_ar else 'days' }}{% endif %}
-        {% if hours_left > 0 %}{% if days_left > 0 %} {{ 'و' if is_ar else 'and' }} {% endif %}{{ hours_left }} {{ 'ساعة' if is_ar else 'hours' }}{% endif %}
-        {% if days_left == 0 and hours_left == 0 %}{{ 'أقل من ساعة' if is_ar else 'Less than 1 hour' }}{% endif %}
+    </div>
+  {% endif %}
+
+  <!-- Daily Tip -->
+  {% if today_tip %}
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div class="tip-card">
+      <div class="tip-icon">{{ today_tip.icon }}</div>
+      <div class="tip-content">
+        <strong>💡 نصيحة اليوم: {{ today_tip.title }}</strong>
+        <p>{{ today_tip.tip }}</p>
       </div>
     </div>
   </div>
-</div>
-{% endif %}
+  {% endif %}
 
-<!-- Quick Links -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
-  <a href="/history" class="card" style="text-align:center;padding:18px;text-decoration:none;color:var(--text);transition:all 0.2s">
-    <div style="font-size:32px;margin-bottom:6px">📈</div>
-    <div style="font-weight:700;color:var(--blue);font-size:13px">{{ 'سجل الوزن' if is_ar else 'Weight Log' }}</div>
-  </a>
-  <a href="/knowledge" class="card" style="text-align:center;padding:18px;text-decoration:none;color:var(--text);transition:all 0.2s">
-    <div style="font-size:32px;margin-bottom:6px">📖</div>
-    <div style="font-weight:700;color:var(--blue);font-size:13px">{{ 'مركز المعرفة' if is_ar else 'Knowledge Hub' }}</div>
-  </a>
+  <!-- Current Plan / Pending Request / Request New -->
+  <div class="card">
+    <h2 class="card-title">📋 خطتك الحالية</h2>
+
+    {% if latest_plan %}
+      <div class="plan-box">
+        <h3>✅ عندك خطة نشطة</h3>
+        <p class="plan-box-meta">
+          📅 {{ latest_plan.updated_at.strftime('%Y-%m-%d') if latest_plan.updated_at and latest_plan.updated_at.__class__.__name__ != 'str' else (latest_plan.updated_at[:10] if latest_plan.updated_at else '-') }}
+        </p>
+        <div class="plan-actions">
+          <a href="/my-plans-history/{{ latest_plan.id }}" class="plan-act pa-primary">👁️ عرض الخطة كاملة</a>
+          <a href="/my-plans-history/{{ latest_plan.id }}/pdf" class="plan-act pa-secondary">📄 تحميل PDF</a>
+        </div>
+      </div>
+    {% elif pending_request %}
+      <div class="pending-box">
+        <div class="pending-icon">⏳</div>
+        <strong style="display: block; margin-bottom: 4px;">طلب خطة قيد المراجعة</strong>
+        <p style="margin: 0; font-size: 14px;">
+          د. محمد بيراجع طلبك دلوقتي. هتوصلك إشعار لما الخطة جاهزة.
+        </p>
+      </div>
+    {% elif can_request %}
+      <div style="text-align: center; padding: 14px;">
+        <p style="color: #475569; margin-bottom: 14px;">لسه ما عندكش خطة. اطلب أول خطة دلوقتي.</p>
+        <a href="/request-plan" class="plan-act pa-primary" style="font-size: 15px; padding: 12px 28px;">
+          + اطلب خطة جديدة
+        </a>
+      </div>
+    {% else %}
+      <div class="waiting-box">
+        <strong style="display: block; margin-bottom: 8px;">⏰ طلبت خطة جديدة قريباً</strong>
+        <p>تقدر تطلب خطة جديدة بعد:</p>
+        <div class="countdown">
+          {{ days_left }} يوم و {{ hours_left }} ساعة
+        </div>
+        <p style="font-size: 13px;">آخر طلب: {{ last_request_date or '-' }}</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="card">
+    <h2 class="card-title">⚡ إجراءات سريعة</h2>
+    <div class="actions-grid">
+      <a href="/my-plans-history" class="action-card">
+        <div class="action-icon">📚</div>
+        <div class="action-name">خططي السابقة</div>
+        <div class="action-desc">شوف كل الخطط اللي اتعملت ليك</div>
+      </a>
+
+      <a href="/messages" class="action-card">
+        <div class="action-icon">💬</div>
+        <div class="action-name">شات مع د. محمد</div>
+        <div class="action-desc">{% if unread_messages > 0 %}<strong style="color:#dc2626">{{ unread_messages }} جديد</strong>{% else %}محادثة جديدة{% endif %}</div>
+      </a>
+
+      <a href="/history" class="action-card">
+        <div class="action-icon">⚖️</div>
+        <div class="action-name">تطور الوزن</div>
+        <div class="action-desc">سجّل وزنك وشوف التطور</div>
+      </a>
+
+      <a href="/knowledge" class="action-card">
+        <div class="action-icon">📖</div>
+        <div class="action-name">مكتبة المعرفة</div>
+        <div class="action-desc">معلومات + كتب + فيديوهات</div>
+      </a>
+
+      <a href="/daily-tips" class="action-card">
+        <div class="action-icon">💡</div>
+        <div class="action-name">نصائح يومية</div>
+        <div class="action-desc">نصائح مخصصة لحالتك</div>
+      </a>
+
+      <a href="/settings" class="action-card">
+        <div class="action-icon">⚙️</div>
+        <div class="action-name">إعداداتي</div>
+        <div class="action-desc">عدّل بياناتك</div>
+      </a>
+    </div>
+  </div>
+
 </div>
 
 {% endblock %}
