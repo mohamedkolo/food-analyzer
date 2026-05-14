@@ -1944,20 +1944,74 @@ def admin_user_profile(uid):
 @app.route("/admin/users/<int:uid>/update", methods=["POST"])
 @admin_required
 def admin_user_update(uid):
-    """تعديل بيانات العميل الأساسية"""
+    """تعديل بيانات العميل الشاملة"""
     target = get_user_by_id(uid)
     if not target:
         return redirect("/admin/users")
     try:
-        weight = request.form.get("weight") or target.get("weight")
-        height = request.form.get("height") or target.get("height")
-        goal = request.form.get("goal") or target.get("goal")
-        activity = request.form.get("activity") or target.get("activity")
-        db_run("UPDATE users SET weight=?, height=?, goal=?, activity=? WHERE id=?",
-               (weight, height, goal, activity, uid))
+        # شخصية
+        name = request.form.get("name", "").strip() or target.get("name")
+        email = request.form.get("email", "").strip().lower() or target.get("email")
+        phone = request.form.get("phone", "").strip() or target.get("phone")
+        country = request.form.get("country", "").strip() or target.get("country")
+        age = request.form.get("age", "").strip()
+        gender = request.form.get("gender", "").strip() or target.get("gender")
+
+        # قياسات
+        weight = request.form.get("weight", "").strip()
+        height = request.form.get("height", "").strip()
+        goal = request.form.get("goal", "").strip() or target.get("goal")
+        activity = request.form.get("activity", "").strip()
+
+        # طبية - JSON
+        conditions = request.form.get("conditions", "[]")
+        allergies = request.form.get("allergies", "[]")
+
+        # تفضيلات - من textarea نحوّلهم لقايمة JSON
+        liked_text = request.form.get("liked_foods_text", "").strip()
+        disliked_text = request.form.get("disliked_foods_text", "").strip()
+
+        def text_to_json(txt):
+            if not txt:
+                return "[]"
+            items = [s.strip() for s in txt.replace("،", ",").replace(";", ",").split(",") if s.strip()]
+            return json.dumps(items, ensure_ascii=False)
+
+        liked_foods = text_to_json(liked_text)
+        disliked_foods = text_to_json(disliked_text)
+
+        # تحويل القيم الرقمية
+        try: age_v = int(age) if age else target.get("age")
+        except: age_v = target.get("age")
+        try: weight_v = float(weight) if weight else target.get("weight")
+        except: weight_v = target.get("weight")
+        try: height_v = float(height) if height else target.get("height")
+        except: height_v = target.get("height")
+        try: activity_v = float(activity) if activity else target.get("activity")
+        except: activity_v = target.get("activity")
+
+        # حفظ
+        db_run("""UPDATE users SET 
+                  name=?, email=?, phone=?, country=?, age=?, gender=?,
+                  weight=?, height=?, goal=?, activity=?,
+                  conditions=?, allergies=?,
+                  liked_foods=?, disliked_foods=?
+                  WHERE id=?""",
+               (name, email, phone, country, age_v, gender,
+                weight_v, height_v, goal, activity_v,
+                conditions, allergies,
+                liked_foods, disliked_foods,
+                uid))
+
+        # لو تغير الوزن، اعمل log جديد
+        if weight and weight_v and float(weight_v) != (target.get("weight") or 0):
+            try:
+                db_run("INSERT INTO weight_log (user_id, weight) VALUES (?, ?)", (uid, weight_v))
+            except: pass
     except Exception as e:
+        import traceback; traceback.print_exc()
         print(f"Update error: {e}")
-    return redirect(f"/admin/users/{uid}")
+    return redirect(f"/admin/users/{uid}?updated=1")
 
 
 @app.route("/admin/users/<int:uid>/notes", methods=["POST"])
@@ -2158,6 +2212,206 @@ def onboarding():
 
     return render_template("onboarding.html",
                            user=user, lang=session.get("lang", "ar"))
+
+
+# ═══════════════════════════════════════════════════════════════════
+# MY PLANS HISTORY - العميل يشوف خططه السابقة
+# ═══════════════════════════════════════════════════════════════════
+
+@app.route("/my-plans-history")
+@login_required
+def my_plans_history():
+    """قائمة كل خطط العميل السابقة"""
+    user = get_user_by_id(session["uid"])
+    if not user:
+        return redirect("/")
+    # Admin/staff goes to admin panel
+    if user.get("is_admin") or user.get("role") in ("admin", "nutritionist"):
+        return redirect("/admin/requests")
+
+    plans_processed = []
+    active_count = 0
+    archived_count = 0
+    days_following = 0
+
+    try:
+        rows = db_rows("""SELECT * FROM plan_requests 
+                          WHERE client_id=? AND status='approved' 
+                          ORDER BY created_at DESC""", (session["uid"],))
+
+        # Latest approved plan is "currently active"
+        latest_active_id = rows[0]["id"] if rows else None
+
+        for r in rows:
+            p = dict(r)
+            try:
+                rd = json.loads(p.get("request_data") or "{}")
+            except: rd = {}
+
+            p["goal_type"] = rd.get("goal_type") or "weight_loss"
+            p["culture"] = rd.get("culture") or "مصري"
+            p["weight"] = rd.get("weight") or "-"
+            p["goal_cal"] = rd.get("goal_cal") or "-"
+            p["conditions_count"] = len(rd.get("symptoms", []) or [])
+            p["is_currently_active"] = (p["id"] == latest_active_id)
+
+            # Format date
+            v = p.get("created_at")
+            if v:
+                p["created_date"] = v.strftime("%Y-%m-%d") if hasattr(v, "strftime") else str(v)[:10]
+            else:
+                p["created_date"] = "-"
+
+            plans_processed.append(p)
+
+        active_count = sum(1 for p in plans_processed if p["is_currently_active"])
+        archived_count = len(plans_processed) - active_count
+
+        # Days following = days since first plan
+        if rows:
+            first_date = rows[-1].get("created_at")
+            if first_date and hasattr(first_date, "date"):
+                days_following = max(0, (datetime.now().date() - first_date.date()).days)
+            elif first_date:
+                try:
+                    fd = datetime.fromisoformat(str(first_date)[:19])
+                    days_following = max(0, (datetime.now() - fd).days)
+                except: pass
+    except Exception as e:
+        print(f"my_plans_history error: {e}")
+
+    return render_template("my_plans_history.html",
+                           user=user, lang=session.get("lang", "ar"),
+                           plans=plans_processed,
+                           active_count=active_count,
+                           archived_count=archived_count,
+                           days_following=days_following)
+
+
+@app.route("/my-plans-history/<int:plan_id>")
+@login_required
+def my_plans_history_view(plan_id):
+    """عرض خطة قديمة كاملة"""
+    user = get_user_by_id(session["uid"])
+    if not user:
+        return redirect("/")
+
+    plan_req = db_row("SELECT * FROM plan_requests WHERE id=? AND client_id=?",
+                      (plan_id, session["uid"]))
+    if not plan_req:
+        return redirect("/my-plans-history")
+
+    try:
+        request_data = json.loads(plan_req.get("request_data") or "{}")
+    except: request_data = {}
+
+    plan_data = {}
+    plan_days = []
+    if plan_req.get("plan_data"):
+        try:
+            pd = json.loads(plan_req["plan_data"])
+            plan_data = pd.get("data", request_data)
+            plan_days = pd.get("plan", [])
+        except: pass
+
+    if not plan_data:
+        plan_data = request_data
+
+    # Get plan info
+    diet_type = plan_data.get("diet_plan_type", "standard")
+    plan_info = get_diet_plan_info(diet_type)
+
+    # Format created date
+    created_str = "-"
+    v = plan_req.get("created_at")
+    if v:
+        created_str = v.strftime("%Y-%m-%d") if hasattr(v, "strftime") else str(v)[:10]
+
+    return render_template("view_old_plan.html",
+                           user=user, lang=session.get("lang", "ar"),
+                           plan_req=plan_req, plan_data=plan_data,
+                           plan_days=plan_days, plan_info=plan_info,
+                           created_date=created_str,
+                           request_data=request_data)
+
+
+@app.route("/my-plans-history/<int:plan_id>/pdf")
+@login_required
+def my_plans_history_pdf(plan_id):
+    """تحميل PDF لخطة قديمة"""
+    plan_req = db_row("SELECT * FROM plan_requests WHERE id=? AND client_id=?",
+                      (plan_id, session["uid"]))
+    if not plan_req:
+        return redirect("/my-plans-history")
+
+    try:
+        request_data = json.loads(plan_req.get("request_data") or "{}")
+    except: request_data = {}
+
+    plan_data = request_data
+    plan_days = []
+    if plan_req.get("plan_data"):
+        try:
+            pd = json.loads(plan_req["plan_data"])
+            plan_data = pd.get("data", request_data)
+            plan_days = pd.get("plan", [])
+        except: pass
+
+    user = get_user_by_id(session["uid"])
+    plan_data["name"] = user.get("name", "")
+
+    try:
+        pdf_bytes = build_pdf(plan_data, plan_days if plan_days else None)
+        buf = io.BytesIO(pdf_bytes); buf.seek(0)
+        name = (plan_data.get("name", "plan") or "plan").replace(" ", "_")
+        return send_file(buf, as_attachment=True,
+                         download_name=f"NutraX_{name}_{plan_id}.pdf",
+                         mimetype="application/pdf")
+    except Exception as e:
+        return f"خطأ في توليد PDF: {e}", 500
+
+
+@app.route("/my-plans-history/<int:plan_id>/reactivate", methods=["POST"])
+@subscription_required
+def my_plans_history_reactivate(plan_id):
+    """إعادة تفعيل خطة قديمة كخطة حالية (بإنشاء request_id جديد بنفس البيانات)"""
+    plan_req = db_row("SELECT * FROM plan_requests WHERE id=? AND client_id=?",
+                      (plan_id, session["uid"]))
+    if not plan_req:
+        return redirect("/my-plans-history")
+
+    try:
+        # Just update the timestamp to make it the latest "active"
+        # OR create a new request based on it
+        db_run("""INSERT INTO plan_requests 
+                  (client_id, client_name, request_data, plan_data, status, notes)
+                  VALUES (?, ?, ?, ?, 'approved', ?)""",
+               (session["uid"],
+                plan_req.get("client_name", ""),
+                plan_req.get("request_data", "{}"),
+                plan_req.get("plan_data", "{}"),
+                "إعادة تفعيل خطة سابقة #" + str(plan_id)))
+    except Exception as e:
+        print(f"Reactivate error: {e}")
+
+    return redirect("/my-plans-history")
+
+
+@app.route("/my-plans-history/<int:plan_id>/edit")
+@subscription_required
+def my_plans_history_edit(plan_id):
+    """تعديل خطة قديمة (يفتح request-plan بالبيانات القديمة)"""
+    plan_req = db_row("SELECT * FROM plan_requests WHERE id=? AND client_id=?",
+                      (plan_id, session["uid"]))
+    if not plan_req:
+        return redirect("/my-plans-history")
+
+    # Store old data in session for prefilling
+    try:
+        session["prefill_data"] = json.loads(plan_req.get("request_data") or "{}")
+    except: pass
+
+    return redirect("/request-plan?edit=" + str(plan_id))
 
 
 if __name__ == "__main__":
