@@ -387,44 +387,193 @@
     </div>
   </div>
 
-  <!-- Edit User Data -->
+  <!-- Edit User Data (Comprehensive) -->
   <div class="section">
-    <h2 class="section-title">✏️ تعديل البيانات</h2>
+    <h2 class="section-title">✏️ تعديل بيانات العميل</h2>
     <form method="POST" action="/admin/users/{{ user.id }}/update">
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="info-lbl">الوزن (kg)</div>
-          <input type="number" step="0.1" name="weight" value="{{ user.weight or '' }}"
-                 style="width:100%; padding:6px 10px; border:1px solid #e2e8f0; border-radius:6px; margin-top:4px;">
-        </div>
-        <div class="info-item">
-          <div class="info-lbl">الطول (cm)</div>
-          <input type="number" step="0.5" name="height" value="{{ user.height or '' }}"
-                 style="width:100%; padding:6px 10px; border:1px solid #e2e8f0; border-radius:6px; margin-top:4px;">
-        </div>
-        <div class="info-item">
-          <div class="info-lbl">الهدف</div>
-          <select name="goal" style="width:100%; padding:6px 10px; border:1px solid #e2e8f0; border-radius:6px; margin-top:4px;">
-            <option value="weight_loss" {% if user.goal == 'weight_loss' %}selected{% endif %}>تخسيس</option>
-            <option value="muscle_gain" {% if user.goal == 'muscle_gain' %}selected{% endif %}>زيادة عضل</option>
-            <option value="bulking" {% if user.goal == 'bulking' %}selected{% endif %}>تضخيم</option>
-            <option value="maintenance" {% if user.goal == 'maintenance' %}selected{% endif %}>مكتنز</option>
-          </select>
-        </div>
-        <div class="info-item">
-          <div class="info-lbl">مستوى النشاط</div>
-          <select name="activity" style="width:100%; padding:6px 10px; border:1px solid #e2e8f0; border-radius:6px; margin-top:4px;">
-            <option value="1.2" {% if user.activity == 1.2 %}selected{% endif %}>قليل</option>
-            <option value="1.375" {% if user.activity == 1.375 %}selected{% endif %}>خفيف</option>
-            <option value="1.55" {% if user.activity == 1.55 %}selected{% endif %}>متوسط</option>
-            <option value="1.725" {% if user.activity == 1.725 %}selected{% endif %}>عالي</option>
-            <option value="1.9" {% if user.activity == 1.9 %}selected{% endif %}>عالي جداً</option>
-          </select>
+
+      <!-- 👤 معلومات شخصية -->
+      <div style="margin-bottom: 22px;">
+        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #10b981;">
+          👤 معلومات شخصية
+        </h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-lbl">الاسم</div>
+            <input type="text" name="name" value="{{ user.name or '' }}" required
+                   style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; margin-top:4px; font-family:inherit;">
+          </div>
+          <div class="info-item">
+            <div class="info-lbl">الإيميل</div>
+            <input type="email" name="email" value="{{ user.email or '' }}" required
+                   style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; margin-top:4px; font-family:inherit;">
+          </div>
+          <div class="info-item">
+            <div class="info-lbl">التليفون</div>
+            <input type="text" name="phone" value="{{ user.phone or '' }}"
+                   style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; margin-top:4px; font-family:inherit;">
+          </div>
+          <div class="info-item">
+            <div class="info-lbl">البلد</div>
+            <input type="text" name="country" value="{{ user.country or '' }}"
+                   style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; margin-top:4px; font-family:inherit;">
+          </div>
+          <div class="info-item">
+            <div class="info-lbl">العمر</div>
+            <input type="number" name="age" value="{{ user.age or '' }}" min="10" max="100"
+                   style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; margin-top:4px; font-family:inherit;">
+          </div>
+          <div class="info-item">
+            <div class="info-lbl">الجنس</div>
+            <select name="gender" style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; margin-top:4px; font-family:inherit;">
+              <option value="">-</option>
+              <option value="ذكر" {% if user.gender == 'ذكر' %}selected{% endif %}>ذكر</option>
+              <option value="أنثى" {% if user.gender == 'أنثى' %}selected{% endif %}>أنثى</option>
+            </select>
+          </div>
         </div>
       </div>
-      <button type="submit" class="act-btn act-primary" style="margin-top: 12px;">💾 حفظ التعديلات</button>
+
+      <!-- 📏 القياسات والهدف -->
+      <div style="margin-bottom: 22px;">
+        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #3b82f6;">
+          📏 القياسات والهدف
+        </h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-lbl">الوزن (kg)</div>
+            <input type="number" step="0.1" name="weight" value="{{ user.weight or '' }}"
+                   style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; margin-top:4px;">
+          </div>
+          <div class="info-item">
+            <div class="info-lbl">الطول (cm)</div>
+            <input type="number" step="0.5" name="height" value="{{ user.height or '' }}"
+                   style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; margin-top:4px;">
+          </div>
+          <div class="info-item">
+            <div class="info-lbl">الهدف</div>
+            <select name="goal" style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; margin-top:4px;">
+              <option value="weight_loss" {% if user.goal == 'weight_loss' %}selected{% endif %}>تخسيس</option>
+              <option value="muscle_gain" {% if user.goal == 'muscle_gain' %}selected{% endif %}>زيادة عضل</option>
+              <option value="bulking" {% if user.goal == 'bulking' %}selected{% endif %}>تضخيم</option>
+              <option value="maintenance" {% if user.goal == 'maintenance' %}selected{% endif %}>مكتنز</option>
+            </select>
+          </div>
+          <div class="info-item">
+            <div class="info-lbl">مستوى النشاط</div>
+            <select name="activity" style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; margin-top:4px;">
+              <option value="1.2" {% if user.activity == 1.2 %}selected{% endif %}>قليل</option>
+              <option value="1.375" {% if user.activity == 1.375 %}selected{% endif %}>خفيف</option>
+              <option value="1.55" {% if user.activity == 1.55 %}selected{% endif %}>متوسط</option>
+              <option value="1.725" {% if user.activity == 1.725 %}selected{% endif %}>عالي</option>
+              <option value="1.9" {% if user.activity == 1.9 %}selected{% endif %}>عالي جداً</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🏥 الحالات الطبية والحساسية -->
+      <div style="margin-bottom: 22px;">
+        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #ef4444;">
+          🏥 الحالات الطبية والحساسية
+        </h3>
+
+        <div class="info-item" style="margin-bottom: 10px;">
+          <div class="info-lbl" style="margin-bottom: 8px;">⚕️ الحالات الطبية</div>
+          <div class="chips-edit" id="editConditions">
+            {% set cond_options = ['قولون عصبي', 'سكري النوع الثاني', 'ضغط الدم المرتفع', 'أمراض القلب', 'الفشل الكلوي المزمن', 'ثلاسيميا', 'نقص G6PD', 'الحمل', 'الرضاعة الطبيعية'] %}
+            {% for c in cond_options %}
+            <span class="chip-e {% if c in conditions %}selected{% endif %}" data-val="{{ c }}">{{ c }}</span>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="conditions" id="conditionsHidden" value='{{ conditions|tojson }}'>
+        </div>
+
+        <div class="info-item">
+          <div class="info-lbl" style="margin-bottom: 8px;">⚠️ الحساسية الغذائية</div>
+          <div class="chips-edit" id="editAllergies">
+            {% set allergy_options = ['اللاكتوز', 'الجلوتين', 'المكسرات', 'البيض', 'الأسماك', 'الفول السوداني', 'الصويا', 'المحار', 'السمسم'] %}
+            {% for a in allergy_options %}
+            <span class="chip-e {% if a in allergies %}selected{% endif %}" data-val="{{ a }}">{{ a }}</span>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="allergies" id="allergiesHidden" value='{{ allergies|tojson }}'>
+        </div>
+      </div>
+
+      <!-- 🍽️ التفضيلات الغذائية -->
+      <div style="margin-bottom: 22px;">
+        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #f59e0b;">
+          🍽️ التفضيلات الغذائية
+        </h3>
+
+        <div class="info-item" style="margin-bottom: 10px;">
+          <div class="info-lbl" style="margin-bottom: 6px;">😋 أكلات بيحبها (افصل بفاصلة)</div>
+          <textarea name="liked_foods_text" placeholder="مثال: دجاج، لحمة، بيض، شوفان..."
+                    style="width:100%; padding:10px 12px; border:1px solid #e2e8f0; border-radius:8px; font-family:inherit; min-height:60px;">{{ liked_foods|join('، ') }}</textarea>
+        </div>
+
+        <div class="info-item">
+          <div class="info-lbl" style="margin-bottom: 6px;">🚫 أكلات مش بيحبها (افصل بفاصلة)</div>
+          <textarea name="disliked_foods_text" placeholder="مثال: كبدة، ملوخية، باميا..."
+                    style="width:100%; padding:10px 12px; border:1px solid #e2e8f0; border-radius:8px; font-family:inherit; min-height:60px;">{{ disliked_foods|join('، ') }}</textarea>
+        </div>
+      </div>
+
+      <button type="submit" class="act-btn act-primary" style="width:100%; padding: 14px; font-size: 15px;">
+        💾 حفظ كل التعديلات
+      </button>
     </form>
   </div>
+
+  <style>
+    .chips-edit { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip-e {
+      padding: 6px 14px;
+      background: #f1f5f9;
+      color: #475569;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+      user-select: none;
+    }
+    .chip-e:hover { background: #e2e8f0; }
+    .chip-e.selected {
+      background: #d1fae5;
+      color: #065f46;
+      border-color: #10b981;
+    }
+  </style>
+
+  <script>
+  // Chips for conditions/allergies in edit form
+  function setupEditChips(containerId, hiddenInputId) {
+    const container = document.getElementById(containerId);
+    const hidden = document.getElementById(hiddenInputId);
+    if (!container || !hidden) return;
+
+    function updateValue() {
+      const selected = [];
+      container.querySelectorAll('.chip-e.selected').forEach(c => {
+        selected.push(c.dataset.val);
+      });
+      hidden.value = JSON.stringify(selected);
+    }
+
+    container.querySelectorAll('.chip-e').forEach(chip => {
+      chip.addEventListener('click', () => {
+        chip.classList.toggle('selected');
+        updateValue();
+      });
+    });
+    updateValue();
+  }
+  setupEditChips('editConditions', 'conditionsHidden');
+  setupEditChips('editAllergies', 'allergiesHidden');
+  </script>
 
   <!-- Plans History -->
   <div class="section">
