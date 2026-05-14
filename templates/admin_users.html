@@ -1,176 +1,395 @@
 {% extends "base.html" %}
-{% block title %}إدارة المستخدمين
-
-<!-- Block Modal -->
-<div id="blockModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;padding:20px;align-items:center;justify-content:center">
-  <div style="background:white;border-radius:14px;max-width:480px;width:100%;padding:24px">
-    <h3 style="color:#7f1d1d;font-weight:800;margin-bottom:8px">
-      <i class="fa-solid fa-ban"></i> حظر إيميل
-    </h3>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:14px">
-      حظر الإيميل: <strong id="blockEmail" style="color:#dc2626"></strong><br>
-      <span style="color:var(--muted);font-size:12px">المستخدم مش هيقدر يدخل أو يسجل من جديد بنفس الإيميل</span>
-    </p>
-    <form id="blockForm" method="POST">
-      <textarea name="reason" class="form-textarea" placeholder="سبب الحظر (اختياري)" rows="3" style="width:100%;padding:11px;border:2px solid var(--gray-2);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;resize:vertical;margin-bottom:14px"></textarea>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button type="button" onclick="closeBlockModal()" class="btn" style="background:var(--gray);color:var(--text)">إلغاء</button>
-        <button type="submit" class="btn" style="background:#7f1d1d;color:white">
-          <i class="fa-solid fa-ban"></i> تأكيد الحظر
-        </button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<script>
-function blockUser(uid, email) {
-  document.getElementById('blockEmail').textContent = email || '';
-  document.getElementById('blockForm').action = '/admin/users/' + uid + '/block';
-  document.getElementById('blockModal').style.display = 'flex';
-}
-function closeBlockModal() {
-  document.getElementById('blockModal').style.display = 'none';
-}
-document.getElementById('blockModal').addEventListener('click', function(e) {
-  if (e.target === this) closeBlockModal();
-});
-</script>
-
-{% endblock %}
 {% block content %}
 
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
-  <div class="page-title" style="margin:0">
-    <i class="fa-solid fa-user-shield"></i> إدارة المستخدمين
-  </div>
-  <a href="/admin/users/new" class="btn btn-success">
-    <i class="fa-solid fa-user-plus"></i> إضافة مستخدم
-  </a>
-</div>
+<style>
+  .users-wrap {
+    max-width: 1300px;
+    margin: 20px auto;
+    padding: 16px;
+    font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
+  }
 
-<div class="card">
-  <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
+  .page-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .page-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .add-btn {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    transition: all 0.2s;
+  }
+  .add-btn:hover { transform: translateY(-2px); }
+
+  /* Quick stats */
+  .quick-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .qstat {
+    background: #fff;
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #f1f5f9;
+    position: relative;
+    overflow: hidden;
+  }
+  .qstat::before { content: ''; position: absolute; top: 0; right: 0; left: 0; height: 4px; background: var(--c); }
+  .qstat-icon { font-size: 22px; margin-bottom: 4px; }
+  .qstat-val { font-size: 26px; font-weight: 800; color: #0f172a; line-height: 1; }
+  .qstat-lbl { font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 600; }
+
+  /* Filters */
+  .filters-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    align-items: center;
+  }
+  .filter-input {
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    flex: 1;
+    min-width: 200px;
+    background: #fff;
+  }
+  .filter-input:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+  .filter-select {
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    background: #fff;
+    min-width: 140px;
+  }
+
+  /* Users table */
+  .users-table-wrap {
+    background: #fff;
+    border-radius: 16px;
+    overflow-x: auto;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead { background: #f8fafc; }
+  th {
+    text-align: right;
+    padding: 14px 12px;
+    font-weight: 700;
+    color: #475569;
+    font-size: 13px;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+  }
+  td {
+    padding: 12px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #0f172a;
+    white-space: nowrap;
+  }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* User cell */
+  .user-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .avatar-sm {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .user-name-link {
+    color: #0f172a;
+    text-decoration: none;
+    font-weight: 700;
+    transition: color 0.2s;
+  }
+  .user-name-link:hover { color: #059669; }
+  .user-email-sm { font-size: 12px; color: #94a3b8; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .b-success { background: #d1fae5; color: #065f46; }
+  .b-info { background: #dbeafe; color: #1e40af; }
+  .b-warn { background: #fef3c7; color: #92400e; }
+  .b-danger { background: #fee2e2; color: #991b1b; }
+  .b-gray { background: #f1f5f9; color: #475569; }
+  .b-purple { background: #ede9fe; color: #5b21b6; }
+
+  /* Actions */
+  .row-actions {
+    display: flex;
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+  .act-icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 0;
+    background: #f1f5f9;
+    color: #475569;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .act-icon-btn:hover { background: #e2e8f0; transform: translateY(-1px); }
+  .act-view { background: #d1fae5; color: #065f46; }
+  .act-view:hover { background: #a7f3d0; }
+  .act-toggle { background: #fef3c7; color: #92400e; }
+  .act-block { background: #fee2e2; color: #991b1b; }
+  .act-delete { background: #fee2e2; color: #991b1b; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 60px 24px;
+    color: #94a3b8;
+  }
+  .empty-state .icon { font-size: 64px; margin-bottom: 12px; opacity: 0.5; }
+
+  @media (max-width: 768px) {
+    th, td { padding: 10px 8px; font-size: 13px; }
+    .avatar-sm { width: 32px; height: 32px; }
+  }
+</style>
+
+<div class="users-wrap">
+
+  <div class="page-head">
+    <h1 class="page-title">👥 إدارة العملاء</h1>
+    <a href="/admin/users/new" class="add-btn">+ إضافة عميل جديد</a>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="quick-stats">
+    <div class="qstat" style="--c: #10b981">
+      <div class="qstat-icon">👥</div>
+      <div class="qstat-val">{{ users|length }}</div>
+      <div class="qstat-lbl">إجمالي المستخدمين</div>
+    </div>
+    <div class="qstat" style="--c: #3b82f6">
+      <div class="qstat-icon">✅</div>
+      <div class="qstat-val">{{ users|selectattr('active', 'eq', 1)|list|length }}</div>
+      <div class="qstat-lbl">حسابات نشطة</div>
+    </div>
+    <div class="qstat" style="--c: #f59e0b">
+      <div class="qstat-icon">👨‍⚕️</div>
+      <div class="qstat-val">{{ users|selectattr('role', 'eq', 'nutritionist')|list|length }}</div>
+      <div class="qstat-lbl">أخصائيين تغذية</div>
+    </div>
+    <div class="qstat" style="--c: #ef4444">
+      <div class="qstat-icon">🚫</div>
+      <div class="qstat-val">{{ users|selectattr('active', 'eq', 0)|list|length }}</div>
+      <div class="qstat-lbl">محظورين</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <input type="text" id="searchInput" class="filter-input" placeholder="🔍 ابحث بالاسم أو الإيميل أو التليفون...">
+    <select id="roleFilter" class="filter-select">
+      <option value="">كل الأدوار</option>
+      <option value="client">عملاء</option>
+      <option value="nutritionist">أخصائيين</option>
+      <option value="admin">Admin</option>
+    </select>
+    <select id="statusFilter" class="filter-select">
+      <option value="">الكل</option>
+      <option value="active">نشط</option>
+      <option value="blocked">محظور</option>
+    </select>
+  </div>
+
+  <!-- Users Table -->
+  <div class="users-table-wrap">
+    {% if users %}
+    <table id="usersTable">
       <thead>
-        <tr style="background:var(--gray);border-bottom:2px solid var(--gray-2)">
-          <th style="text-align:right;padding:12px;font-weight:800;color:var(--blue)">الاسم</th>
-          <th style="text-align:right;padding:12px;font-weight:800;color:var(--blue)">الإيميل</th>
-          <th style="text-align:center;padding:12px;font-weight:800;color:var(--blue)">الدور</th>
-          <th style="text-align:center;padding:12px;font-weight:800;color:var(--blue)">الحالة</th>
-          <th style="text-align:center;padding:12px;font-weight:800;color:var(--blue)">إجراءات</th>
+        <tr>
+          <th>العميل</th>
+          <th>التليفون</th>
+          <th>البلد</th>
+          <th>الدور</th>
+          <th>الحالة</th>
+          <th>تاريخ التسجيل</th>
+          <th style="text-align:center">الإجراءات</th>
         </tr>
       </thead>
       <tbody>
         {% for u in users %}
-        <tr style="border-bottom:1px solid var(--gray-2)">
-          <td style="padding:12px;font-weight:700">
-            {{ u.name or '-' }}
-            {% if u.is_admin %}<span class="role-badge role-admin">👑</span>{% endif %}
+        {% set is_admin = u.is_admin or u.role == 'admin' %}
+        {% set is_active = u.active == 1 or u.active is none %}
+        <tr data-search="{{ ((u.name or '') ~ ' ' ~ (u.email or '') ~ ' ' ~ (u.phone or ''))|lower }}"
+            data-role="{{ u.role or 'client' }}"
+            data-status="{% if is_active %}active{% else %}blocked{% endif %}">
+
+          <td>
+            <div class="user-cell">
+              <div class="avatar-sm">{{ (u.name or 'U')[0]|upper }}</div>
+              <div>
+                {% if not is_admin %}
+                <a href="/admin/users/{{ u.id }}" class="user-name-link">{{ u.name or 'بدون اسم' }}</a>
+                {% else %}
+                <span class="user-name-link">{{ u.name or 'بدون اسم' }}</span>
+                {% endif %}
+                <div class="user-email-sm">{{ u.email }}</div>
+              </div>
+            </div>
           </td>
-          <td style="padding:12px;color:var(--muted)">{{ u.email }}</td>
-          <td style="padding:12px;text-align:center">
-            {% set rl = u.role or 'client' %}
-            {% if rl == 'admin' %}
-              <span class="role-badge role-admin">Admin</span>
-            {% elif rl == 'nutritionist' %}
-              <span class="role-badge role-nutritionist">أخصائي</span>
-            {% else %}
-              <span class="role-badge role-client">عميل</span>
-            {% endif %}
+
+          <td>{{ u.phone or '-' }}</td>
+          <td>{{ u.country or '-' }}</td>
+
+          <td>
+            {% if u.role == 'admin' or u.is_admin %}<span class="badge b-purple">👑 Admin</span>
+            {% elif u.role == 'nutritionist' %}<span class="badge b-info">👨‍⚕️ أخصائي</span>
+            {% else %}<span class="badge b-gray">👤 عميل</span>{% endif %}
           </td>
-          <td style="padding:12px;text-align:center">
-            {% if u.active or u.active is none %}
-              <span style="background:#dcfce7;color:#14532d;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700">✓ نشط</span>
-            {% else %}
-              <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700">✗ معطل</span>
-            {% endif %}
+
+          <td>
+            {% if is_active %}<span class="badge b-success">● نشط</span>
+            {% else %}<span class="badge b-danger">🚫 محظور</span>{% endif %}
           </td>
-          <td style="padding:12px;text-align:center">
-            {% if not u.is_admin %}
-            <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap">
-              <a href="/admin/users/{{ u.id }}/toggle" style="background:#fff3cd;color:#856404;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none">
-                {% if u.active or u.active is none %}تعطيل{% else %}تفعيل{% endif %}
+
+          <td style="font-size: 13px; color: #64748b">
+            {% if u.created_at %}
+              {{ u.created_at.strftime('%Y-%m-%d') if u.created_at.__class__.__name__ != 'str' else (u.created_at[:10]) }}
+            {% else %}-{% endif %}
+          </td>
+
+          <td>
+            {% if not is_admin %}
+            <div class="row-actions">
+              <!-- View profile - the new button! -->
+              <a href="/admin/users/{{ u.id }}" class="act-icon-btn act-view" title="عرض الملف الشامل">👁️</a>
+
+              <!-- Toggle active -->
+              <a href="/admin/users/{{ u.id }}/toggle" class="act-icon-btn act-toggle"
+                 title="{% if is_active %}إيقاف{% else %}تفعيل{% endif %}"
+                 onclick="return confirm('تأكيد {% if is_active %}إيقاف{% else %}تفعيل{% endif %} الحساب؟')">
+                {% if is_active %}⏸️{% else %}▶️{% endif %}
               </a>
-              {% set curr_role = u.role or 'client' %}
-              {% if curr_role == 'client' %}
-                <a href="/admin/users/{{ u.id }}/role/nutritionist" style="background:#dcfce7;color:#14532d;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none">→ أخصائي</a>
-              {% elif curr_role == 'nutritionist' %}
-                <a href="/admin/users/{{ u.id }}/role/client" style="background:#dbeafe;color:#1e3a8a;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none">→ عميل</a>
+
+              <!-- Change role dropdown via select -->
+              <select onchange="if(this.value){window.location.href='/admin/users/{{ u.id }}/role/'+this.value}"
+                      style="padding: 5px 8px; border-radius: 7px; border: 1px solid #e2e8f0; font-size: 12px; background: #fff;">
+                <option value="">📝 دور</option>
+                <option value="client">عميل</option>
+                <option value="nutritionist">أخصائي</option>
+              </select>
+
+              <!-- Block -->
+              {% if is_active %}
+              <form method="POST" action="/admin/users/{{ u.id }}/block" style="display: contents;"
+                    onsubmit="return confirm('حظر العميل؟ مش هيقدر يدخل تاني.')">
+                <input type="hidden" name="reason" value="حظر إداري">
+                <button type="submit" class="act-icon-btn act-block" title="حظر">🚫</button>
+              </form>
+              {% else %}
+              <form method="POST" action="/admin/users/{{ u.id }}/unblock" style="display: contents;">
+                <button type="submit" class="act-icon-btn act-view" title="إلغاء الحظر">✓</button>
+              </form>
               {% endif %}
-              <button type="button" onclick="blockUser({{ u.id }}, '{{ u.email }}')" style="background:#fef2f2;color:#7f1d1d;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #fca5a5;cursor:pointer;font-family:'Cairo',sans-serif">
-                🚫 حظر
-              </button>
-              <form method="POST" action="/admin/users/{{ u.id }}/delete" style="display:inline" onsubmit="return confirm('هل أنت متأكد من الحذف؟')">
-                <button type="submit" style="background:#fee2e2;color:#991b1b;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:'Cairo',sans-serif">حذف</button>
+
+              <!-- Delete -->
+              <form method="POST" action="/admin/users/{{ u.id }}/delete" style="display: contents;"
+                    onsubmit="return confirm('⚠️ حذف العميل نهائياً؟ ده مش هيرجع تاني!')">
+                <button type="submit" class="act-icon-btn act-delete" title="حذف نهائي">🗑️</button>
               </form>
             </div>
             {% else %}
-            <span style="color:var(--muted);font-size:11px">- محمي -</span>
+            <span style="color: #94a3b8; font-size: 12px;">- Admin -</span>
             {% endif %}
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="5" style="padding:40px;text-align:center;color:var(--muted)">
-            <i class="fa-solid fa-users-slash" style="font-size:32px;display:block;margin-bottom:8px"></i>
-            لا يوجد مستخدمين
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">👥</div>
+      <p><strong>مفيش عملاء لسه</strong></p>
+      <p style="font-size: 14px; margin-top: 6px;">العملاء اللي هيسجلوا هيظهروا هنا</p>
+    </div>
+    {% endif %}
   </div>
-</div>
 
-<div class="alert alert-info">
-  <i class="fa-solid fa-circle-info"></i>
-  <div>
-    <strong>كيف يعمل النظام:</strong>
-    <ul style="margin-top:6px;padding-right:20px;line-height:1.8">
-      <li><strong>Admin:</strong> صلاحيات كاملة + إدارة كل شيء</li>
-      <li><strong>أخصائي:</strong> يولد خطط ويدير المرضى (لا يدير المستخدمين)</li>
-      <li><strong>عميل:</strong> يرى خطته فقط + يقدر يطلب خطة جديدة</li>
-    </ul>
-  </div>
-</div>
-
-
-
-<!-- Block Modal -->
-<div id="blockModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;padding:20px;align-items:center;justify-content:center">
-  <div style="background:white;border-radius:14px;max-width:480px;width:100%;padding:24px">
-    <h3 style="color:#7f1d1d;font-weight:800;margin-bottom:8px">
-      <i class="fa-solid fa-ban"></i> حظر إيميل
-    </h3>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:14px">
-      حظر الإيميل: <strong id="blockEmail" style="color:#dc2626"></strong><br>
-      <span style="color:var(--muted);font-size:12px">المستخدم مش هيقدر يدخل أو يسجل من جديد بنفس الإيميل</span>
-    </p>
-    <form id="blockForm" method="POST">
-      <textarea name="reason" class="form-textarea" placeholder="سبب الحظر (اختياري)" rows="3" style="width:100%;padding:11px;border:2px solid var(--gray-2);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;resize:vertical;margin-bottom:14px"></textarea>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button type="button" onclick="closeBlockModal()" class="btn" style="background:var(--gray);color:var(--text)">إلغاء</button>
-        <button type="submit" class="btn" style="background:#7f1d1d;color:white">
-          <i class="fa-solid fa-ban"></i> تأكيد الحظر
-        </button>
-      </div>
-    </form>
-  </div>
 </div>
 
 <script>
-function blockUser(uid, email) {
-  document.getElementById('blockEmail').textContent = email || '';
-  document.getElementById('blockForm').action = '/admin/users/' + uid + '/block';
-  document.getElementById('blockModal').style.display = 'flex';
+function applyFilters() {
+  const search = (document.getElementById('searchInput').value || '').toLowerCase();
+  const role = document.getElementById('roleFilter').value;
+  const status = document.getElementById('statusFilter').value;
+
+  const table = document.getElementById('usersTable');
+  if (!table) return;
+
+  table.querySelectorAll('tbody tr').forEach(row => {
+    const dataSearch = row.dataset.search || '';
+    const dataRole = row.dataset.role || '';
+    const dataStatus = row.dataset.status || '';
+
+    const matchSearch = !search || dataSearch.includes(search);
+    const matchRole = !role || dataRole === role;
+    const matchStatus = !status || dataStatus === status;
+
+    row.style.display = (matchSearch && matchRole && matchStatus) ? '' : 'none';
+  });
 }
-function closeBlockModal() {
-  document.getElementById('blockModal').style.display = 'none';
-}
-document.getElementById('blockModal').addEventListener('click', function(e) {
-  if (e.target === this) closeBlockModal();
-});
+
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('roleFilter').addEventListener('change', applyFilters);
+document.getElementById('statusFilter').addEventListener('change', applyFilters);
 </script>
 
 {% endblock %}
