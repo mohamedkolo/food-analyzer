@@ -49,8 +49,10 @@ if DATABASE_URL:
 else:
     import sqlite3
     DB = "/tmp/nutrax.db"
+    def _dict_factory(cursor, row):
+        return {col[0]: row[i] for i, col in enumerate(cursor.description)}
     def get_db():
-        conn = sqlite3.connect(DB); conn.row_factory = sqlite3.Row; return conn
+        conn = sqlite3.connect(DB); conn.row_factory = _dict_factory; return conn
     def db_row(sql, params=()):
         conn = get_db(); r = conn.execute(sql, params).fetchone(); conn.close(); return r
     def db_rows(sql, params=()):
