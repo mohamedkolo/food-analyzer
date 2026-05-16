@@ -1,0 +1,582 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .reg-wrap {
+    max-width: 720px;
+    margin: 24px auto;
+    padding: 16px;
+    font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
+  }
+
+  /* Progress */
+  .prog-section { margin-bottom: 28px; }
+  .prog-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 600;
+  }
+  .prog-num { color: #059669; font-weight: 800; }
+  .prog-bar {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .prog-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #34d399);
+    border-radius: 999px;
+    transition: width 0.5s ease;
+    width: 25%;
+  }
+
+  /* Step container */
+  .step {
+    background: #fff;
+    border-radius: 20px;
+    padding: 32px 26px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f1f5f9;
+    display: none;
+    animation: fadeIn 0.4s ease;
+  }
+  .step.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .step-icon { font-size: 44px; text-align: center; margin-bottom: 6px; }
+  .step-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0f172a;
+    text-align: center;
+    margin: 0 0 6px;
+  }
+  .step-sub {
+    color: #64748b;
+    text-align: center;
+    margin: 0 0 24px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .opt-tag {
+    display: inline-block;
+    background: #fef3c7;
+    color: #92400e;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 6px;
+  }
+
+  /* Fields */
+  .field { margin-bottom: 16px; }
+  .field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 6px;
+  }
+  .field-label .req { color: #ef4444; }
+  .field-hint {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 3px;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    padding: 11px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 15px;
+    color: #0f172a;
+    background: #fff;
+    transition: all 0.2s;
+    box-sizing: border-box;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+  textarea { min-height: 70px; resize: vertical; }
+
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 480px) {
+    .row-2 { grid-template-columns: 1fr; }
+  }
+
+  /* Goal cards */
+  .goal-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+  }
+  .goal-card {
+    padding: 16px 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: center;
+    background: #fff;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .goal-card:hover { border-color: #10b981; transform: translateY(-2px); }
+  .goal-card input { display: none; }
+  .goal-card.selected {
+    border-color: #10b981;
+    background: linear-gradient(180deg, #f0fdf4, #fff);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+  }
+  .goal-card .icon { font-size: 28px; margin-bottom: 4px; }
+  .goal-card .name { font-size: 13px; font-weight: 700; color: #0f172a; }
+  .goal-card.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 20px; height: 20px;
+    background: #10b981;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  /* Chips */
+  .chips-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .chip {
+    padding: 7px 14px;
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+    user-select: none;
+  }
+  .chip:hover { background: #e2e8f0; }
+  .chip.selected {
+    background: #d1fae5;
+    color: #065f46;
+    border-color: #10b981;
+  }
+
+  /* Nav buttons */
+  .nav {
+    display: flex;
+    gap: 8px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 13px 22px;
+    border-radius: 11px;
+    border: 0;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+    min-width: 110px;
+  }
+  .btn-prev { background: #f1f5f9; color: #475569; }
+  .btn-prev:hover { background: #e2e8f0; }
+  .btn-skip { background: #fef3c7; color: #92400e; }
+  .btn-skip:hover { background: #fde68a; }
+  .btn-next {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    flex: 2;
+  }
+  .btn-next:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4); }
+  .btn-submit {
+    background: linear-gradient(135deg, #059669, #047857);
+    color: #fff;
+    flex: 2;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+  }
+
+  .login-link {
+    text-align: center;
+    margin-top: 16px;
+    color: #64748b;
+    font-size: 13px;
+  }
+  .login-link a { color: #059669; font-weight: 700; text-decoration: none; }
+  .login-link a:hover { text-decoration: underline; }
+
+  .error-msg {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid #fca5a5;
+  }
+</style>
+
+<div class="reg-wrap">
+
+  {% if error %}
+  <div class="error-msg">⚠️ {{ error }}</div>
+  {% endif %}
+
+  <!-- Progress -->
+  <div class="prog-section">
+    <div class="prog-info">
+      <span>خطوة <span id="curStep">1</span> من 4</span>
+      <span class="prog-num" id="progPct">25%</span>
+    </div>
+    <div class="prog-bar">
+      <div class="prog-fill" id="progFill"></div>
+    </div>
+  </div>
+
+  <form method="POST" action="/register" id="regForm">
+
+    <!-- ═══════ STEP 1: ACCOUNT ═══════ -->
+    <div class="step active" data-step="1">
+      <div class="step-icon">👋</div>
+      <h2 class="step-title">يلا نعمل حسابك</h2>
+      <p class="step-sub">معلوماتك الأساسية - 30 ثانية بس</p>
+
+      <div class="field">
+        <label class="field-label">الاسم الكامل <span class="req">*</span></label>
+        <input type="text" name="name" required minlength="2" placeholder="مثال: أحمد محمد">
+      </div>
+
+      <div class="field">
+        <label class="field-label">الإيميل <span class="req">*</span></label>
+        <input type="email" name="email" required placeholder="example@email.com">
+      </div>
+
+      <div class="field">
+        <label class="field-label">كلمة السر <span class="req">*</span></label>
+        <input type="password" name="password" required minlength="6" placeholder="6 حروف على الأقل">
+        <div class="field-hint">6 حروف على الأقل</div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">رقم التليفون <span class="req">*</span></label>
+        <input type="text" name="phone" required placeholder="01xxxxxxxxx">
+      </div>
+
+      <div class="nav">
+        <button type="button" class="btn btn-next" onclick="nextStep()">التالي →</button>
+      </div>
+
+      <div class="login-link">
+        عندك حساب بالفعل؟ <a href="/">سجل دخول</a>
+      </div>
+    </div>
+
+    <!-- ═══════ STEP 2: PERSONAL ═══════ -->
+    <div class="step" data-step="2">
+      <div class="step-icon">📋</div>
+      <h2 class="step-title">بياناتك الشخصية</h2>
+      <p class="step-sub">مهمة عشان نحسب احتياجاتك من السعرات</p>
+
+      <div class="row-2">
+        <div class="field">
+          <label class="field-label">البلد <span class="req">*</span></label>
+          <select name="country" required>
+            <option value="">اختار</option>
+            <option value="مصر">🇪🇬 مصر</option>
+            <option value="السعودية">🇸🇦 السعودية</option>
+            <option value="الإمارات">🇦🇪 الإمارات</option>
+            <option value="الكويت">🇰🇼 الكويت</option>
+            <option value="قطر">🇶🇦 قطر</option>
+            <option value="البحرين">🇧🇭 البحرين</option>
+            <option value="عمان">🇴🇲 عمان</option>
+            <option value="الأردن">🇯🇴 الأردن</option>
+            <option value="لبنان">🇱🇧 لبنان</option>
+            <option value="المغرب">🇲🇦 المغرب</option>
+            <option value="الجزائر">🇩🇿 الجزائر</option>
+            <option value="تونس">🇹🇳 تونس</option>
+            <option value="other">دولة أخرى</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">العمر <span class="req">*</span></label>
+          <input type="number" name="age" required min="10" max="100" placeholder="مثال: 30">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">الجنس <span class="req">*</span></label>
+        <select name="gender" required>
+          <option value="">اختار</option>
+          <option value="ذكر">ذكر</option>
+          <option value="أنثى">أنثى</option>
+        </select>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label class="field-label">الطول (cm) <span class="req">*</span></label>
+          <input type="number" name="height" required step="0.5" min="50" max="250" placeholder="170">
+        </div>
+        <div class="field">
+          <label class="field-label">الوزن الحالي (kg) <span class="req">*</span></label>
+          <input type="number" name="weight" required step="0.1" min="20" max="300" placeholder="70.5">
+        </div>
+      </div>
+
+      <div class="nav">
+        <button type="button" class="btn btn-prev" onclick="prevStep()">← رجوع</button>
+        <button type="button" class="btn btn-next" onclick="nextStep()">التالي →</button>
+      </div>
+    </div>
+
+    <!-- ═══════ STEP 3: GOAL ═══════ -->
+    <div class="step" data-step="3">
+      <div class="step-icon">🎯</div>
+      <h2 class="step-title">إيه هدفك؟</h2>
+      <p class="step-sub">عشان نفصّل خطتك على هدفك بالظبط</p>
+
+      <div class="goal-cards" id="goalCards">
+        <label class="goal-card" data-value="weight_loss">
+          <input type="radio" name="goal" value="weight_loss">
+          <div class="icon">🥗</div>
+          <div class="name">تخسيس</div>
+        </label>
+        <label class="goal-card" data-value="muscle_gain">
+          <input type="radio" name="goal" value="muscle_gain">
+          <div class="icon">💪</div>
+          <div class="name">عضل</div>
+        </label>
+        <label class="goal-card" data-value="bulking">
+          <input type="radio" name="goal" value="bulking">
+          <div class="icon">🔥</div>
+          <div class="name">تضخيم</div>
+        </label>
+        <label class="goal-card" data-value="maintenance">
+          <input type="radio" name="goal" value="maintenance">
+          <div class="icon">🍽️</div>
+          <div class="name">مكتنز</div>
+        </label>
+      </div>
+
+      <div class="field" style="margin-top: 22px;">
+        <label class="field-label">مستوى نشاطك اليومي <span class="req">*</span></label>
+        <select name="activity" required>
+          <option value="1.2">قليل (شغل مكتبي + مفيش رياضة)</option>
+          <option value="1.375">خفيف (رياضة 1-3 مرات/أسبوع)</option>
+          <option value="1.55" selected>متوسط (رياضة 3-5 مرات/أسبوع)</option>
+          <option value="1.725">عالي (رياضة يومياً)</option>
+          <option value="1.9">عالي جداً (رياضي محترف)</option>
+        </select>
+      </div>
+
+      <div class="nav">
+        <button type="button" class="btn btn-prev" onclick="prevStep()">← رجوع</button>
+        <button type="button" class="btn btn-next" onclick="nextStep()">التالي →</button>
+      </div>
+    </div>
+
+    <!-- ═══════ STEP 4: PREFERENCES (OPTIONAL) ═══════ -->
+    <div class="step" data-step="4">
+      <div class="step-icon">🍽️</div>
+      <h2 class="step-title"><span class="opt-tag">اختياري</span>تفضيلاتك</h2>
+      <p class="step-sub">قولنا أي حاجة بتحبها أو بتتحساس منها عشان نخصصلك أفضل خطة</p>
+
+      <div class="field">
+        <label class="field-label">😋 أكلات بتحبها</label>
+        <div class="chips-group" id="likedChips">
+          <span class="chip" data-val="دجاج">🍗 دجاج</span>
+          <span class="chip" data-val="لحمة">🥩 لحمة</span>
+          <span class="chip" data-val="سمك">🐟 سمك</span>
+          <span class="chip" data-val="بيض">🥚 بيض</span>
+          <span class="chip" data-val="جبن">🧀 جبن</span>
+          <span class="chip" data-val="فول">🥘 فول</span>
+          <span class="chip" data-val="ارز">🍚 ارز</span>
+          <span class="chip" data-val="مكرونة">🍝 مكرونة</span>
+          <span class="chip" data-val="بطاطا">🍠 بطاطا</span>
+          <span class="chip" data-val="شوفان">🥣 شوفان</span>
+          <span class="chip" data-val="مكسرات">🌰 مكسرات</span>
+          <span class="chip" data-val="فاكهة">🍎 فاكهة</span>
+        </div>
+        <input type="hidden" name="liked_foods" id="likedHid">
+      </div>
+
+      <div class="field">
+        <label class="field-label">🚫 أكلات مش بتحبها</label>
+        <div class="chips-group" id="dislikedChips">
+          <span class="chip" data-val="كبدة">🥩 كبدة</span>
+          <span class="chip" data-val="ملوخية">🥬 ملوخية</span>
+          <span class="chip" data-val="باميا">🌶️ باميا</span>
+          <span class="chip" data-val="كرنب">🥬 كرنب</span>
+          <span class="chip" data-val="سمك">🐟 سمك</span>
+          <span class="chip" data-val="بيض">🥚 بيض</span>
+          <span class="chip" data-val="جبن">🧀 جبن</span>
+          <span class="chip" data-val="مأكولات بحرية">🦐 مأكولات بحرية</span>
+        </div>
+        <input type="hidden" name="disliked_foods" id="dislikedHid">
+      </div>
+
+      <div class="field">
+        <label class="field-label">⚠️ حساسية غذائية</label>
+        <div class="chips-group" id="allergiesChips">
+          <span class="chip" data-val="اللاكتوز">🥛 لاكتوز</span>
+          <span class="chip" data-val="الجلوتين">🍞 جلوتين</span>
+          <span class="chip" data-val="المكسرات">🌰 مكسرات</span>
+          <span class="chip" data-val="البيض">🥚 بيض</span>
+          <span class="chip" data-val="الأسماك">🐟 أسماك</span>
+          <span class="chip" data-val="الفول السوداني">🥜 فول سوداني</span>
+          <span class="chip" data-val="الصويا">🫘 صويا</span>
+          <span class="chip" data-val="المحار">🦐 محار</span>
+          <span class="chip" data-val="السمسم">🌱 سمسم</span>
+        </div>
+        <input type="hidden" name="allergies" id="allergiesHid">
+      </div>
+
+      <div class="field">
+        <label class="field-label">⚕️ حالات طبية</label>
+        <div class="chips-group" id="condChips">
+          <span class="chip" data-val="قولون عصبي">قولون عصبي</span>
+          <span class="chip" data-val="سكري النوع الثاني">سكري</span>
+          <span class="chip" data-val="ضغط الدم المرتفع">ضغط</span>
+          <span class="chip" data-val="أمراض القلب">قلب</span>
+          <span class="chip" data-val="الفشل الكلوي المزمن">كلى</span>
+          <span class="chip" data-val="ثلاسيميا">ثلاسيميا</span>
+          <span class="chip" data-val="نقص G6PD">G6PD</span>
+          <span class="chip" data-val="الحمل">حمل</span>
+          <span class="chip" data-val="الرضاعة الطبيعية">رضاعة</span>
+        </div>
+        <input type="hidden" name="conditions" id="condHid">
+      </div>
+
+      <div class="nav">
+        <button type="button" class="btn btn-prev" onclick="prevStep()">← رجوع</button>
+        <button type="submit" class="btn btn-submit">✅ إنشاء الحساب</button>
+      </div>
+    </div>
+
+  </form>
+</div>
+
+<script>
+let curStep = 1;
+const totalSteps = 4;
+
+function updateProgress() {
+  const pct = (curStep / totalSteps) * 100;
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('curStep').textContent = curStep;
+  document.getElementById('progPct').textContent = Math.round(pct) + '%';
+}
+
+function showStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  const target = document.querySelector('.step[data-step="' + n + '"]');
+  if (target) {
+    target.classList.add('active');
+    curStep = n;
+    updateProgress();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function validateStep(n) {
+  const step = document.querySelector('.step[data-step="' + n + '"]');
+  if (!step) return true;
+  const required = step.querySelectorAll('[required]');
+  for (const f of required) {
+    if (!f.value || f.value.trim() === '') {
+      f.focus();
+      f.style.borderColor = '#ef4444';
+      alert('من فضلك املأ كل الحقول المطلوبة');
+      return false;
+    }
+  }
+  if (n === 3) {
+    const goal = step.querySelector('input[name="goal"]:checked');
+    if (!goal) {
+      alert('اختار هدفك أولاً');
+      return false;
+    }
+  }
+  return true;
+}
+
+function nextStep() {
+  if (!validateStep(curStep)) return;
+  if (curStep < totalSteps) showStep(curStep + 1);
+}
+function prevStep() {
+  if (curStep > 1) showStep(curStep - 1);
+}
+
+// Goal cards
+document.querySelectorAll('.goal-card').forEach(c => {
+  c.addEventListener('click', () => {
+    const r = c.querySelector('input[type="radio"]');
+    if (r) {
+      r.checked = true;
+      c.parentElement.querySelectorAll('.goal-card').forEach(o => o.classList.remove('selected'));
+      c.classList.add('selected');
+    }
+  });
+});
+
+// Chips
+function setupChips(containerId, hiddenId) {
+  const cont = document.getElementById(containerId);
+  const hid = document.getElementById(hiddenId);
+  if (!cont || !hid) return;
+  const sel = new Set();
+  cont.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const v = chip.dataset.val;
+      if (sel.has(v)) {
+        sel.delete(v);
+        chip.classList.remove('selected');
+      } else {
+        sel.add(v);
+        chip.classList.add('selected');
+      }
+      hid.value = JSON.stringify(Array.from(sel));
+    });
+  });
+}
+setupChips('likedChips', 'likedHid');
+setupChips('dislikedChips', 'dislikedHid');
+setupChips('allergiesChips', 'allergiesHid');
+setupChips('condChips', 'condHid');
+
+updateProgress();
+</script>
+
+{% endblock %}
