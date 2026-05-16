@@ -2120,7 +2120,7 @@ def admin_user_payments(uid):
 # قائمة الـ endpoints اللي ما تتأثرش بالـ onboarding redirect
 ONBOARDING_EXEMPT = {
     "login", "logout", "set_lang", "onboarding", "static",
-    "stripe_webhook", "check_access_endpoint"
+    "stripe_webhook", "check_access_endpoint", "register"
 }
 
 @app.before_request
@@ -2150,6 +2150,114 @@ def check_onboarding_status():
     except Exception as e:
         print(f"Onboarding middleware error: {e}")
     return None
+
+
+# ═══════════════════════════════════════════════════════════════════
+# UNIFIED REGISTER (Sign-up + Onboarding في صفحة واحدة)
+# ═══════════════════════════════════════════════════════════════════
+
+@app.route("/register", methods=["GET", "POST"])
+def register_wizard():
+    """صفحة التسجيل الموحدة - sign-up + onboarding مدمجين"""
+    if "uid" in session:
+        return redirect("/dashboard")
+
+    if request.method == "POST":
+        try:
+            # Required - Account
+            name = request.form.get("name", "").strip()
+            email = request.form.get("email", "").lower().strip()
+            password = request.form.get("password", "")
+            phone = request.form.get("phone", "").strip()
+
+            # Required - Personal
+            country = request.form.get("country", "").strip()
+            age = request.form.get("age", "").strip()
+            gender = request.form.get("gender", "").strip()
+            height = request.form.get("height", "").strip()
+            weight = request.form.get("weight", "").strip()
+
+            # Required - Goal
+            goal = request.form.get("goal", "weight_loss").strip()
+            activity = request.form.get("activity", "1.55").strip()
+
+            # Optional
+            liked_foods = request.form.get("liked_foods", "[]")
+            disliked_foods = request.form.get("disliked_foods", "[]")
+            allergies = request.form.get("allergies", "[]")
+            conditions = request.form.get("conditions", "[]")
+
+            # Validation
+            if not all([name, email, password, phone, country, age, gender, height, weight]):
+                return render_template("register.html",
+                                       lang=session.get("lang", "ar"),
+                                       error="من فضلك املأ كل الحقول المطلوبة")
+
+            if len(password) < 6:
+                return render_template("register.html",
+                                       lang=session.get("lang", "ar"),
+                                       error="كلمة السر لازم 6 حروف على الأقل")
+
+            if is_email_blocked(email):
+                return render_template("register.html",
+                                       lang=session.get("lang", "ar"),
+                                       error="هذا الإيميل محظور")
+
+            # Check existing
+            existing = db_row("SELECT id FROM users WHERE email=?", (email,))
+            if existing:
+                return render_template("register.html",
+                                       lang=session.get("lang", "ar"),
+                                       error="الإيميل ده مستخدم قبل كده - سجل دخول")
+
+            # Convert numerics
+            try: age_v = int(age)
+            except: age_v = None
+            try: height_v = float(height)
+            except: height_v = None
+            try: weight_v = float(weight)
+            except: weight_v = None
+            try: activity_v = float(activity)
+            except: activity_v = 1.55
+
+            # Insert user with everything
+            db_run("""INSERT INTO users 
+                      (name, email, password, country, age, gender, height, weight, 
+                       goal, activity, phone, role, active,
+                       liked_foods, disliked_foods, allergies, conditions, onboarded_at)
+                      VALUES (?,?,?,?,?,?,?,?,?,?,?,'client',1,?,?,?,?,?)""",
+                   (name, email, hp(password), country, age_v, gender,
+                    height_v, weight_v, goal, activity_v, phone,
+                    liked_foods, disliked_foods, allergies, conditions, datetime.now()))
+
+            # Auto login - get the new user
+            new_user = get_user(email, password)
+            if new_user:
+                session.permanent = True
+                session["uid"] = new_user["id"]
+                session["lang"] = "ar"
+                session["role"] = "client"
+
+                # Log initial weight
+                try:
+                    if weight_v:
+                        db_run("INSERT INTO weight_log (user_id, weight) VALUES (?, ?)",
+                               (new_user["id"], weight_v))
+                except: pass
+
+                return redirect("/my-plan?welcome=1")
+            else:
+                return render_template("register.html",
+                                       lang=session.get("lang", "ar"),
+                                       error="حصلت مشكلة - حاول تاني")
+
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            return render_template("register.html",
+                                   lang=session.get("lang", "ar"),
+                                   error=f"خطأ: {str(e)}")
+
+    return render_template("register.html", lang=session.get("lang", "ar"))
 
 
 @app.route("/onboarding", methods=["GET", "POST"])
