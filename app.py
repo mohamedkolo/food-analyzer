@@ -1237,6 +1237,13 @@ def generate_weekly_plan(data):
     culture = data.get("culture", "مصري")
     diet_type = data.get("diet_plan_type", "standard")
 
+    # NEW: seed فريد لكل عميل عشان كل واحد يطلع له خطة مختلفة عن التاني
+    try:
+        user_id = data.get("user_id") or session.get("uid", 0) or 0
+    except: user_id = 0
+    seed_val = ((user_id or 1) * 1000007 + int(datetime.now().timestamp() * 1000)) % (2**32)
+    random.seed(seed_val)
+
     # NEW: قراية الحقول الجديدة من الاستمارة الموحدة
     notes = data.get("notes", "")
     disliked = data.get("disliked_foods", "")
@@ -1297,12 +1304,13 @@ def generate_weekly_plan(data):
             day_plan["dinner"] = d["meal"]
             total_cal = b.get("cal",300) + l.get("cal",400) + d.get("cal",300) + 300
         elif diet_type == "intermittent_16_8":
-            l = lunches[i % len(lunches)]
+            # الوجبة الأولى = فطار شبع (مش غدا) - زي شوفان أو بيض أو فول
+            b = breakfasts[i % len(breakfasts)]
             d = dinners[i % len(dinners)]
-            day_plan["meal1"] = l["meal"]
+            day_plan["meal1"] = b["meal"]
             day_plan["snack"] = snacks[i % len(snacks)]
             day_plan["meal2"] = d["meal"]
-            total_cal = l.get("cal",400) + d.get("cal",400) + 150
+            total_cal = b.get("cal",350) + d.get("cal",450) + 150
         elif diet_type == "intermittent_18_6":
             l = lunches[i % len(lunches)]
             d = dinners[i % len(dinners)]
