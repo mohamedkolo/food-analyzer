@@ -1005,9 +1005,9 @@ DIET_PLAN_TYPES = {
     "intermittent_16_8": {
         "name": "صيام متقطع 16/8",
         "meals": ["meal1", "snack", "meal2"],
-        "meal_labels": {"meal1": "الوجبة الأولى (12ظ)", "snack": "سناك (3ع)", "meal2": "الوجبة الثانية (7م)"},
-        "meal_emojis": {"meal1": "🕛", "snack": "🍎", "meal2": "🕖"},
-        "description": "صيام 16 ساعة + أكل في 8 ساعات"
+        "meal_labels": {"meal1": "الفطار (12ظ)", "snack": "سناك (4ع)", "meal2": "الوجبة الرئيسية (7م)"},
+        "meal_emojis": {"meal1": "🌅", "snack": "🍎", "meal2": "🍽️"},
+        "description": "صيام 16 ساعة + أكل في 8 ساعات (فطار + سناك + وجبة رئيسية)"
     },
     "intermittent_18_6": {
         "name": "صيام متقطع 18/6",
