@@ -2,213 +2,105 @@
 {% block content %}
 
 <style>
-  .paywall-wrap {
-    max-width: 700px;
-    margin: 30px auto;
-    padding: 20px 16px;
-    font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
-  }
-
-  .paywall-card {
-    background: #fff;
-    border-radius: 24px;
-    padding: 40px 32px;
-    text-align: center;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-    position: relative;
-    overflow: hidden;
-    border: 2px solid #fef3c7;
-  }
-
-  .paywall-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 6px;
-    background: linear-gradient(90deg, #f59e0b, #fbbf24, #fcd34d);
-  }
-
-  .lock-icon {
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 20px;
-    border-radius: 20px;
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 36px;
-    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
-  }
-
-  .paywall-title {
-    font-size: 28px;
-    font-weight: 800;
-    color: #0f172a;
-    margin: 0 0 10px;
-  }
-
-  .paywall-msg {
-    font-size: 16px;
-    color: #475569;
-    line-height: 1.7;
-    margin: 0 0 24px;
-  }
-
-  .reason-box {
-    background: #fffbeb;
-    border-right: 4px solid #f59e0b;
-    border-radius: 12px;
-    padding: 16px 20px;
-    margin: 20px 0;
-    text-align: right;
-    font-size: 14px;
-    color: #78350f;
-  }
-
-  .quick-plans {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 14px;
-    margin: 30px 0 20px;
-  }
-
-  .quick-plan {
-    background: #f8fafc;
-    border: 2px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 20px 16px;
-    text-align: center;
-    transition: all 0.25s ease;
-    text-decoration: none;
-    color: inherit;
-    display: block;
-    position: relative;
-  }
-
-  .quick-plan:hover {
-    border-color: #10b981;
-    transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.15);
-  }
-
-  .quick-plan.recommended {
-    background: linear-gradient(180deg, #fffbeb, #fff);
-    border-color: #f59e0b;
-  }
-
-  .recommended-badge {
-    position: absolute;
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    color: #fff;
-    padding: 4px 12px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    white-space: nowrap;
-  }
-
+  .paywall-wrap { max-width: 700px; margin: 30px auto; padding: 20px 16px; font-family: 'Cairo', 'Tajawal', system-ui, sans-serif; }
+  .paywall-card { background: #fff; border-radius: 24px; padding: 40px 32px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.08); position: relative; overflow: hidden; border: 2px solid #fef3c7; }
+  .paywall-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px; background: linear-gradient(90deg, #f59e0b, #fbbf24, #fcd34d); }
+  .lock-icon { width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 20px; background: linear-gradient(135deg, #f59e0b, #d97706); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 36px; box-shadow: 0 8px 20px rgba(245,158,11,0.4); }
+  .paywall-title { font-size: 28px; font-weight: 800; color: #0f172a; margin: 0 0 10px; }
+  .paywall-msg { font-size: 16px; color: #475569; line-height: 1.7; margin: 0 0 24px; }
+  .reason-box { background: #fffbeb; border-right: 4px solid #f59e0b; border-radius: 12px; padding: 16px 20px; margin: 20px 0; text-align: right; font-size: 14px; color: #78350f; }
+  .quick-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin: 30px 0 20px; }
+  .quick-plan { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 16px; padding: 20px 16px; text-align: center; transition: all 0.25s; position: relative; }
+  .quick-plan:hover { border-color: #10b981; transform: translateY(-4px); box-shadow: 0 8px 20px rgba(16,185,129,0.15); }
+  .quick-plan.recommended { background: linear-gradient(180deg, #fffbeb, #fff); border-color: #f59e0b; }
+  .recommended-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
   .qp-icon { font-size: 32px; margin-bottom: 8px; }
   .qp-name { font-size: 15px; font-weight: 700; color: #0f172a; margin: 6px 0; }
   .qp-price { font-size: 20px; font-weight: 800; color: #059669; }
   .qp-period { font-size: 12px; color: #94a3b8; }
-  .qp-trial { font-size: 12px; color: #f59e0b; font-weight: 700; margin-top: 4px; }
-
-  .main-cta {
-    display: inline-block;
-    padding: 16px 36px;
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: #fff;
-    border-radius: 14px;
-    font-weight: 800;
-    font-size: 17px;
-    text-decoration: none;
-    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
-    transition: all 0.25s ease;
-    margin-top: 16px;
-  }
-
-  .main-cta:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 28px rgba(16, 185, 129, 0.45);
-  }
-
-  .features-strip {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 14px;
-    margin: 24px 0 12px;
-    font-size: 13px;
-    color: #64748b;
-  }
-
-  .features-strip span {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
+  .wa-buttons { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .wa-btn { padding: 10px 12px; border-radius: 10px; font-size: 12px; font-weight: 700; text-decoration: none; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .wa-btn-egypt { background: #25D366; color: #fff; }
+  .wa-btn-uae { background: #075E54; color: #fff; }
+  .wa-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+  .main-cta { display: inline-block; padding: 16px 36px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border-radius: 14px; font-weight: 800; font-size: 17px; text-decoration: none; box-shadow: 0 8px 20px rgba(16,185,129,0.35); transition: all 0.25s; margin-top: 16px; }
+  .main-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(16,185,129,0.45); }
+  .features-strip { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; margin: 24px 0 12px; font-size: 13px; color: #64748b; }
+  .features-strip span { display: flex; align-items: center; gap: 4px; }
 </style>
 
 <div class="paywall-wrap">
   <div class="paywall-card">
-
     <div class="lock-icon">🔒</div>
-
     <h1 class="paywall-title">المحتوى ده محتاج اشتراك</h1>
     <p class="paywall-msg">
-      علشان تكلم د. محمد مباشرة وتاخد متابعة شخصية، اختر الخطة المناسبة ليك.<br/>
-      <strong>الاشتراك الشهري بـ 7 أيام تجربة مجانية</strong> — جرّبه قبل ما تدفع.
+      علشان تكلم د. محمد مباشرة وتاخد متابعة شخصية، تواصل معاه عبر واتساب لإتمام الاشتراك.
     </p>
 
     {% if reason %}
-    <div class="reason-box">
-      ℹ️ {{ reason }}
-    </div>
+    <div class="reason-box">ℹ️ {{ reason }}</div>
     {% endif %}
 
-    <!-- Quick Plans Preview -->
     <div class="quick-plans">
-      <a href="/checkout/consultation" class="quick-plan">
+      <div class="quick-plan">
         <div class="qp-icon">💬</div>
         <div class="qp-name">استشارة فردية</div>
         <div class="qp-price">149 ج.م</div>
         <div class="qp-period">شات 24 ساعة</div>
-      </a>
+        <div class="wa-buttons">
+          <a class="wa-btn wa-btn-egypt" data-wa-egypt data-plan="استشارة فردية" data-price="149 ج.م" target="_blank">🇪🇬 مصر</a>
+          <a class="wa-btn wa-btn-uae" data-wa-uae data-plan="استشارة فردية" data-price="19 د.إ" target="_blank">🇦🇪 الخليج</a>
+        </div>
+      </div>
 
-      <a href="/checkout/single_plan" class="quick-plan">
+      <div class="quick-plan">
         <div class="qp-icon">📋</div>
         <div class="qp-name">خطة واحدة</div>
         <div class="qp-price">299 ج.م</div>
-        <div class="qp-period">خطة + 7 أيام متابعة</div>
-      </a>
+        <div class="qp-period">خطة + متابعة 7 أيام</div>
+        <div class="wa-buttons">
+          <a class="wa-btn wa-btn-egypt" data-wa-egypt data-plan="خطة واحدة" data-price="299 ج.م" target="_blank">🇪🇬 مصر</a>
+          <a class="wa-btn wa-btn-uae" data-wa-uae data-plan="خطة واحدة" data-price="35 د.إ" target="_blank">🇦🇪 الخليج</a>
+        </div>
+      </div>
 
-      <a href="/checkout/monthly_subscription" class="quick-plan recommended">
+      <div class="quick-plan recommended">
         <div class="recommended-badge">الأكثر توفيراً</div>
         <div class="qp-icon">👑</div>
         <div class="qp-name">اشتراك شهري</div>
         <div class="qp-price">599 ج.م</div>
         <div class="qp-period">/ شهر — كل حاجة</div>
-        <div class="qp-trial">🎁 7 أيام مجاناً</div>
-      </a>
+        <div class="wa-buttons">
+          <a class="wa-btn wa-btn-egypt" data-wa-egypt data-plan="اشتراك شهري" data-price="599 ج.م" target="_blank">🇪🇬 مصر</a>
+          <a class="wa-btn wa-btn-uae" data-wa-uae data-plan="اشتراك شهري" data-price="69 د.إ" target="_blank">🇦🇪 الخليج</a>
+        </div>
+      </div>
     </div>
 
     <a href="/pricing" class="main-cta">شوف كل التفاصيل والأسعار →</a>
 
     <div class="features-strip">
-      <span>🔒 دفع آمن</span>
-      <span>•</span>
-      <span>💳 Visa / Master / Apple Pay</span>
-      <span>•</span>
-      <span>↩️ إلغاء أي وقت</span>
+      <span>📱 تواصل مباشر</span><span>•</span>
+      <span>💳 طرق دفع متعددة</span><span>•</span>
+      <span>✅ تفعيل فوري</span>
     </div>
   </div>
 </div>
+
+<script>
+(function() {
+  const PHONE_EGYPT = '201004294521';
+  const PHONE_UAE = '971501038664';
+
+  document.querySelectorAll('[data-wa-egypt], [data-wa-uae]').forEach(a => {
+    const isEgypt = a.hasAttribute('data-wa-egypt');
+    const phone = isEgypt ? PHONE_EGYPT : PHONE_UAE;
+    const plan = a.dataset.plan || 'الخطة';
+    const price = a.dataset.price || '';
+    const msg = `السلام عليكم د. محمد 👋\n\nعاوز أشترك في "${plan}" بـ ${price}.\n\nممكن نتفق على طريقة الدفع؟`;
+    a.href = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  });
+})();
+</script>
 
 {% endblock %}
