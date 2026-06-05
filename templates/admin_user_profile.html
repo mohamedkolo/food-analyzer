@@ -324,8 +324,12 @@
 
     <!-- Subscription Actions -->
     <div class="actions-grid">
+      <button type="button" class="act-btn act-primary" onclick="document.getElementById('manualActivateBox').style.display = document.getElementById('manualActivateBox').style.display === 'none' ? 'block' : 'none';">
+        💰 تفعيل اشتراك مدفوع
+      </button>
+
       <form method="POST" action="/admin/users/{{ user.id }}/grant-trial" style="display: contents;">
-        <button type="submit" class="act-btn act-primary"
+        <button type="submit" class="act-btn act-warning"
                 onclick="return confirm('إعطاء العميل 7 أيام تجربة مجانية؟')">
           🎁 إعطاء 7 أيام تجربة
         </button>
@@ -341,6 +345,87 @@
       {% endif %}
 
       <a href="/admin/users/{{ user.id }}/payments" class="act-btn act-secondary">📊 كل عمليات الدفع</a>
+    </div>
+
+    <!-- ═══════════ Manual Activation Form ═══════════ -->
+    <div id="manualActivateBox" style="display:none; margin-top: 16px; padding: 20px; background: linear-gradient(135deg, #ecfdf5, #f0fdf4); border: 2px solid #10b981; border-radius: 14px;">
+      <h3 style="margin: 0 0 12px; color: #065f46; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+        💰 تفعيل اشتراك مدفوع للعميل
+        <span style="font-size: 12px; font-weight: 600; background: #d1fae5; padding: 3px 10px; border-radius: 999px;">بعد ما العميل يدفع</span>
+      </h3>
+
+      <form method="POST" action="/admin/users/{{ user.id }}/manual-activate">
+        <div class="info-grid" style="margin-bottom: 12px;">
+
+          <div class="info-item">
+            <div class="info-lbl">نوع الخطة <span style="color:#dc2626">*</span></div>
+            <select name="plan_key" required
+                    style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; margin-top:4px; font-family:inherit;">
+              <option value="">اختار</option>
+              <option value="consultation">💬 استشارة فردية (24 ساعة)</option>
+              <option value="single_plan">📋 خطة واحدة (7 أيام متابعة)</option>
+              <option value="monthly_subscription">👑 اشتراك شهري (30 يوم)</option>
+            </select>
+          </div>
+
+          <div class="info-item">
+            <div class="info-lbl">المبلغ المدفوع <span style="color:#dc2626">*</span></div>
+            <input type="number" name="amount" step="0.01" min="0" required
+                   placeholder="مثال: 599"
+                   style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; margin-top:4px; font-family:inherit;">
+          </div>
+
+          <div class="info-item">
+            <div class="info-lbl">العملة</div>
+            <select name="currency"
+                    style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; margin-top:4px;">
+              <option value="EGP" selected>🇪🇬 EGP (جنيه)</option>
+              <option value="AED">🇦🇪 AED (درهم)</option>
+              <option value="SAR">🇸🇦 SAR (ريال)</option>
+              <option value="USD">🌍 USD (دولار)</option>
+            </select>
+          </div>
+
+          <div class="info-item">
+            <div class="info-lbl">طريقة الدفع</div>
+            <select name="payment_method"
+                    style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; margin-top:4px;">
+              <option value="vodafone_cash">📱 فودافون كاش</option>
+              <option value="instapay">⚡ InstaPay</option>
+              <option value="bank_transfer_eg">🏦 تحويل بنكي مصري</option>
+              <option value="bank_transfer_ae">🏦 تحويل بنكي إماراتي</option>
+              <option value="cash">💵 كاش / Cash</option>
+              <option value="other">أخرى</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="info-item" style="margin-bottom: 12px;">
+          <div class="info-lbl">ملاحظات (اختياري)</div>
+          <input type="text" name="notes"
+                 placeholder="مثال: رقم العملية في فودافون كاش، تاريخ التحويل، إلخ..."
+                 style="width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; margin-top:4px; font-family:inherit;">
+        </div>
+
+        <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 13px; color: #9a3412;">
+          ℹ️ <strong>المدة بتتحدد تلقائياً حسب نوع الخطة:</strong><br/>
+          • استشارة فردية = 1 يوم<br/>
+          • خطة واحدة = 7 أيام<br/>
+          • اشتراك شهري = 30 يوم<br/>
+          العميل هيوصله رسالة في الشات بتفعيل الاشتراك.
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="submit" class="act-btn act-primary" style="flex: 1; padding: 12px;"
+                  onclick="return confirm('تأكيد تفعيل الاشتراك للعميل؟')">
+            ✅ تفعيل الاشتراك دلوقتي
+          </button>
+          <button type="button" class="act-btn act-secondary" style="flex: 0 0 auto; padding: 12px 20px;"
+                  onclick="document.getElementById('manualActivateBox').style.display = 'none';">
+            إلغاء
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
