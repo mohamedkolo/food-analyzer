@@ -2056,6 +2056,116 @@ def admin_user_add_weight(uid):
     return redirect(f"/admin/users/{uid}")
 
 
+@app.route("/admin/users/<int:uid>/manual-activate", methods=["POST"])
+@admin_required
+def admin_manual_activate(uid):
+    """تفعيل اشتراك مدفوع للعميل يدوياً (بعد ما يدفع عبر واتساب)"""
+    target = get_user_by_id(uid)
+    if not target:
+        return redirect("/admin/users")
+
+    try:
+        plan_key = request.form.get("plan_key", "").strip()
+        amount_raw = request.form.get("amount", "0").strip()
+        currency = request.form.get("currency", "EGP").strip()
+        payment_method = request.form.get("payment_method", "other").strip()
+        notes = request.form.get("notes", "").strip()
+
+        # Validate plan
+        if plan_key not in ("consultation", "single_plan", "monthly_subscription"):
+            return redirect(f"/admin/users/{uid}?error=invalid_plan")
+
+        # Validate amount
+        try:
+            amount_value = float(amount_raw or 0)
+            amount_cents = int(amount_value * 100)
+        except:
+            amount_cents = 0
+
+        # Plan duration
+        duration_days_map = {
+            "consultation": 1,
+            "single_plan": 7,
+            "monthly_subscription": 30,
+        }
+        plan_names_map = {
+            "consultation": "استشارة فردية",
+            "single_plan": "خطة واحدة",
+            "monthly_subscription": "اشتراك شهري",
+        }
+        method_names = {
+            "vodafone_cash": "فودافون كاش",
+            "instapay": "InstaPay",
+            "bank_transfer_eg": "تحويل بنكي مصري",
+            "bank_transfer_ae": "تحويل بنكي إماراتي",
+            "cash": "كاش",
+            "other": "طريقة أخرى",
+        }
+
+        duration_days = duration_days_map.get(plan_key, 30)
+        plan_name = plan_names_map.get(plan_key, plan_key)
+        method_name = method_names.get(payment_method, payment_method)
+
+        now = datetime.now()
+        end_date = now + timedelta(days=duration_days)
+
+        # Build metadata
+        metadata = {
+            "manual_activation": True,
+            "payment_method": payment_method,
+            "method_name": method_name,
+            "notes": notes,
+            "activated_by_admin": session.get("uid"),
+        }
+
+        # Insert into payments table (one-time record - always)
+        try:
+            db_run("""INSERT INTO payments 
+                      (user_id, stripe_session_id, plan_key, status, currency, amount, expires_at, metadata)
+                      VALUES (?, ?, ?, 'completed', ?, ?, ?, ?)""",
+                   (uid, f"manual_{uid}_{int(now.timestamp())}", plan_key,
+                    currency, amount_cents, end_date, json.dumps(metadata, ensure_ascii=False)))
+        except Exception as e:
+            print(f"Insert payment error: {e}")
+
+        # If subscription, also insert in subscriptions table
+        if plan_key == "monthly_subscription":
+            try:
+                db_run("""INSERT INTO subscriptions
+                          (user_id, plan_key, status, currency, amount,
+                           current_period_start, current_period_end,
+                           stripe_subscription_id)
+                          VALUES (?, ?, 'active', ?, ?, ?, ?, ?)""",
+                       (uid, plan_key, currency, amount_cents,
+                        now, end_date, f"manual_sub_{uid}_{int(now.timestamp())}"))
+            except Exception as e:
+                print(f"Insert subscription error: {e}")
+
+        # Send notification message to user
+        try:
+            admin = db_row("SELECT id FROM users WHERE role='admin' OR is_admin=1 LIMIT 1")
+            if admin:
+                msg = f"""✅ تم تفعيل اشتراكك بنجاح!
+
+📋 الخطة: {plan_name}
+💰 المبلغ: {amount_value:.0f} {currency}
+💳 طريقة الدفع: {method_name}
+📅 ساري حتى: {end_date.strftime('%Y-%m-%d')}
+
+شكراً لثقتك فينا. تقدر تستخدم كل خدمات الموقع دلوقتي."""
+                db_run("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)",
+                       (admin["id"], uid, msg))
+        except Exception as e:
+            print(f"Send message error: {e}")
+
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        print(f"Manual activate error: {e}")
+        return redirect(f"/admin/users/{uid}?error=activation_failed")
+
+    return redirect(f"/admin/users/{uid}?activated=1")
+
+
 @app.route("/admin/users/<int:uid>/grant-trial", methods=["POST"])
 @admin_required
 def admin_grant_trial(uid):
