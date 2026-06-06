@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .legal-wrap { max-width: 800px; margin: 0 auto; padding: 30px 20px 60px; font-family: 'Cairo', 'Tajawal', system-ui, sans-serif; line-height: 1.8; }
+  .legal-hero { text-align: center; padding: 20px 0 30px; border-bottom: 2px solid #f1f5f9; margin-bottom: 30px; }
+  .legal-hero h1 { font-size: 32px; font-weight: 800; color: #0f172a; margin: 0 0 8px; }
+  .legal-hero p { color: #64748b; font-size: 14px; margin: 0; }
+  .legal-content h2 { font-size: 22px; font-weight: 800; color: #059669; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 2px solid #d1fae5; }
+  .legal-content h3 { font-size: 17px; font-weight: 700; color: #0f172a; margin: 20px 0 8px; }
+  .legal-content p { color: #475569; margin: 0 0 12px; }
+  .legal-content ul { color: #475569; padding-right: 22px; margin: 0 0 16px; }
+  .legal-content ul li { margin-bottom: 6px; }
+  .legal-content strong { color: #0f172a; font-weight: 700; }
+  .contact-box { background: #f0fdf4; border: 2px solid #86efac; border-radius: 14px; padding: 20px; margin-top: 32px; text-align: center; }
+</style>
+
+<div class="legal-wrap">
+  <div class="legal-hero">
+    <h1>🔒 سياسة الخصوصية</h1>
+    <p>آخر تحديث: يونيو 2026</p>
+  </div>
+
+  <div class="legal-content">
+
+    <h2>1. مقدمة</h2>
+    <p>
+      مرحباً بك في موقع <strong>NutraX</strong>. نحن نلتزم بحماية خصوصيتك وبياناتك الشخصية.
+      هذه السياسة توضح كيف نجمع، نستخدم، ونحمي معلوماتك عند استخدامك للموقع.
+    </p>
+
+    <h2>2. البيانات اللي بنجمعها</h2>
+    <h3>أ) بيانات تعريفية</h3>
+    <ul>
+      <li>الاسم الكامل</li>
+      <li>البريد الإلكتروني</li>
+      <li>رقم التليفون</li>
+      <li>البلد والعمر</li>
+    </ul>
+
+    <h3>ب) بيانات صحية</h3>
+    <ul>
+      <li>الطول والوزن</li>
+      <li>الحالات الطبية والحساسية الغذائية</li>
+      <li>الأدوية الحالية (لو ذكرتها)</li>
+      <li>الأهداف الغذائية ومستوى النشاط</li>
+    </ul>
+
+    <h3>ج) بيانات الاستخدام</h3>
+    <ul>
+      <li>الرسائل بينك وبين د. محمد</li>
+      <li>الخطط الغذائية المُولّدة</li>
+      <li>تتبع الوزن</li>
+    </ul>
+
+    <h2>3. كيف نستخدم بياناتك؟</h2>
+    <ul>
+      <li>توليد خطط غذائية مخصصة ومناسبة لحالتك</li>
+      <li>التواصل معك بخصوص اشتراكك أو استفساراتك</li>
+      <li>تحسين تجربتك على الموقع</li>
+      <li>إرسال إشعارات مهمة عن حسابك</li>
+    </ul>
+
+    <h2>4. مشاركة البيانات</h2>
+    <p>
+      <strong>بياناتك آمنة معنا.</strong> نحن لا نبيع أو نشارك بياناتك مع أي طرف ثالث،
+      إلا في الحالات الآتية:
+    </p>
+    <ul>
+      <li>بموافقتك الصريحة</li>
+      <li>للتوافق مع القانون أو طلب رسمي من جهة قضائية</li>
+      <li>مع مزودي الخدمات الأساسية (مثل خدمة الاستضافة) تحت اتفاقيات سرية</li>
+    </ul>
+
+    <h2>5. أمان البيانات</h2>
+    <p>
+      نستخدم تقنيات تشفير حديثة (SSL/HTTPS) لحماية بياناتك أثناء النقل،
+      وقاعدة بيانات آمنة مع نسخ احتياطية دورية. لكن لا يوجد نظام آمن 100%،
+      ولا نستطيع ضمان الأمان المطلق.
+    </p>
+
+    <h2>6. حقوقك</h2>
+    <p>إنت عندك الحق في:</p>
+    <ul>
+      <li><strong>الوصول</strong> لكل بياناتك</li>
+      <li><strong>تعديل</strong> أي معلومة غير دقيقة</li>
+      <li><strong>حذف</strong> حسابك ومسح بياناتك بالكامل</li>
+      <li><strong>تصدير</strong> بياناتك بصيغة قابلة للقراءة</li>
+      <li><strong>سحب الموافقة</strong> على معالجة البيانات في أي وقت</li>
+    </ul>
+
+    <h2>7. ملفات تعريف الارتباط (Cookies)</h2>
+    <p>
+      نستخدم Cookies بسيطة لحفظ جلسة دخولك وتفضيلاتك (مثل العملة المختارة).
+      لا نستخدم cookies لتتبعك أو لأغراض إعلانية.
+    </p>
+
+    <h2>8. الأطفال</h2>
+    <p>
+      موقعنا غير مخصص للأطفال أقل من 13 سنة. لو علمنا إن طفل قدم بياناته،
+      سنحذفها فوراً.
+    </p>
+
+    <h2>9. التغييرات على هذه السياسة</h2>
+    <p>
+      ممكن نحدّث هذه السياسة من وقت لآخر. التغييرات تظهر هنا مع تاريخ التحديث،
+      وننصحك بمراجعة الصفحة دورياً.
+    </p>
+
+    <h2>10. التواصل معنا</h2>
+    <div class="contact-box">
+      <p style="margin: 0 0 8px; font-weight: 700; color: #065f46;">
+        لو عندك أي استفسار، تواصل معنا:
+      </p>
+      <p style="margin: 0; color: #047857;">
+        📧 admin@nutrax.com<br/>
+        📱 واتساب: 01004294521 (مصر) — 0501038664 (الإمارات)
+      </p>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
