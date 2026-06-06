@@ -127,6 +127,7 @@ def init_db():
         "ALTER TABLE users ADD COLUMN disliked_foods TEXT",
         "ALTER TABLE users ADD COLUMN allergies TEXT",
         "ALTER TABLE users ADD COLUMN onboarded_at TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN lifestyle_data TEXT",
     ]:
         try: db_run(col_sql)
         except: pass
@@ -2328,6 +2329,35 @@ def register_wizard():
             allergies = request.form.get("allergies", "[]")
             conditions = request.form.get("conditions", "[]")
 
+            # Lifestyle (NEW - Step 4)
+            sleep_hours = request.form.get("sleep_hours", "").strip()
+            water_cups = request.form.get("water_cups", "").strip()
+            stress_level = request.form.get("stress_level", "").strip()
+            caffeine = request.form.get("caffeine", "").strip()
+            smoking = request.form.get("smoking", "").strip()
+
+            # Medical history (NEW - Step 5)
+            medications = request.form.get("medications", "").strip()
+            past_surgeries = request.form.get("past_surgeries", "").strip()
+            family_diseases = request.form.get("family_diseases", "[]")
+            supplements = request.form.get("supplements", "[]")
+
+            # Build extras JSON
+            try:
+                lifestyle_data = json.dumps({
+                    "sleep_hours": int(sleep_hours) if sleep_hours else None,
+                    "water_cups": int(water_cups) if water_cups else None,
+                    "stress_level": int(stress_level) if stress_level else None,
+                    "caffeine": caffeine,
+                    "smoking": smoking,
+                    "medications": medications,
+                    "past_surgeries": past_surgeries,
+                    "family_diseases": json.loads(family_diseases) if family_diseases else [],
+                    "supplements": json.loads(supplements) if supplements else [],
+                }, ensure_ascii=False)
+            except:
+                lifestyle_data = "{}"
+
             # Validation
             if not all([name, email, password, phone, country, age, gender, height, weight]):
                 return render_template("register.html",
@@ -2365,11 +2395,12 @@ def register_wizard():
             db_run("""INSERT INTO users 
                       (name, email, password, country, age, gender, height, weight, 
                        goal, activity, phone, role, active,
-                       liked_foods, disliked_foods, allergies, conditions, onboarded_at)
-                      VALUES (?,?,?,?,?,?,?,?,?,?,?,'client',1,?,?,?,?,?)""",
+                       liked_foods, disliked_foods, allergies, conditions, onboarded_at, lifestyle_data)
+                      VALUES (?,?,?,?,?,?,?,?,?,?,?,'client',1,?,?,?,?,?,?)""",
                    (name, email, hp(password), country, age_v, gender,
                     height_v, weight_v, goal, activity_v, phone,
-                    liked_foods, disliked_foods, allergies, conditions, datetime.now()))
+                    liked_foods, disliked_foods, allergies, conditions, datetime.now(),
+                    lifestyle_data))
 
             # Auto login - get the new user
             new_user = get_user(email, password)
