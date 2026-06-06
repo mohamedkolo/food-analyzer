@@ -66,7 +66,39 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:89}
 .sidebar-overlay.show{display:block}
-@media(max-width:768px){.menu-toggle{display:flex}.sidebar{transform:translateX(100%);width:85%}.sidebar.open{transform:translateX(0)}.main{margin-right:0;padding:16px 14px 80px}.grid-2,.grid-3{grid-template-columns:1fr 1fr}}
+
+/* ═══════════════════════════════════════════════════════ */
+/* NUTRAX FOOTER                                            */
+/* ═══════════════════════════════════════════════════════ */
+.nx-footer{background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#e2e8f0;padding:40px 24px 24px;margin-right:var(--sidebar-w);margin-top:60px;font-family:'Cairo',sans-serif}
+.nx-footer-inner{max-width:1100px;margin:0 auto}
+.nx-footer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:32px;margin-bottom:28px}
+.nx-footer-col h4{font-size:15px;font-weight:800;color:#fff;margin:0 0 14px;padding-bottom:8px;border-bottom:2px solid #16a34a;display:inline-flex;align-items:center;gap:8px}
+.nx-footer-col h4 i{color:#16a34a}
+.nx-footer-col p{font-size:13px;line-height:1.7;color:#94a3b8;margin:0 0 12px}
+.nx-footer-col ul{list-style:none;padding:0;margin:0}
+.nx-footer-col ul li{margin-bottom:8px}
+.nx-footer-col ul li a{color:#cbd5e1;text-decoration:none;font-size:13px;transition:color .2s;display:inline-flex;align-items:center;gap:8px}
+.nx-footer-col ul li a i{font-size:12px;color:#16a34a;min-width:14px}
+.nx-footer-col ul li a:hover{color:#4ade80}
+.nx-footer-contact{display:flex;flex-direction:column;gap:8px}
+.nx-footer-contact a{display:flex;align-items:center;gap:10px;color:#cbd5e1;text-decoration:none;font-size:13px;padding:9px 12px;background:rgba(255,255,255,.05);border-radius:10px;transition:all .2s}
+.nx-footer-contact a i{font-size:14px;color:#4ade80}
+.nx-footer-contact a:hover{background:rgba(74,222,128,.15);color:#4ade80;transform:translateX(-4px)}
+.nx-disclaimer{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:10px;padding:10px 14px;font-size:11px;color:#fcd34d;margin-top:12px;line-height:1.6}
+.nx-footer-bottom{padding-top:20px;border-top:1px solid rgba(255,255,255,.1);text-align:center;color:#64748b;font-size:12px;line-height:1.7}
+.nx-footer-bottom strong{color:#4ade80}
+.nx-footer-bottom .small{font-size:11px;color:#475569;margin-top:4px}
+
+@media(max-width:768px){
+  .menu-toggle{display:flex}
+  .sidebar{transform:translateX(100%);width:85%}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-right:0;padding:16px 14px 80px}
+  .grid-2,.grid-3{grid-template-columns:1fr 1fr}
+  .nx-footer{margin-right:0;padding:30px 16px 20px}
+  .nx-footer-grid{gap:24px;margin-bottom:20px}
+}
 </style>
 {% block extra_style %}{% endblock %}
 </head>
@@ -182,6 +214,70 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 <main class="main">
   {% block content %}{% endblock %}
 </main>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- NUTRAX FOOTER                                            -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<footer class="nx-footer">
+  <div class="nx-footer-inner">
+    <div class="nx-footer-grid">
+
+      <!-- عن الموقع -->
+      <div class="nx-footer-col">
+        <h4><i class="fa-solid fa-leaf"></i> {{ 'عن NutraX' if is_ar else 'About NutraX' }}</h4>
+        <p>{{ 'منصة متخصصة في التغذية العلاجية والإكلينيكية، بنقدم خطط غذائية مخصصة ومتابعة شخصية مع د. محمد كولو، أخصائي تغذية إكلينيكية.' if is_ar else 'A specialized platform for clinical nutrition, offering personalized diet plans and follow-up with Dr. Mohamed Kolo.' }}</p>
+      </div>
+
+      <!-- روابط مهمة -->
+      <div class="nx-footer-col">
+        <h4><i class="fa-solid fa-link"></i> {{ 'روابط مهمة' if is_ar else 'Quick Links' }}</h4>
+        <ul>
+          <li><a href="/"><i class="fa-solid fa-house"></i> {{ 'الرئيسية' if is_ar else 'Home' }}</a></li>
+          <li><a href="/pricing"><i class="fa-solid fa-gem"></i> {{ 'الأسعار' if is_ar else 'Pricing' }}</a></li>
+          <li><a href="/analyzer"><i class="fa-solid fa-magnifying-glass"></i> {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}</a></li>
+          <li><a href="/knowledge"><i class="fa-solid fa-book-open"></i> {{ 'مركز المعرفة' if is_ar else 'Knowledge' }}</a></li>
+        </ul>
+      </div>
+
+      <!-- قانونية -->
+      <div class="nx-footer-col">
+        <h4><i class="fa-solid fa-scale-balanced"></i> {{ 'قانونية' if is_ar else 'Legal' }}</h4>
+        <ul>
+          <li><a href="/privacy"><i class="fa-solid fa-lock"></i> {{ 'سياسة الخصوصية' if is_ar else 'Privacy Policy' }}</a></li>
+          <li><a href="/terms"><i class="fa-solid fa-file-contract"></i> {{ 'شروط الاستخدام' if is_ar else 'Terms of Use' }}</a></li>
+        </ul>
+        <div class="nx-disclaimer">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          {{ 'المحتوى للإرشاد العام - راجع طبيبك للحالات الخاصة' if is_ar else 'Content is for general guidance - consult your doctor for special cases' }}
+        </div>
+      </div>
+
+      <!-- تواصل -->
+      <div class="nx-footer-col">
+        <h4><i class="fa-solid fa-headset"></i> {{ 'تواصل معنا' if is_ar else 'Contact Us' }}</h4>
+        <div class="nx-footer-contact">
+          <a href="https://wa.me/201004294521" target="_blank" rel="noopener">
+            <i class="fa-brands fa-whatsapp"></i> {{ '🇪🇬 مصر: 01004294521' if is_ar else '🇪🇬 Egypt: +20 100 4294521' }}
+          </a>
+          <a href="https://wa.me/971501038664" target="_blank" rel="noopener">
+            <i class="fa-brands fa-whatsapp"></i> {{ '🇦🇪 الإمارات: 0501038664' if is_ar else '🇦🇪 UAE: +971 50 1038664' }}
+          </a>
+          <a href="mailto:admin@nutrax.com">
+            <i class="fa-solid fa-envelope"></i> admin@nutrax.com
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- الـ Bottom Bar -->
+    <div class="nx-footer-bottom">
+      {{ 'جميع الحقوق محفوظة' if is_ar else 'All rights reserved' }} &copy; 2026 <strong>NutraX</strong> — {{ 'د. محمد كولو' if is_ar else 'Dr. Mohamed Kolo' }}
+      <div class="small">{{ 'أخصائي تغذية إكلينيكية معتمد' if is_ar else 'Certified Clinical Nutritionist' }}</div>
+    </div>
+
+  </div>
+</footer>
 
 <script>
 function toggleSidebar(){
