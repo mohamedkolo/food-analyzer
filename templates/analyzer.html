@@ -1,189 +1,406 @@
 {% extends "base.html" %}
-{% block title %}{{ 'محلل الطعام' if (lang or 'ar')=='ar' else 'Food Analyzer' }}{% endblock %}
-
-{% block extra_style %}
-<style>
-.food-card{background:#fff;border:1.5px solid var(--gray-2);border-radius:14px;padding:14px 16px;margin-bottom:10px;border-right:4px solid var(--blue-light);transition:all .2s}
-.food-card:hover{box-shadow:0 3px 14px rgba(37,99,235,.1)}
-.pill{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;display:inline-block}
-.pill-p{background:#dcfce7;color:#166534}
-.pill-c{background:#fef3c7;color:#92400e}
-.pill-f{background:#fee2e2;color:#991b1b}
-</style>
-{% endblock %}
-
 {% block content %}
-{% set is_ar = (lang or 'ar') == 'ar' %}
 
-<div class="page-title">
-  <i class="fa-solid fa-magnifying-glass"></i>
-  {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
-</div>
+<style>
+  .anlz-wrap { max-width: 900px; margin: 0 auto; padding: 20px 16px 60px; font-family: 'Cairo', 'Tajawal', system-ui, sans-serif; }
+  .anlz-hero { text-align: center; padding: 20px 0 24px; }
+  .anlz-hero h1 { font-size: 28px; font-weight: 800; color: #0f172a; margin: 0 0 8px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .anlz-hero p { color: #64748b; font-size: 15px; margin: 0; }
 
-<div class="card">
-  <div class="grid-2" style="gap:10px;margin-bottom:10px">
-    <div class="form-group" style="margin:0">
-      <label class="form-label">
-        <i class="fa-solid fa-search"></i>
-        {{ 'ابحث عن طعام' if is_ar else 'Search food' }}
-      </label>
-      <input class="form-input" type="text" id="searchInput" oninput="filterFoods()"
-        placeholder="{{ 'دجاج، سلمون، شوفان...' if is_ar else 'chicken, salmon, oats...' }}">
-    </div>
-    <div class="form-group" style="margin:0">
-      <label class="form-label">
-        <i class="fa-solid fa-filter"></i>
-        {{ 'الفئة' if is_ar else 'Category' }}
-      </label>
-      <select class="form-select" id="catSelect" onchange="filterFoods()">
-        <option value="">{{ 'الكل' if is_ar else 'All' }}</option>
-        <option value="poultry">{{ 'دواجن' if is_ar else 'Poultry' }}</option>
-        <option value="meat">{{ 'لحوم حمراء' if is_ar else 'Red Meat' }}</option>
-        <option value="fish">{{ 'أسماك' if is_ar else 'Fish' }}</option>
-        <option value="eggs">{{ 'بيض' if is_ar else 'Eggs' }}</option>
-        <option value="dairy">{{ 'ألبان' if is_ar else 'Dairy' }}</option>
-        <option value="grains">{{ 'حبوب' if is_ar else 'Grains' }}</option>
-        <option value="legumes">{{ 'بقوليات' if is_ar else 'Legumes' }}</option>
-        <option value="nuts">{{ 'مكسرات' if is_ar else 'Nuts' }}</option>
-        <option value="fruit">{{ 'فاكهة' if is_ar else 'Fruit' }}</option>
-        <option value="veg">{{ 'خضروات' if is_ar else 'Vegetables' }}</option>
-        <option value="egyptian">{{ 'مصري' if is_ar else 'Egyptian' }}</option>
-      </select>
+  .search-box {
+    position: relative;
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    border: 2px solid #e2e8f0;
+    margin-bottom: 16px;
+  }
+  .search-input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    font-size: 17px;
+    font-family: inherit;
+    background: transparent;
+    padding: 4px 0;
+    color: #0f172a;
+  }
+  .search-input::placeholder { color: #94a3b8; }
+
+  .cat-strip {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 8px 4px 16px;
+    scrollbar-width: thin;
+  }
+  .cat-chip {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .cat-chip:hover { border-color: #10b981; }
+  .cat-chip.active {
+    background: #10b981;
+    color: #fff;
+    border-color: #10b981;
+  }
+
+  .results-count {
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+    margin: 8px 0 16px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #94a3b8;
+  }
+  .empty-state .emoji { font-size: 60px; margin-bottom: 12px; }
+  .empty-state h3 { font-size: 18px; color: #475569; margin: 0 0 6px; font-weight: 700; }
+  .empty-state p { margin: 0; font-size: 14px; }
+
+  .food-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    border: 1px solid #f1f5f9;
+    transition: all 0.2s;
+  }
+  .food-card:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    border-color: #10b981;
+  }
+
+  .food-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+  .food-name { font-size: 19px; font-weight: 800; color: #0f172a; margin: 0; }
+  .food-cal {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 15px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .food-cal small { font-size: 10px; font-weight: 600; opacity: 0.9; }
+
+  .macros { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .macro-pill {
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .m-prot { background: #d1fae5; color: #065f46; }
+  .m-carb { background: #fef3c7; color: #92400e; }
+  .m-fat { background: #fee2e2; color: #991b1b; }
+
+  .qty-section {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 14px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    align-items: center;
+  }
+  .qty-label { font-size: 13px; font-weight: 700; color: #475569; }
+  .qty-input {
+    width: 90px;
+    padding: 8px 12px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    font-weight: 600;
+    text-align: center;
+  }
+  .qty-input:focus { outline: 0; border-color: #10b981; }
+
+  .qty-result {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    text-align: center;
+    font-size: 12px;
+  }
+  .qty-result > div { padding: 4px; }
+  .qty-result strong { display: block; font-size: 15px; color: #0f172a; }
+  .qty-result span { color: #64748b; font-size: 10px; }
+
+  .food-note {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #fef3c7;
+    border-right: 3px solid #f59e0b;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #78350f;
+    line-height: 1.6;
+  }
+  .food-tip {
+    margin-top: 8px;
+    padding: 10px 14px;
+    background: #dbeafe;
+    border-right: 3px solid #3b82f6;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #1e40af;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 600px) {
+    .qty-section { grid-template-columns: 1fr; }
+    .qty-result { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+
+<div class="anlz-wrap">
+
+  <div class="anlz-hero">
+    <h1>🔍 محلل الطعام</h1>
+    <p>اكتب اسم الطعام لتشوف معلوماته الغذائية كاملة</p>
+  </div>
+
+  <div class="search-box">
+    <input type="text" class="search-input" id="searchInput"
+           placeholder="🔍 ابحث... (مثلاً: دجاج، أرز، تفاح)">
+  </div>
+
+  <div class="cat-strip" id="catStrip">
+    <span class="cat-chip" data-cat="">📋 كل الفئات</span>
+    <span class="cat-chip" data-cat="poultry">🍗 دواجن</span>
+    <span class="cat-chip" data-cat="meat">🥩 لحوم</span>
+    <span class="cat-chip" data-cat="fish">🐟 أسماك</span>
+    <span class="cat-chip" data-cat="dairy">🥛 ألبان وبيض</span>
+    <span class="cat-chip" data-cat="grain">🌾 نشويات</span>
+    <span class="cat-chip" data-cat="veg">🥗 خضار</span>
+    <span class="cat-chip" data-cat="fruit">🍎 فاكهة</span>
+    <span class="cat-chip" data-cat="nut">🌰 مكسرات وزيوت</span>
+  </div>
+
+  <div class="results-count" id="resultsCount" style="display:none;"></div>
+
+  <div id="resultsContainer">
+    <div class="empty-state" id="emptyState">
+      <div class="emoji">🔍</div>
+      <h3>ابدأ بكتابة اسم الطعام</h3>
+      <p>أو اختار فئة من فوق لتظهر الأطعمة</p>
     </div>
   </div>
-  <div id="resultCount" style="font-size:13px;color:var(--muted)"></div>
+
 </div>
 
-<div id="foodList"></div>
-
 <script>
-const IS_AR = {{ 'true' if is_ar else 'false' }};
-const GR = IS_AR ? 'ج' : 'g';
-
 const FOODS = [
-  {k:'chicken_breast', ar:'صدر دجاج', en:'Chicken Breast', cal:165, p:31, c:0, f:3.6, cat:'poultry', note_ar:'مصدر ممتاز للبروتين الكامل قليل الدهون', note_en:'Excellent complete protein source, low fat', tip_ar:'افضل طريقه شوى او بخار', tip_en:'Best grilled or steamed'},
-  {k:'chicken_thigh', ar:'فخذ دجاج', en:'Chicken Thigh', cal:209, p:26, c:0, f:10, cat:'poultry', note_ar:'اعلى في الدهون الصحية من الصدر', note_en:'Higher in healthy fats than breast', tip_ar:'مناسب للرياضيين', tip_en:'Great for athletes'},
-  {k:'chicken_liver', ar:'كبدة دجاج', en:'Chicken Liver', cal:119, p:17, c:0.7, f:4.8, cat:'poultry', note_ar:'غنية بالحديد وفيتامين B12', note_en:'Rich in iron and vitamin B12', tip_ar:'مرة او مرتين اسبوعيا', tip_en:'Once or twice weekly'},
-  {k:'beef_steak', ar:'ستيك لحم بقري', en:'Beef Steak', cal:271, p:25, c:0, f:19, cat:'meat', note_ar:'مصدر ممتاز للزنك والحديد الهيمي', note_en:'Excellent source of zinc and heme iron', tip_ar:'اختر قطع lean', tip_en:'Choose lean cuts'},
-  {k:'lamb_leg', ar:'لحم ضان ساق', en:'Lamb Leg', cal:258, p:26, c:0, f:17, cat:'meat', note_ar:'غني بالزنك والحديد والكارنيتين', note_en:'Rich in zinc, iron, and carnitine', tip_ar:'مصدر ممتاز للكارنيتين', tip_en:'Excellent carnitine source'},
-  {k:'beef_liver', ar:'كبدة بقري', en:'Beef Liver', cal:135, p:20, c:4, f:3.6, cat:'meat', note_ar:'اغنى مصدر طبيعي للحديد وB12', note_en:'Richest natural source of iron and B12', tip_ar:'وجبة واحدة اسبوعيا تكفي', tip_en:'One meal per week is enough'},
-  {k:'salmon', ar:'سلمون', en:'Salmon', cal:208, p:20, c:0, f:13, cat:'fish', note_ar:'غني باوميغا 3 يقلل الالتهابات', note_en:'Rich in omega-3, reduces inflammation', tip_ar:'مرتين اسبوعيا', tip_en:'Twice weekly'},
-  {k:'tuna_fresh', ar:'تونة طازجة', en:'Fresh Tuna', cal:144, p:30, c:0, f:2.5, cat:'fish', note_ar:'بروتين عالي جدا مع دهون منخفضة', note_en:'Very high protein with low fat', tip_ar:'ممتازة لبناء العضل', tip_en:'Excellent for muscle building'},
-  {k:'tuna_canned', ar:'تونة معلبة', en:'Canned Tuna', cal:116, p:26, c:0, f:1, cat:'fish', note_ar:'اقتصادية ومريحة وبروتين عالي', note_en:'Economical and convenient, high protein', tip_ar:'فضل في ماء مش زيت', tip_en:'Prefer in water not oil'},
-  {k:'sardine', ar:'سردين معلب', en:'Canned Sardine', cal:208, p:25, c:0, f:11, cat:'fish', note_ar:'غني بالكالسيوم واوميغا 3', note_en:'Rich in calcium and omega-3', tip_ar:'مع العظام كالسيوم اعلى', tip_en:'With bones for more calcium'},
-  {k:'shrimp', ar:'جمبري', en:'Shrimp', cal:99, p:24, c:0.2, f:0.3, cat:'fish', note_ar:'بروتين عالي جدا وسعرات منخفضة', note_en:'Very high protein, low calories', tip_ar:'غني بالايودين', tip_en:'Rich in iodine'},
-  {k:'white_fish', ar:'سمك ابيض بلطي', en:'White Fish', cal:96, p:20, c:0, f:1.7, cat:'fish', note_ar:'سمك عملي وبسعر مناسب', note_en:'Practical and affordable fish', tip_ar:'يمكن طهيه بطرق متعددة', tip_en:'Can be cooked many ways'},
-  {k:'eggs_whole', ar:'بيضة كاملة', en:'Whole Egg', cal:78, p:6, c:0.6, f:5, cat:'eggs', note_ar:'معيار الذهب للبروتين', note_en:'Gold standard for protein', tip_ar:'الصفار غني بالكولين', tip_en:'Yolk rich in choline'},
-  {k:'egg_whites', ar:'بياض بيض', en:'Egg Whites', cal:17, p:3.6, c:0.2, f:0.1, cat:'eggs', note_ar:'بروتين نقي تقريبا', note_en:'Almost pure protein', tip_ar:'4 بياضات = 15 جرام بروتين', tip_en:'4 whites = 15g protein'},
-  {k:'greek_yogurt', ar:'زبادي يوناني', en:'Greek Yogurt', cal:59, p:10, c:3.6, f:0.4, cat:'dairy', note_ar:'بروبيوتيك وبروتين عالي', note_en:'Probiotic and high protein', tip_ar:'اختر غير محلى', tip_en:'Choose unsweetened'},
-  {k:'cottage_cheese', ar:'جبن قريش', en:'Cottage Cheese', cal:98, p:11, c:3.4, f:4.3, cat:'dairy', note_ar:'بروتين بطيء الهضم ممتاز قبل النوم', note_en:'Slow-digesting protein, great before bed', tip_ar:'مع العسل او الخيار', tip_en:'With honey or cucumber'},
-  {k:'milk_skim', ar:'حليب خالي الدسم', en:'Skim Milk', cal:35, p:3.4, c:5, f:0.1, cat:'dairy', note_ar:'نفس كالسيوم الحليب الكامل بسعرات اقل', note_en:'Same calcium as whole milk, fewer calories', tip_ar:'جيد بعد التمرين', tip_en:'Good after workout'},
-  {k:'oats', ar:'شوفان', en:'Oats', cal:389, p:16.9, c:66, f:6.9, cat:'grains', note_ar:'بيتا جلوكان يخفض الكوليسترول', note_en:'Beta-glucan lowers cholesterol', tip_ar:'افضل افطار لبناء اليوم', tip_en:'Best breakfast to start the day'},
-  {k:'rice_brown', ar:'ارز بني', en:'Brown Rice', cal:111, p:2.6, c:23, f:0.9, cat:'grains', note_ar:'اعلى الياف من الارز الابيض', note_en:'More fiber than white rice', tip_ar:'افضل للتحكم في سكر الدم', tip_en:'Better for blood sugar control'},
-  {k:'rice_white', ar:'ارز ابيض', en:'White Rice', cal:130, p:2.7, c:28, f:0.3, cat:'grains', note_ar:'كارب سريع الهضم مصدر طاقة', note_en:'Fast-digesting carb, energy source', tip_ar:'افضل وقت بعد التمرين', tip_en:'Best timing after workout'},
-  {k:'sweet_potato', ar:'بطاطا حلوة', en:'Sweet Potato', cal:86, p:1.6, c:20, f:0.1, cat:'grains', note_ar:'غني بالبيتا كاروتين والالياف', note_en:'Rich in beta-carotene and fiber', tip_ar:'الشوي في الفرن افضل', tip_en:'Baking is best'},
-  {k:'lentils', ar:'عدس', en:'Lentils', cal:116, p:9, c:20, f:0.4, cat:'legumes', note_ar:'بروتين والياف وحديد في مكان واحد', note_en:'Protein, fiber and iron in one place', tip_ar:'كشري = بروتين كامل نباتي', tip_en:'With rice = complete plant protein'},
-  {k:'fava_beans', ar:'فول مدمس', en:'Fava Beans', cal:110, p:7.6, c:20, f:0.5, cat:'legumes', note_ar:'الافطار الوطني المصري بروتين والياف', note_en:'Egyptian national breakfast, protein and fiber', tip_ar:'زيت زيتون وليمون يرفعان قيمته', tip_en:'Olive oil and lemon boost its value'},
-  {k:'chickpeas', ar:'حمص', en:'Chickpeas', cal:164, p:8.9, c:27, f:2.6, cat:'legumes', note_ar:'ينظم سكر الدم والياف عالية', note_en:'Regulates blood sugar, high fiber', tip_ar:'انقعه الليل يسهل الهضم', tip_en:'Soak overnight for easier digestion'},
-  {k:'almonds', ar:'لوز', en:'Almonds', cal:579, p:21, c:22, f:50, cat:'nuts', note_ar:'غني بالمغنيسيوم وفيتامين E', note_en:'Rich in magnesium and vitamin E', tip_ar:'28 جرام يوميا تكفي', tip_en:'28g daily is enough'},
-  {k:'walnuts', ar:'جوز', en:'Walnuts', cal:654, p:15, c:14, f:65, cat:'nuts', note_ar:'المصدر النباتي الاغنى باوميغا 3', note_en:'Richest plant source of omega-3', tip_ar:'7 حبات يوميا', tip_en:'7 walnuts daily'},
-  {k:'olive_oil', ar:'زيت زيتون', en:'Olive Oil', cal:884, p:0, c:0, f:100, cat:'nuts', note_ar:'73 بالمئة دهون احادية غير مشبعة', note_en:'73% monounsaturated fats', tip_ar:'بكر ممتاز للسلطات', tip_en:'Extra virgin for salads'},
-  {k:'banana', ar:'موز', en:'Banana', cal:89, p:1.1, c:23, f:0.3, cat:'fruit', note_ar:'طاقة فورية طبيعية للرياضيين', note_en:'Natural quick energy for athletes', tip_ar:'قبل التمرين بـ 30 دقيقة', tip_en:'30 minutes before workout'},
-  {k:'apple', ar:'تفاح', en:'Apple', cal:52, p:0.3, c:14, f:0.2, cat:'fruit', note_ar:'بيكتين يغذي بكتيريا الامعاء', note_en:'Pectin feeds gut bacteria', tip_ar:'بالقشر الالياف اكثر', tip_en:'With skin for more fiber'},
-  {k:'dates', ar:'تمر', en:'Dates', cal:277, p:1.8, c:75, f:0.2, cat:'fruit', note_ar:'طاقة طبيعية فورية وحديد', note_en:'Natural quick energy and iron', tip_ar:'3 تمرات قبل التمرين', tip_en:'3 dates before workout'},
-  {k:'pomegranate', ar:'رمان', en:'Pomegranate', cal:83, p:1.7, c:19, f:1.2, cat:'fruit', note_ar:'من اقوى مضادات الاكسدة', note_en:'One of the strongest antioxidants', tip_ar:'يحسن اداء التمرين', tip_en:'Improves exercise performance'},
-  {k:'broccoli', ar:'بروكلي', en:'Broccoli', cal:34, p:2.8, c:7, f:0.4, cat:'veg', note_ar:'سوبر فود غني بالكالسيوم', note_en:'Superfood rich in calcium', tip_ar:'الطهي بالبخار يحافظ على قيمته', tip_en:'Steam to preserve nutrients'},
-  {k:'spinach', ar:'سبانخ', en:'Spinach', cal:23, p:2.9, c:3.6, f:0.4, cat:'veg', note_ar:'حديد وكالسيوم وماغنيسيوم', note_en:'Iron, calcium, and magnesium', tip_ar:'ليمون يساعد امتصاص الحديد', tip_en:'Lemon helps iron absorption'},
-  {k:'tomato', ar:'طماطم', en:'Tomato', cal:18, p:0.9, c:3.9, f:0.2, cat:'veg', note_ar:'لايكوبين مضاد اكسدة قوي', note_en:'Lycopene is a powerful antioxidant', tip_ar:'الطهي يرفع محتوى اللايكوبين', tip_en:'Cooking increases lycopene'},
-  {k:'cucumber', ar:'خيار', en:'Cucumber', cal:16, p:0.6, c:4, f:0.1, cat:'veg', note_ar:'96 بالمئة ماء مرطب ممتاز', note_en:'96% water, excellent hydration', tip_ar:'وجبة خفيفة مثالية للتنشيف', tip_en:'Perfect light snack for cutting'},
-  {k:'molokhia', ar:'ملوخية', en:'Molokhia', cal:44, p:4.8, c:8, f:0.6, cat:'egyptian', note_ar:'سوبر فود مصري حديد وكالسيوم', note_en:'Egyptian superfood, iron and calcium', tip_ar:'ثوم وليمون يرفعان امتصاص المعادن', tip_en:'Garlic and lemon boost mineral absorption'},
-  {k:'hummus', ar:'حمص بطحينة', en:'Hummus', cal:166, p:7.9, c:14, f:9.6, cat:'egyptian', note_ar:'دهون صحية وبروتين والياف', note_en:'Healthy fats, protein and fiber', tip_ar:'مع الخبز الاسمر وجبة متكاملة', tip_en:'With whole wheat bread for complete meal'},
-  {k:'falafel', ar:'فلافل', en:'Falafel', cal:333, p:13, c:32, f:18, cat:'egyptian', note_ar:'بروتين نباتي جيد لكن القلي يرفع الدهون', note_en:'Good plant protein but frying adds fat', tip_ar:'المخبوزة افضل بكثير', tip_en:'Baked is much better'},
+  // 🍗 دواجن
+  {n:"صدر دجاج", cat:"poultry", cal:165, p:31, c:0, f:3.6, note:"مصدر ممتاز للبروتين الكامل بدون دهون.", tip:"💡 أفضل طريقة: شوي أو بخار."},
+  {n:"فخذ دجاج", cat:"poultry", cal:209, p:26, c:0, f:11, note:"بروتين عالي مع دهون متوسطة.", tip:"💡 اشيل الجلد لتقليل الدهون."},
+  {n:"كبدة دجاج", cat:"poultry", cal:172, p:25, c:1, f:6.5, note:"غنية بالحديد وفيتامين A.", tip:"⚠️ ممنوع للحامل وأمراض الكلى."},
+  {n:"ديك رومي", cat:"poultry", cal:135, p:30, c:0, f:1, note:"بروتين عالي وقليل الدهون.", tip:"💡 ممتاز للتخسيس."},
+  {n:"بط (بدون جلد)", cat:"poultry", cal:201, p:23, c:0, f:11, note:"بروتين عالي مع دهون.", tip:"💡 شيل الجلد دايماً."},
+
+  // 🥩 لحوم
+  {n:"لحم بقري قليل الدهن", cat:"meat", cal:217, p:26, c:0, f:12, note:"غني بالحديد والزنك وB12.", tip:"💡 الحصة المناسبة 150-200g."},
+  {n:"لحم بقري مفروم", cat:"meat", cal:250, p:26, c:0, f:15, note:"اختار قليل الدهن 90/10.", tip:"💡 ممتاز للبرجر والكفتة."},
+  {n:"لحم ضأن", cat:"meat", cal:294, p:25, c:0, f:21, note:"دهون أعلى من البقري.", tip:"⚠️ قلل الكمية لو عندك كولسترول."},
+  {n:"كبدة بقري", cat:"meat", cal:135, p:21, c:4, f:4, note:"كنز من الحديد وفيتامين A.", tip:"⚠️ مرة أسبوعياً كحد أقصى."},
+  {n:"لانشون بقري", cat:"meat", cal:300, p:13, c:5, f:25, note:"مصنّع - دهون وملح عاليين.", tip:"⚠️ تقليل الاستهلاك."},
+
+  // 🐟 أسماك
+  {n:"سمك بلطي", cat:"fish", cal:128, p:26, c:0, f:2.7, note:"بروتين عالي وقليل الدهن.", tip:"💡 الأنسب للتخسيس."},
+  {n:"سلمون", cat:"fish", cal:208, p:20, c:0, f:13, note:"أوميجا 3 عالية جداً.", tip:"💡 مرتين أسبوعياً مفيد للقلب."},
+  {n:"تونة معلبة (ماء)", cat:"fish", cal:116, p:26, c:0, f:1, note:"بروتين سريع وعملي.", tip:"💡 اختار بالماء مش الزيت."},
+  {n:"سردين", cat:"fish", cal:208, p:25, c:0, f:11, note:"غني بأوميجا 3 والكالسيوم.", tip:"💡 ممتاز للعظام."},
+  {n:"جمبري", cat:"fish", cal:99, p:24, c:0.2, f:0.3, note:"بروتين عالي وقليل السعرات.", tip:"⚠️ يحتوي كولسترول - اعتدل."},
+  {n:"قشري (سي بريم)", cat:"fish", cal:135, p:26, c:0, f:3, note:"بروتين عالي.", tip:"💡 شوي أو فرن."},
+
+  // 🥛 ألبان وبيض
+  {n:"بيضة (كاملة)", cat:"dairy", cal:155, p:13, c:1.1, f:11, note:"بروتين متكامل.", tip:"💡 2-3 بيضات في اليوم آمن."},
+  {n:"بياض بيض", cat:"dairy", cal:52, p:11, c:0.7, f:0.2, note:"بروتين خالص بدون دهون.", tip:"💡 الأنسب لكمال الأجسام."},
+  {n:"جبن قريش", cat:"dairy", cal:98, p:11, c:3.4, f:4.3, note:"قليل الدهن وعالي البروتين.", tip:"💡 خفيف وممتاز للفطار."},
+  {n:"جبنة فيتا", cat:"dairy", cal:264, p:14, c:4, f:21, note:"كالسيوم عالي.", tip:"⚠️ ملح عالي - قلل الكمية."},
+  {n:"زبادي خالي الدسم", cat:"dairy", cal:59, p:10, c:3.6, f:0.4, note:"بروتين وبروبيوتيك.", tip:"💡 ممتاز كسناك."},
+  {n:"زبادي يوناني", cat:"dairy", cal:97, p:9, c:3.6, f:5, note:"بروتين أعلى من العادي.", tip:"💡 ممتاز قبل النوم."},
+  {n:"لبن قليل الدسم", cat:"dairy", cal:42, p:3.4, c:5, f:1, note:"كالسيوم وبروتين.", tip:"💡 كوب يومياً مفيد."},
+  {n:"جبنة موزاريلا", cat:"dairy", cal:280, p:28, c:3.1, f:17, note:"بروتين عالي.", tip:"💡 اختار قليل الدسم."},
+
+  // 🌾 نشويات
+  {n:"أرز أبيض مطبوخ", cat:"grain", cal:130, p:2.7, c:28, f:0.3, note:"كارب سريع للطاقة.", tip:"⚠️ مريض السكر يقلل."},
+  {n:"أرز بسمتي", cat:"grain", cal:121, p:3, c:25, f:0.4, note:"مؤشر سكر أقل من الأبيض.", tip:"💡 أنسب للسكر والتخسيس."},
+  {n:"أرز بني", cat:"grain", cal:111, p:2.6, c:23, f:0.9, note:"ألياف عالية.", tip:"💡 الخيار الأمثل للريجيم."},
+  {n:"مكرونة مسلوقة", cat:"grain", cal:131, p:5, c:25, f:1.1, note:"كارب وبروتين.", tip:"💡 الكمية المثالية 75g قبل السلق."},
+  {n:"عيش بلدي", cat:"grain", cal:265, p:9, c:55, f:1.5, note:"كارب وألياف.", tip:"💡 أرغفة صغيرة - ربع رغيف بالوجبة."},
+  {n:"عيش سن", cat:"grain", cal:247, p:13, c:41, f:3, note:"بروتين وألياف أعلى.", tip:"💡 أفضل من الأبيض."},
+  {n:"شوفان", cat:"grain", cal:389, p:17, c:66, f:7, note:"ألياف بيتا جلوكان للكولسترول.", tip:"💡 30-40g للفطار مع لبن."},
+  {n:"بطاطس مسلوقة", cat:"grain", cal:87, p:1.9, c:20, f:0.1, note:"كارب صحي.", tip:"💡 اشيل القشرة لتقليل البوتاسيوم."},
+  {n:"بطاطا حلوة", cat:"grain", cal:86, p:1.6, c:20, f:0.1, note:"فيتامين A عالي.", tip:"💡 ممتازة قبل التدريب."},
+  {n:"كينوا", cat:"grain", cal:120, p:4.4, c:21, f:1.9, note:"بروتين كامل ونشويات.", tip:"💡 بديل ممتاز للأرز."},
+
+  // 🥗 خضار
+  {n:"خس", cat:"veg", cal:15, p:1.4, c:2.9, f:0.2, note:"قليل السعرات وألياف.", tip:"💡 لا تنسى السلطة."},
+  {n:"خيار", cat:"veg", cal:16, p:0.7, c:3.6, f:0.1, note:"ماء عالي وقليل السعرات.", tip:"💡 سناك ممتاز."},
+  {n:"طماطم", cat:"veg", cal:18, p:0.9, c:3.9, f:0.2, note:"ليكوبين مضاد أكسدة.", tip:"💡 مفيد للقلب والبروستاتا."},
+  {n:"جزر", cat:"veg", cal:41, p:0.9, c:9.6, f:0.2, note:"فيتامين A للعين.", tip:"💡 مفيد نيء أو مطبوخ."},
+  {n:"بروكلي", cat:"veg", cal:34, p:2.8, c:7, f:0.4, note:"فيتامين C وألياف عالية.", tip:"💡 سوبر فود - أكله 3 مرات أسبوع."},
+  {n:"سبانخ", cat:"veg", cal:23, p:2.9, c:3.6, f:0.4, note:"حديد وفولات.", tip:"⚠️ مرضى الكلى يقللوا."},
+  {n:"فلفل ألوان", cat:"veg", cal:31, p:1, c:6, f:0.3, note:"فيتامين C عالي جداً.", tip:"💡 ضعفي عدد البرتقالة."},
+  {n:"كوسة", cat:"veg", cal:17, p:1.2, c:3.1, f:0.3, note:"قليل السعرات.", tip:"💡 بديل ممتاز للمكرونة."},
+  {n:"باذنجان", cat:"veg", cal:25, p:1, c:6, f:0.2, note:"ألياف وأنتوسيانين.", tip:"💡 شوي أفضل من قلي."},
+
+  // 🍎 فاكهة
+  {n:"تفاحة", cat:"fruit", cal:52, p:0.3, c:14, f:0.2, note:"ألياف وفيتامينات.", tip:"💡 تفاحة يومياً = صحة."},
+  {n:"موز", cat:"fruit", cal:89, p:1.1, c:23, f:0.3, note:"بوتاسيوم عالي.", tip:"💡 ممتاز بعد التدريب."},
+  {n:"برتقال", cat:"fruit", cal:47, p:0.9, c:12, f:0.1, note:"فيتامين C.", tip:"💡 الفاكهة أفضل من العصير."},
+  {n:"فراولة", cat:"fruit", cal:32, p:0.7, c:7.7, f:0.3, note:"مضادات أكسدة.", tip:"💡 قليلة السعرات."},
+  {n:"عنب", cat:"fruit", cal:69, p:0.7, c:18, f:0.2, note:"ريسفيراترول للقلب.", tip:"⚠️ سكر عالي - اعتدل."},
+  {n:"بطيخ", cat:"fruit", cal:30, p:0.6, c:7.6, f:0.2, note:"ماء عالي وليكوبين.", tip:"💡 مرطب صيفي ممتاز."},
+  {n:"أناناس", cat:"fruit", cal:50, p:0.5, c:13, f:0.1, note:"بروميلين هاضم.", tip:"💡 بعد الوجبات الدسمة."},
+  {n:"رمان", cat:"fruit", cal:83, p:1.7, c:19, f:1.2, note:"مضادات أكسدة قوية.", tip:"💡 مفيد للقلب والذاكرة."},
+  {n:"تمر", cat:"fruit", cal:277, p:1.8, c:75, f:0.2, note:"طاقة سريعة.", tip:"⚠️ 3-5 حبات كحد أقصى."},
+
+  // 🌰 مكسرات وزيوت
+  {n:"لوز", cat:"nut", cal:579, p:21, c:22, f:50, note:"فيتامين E ودهون صحية.", tip:"💡 20-25 حبة يومياً."},
+  {n:"عين جمل", cat:"nut", cal:654, p:15, c:14, f:65, note:"أوميجا 3 للمخ.", tip:"💡 5-7 حبات يومياً."},
+  {n:"فول سوداني", cat:"nut", cal:567, p:26, c:16, f:49, note:"بروتين عالي.", tip:"💡 غير محمص بملح."},
+  {n:"كاجو", cat:"nut", cal:553, p:18, c:30, f:44, note:"زنك وماغنيسيوم.", tip:"💡 كمية صغيرة - عالي السعرات."},
+  {n:"بذور شيا", cat:"nut", cal:486, p:17, c:42, f:31, note:"ألياف وأوميجا 3.", tip:"💡 ملعقة في الزبادي."},
+  {n:"زيت زيتون", cat:"nut", cal:884, p:0, c:0, f:100, note:"دهون أحادية صحية.", tip:"💡 على السلطة - ملعقة بالوجبة."},
+  {n:"أفوكادو", cat:"nut", cal:160, p:2, c:9, f:15, note:"دهون أحادية مفيدة.", tip:"💡 نصف ثمرة بالوجبة."},
+
+  // إضافي
+  {n:"فول مدمس", cat:"grain", cal:108, p:7.6, c:18, f:0.4, note:"بروتين نباتي وألياف.", tip:"💡 أفضل فطار مصري صحي."},
+  {n:"عدس مطبوخ", cat:"grain", cal:116, p:9, c:20, f:0.4, note:"بروتين وألياف.", tip:"💡 ممتاز للنباتيين."},
+  {n:"حمص مسلوق", cat:"grain", cal:164, p:9, c:27, f:2.6, note:"بروتين وألياف.", tip:"💡 سلطة أو حمص بطحينة."},
 ];
 
-function filterFoods() {
-  const search = document.getElementById('searchInput').value.toLowerCase();
-  const cat = document.getElementById('catSelect').value;
-  const filtered = FOODS.filter(f => {
-    const name = IS_AR ? f.ar : f.en;
-    const matchSearch = !search || name.toLowerCase().includes(search) || f.k.includes(search);
-    const matchCat = !cat || f.cat === cat;
-    return matchSearch && matchCat;
-  });
-  document.getElementById('resultCount').textContent = 
-    filtered.length + (IS_AR ? ' نتيجة — لكل 100 جرام' : ' results — per 100g');
-  renderFoods(filtered.slice(0, 30));
+const CAT_NAMES = {
+  poultry: "🍗 دواجن", meat: "🥩 لحوم", fish: "🐟 أسماك",
+  dairy: "🥛 ألبان وبيض", grain: "🌾 نشويات", veg: "🥗 خضار",
+  fruit: "🍎 فاكهة", nut: "🌰 مكسرات وزيوت"
+};
+
+const searchInput = document.getElementById('searchInput');
+const catStrip = document.getElementById('catStrip');
+const resultsContainer = document.getElementById('resultsContainer');
+const resultsCount = document.getElementById('resultsCount');
+const emptyState = document.getElementById('emptyState');
+
+let currentSearch = '';
+let currentCat = '';
+
+function makeCard(food) {
+  return `
+    <div class="food-card">
+      <div class="food-head">
+        <h3 class="food-name">${food.n}</h3>
+        <div class="food-cal">${food.cal} <small>kcal/100g</small></div>
+      </div>
+      <div class="macros">
+        <span class="macro-pill m-prot">🥩 ${food.p}g بروتين</span>
+        <span class="macro-pill m-carb">🍞 ${food.c}g كارب</span>
+        <span class="macro-pill m-fat">🥑 ${food.f}g دهون</span>
+      </div>
+      <div class="qty-section">
+        <div>
+          <div class="qty-label">الكمية (جرام)</div>
+          <input type="number" class="qty-input" value="100" min="1" max="1000" data-food='${JSON.stringify(food)}'>
+        </div>
+        <div class="qty-result">
+          <div><strong class="r-cal">${food.cal}</strong><span>سعرة</span></div>
+          <div><strong class="r-p">${food.p}</strong><span>بروتين g</span></div>
+          <div><strong class="r-c">${food.c}</strong><span>كارب g</span></div>
+          <div><strong class="r-f">${food.f}</strong><span>دهون g</span></div>
+        </div>
+      </div>
+      ${food.note ? `<div class="food-note">ℹ️ ${food.note}</div>` : ''}
+      ${food.tip ? `<div class="food-tip">${food.tip}</div>` : ''}
+    </div>`;
 }
 
-function renderFoods(list) {
-  if (!list.length) {
-    document.getElementById('foodList').innerHTML = '<div class="alert alert-warn"><i class="fa-solid fa-triangle-exclamation"></i> ' + (IS_AR ? 'لا نتائج' : 'No results') + '</div>';
+function render() {
+  let filtered = FOODS;
+
+  if (currentCat) filtered = filtered.filter(f => f.cat === currentCat);
+  if (currentSearch) {
+    const q = currentSearch.toLowerCase();
+    filtered = filtered.filter(f => f.n.toLowerCase().includes(q));
+  }
+
+  if (!currentSearch && !currentCat) {
+    resultsContainer.innerHTML = `
+      <div class="empty-state">
+        <div class="emoji">🔍</div>
+        <h3>ابدأ بكتابة اسم الطعام</h3>
+        <p>أو اختار فئة من فوق لتظهر الأطعمة</p>
+      </div>`;
+    resultsCount.style.display = 'none';
     return;
   }
-  document.getElementById('foodList').innerHTML = list.map(f => {
-    const name = IS_AR ? f.ar : f.en;
-    const note = IS_AR ? f.note_ar : f.note_en;
-    const tip = IS_AR ? f.tip_ar : f.tip_en;
-    return `
-    <div class="food-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <div>
-          <div style="font-size:15px;font-weight:800;color:var(--text)">${name}</div>
-        </div>
-        <div style="text-align:center">
-          <div style="font-size:22px;font-weight:900;color:var(--blue-light)">${f.cal}</div>
-          <div style="font-size:11px;color:var(--muted)">kcal/100${GR}</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-        <span class="pill pill-p"><i class="fa-solid fa-dumbbell"></i> ${f.p}${GR} ${IS_AR ? 'بروتين' : 'protein'}</span>
-        <span class="pill pill-c"><i class="fa-solid fa-wheat-awn"></i> ${f.c}${GR} ${IS_AR ? 'كارب' : 'carbs'}</span>
-        <span class="pill pill-f"><i class="fa-solid fa-droplet"></i> ${f.f}${GR} ${IS_AR ? 'دهون' : 'fat'}</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <label style="font-size:13px;font-weight:700">${IS_AR ? 'الكمية' : 'Amount'} (${GR}):</label>
-        <input type="number" value="100" min="0" max="2000" step="10"
-          style="width:80px;padding:6px;border:2px solid var(--gray-2);border-radius:8px;font-family:Cairo,sans-serif;text-align:center"
-          oninput="calcGrams(this,${f.cal},${f.p},${f.c},${f.f},'${f.k}')" id="g_${f.k}">
-      </div>
-      <div id="res_${f.k}" style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:10px;padding:10px;display:none;margin-bottom:8px"></div>
-      <details>
-        <summary style="font-size:13px;font-weight:700;color:var(--blue);cursor:pointer">
-          <i class="fa-solid fa-circle-info"></i> ${IS_AR ? 'معلومة + نصيحة' : 'Info + Tip'}
-        </summary>
-        <div style="margin-top:8px">
-          <div style="background:var(--green-pale);border-right:3px solid var(--green-light);border-radius:8px;padding:8px 12px;font-size:13px;color:#14532d;margin-bottom:6px">${note}</div>
-          <div style="background:#fffbeb;border-right:3px solid #f59e0b;border-radius:8px;padding:8px 12px;font-size:13px;color:#78350f">${tip}</div>
-        </div>
-      </details>
-    </div>`;
-  }).join('');
-  list.forEach(f => {
-    const inp = document.getElementById('g_' + f.k);
-    if (inp) calcGrams(inp, f.cal, f.p, f.c, f.f, f.k);
+
+  if (filtered.length === 0) {
+    resultsContainer.innerHTML = `
+      <div class="empty-state">
+        <div class="emoji">😕</div>
+        <h3>مفيش نتائج</h3>
+        <p>جرّب بحث تاني أو فئة مختلفة</p>
+      </div>`;
+    resultsCount.style.display = 'none';
+    return;
+  }
+
+  resultsCount.style.display = 'block';
+  resultsCount.textContent = `${filtered.length} نتيجة — لكل 100 جرام`;
+  resultsContainer.innerHTML = filtered.map(makeCard).join('');
+
+  // Attach qty listeners
+  document.querySelectorAll('.qty-input').forEach(inp => {
+    inp.addEventListener('input', function() {
+      const food = JSON.parse(this.dataset.food);
+      const qty = parseFloat(this.value) || 0;
+      const card = this.closest('.food-card');
+      const ratio = qty / 100;
+      card.querySelector('.r-cal').textContent = (food.cal * ratio).toFixed(0);
+      card.querySelector('.r-p').textContent = (food.p * ratio).toFixed(1);
+      card.querySelector('.r-c').textContent = (food.c * ratio).toFixed(1);
+      card.querySelector('.r-f').textContent = (food.f * ratio).toFixed(1);
+    });
   });
 }
 
-function calcGrams(inp, cal, p, c, f, k) {
-  const g = parseFloat(inp.value) || 0;
-  const res = document.getElementById('res_' + k);
-  if (!res) return;
-  if (g > 0) {
-    const x = g / 100;
-    res.style.display = 'block';
-    res.innerHTML = `
-      <div style="font-weight:700;color:var(--blue);margin-bottom:6px">${g}${GR} = </div>
-      <div style="display:flex;gap:14px;flex-wrap:wrap">
-        <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--blue-light)">${(cal*x).toFixed(1)}</div><div style="font-size:11px;color:var(--muted)">kcal</div></div>
-        <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--green-light)">${(p*x).toFixed(1)}${GR}</div><div style="font-size:11px;color:var(--muted)">${IS_AR ? 'بروتين' : 'protein'}</div></div>
-        <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--orange)">${(c*x).toFixed(1)}${GR}</div><div style="font-size:11px;color:var(--muted)">${IS_AR ? 'كارب' : 'carbs'}</div></div>
-        <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--red)">${(f*x).toFixed(1)}${GR}</div><div style="font-size:11px;color:var(--muted)">${IS_AR ? 'دهون' : 'fat'}</div></div>
-      </div>`;
-  } else {
-    res.style.display = 'none';
-  }
-}
+searchInput.addEventListener('input', e => {
+  currentSearch = e.target.value.trim();
+  render();
+});
 
-filterFoods();
+catStrip.addEventListener('click', e => {
+  const chip = e.target.closest('.cat-chip');
+  if (!chip) return;
+  catStrip.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  currentCat = chip.dataset.cat;
+  render();
+});
+
+render(); // Initial
 </script>
+
 {% endblock %}
