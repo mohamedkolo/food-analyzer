@@ -15,6 +15,19 @@ from meal_database import (
 )
 
 # ═══════════════════════════════════════════════
+# INGREDIENTS DATABASE (Food Analyzer)
+# ═══════════════════════════════════════════════
+try:
+    from ingredients_db import INGREDIENTS, CATEGORIES, TOTAL_INGREDIENTS, get_categories
+    INGREDIENTS_AVAILABLE = True
+except ImportError:
+    INGREDIENTS_AVAILABLE = False
+    INGREDIENTS = {}
+    CATEGORIES = {}
+    TOTAL_INGREDIENTS = 0
+    def get_categories(): return []
+
+# ═══════════════════════════════════════════════
 # PAYMENTS MODULE (Stripe Integration)
 # ═══════════════════════════════════════════════
 from payments import (
@@ -755,6 +768,16 @@ def settings():
         u = get_user_by_id(session["uid"])
         saved = True
     return render_template("settings.html", user=u, lang=session.get("lang","ar"), saved=saved)
+
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html", lang=session.get("lang", "ar"))
+
+
+@app.route("/terms")
+def terms():
+    return render_template("terms.html", lang=session.get("lang", "ar"))
+
 
 @app.route("/analyzer")
 @staff_required
