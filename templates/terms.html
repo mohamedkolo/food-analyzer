@@ -1,1 +1,144 @@
+{% extends "base.html" %}
+{% block content %}
 
+<style>
+  .legal-wrap { max-width: 800px; margin: 0 auto; padding: 30px 20px 60px; font-family: 'Cairo', 'Tajawal', system-ui, sans-serif; line-height: 1.8; }
+  .legal-hero { text-align: center; padding: 20px 0 30px; border-bottom: 2px solid #f1f5f9; margin-bottom: 30px; }
+  .legal-hero h1 { font-size: 32px; font-weight: 800; color: #0f172a; margin: 0 0 8px; }
+  .legal-hero p { color: #64748b; font-size: 14px; margin: 0; }
+  .legal-content h2 { font-size: 22px; font-weight: 800; color: #059669; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 2px solid #d1fae5; }
+  .legal-content h3 { font-size: 17px; font-weight: 700; color: #0f172a; margin: 20px 0 8px; }
+  .legal-content p { color: #475569; margin: 0 0 12px; }
+  .legal-content ul { color: #475569; padding-right: 22px; margin: 0 0 16px; }
+  .legal-content ul li { margin-bottom: 6px; }
+  .legal-content strong { color: #0f172a; font-weight: 700; }
+  .warning-box { background: #fef3c7; border-right: 4px solid #f59e0b; border-radius: 10px; padding: 16px 20px; margin: 16px 0; color: #78350f; }
+  .contact-box { background: #f0fdf4; border: 2px solid #86efac; border-radius: 14px; padding: 20px; margin-top: 32px; text-align: center; }
+</style>
+
+<div class="legal-wrap">
+  <div class="legal-hero">
+    <h1>📜 شروط الاستخدام</h1>
+    <p>آخر تحديث: يونيو 2026</p>
+  </div>
+
+  <div class="legal-content">
+
+    <h2>1. القبول بالشروط</h2>
+    <p>
+      باستخدامك لموقع <strong>NutraX</strong>، إنت بتوافق على هذه الشروط.
+      لو مش موافق، يرجى عدم استخدام الموقع.
+    </p>
+
+    <h2>2. الخدمات المقدمة</h2>
+    <p>NutraX يقدم خدمات:</p>
+    <ul>
+      <li>توليد خطط غذائية مخصصة</li>
+      <li>استشارات تغذية أونلاين مع د. محمد</li>
+      <li>محلل الأطعمة (سعرات وماكروز)</li>
+      <li>متابعة الوزن والتقدم</li>
+      <li>مكتبة معلومات تغذوية</li>
+    </ul>
+
+    <div class="warning-box">
+      ⚠️ <strong>تنبيه طبي مهم:</strong> الخطط المُولّدة <strong>للإرشاد العام فقط</strong>،
+      وليست بديلاً عن الاستشارة الطبية المباشرة. لو عندك حالة طبية خاصة،
+      راجع طبيبك قبل تطبيق أي خطة غذائية.
+    </div>
+
+    <h2>3. الحساب والتسجيل</h2>
+    <ul>
+      <li>لازم تكون <strong>أكبر من 13 سنة</strong> للتسجيل</li>
+      <li>بياناتك لازم تكون <strong>صحيحة ودقيقة</strong></li>
+      <li>إنت المسؤول عن الحفاظ على كلمة سرك</li>
+      <li>ممنوع مشاركة حسابك مع شخص آخر</li>
+      <li>لو شككت في اختراق حسابك، أبلغنا فوراً</li>
+    </ul>
+
+    <h2>4. الاشتراكات والدفع</h2>
+    <h3>أ) أنواع الخطط:</h3>
+    <ul>
+      <li><strong>استشارة فردية</strong> — 149 ج.م — صالحة 24 ساعة</li>
+      <li><strong>خطة واحدة</strong> — 299 ج.م — صالحة 7 أيام</li>
+      <li><strong>اشتراك شهري</strong> — 599 ج.م — متجدد شهرياً</li>
+    </ul>
+
+    <h3>ب) طرق الدفع:</h3>
+    <ul>
+      <li>فودافون كاش (مصر)</li>
+      <li>InstaPay (مصر)</li>
+      <li>تحويل بنكي (مصر / الإمارات)</li>
+      <li>كاش (للقاء المباشر)</li>
+    </ul>
+
+    <h3>ج) سياسة الاسترداد:</h3>
+    <p>
+      <strong>المدفوعات غير قابلة للاسترداد</strong> بعد تفعيل الاشتراك،
+      إلا في حالة عدم تقديم الخدمة من جانبنا. لو واجهت مشكلة،
+      تواصل معنا في أول 48 ساعة.
+    </p>
+
+    <h2>5. الاستخدام المقبول</h2>
+    <p>ممنوع منعاً باتاً:</p>
+    <ul>
+      <li>استخدام الموقع لأي غرض غير قانوني</li>
+      <li>محاولة اختراق أو الإضرار بالموقع</li>
+      <li>نسخ أو إعادة بيع المحتوى بدون إذن</li>
+      <li>إنشاء حسابات وهمية أو متعددة</li>
+      <li>إرسال رسائل مسيئة أو مزعجة للدكتور أو لأي مستخدم</li>
+      <li>مشاركة الخطط الخاصة بك مع أشخاص آخرين</li>
+    </ul>
+
+    <h2>6. الملكية الفكرية</h2>
+    <p>
+      كل المحتوى (الخطط، النصوص، الصور، الكود) هو ملك خاص لـ NutraX.
+      ممنوع نسخ أو إعادة استخدام أي جزء بدون إذن مكتوب.
+    </p>
+
+    <h2>7. حدود المسؤولية</h2>
+    <p>NutraX <strong>غير مسؤول عن</strong>:</p>
+    <ul>
+      <li>أي ضرر صحي ناتج عن تطبيق خطة غير مناسبة لحالتك</li>
+      <li>عدم الحصول على النتائج المتوقعة</li>
+      <li>الأعطال التقنية أو انقطاع الخدمة المؤقت</li>
+      <li>أي خسائر مالية ناتجة عن استخدام الموقع</li>
+    </ul>
+
+    <div class="warning-box">
+      ⚠️ <strong>تنبيه:</strong> لو عندك حالة طبية مزمنة (سكر، ضغط، أمراض كلى، حمل، إلخ)،
+      <strong>لازم تستشير طبيبك</strong> قبل اتباع أي خطة من الموقع.
+    </div>
+
+    <h2>8. إنهاء الحساب</h2>
+    <p>
+      نحتفظ بالحق في إيقاف أو حذف أي حساب يخالف هذه الشروط،
+      دون إشعار مسبق وبدون استرداد المدفوعات.
+    </p>
+
+    <h2>9. التغييرات على الشروط</h2>
+    <p>
+      ممكن نحدث هذه الشروط في أي وقت. التغييرات تسري فور نشرها على الموقع.
+      استمرار استخدامك للموقع بعد التغيير = موافقة على الشروط الجديدة.
+    </p>
+
+    <h2>10. القانون المطبق</h2>
+    <p>
+      هذه الشروط تخضع للقوانين المعمول بها في جمهورية مصر العربية،
+      وأي نزاع يتم حله ودياً، أو عبر المحاكم المختصة في حالة عدم التوافق.
+    </p>
+
+    <h2>11. التواصل</h2>
+    <div class="contact-box">
+      <p style="margin: 0 0 8px; font-weight: 700; color: #065f46;">
+        لأي استفسار قانوني:
+      </p>
+      <p style="margin: 0; color: #047857;">
+        📧 admin@nutrax.com<br/>
+        📱 واتساب: 01004294521 (مصر) — 0501038664 (الإمارات)
+      </p>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
