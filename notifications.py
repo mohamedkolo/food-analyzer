@@ -96,10 +96,23 @@ def add_notification(db_run, type_, title, message, link=None,
         print(f"[notif] insert error: {e}")
 
     if send_email_too:
+        # الإيميل بيتبعت في الخلفية عشان ما يعطّلش الطلب لو السيرفر بطيء
         try:
-            send_admin_email(type_, title, message, link)
+            import threading
+            threading.Thread(
+                target=_safe_send_email,
+                args=(type_, title, message, link),
+                daemon=True
+            ).start()
         except Exception as e:
-            print(f"[notif] email send error: {e}")
+            print(f"[notif] email thread error: {e}")
+
+
+def _safe_send_email(type_, title, message, link):
+    try:
+        send_admin_email(type_, title, message, link)
+    except Exception as e:
+        print(f"[notif] email send error: {e}")
 
 
 # ═══════════════════════════════════════════════
