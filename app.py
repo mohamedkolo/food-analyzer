@@ -39,6 +39,15 @@ from payments import (
     get_supported_currencies, STRIPE_PUBLIC_KEY
 )
 
+# ═══════════════════════════════════════════════
+# NOTIFICATIONS MODULE (إشعارات الأدمن)
+# ═══════════════════════════════════════════════
+from notifications import (
+    add_notification, get_unread_count, get_all_notifications,
+    mark_all_read, mark_read, get_type_meta,
+    ensure_table as ensure_notif_table
+)
+
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if DATABASE_URL:
@@ -139,6 +148,12 @@ def init_db():
         db_run("UPDATE users SET password=?, is_admin=1, role='admin', active=1 WHERE email='admin@nutrax.com'", (hp("nutrax2025"),))
 
 init_db()
+
+# ── جدول الإشعارات (يتعمل مرة واحدة عند التشغيل) ──
+try:
+    ensure_notif_table(db_run, is_postgres=bool(DATABASE_URL))
+except Exception as _e:
+    print(f"notif table init error: {_e}")
 
 def get_user(email, pw): return db_row("SELECT * FROM users WHERE email=? AND password=?", (email, hp(pw)))
 def get_user_by_id(uid): return db_row("SELECT * FROM users WHERE id=?", (uid,))
@@ -373,13 +388,17 @@ def get_unread_messages_count(user_id):
 @app.context_processor
 def inject_globals():
     """Make unread message count and pending count available in all templates"""
-    ctx = {"unread_messages": 0, "pending_count": 0, "active_access": None}
+    ctx = {"unread_messages": 0, "pending_count": 0, "active_access": None, "notif_unread": 0}
     if "uid" in session:
         try:
             ctx["unread_messages"] = get_unread_messages_count(session["uid"])
             user = get_user_by_id(session["uid"])
             if user and (user.get("is_admin") or user.get("role") in ["admin", "nutritionist"]):
                 ctx["pending_count"] = get_pending_requests_count()
+                # عدد الإشعارات غير المقروءة (للجرس الأحمر في الـ navbar)
+                try:
+                    ctx["notif_unread"] = get_unread_count(db_row)
+                except: pass
             # Get active access info for all users
             try:
                 ctx["active_access"] = get_user_access_info(session["uid"], db_row)
@@ -538,6 +557,19 @@ def request_plan():
                 db_run("UPDATE users SET conditions=? WHERE id=?", (json.dumps(symptoms), session["uid"]))
         except Exception as e:
             return f"خطأ: {e}", 500
+
+        # ── إشعار للأدمن: طلب خطة جديد ──
+        try:
+            add_notification(
+                db_run, "plan_request",
+                f"طلب خطة جديد من: {u.get('name','عميل')}",
+                f"العميل {u.get('name','')} طلب خطة غذائية جديدة. افتح صفحة الطلبات لمراجعتها.",
+                link="/admin/requests",
+                related_user_id=session["uid"]
+            )
+        except Exception as _e:
+            print(f"notif plan_request error: {_e}")
+
         return redirect("/my-plan")
     return render_template("request_plan.html", user=u, lang=session.get("lang","ar"), diet_plans=DIET_PLAN_TYPES)
 
@@ -983,7 +1015,7 @@ def edit_meal():
 
 
 # ═══════════════════════════════════════════════════
-# CHAT/MESSAGING SYSTEM (FIXED - was using db_all)
+# CHAT/MESSAGING SYSTEM
 # ═══════════════════════════════════════════════════
 
 @app.route("/messages")
@@ -1050,6 +1082,19 @@ def chat(other_id):
         if msg:
             db_run("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?,?,?)",
                    (user["id"], other_id, msg))
+            # ── إشعار للأدمن لو الراسل عميل ──
+            try:
+                if role == "client":
+                    preview_txt = (msg[:120] + "…") if len(msg) > 120 else msg
+                    add_notification(
+                        db_run, "new_message",
+                        f"رسالة جديدة من: {user.get('name','عميل')}",
+                        preview_txt,
+                        link=f"/messages/{user['id']}",
+                        related_user_id=user["id"]
+                    )
+            except Exception as _e:
+                print(f"notif new_message error: {_e}")
         return redirect(f"/messages/{other_id}")
 
     db_run("UPDATE messages SET is_read=1 WHERE sender_id=? AND receiver_id=?", (other_id, user["id"]))
@@ -1060,6 +1105,80 @@ def chat(other_id):
                   (user["id"], other_id, other_id, user["id"]))
 
     return render_template("chat.html", messages=msgs, user=user, other=other, lang=session.get("lang","ar"))
+
+
+# ═══════════════════════════════════════════════════
+# NOTIFICATIONS (إشعارات الأدمن)
+# ═══════════════════════════════════════════════════
+
+@app.route("/admin/notifications")
+@staff_required
+def admin_notifications():
+    """صفحة كل الإشعارات (وبتعلّمها مقروءة بعد العرض)"""
+    user = get_user_by_id(session["uid"])
+    items = get_all_notifications(db_rows, limit=100)
+    notifs = []
+    for n in items:
+        nd = dict(n)
+        v = nd.get("created_at")
+        if v:
+            nd["created_str"] = v.strftime("%Y-%m-%d %H:%M") if hasattr(v, "strftime") else str(v)[:16]
+        else:
+            nd["created_str"] = ""
+        meta = get_type_meta(nd.get("type"))
+        nd["icon"] = meta["icon"]
+        nd["type_label"] = meta["label"]
+        notifs.append(nd)
+    unread_before = sum(1 for n in notifs if not n.get("is_read"))
+    # نعلّمها كلها مقروءة بعد ما اتعرضت
+    try:
+        mark_all_read(db_run)
+    except: pass
+    return render_template("admin_notifications.html", user=user,
+                           lang=session.get("lang", "ar"),
+                           notifications=notifs, unread_before=unread_before)
+
+
+@app.route("/admin/notifications/read", methods=["POST"])
+@staff_required
+def admin_notifications_read():
+    """تعليم كل الإشعارات كمقروءة"""
+    mark_all_read(db_run)
+    return redirect("/admin/notifications")
+
+
+@app.route("/admin/notifications/count")
+@staff_required
+def admin_notifications_count():
+    """API للجرس: بيرجّع عدد الإشعارات غير المقروءة (للـ polling والصوت)"""
+    return jsonify({"count": get_unread_count(db_row)})
+
+
+@app.route("/track/whatsapp-click", methods=["POST"])
+def track_whatsapp_click():
+    """بيتنادى من زرار واتساب (JS) عشان نسجّل إشعار إن العميل ضغط للدفع"""
+    try:
+        data = request.get_json(silent=True) or {}
+        plan = (data.get("plan") or "خطة").strip()
+        price = (data.get("price") or "").strip()
+        source = (data.get("source") or "").strip()
+        uid = session.get("uid")
+        who = "زائر"
+        if uid:
+            u = get_user_by_id(uid)
+            if u:
+                who = u.get("name") or u.get("email") or "عميل"
+        title = f"ضغط دفع واتساب: {who}"
+        msg = f"العميل ضغط زرار واتساب للاشتراك في «{plan}»"
+        if price:
+            msg += f" بسعر {price}"
+        if source:
+            msg += f" (من {source})"
+        add_notification(db_run, "payment_click", title, msg,
+                         link="/admin/payments", related_user_id=uid)
+    except Exception as _e:
+        print(f"notif whatsapp click error: {_e}")
+    return jsonify({"ok": True})
 
 
 # ═══════════════════════════════════════════════════
@@ -1184,7 +1303,6 @@ def _has(symptoms, keywords):
 
 # ═══════════════════════════════════════════════
 # USER EXCLUSIONS PARSING
-# (notes + dislikes + allergies → list of words to exclude)
 # ═══════════════════════════════════════════════
 
 ALLERGY_KEYWORDS = {
@@ -1203,21 +1321,18 @@ def parse_user_exclusions(notes_text, disliked_foods, allergies):
     """يحوّل الملحوظات والحساسية والأكلات اللي مش بيحبها إلى قايمة كلمات تتشال من الوجبات."""
     exclusions = set()
 
-    # 1. الأكلات اللي مش بيحبها (نص حر مفصول بفواصل)
     if disliked_foods:
         for item in disliked_foods.replace("،", ",").replace(";", ",").split(","):
             item = item.strip()
             if len(item) > 1:
                 exclusions.add(item)
 
-    # 2. الحساسية (list من الـ checkboxes)
     if allergies:
         for allergy in allergies:
             for key, kws in ALLERGY_KEYWORDS.items():
                 if key in allergy:
                     exclusions.update(kws)
 
-    # 3. الملحوظات النصية - دور على triggers
     if notes_text:
         text = notes_text.strip()
         triggers = ["اشيل", "شيل", "بدون", "تجنب", "مش بحب", "مش باكل",
@@ -1261,14 +1376,12 @@ def generate_weekly_plan(data):
     culture = data.get("culture", "مصري")
     diet_type = data.get("diet_plan_type", "standard")
 
-    # NEW: seed فريد لكل عميل عشان كل واحد يطلع له خطة مختلفة عن التاني
     try:
         user_id = data.get("user_id") or session.get("uid", 0) or 0
     except: user_id = 0
     seed_val = ((user_id or 1) * 1000007 + int(datetime.now().timestamp() * 1000)) % (2**32)
     random.seed(seed_val)
 
-    # NEW: قراية الحقول الجديدة من الاستمارة الموحدة
     notes = data.get("notes", "")
     disliked = data.get("disliked_foods", "")
     allergies = data.get("allergies", []) if isinstance(data.get("allergies"), list) else []
@@ -1285,7 +1398,6 @@ def generate_weekly_plan(data):
     lunches = filter_by_conditions(lunches, symptoms)
     dinners = filter_by_conditions(dinners, symptoms)
 
-    # NEW: شيل الأكلات اللي العميل مش عاوزها (notes / dislikes / allergies)
     breakfasts = filter_meals_by_exclusions(breakfasts, user_exclusions)
     lunches = filter_meals_by_exclusions(lunches, user_exclusions)
     dinners = filter_meals_by_exclusions(dinners, user_exclusions)
@@ -1295,7 +1407,6 @@ def generate_weekly_plan(data):
     if pool_snacks: snacks = pool_snacks[:10]
     while len(snacks) < 7: snacks.append("فاكهة + مكسرات (120 kcal)")
 
-    # NEW: شيل من الـ snacks كمان
     snacks = [s for s in snacks if not any(ex in (s if isinstance(s, str) else s.get("meal","")) for ex in user_exclusions)] or snacks
 
     days = ["الاحد","الاثنين","الثلاثاء","الاربعاء","الخميس","الجمعة","السبت"]
@@ -1328,7 +1439,6 @@ def generate_weekly_plan(data):
             day_plan["dinner"] = d["meal"]
             total_cal = b.get("cal",300) + l.get("cal",400) + d.get("cal",300) + 300
         elif diet_type == "intermittent_16_8":
-            # الوجبة الأولى = فطار شبع (مش غدا) - زي شوفان أو بيض أو فول
             b = breakfasts[i % len(breakfasts)]
             d = dinners[i % len(dinners)]
             day_plan["meal1"] = b["meal"]
@@ -1576,9 +1686,11 @@ def subscription_required_page():
         "plan": "محتاج اشتراك أو خطة مدفوعة علشان تطلب خطة جديدة.",
     }
     reason = reasons_map.get(reason_key, "محتاج اشتراك علشان تستخدم الخدمة دي.")
+    user_currency = detect_currency(user.get("country")) if user else "EGP"
     return render_template("subscription_required.html",
                            user=user, lang=session.get("lang", "ar"),
-                           reason=reason, pricing=PRICING)
+                           reason=reason, pricing=PRICING,
+                           user_currency=user_currency)
 
 
 @app.route("/checkout/<plan_key>")
@@ -1589,11 +1701,9 @@ def checkout(plan_key):
     if not user:
         return redirect("/")
 
-    # Validate plan
     if plan_key not in PRICING:
         return redirect("/pricing")
 
-    # Get currency from query param or detect from country
     currency = request.args.get("currency", "").upper()
     if currency not in get_supported_currencies():
         currency = detect_currency(user.get("country"))
@@ -1621,7 +1731,6 @@ def payment_success():
     expires_at = None
     is_trial = False
 
-    # Try to fetch session details from Stripe
     if session_id and os.environ.get("STRIPE_SECRET_KEY"):
         try:
             stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
@@ -1645,7 +1754,6 @@ def payment_success():
         except Exception as e:
             print(f"Stripe fetch error: {e}")
 
-    # Fallback: check our DB
     if not plan_name:
         try:
             access = get_user_access_info(session["uid"], db_row)
@@ -1741,7 +1849,6 @@ def admin_payments_view():
         """)
     except: pass
 
-    # Compute stats
     stats = {
         "total_revenue": 0,
         "total_revenue_currency": None,
@@ -1754,7 +1861,6 @@ def admin_payments_view():
     }
 
     try:
-        # Sum all completed payments (note: simplification - mixed currencies)
         currencies_seen = set()
         for p in payments:
             if p.get("status") == "completed":
@@ -1768,7 +1874,6 @@ def admin_payments_view():
         elif len(currencies_seen) > 1:
             stats["total_revenue_currency"] = "مختلط"
 
-        # Active subscriptions
         from datetime import datetime as dt
         now = dt.now()
         unique_paying_users = set()
@@ -1787,7 +1892,6 @@ def admin_payments_view():
 
         stats["paying_customers"] = len(unique_paying_users)
 
-        # Total users
         r = db_row("SELECT COUNT(*) as cnt FROM users WHERE role='client' OR role IS NULL")
         stats["total_users"] = r.get("cnt", 0) if r else 0
     except Exception as e:
@@ -1798,11 +1902,6 @@ def admin_payments_view():
                            payments=payments, subscriptions=subscriptions,
                            stats=stats)
 
-
-# ═══════════════════════════════════════════════
-# UPDATE request_plan TO CHECK SUBSCRIPTION
-# (Note: keeping old request_plan logic but adding gate)
-# ═══════════════════════════════════════════════
 
 @app.route("/check-access")
 @login_required
@@ -1826,7 +1925,6 @@ def admin_user_profile(uid):
     if not target_user:
         return redirect("/admin/users")
 
-    # Parse JSON fields
     conditions = []
     allergies = []
     liked_foods = []
@@ -1848,7 +1946,6 @@ def admin_user_profile(uid):
             disliked_foods = json.loads(target_user["disliked_foods"])
     except: pass
 
-    # BMI calculation
     bmi = None
     try:
         h = float(target_user.get("height") or 0)
@@ -1857,7 +1954,6 @@ def admin_user_profile(uid):
             bmi = w / ((h / 100) ** 2)
     except: pass
 
-    # TDEE calculation (Mifflin-St Jeor)
     tdee = None
     try:
         h = float(target_user.get("height") or 0)
@@ -1873,7 +1969,6 @@ def admin_user_profile(uid):
             tdee = int(bmr * activity)
     except: pass
 
-    # Active subscription
     active_sub = None
     try:
         sub = db_row("""SELECT * FROM subscriptions 
@@ -1883,7 +1978,6 @@ def admin_user_profile(uid):
             active_sub = dict(sub)
             plan_info = PRICING.get(sub.get("plan_key"), {})
             active_sub["plan_name"] = plan_info.get("name", sub.get("plan_key"))
-            # Format dates
             for k in ("current_period_start", "current_period_end", "trial_end"):
                 v = active_sub.get(k)
                 if v:
@@ -1895,7 +1989,6 @@ def admin_user_profile(uid):
             active_sub["end_date"] = active_sub.get("end_date") or "-"
     except: pass
 
-    # Active one-time payment
     active_payment = None
     try:
         pay = db_row("""SELECT * FROM payments 
@@ -1911,7 +2004,6 @@ def admin_user_profile(uid):
                 active_payment["expires"] = v.strftime("%Y-%m-%d") if hasattr(v, "strftime") else str(v)[:10]
     except: pass
 
-    # Plan requests
     plan_requests = []
     try:
         plans = db_rows("SELECT * FROM plan_requests WHERE client_id=? ORDER BY created_at DESC LIMIT 50", (uid,))
@@ -1923,7 +2015,6 @@ def admin_user_profile(uid):
             plan_requests.append(pd)
     except: pass
 
-    # Payments
     payments = []
     try:
         pays = db_rows("SELECT * FROM payments WHERE user_id=? ORDER BY created_at DESC LIMIT 50", (uid,))
@@ -1940,19 +2031,16 @@ def admin_user_profile(uid):
             payments.append(pd)
     except: pass
 
-    # Weight logs (with diff calculation)
     weight_logs = []
     try:
         logs = db_rows("SELECT * FROM weight_log WHERE user_id=? ORDER BY logged_at DESC LIMIT 30", (uid,))
         prev = None
-        # Process oldest first to calc diff
         logs_list = list(logs)
         for i, w in enumerate(logs_list):
             wd = dict(w)
             v = wd.get("logged_at")
             if v:
                 wd["logged_date"] = v.strftime("%Y-%m-%d") if hasattr(v, "strftime") else str(v)[:10]
-            # Diff vs next (older)
             if i + 1 < len(logs_list):
                 try:
                     diff = float(wd["weight"]) - float(logs_list[i + 1]["weight"])
@@ -1983,7 +2071,6 @@ def admin_user_update(uid):
     if not target:
         return redirect("/admin/users")
     try:
-        # شخصية
         name = request.form.get("name", "").strip() or target.get("name")
         email = request.form.get("email", "").strip().lower() or target.get("email")
         phone = request.form.get("phone", "").strip() or target.get("phone")
@@ -1991,17 +2078,14 @@ def admin_user_update(uid):
         age = request.form.get("age", "").strip()
         gender = request.form.get("gender", "").strip() or target.get("gender")
 
-        # قياسات
         weight = request.form.get("weight", "").strip()
         height = request.form.get("height", "").strip()
         goal = request.form.get("goal", "").strip() or target.get("goal")
         activity = request.form.get("activity", "").strip()
 
-        # طبية - JSON
         conditions = request.form.get("conditions", "[]")
         allergies = request.form.get("allergies", "[]")
 
-        # تفضيلات - من textarea نحوّلهم لقايمة JSON
         liked_text = request.form.get("liked_foods_text", "").strip()
         disliked_text = request.form.get("disliked_foods_text", "").strip()
 
@@ -2014,7 +2098,6 @@ def admin_user_update(uid):
         liked_foods = text_to_json(liked_text)
         disliked_foods = text_to_json(disliked_text)
 
-        # تحويل القيم الرقمية
         try: age_v = int(age) if age else target.get("age")
         except: age_v = target.get("age")
         try: weight_v = float(weight) if weight else target.get("weight")
@@ -2024,7 +2107,6 @@ def admin_user_update(uid):
         try: activity_v = float(activity) if activity else target.get("activity")
         except: activity_v = target.get("activity")
 
-        # حفظ
         db_run("""UPDATE users SET 
                   name=?, email=?, phone=?, country=?, age=?, gender=?,
                   weight=?, height=?, goal=?, activity=?,
@@ -2037,7 +2119,6 @@ def admin_user_update(uid):
                 liked_foods, disliked_foods,
                 uid))
 
-        # لو تغير الوزن، اعمل log جديد
         if weight and weight_v and float(weight_v) != (target.get("weight") or 0):
             try:
                 db_run("INSERT INTO weight_log (user_id, weight) VALUES (?, ?)", (uid, weight_v))
@@ -2073,7 +2154,6 @@ def admin_user_add_weight(uid):
                        (uid, w, logged_date))
             else:
                 db_run("INSERT INTO weight_log (user_id, weight) VALUES (?, ?)", (uid, w))
-            # Update users table too
             db_run("UPDATE users SET weight=? WHERE id=?", (w, uid))
     except Exception as e:
         print(f"Add weight error: {e}")
@@ -2095,18 +2175,15 @@ def admin_manual_activate(uid):
         payment_method = request.form.get("payment_method", "other").strip()
         notes = request.form.get("notes", "").strip()
 
-        # Validate plan
         if plan_key not in ("consultation", "single_plan", "monthly_subscription"):
             return redirect(f"/admin/users/{uid}?error=invalid_plan")
 
-        # Validate amount
         try:
             amount_value = float(amount_raw or 0)
             amount_cents = int(amount_value * 100)
         except:
             amount_cents = 0
 
-        # Plan duration
         duration_days_map = {
             "consultation": 1,
             "single_plan": 7,
@@ -2133,7 +2210,6 @@ def admin_manual_activate(uid):
         now = datetime.now()
         end_date = now + timedelta(days=duration_days)
 
-        # Build metadata
         metadata = {
             "manual_activation": True,
             "payment_method": payment_method,
@@ -2142,7 +2218,6 @@ def admin_manual_activate(uid):
             "activated_by_admin": session.get("uid"),
         }
 
-        # Insert into payments table (one-time record - always)
         try:
             db_run("""INSERT INTO payments 
                       (user_id, stripe_session_id, plan_key, status, currency, amount, expires_at, metadata)
@@ -2152,7 +2227,6 @@ def admin_manual_activate(uid):
         except Exception as e:
             print(f"Insert payment error: {e}")
 
-        # If subscription, also insert in subscriptions table
         if plan_key == "monthly_subscription":
             try:
                 db_run("""INSERT INTO subscriptions
@@ -2165,7 +2239,6 @@ def admin_manual_activate(uid):
             except Exception as e:
                 print(f"Insert subscription error: {e}")
 
-        # Send notification message to user
         try:
             admin = db_row("SELECT id FROM users WHERE role='admin' OR is_admin=1 LIMIT 1")
             if admin:
@@ -2198,10 +2271,8 @@ def admin_grant_trial(uid):
     if not target:
         return redirect("/admin/users")
     try:
-        # Check if user already has active access
         if has_active_access(uid, db_row):
             return redirect(f"/admin/users/{uid}")
-        # Insert manual trial subscription
         now = datetime.now()
         trial_end = now + timedelta(days=7)
         db_run("""INSERT INTO subscriptions 
@@ -2210,7 +2281,6 @@ def admin_grant_trial(uid):
                    stripe_subscription_id)
                   VALUES (?, 'monthly_subscription', 'trialing', 'EGP', 0, ?, ?, ?, ?)""",
                (uid, now, trial_end, trial_end, f"manual_trial_{uid}_{int(now.timestamp())}"))
-        # Send notification message
         admin = db_row("SELECT id FROM users WHERE role='admin' OR is_admin=1 LIMIT 1")
         if admin:
             msg = "🎁 تم منحك فترة تجريبية مجانية 7 أيام! تقدر تستخدم كل خدمات الموقع مجاناً."
@@ -2226,13 +2296,11 @@ def admin_grant_trial(uid):
 def admin_cancel_subscription(uid):
     """إلغاء اشتراك العميل من جهة admin"""
     try:
-        # Get active subscription
         sub = db_row("""SELECT * FROM subscriptions 
                         WHERE user_id=? AND status IN ('active', 'trialing') 
                         ORDER BY current_period_end DESC LIMIT 1""", (uid,))
         if sub:
             sub_id = sub.get("stripe_subscription_id", "")
-            # If real Stripe subscription, cancel in Stripe
             if sub_id and not sub_id.startswith("manual_"):
                 try:
                     import stripe as _stripe
@@ -2240,7 +2308,6 @@ def admin_cancel_subscription(uid):
                     _stripe.Subscription.modify(sub_id, cancel_at_period_end=True)
                 except Exception as e:
                     print(f"Stripe cancel error: {e}")
-            # Update DB
             db_run("""UPDATE subscriptions SET status='canceled', cancel_at=?, updated_at=? 
                       WHERE id=?""", (datetime.now(), datetime.now(), sub["id"]))
     except Exception as e:
@@ -2259,34 +2326,29 @@ def admin_user_payments(uid):
 # ONBOARDING WIZARD - استبيان العملاء الجداد
 # ═══════════════════════════════════════════════════════════════════
 
-# قائمة الـ endpoints اللي ما تتأثرش بالـ onboarding redirect
 ONBOARDING_EXEMPT = {
     "login", "logout", "set_lang", "onboarding", "static",
-    "stripe_webhook", "check_access_endpoint", "register"
+    "stripe_webhook", "check_access_endpoint", "register",
+    "track_whatsapp_click", "pricing", "payment_cancel"
 }
 
 @app.before_request
 def check_onboarding_status():
     """Middleware: العملاء الجداد بيتحولوا للاستبيان تلقائياً"""
-    # Skip for static files and exempt endpoints
     if not request.endpoint or request.endpoint in ONBOARDING_EXEMPT:
         return None
-    if request.path.startswith("/static") or request.path.startswith("/webhook"):
+    if request.path.startswith("/static") or request.path.startswith("/webhook") or request.path.startswith("/track"):
         return None
-    # Skip if not logged in
     if "uid" not in session:
         return None
-    # Skip for admin/nutritionist
     try:
         user = get_user_by_id(session["uid"])
         if not user:
             return None
         if user.get("is_admin") or user.get("role") in ("admin", "nutritionist"):
             return None
-        # Skip if already onboarded
         if user.get("onboarded_at"):
             return None
-        # Client without onboarding -> redirect
         if request.path != "/onboarding":
             return redirect("/onboarding")
     except Exception as e:
@@ -2306,43 +2368,36 @@ def register_wizard():
 
     if request.method == "POST":
         try:
-            # Required - Account
             name = request.form.get("name", "").strip()
             email = request.form.get("email", "").lower().strip()
             password = request.form.get("password", "")
             phone = request.form.get("phone", "").strip()
 
-            # Required - Personal
             country = request.form.get("country", "").strip()
             age = request.form.get("age", "").strip()
             gender = request.form.get("gender", "").strip()
             height = request.form.get("height", "").strip()
             weight = request.form.get("weight", "").strip()
 
-            # Required - Goal
             goal = request.form.get("goal", "weight_loss").strip()
             activity = request.form.get("activity", "1.55").strip()
 
-            # Optional
             liked_foods = request.form.get("liked_foods", "[]")
             disliked_foods = request.form.get("disliked_foods", "[]")
             allergies = request.form.get("allergies", "[]")
             conditions = request.form.get("conditions", "[]")
 
-            # Lifestyle (NEW - Step 4)
             sleep_hours = request.form.get("sleep_hours", "").strip()
             water_cups = request.form.get("water_cups", "").strip()
             stress_level = request.form.get("stress_level", "").strip()
             caffeine = request.form.get("caffeine", "").strip()
             smoking = request.form.get("smoking", "").strip()
 
-            # Medical history (NEW - Step 5)
             medications = request.form.get("medications", "").strip()
             past_surgeries = request.form.get("past_surgeries", "").strip()
             family_diseases = request.form.get("family_diseases", "[]")
             supplements = request.form.get("supplements", "[]")
 
-            # Build extras JSON
             try:
                 lifestyle_data = json.dumps({
                     "sleep_hours": int(sleep_hours) if sleep_hours else None,
@@ -2358,7 +2413,6 @@ def register_wizard():
             except:
                 lifestyle_data = "{}"
 
-            # Validation
             if not all([name, email, password, phone, country, age, gender, height, weight]):
                 return render_template("register.html",
                                        lang=session.get("lang", "ar"),
@@ -2374,14 +2428,12 @@ def register_wizard():
                                        lang=session.get("lang", "ar"),
                                        error="هذا الإيميل محظور")
 
-            # Check existing
             existing = db_row("SELECT id FROM users WHERE email=?", (email,))
             if existing:
                 return render_template("register.html",
                                        lang=session.get("lang", "ar"),
                                        error="الإيميل ده مستخدم قبل كده - سجل دخول")
 
-            # Convert numerics
             try: age_v = int(age)
             except: age_v = None
             try: height_v = float(height)
@@ -2391,7 +2443,6 @@ def register_wizard():
             try: activity_v = float(activity)
             except: activity_v = 1.55
 
-            # Insert user with everything
             db_run("""INSERT INTO users 
                       (name, email, password, country, age, gender, height, weight, 
                        goal, activity, phone, role, active,
@@ -2402,7 +2453,6 @@ def register_wizard():
                     liked_foods, disliked_foods, allergies, conditions, datetime.now(),
                     lifestyle_data))
 
-            # Auto login - get the new user
             new_user = get_user(email, password)
             if new_user:
                 session.permanent = True
@@ -2410,12 +2460,23 @@ def register_wizard():
                 session["lang"] = "ar"
                 session["role"] = "client"
 
-                # Log initial weight
                 try:
                     if weight_v:
                         db_run("INSERT INTO weight_log (user_id, weight) VALUES (?, ?)",
                                (new_user["id"], weight_v))
                 except: pass
+
+                # ── إشعار للأدمن: عميل جديد سجّل ──
+                try:
+                    add_notification(
+                        db_run, "new_client",
+                        f"عميل جديد سجّل: {name}",
+                        f"الاسم: {name}\nالبلد: {country}\nالتليفون: {phone}\nالإيميل: {email}",
+                        link="/admin/users",
+                        related_user_id=new_user["id"]
+                    )
+                except Exception as _e:
+                    print(f"notif new_client error: {_e}")
 
                 return redirect("/my-plan?welcome=1")
             else:
@@ -2440,13 +2501,11 @@ def onboarding():
     if not user:
         return redirect("/")
 
-    # Admin/Nutritionist shouldn't access onboarding
     if user.get("is_admin") or user.get("role") in ("admin", "nutritionist"):
         return redirect("/dashboard")
 
     if request.method == "POST":
         try:
-            # Required fields
             age = request.form.get("age", "").strip()
             gender = request.form.get("gender", "").strip()
             height = request.form.get("height", "").strip()
@@ -2454,19 +2513,16 @@ def onboarding():
             goal = request.form.get("goal", "weight_loss").strip()
             activity = request.form.get("activity", "1.55").strip()
 
-            # Optional fields
             liked_foods = request.form.get("liked_foods", "[]")
             disliked_foods = request.form.get("disliked_foods", "[]")
             conditions = request.form.get("conditions", "[]")
             allergies = request.form.get("allergies", "[]")
 
-            # Validate required
             if not (age and gender and height and weight):
                 return render_template("onboarding.html",
                                        user=user, lang=session.get("lang", "ar"),
                                        error="من فضلك املأ كل الحقول المطلوبة")
 
-            # Save to users table
             db_run("""UPDATE users SET 
                       age=?, gender=?, height=?, weight=?, goal=?, activity=?,
                       liked_foods=?, disliked_foods=?, conditions=?, allergies=?,
@@ -2479,7 +2535,6 @@ def onboarding():
                     liked_foods, disliked_foods, conditions, allergies,
                     datetime.now(), session["uid"]))
 
-            # Log initial weight
             try:
                 db_run("INSERT INTO weight_log (user_id, weight) VALUES (?, ?)",
                        (session["uid"], float(weight)))
@@ -2507,7 +2562,6 @@ def my_plans_history():
     user = get_user_by_id(session["uid"])
     if not user:
         return redirect("/")
-    # Admin/staff goes to admin panel
     if user.get("is_admin") or user.get("role") in ("admin", "nutritionist"):
         return redirect("/admin/requests")
 
@@ -2521,7 +2575,6 @@ def my_plans_history():
                           WHERE client_id=? AND status='approved' 
                           ORDER BY created_at DESC""", (session["uid"],))
 
-        # Latest approved plan is "currently active"
         latest_active_id = rows[0]["id"] if rows else None
 
         for r in rows:
@@ -2537,7 +2590,6 @@ def my_plans_history():
             p["conditions_count"] = len(rd.get("symptoms", []) or [])
             p["is_currently_active"] = (p["id"] == latest_active_id)
 
-            # Format date
             v = p.get("created_at")
             if v:
                 p["created_date"] = v.strftime("%Y-%m-%d") if hasattr(v, "strftime") else str(v)[:10]
@@ -2549,7 +2601,6 @@ def my_plans_history():
         active_count = sum(1 for p in plans_processed if p["is_currently_active"])
         archived_count = len(plans_processed) - active_count
 
-        # Days following = days since first plan
         if rows:
             first_date = rows[-1].get("created_at")
             if first_date and hasattr(first_date, "date"):
@@ -2599,11 +2650,9 @@ def my_plans_history_view(plan_id):
     if not plan_data:
         plan_data = request_data
 
-    # Get plan info
     diet_type = plan_data.get("diet_plan_type", "standard")
     plan_info = get_diet_plan_info(diet_type)
 
-    # Format created date
     created_str = "-"
     v = plan_req.get("created_at")
     if v:
@@ -2663,8 +2712,6 @@ def my_plans_history_reactivate(plan_id):
         return redirect("/my-plans-history")
 
     try:
-        # Just update the timestamp to make it the latest "active"
-        # OR create a new request based on it
         db_run("""INSERT INTO plan_requests 
                   (client_id, client_name, request_data, plan_data, status, notes)
                   VALUES (?, ?, ?, ?, 'approved', ?)""",
@@ -2688,7 +2735,6 @@ def my_plans_history_edit(plan_id):
     if not plan_req:
         return redirect("/my-plans-history")
 
-    # Store old data in session for prefilling
     try:
         session["prefill_data"] = json.loads(plan_req.get("request_data") or "{}")
     except: pass
