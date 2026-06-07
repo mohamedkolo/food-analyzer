@@ -1,10 +1,13 @@
 """
 NutraX Payments Module - Stripe Integration
 ============================================
-3 خطط دفع:
-1. استشارة فردية (149 EGP / 19 AED / $5) - شات مفتوح 24 ساعة
-2. خطة واحدة (299 EGP / 35 AED / $9) - خطة + متابعة 7 أيام
-3. اشتراك شهري (599 EGP / 69 AED / $19) - كل حاجة + 7 أيام تجربة
+الجنيه المصري هو الأساس. أسعار كل العملات مكتوبة صريحة في PLAN_PRICES بالأعلى.
+عشان تغيّر أي سعر: عدّل الرقم في PLAN_PRICES (بالعملة العادية، مش قروش).
+
+الأسعار الحالية:
+  استشارة فردية : 250 ج.م / $5  / 19 د.إ / 19 ر.س  — شات مفتوح 24 ساعة
+  خطة واحدة     : 500 ج.م / $10 / 37 د.إ / 38 ر.س  — خطة + متابعة 7 أيام
+  اشتراك شهري   : 1000 ج.م / $20 / 73 د.إ / 75 ر.س — كل حاجة + 7 أيام تجربة
 
 Multi-currency: EGP / AED / USD / SAR
 """
@@ -24,7 +27,26 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 DOMAIN = os.environ.get("DOMAIN", "https://food-analyzer-duag.onrender.com")
 
 # ═══════════════════════════════════════════════
-# PRICING (الأسعار بالـ cents/قروش)
+# 💰 الأسعار: الجنيه المصري هو الأساس
+# ═══════════════════════════════════════════════
+
+# الجنيه المصري هو الأساس، وجنب كل خطة أرقام باقي العملات.
+# عدّل أي رقم هنا براحتك (بالعملة العادية مش قروش) وهو هيظهر في كل الموقع.
+PLAN_PRICES = {
+    #                          EGP    USD  AED  SAR
+    "consultation":          {"EGP": 250,  "USD": 5,  "AED": 19, "SAR": 19},
+    "single_plan":           {"EGP": 500,  "USD": 10, "AED": 37, "SAR": 38},
+    "monthly_subscription":  {"EGP": 1000, "USD": 20, "AED": 73, "SAR": 75},
+}
+
+
+def build_prices(plan_key):
+    """يحوّل أسعار الخطة من العملة العادية لقروش/سنت (السعر × 100)."""
+    return {cur: int(round(val * 100)) for cur, val in PLAN_PRICES[plan_key].items()}
+
+
+# ═══════════════════════════════════════════════
+# PRICING (بيتبني تلقائياً من الأرقام اللي فوق)
 # ═══════════════════════════════════════════════
 
 PRICING = {
@@ -37,12 +59,7 @@ PRICING = {
         "type": "one_time",
         "icon": "💬",
         "color": "#3b82f6",
-        "prices": {
-            "EGP": 14900,  # 149 ج.م
-            "AED": 1900,   # 19 د.إ
-            "USD": 500,    # $5
-            "SAR": 1900,   # 19 ر.س
-        },
+        "prices": build_prices("consultation"),
         "features_ar": [
             "محادثة مع د. محمد لمدة 24 ساعة",
             "إجابة على استفساراتك الغذائية",
@@ -65,12 +82,7 @@ PRICING = {
         "type": "one_time",
         "icon": "📋",
         "color": "#10b981",
-        "prices": {
-            "EGP": 29900,  # 299 ج.م
-            "AED": 3500,   # 35 د.إ
-            "USD": 900,    # $9
-            "SAR": 3500,   # 35 ر.س
-        },
+        "prices": build_prices("single_plan"),
         "features_ar": [
             "خطة غذائية كاملة من د. محمد",
             "PDF احترافي قابل للطباعة",
@@ -98,12 +110,7 @@ PRICING = {
         "color": "#f59e0b",
         "badge": "الأكثر توفيراً",
         "badge_en": "Best Value",
-        "prices": {
-            "EGP": 59900,  # 599 ج.م
-            "AED": 6900,   # 69 د.إ
-            "USD": 1900,   # $19
-            "SAR": 6900,   # 69 ر.س
-        },
+        "prices": build_prices("monthly_subscription"),
         "features_ar": [
             "✅ خطط غذائية غير محدودة",
             "✅ شات مفتوح طوال الشهر",
@@ -125,12 +132,13 @@ PRICING = {
 
 # ═══════════════════════════════════════════════
 # COUNTRY → CURRENCY DETECTION
+# (مصر→EGP، السعودية→SAR، الإمارات→AED، باقي الدول→USD)
 # ═══════════════════════════════════════════════
 
 COUNTRY_TO_CURRENCY = {
     "مصر": "EGP", "Egypt": "EGP", "EG": "EGP", "egypt": "EGP",
     "السعودية": "SAR", "Saudi Arabia": "SAR", "SA": "SAR", "saudi": "SAR",
-    "الإمارات": "AED", "UAE": "AED", "AE": "AED", "emirates": "AED",
+    "الإمارات": "AED", "الامارات": "AED", "UAE": "AED", "AE": "AED", "emirates": "AED",
     "الكويت": "USD", "Kuwait": "USD", "KW": "USD",
     "قطر": "USD", "Qatar": "USD", "QA": "USD",
     "البحرين": "USD", "Bahrain": "USD", "BH": "USD",
@@ -144,7 +152,7 @@ COUNTRY_TO_CURRENCY = {
 
 
 def detect_currency(country):
-    """Detect currency from country name"""
+    """يحدد العملة من اسم البلد. أي بلد غير معروف → USD"""
     if not country:
         return "USD"
     country = country.strip()
@@ -157,8 +165,14 @@ def detect_currency(country):
     return "USD"
 
 
+# alias باسم get_user_currency زي ما طلبت — بيستخدم نفس المنطق
+def get_user_currency(country):
+    """نفس detect_currency بالظبط (اسم بديل لو حبيت تستخدمه في app.py)"""
+    return detect_currency(country)
+
+
 def format_price(amount_cents, currency):
-    """Convert cents to display string"""
+    """يحوّل القروش لنص للعرض"""
     amount = amount_cents / 100
     if currency == "EGP":
         return f"{amount:.0f} ج.م"
@@ -171,7 +185,7 @@ def format_price(amount_cents, currency):
 
 
 def get_plan_price(plan_key, currency):
-    """Get price for a plan in specific currency"""
+    """سعر خطة بعملة معينة (بالقروش)"""
     plan = PRICING.get(plan_key)
     if not plan:
         return None
