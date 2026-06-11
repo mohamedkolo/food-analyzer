@@ -25,6 +25,12 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .role-admin{background:#fee;color:#8b0000}
 .role-nutritionist{background:#dcfce7;color:#14532d}
 .role-client{background:#dbeafe;color:#1e3a8a}
+/* جرس الإشعارات */
+.notif-bell{position:relative;width:36px;height:36px;padding:0;justify-content:center}
+.notif-bell i{font-size:16px}
+.notif-bell-badge{position:absolute;top:-5px;left:-5px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;min-width:18px;height:18px;padding:0 4px;border-radius:20px;display:flex;align-items:center;justify-content:center;border:2px solid var(--blue);line-height:1}
+.notif-bell.ring i{animation:bellRing .7s ease}
+@keyframes bellRing{0%,100%{transform:rotate(0)}15%{transform:rotate(16deg)}30%{transform:rotate(-14deg)}45%{transform:rotate(10deg)}60%{transform:rotate(-7deg)}75%{transform:rotate(4deg)}}
 .sidebar{position:fixed;top:var(--header-h);right:0;bottom:0;width:var(--sidebar-w);background:var(--white);border-left:1px solid var(--gray-2);overflow-y:auto;padding:16px 12px;z-index:90;transition:transform .3s}
 .sidebar-user{padding:8px 14px 16px;border-bottom:1px solid var(--gray-2);margin-bottom:12px}
 .sidebar-user .name{font-size:15px;font-weight:700;color:var(--text)}
@@ -115,6 +121,12 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
     <div class="header-logo"><i class="fa-solid fa-leaf" style="color:#4ade80"></i> NutraX</div>
   </div>
   <div style="display:flex;align-items:center;gap:10px">
+    {% if is_staff %}
+    <a href="/admin/notifications" class="header-btn notif-bell" id="notifBell" title="{{ 'الإشعارات' if is_ar else 'Notifications' }}">
+      <i class="fa-solid fa-bell"></i>
+      <span class="notif-bell-badge" id="notifBadge" {% if not (notif_unread and notif_unread > 0) %}style="display:none"{% endif %}>{{ notif_unread or 0 }}</span>
+    </a>
+    {% endif %}
     <a href="/lang/{{ 'en' if is_ar else 'ar' }}" class="header-btn">
       <i class="fa-solid fa-globe"></i> {{ 'English' if is_ar else 'العربية' }}
     </a>
@@ -146,6 +158,10 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
     <a href="/admin/requests" class="nav-item {% if request.endpoint in ['admin_requests'] %}active{% endif %}">
       <i class="fa-solid fa-bell" style="color:#f59e0b"></i> {{ 'طلبات العملاء' if is_ar else 'Client Requests' }}
       {% if pending_count and pending_count > 0 %}<span class="nav-badge">{{ pending_count }}</span>{% endif %}
+    </a>
+    <a href="/admin/notifications" class="nav-item {% if request.endpoint=='admin_notifications' %}active{% endif %}">
+      <i class="fa-solid fa-bell-concierge" style="color:#ef4444"></i> {{ 'الإشعارات' if is_ar else 'Notifications' }}
+      {% if notif_unread and notif_unread > 0 %}<span class="nav-badge">{{ notif_unread }}</span>{% endif %}
     </a>
     <a href="/messages" class="nav-item {% if request.endpoint in ['messages','chat'] %}active{% endif %}">
       <i class="fa-solid fa-comments" style="color:#2563eb"></i> {{ 'الرسائل' if is_ar else 'Messages' }}
@@ -290,6 +306,68 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
+{% if is_staff %}
+<!-- ═══ جرس الإشعارات: عدّاد حي + صوت تنبيه ═══ -->
+<script>
+(function(){
+  var bell  = document.getElementById('notifBell');
+  var badge = document.getElementById('notifBadge');
+  if(!bell || !badge) return;
+
+  var last = parseInt(badge.textContent || '0', 10) || 0;
+  // الصوت مفعّل افتراضياً — كليك يمين (أو ضغطة مطوّلة بالموبايل) على الجرس يكتمه/يفعّله
+  var soundOn = (localStorage.getItem('nutrax_notif_sound') !== '0');
+
+  function beep(){
+    if(!soundOn) return;
+    try{
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+      o.start(); o.stop(ctx.currentTime + 0.42);
+    }catch(e){}
+  }
+
+  function setBadge(n){
+    if(n > 0){ badge.textContent = n; badge.style.display = 'flex'; }
+    else { badge.style.display = 'none'; }
+  }
+
+  function poll(){
+    fetch('/admin/notifications/count', {headers:{'X-Requested-With':'fetch'}})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){
+        if(!d) return;
+        var n = d.count || 0;
+        if(n > last){
+          beep();
+          bell.classList.add('ring');
+          setTimeout(function(){ bell.classList.remove('ring'); }, 800);
+        }
+        setBadge(n);
+        last = n;
+      })
+      .catch(function(){});
+  }
+
+  // كتم/تفعيل الصوت
+  bell.addEventListener('contextmenu', function(e){
+    e.preventDefault();
+    soundOn = !soundOn;
+    localStorage.setItem('nutrax_notif_sound', soundOn ? '1' : '0');
+    alert(soundOn ? '🔔 صوت الإشعارات: مفعّل' : '🔕 صوت الإشعارات: مكتوم');
+  });
+
+  setInterval(poll, 20000);  // فحص كل 20 ثانية
+})();
+</script>
+{% endif %}
+
 {% block extra_script %}{% endblock %}
 </body>
 </html>
