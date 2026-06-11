@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .notif-wrap { max-width: 760px; margin: 24px auto; padding: 16px; font-family: 'Cairo','Tajawal',system-ui,sans-serif; }
+  .notif-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .notif-head h1 { font-size: 24px; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px; }
+  .notif-count-pill { background: #fee2e2; color: #b91c1c; font-size: 13px; font-weight: 700; padding: 4px 12px; border-radius: 999px; }
+  .read-all-btn { background: #f1f5f9; color: #475569; border: 0; padding: 10px 18px; border-radius: 12px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s; }
+  .read-all-btn:hover { background: #e2e8f0; }
+
+  .notif-list { display: flex; flex-direction: column; gap: 10px; }
+  .notif-card { display: flex; gap: 14px; background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px 18px; transition: all .2s; position: relative; }
+  .notif-card.unread { background: #f0fdf4; border-color: #86efac; }
+  .notif-card.unread::before { content: ''; position: absolute; top: 18px; inset-inline-start: 6px; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
+  .notif-icon { font-size: 26px; flex-shrink: 0; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 12px; }
+  .notif-body { flex: 1; min-width: 0; }
+  .notif-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  .notif-type { font-size: 11px; font-weight: 700; color: #059669; background: #d1fae5; padding: 2px 9px; border-radius: 999px; }
+  .notif-time { font-size: 12px; color: #94a3b8; margin-inline-start: auto; }
+  .notif-title { font-size: 15px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
+  .notif-msg { font-size: 14px; color: #475569; line-height: 1.6; margin: 0; white-space: pre-line; }
+  .notif-open { display: inline-block; margin-top: 8px; font-size: 13px; font-weight: 700; color: #059669; text-decoration: none; }
+  .notif-open:hover { text-decoration: underline; }
+
+  .notif-empty { text-align: center; padding: 60px 20px; color: #94a3b8; }
+  .notif-empty .big { font-size: 54px; margin-bottom: 12px; }
+  .notif-empty p { font-size: 16px; margin: 0; }
+</style>
+
+<div class="notif-wrap">
+  <div class="notif-head">
+    <h1>🔔 الإشعارات
+      {% if unread_before and unread_before > 0 %}
+      <span class="notif-count-pill">{{ unread_before }} جديد</span>
+      {% endif %}
+    </h1>
+    {% if notifications %}
+    <form method="post" action="/admin/notifications/read" style="margin:0;">
+      <button type="submit" class="read-all-btn">✓ علّم الكل كمقروء</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if notifications %}
+  <div class="notif-list">
+    {% for n in notifications %}
+    <div class="notif-card {% if not n.is_read %}unread{% endif %}">
+      <div class="notif-icon">{{ n.icon }}</div>
+      <div class="notif-body">
+        <div class="notif-top">
+          <span class="notif-type">{{ n.type_label }}</span>
+          <span class="notif-time">{{ n.created_str }}</span>
+        </div>
+        <h3 class="notif-title">{{ n.title }}</h3>
+        <p class="notif-msg">{{ n.message }}</p>
+        {% if n.link %}
+        <a class="notif-open" href="{{ n.link }}">افتح ←</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="notif-empty">
+    <div class="big">🔕</div>
+    <p>مفيش إشعارات لسه</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
