@@ -197,14 +197,14 @@
             {% for meal in day.meals %}
             <div class="meal">
               <div class="meal-label">{{ meal.emoji }} {{ meal.label }}</div>
-              <div class="meal-content">{{ meal.text }}</div>
+              <div class="meal-content">{{ meal.text | measures }}</div>
             </div>
             {% endfor %}
           {% else %}
-            <div class="meal"><div class="meal-label">🌅 الفطار</div><div class="meal-content">{{ day.breakfast }}</div></div>
-            <div class="meal"><div class="meal-label">☀️ الغداء</div><div class="meal-content">{{ day.lunch }}</div></div>
-            <div class="meal"><div class="meal-label">🌙 العشاء</div><div class="meal-content">{{ day.dinner }}</div></div>
-            <div class="meal"><div class="meal-label">🍎 سناك</div><div class="meal-content">{{ day.snack }}</div></div>
+            <div class="meal"><div class="meal-label">🌅 الفطار</div><div class="meal-content">{{ day.breakfast | measures }}</div></div>
+            <div class="meal"><div class="meal-label">☀️ الغداء</div><div class="meal-content">{{ day.lunch | measures }}</div></div>
+            <div class="meal"><div class="meal-label">🌙 العشاء</div><div class="meal-content">{{ day.dinner | measures }}</div></div>
+            <div class="meal"><div class="meal-label">🍎 سناك</div><div class="meal-content">{{ day.snack | measures }}</div></div>
           {% endif %}
         </div>
       </div>
