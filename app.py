@@ -91,7 +91,13 @@ def from_json_filter(s):
     if not s: return {}
     try: return json.loads(s)
     except: return {}
-
+@app.template_filter('measures')
+def measures_filter(s):
+    try:
+        from measures import annotate
+        return annotate(s or "")
+    except Exception:
+        return s
 def init_db():
     """Initialize database - safe with try/except for each table"""
     if DATABASE_URL:
