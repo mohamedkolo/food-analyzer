@@ -1,15 +1,15 @@
 {
-  "name": "NutraX - Clinical Nutrition",
+  "name": "NutraX - تغذية إكلينيكية",
   "short_name": "NutraX",
-  "description": "استشارات التغذية الإكلينيكية - خطط غذائية مخصصة",
+  "description": "خطط غذائية ومتابعة مع د. محمد",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#1b4332",
   "theme_color": "#1b4332",
   "lang": "ar",
   "dir": "rtl",
-  "scope": "/",
   "icons": [
     {
       "src": "/static/icon-192.png",
@@ -22,21 +22,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    }
-  ],
-  "categories": ["health", "medical", "lifestyle"],
-  "shortcuts": [
-    {
-      "name": "خطتي الغذائية",
-      "short_name": "خطتي",
-      "url": "/my-plan",
-      "icons": [{ "src": "/static/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "سجل وزني",
-      "short_name": "الوزن",
-      "url": "/history",
-      "icons": [{ "src": "/static/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
