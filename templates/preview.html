@@ -124,6 +124,7 @@
 <!-- Days -->
 <div style="display:grid;gap:12px">
   {% for day in plan %}
+  {% set day_idx = loop.index0 %}
   <div class="card" style="padding:16px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--gray-2)">
       <div style="font-size:17px;font-weight:800;color:var(--blue-dark)">
@@ -156,14 +157,14 @@
           <div style="font-size:20px">{{ emoji }}</div>
           <div style="flex:1">
             <div style="font-size:11px;color:#bc6c25;font-weight:700;letter-spacing:0.5px">{{ label }}</div>
-            <div class="meal-text editable" data-day="{{ loop.index0 }}" data-type="{{ key }}" style="font-size:13px;font-weight:600;cursor:text">{{ day[key] }}</div>
+            <div class="meal-text editable" data-day="{{ day_idx }}" data-type="{{ key }}" style="font-size:13px;font-weight:600;cursor:text">{{ day[key] }}</div>
           </div>
           {% if key not in ['snack','snack1','snack2','pre_workout','post_workout'] %}
           <div style="display:flex;gap:4px">
-            <button class="swap-btn" data-day="{{ loop.index0 }}" data-type="{{ key }}" title="استبدال عشوائي">
+            <button class="swap-btn" data-day="{{ day_idx }}" data-type="{{ key }}" title="استبدال عشوائي">
               <i class="fa-solid fa-shuffle"></i>
             </button>
-            <button class="pick-btn" data-day="{{ loop.index0 }}" data-type="{{ key }}" data-label="{{ label }}" title="اختر من قائمة" style="background:#f0fdf4;color:#16a34a;border-color:#86efac">
+            <button class="pick-btn" data-day="{{ day_idx }}" data-type="{{ key }}" data-label="{{ label }}" title="اختر من قائمة" style="background:#f0fdf4;color:#16a34a;border-color:#86efac">
               <i class="fa-solid fa-list"></i>
             </button>
           </div>
