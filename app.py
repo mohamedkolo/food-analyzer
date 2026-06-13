@@ -48,6 +48,21 @@ from notifications import (
     ensure_table as ensure_notif_table
 )
 
+# ═══════════════════════════════════════════════
+# PUSH NOTIFICATIONS (إشعارات الموبايل - Web Push)
+# ═══════════════════════════════════════════════
+from push import push_bp, push_to_staff
+app.register_blueprint(push_bp)
+
+# نلفّ add_notification عشان كل إشعار يتبعت كمان كـ Push للموبايل
+_base_add_notification = add_notification
+def add_notification(db_run, type_, title, message, link=None, related_user_id=None):
+    _base_add_notification(db_run, type_, title, message, link=link, related_user_id=related_user_id)
+    try:
+        push_to_staff(title, message, link or "/admin/notifications")
+    except Exception as _e:
+        print(f"push send error: {_e}")
+
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if DATABASE_URL:
@@ -2343,7 +2358,7 @@ def check_onboarding_status():
     """Middleware: العملاء الجداد بيتحولوا للاستبيان تلقائياً"""
     if not request.endpoint or request.endpoint in ONBOARDING_EXEMPT:
         return None
-    if request.path.startswith("/static") or request.path.startswith("/webhook") or request.path.startswith("/track"):
+    if request.path.startswith("/static") or request.path.startswith("/webhook") or request.path.startswith("/track") or request.path.startswith("/push"):
         return None
     if "uid" not in session:
         return None
