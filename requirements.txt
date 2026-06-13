@@ -6,3 +6,4 @@ psycopg2-binary>=2.9.0
 weasyprint==60.2
 pydyf==0.8.0
 stripe>=7.0.0
+pywebpush>=1.14.0
