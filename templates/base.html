@@ -218,6 +218,9 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
     <a href="/knowledge" class="nav-item {% if request.endpoint=='knowledge' %}active{% endif %}">
       <i class="fa-solid fa-book-open" style="color:#16a34a"></i> {{ 'مركز المعرفة' if is_ar else 'Knowledge Hub' }}
     </a>
+    <button type="button" id="nxPushBtn" class="nav-item" onclick="nxEnablePush()">
+      <i class="fa-solid fa-mobile-screen-button" style="color:#16a34a"></i> {{ 'فعّل إشعارات الموبايل' if is_ar else 'Enable Phone Alerts' }}
+    </button>
   {% endif %}
 
   <div class="nav-divider"></div>
@@ -369,7 +372,9 @@ if ('serviceWorker' in navigator) {
   setInterval(poll, 20000);  // فحص كل 20 ثانية
 })();
 </script>
+{% endif %}
 
+{% if user %}
 <!-- ═══ تفعيل إشعارات الموبايل (Web Push) ═══ -->
 <script>
 function urlBase64ToUint8Array(base64String){
