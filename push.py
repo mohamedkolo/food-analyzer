@@ -186,3 +186,22 @@ def push_to_staff(title, body, url="/admin/notifications"):
     if not _PUSH_AVAILABLE or not VAPID_PRIVATE_KEY or not VAPID_PUBLIC_KEY:
         return
     threading.Thread(target=_send_to_staff_bg, args=(title, body, url), daemon=True).start()
+
+
+def _send_to_user_bg(user_id, title, body, url):
+    try:
+        subs = db_rows("SELECT sub_json FROM push_subscriptions WHERE user_id=?", (user_id,))
+        payload = {"title": title or "NutraX", "body": body or "", "url": url or "/"}
+        for s in subs or []:
+            _send_one(s["sub_json"], payload)
+    except Exception as e:
+        print(f"push to user error: {e}")
+
+
+def push_to_user(user_id, title, body, url="/"):
+    """بيبعت إشعار موبايل لمستخدم/عميل معيّن بالـ id (في الخلفية)."""
+    if not _PUSH_AVAILABLE or not VAPID_PRIVATE_KEY or not VAPID_PUBLIC_KEY:
+        return
+    if not user_id:
+        return
+    threading.Thread(target=_send_to_user_bg, args=(user_id, title, body, url), daemon=True).start()
