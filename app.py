@@ -14,6 +14,13 @@ from meal_database import (
     WEIGHT_LOSS, MUSCLE_GAIN, BULKING, MAINTENANCE
 )
 
+# دمج الوجبات الإضافية (ملف meal_extra) لو موجود — بيزوّد التنوّع من غير ما يلمس meal_database
+try:
+    import meal_extra
+    meal_extra.apply()
+except Exception as _e:
+    print(f"meal_extra apply error: {_e}")
+
 # ═══════════════════════════════════════════════
 # INGREDIENTS DATABASE (Food Analyzer)
 # ═══════════════════════════════════════════════
