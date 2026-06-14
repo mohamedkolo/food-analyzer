@@ -51,7 +51,7 @@ from notifications import (
 # ═══════════════════════════════════════════════
 # PUSH NOTIFICATIONS (إشعارات الموبايل - Web Push)
 # ═══════════════════════════════════════════════
-from push import push_bp, push_to_staff
+from push import push_bp, push_to_staff, push_to_user
 app.register_blueprint(push_bp)
 
 # نلفّ add_notification عشان كل إشعار يتبعت كمان كـ Push للموبايل
@@ -807,6 +807,15 @@ def admin_request_approve(rid):
     if not plan or not data: return redirect("/admin/requests")
     db_run("UPDATE plan_requests SET status='approved', plan_data=?, updated_at=? WHERE id=?",
            (json.dumps({"plan": plan, "data": data}), datetime.now().isoformat(), rid))
+    # ── إشعار موبايل للعميل إن خطته جاهزة ──
+    try:
+        req = db_row("SELECT client_id FROM plan_requests WHERE id=?", (rid,))
+        if req and req.get("client_id"):
+            push_to_user(req["client_id"], "خطتك الغذائية جاهزة! 🎉",
+                         "د. محمد جهّزلك خطة جديدة. افتح التطبيق لمشاهدتها.",
+                         url="/my-plan")
+    except Exception as _e:
+        print(f"push to client (plan) error: {_e}")
     session.pop("current_request_id", None)
     return redirect("/admin/requests")
 
@@ -1116,6 +1125,14 @@ def chat(other_id):
                     )
             except Exception as _e:
                 print(f"notif new_message error: {_e}")
+            # ── إشعار موبايل للعميل لو الراسل ستاف (أدمن/أخصائي) ──
+            try:
+                if role in ("admin", "nutritionist"):
+                    preview_txt = (msg[:120] + "…") if len(msg) > 120 else msg
+                    push_to_user(other_id, "رسالة جديدة من د. محمد",
+                                 preview_txt, url="/messages")
+            except Exception as _e:
+                print(f"push to client (msg) error: {_e}")
         return redirect(f"/messages/{other_id}")
 
     db_run("UPDATE messages SET is_read=1 WHERE sender_id=? AND receiver_id=?", (other_id, user["id"]))
