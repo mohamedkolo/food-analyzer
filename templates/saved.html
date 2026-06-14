@@ -1,8 +1,13 @@
 {% extends "base.html" %}
-{% block title %}{{ 'جداولي' if (lang or 'ar')=='ar' else 'My Plans' }}{% endblock %}
-
+{% block title %}{{ 'جداولي المحفوظة' if (lang or 'ar')=='ar' else 'My Saved Plans' }}{% endblock %}
 {% block content %}
 {% set is_ar = (lang or 'ar') == 'ar' %}
+{% set goal_labels = {
+  'weight_loss': ('تخسيس','Weight Loss'),
+  'maintenance': ('مكتنز','Maintenance'),
+  'muscle_gain': ('زيادة عضل','Muscle Gain'),
+  'bulking': ('تضخيم','Bulking')
+} %}
 
 <div class="page-title">
   <i class="fa-solid fa-bookmark"></i>
@@ -11,55 +16,83 @@
 
 {% if plans %}
   {% for plan in plans %}
+  {% set pd = plan.plan_data | from_json %}
+  {% set info = pd.data if (pd and pd.data) else {} %}
+  {% set days = pd.plan if (pd and pd.plan) else [] %}
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
-      <div>
-        <div style="font-size:16px;font-weight:800;margin-bottom:4px">
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:16px;font-weight:800;margin-bottom:6px">
           <i class="fa-solid fa-calendar-week" style="color:var(--blue-light)"></i>
           {{ plan.name }}
         </div>
-        <div style="font-size:12px;color:var(--muted)">
-          <i class="fa-solid fa-clock"></i> {{ plan.created_at[:10] }}
-          &nbsp;|&nbsp;
-          <i class="fa-solid fa-tag"></i>
-          {% if plan.plan_type == 'client' %}
-            {{ 'للعميل' if is_ar else 'For Client' }}
-          {% else %}
-            {{ 'خاص بي' if is_ar else 'Personal' }}
+        <div style="font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:10px">
+          <span><i class="fa-solid fa-clock"></i> {{ (plan.created_at|string)[:16] }}</span>
+          {% if info.goal_type and goal_labels.get(info.goal_type) %}
+          <span><i class="fa-solid fa-bullseye"></i>
+            {{ goal_labels[info.goal_type][0] if is_ar else goal_labels[info.goal_type][1] }}
+          </span>
+          {% endif %}
+          {% if info.culture %}
+          <span><i class="fa-solid fa-utensils"></i> {{ info.culture }}</span>
+          {% endif %}
+          {% if info.goal_cal %}
+          <span><i class="fa-solid fa-fire"></i> {{ info.goal_cal }} kcal</span>
+          {% endif %}
+          {% if days %}
+          <span><i class="fa-solid fa-calendar-days"></i>
+            {{ days|length }} {{ 'أيام' if is_ar else 'days' }}
+          </span>
           {% endif %}
         </div>
       </div>
       <form method="POST" action="/delete_plan/{{ plan.id }}"
-            onsubmit="return confirm('{{ 'هل تريد حذف هذا الجدول؟' if is_ar else 'Delete this plan?' }}')">
+            onsubmit="return confirm('{{ 'تحذف الجدول ده؟' if is_ar else 'Delete this plan?' }}')">
         <button type="submit" class="btn btn-danger" style="padding:7px 14px;font-size:13px">
           <i class="fa-solid fa-trash"></i>
         </button>
       </form>
     </div>
 
-    <!-- عرض تفاصيل الجدول -->
+    {% if days %}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <a href="/saved/{{ plan.id }}/open" class="btn btn-primary" style="padding:9px 16px;font-size:13px">
+        <i class="fa-solid fa-eye"></i> {{ 'افتح وعدّل' if is_ar else 'Open & Edit' }}
+      </a>
+      <a href="/saved/{{ plan.id }}/pdf" class="btn btn-success" style="padding:9px 16px;font-size:13px">
+        <i class="fa-solid fa-file-pdf"></i> {{ 'تحميل PDF' if is_ar else 'Download PDF' }}
+      </a>
+    </div>
+
     <details style="margin-top:12px">
       <summary style="font-size:13px;font-weight:700;color:var(--blue);cursor:pointer">
-        <i class="fa-solid fa-eye"></i>
-        {{ 'عرض التفاصيل' if is_ar else 'View Details' }}
+        <i class="fa-solid fa-list"></i> {{ 'نظرة سريعة على الأيام' if is_ar else 'Quick look at the days' }}
       </summary>
-      <div style="margin-top:10px;padding:10px;background:var(--gray);border-radius:10px;font-size:13px;color:var(--text-2)">
-        {{ 'السعرات المستهدفة' if is_ar else 'Target Calories' }}:
-        <strong>{{ plan.plan_data | safe }}</strong>
+      <div style="margin-top:10px;display:grid;gap:8px">
+        {% for d in days %}
+        <div style="padding:10px;background:var(--gray);border-radius:10px;font-size:12px;color:var(--text-2)">
+          <strong style="color:var(--blue)">{{ d.day }}</strong>
+          {% if d.total_cal %}<span style="color:var(--muted)"> — {{ d.total_cal }} kcal</span>{% endif %}
+        </div>
+        {% endfor %}
       </div>
     </details>
+    {% else %}
+    <div style="margin-top:10px;font-size:12px;color:var(--muted)">
+      <i class="fa-solid fa-circle-info"></i>
+      {{ 'خطة قديمة — افتح صفحة التوليد لعمل خطة جديدة بالتنسيق الجديد.' if is_ar else 'Old plan format.' }}
+    </div>
+    {% endif %}
   </div>
   {% endfor %}
-
 {% else %}
 <div class="alert alert-info">
   <i class="fa-solid fa-circle-info"></i>
-  {{ 'لا توجد جداول محفوظة بعد.' if is_ar else 'No saved plans yet.' }}
+  {{ 'لا توجد جداول محفوظة بعد. أي خطة تولّدها هتتحفظ هنا تلقائياً.' if is_ar else 'No saved plans yet. Any plan you generate is saved here automatically.' }}
 </div>
-<a href="/planner" class="btn btn-primary">
-  <i class="fa-solid fa-calendar-days"></i>
-  {{ 'اذهب لمصمم الجدول' if is_ar else 'Go to Meal Planner' }}
+<a href="/generate" class="btn btn-primary">
+  <i class="fa-solid fa-wand-magic-sparkles"></i>
+  {{ 'ولّد خطة جديدة' if is_ar else 'Generate a Plan' }}
 </a>
 {% endif %}
-
 {% endblock %}
