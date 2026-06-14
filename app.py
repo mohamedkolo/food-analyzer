@@ -923,6 +923,46 @@ def delete_plan(pid):
     db_run("DELETE FROM saved_plans WHERE id=? AND user_id=?", (pid, session["uid"]))
     return redirect("/saved")
 
+@app.route("/saved/<int:pid>/open")
+@staff_required
+def open_saved_plan(pid):
+    """فتح خطة محفوظة في صفحة المعاينة"""
+    row = db_row("SELECT * FROM saved_plans WHERE id=? AND user_id=?", (pid, session["uid"]))
+    if not row:
+        return redirect("/saved")
+    try:
+        pd = json.loads(row.get("plan_data") or "{}")
+        data = pd.get("data")
+        plan = pd.get("plan")
+        if data and plan:
+            session["pdf_data"] = data
+            session["current_plan"] = plan
+            session.pop("current_request_id", None)
+            return redirect("/preview")
+    except Exception as _e:
+        print(f"open saved plan error: {_e}")
+    return redirect("/saved")
+
+@app.route("/saved/<int:pid>/pdf")
+@staff_required
+def saved_plan_pdf(pid):
+    """تحميل PDF لخطة محفوظة"""
+    row = db_row("SELECT * FROM saved_plans WHERE id=? AND user_id=?", (pid, session["uid"]))
+    if not row:
+        return redirect("/saved")
+    try:
+        pd = json.loads(row.get("plan_data") or "{}")
+        data = pd.get("data")
+        plan = pd.get("plan")
+        if not data:
+            return redirect("/saved")
+        pdf_bytes = build_pdf(data, plan)
+        buf = io.BytesIO(pdf_bytes); buf.seek(0)
+        name = (data.get("name", "plan") or "plan").replace(" ", "_")
+        return send_file(buf, as_attachment=True, download_name=f"NutraX_{name}.pdf", mimetype="application/pdf")
+    except Exception as e:
+        return f"خطأ في توليد PDF: {e}", 500
+
 @app.route("/generate", methods=["GET","POST"])
 @staff_required
 def generate():
