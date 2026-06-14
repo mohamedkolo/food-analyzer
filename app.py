@@ -944,7 +944,16 @@ def generate():
             "notes": request.form.get("notes",""),
         }
         session["pdf_data"] = data
-        session["current_plan"] = generate_weekly_plan(data)
+        plan = generate_weekly_plan(data)
+        session["current_plan"] = plan
+        # ── حفظ تلقائي للخطة عشان الدكتور يلاقيها في "جداولي المحفوظة" ──
+        try:
+            nm = (data.get("name") or "خطة") + " - " + datetime.now().strftime("%Y-%m-%d %H:%M")
+            db_run("INSERT INTO saved_plans (user_id,name,plan_data,plan_type) VALUES (?,?,?,?)",
+                   (session["uid"], nm, json.dumps({"plan": plan, "data": data}, ensure_ascii=False),
+                    data.get("diet_plan_type", "standard")))
+        except Exception as _e:
+            print(f"auto save plan error: {_e}")
         return redirect("/preview")
     return render_template("generate.html", user=u, lang=session.get("lang","ar"), diet_plans=DIET_PLAN_TYPES)
 
