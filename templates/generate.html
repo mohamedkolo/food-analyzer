@@ -20,17 +20,17 @@
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
       {% for goal in [
-        ('weight_loss','🥗','تخسيس','1200-1500 kcal'),
-        ('maintenance','🍽️','مكتنز','1800-2200 kcal'),
-        ('muscle_gain','💪','زيادة عضل','2200-2600 kcal'),
-        ('bulking','🔥','تضخيم','3000-3500 kcal')
+        ('weight_loss','🥗','تخسيس','Weight Loss','1200-1500 kcal'),
+        ('maintenance','🍽️','مكتنز','Maintenance','1800-2200 kcal'),
+        ('muscle_gain','💪','زيادة عضل','Muscle Gain','2200-2600 kcal'),
+        ('bulking','🔥','تضخيم','Bulking','3000-3500 kcal')
       ] %}
       <label style="cursor:pointer">
         <input type="radio" name="goal_type" value="{{ goal[0] }}" {% if loop.first %}checked{% endif %} style="display:none" class="goal-radio">
         <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:12px;padding:16px;text-align:center;transition:all 0.2s;background:white">
           <div style="font-size:32px;margin-bottom:8px">{{ goal[1] }}</div>
-          <div style="font-weight:700;font-size:15px;margin-bottom:4px">{{ goal[2] }}</div>
-          <div style="font-size:11px;color:var(--gray-dark)">{{ goal[3] }}</div>
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">{{ goal[2] if is_ar else goal[3] }}</div>
+          <div style="font-size:11px;color:var(--gray-dark)">{{ goal[4] }}</div>
         </div>
       </label>
       {% endfor %}
@@ -44,12 +44,12 @@
       {{ 'اختر المطبخ المفضل' if is_ar else 'Preferred Cuisine' }}
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
-      {% for cul in [('مصري','🇪🇬'),('خليجي','🇸🇦'),('شامي','🇱🇧'),('مغربي','🇲🇦'),('عالمي','🌍')] %}
+      {% for cul in [('مصري','🇪🇬','Egyptian'),('خليجي','🇸🇦','Gulf'),('شامي','🇱🇧','Levantine'),('مغربي','🇲🇦','Moroccan'),('عالمي','🌍','International')] %}
       <label style="cursor:pointer">
         <input type="radio" name="culture" value="{{ cul[0] }}" {% if loop.first %}checked{% endif %} style="display:none" class="culture-radio">
         <div class="culture-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:14px;text-align:center;transition:all 0.2s;background:white">
           <div style="font-size:28px">{{ cul[1] }}</div>
-          <div style="font-weight:700;font-size:14px;margin-top:4px">{{ cul[0] }}</div>
+          <div style="font-weight:700;font-size:14px;margin-top:4px">{{ cul[0] if is_ar else cul[2] }}</div>
         </div>
       </label>
       {% endfor %}
@@ -59,7 +59,7 @@
   <!-- ═══════════ نظام التغذية ═══════════ -->
   {% if diet_plans %}
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-clock"></i> نظام الأكل</div>
+    <div class="card-title"><i class="fa-solid fa-clock"></i> {{ 'نظام الأكل' if is_ar else 'Eating System' }}</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
       {% for key, info in diet_plans.items() %}
       <label style="cursor:pointer">
@@ -80,13 +80,13 @@
     <div class="grid-2">
       <div class="form-group">
         <label class="form-label">{{ 'الاسم' if is_ar else 'Name' }}</label>
-        <input class="form-input" type="text" name="name" required placeholder="محمد احمد">
+        <input class="form-input" type="text" name="name" required placeholder="{{ 'محمد احمد' if is_ar else 'John Smith' }}">
       </div>
       <div class="form-group">
         <label class="form-label">{{ 'الجنس' if is_ar else 'Gender' }}</label>
         <select class="form-select" name="gender">
-          <option value="ذكر">ذكر</option>
-          <option value="انثى">انثى</option>
+          <option value="ذكر">{{ 'ذكر' if is_ar else 'Male' }}</option>
+          <option value="انثى">{{ 'انثى' if is_ar else 'Female' }}</option>
         </select>
       </div>
     </div>
@@ -96,11 +96,11 @@
         <input class="form-input" type="number" name="age" placeholder="30">
       </div>
       <div class="form-group">
-        <label class="form-label">{{ 'الطول (سم)' if is_ar else 'Height' }}</label>
+        <label class="form-label">{{ 'الطول (سم)' if is_ar else 'Height (cm)' }}</label>
         <input class="form-input" type="number" name="height" step="0.5" id="hField">
       </div>
       <div class="form-group">
-        <label class="form-label">{{ 'الوزن (كجم)' if is_ar else 'Weight' }}</label>
+        <label class="form-label">{{ 'الوزن (كجم)' if is_ar else 'Weight (kg)' }}</label>
         <input class="form-input" type="number" name="weight" step="0.1" id="wField">
       </div>
     </div>
@@ -119,23 +119,27 @@
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">{{ 'الهدف اليومي (kcal)' if is_ar else 'Daily Target' }}</label>
+      <label class="form-label">{{ 'الهدف اليومي (kcal)' if is_ar else 'Daily Target (kcal)' }}</label>
       <input class="form-input" type="number" name="goal_cal" id="goalField" value="1400">
     </div>
   </div>
 
   <!-- ═══════════ الأمراض ═══════════ -->
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-stethoscope"></i> {{ 'الحالات المرضية' if is_ar else 'Conditions' }}</div>
+    <div class="card-title"><i class="fa-solid fa-stethoscope"></i> {{ 'الحالات المرضية' if is_ar else 'Medical Conditions' }}</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
       {% for cond in [
-        'قولون عصبي','سكري النوع الثاني','ضغط الدم المرتفع','امراض القلب',
-        'الفشل الكلوي المزمن','الحمل','الرضاعة الطبيعية','السمنة','G6PD',
-        'ثلاسيميا','نقص الحديد','نقص فيتامين D3','حرق بطيء','امساك مزمن','حساسية اللاكتوز'
+        ('قولون عصبي','IBS'),('سكري النوع الثاني','Type 2 Diabetes'),
+        ('ضغط الدم المرتفع','High Blood Pressure'),('امراض القلب','Heart Disease'),
+        ('الفشل الكلوي المزمن','Chronic Kidney Failure'),('الحمل','Pregnancy'),
+        ('الرضاعة الطبيعية','Breastfeeding'),('السمنة','Obesity'),('G6PD','G6PD'),
+        ('ثلاسيميا','Thalassemia'),('نقص الحديد','Iron Deficiency'),
+        ('نقص فيتامين D3','Vitamin D3 Deficiency'),('حرق بطيء','Slow Metabolism'),
+        ('امساك مزمن','Chronic Constipation'),('حساسية اللاكتوز','Lactose Intolerance')
       ] %}
       <label style="display:flex;align-items:center;gap:8px;background:var(--gray);border:1.5px solid var(--gray-2);border-radius:10px;padding:10px;cursor:pointer">
-        <input type="checkbox" name="symptoms" value="{{ cond }}" style="width:18px;height:18px">
-        <span style="font-size:13px;font-weight:600">{{ cond }}</span>
+        <input type="checkbox" name="symptoms" value="{{ cond[0] }}" style="width:18px;height:18px">
+        <span style="font-size:13px;font-weight:600">{{ cond[0] if is_ar else cond[1] }}</span>
       </label>
       {% endfor %}
     </div>
@@ -143,13 +147,17 @@
 
   <!-- ═══════════ الحساسية الغذائية ═══════════ -->
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-triangle-exclamation" style="color:#dc2626"></i> الحساسية الغذائية</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">اختر أي حساسية عند العميل (الأكلات هتتشال من الخطة):</p>
+    <div class="card-title"><i class="fa-solid fa-triangle-exclamation" style="color:#dc2626"></i> {{ 'الحساسية الغذائية' if is_ar else 'Food Allergies' }}</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">{{ 'اختر أي حساسية عند العميل (الأكلات هتتشال من الخطة):' if is_ar else 'Select any allergy (those foods will be removed from the plan):' }}</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
-      {% for allergy in ['اللاكتوز','الجلوتين','المكسرات','البيض','الأسماك','الفول السوداني','الصويا','المحار','السمسم'] %}
+      {% for allergy in [
+        ('اللاكتوز','Lactose'),('الجلوتين','Gluten'),('المكسرات','Nuts'),('البيض','Eggs'),
+        ('الأسماك','Fish'),('الفول السوداني','Peanuts'),('الصويا','Soy'),
+        ('المحار','Shellfish'),('السمسم','Sesame')
+      ] %}
       <label style="display:flex;align-items:center;gap:8px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:10px;cursor:pointer">
-        <input type="checkbox" name="allergies" value="{{ allergy }}" style="width:18px;height:18px">
-        <span style="font-size:12px;font-weight:600;color:#991b1b">{{ allergy }}</span>
+        <input type="checkbox" name="allergies" value="{{ allergy[0] }}" style="width:18px;height:18px">
+        <span style="font-size:12px;font-weight:600;color:#991b1b">{{ allergy[0] if is_ar else allergy[1] }}</span>
       </label>
       {% endfor %}
     </div>
@@ -157,28 +165,28 @@
 
   <!-- ═══════════ الأكلات المفضلة ═══════════ -->
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-heart" style="color:#16a34a"></i> الأكلات المفضلة عند العميل</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">اكتب الأكلات اللي بيحبها مفصولة بفواصل:</p>
-    <textarea class="form-input" name="liked_foods" rows="2" 
-      placeholder="مثلاً: شوفان، سلمون، افوكادو، دجاج مشوي، تفاح" 
+    <div class="card-title"><i class="fa-solid fa-heart" style="color:#16a34a"></i> {{ 'الأكلات المفضلة عند العميل' if is_ar else 'Favorite Foods' }}</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'اكتب الأكلات اللي بيحبها مفصولة بفواصل:' if is_ar else 'List foods they like, separated by commas:' }}</p>
+    <textarea class="form-input" name="liked_foods" rows="2"
+      placeholder="{{ 'مثلاً: شوفان، سلمون، افوكادو، دجاج مشوي، تفاح' if is_ar else 'e.g. oats, salmon, avocado, grilled chicken, apple' }}"
       style="resize:vertical"></textarea>
   </div>
 
   <!-- ═══════════ الأكلات اللي مش بيحبها ═══════════ -->
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-ban" style="color:#dc2626"></i> أكلات لازم تتشال من الخطة</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">اكتب الأكلات اللي مش بياكلها أو مش بيحبها مفصولة بفواصل (هتتشال من الخطة):</p>
-    <textarea class="form-input" name="disliked_foods" rows="2" 
-      placeholder="مثلاً: كبدة، باذنجان، بصل، فلفل حار، كوسة" 
+    <div class="card-title"><i class="fa-solid fa-ban" style="color:#dc2626"></i> {{ 'أكلات لازم تتشال من الخطة' if is_ar else 'Foods to Exclude' }}</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'اكتب الأكلات اللي مش بياكلها مفصولة بفواصل (هتتشال من الخطة):' if is_ar else 'List foods to remove from the plan, separated by commas:' }}</p>
+    <textarea class="form-input" name="disliked_foods" rows="2"
+      placeholder="{{ 'مثلاً: كبدة، باذنجان، بصل، فلفل حار، كوسة' if is_ar else 'e.g. liver, eggplant, onion, chili, zucchini' }}"
       style="resize:vertical"></textarea>
   </div>
 
   <!-- ═══════════ ملاحظات ═══════════ -->
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-note-sticky"></i> {{ 'ملاحظات إضافية' if is_ar else 'Notes' }}</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">أي ملاحظة فيها كلمة "اشيل" أو "بدون" أو "تجنب" + اسم أكل، هيتم استثناء الأكل ده تلقائياً من الخطة</p>
-    <textarea class="form-input" name="notes" rows="3" 
-      placeholder="{{ 'مثلاً: اشيل الموز، بدون فلفل حار، تجنب الجبن...' if is_ar else 'Any notes...' }}" 
+    <div class="card-title"><i class="fa-solid fa-note-sticky"></i> {{ 'ملاحظات إضافية' if is_ar else 'Additional Notes' }}</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'أي ملاحظة فيها كلمة "اشيل" أو "بدون" أو "تجنب" + اسم أكل، هيتم استثناء الأكل ده تلقائياً' if is_ar else 'Any note with a food name after "remove/without/avoid" will exclude that food automatically' }}</p>
+    <textarea class="form-input" name="notes" rows="3"
+      placeholder="{{ 'مثلاً: اشيل الموز، بدون فلفل حار، تجنب الجبن...' if is_ar else 'e.g. remove banana, without chili, avoid cheese...' }}"
       style="resize:vertical"></textarea>
   </div>
 
