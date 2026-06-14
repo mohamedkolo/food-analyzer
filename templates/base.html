@@ -177,10 +177,7 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
       <i class="fa-solid fa-magnifying-glass"></i> {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
     </a>
     <a href="/saved" class="nav-item {% if request.endpoint=='saved' %}active{% endif %}">
-      <i class="fa-solid fa-bookmark"></i> {{ 'جداولي' if is_ar else 'My Plans' }}
-    </a>
-    <a href="/patients" class="nav-item {% if request.endpoint in ['patients','new_patient','view_patient'] %}active{% endif %}">
-      <i class="fa-solid fa-users" style="color:var(--green-light)"></i> {{ 'المرضى' if is_ar else 'Patients' }}
+      <i class="fa-solid fa-bookmark"></i> {{ 'جداولي المحفوظة' if is_ar else 'Saved Plans' }}
     </a>
     {% if is_admin %}
     <div class="nav-divider"></div>
