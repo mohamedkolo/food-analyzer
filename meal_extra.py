@@ -417,25 +417,203 @@ def apply():
         "maintenance": MAINTENANCE,
     }
 
+    def _text(x):
+        return x.get("meal") if isinstance(x, dict) else str(x)
+
+    # نجمع كل القواميس اللي اسمها يبدأ بـ EXTRA (EXTRA, EXTRA2, EXTRA3 ...)
+    all_extras = [v for k, v in sorted(globals().items())
+                  if k.startswith("EXTRA") and isinstance(v, dict)]
+
     added = 0
-    for goal, cultures in EXTRA.items():
-        base = targets.get(goal)
-        if base is None:
-            continue
-        for culture, meals_by_type in cultures.items():
-            if culture not in base:
-                base[culture] = {}
-            for mtype, items in meals_by_type.items():
-                base[culture].setdefault(mtype, [])
-                existing = base[culture][mtype]
-                # نتجنب التكرار
-                def _text(x):
-                    return x.get("meal") if isinstance(x, dict) else str(x)
-                existing_texts = {_text(x) for x in existing}
-                for it in items:
-                    if _text(it) not in existing_texts:
-                        existing.append(it)
-                        existing_texts.add(_text(it))
-                        added += 1
+    for source in all_extras:
+        for goal, cultures in source.items():
+            base = targets.get(goal)
+            if base is None:
+                continue
+            for culture, meals_by_type in cultures.items():
+                if culture not in base:
+                    base[culture] = {}
+                for mtype, items in meals_by_type.items():
+                    base[culture].setdefault(mtype, [])
+                    existing = base[culture][mtype]
+                    existing_texts = {_text(x) for x in existing}
+                    for it in items:
+                        if _text(it) not in existing_texts:
+                            existing.append(it)
+                            existing_texts.add(_text(it))
+                            added += 1
     print(f"meal_extra: added {added} extra meals")
     return added
+
+
+# ═══════════════════════════════════════════════
+# دفعة إضافية تانية (EXTRA2) — تنوّع أكتر لكل المطابخ
+# ═══════════════════════════════════════════════
+EXTRA2 = {
+    "weight_loss": {
+        "مصري": {
+            "breakfast": [
+                {"meal":"🥣 بليلة قمح بالحليب خالي الدسم 150جم + 🌰 لوز 10جم","cal":320,"p":14},
+                {"meal":"🥚 بيض مقلي بالقليل من الزيت 2 + 🍞 خبز اسمر + 🥗 سلطة","cal":330,"p":22},
+                {"meal":"🧀 جبنة بيضاء قليلة الملح 60جم + 🍅 طماطم + 🍞 خبز اسمر","cal":300,"p":18},
+            ],
+            "lunch": [
+                {"meal":"🍗 كفتة دجاج مشوية 150جم + 🍚 ارز بني 100جم + 🥗","cal":450,"p":44},
+                {"meal":"🐟 جمبري مشوي 150جم + 🥗 سلطة كبيرة + 🍋","cal":390,"p":40},
+                {"meal":"🥚 طاجن بامية بالدجاج 150جم + 🍚 ارز قليل","cal":440,"p":40},
+            ],
+            "dinner": [
+                {"meal":"🍲 شوربة لسان عصفور بالخضار 250مل","cal":230,"p":12},
+                {"meal":"🥚 بيض اومليت 2 بالخضار + 🥗 سلطة","cal":250,"p":18},
+                {"meal":"🧀 جبنة قريش 80جم + 🍅 + 🥒 + 🫒 زيتون 5","cal":260,"p":22},
+            ],
+        },
+        "خليجي": {
+            "breakfast": [
+                {"meal":"🥚 بيض مع الطماطم 2 + 🍞 خبز اسمر + 🥒","cal":310,"p":20},
+                {"meal":"🥣 زبادي يوناني 200جم + 🥒 خيار + نعناع + 🌰 لوز","cal":250,"p":20},
+            ],
+            "lunch": [
+                {"meal":"🐟 سمك زبيدي مشوي 150جم + 🥗 سلطة + 🍚 ارز بني قليل","cal":410,"p":42},
+                {"meal":"🍗 دجاج محمر بالليمون 150جم + 🥦 خضار مشوية","cal":420,"p":46},
+            ],
+            "dinner": [
+                {"meal":"🍲 شوربة دجاج بالخضار 250مل + 🥗","cal":240,"p":24},
+                {"meal":"🧀 لبنة 80جم + 🥗 سلطة + 🍞 خبز اسمر","cal":250,"p":16},
+            ],
+        },
+        "شامي": {
+            "breakfast": [
+                {"meal":"🥚 بيض بالبندورة 2 + 🍞 خبز مرقوق صغير + 🫒 زيتون","cal":320,"p":20},
+                {"meal":"🧀 لبنة 80جم + خيار + نعناع + 🍞 خبز اسمر","cal":290,"p":16},
+            ],
+            "lunch": [
+                {"meal":"🍗 صدر دجاج بالثوم 150جم + 🥗 فتوش + 🍚 ارز قليل","cal":440,"p":46},
+                {"meal":"🫘 يخنة بازيلا بالدجاج 150جم + 🍚 ارز قليل","cal":440,"p":40},
+            ],
+            "dinner": [
+                {"meal":"🥗 سلطة راهب + 🧀 لبنة 60جم + 🍞 خبز","cal":260,"p":14},
+                {"meal":"🍲 شوربة فريكة بالدجاج 250مل","cal":250,"p":18},
+            ],
+        },
+        "مغربي": {
+            "breakfast": [
+                {"meal":"🥚 عجة بالأعشاب 2 + 🍞 خبز بلدي صغير + 🫒 زيتون","cal":310,"p":20},
+                {"meal":"🥣 شوفان بالقرفة والتفاح + 🌰 لوز","cal":320,"p":12},
+            ],
+            "lunch": [
+                {"meal":"🍗 دجاج مشوي بالكمون 150جم + 🥗 سلطة مغربية","cal":420,"p":45},
+                {"meal":"🐟 سمك مشوي بالشرمولة 150جم + 🥗","cal":410,"p":42},
+            ],
+            "dinner": [
+                {"meal":"🍲 شوربة خضار مغربية 300مل","cal":230,"p":12},
+                {"meal":"🥗 سلطة جزر بالكمون + 🥚 بيضة + 🍞 خبز","cal":260,"p":16},
+            ],
+        },
+        "عالمي": {
+            "breakfast": [
+                {"meal":"🥣 Protein Yogurt (زبادي يوناني 200جم + 💪 بروتين + 🫐 توت)","cal":300,"p":30},
+                {"meal":"🥚 Veggie Egg Muffins (بياض 4 + 🌶️ فلفل + 🥬) + 🍎 تفاح","cal":290,"p":26},
+            ],
+            "lunch": [
+                {"meal":"🍗 Lemon Herb Chicken (دجاج 150جم + 🥦 + ارز بني قليل)","cal":430,"p":45},
+                {"meal":"🐟 Shrimp Salad Bowl (جمبري 130جم + 🥬 خضار + 🥑)","cal":400,"p":40},
+            ],
+            "dinner": [
+                {"meal":"🥗 Tuna Avocado Salad (تونة 120جم + 🥑 + 🥬 + 🍋)","cal":270,"p":32},
+                {"meal":"🍲 Chicken Veggie Soup 300مل + 🍞 خبز اسمر","cal":260,"p":28},
+            ],
+        },
+    },
+    "muscle_gain": {
+        "مصري": {
+            "breakfast": [{"meal":"🥚 بيض 4 + 🥘 فول 150جم + 🍞 خبز اسمر 2 + 🧀 جبن","cal":620,"p":44}],
+            "lunch": [{"meal":"🍗 صدر دجاج 200جم + 🍝 مكرونة قمح كامل 120جم + 🥗","cal":730,"p":58}],
+            "dinner": [{"meal":"🐟 سمك 180جم + 🍚 ارز بني 100جم + 🥗 + 🫒 زيت","cal":520,"p":48}],
+            "snack": ["🥣 شوفان + 🥛 حليب + 💪 بروتين (270 kcal)"],
+        },
+        "خليجي": {
+            "breakfast": [{"meal":"🥚 عجة 4 بيض + 🧀 لبنة 80جم + 🍞 خبز عربي 2","cal":600,"p":42}],
+            "lunch": [{"meal":"🍗 مجبوس دجاج 180جم + 🍚 ارز بني 150جم + 🥗","cal":740,"p":54}],
+            "dinner": [{"meal":"🐟 هامور مشوي 180جم + 🍚 ارز بني 130جم + 🥗","cal":510,"p":48}],
+            "snack": ["🧀 لبنة + 🌴 تمر 3 + 🌰 لوز (260 kcal)"],
+        },
+        "شامي": {
+            "breakfast": [{"meal":"🧆 فتة حمص 200جم + 🥚 بيض 3 + 🍞 خبز مرقوق","cal":620,"p":38}],
+            "lunch": [{"meal":"🥩 كفتة مشوية 200جم + 🍚 ارز بني 150جم + 🥗 فتوش","cal":740,"p":54}],
+            "dinner": [{"meal":"🍢 شيش طاووق 180جم + 🥗 فتوش + 🧀 لبنة + 🍞","cal":520,"p":50}],
+            "snack": ["🥜 طحينة + 🍯 دبس + 🍞 خبز (260 kcal)"],
+        },
+        "مغربي": {
+            "breakfast": [{"meal":"🥚 بيض مغربي 4 + 🍞 خبز بلدي 2 + 🫒 زيت + 🧀","cal":620,"p":40}],
+            "lunch": [{"meal":"🍲 طاجين دجاج 200جم + 🥔 بطاطا + 🍚 ارز قليل","cal":730,"p":54}],
+            "dinner": [{"meal":"🐟 سمك بالشرمولة 180جم + 🥗 + 🍞 خبز","cal":520,"p":48}],
+            "snack": ["🥞 بغرير + 🍯 عسل + 🥛 لبن (260 kcal)"],
+        },
+        "عالمي": {
+            "breakfast": [{"meal":"💪 Protein Oats (شوفان 60جم + بروتين + 🥛 + 🍌 + 🥜)","cal":640,"p":48}],
+            "lunch": [{"meal":"🍗 Chicken Rice Bowl (دجاج 200جم + ارز بني 150جم + 🥦)","cal":730,"p":60}],
+            "dinner": [{"meal":"🐟 Salmon & Greens (سلمون 180جم + 🥬 + 🍠 صغيرة)","cal":520,"p":46}],
+            "snack": ["💪 Protein Shake + 🍌 موز (270 kcal)"],
+        },
+    },
+    "bulking": {
+        "مصري": {
+            "breakfast": [{"meal":"🥘 فول 200جم + 🥚 بيض 4 + 🍞 خبز 2 + 🥑 افوكادو + 🧀","cal":860,"p":50}],
+            "lunch": [{"meal":"🍗 دجاج 250جم + 🍚 ارز 180جم + 🍝 مكرونة قليل + 🥗","cal":980,"p":72}],
+            "dinner": [{"meal":"🥩 كفتة 180جم + 🍚 ارز + 🍞 خبز + 🥗","cal":700,"p":52}],
+            "snack": ["🥛 حليب كامل + 🥞 كيك شوفان + 🌰 مكسرات (400 kcal)"],
+        },
+        "خليجي": {
+            "breakfast": [{"meal":"🥚 شكشوكة 5 + 🧀 لبنة + 🍞 خبز عربي 3 + 🥑","cal":880,"p":50}],
+            "lunch": [{"meal":"🥩 مندي لحم 220جم + 🍚 ارز 200جم + 🧆 حمص","cal":1020,"p":68}],
+            "dinner": [{"meal":"🍗 دجاج 180جم + 🍚 ارز + 🧆 حمص + 🥗","cal":690,"p":56}],
+            "snack": ["💪 بروتين + 🥛 حليب كامل + 🌴 تمر (410 kcal)"],
+        },
+        "شامي": {
+            "breakfast": [{"meal":"🫓 مناقيش 3 + 🧀 جبنة 100جم + 🥚 بيض 3","cal":900,"p":40}],
+            "lunch": [{"meal":"🥩 مشاوي 250جم + 🍚 ارز 180جم + 🥗 فتوش + 🧆 حمص","cal":1050,"p":74}],
+            "dinner": [{"meal":"🥩 كفتة 200جم + 🥗 + 🍞 خبز + 🧀 جبن","cal":700,"p":52}],
+            "snack": ["🥜 طحينة + 🍯 دبس + 🍞 + 🥛 (410 kcal)"],
+        },
+        "مغربي": {
+            "breakfast": [{"meal":"🥞 بغرير 4 + 🥜 زبدة لوز + 🥚 بيض 3 + 🥛","cal":890,"p":38}],
+            "lunch": [{"meal":"🍝 كسكس كبير (كسكس 150جم + لحم 200جم + خضار)","cal":1000,"p":60}],
+            "dinner": [{"meal":"🍲 طاجين دجاج 200جم + 🥔 بطاطا + 🍞","cal":700,"p":52}],
+            "snack": ["🌴 تمر 5 + 🌰 مكسرات + 🥛 لبن (400 kcal)"],
+        },
+        "عالمي": {
+            "breakfast": [{"meal":"💪 Mass Oats (شوفان 100جم + بروتين + 🥛 كامل + 🥜 + 🍌)","cal":900,"p":55}],
+            "lunch": [{"meal":"🥩 Steak Bowl (ستيك 250جم + كينوا 200جم + 🥦)","cal":1050,"p":78}],
+            "dinner": [{"meal":"🍗 Chicken Feast (دجاج 200جم + كينوا 150جم + 🥑)","cal":720,"p":65}],
+            "snack": ["💪 Muscle Shake (بروتين + حليب كامل + موز + زبدة لوز) (420 kcal)"],
+        },
+    },
+    "maintenance": {
+        "مصري": {
+            "breakfast": [{"meal":"🥚 بيض 2 + 🥘 فول 120جم + 🍞 خبز اسمر + 🍅","cal":490,"p":28}],
+            "lunch": [{"meal":"🍗 كفتة دجاج 150جم + 🍚 ارز 130جم + 🥗","cal":580,"p":48}],
+            "dinner": [{"meal":"🍲 شوربة عدس + 🥗 + 🍞 خبز","cal":380,"p":22}],
+        },
+        "خليجي": {
+            "breakfast": [{"meal":"🥚 بيض 3 + 🧀 لبنة + 🍞 خبز عربي","cal":480,"p":30}],
+            "lunch": [{"meal":"🍗 مجبوس دجاج 150جم + 🍚 ارز + 🥗","cal":580,"p":46}],
+            "dinner": [{"meal":"🐟 سمك مشوي + 🥗 سلطة + 🍞","cal":390,"p":36}],
+        },
+        "شامي": {
+            "breakfast": [{"meal":"🧆 فتة حمص 150جم + 🥚 بيضة + 🍞 خبز","cal":500,"p":24}],
+            "lunch": [{"meal":"🍢 شيش طاووق 150جم + 🍚 + 🥗 تبولة","cal":590,"p":46}],
+            "dinner": [{"meal":"🥗 فتوش + 🧀 جبنة + 🍞","cal":390,"p":22}],
+        },
+        "مغربي": {
+            "breakfast": [{"meal":"🥚 بيض مغربي 3 + 🍞 خبز بلدي + 🫒","cal":500,"p":30}],
+            "lunch": [{"meal":"🍲 طاجين دجاج 150جم + 🍞 خبز","cal":580,"p":42}],
+            "dinner": [{"meal":"🍲 حريرة + 🌴 تمر + 🍞","cal":380,"p":20}],
+        },
+        "عالمي": {
+            "breakfast": [{"meal":"🥣 Oat Bowl (شوفان 50جم + 🥛 + 🫐 + 🥜)","cal":490,"p":18}],
+            "lunch": [{"meal":"🍗 Chicken Quinoa Bowl (دجاج 150جم + كينوا + 🥗)","cal":600,"p":48}],
+            "dinner": [{"meal":"🐟 Baked Cod 150جم + 🥦 + 🍋","cal":390,"p":38}],
+        },
+    },
+}
