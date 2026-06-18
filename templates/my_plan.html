@@ -2,244 +2,71 @@
 {% block content %}
 
 <style>
-  .mp-wrap {
-    max-width: 1100px;
-    margin: 20px auto;
-    padding: 16px;
-    font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
-  }
-
-  /* Welcome banner */
-  .welcome-banner {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: #fff;
-    border-radius: 20px;
-    padding: 24px 28px;
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .welcome-banner h1 {
-    margin: 0 0 4px;
-    font-size: 24px;
-    font-weight: 800;
-  }
+  .mp-wrap { max-width: 1100px; margin: 20px auto; padding: 16px; font-family: 'Cairo', 'Tajawal', system-ui, sans-serif; }
+  .welcome-banner { background: linear-gradient(135deg, #10b981, #059669); color: #fff; border-radius: 20px; padding: 24px 28px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .welcome-banner h1 { margin: 0 0 4px; font-size: 24px; font-weight: 800; }
   .welcome-banner p { margin: 0; opacity: 0.95; font-size: 14px; }
   .welcome-emoji { font-size: 48px; line-height: 1; }
-
-  /* New user celebration */
-  .celebration {
-    background: linear-gradient(135deg, #fef3c7, #fde68a);
-    border: 2px solid #f59e0b;
-    border-radius: 16px;
-    padding: 16px 20px;
-    margin-bottom: 20px;
-    color: #92400e;
-    text-align: center;
-    font-weight: 700;
-    animation: slideDown 0.6s ease;
-  }
-  @keyframes slideDown {
-    from { transform: translateY(-20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-
-  /* Quick stats */
-  .quick-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-  .qstat {
-    background: #fff;
-    border-radius: 14px;
-    padding: 18px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border: 1px solid #f1f5f9;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
+  .celebration { background: linear-gradient(135deg, #fef3c7, #fde68a); border: 2px solid #f59e0b; border-radius: 16px; padding: 16px 20px; margin-bottom: 20px; color: #92400e; text-align: center; font-weight: 700; animation: slideDown 0.6s ease; }
+  @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .quick-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .qstat { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border: 1px solid #f1f5f9; text-align: center; position: relative; overflow: hidden; }
   .qstat::before { content: ''; position: absolute; top: 0; right: 0; left: 0; height: 4px; background: var(--c); }
   .qstat-icon { font-size: 26px; margin-bottom: 6px; }
   .qstat-val { font-size: 26px; font-weight: 800; color: #0f172a; line-height: 1; }
   .qstat-lbl { font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 600; }
-
-  /* Section card */
-  .card {
-    background: #fff;
-    border-radius: 16px;
-    padding: 22px;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border: 1px solid #f1f5f9;
-  }
-  .card-title {
-    font-size: 18px;
-    font-weight: 800;
-    color: #0f172a;
-    margin: 0 0 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  /* Subscription status */
-  .sub-banner {
-    border-radius: 14px;
-    padding: 18px;
-    margin-bottom: 16px;
-  }
+  .card { background: #fff; border-radius: 16px; padding: 22px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border: 1px solid #f1f5f9; }
+  .card-title { font-size: 18px; font-weight: 800; color: #0f172a; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
+  .sub-banner { border-radius: 14px; padding: 18px; margin-bottom: 16px; }
   .sub-active { background: linear-gradient(135deg, #d1fae5, #f0fdf4); border: 2px solid #10b981; }
   .sub-trial { background: linear-gradient(135deg, #dbeafe, #eff6ff); border: 2px solid #3b82f6; }
   .sub-none { background: linear-gradient(135deg, #fef3c7, #fffbeb); border: 2px solid #f59e0b; }
-
-  .sub-status-line {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
+  .sub-status-line { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
   .sub-info strong { display: block; font-size: 16px; color: #0f172a; margin-bottom: 4px; }
   .sub-info span { color: #475569; font-size: 14px; }
-
-  .sub-btn {
-    background: #fff;
-    color: #059669;
-    padding: 10px 20px;
-    border-radius: 10px;
-    text-decoration: none;
-    font-weight: 700;
-    font-size: 14px;
-    border: 2px solid #10b981;
-    transition: all 0.2s;
-  }
+  .sub-btn { background: #fff; color: #059669; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 14px; border: 2px solid #10b981; transition: all 0.2s; }
   .sub-btn:hover { background: #10b981; color: #fff; }
   .sub-btn-warn { color: #92400e; border-color: #f59e0b; }
   .sub-btn-warn:hover { background: #f59e0b; color: #fff; }
-
-  /* Daily tip */
-  .tip-card {
-    background: linear-gradient(135deg, #f0fdf4, #d1fae5);
-    border: 1px solid #86efac;
-    border-radius: 14px;
-    padding: 18px 22px;
-    display: flex;
-    gap: 14px;
-    align-items: center;
-  }
+  .tip-card { background: linear-gradient(135deg, #f0fdf4, #d1fae5); border: 1px solid #86efac; border-radius: 14px; padding: 18px 22px; display: flex; gap: 14px; align-items: center; }
   .tip-icon { font-size: 36px; flex-shrink: 0; }
   .tip-content strong { display: block; color: #065f46; font-size: 16px; margin-bottom: 4px; }
   .tip-content p { margin: 0; color: #047857; font-size: 14px; line-height: 1.6; }
-
-  /* Action grid */
-  .actions-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
-  }
-  .action-card {
-    background: #fff;
-    border: 2px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 20px;
-    text-decoration: none;
-    transition: all 0.25s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 8px;
-  }
-  .action-card:hover {
-    transform: translateY(-3px);
-    border-color: #10b981;
-    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.12);
-  }
+  .actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .action-card { background: #fff; border: 2px solid #e2e8f0; border-radius: 16px; padding: 20px; text-decoration: none; transition: all 0.25s; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
+  .action-card:hover { transform: translateY(-3px); border-color: #10b981; box-shadow: 0 8px 20px rgba(16, 185, 129, 0.12); }
   .action-icon { font-size: 38px; }
   .action-name { font-weight: 800; color: #0f172a; font-size: 15px; }
   .action-desc { color: #64748b; font-size: 12px; }
-
-  /* Current plan box */
-  .plan-box {
-    background: linear-gradient(135deg, #f0fdf4, #fff);
-    border: 2px solid #10b981;
-    border-radius: 14px;
-    padding: 20px;
-  }
-  .plan-box h3 {
-    margin: 0 0 8px;
-    color: #065f46;
-    font-size: 18px;
-  }
-  .plan-box-meta {
-    color: #475569;
-    font-size: 14px;
-    margin-bottom: 14px;
-  }
-  .plan-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .plan-act {
-    padding: 9px 18px;
-    border-radius: 10px;
-    text-decoration: none;
-    font-weight: 700;
-    font-size: 13px;
-    transition: all 0.2s;
-  }
+  .plan-box { background: linear-gradient(135deg, #f0fdf4, #fff); border: 2px solid #10b981; border-radius: 14px; padding: 20px; }
+  .plan-box h3 { margin: 0 0 8px; color: #065f46; font-size: 18px; }
+  .plan-box-meta { color: #475569; font-size: 14px; margin-bottom: 14px; }
+  .plan-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .plan-act { padding: 9px 18px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 13px; transition: all 0.2s; }
   .pa-primary { background: #10b981; color: #fff; }
   .pa-primary:hover { background: #059669; }
   .pa-secondary { background: #fff; color: #059669; border: 1px solid #10b981; }
   .pa-secondary:hover { background: #f0fdf4; }
-
-  /* Request status */
-  .pending-box {
-    background: #fffbeb;
-    border: 2px dashed #f59e0b;
-    border-radius: 14px;
-    padding: 20px;
-    text-align: center;
-    color: #92400e;
-  }
+  .pending-box { background: #fffbeb; border: 2px dashed #f59e0b; border-radius: 14px; padding: 20px; text-align: center; color: #92400e; }
   .pending-icon { font-size: 40px; margin-bottom: 8px; }
-
-  .waiting-box {
-    background: #f8fafc;
-    border-radius: 14px;
-    padding: 20px;
-    text-align: center;
-    color: #64748b;
-  }
-  .countdown {
-    display: inline-block;
-    background: #fff;
-    padding: 8px 16px;
-    border-radius: 10px;
-    margin: 10px 0;
-    font-weight: 700;
-    color: #f59e0b;
-    border: 1px solid #fde68a;
-  }
+  .waiting-box { background: #f8fafc; border-radius: 14px; padding: 20px; text-align: center; color: #64748b; }
+  .countdown { display: inline-block; background: #fff; padding: 8px 16px; border-radius: 10px; margin: 10px 0; font-weight: 700; color: #f59e0b; border: 1px solid #fde68a; }
+  /* Weight progress */
+  .wp-stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  .wp-box { flex:1; min-width:95px; text-align:center; border-radius:12px; padding:12px; }
+  .wp-box .l { font-size:12px; }
+  .wp-box .v { font-size:20px; font-weight:800; }
+  .wp-chart { background:#fff; border:1px solid #f1f5f9; border-radius:14px; padding:10px; overflow-x:auto; }
 </style>
 
 <div class="mp-wrap">
 
-  <!-- Welcome message (لو جاي من الـ onboarding) -->
   {% if request.args.get('welcome') %}
   <div class="celebration">
     🎉 <strong>أهلاً بيك في نوتراكس!</strong> تم حفظ بياناتك بنجاح. ابدأ رحلتك الصحية دلوقتي.
   </div>
   {% endif %}
 
-  <!-- Welcome Banner -->
   <div class="welcome-banner">
     <div>
       <h1>أهلاً {{ user.name or '' }} 👋</h1>
@@ -248,7 +75,6 @@
     <div class="welcome-emoji">🌟</div>
   </div>
 
-  <!-- Quick Stats -->
   <div class="quick-stats">
     <div class="qstat" style="--c: #10b981">
       <div class="qstat-icon">⚖️</div>
@@ -277,7 +103,6 @@
     </div>
   </div>
 
-  <!-- Subscription Status Banner -->
   {% if active_access and active_access.has_access %}
     <div class="sub-banner {% if active_access.is_trial %}sub-trial{% else %}sub-active{% endif %}">
       <div class="sub-status-line">
@@ -303,7 +128,6 @@
     </div>
   {% endif %}
 
-  <!-- Daily Tip -->
   {% if today_tip %}
   <div class="card" style="padding: 0; overflow: hidden;">
     <div class="tip-card">
@@ -315,6 +139,53 @@
     </div>
   </div>
   {% endif %}
+
+  <!-- ═══════════ تقدّم الوزن ═══════════ -->
+  <div class="card">
+    <h2 class="card-title">⚖️ تقدّمك في الوزن</h2>
+    {% if weight and weight.has_data %}
+      <div class="wp-stats">
+        <div class="wp-box" style="background:#f0fdf4;border:1px solid #86efac">
+          <div class="l" style="color:#047857">البداية</div>
+          <div class="v" style="color:#065f46">{{ weight.start }}<span style="font-size:11px"> kg</span></div>
+        </div>
+        <div class="wp-box" style="background:#eff6ff;border:1px solid #93c5fd">
+          <div class="l" style="color:#1d4ed8">الحالي</div>
+          <div class="v" style="color:#1e3a8a">{{ weight.current }}<span style="font-size:11px"> kg</span></div>
+        </div>
+        <div class="wp-box" style="background:{% if weight.change < 0 %}#f0fdf4{% elif weight.change > 0 %}#fef2f2{% else %}#f8fafc{% endif %};border:1px solid {% if weight.change < 0 %}#86efac{% elif weight.change > 0 %}#fca5a5{% else %}#e2e8f0{% endif %}">
+          <div class="l" style="color:#64748b">التغيّر</div>
+          <div class="v" style="color:{% if weight.change < 0 %}#059669{% elif weight.change > 0 %}#dc2626{% else %}#475569{% endif %}">
+            {% if weight.change > 0 %}▲ +{{ weight.change }}{% elif weight.change < 0 %}▼ {{ weight.change }}{% else %}{{ weight.change }}{% endif %}<span style="font-size:11px"> kg</span>
+          </div>
+        </div>
+      </div>
+
+      {% if weight.count > 1 %}
+      <div class="wp-chart">
+        <svg viewBox="0 0 600 200" style="width:100%;min-width:320px;height:auto" xmlns="http://www.w3.org/2000/svg">
+          <polyline points="{{ weight.points }}" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          {% for dot in weight.dots %}
+          <circle cx="{{ dot.x }}" cy="{{ dot.y }}" r="4.5" fill="#059669"/>
+          <text x="{{ dot.x }}" y="{{ dot.y - 10 }}" text-anchor="middle" font-size="12" fill="#0f172a" font-weight="700">{{ dot.w }}</text>
+          <text x="{{ dot.x }}" y="194" text-anchor="middle" font-size="10" fill="#94a3b8">{{ dot.d }}</text>
+          {% endfor %}
+        </svg>
+      </div>
+      {% else %}
+      <p style="color:#64748b;font-size:13px;text-align:center">سجّلت قياس واحد لحد دلوقتي. سجّل كمان عشان يبان خط التقدّم.</p>
+      {% endif %}
+
+      <div style="text-align:center;margin-top:14px">
+        <a href="/history" class="plan-act pa-primary" style="display:inline-block">+ سجّل وزن جديد</a>
+      </div>
+    {% else %}
+      <div style="text-align:center;padding:14px">
+        <p style="color:#475569;margin-bottom:14px">لسه ماسجّلتش وزنك. سجّل وزنك عشان نتابع تقدّمك ونوريك نزولك أول بأول.</p>
+        <a href="/history" class="plan-act pa-primary" style="font-size:15px;padding:12px 28px">+ سجّل وزنك دلوقتي</a>
+      </div>
+    {% endif %}
+  </div>
 
   <!-- Current Plan / Pending Request / Request New -->
   <div class="card">
