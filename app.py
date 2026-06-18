@@ -518,6 +518,50 @@ def dashboard():
                            role=role, pending_count=pending_count, total_clients=total_clients,
                            total_plans=total_plans, recent_requests=recent_requests)
 
+def build_weight_progress(user_id):
+    """بيحضّر بيانات رسم تطور الوزن للعميل (نقاط SVG + أرقام)."""
+    out = {"has_data": False, "count": 0, "start": None, "current": None,
+           "change": 0.0, "points": "", "dots": []}
+    try:
+        logs = db_rows("SELECT weight, logged_at FROM weight_log WHERE user_id=? ORDER BY logged_at ASC LIMIT 60", (user_id,))
+    except Exception:
+        logs = []
+    pts = []
+    for r in (logs or []):
+        try:
+            w = float(r.get("weight"))
+        except Exception:
+            continue
+        v = r.get("logged_at")
+        if hasattr(v, "strftime"):
+            d = v.strftime("%m/%d")
+        else:
+            d = str(v)[5:10] if v else ""
+        pts.append((d, w))
+    if not pts:
+        return out
+    out["has_data"] = True
+    out["count"] = len(pts)
+    out["start"] = round(pts[0][1], 1)
+    out["current"] = round(pts[-1][1], 1)
+    out["change"] = round(pts[-1][1] - pts[0][1], 1)
+    weights = [p[1] for p in pts]
+    wmin, wmax = min(weights), max(weights)
+    pad = max(1.0, (wmax - wmin) * 0.15)
+    lo, hi = wmin - pad, wmax + pad
+    if hi - lo < 1:
+        hi = lo + 1
+    W, H, PX, PY = 600.0, 200.0, 40.0, 24.0
+    n = len(pts)
+    def xc(i):
+        return W / 2 if n == 1 else PX + (W - 2 * PX) * i / (n - 1)
+    def yc(w):
+        return PY + (H - 2 * PY) * (1 - (w - lo) / (hi - lo))
+    coords = [(round(xc(i), 1), round(yc(w), 1)) for i, (d, w) in enumerate(pts)]
+    out["points"] = " ".join(f"{x},{y}" for x, y in coords)
+    out["dots"] = [{"x": coords[i][0], "y": coords[i][1], "w": round(pts[i][1], 1), "d": pts[i][0]} for i in range(n)]
+    return out
+
 @app.route("/my-plan")
 @login_required
 def my_plan():
@@ -537,11 +581,13 @@ def my_plan():
     tips = get_tips_for_user(u)
     today_tip = tips[datetime.now().day % len(tips)] if tips else None
 
+    weight = build_weight_progress(session["uid"])
+
     return render_template("my_plan.html", user=u, lang=session.get("lang","ar"),
                            latest_plan=latest_plan, pending_request=pending_request,
                            can_request=can_request, days_left=days_left,
                            hours_left=hours_left, last_request_date=last_date,
-                           today_tip=today_tip)
+                           today_tip=today_tip, weight=weight)
 
 @app.route("/request-plan", methods=["GET","POST"])
 @login_required
