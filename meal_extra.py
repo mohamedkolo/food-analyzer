@@ -442,6 +442,15 @@ def apply():
                             existing.append(it)
                             existing_texts.add(_text(it))
                             added += 1
+    # حقن أنظمة أكل جديدة في DIET_PLAN_TYPES (كيتو / لو-كارب)
+    try:
+        from meal_database import DIET_PLAN_TYPES
+        for k, v in NEW_SYSTEMS.items():
+            if k not in DIET_PLAN_TYPES:
+                DIET_PLAN_TYPES[k] = v
+    except Exception as e:
+        print(f"meal_extra: systems error {e}")
+
     print(f"meal_extra: added {added} extra meals")
     return added
 
@@ -615,5 +624,27 @@ EXTRA2 = {
             "lunch": [{"meal":"🍗 Chicken Quinoa Bowl (دجاج 150جم + كينوا + 🥗)","cal":600,"p":48}],
             "dinner": [{"meal":"🐟 Baked Cod 150جم + 🥦 + 🍋","cal":390,"p":38}],
         },
+    },
+}
+
+
+# ═══════════════════════════════════════════════
+# أنظمة أكل جديدة (بتتحقن في DIET_PLAN_TYPES)
+# الاسم مش بيبدأ بـ EXTRA عشان مايتعاملش كوجبات
+# ═══════════════════════════════════════════════
+NEW_SYSTEMS = {
+    "low_carb": {
+        "name": "لو-كارب (تقليل النشويات)",
+        "meals": ["breakfast", "lunch", "dinner", "snack"],
+        "meal_labels": {"breakfast": "الفطار", "lunch": "الغداء", "dinner": "العشاء", "snack": "سناك"},
+        "meal_emojis": {"breakfast": "🌅", "lunch": "☀️", "dinner": "🌙", "snack": "🥜"},
+        "description": "نفس 3 وجبات بس بأقل نشويات (يقلّل الأرز والخبز)"
+    },
+    "keto": {
+        "name": "كيتو (نشويات قليلة جداً + دهون صحية)",
+        "meals": ["breakfast", "lunch", "dinner", "snack"],
+        "meal_labels": {"breakfast": "الفطار", "lunch": "الغداء", "dinner": "العشاء", "snack": "سناك"},
+        "meal_emojis": {"breakfast": "🥑", "lunch": "🥩", "dinner": "🍳", "snack": "🧀"},
+        "description": "نشويات قليلة جداً + بروتين ودهون (بدون أرز/خبز/فاكهة كتير)"
     },
 }
