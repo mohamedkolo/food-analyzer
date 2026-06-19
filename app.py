@@ -1510,6 +1510,22 @@ def filter_meals_by_exclusions(meals, exclusions):
     return result if result else meals
 
 
+LOW_CARB_WORDS = ["ارز", "أرز", " رز", "خبز", "عيش", "رغيف", "مكرونة", "معكرونة",
+                  "كسكس", "برغل", "بطاطا", "بطاطس", "شوفان", "تورتيلا", "توست",
+                  "بان كيك", "بانكيك", "جرانولا", "بليلة", "نودلز", "بسكويت",
+                  "كورن", "فطير", "معجنات", "نشا", "مسمن", "بغرير", "حرشة", "سفنج", "كيك"]
+KETO_EXTRA_WORDS = ["فول", "حمص", "عدس", "فاصوليا", "لوبيا", "بقول",
+                    "موز", "تفاح", "تمر", "عسل", "مانجو", "عنب", "برتقال", "مربى", "دبس"]
+
+def _meal_text(m):
+    return m.get("meal", "") if isinstance(m, dict) else str(m)
+
+def filter_carbs(meals, keto=False):
+    """بيشيل الوجبات اللي فيها نشويات. لو شال كله بيرجّع الأصل عشان مايفضّاش."""
+    words = LOW_CARB_WORDS + (KETO_EXTRA_WORDS if keto else [])
+    res = [m for m in meals if not any(w in _meal_text(m) for w in words)]
+    return res if len(res) >= 3 else meals
+
 def generate_weekly_plan(data):
     symptoms = data.get("symptoms", [])
     goal = data.get("goal_type", "weight_loss")
@@ -1542,12 +1558,24 @@ def generate_weekly_plan(data):
     lunches = filter_meals_by_exclusions(lunches, user_exclusions)
     dinners = filter_meals_by_exclusions(dinners, user_exclusions)
 
+    # كيتو / لو-كارب: شيل النشويات
+    if diet_type in ("keto", "low_carb"):
+        _keto = (diet_type == "keto")
+        breakfasts = filter_carbs(breakfasts, _keto)
+        lunches = filter_carbs(lunches, _keto)
+        dinners = filter_carbs(dinners, _keto)
+
     snacks = get_snacks_for_goal(goal)
     pool_snacks = pool.get("snack", [])
     if pool_snacks: snacks = pool_snacks[:10]
     while len(snacks) < 7: snacks.append("فاكهة + مكسرات (120 kcal)")
 
     snacks = [s for s in snacks if not any(ex in (s if isinstance(s, str) else s.get("meal","")) for ex in user_exclusions)] or snacks
+
+    if diet_type in ("keto", "low_carb"):
+        _kw = LOW_CARB_WORDS + (KETO_EXTRA_WORDS if diet_type == "keto" else [])
+        _fs = [s for s in snacks if not any(w in (s if isinstance(s, str) else s.get("meal", "")) for w in _kw)]
+        snacks = _fs if _fs else snacks
 
     days = ["الاحد","الاثنين","الثلاثاء","الاربعاء","الخميس","الجمعة","السبت"]
     plan_info = get_diet_plan_info(diet_type)
@@ -1559,7 +1587,7 @@ def generate_weekly_plan(data):
         day_plan = {"day": days[i], "diet_type": diet_type,
                     "meal_labels": plan_info["meal_labels"], "meal_emojis": plan_info["meal_emojis"]}
         total_cal = 0
-        if diet_type == "standard":
+        if diet_type in ("standard", "keto", "low_carb"):
             b = breakfasts[i % len(breakfasts)]
             l = lunches[i % len(lunches)]
             d = dinners[i % len(dinners)]
@@ -1647,6 +1675,36 @@ def get_allowed_forbidden(symptoms, goal="weight_loss"):
         allowed = ["أسماك دهنية: سلمون","صفار البيض + الفطر","تعرض للشمس 15 دقيقة"] + allowed
     if needs_fe and not has_thal:
         allowed = ["لحوم حمراء + كبدة","سبانخ + عدس"] + allowed
+
+    # ── حالات إضافية ──
+    has_diabetes = _has(symptoms, ["سكري","سكر","diabet"])
+    has_hyper = _has(symptoms, ["ضغط","hypertension"])
+    has_kidney = _has(symptoms, ["كلى","كلي","كلوي","kidney"])
+    has_heart = _has(symptoms, ["قلب","heart","شريان"])
+    has_preg = _has(symptoms, ["حمل","رضاع","حامل","pregnan"])
+    has_obesity = _has(symptoms, ["سمنة","obes"])
+    has_constip = _has(symptoms, ["امساك","إمساك","constip"])
+    if has_diabetes:
+        forbidden = ["السكر المضاف + العصائر + المشروبات الغازية","الأرز الأبيض والخبز الأبيض","الحلويات والمعجنات"] + forbidden
+        allowed = ["كارب معقّد بكميات محسوبة: شوفان + أرز بني","خضار غير نشوية + بروتين في كل وجبة","قياس السكر قبل الأكل وبعده بساعتين"] + allowed
+    if has_hyper:
+        forbidden = ["الملح الزائد + المخللات + المعلبات","الصوصات الجاهزة + اللحوم المصنّعة"] + forbidden
+        allowed = ["أكل قليل الملح + خضار ورقية","تقليل الكافيين + مياه كافية"] + allowed
+    if has_kidney:
+        forbidden = ["البوتاسيوم العالي: موز/طماطم/بطاطا بكثرة","البروتين والفوسفور الزائد","الملح والمعلبات"] + forbidden
+        allowed = ["بروتين معتدل حسب تعليمات الطبيب","كمية المياه حسب إرشاد الطبيب"] + allowed
+    if has_heart:
+        forbidden = ["الدهون المشبعة + المقليات","اللحوم المصنّعة + السمن"] + forbidden
+        allowed = ["أوميجا 3: سمك مرتين أسبوعياً","زيت زيتون + أفوكادو + مكسرات"] + allowed
+    if has_preg:
+        forbidden = ["الكبدة + الأسماك عالية الزئبق","الأطعمة النيئة وغير المبسترة","الكافيين الزائد"] + forbidden
+        allowed = ["حمض فوليك: خضار ورقية + بقوليات","كالسيوم: ألبان مبسترة","حديد وبروتين كافي"] + allowed
+    if has_obesity:
+        forbidden = ["الوجبات السريعة + السعرات الفارغة","المشروبات السكرية"] + forbidden
+        allowed = ["عجز سعري معتدل + بروتين عالي","خضار كتير + مشي يومي"] + allowed
+    if has_constip:
+        allowed = ["ألياف: خضار + فاكهة بقشرها + شوفان","مياه كافية (8 أكواب)","زبادي / بروبيوتيك"] + allowed
+
     return allowed[:8], forbidden[:8]
 
 def build_pdf(data, plan=None):
