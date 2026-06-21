@@ -1558,12 +1558,30 @@ def generate_weekly_plan(data):
     lunches = filter_meals_by_exclusions(lunches, user_exclusions)
     dinners = filter_meals_by_exclusions(dinners, user_exclusions)
 
-    # كيتو / لو-كارب: شيل النشويات
-    if diet_type in ("keto", "low_carb"):
-        _keto = (diet_type == "keto")
-        breakfasts = filter_carbs(breakfasts, _keto)
-        lunches = filter_carbs(lunches, _keto)
-        dinners = filter_carbs(dinners, _keto)
+    # كيتو: وجبات كيتو حقيقية | لو-كارب: تقليل النشويات
+    if diet_type == "keto":
+        try:
+            from meal_extra import KETO_MEALS
+            kb = list(KETO_MEALS.get("breakfast", []))
+            kl = list(KETO_MEALS.get("lunch", []))
+            kd = list(KETO_MEALS.get("dinner", []))
+            if kb and kl and kd:
+                breakfasts = filter_meals_by_exclusions(filter_by_conditions(kb, symptoms), user_exclusions) or kb
+                lunches = filter_meals_by_exclusions(filter_by_conditions(kl, symptoms), user_exclusions) or kl
+                dinners = filter_meals_by_exclusions(filter_by_conditions(kd, symptoms), user_exclusions) or kd
+            else:
+                breakfasts = filter_carbs(breakfasts, True)
+                lunches = filter_carbs(lunches, True)
+                dinners = filter_carbs(dinners, True)
+        except Exception as _e:
+            print(f"keto meals error: {_e}")
+            breakfasts = filter_carbs(breakfasts, True)
+            lunches = filter_carbs(lunches, True)
+            dinners = filter_carbs(dinners, True)
+    elif diet_type == "low_carb":
+        breakfasts = filter_carbs(breakfasts, False)
+        lunches = filter_carbs(lunches, False)
+        dinners = filter_carbs(dinners, False)
 
     snacks = get_snacks_for_goal(goal)
     pool_snacks = pool.get("snack", [])
@@ -1572,9 +1590,15 @@ def generate_weekly_plan(data):
 
     snacks = [s for s in snacks if not any(ex in (s if isinstance(s, str) else s.get("meal","")) for ex in user_exclusions)] or snacks
 
-    if diet_type in ("keto", "low_carb"):
-        _kw = LOW_CARB_WORDS + (KETO_EXTRA_WORDS if diet_type == "keto" else [])
-        _fs = [s for s in snacks if not any(w in (s if isinstance(s, str) else s.get("meal", "")) for w in _kw)]
+    if diet_type == "keto":
+        try:
+            from meal_extra import KETO_SNACKS
+            if KETO_SNACKS:
+                snacks = list(KETO_SNACKS)
+        except Exception:
+            pass
+    elif diet_type == "low_carb":
+        _fs = [s for s in snacks if not any(w in (s if isinstance(s, str) else s.get("meal", "")) for w in LOW_CARB_WORDS)]
         snacks = _fs if _fs else snacks
 
     days = ["الاحد","الاثنين","الثلاثاء","الاربعاء","الخميس","الجمعة","السبت"]
