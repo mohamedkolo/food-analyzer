@@ -1773,7 +1773,92 @@ def build_pdf(data, plan=None):
         'author': 'إعداد د. محمد - أخصائي التغذية الإكلينيكية',
         'review_weeks': 4,
     }
-    html_string = render_template('meal_plan.html', **template_data)
+    # ═══════ توليد PDF: صفحة واحدة، الأيام صفوف والوجبات أعمدة ═══════
+    def _esc(s):
+        return (str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+    td = template_data
+    cl = td['client']
+    pdays = td['days']
+    # أعمدة الوجبات (من أول يوم - تنفع لأي نظام)
+    columns = [m['label'] for m in pdays[0]['meals']] if pdays else []
+    ncols = len(columns)
+    orientation = "landscape" if ncols >= 5 else "portrait"
+
+    # رأس الجدول
+    head_cells = '<th class="dcol">اليوم</th>'
+    for c in columns:
+        head_cells += f'<th>{_esc(c)}</th>'
+    head_cells += '<th class="kcol">سعرات</th>'
+
+    # صفوف الأيام
+    body_rows = ""
+    for d in pdays:
+        cells = f'<td class="dcell">{_esc(d["name"])}</td>'
+        by_label = {m['label']: m['text'] for m in d['meals']}
+        for c in columns:
+            cells += f'<td>{_esc(by_label.get(c, "-"))}</td>'
+        cells += f'<td class="kcell">{_esc(d["total_kcal"])}</td>'
+        body_rows += f'<tr>{cells}</tr>'
+
+    allowed_html = "".join(f"<li>{_esc(x)}</li>" for x in td['allowed'][:6])
+    forbidden_html = "".join(f"<li>{_esc(x)}</li>" for x in td['forbidden'][:6])
+    water_tips = "".join(f"<li>{_esc(x)}</li>" for x in td['tips']['water'][:3])
+
+    html_string = f"""<!DOCTYPE html><html lang="ar"><head><meta charset="utf-8">
+<style>
+@page {{ size: A4 {orientation}; margin: 8mm; }}
+* {{ box-sizing: border-box; }}
+body {{ font-family: 'Cairo','Amiri','DejaVu Sans',sans-serif; direction: rtl; color:#1b2d24; margin:0; }}
+.hdr {{ display:flex; justify-content:space-between; align-items:center;
+        border-bottom:3px solid #1b4332; padding-bottom:6px; margin-bottom:8px; }}
+.hdr .t {{ font-size:18px; font-weight:800; color:#1b4332; }}
+.hdr .s {{ font-size:11px; color:#52796f; }}
+.meta {{ display:flex; flex-wrap:wrap; gap:6px 16px; font-size:11px;
+         background:#f0f7f4; border:1px solid #cfe3d9; border-radius:6px;
+         padding:7px 10px; margin-bottom:8px; }}
+.meta b {{ color:#1b4332; }}
+table {{ width:100%; border-collapse:collapse; table-layout:fixed; }}
+th,td {{ border:1px solid #2d5a44; padding:5px 4px; font-size:10px;
+         vertical-align:top; word-wrap:break-word; line-height:1.4; }}
+th {{ background:#1b4332; color:#fff; font-weight:700; }}
+td.dcell {{ background:#e8f3ee; font-weight:800; color:#1b4332; font-size:11px; text-align:center; }}
+.dcol {{ width:62px; }} .kcol,.kcell {{ width:48px; text-align:center; }}
+.kcell {{ font-weight:700; color:#2d5a44; }}
+tr:nth-child(even) td {{ background:#fafdfb; }}
+tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
+.foot {{ display:flex; gap:10px; margin-top:9px; font-size:9.5px; }}
+.fbox {{ flex:1; border:1px solid #cfe3d9; border-radius:6px; padding:6px 9px; }}
+.fbox h4 {{ margin:0 0 3px; font-size:11px; }}
+.fbox ul {{ margin:0; padding-right:15px; }}
+.fbox li {{ margin-bottom:1px; }}
+.ok h4 {{ color:#2d7d46; }} .no h4 {{ color:#c0392b; }} .wt h4 {{ color:#1d6fa5; }}
+.sig {{ margin-top:8px; text-align:left; font-size:10px; color:#52796f; }}
+</style></head><body>
+<div class="hdr">
+  <div><div class="t">{_esc(td['plan_title'])} — {_esc(td['diet_plan_name'])}</div>
+  <div class="s">{_esc(td['clinic_name'])} • {_esc(td['author'])}</div></div>
+  <div class="s">ملف: {_esc(td['file_number'])}<br>{_esc(td['date'])}</div>
+</div>
+<div class="meta">
+  <span><b>الاسم:</b> {_esc(cl['name'])}</span>
+  <span><b>النوع:</b> {_esc(cl['gender'])}</span>
+  <span><b>العمر:</b> {_esc(cl['age'])}</span>
+  <span><b>الوزن:</b> {_esc(cl['weight'])} كجم</span>
+  <span><b>الطول:</b> {_esc(cl['height'])} سم</span>
+  <span><b>BMI:</b> {_esc(cl['bmi'])}</span>
+  <span><b>السعرات المستهدفة:</b> {_esc(cl['target_kcal'])} kcal</span>
+  <span><b>المطبخ:</b> {_esc(td['culture'])}</span>
+</div>
+<table><thead><tr>{head_cells}</tr></thead><tbody>{body_rows}</tbody></table>
+<div class="foot">
+  <div class="fbox ok"><h4>✅ مسموح</h4><ul>{allowed_html}</ul></div>
+  <div class="fbox no"><h4>🚫 ممنوع</h4><ul>{forbidden_html}</ul></div>
+  <div class="fbox wt"><h4>💧 الماء</h4><ul>{water_tips}</ul></div>
+</div>
+<div class="sig">المراجعة بعد {_esc(td['review_weeks'])} أسابيع — {_esc(td['author'])}</div>
+</body></html>"""
+
     pdf_bytes = HTML(string=html_string).write_pdf()
     return pdf_bytes
 
