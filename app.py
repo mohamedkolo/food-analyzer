@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, session, send_file, jsonify
-import hashlib, os, json, io, random
+import hashlib, os, json, io, random, re
 from datetime import timedelta, datetime
 
 app = Flask(__name__)
@@ -1849,6 +1849,18 @@ def build_pdf(data, plan=None):
     def _esc(s):
         return (str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
 
+    def _fmt_cell(text):
+        if not text:
+            return "-"
+        parts = [p.strip() for p in str(text).split(" + ") if p.strip()]
+        out = []
+        for p in parts:
+            p = _esc(p)
+            p = re.sub(r'(\d+[\.\d]*\s*(?:جم|مل|كوب|ملعقة|ملاعق|قطع|قطعة|حبات|شريحتين|ثمرة)?)',
+                       r'<b>\1</b>', p, count=1)
+            out.append(f'<span class="it">{p}</span>')
+        return "".join(out)
+
     td = template_data
     cl = td['client']
     pdays = td['days']
@@ -1871,7 +1883,7 @@ def build_pdf(data, plan=None):
         cells = f'<td class="dcell">{_esc(d["name"])}</td>'
         by_label = {m['label']: m['text'] for m in d['meals']}
         for c in columns:
-            cells += f'<td>{_esc(by_label.get(c, "-"))}</td>'
+            cells += f'<td>{_fmt_cell(by_label.get(c, "-"))}</td>'
         cells += f'<td class="kcell">{_esc(d["total_kcal"])}</td>'
         cells += f'<td class="kcell">{_esc(d.get("total_p", 0))} جم</td>'
         body_rows += f'<tr>{cells}</tr>'
@@ -1942,8 +1954,11 @@ body {{ font-family: 'Cairo','Amiri','DejaVu Sans',sans-serif; direction: rtl; c
          padding:7px 10px; margin-bottom:8px; }}
 .meta b {{ color:#1b4332; }}
 table {{ width:100%; border-collapse:collapse; table-layout:fixed; }}
-th,td {{ border:1px solid #2d5a44; padding:5px 4px; font-size:10px;
-         vertical-align:top; word-wrap:break-word; line-height:1.4; }}
+th,td {{ border:1px solid #2d5a44; padding:6px 6px; font-size:9.5px;
+         vertical-align:top; word-wrap:break-word; line-height:1.5; text-align:right; }}
+td .it {{ display:block; padding:2px 0; border-bottom:1px dashed #dcebe4; }}
+td .it:last-child {{ border-bottom:none; }}
+td b {{ color:#1b4332; font-weight:700; }}
 th {{ background:#1b4332; color:#fff; font-weight:700; }}
 td.dcell {{ background:#e8f3ee; font-weight:800; color:#1b4332; font-size:11px; text-align:center; }}
 .dcol {{ width:62px; }} .kcol,.kcell {{ width:48px; text-align:center; }}
