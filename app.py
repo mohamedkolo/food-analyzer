@@ -1021,6 +1021,8 @@ def generate():
             "bmi": request.form.get("bmi",""), "tdee": request.form.get("tdee",""),
             "goal_cal": request.form.get("goal_cal","1400"),
             "activity_level": request.form.get("activity_level","regular"),
+            "protein_per_kg": request.form.get("protein_per_kg","1.6"),
+            "fat_pct_cal": request.form.get("fat_pct_cal","30"),
             "goal_type": request.form.get("goal_type","weight_loss"),
             "culture": request.form.get("culture","مصري"),
             "diet_plan_type": request.form.get("diet_plan_type","standard"),
@@ -1830,22 +1832,40 @@ def build_pdf(data, plan=None):
     forbidden_html = "".join(f"<li>{_esc(x)}</li>" for x in td['forbidden'][:6])
     water_tips = "".join(f"<li>{_esc(x)}</li>" for x in td['tips']['water'][:3])
 
-    # حساب هدف البروتين على أساس وزن الجسم × مستوى النشاط
+    # حساب الماكروز: بروتين بالوزن، دهون % من السعرات، الكارب الباقي
     PROTEIN_FACTORS = {"sedentary": 1.0, "light": 1.3, "regular": 1.6, "athlete": 2.0}
     ACTIVITY_LABELS = {"sedentary": "قليل الحركة", "light": "نشاط خفيف",
                        "regular": "تمارين منتظمة / تخسيس", "athlete": "رياضي / بناء عضل"}
     _act = (data.get("activity_level") or "regular")
-    _factor = PROTEIN_FACTORS.get(_act, 1.6)
+    try:
+        _ppk = float(data.get("protein_per_kg") or PROTEIN_FACTORS.get(_act, 1.6))
+    except Exception:
+        _ppk = PROTEIN_FACTORS.get(_act, 1.6)
+    try:
+        _fatp = float(data.get("fat_pct_cal") or 30)
+    except Exception:
+        _fatp = 30
     try:
         _w = float(data.get("weight") or 0)
     except Exception:
         _w = 0
-    _ptarget = round(_w * _factor) if _w > 0 else None
+    try:
+        _kcal = float(data.get("goal_cal") or 0)
+    except Exception:
+        _kcal = 0
     _act_label = ACTIVITY_LABELS.get(_act, "تمارين منتظمة / تخسيس")
-    protein_meta = ""
-    if _ptarget:
-        protein_meta = (f'<span><b>مستوى النشاط:</b> {_esc(_act_label)}</span>'
-                        f'<span><b>هدف البروتين:</b> {_esc(_ptarget)} جم/يوم ({_factor} جم/كجم)</span>')
+    macro_meta = ""
+    if _w > 0 and _kcal > 0:
+        _pg = round(_w * _ppk)
+        _fg = round(_kcal * _fatp / 100 / 9)
+        _cc = _kcal - (_pg * 4) - (_fg * 9)
+        _cg = round(max(_cc, 0) / 4)
+        macro_meta = (
+            f'<span><b>مستوى النشاط:</b> {_esc(_act_label)}</span>'
+            f'<span><b>بروتين:</b> {_esc(_pg)} جم ({_ppk} جم/كجم)</span>'
+            f'<span><b>دهون:</b> {_esc(_fg)} جم ({int(_fatp)}%)</span>'
+            f'<span><b>كارب:</b> {_esc(_cg)} جم</span>'
+        )
 
     html_string = f"""<!DOCTYPE html><html lang="ar"><head><meta charset="utf-8">
 <style>
@@ -1891,7 +1911,7 @@ tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
   <span><b>BMI:</b> {_esc(cl['bmi'])}</span>
   <span><b>السعرات المستهدفة:</b> {_esc(cl['target_kcal'])} kcal</span>
   <span><b>المطبخ:</b> {_esc(td['culture'])}</span>
-  {protein_meta}
+  {macro_meta}
 </div>
 <table><thead><tr>{head_cells}</tr></thead><tbody>{body_rows}</tbody></table>
 <div class="foot">
