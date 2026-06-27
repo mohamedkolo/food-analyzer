@@ -746,8 +746,22 @@ _GRAM_RULES = [
     ("ارز","100جم"), ("أرز","100جم"), ("رز","100جم"),
 ]
 
+_EMOJI_FALLBACK = {
+    "🥗": "سلطة 150جم", "🥦": "بروكلي 100جم", "🥒": "خيار 100جم",
+    "🍅": "طماطم 100جم", "🫒": "زيتون 5 حبات", "🥑": "أفوكادو نص ثمرة",
+    "🍞": "خبز 60جم", "🥬": "خضار ورقية 100جم", "🍠": "بطاطا 150جم",
+    "🥕": "جزر 100جم", "🍆": "باذنجان 100جم", "🍄": "فطر 100جم",
+}
+
 def _fix_segment(seg):
     if re.search(r'\d', seg):
+        return seg
+    # لو الجزء إيموجي بس من غير اسم
+    letters = re.sub(r'[^\u0600-\u06FFA-Za-z]', '', seg)
+    if not letters:
+        for emo, rep in _EMOJI_FALLBACK.items():
+            if emo in seg:
+                return seg.replace(emo, emo + " " + rep)
         return seg
     for kw, amt in _GRAM_RULES:
         if kw in seg:
