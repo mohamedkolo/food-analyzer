@@ -133,6 +133,31 @@
         </select>
       </div>
     </div>
+
+    <div style="background:#f0f7f4;border:1px solid #cfe3d9;border-radius:10px;padding:12px;margin-top:6px">
+      <div style="font-size:13px;font-weight:700;color:#1b4332;margin-bottom:8px">
+        <i class="fa-solid fa-sliders"></i>
+        {{ 'نسب الماكروز (بتتحط تلقائياً حسب النظام — تقدر تعدّلها)' if is_ar else 'Macros (auto-set by diet — editable)' }}
+      </div>
+      <div class="grid-3">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">{{ 'بروتين (جم/كجم)' if is_ar else 'Protein (g/kg)' }}</label>
+          <input class="form-input" type="number" step="0.1" name="protein_per_kg" id="proteinPerKg" value="1.6">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">{{ 'دهون %' if is_ar else 'Fat %' }}</label>
+          <input class="form-input" type="number" step="1" name="fat_pct_cal" id="fatPctCal" value="30">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">{{ 'كارب %' if is_ar else 'Carb %' }}</label>
+          <input class="form-input" type="number" step="1" name="carb_pct_cal" id="carbPctCal" value="45" readonly
+                 style="background:#eef4f1">
+        </div>
+      </div>
+      <div style="font-size:11px;color:#52796f;margin-top:6px">
+        {{ 'الكارب بيتحسب تلقائياً من الباقي بعد البروتين والدهون.' if is_ar else 'Carbs are auto-calculated from the remainder.' }}
+      </div>
+    </div>
   </div>
 
   <!-- ═══════════ الأمراض ═══════════ -->
@@ -237,5 +262,34 @@ h.addEventListener('input',calc);
 w.addEventListener('input',calc);
 tdee.addEventListener('input',calcGoal);
 document.querySelectorAll('input[name="goal_type"]').forEach(r=>r.addEventListener('change',calcGoal));
+
+// ===== ضبط الماكروز تلقائياً =====
+const actSel=document.getElementById('actField');
+const pPerKg=document.getElementById('proteinPerKg');
+const fatPct=document.getElementById('fatPctCal');
+const carbPct=document.getElementById('carbPctCal');
+const ACT_P={sedentary:1.0,light:1.3,regular:1.6,athlete:2.0};
+const DIET_FAT={keto:70,low_carb:40};
+function setProteinFromAct(){ if(actSel&&pPerKg) pPerKg.value=ACT_P[actSel.value]||1.6; }
+function setFatFromDiet(){
+  const d=document.querySelector('input[name="diet_plan_type"]:checked')?.value;
+  if(fatPct) fatPct.value = DIET_FAT[d] || 30;
+}
+function calcCarb(){
+  const wv=parseFloat(w.value), gc=parseFloat(goal.value);
+  const ppk=parseFloat(pPerKg.value), fp=parseFloat(fatPct.value);
+  if(wv&&gc&&ppk>=0&&fp>=0){
+    const pc=wv*ppk*4, fc=gc*fp/100;
+    let cc=gc-pc-fc; if(cc<0) cc=0;
+    carbPct.value=Math.round(cc/gc*100);
+  }
+}
+function updateMacros(){ setFatFromDiet(); calcCarb(); }
+if(actSel) actSel.addEventListener('change',()=>{setProteinFromAct();calcCarb();});
+document.querySelectorAll('input[name="diet_plan_type"]').forEach(r=>r.addEventListener('change',updateMacros));
+[pPerKg,fatPct,w,goal].forEach(el=>el&&el.addEventListener('input',calcCarb));
+document.querySelectorAll('input[name="goal_type"]').forEach(r=>r.addEventListener('change',calcCarb));
+tdee.addEventListener('input',()=>setTimeout(calcCarb,0));
+setProteinFromAct(); setFatFromDiet(); calcCarb();
 </script>
 {% endblock %}
