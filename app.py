@@ -1609,11 +1609,21 @@ def generate_weekly_plan(data):
     random.shuffle(breakfasts)
     random.shuffle(lunches)
     random.shuffle(dinners)
+
+    # تفضيل البروتين العالي للأهداف اللي محتاجة بروتين أكتر
+    _prefer_protein = (goal in ("muscle_gain", "bulking")) or (data.get("activity_level") == "athlete")
+    if _prefer_protein:
+        breakfasts = sorted(breakfasts, key=lambda m: m.get("p", 0), reverse=True)
+        lunches = sorted(lunches, key=lambda m: m.get("p", 0), reverse=True)
+        dinners = sorted(dinners, key=lambda m: m.get("p", 0), reverse=True)
+
+    SNK_P = 8  # تقدير بروتين السناك الواحد
     plan = []
     for i in range(7):
         day_plan = {"day": days[i], "diet_type": diet_type,
                     "meal_labels": plan_info["meal_labels"], "meal_emojis": plan_info["meal_emojis"]}
         total_cal = 0
+        total_p = 0
         if diet_type in ("standard", "keto", "low_carb"):
             b = breakfasts[i % len(breakfasts)]
             l = lunches[i % len(lunches)]
@@ -1623,6 +1633,7 @@ def generate_weekly_plan(data):
             day_plan["dinner"] = d["meal"]
             day_plan["snack"] = snacks[i % len(snacks)]
             total_cal = b.get("cal",300) + l.get("cal",400) + d.get("cal",300) + 150
+            total_p = b.get("p",20) + l.get("p",30) + d.get("p",20) + SNK_P
         elif diet_type == "five_meals":
             b = breakfasts[i % len(breakfasts)]
             l = lunches[i % len(lunches)]
@@ -1633,6 +1644,7 @@ def generate_weekly_plan(data):
             day_plan["snack2"] = snacks[(i+3) % len(snacks)]
             day_plan["dinner"] = d["meal"]
             total_cal = b.get("cal",300) + l.get("cal",400) + d.get("cal",300) + 300
+            total_p = b.get("p",20) + l.get("p",30) + d.get("p",20) + SNK_P*2
         elif diet_type == "intermittent_16_8":
             b = breakfasts[i % len(breakfasts)]
             d = dinners[i % len(dinners)]
@@ -1640,12 +1652,14 @@ def generate_weekly_plan(data):
             day_plan["snack"] = snacks[i % len(snacks)]
             day_plan["meal2"] = d["meal"]
             total_cal = b.get("cal",350) + d.get("cal",450) + 150
+            total_p = b.get("p",25) + d.get("p",30) + SNK_P
         elif diet_type == "intermittent_18_6":
             l = lunches[i % len(lunches)]
             d = dinners[i % len(dinners)]
             day_plan["meal1"] = l["meal"]
             day_plan["meal2"] = d["meal"]
             total_cal = l.get("cal",400) + d.get("cal",400)
+            total_p = l.get("p",30) + d.get("p",30)
         elif diet_type == "ramadan":
             l = lunches[i % len(lunches)]
             b = breakfasts[i % len(breakfasts)]
@@ -1653,6 +1667,7 @@ def generate_weekly_plan(data):
             day_plan["snack"] = snacks[i % len(snacks)]
             day_plan["suhoor"] = b["meal"]
             total_cal = l.get("cal",400) + b.get("cal",300) + 150
+            total_p = l.get("p",30) + b.get("p",20) + SNK_P
         elif diet_type == "workout":
             b = breakfasts[i % len(breakfasts)]
             l = lunches[i % len(lunches)]
@@ -1663,7 +1678,9 @@ def generate_weekly_plan(data):
             day_plan["lunch"] = l["meal"]
             day_plan["dinner"] = d["meal"]
             total_cal = 200 + b.get("cal",300) + 250 + l.get("cal",400) + d.get("cal",300)
+            total_p = b.get("p",20) + l.get("p",30) + d.get("p",20) + 33
         day_plan["total_cal"] = total_cal
+        day_plan["total_p"] = total_p
         plan.append(day_plan)
     return plan
 
@@ -1768,7 +1785,8 @@ def build_pdf(data, plan=None):
             meal_text = d.get(meal_key, "")
             if meal_text:
                 meals_html.append({"label": label, "emoji": emoji, "text": meal_text})
-        pdf_days.append({"name": d["day"], "total_kcal": d["total_cal"], "meals": meals_html,
+        pdf_days.append({"name": d["day"], "total_kcal": d["total_cal"], "total_p": d.get("total_p", 0),
+                         "meals": meals_html,
                          "breakfast": d.get("breakfast",""), "lunch": d.get("lunch",""),
                          "dinner": d.get("dinner",""), "snack": d.get("snack","")})
     template_data = {
@@ -1816,17 +1834,26 @@ def build_pdf(data, plan=None):
     head_cells = '<th class="dcol">اليوم</th>'
     for c in columns:
         head_cells += f'<th>{_esc(c)}</th>'
-    head_cells += '<th class="kcol">سعرات</th>'
+    head_cells += '<th class="kcol">سعرات</th><th class="kcol">بروتين</th>'
 
     # صفوف الأيام
     body_rows = ""
+    _sum_cal = 0
+    _sum_p = 0
     for d in pdays:
         cells = f'<td class="dcell">{_esc(d["name"])}</td>'
         by_label = {m['label']: m['text'] for m in d['meals']}
         for c in columns:
             cells += f'<td>{_esc(by_label.get(c, "-"))}</td>'
         cells += f'<td class="kcell">{_esc(d["total_kcal"])}</td>'
+        cells += f'<td class="kcell">{_esc(d.get("total_p", 0))} جم</td>'
         body_rows += f'<tr>{cells}</tr>'
+        _sum_cal += d.get("total_kcal", 0) or 0
+        _sum_p += d.get("total_p", 0) or 0
+
+    _n = max(len(pdays), 1)
+    _avg_cal = round(_sum_cal / _n)
+    _avg_p = round(_sum_p / _n)
 
     allowed_html = "".join(f"<li>{_esc(x)}</li>" for x in td['allowed'][:6])
     forbidden_html = "".join(f"<li>{_esc(x)}</li>" for x in td['forbidden'][:6])
@@ -1867,6 +1894,13 @@ def build_pdf(data, plan=None):
             f'<span><b>كارب:</b> {_esc(_cg)} جم</span>'
         )
 
+    _tcal = int(_kcal) if _kcal > 0 else None
+    _tp = round(_w * _ppk) if _w > 0 else None
+    summary_box = (f'<div class="summary"><span>📊 <b>المتوسط الفعلي/يوم:</b> '
+                   f'{_avg_cal} سعرة • {_avg_p} جم بروتين</span>'
+                   f'<span><b>الهدف:</b> {_tcal if _tcal else "-"} سعرة • '
+                   f'{_tp if _tp else "-"} جم بروتين</span></div>')
+
     html_string = f"""<!DOCTYPE html><html lang="ar"><head><meta charset="utf-8">
 <style>
 @page {{ size: A4 {orientation}; margin: 8mm; }}
@@ -1896,6 +1930,10 @@ tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
 .fbox li {{ margin-bottom:1px; }}
 .ok h4 {{ color:#2d7d46; }} .no h4 {{ color:#c0392b; }} .wt h4 {{ color:#1d6fa5; }}
 .sig {{ margin-top:8px; text-align:left; font-size:10px; color:#52796f; }}
+.summary {{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+            background:#eef4f1; border:1px solid #cfe3d9; border-radius:6px;
+            padding:7px 12px; margin-top:8px; font-size:11px; }}
+.summary b {{ color:#1b4332; }}
 </style></head><body>
 <div class="hdr">
   <div><div class="t">{_esc(td['plan_title'])} — {_esc(td['diet_plan_name'])}</div>
@@ -1914,6 +1952,7 @@ tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
   {macro_meta}
 </div>
 <table><thead><tr>{head_cells}</tr></thead><tbody>{body_rows}</tbody></table>
+{summary_box}
 <div class="foot">
   <div class="fbox ok"><h4>✅ مسموح</h4><ul>{allowed_html}</ul></div>
   <div class="fbox no"><h4>🚫 ممنوع</h4><ul>{forbidden_html}</ul></div>
