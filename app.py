@@ -1020,6 +1020,7 @@ def generate():
             "weight": request.form.get("weight",""), "fat_pct": request.form.get("fat_pct",""),
             "bmi": request.form.get("bmi",""), "tdee": request.form.get("tdee",""),
             "goal_cal": request.form.get("goal_cal","1400"),
+            "activity_level": request.form.get("activity_level","regular"),
             "goal_type": request.form.get("goal_type","weight_loss"),
             "culture": request.form.get("culture","مصري"),
             "diet_plan_type": request.form.get("diet_plan_type","standard"),
@@ -1829,6 +1830,23 @@ def build_pdf(data, plan=None):
     forbidden_html = "".join(f"<li>{_esc(x)}</li>" for x in td['forbidden'][:6])
     water_tips = "".join(f"<li>{_esc(x)}</li>" for x in td['tips']['water'][:3])
 
+    # حساب هدف البروتين على أساس وزن الجسم × مستوى النشاط
+    PROTEIN_FACTORS = {"sedentary": 1.0, "light": 1.3, "regular": 1.6, "athlete": 2.0}
+    ACTIVITY_LABELS = {"sedentary": "قليل الحركة", "light": "نشاط خفيف",
+                       "regular": "تمارين منتظمة / تخسيس", "athlete": "رياضي / بناء عضل"}
+    _act = (data.get("activity_level") or "regular")
+    _factor = PROTEIN_FACTORS.get(_act, 1.6)
+    try:
+        _w = float(data.get("weight") or 0)
+    except Exception:
+        _w = 0
+    _ptarget = round(_w * _factor) if _w > 0 else None
+    _act_label = ACTIVITY_LABELS.get(_act, "تمارين منتظمة / تخسيس")
+    protein_meta = ""
+    if _ptarget:
+        protein_meta = (f'<span><b>مستوى النشاط:</b> {_esc(_act_label)}</span>'
+                        f'<span><b>هدف البروتين:</b> {_esc(_ptarget)} جم/يوم ({_factor} جم/كجم)</span>')
+
     html_string = f"""<!DOCTYPE html><html lang="ar"><head><meta charset="utf-8">
 <style>
 @page {{ size: A4 {orientation}; margin: 8mm; }}
@@ -1873,6 +1891,7 @@ tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
   <span><b>BMI:</b> {_esc(cl['bmi'])}</span>
   <span><b>السعرات المستهدفة:</b> {_esc(cl['target_kcal'])} kcal</span>
   <span><b>المطبخ:</b> {_esc(td['culture'])}</span>
+  {protein_meta}
 </div>
 <table><thead><tr>{head_cells}</tr></thead><tbody>{body_rows}</tbody></table>
 <div class="foot">
