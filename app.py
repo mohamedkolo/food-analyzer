@@ -1057,6 +1057,36 @@ def preview():
     return render_template("preview.html", user=u, lang=session.get("lang","ar"),
                            data=data, plan=plan, current_request_id=current_request_id)
 
+def _filtered_meals(data, pool_key, culture=None):
+    """بيرجّع وجبات pool_key بعد تطبيق: الحالة المرضية + الحساسية + المرفوض + الكيتو/لو-كارب."""
+    goal = data.get("goal_type", "weight_loss")
+    culture = culture or data.get("culture", "مصري")
+    diet_type = data.get("diet_plan_type", "standard")
+    symptoms = data.get("symptoms", []) or []
+    notes = data.get("notes", "")
+    disliked = data.get("disliked_foods", "")
+    allergies = data.get("allergies", []) if isinstance(data.get("allergies"), list) else []
+    exclusions = parse_user_exclusions(notes, disliked, allergies)
+    pool = get_meal_pool(goal, culture)
+    meals = list(pool.get(pool_key, []))
+    if diet_type == "keto":
+        try:
+            from meal_extra import KETO_MEALS
+            if pool_key in KETO_MEALS and KETO_MEALS[pool_key]:
+                meals = list(KETO_MEALS[pool_key])
+        except Exception:
+            pass
+    try:
+        meals = filter_by_conditions(meals, symptoms) or meals
+    except Exception:
+        pass
+    meals = filter_meals_by_exclusions(meals, exclusions) or meals
+    if diet_type == "keto":
+        meals = filter_carbs(meals, True) or meals
+    elif diet_type == "low_carb":
+        meals = filter_carbs(meals, False) or meals
+    return meals
+
 @app.route("/swap_meal", methods=["POST"])
 @staff_required
 def swap_meal():
@@ -1065,9 +1095,6 @@ def swap_meal():
     if not data or not plan: return jsonify({"ok": False}), 400
     day_idx = int(request.form.get("day_idx", 0))
     meal_type = request.form.get("meal_type", "breakfast")
-    goal = data.get("goal_type", "weight_loss")
-    culture = data.get("culture", "مصري")
-    pool = get_meal_pool(goal, culture)
     pool_key = meal_type
     if meal_type in ["meal1", "meal2", "iftar", "suhoor", "snack1", "snack2", "pre_workout", "post_workout"]:
         if meal_type in ["meal1", "iftar"]: pool_key = "lunch"
@@ -1075,9 +1102,10 @@ def swap_meal():
         elif meal_type in ["snack1", "snack2"]: pool_key = "breakfast"
         elif meal_type == "pre_workout": pool_key = "breakfast"
         elif meal_type == "post_workout": pool_key = "lunch"
-    if pool_key in pool and pool[pool_key]:
+    meals = _filtered_meals(data, pool_key)
+    if meals:
         current = plan[day_idx].get(meal_type, "")
-        options = [m for m in pool[pool_key] if m["meal"] != current]
+        options = [m for m in meals if m["meal"] != current]
         if options:
             new_meal = random.choice(options)
             plan[day_idx][meal_type] = new_meal["meal"]
@@ -1091,9 +1119,8 @@ def get_meal_options():
     data = session.get("pdf_data")
     if not data: return jsonify({"ok": False, "options": []}), 400
     meal_type = request.form.get("meal_type", "breakfast")
-    goal = data.get("goal_type", "weight_loss")
     culture = data.get("culture", "مصري")
-    pool = get_meal_pool(goal, culture)
+    diet_type = data.get("diet_plan_type", "standard")
     pool_key = meal_type
     if meal_type in ["meal1", "meal2", "iftar", "suhoor", "snack1", "snack2", "pre_workout", "post_workout"]:
         if meal_type in ["meal1", "iftar"]: pool_key = "lunch"
@@ -1102,15 +1129,15 @@ def get_meal_options():
         elif meal_type == "pre_workout": pool_key = "breakfast"
         elif meal_type == "post_workout": pool_key = "lunch"
     all_options = []
-    if pool_key in pool and pool[pool_key]:
-        for m in pool[pool_key]:
-            all_options.append({"meal": m["meal"], "cal": m.get("cal", 0), "p": m.get("p", 0), "source": culture})
-    pools_map = {"weight_loss": WEIGHT_LOSS, "muscle_gain": MUSCLE_GAIN, "bulking": BULKING}
-    main_pool = pools_map.get(goal, WEIGHT_LOSS)
-    for other_culture, other_pool in main_pool.items():
-        if other_culture != culture and pool_key in other_pool:
-            for m in other_pool[pool_key][:5]:
-                all_options.append({"meal": m["meal"], "cal": m.get("cal", 0), "p": m.get("p", 0), "source": other_culture})
+    for m in _filtered_meals(data, pool_key):
+        all_options.append({"meal": m["meal"], "cal": m.get("cal", 0), "p": m.get("p", 0), "source": culture})
+    # مطابخ تانية (مفلترة برضو) - مش للكيتو/لو-كارب عشان النشويات
+    if diet_type not in ("keto", "low_carb"):
+        for oc in ["مصري", "خليجي", "شامي", "مغربي", "عالمي"]:
+            if oc == culture:
+                continue
+            for m in _filtered_meals(data, pool_key, culture=oc)[:5]:
+                all_options.append({"meal": m["meal"], "cal": m.get("cal", 0), "p": m.get("p", 0), "source": oc})
     return jsonify({"ok": True, "options": all_options})
 
 @app.route("/replace_meal", methods=["POST"])
