@@ -1556,6 +1556,26 @@ def filter_carbs(meals, keto=False):
     res = [m for m in meals if not any(w in _meal_text(m) for w in words)]
     return res if len(res) >= 3 else meals
 
+def _rank_by_condition(meals, cond_keys):
+    """يرتّب الوجبات: المفيد للحالة الأول، المحايد، والمتجنّب آخراً."""
+    if not cond_keys:
+        return meals
+    try:
+        from meal_extra import tag_meal
+    except Exception:
+        return meals
+    good, neutral, bad = [], [], []
+    for m in meals:
+        tags = tag_meal(_meal_text(m))
+        statuses = [tags.get(c) for c in cond_keys if c in tags]
+        if "bad" in statuses:
+            bad.append(m)
+        elif "good" in statuses:
+            good.append(m)
+        else:
+            neutral.append(m)
+    return good + neutral + bad
+
 def generate_weekly_plan(data):
     symptoms = data.get("symptoms", [])
     goal = data.get("goal_type", "weight_loss")
@@ -1643,6 +1663,18 @@ def generate_weekly_plan(data):
         breakfasts = sorted(breakfasts, key=lambda m: m.get("p", 0), reverse=True)
         lunches = sorted(lunches, key=lambda m: m.get("p", 0), reverse=True)
         dinners = sorted(dinners, key=lambda m: m.get("p", 0), reverse=True)
+
+    # ترتيب حسب الحالة المرضية: المفيد للحالة الأول، المتجنّب آخراً
+    _cond_keys = []
+    try:
+        from meal_extra import conditions_to_keys
+        _cond_keys = conditions_to_keys(symptoms)
+    except Exception:
+        _cond_keys = []
+    if _cond_keys:
+        breakfasts = _rank_by_condition(breakfasts, _cond_keys)
+        lunches = _rank_by_condition(lunches, _cond_keys)
+        dinners = _rank_by_condition(dinners, _cond_keys)
 
     SNK_P = 8  # تقدير بروتين السناك الواحد
     plan = []
@@ -1775,6 +1807,37 @@ def get_allowed_forbidden(symptoms, goal="weight_loss"):
         allowed = ["عجز سعري معتدل + بروتين عالي","خضار كتير + مشي يومي"] + allowed
     if has_constip:
         allowed = ["ألياف: خضار + فاكهة بقشرها + شوفان","مياه كافية (8 أكواب)","زبادي / بروبيوتيك"] + allowed
+
+    # ── أمراض إضافية ──
+    has_hypothyroid = _has(symptoms, ["خمول الغدة","hypothyroid","قصور الغدة"])
+    has_hyperthyroid = _has(symptoms, ["نشاط الغدة","hyperthyroid","فرط الغدة","فرط نشاط"])
+    has_gout = _has(symptoms, ["نقرس","gout","حمض اليوريك","يوريك"])
+    has_fatty_liver = _has(symptoms, ["كبد دهني","الكبد الدهني","fatty liver","دهون الكبد"])
+    has_chol = _has(symptoms, ["كوليسترول","cholesterol","دهون الدم"])
+    has_uc = _has(symptoms, ["القولون التقرحي","تقرحي","ulcerative","كرون","crohn"])
+    has_t1d = _has(symptoms, ["النوع الاول","النوع الأول","type 1","نوع اول"])
+
+    if has_hypothyroid:
+        forbidden = ["الجلوتين (خصوصاً مع هاشيموتو)","الصويا بكثرة","الكرنب/القرنبيط النيء بكثرة","الأكل المصنّع والسكريات"] + forbidden
+        allowed = ["يود: سمك + بيض","سيلينيوم: مكسرات برازيلي","زنك + بروتين كافي","خضار مطبوخة"] + allowed
+    if has_hyperthyroid:
+        forbidden = ["اليود الزائد (ملح اليود + أعشاب بحرية)","الكافيين والمنبّهات"] + forbidden
+        allowed = ["سعرات وبروتين أعلى (الحرق عالي)","كالسيوم + فيتامين D لحماية العظم","وجبات متكررة"] + allowed
+    if has_gout:
+        forbidden = ["اللحوم الحمراء + الأعضاء (كبدة/كلاوي)","مأكولات بحرية عالية البيورين","الفركتوز والمشروبات السكرية","الكحول"] + forbidden
+        allowed = ["مياه كثيرة (2-3 لتر)","ألبان قليلة الدسم","كرز + فيتامين C","بروتين نباتي معتدل"] + allowed
+    if has_fatty_liver:
+        forbidden = ["السكر والفركتوز والعصائر","المقليات والدهون المشبعة","الأكل المصنّع","الكحول"] + forbidden
+        allowed = ["نزول وزن تدريجي","ألياف + خضار + بروتين قليل الدهن","أوميجا 3","قهوة بدون سكر باعتدال"] + allowed
+    if has_chol:
+        forbidden = ["الدهون المشبعة والمتحولة","المقليات + السمن + المعجنات","صفار البيض بكثرة"] + forbidden
+        allowed = ["ألياف ذائبة: شوفان + بقوليات","أوميجا 3: سمك دهني","زيت زيتون + مكسرات + أفوكادو"] + allowed
+    if has_uc:
+        forbidden = ["الألياف الخشنة وقت النوبة","البهارات الحارة + الدهون العالية","الألبان لو فيه حساسية","الكحول والكافيين"] + forbidden
+        allowed = ["أكل سهل الهضم وقت النوبة","بروتين قليل الدهن + أوميجا 3","سوائل كافية","بروبيوتيك حسب التحمّل"] + allowed
+    if has_t1d:
+        forbidden = ["السكريات السريعة المنفردة","العصائر والمشروبات الغازية"] + forbidden
+        allowed = ["حساب الكارب لكل وجبة (carb counting)","توزيع الكارب مع جرعة الأنسولين","كارب معقّد + ألياف","سناك لتجنب هبوط السكر"] + allowed
 
     return allowed[:8], forbidden[:8]
 
