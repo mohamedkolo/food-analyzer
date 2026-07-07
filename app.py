@@ -5,7 +5,11 @@ from datetime import timedelta, datetime
 app = Flask(__name__)
 from pdf_generator import pdf_bp
 app.register_blueprint(pdf_bp)
-app.secret_key = os.environ.get("SECRET_KEY", "nutrax2025")
+# SECRET_KEY لازم يجي من متغير بيئة — لو مش موجود نولّد واحد عشوائي (الجلسات هتتقطع مع كل restart لحد ما تضيفه)
+import secrets as _secrets
+app.secret_key = os.environ.get("SECRET_KEY") or _secrets.token_hex(32)
+if not os.environ.get("SECRET_KEY"):
+    print("WARNING: SECRET_KEY env var not set — using a random key. Sessions will reset on every restart. Set SECRET_KEY in Render environment settings.")
 app.permanent_session_lifetime = timedelta(days=30)
 
 from meal_database import (
@@ -106,7 +110,29 @@ else:
         if commit: conn.commit()
         conn.close()
 
-def hp(p): return hashlib.sha256(p.encode()).hexdigest()
+from werkzeug.security import generate_password_hash, check_password_hash
+
+def hp(p):
+    """تشفير الباسورد بطريقة آمنة (scrypt/pbkdf2 مع salt)"""
+    return generate_password_hash(p)
+
+def _legacy_hp(p):
+    """الطريقة القديمة (SHA-256 بدون salt) — للتوافق مع الحسابات القديمة فقط"""
+    return hashlib.sha256(p.encode()).hexdigest()
+
+def verify_password(stored_hash, pw):
+    """يتحقق من الباسورد: يجرب الطريقة الآمنة أولاً، ثم القديمة للحسابات المسجلة قبل التحديث"""
+    if not stored_hash:
+        return False
+    try:
+        if check_password_hash(stored_hash, pw):
+            return True
+    except Exception:
+        pass
+    # هاش قديم؟ (64 حرف hex = SHA-256)
+    if len(stored_hash) == 64 and stored_hash == _legacy_hp(pw):
+        return True
+    return False
 
 @app.template_filter('from_json')
 def from_json_filter(s):
@@ -169,11 +195,14 @@ def init_db():
         try: db_run(col_sql)
         except: pass
 
+    # حساب الأدمن: يتعمل مرة واحدة فقط من متغير بيئة — ولا يتم إعادة تعيين الباسورد أبداً
     admin = db_row("SELECT id FROM users WHERE email='admin@nutrax.com'")
     if not admin:
-        db_run("INSERT INTO users (name,email,password,is_admin,role,active) VALUES (?,?,?,1,'admin',1)", ("Admin","admin@nutrax.com",hp("nutrax2025")))
-    else:
-        db_run("UPDATE users SET password=?, is_admin=1, role='admin', active=1 WHERE email='admin@nutrax.com'", (hp("nutrax2025"),))
+        _admin_pw = os.environ.get("ADMIN_PASSWORD")
+        if _admin_pw:
+            db_run("INSERT INTO users (name,email,password,is_admin,role,active) VALUES (?,?,?,1,'admin',1)", ("Admin","admin@nutrax.com",hp(_admin_pw)))
+        else:
+            print("WARNING: no admin account exists. Set ADMIN_PASSWORD env var and restart to create one.")
 
 init_db()
 
@@ -183,7 +212,17 @@ try:
 except Exception as _e:
     print(f"notif table init error: {_e}")
 
-def get_user(email, pw): return db_row("SELECT * FROM users WHERE email=? AND password=?", (email, hp(pw)))
+def get_user(email, pw):
+    u = db_row("SELECT * FROM users WHERE email=?", (email,))
+    if not u or not verify_password(u.get("password"), pw):
+        return None
+    # ترقية تلقائية: لو الحساب لسه بالهاش القديم، نحدثه للطريقة الآمنة
+    if len(u.get("password") or "") == 64:
+        try:
+            db_run("UPDATE users SET password=? WHERE id=?", (hp(pw), u["id"]))
+        except Exception as _e:
+            print(f"hash upgrade error: {_e}")
+    return u
 def get_user_by_id(uid): return db_row("SELECT * FROM users WHERE id=?", (uid,))
 
 def register(name, email, pw, country, age=None, phone=None):
@@ -3233,4 +3272,4 @@ def my_plans_history_edit(plan_id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=os.environ.get("FLASK_DEBUG") == "1")
