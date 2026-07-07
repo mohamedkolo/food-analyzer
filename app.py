@@ -568,15 +568,18 @@ def dashboard():
                            role=role, pending_count=pending_count, total_clients=total_clients,
                            total_plans=total_plans, recent_requests=recent_requests)
 
-def build_weight_progress(user_id):
-    """بيحضّر بيانات رسم تطور الوزن للعميل (نقاط SVG + أرقام)."""
+def build_weight_progress(user_id, user=None):
+    """بيحضّر بيانات رسم تطور الوزن للعميل (نقاط SVG + أرقام + إحصائيات تحفيزية)."""
     out = {"has_data": False, "count": 0, "start": None, "current": None,
-           "change": 0.0, "points": "", "dots": []}
+           "change": 0.0, "points": "", "dots": [],
+           "pace": None, "bmi": None, "bmi_label": "", "bmi_color": "#475569",
+           "days_tracking": 0, "message": "", "message_icon": "💪"}
     try:
         logs = db_rows("SELECT weight, logged_at FROM weight_log WHERE user_id=? ORDER BY logged_at ASC LIMIT 60", (user_id,))
     except Exception:
         logs = []
     pts = []
+    dates = []
     for r in (logs or []):
         try:
             w = float(r.get("weight"))
@@ -585,9 +588,15 @@ def build_weight_progress(user_id):
         v = r.get("logged_at")
         if hasattr(v, "strftime"):
             d = v.strftime("%m/%d")
+            dt_obj = v
         else:
             d = str(v)[5:10] if v else ""
+            try:
+                dt_obj = datetime.fromisoformat(str(v)[:19])
+            except Exception:
+                dt_obj = None
         pts.append((d, w))
+        dates.append(dt_obj)
     if not pts:
         return out
     out["has_data"] = True
@@ -595,6 +604,57 @@ def build_weight_progress(user_id):
     out["start"] = round(pts[0][1], 1)
     out["current"] = round(pts[-1][1], 1)
     out["change"] = round(pts[-1][1] - pts[0][1], 1)
+
+    # ── مدة المتابعة والمعدل الأسبوعي ──
+    try:
+        if dates[0] and dates[-1]:
+            days = max((dates[-1] - dates[0]).days, 0)
+            out["days_tracking"] = days
+            if days >= 7 and out["change"] != 0:
+                out["pace"] = round(out["change"] / (days / 7.0), 2)
+    except Exception:
+        pass
+
+    # ── BMI الحالي وتصنيفه ──
+    try:
+        h = float((user or {}).get("height") or 0)
+        if h > 0:
+            bmi = pts[-1][1] / ((h / 100) ** 2)
+            out["bmi"] = round(bmi, 1)
+            if bmi < 18.5:
+                out["bmi_label"], out["bmi_color"] = "نحافة", "#1d6fa5"
+            elif bmi < 25:
+                out["bmi_label"], out["bmi_color"] = "وزن صحي", "#059669"
+            elif bmi < 30:
+                out["bmi_label"], out["bmi_color"] = "زيادة وزن", "#b7791f"
+            else:
+                out["bmi_label"], out["bmi_color"] = "سمنة", "#dc2626"
+    except Exception:
+        pass
+
+    # ── رسالة تحفيزية حسب هدف العميل واتجاه التغيّر ──
+    goal = (user or {}).get("goal") or "weight_loss"
+    ch = out["change"]
+    if goal in ("muscle_gain", "bulking"):
+        if ch > 0:
+            out["message"], out["message_icon"] = f"زيادة {abs(ch)} كجم من البداية — عضلاتك بتتبني، كمّل تمرين وبروتين!", "🏋️"
+        elif ch < 0:
+            out["message"], out["message_icon"] = "الوزن نزل شوية — راجع سعراتك وزوّد البروتين، وكلّم الدكتور لو محتاج تعديل.", "📋"
+        else:
+            out["message"], out["message_icon"] = "الوزن ثابت — التضخيم محتاج فائض سعرات بسيط، التزم بالخطة.", "⚖️"
+    elif goal == "maintain":
+        if abs(ch) <= 1:
+            out["message"], out["message_icon"] = "وزنك ثابت زي ما هو مطلوب — ده بالظبط هدف المحافظة، ممتاز!", "🎯"
+        else:
+            out["message"], out["message_icon"] = f"في تغيّر {abs(ch)} كجم — لو مش مقصود راجع التزامك بالخطة.", "📋"
+    else:  # weight_loss
+        if ch < 0:
+            out["message"], out["message_icon"] = f"نزلت {abs(ch)} كجم من أول ما بدأت — شغل جامد، استمر!", "🔥"
+        elif ch > 0:
+            out["message"], out["message_icon"] = "الرحلة فيها طلوع ونزول وده طبيعي — ارجع للخطة من بكرة وهتشوف الفرق.", "🌱"
+        else:
+            out["message"], out["message_icon"] = "الوزن ثابت حالياً — الثبات مرحلة معروفة، التزم والنزول جاي.", "⏳"
+
     weights = [p[1] for p in pts]
     wmin, wmax = min(weights), max(weights)
     pad = max(1.0, (wmax - wmin) * 0.15)
@@ -631,7 +691,7 @@ def my_plan():
     tips = get_tips_for_user(u)
     today_tip = tips[datetime.now().day % len(tips)] if tips else None
 
-    weight = build_weight_progress(session["uid"])
+    weight = build_weight_progress(session["uid"], u)
 
     return render_template("my_plan.html", user=u, lang=session.get("lang","ar"),
                            latest_plan=latest_plan, pending_request=pending_request,
