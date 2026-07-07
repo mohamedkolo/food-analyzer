@@ -90,6 +90,7 @@
 </div>
 
 <form method="POST" action="/save_plan">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="target_cal" value="{{ cal }}">
   <input type="hidden" name="target_prot" value="{{ prot }}">
 
