@@ -278,6 +278,7 @@
   </div>
 
   <form method="POST" action="/onboarding" id="onbForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <!-- ═══════ STEP 1: WELCOME ═══════ -->
     <div class="step active" data-step="1">
