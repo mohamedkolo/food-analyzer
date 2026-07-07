@@ -39,6 +39,7 @@
   </div>
 
   <form method="POST" style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--gray-2);background:var(--gray)">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="text" name="message" required autocomplete="off"
            class="form-input" 
            placeholder="اكتب رسالتك هنا..." 
