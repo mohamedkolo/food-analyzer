@@ -780,6 +780,18 @@
     {% endif %}
   </div>
 
+  <!-- Contact via WhatsApp -->
+  {% if client_whatsapp %}
+  <div class="section">
+    <h2 class="section-title">💬 تواصل مع العميل</h2>
+    <a href="{{ client_whatsapp }}" target="_blank" rel="noopener"
+       style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;padding:11px 22px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">
+      <span style="font-size:18px;">💬</span> فتح واتساب مع {{ user.name or 'العميل' }}
+    </a>
+    <span style="font-size:12px;color:#94a3b8;margin-right:10px;">({{ user.phone }})</span>
+  </div>
+  {% endif %}
+
   <!-- Reset Password -->
   <div class="section">
     <h2 class="section-title">🔑 إعادة تعيين كلمة السر</h2>
