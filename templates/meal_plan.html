@@ -1,250 +1,300 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<title>NutraX — {{ client.name }}</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+{% extends "base.html" %}
+{% block content %}
+
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  :root {
-    --primary: #1b4332; --primary-light: #2d6a4f; --primary-soft: #d8e2dc;
-    --accent: #bc6c25; --accent-soft: #f5e9da;
-    --warn: #9d0208; --warn-soft: #fde8e8;
-    --ok: #2d6a4f;
-    --bg: #ffffff; --surface: #faf9f6; --surface-alt: #f1efe8;
-    --border: #e5e7e0; --text: #1a1a1a; --text-muted: #6c757d;
-  }
-  html { background: #f0efe9; }
-  body { font-family: 'Cairo', sans-serif; color: var(--text); line-height: 1.55; direction: rtl; font-size: 14px; padding: 16px 0; }
-  .document { max-width: 820px; margin: 0 auto; background: var(--bg); box-shadow: 0 10px 40px rgba(0,0,0,0.08); overflow: hidden; }
-
-  .header { background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%); color: white; padding: 28px 32px; position: relative; overflow: hidden; }
-  .header-inner { display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1; flex-wrap: wrap; gap: 16px; }
-  .brand { display: flex; align-items: center; gap: 12px; }
-  .brand-logo { width: 46px; height: 46px; background: white; color: var(--primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 20px; }
-  .brand-text h1 { font-size: 22px; font-weight: 800; letter-spacing: 0.3px; line-height: 1.2; }
-  .brand-text p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
-  .doc-meta { text-align: left; font-size: 12px; }
-  .doc-meta .label { opacity: 0.7; }
-  .doc-meta .value { font-weight: 700; font-size: 14px; }
-
-  .title-band { background: #faf9f6; padding: 20px 32px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-  .title-band h2 { font-size: 19px; font-weight: 700; color: var(--primary); }
-  .pill { display: inline-block; padding: 5px 14px; background: var(--primary-soft); color: var(--primary); border-radius: 100px; font-size: 12px; font-weight: 700; }
-
-  .section { padding: 24px 32px; border-bottom: 1px solid var(--border); }
-  .section-title { font-size: 14px; font-weight: 800; color: var(--primary); margin-bottom: 14px; padding-right: 12px; border-right: 3px solid var(--accent); letter-spacing: 0.3px; }
-
-  .client-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
-  .info-tile { background: var(--surface); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); }
-  .info-tile .lbl { font-size: 11px; color: var(--text-muted); font-weight: 500; margin-bottom: 4px; }
-  .info-tile .val { font-size: 16px; font-weight: 700; color: var(--text); }
-
-  .metrics-bar { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
-  .metric { padding: 14px; text-align: center; border-left: 1px solid var(--border); }
-  .metric:last-child { border-left: none; }
-  .metric .big { font-size: 22px; font-weight: 800; color: var(--primary); line-height: 1.1; }
-  .metric .big .unit { font-size: 12px; color: var(--text-muted); margin-right: 3px; font-weight: 500; }
-  .metric .small { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
-
-  .target-card { margin-top:14px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color:white; padding:14px 20px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
-  .target-card .t-label { font-size:11px; opacity:0.85; }
-  .target-card .t-big { font-size:26px; font-weight:800; line-height:1.1; }
-  .target-card .t-big .u { font-size:14px; opacity:0.8; }
-
-  .conditions-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-  .badge { padding: 5px 12px; background: var(--accent-soft); color: var(--accent); border-radius: 8px; font-size: 12px; font-weight: 600; }
-  .badge.warn { background: var(--warn-soft); color: var(--warn); }
-  .notes-strip { background: var(--surface-alt); padding: 10px 14px; border-radius: 8px; font-size: 13px; color: var(--text-muted); margin-top: 10px; border-right: 3px solid var(--accent); }
-  .notes-strip strong { color: var(--text); font-weight: 700; }
-
-  .food-rules { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .rule-card { border-radius: 12px; padding: 16px 18px; border: 1px solid; }
-  .rule-card.ok { background: #f0f7f2; border-color: #c8e0cf; }
-  .rule-card.no { background: #fdf2f2; border-color: #f5c8c8; }
-  .rule-card h4 { font-size: 13px; font-weight: 800; margin-bottom: 10px; }
-  .rule-card.ok h4 { color: var(--ok); }
-  .rule-card.no h4 { color: var(--warn); }
-  .rule-card ul { list-style: none; padding: 0; }
-  .rule-card li { font-size: 12.5px; padding: 4px 0; display: flex; gap: 6px; line-height: 1.5; }
-  .rule-card li::before { flex-shrink: 0; font-weight: bold; }
-  .rule-card.ok li::before { content: '✓'; color: var(--ok); }
-  .rule-card.no li::before { content: '✕'; color: var(--warn); }
-
-  .meal-plan { display: grid; gap: 10px; }
-  .day-card { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: white; page-break-inside: avoid; }
-  .day-header { background: linear-gradient(90deg, var(--surface) 0%, white 100%); padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-  .day-name { font-weight: 800; color: var(--primary); font-size: 14px; }
-  .day-kcal { background: var(--primary-soft); color: var(--primary); padding: 3px 10px; border-radius: 100px; font-weight: 700; font-size: 12px; }
-  .meals { display: grid; grid-template-columns: repeat(4, 1fr); }
-  .meal { padding: 10px 14px; border-left: 1px solid var(--border); }
-  .meal:last-child { border-left: none; }
-  .meal-label { font-size: 10px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .meal-content { font-size: 11px; color: var(--text); line-height: 1.6; }
-
-  .tips-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .tip-box { background: var(--surface); border-radius: 10px; padding: 14px 16px; border-right: 3px solid var(--primary); }
-  .tip-box h5 { font-size: 13px; font-weight: 800; color: var(--primary); margin-bottom: 8px; }
-  .tip-box ul { list-style: none; padding: 0; }
-  .tip-box li { font-size: 12px; padding: 3px 0; position: relative; padding-right: 14px; }
-  .tip-box li::before { content: '•'; position: absolute; right: 0; color: var(--accent); font-weight: bold; }
-  .tip-box.warn { background: var(--warn-soft); border-right-color: var(--warn); }
-  .tip-box.warn h5 { color: var(--warn); }
-  .tip-box.warn li::before { color: var(--warn); }
-
-  .footer { background: #1b4332; color: white; padding: 18px 32px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 12px; }
-  .footer-brand { display: flex; align-items: center; gap: 10px; }
-  .footer .f-logo { width:32px; height:32px; background:white; color:var(--primary); border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:900; }
-  .footer .micro { opacity: 0.7; font-size: 11px; }
-  .footer .next-review { background: rgba(255,255,255,0.12); padding: 6px 14px; border-radius: 100px; font-weight: 600; }
-
-  @media print {
-    @page { size: A4; margin: 12mm; }
-    html, body { background: white; }
-    body { padding: 0; font-size: 11px; }
-    .document { box-shadow: none; max-width: none; }
-    .day-card { page-break-inside: avoid; }
-  }
+  .mp-wrap { max-width: 1100px; margin: 20px auto; padding: 16px; font-family: 'Cairo', 'Tajawal', system-ui, sans-serif; }
+  .welcome-banner { background: linear-gradient(135deg, #10b981, #059669); color: #fff; border-radius: 20px; padding: 24px 28px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .welcome-banner h1 { margin: 0 0 4px; font-size: 24px; font-weight: 800; }
+  .welcome-banner p { margin: 0; opacity: 0.95; font-size: 14px; }
+  .welcome-emoji { font-size: 48px; line-height: 1; }
+  .celebration { background: linear-gradient(135deg, #fef3c7, #fde68a); border: 2px solid #f59e0b; border-radius: 16px; padding: 16px 20px; margin-bottom: 20px; color: #92400e; text-align: center; font-weight: 700; animation: slideDown 0.6s ease; }
+  @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .quick-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .qstat { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border: 1px solid #f1f5f9; text-align: center; position: relative; overflow: hidden; }
+  .qstat::before { content: ''; position: absolute; top: 0; right: 0; left: 0; height: 4px; background: var(--c); }
+  .qstat-icon { font-size: 26px; margin-bottom: 6px; }
+  .qstat-val { font-size: 26px; font-weight: 800; color: #0f172a; line-height: 1; }
+  .qstat-lbl { font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 600; }
+  .card { background: #fff; border-radius: 16px; padding: 22px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border: 1px solid #f1f5f9; }
+  .card-title { font-size: 18px; font-weight: 800; color: #0f172a; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
+  .sub-banner { border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+  .sub-active { background: linear-gradient(135deg, #d1fae5, #f0fdf4); border: 2px solid #10b981; }
+  .sub-trial { background: linear-gradient(135deg, #dbeafe, #eff6ff); border: 2px solid #3b82f6; }
+  .sub-none { background: linear-gradient(135deg, #fef3c7, #fffbeb); border: 2px solid #f59e0b; }
+  .sub-status-line { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .sub-info strong { display: block; font-size: 16px; color: #0f172a; margin-bottom: 4px; }
+  .sub-info span { color: #475569; font-size: 14px; }
+  .sub-btn { background: #fff; color: #059669; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 14px; border: 2px solid #10b981; transition: all 0.2s; }
+  .sub-btn:hover { background: #10b981; color: #fff; }
+  .sub-btn-warn { color: #92400e; border-color: #f59e0b; }
+  .sub-btn-warn:hover { background: #f59e0b; color: #fff; }
+  .tip-card { background: linear-gradient(135deg, #f0fdf4, #d1fae5); border: 1px solid #86efac; border-radius: 14px; padding: 18px 22px; display: flex; gap: 14px; align-items: center; }
+  .tip-icon { font-size: 36px; flex-shrink: 0; }
+  .tip-content strong { display: block; color: #065f46; font-size: 16px; margin-bottom: 4px; }
+  .tip-content p { margin: 0; color: #047857; font-size: 14px; line-height: 1.6; }
+  .actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .action-card { background: #fff; border: 2px solid #e2e8f0; border-radius: 16px; padding: 20px; text-decoration: none; transition: all 0.25s; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
+  .action-card:hover { transform: translateY(-3px); border-color: #10b981; box-shadow: 0 8px 20px rgba(16, 185, 129, 0.12); }
+  .action-icon { font-size: 38px; }
+  .action-name { font-weight: 800; color: #0f172a; font-size: 15px; }
+  .action-desc { color: #64748b; font-size: 12px; }
+  .plan-box { background: linear-gradient(135deg, #f0fdf4, #fff); border: 2px solid #10b981; border-radius: 14px; padding: 20px; }
+  .plan-box h3 { margin: 0 0 8px; color: #065f46; font-size: 18px; }
+  .plan-box-meta { color: #475569; font-size: 14px; margin-bottom: 14px; }
+  .plan-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .plan-act { padding: 9px 18px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 13px; transition: all 0.2s; }
+  .pa-primary { background: #10b981; color: #fff; }
+  .pa-primary:hover { background: #059669; }
+  .pa-secondary { background: #fff; color: #059669; border: 1px solid #10b981; }
+  .pa-secondary:hover { background: #f0fdf4; }
+  .pending-box { background: #fffbeb; border: 2px dashed #f59e0b; border-radius: 14px; padding: 20px; text-align: center; color: #92400e; }
+  .pending-icon { font-size: 40px; margin-bottom: 8px; }
+  .waiting-box { background: #f8fafc; border-radius: 14px; padding: 20px; text-align: center; color: #64748b; }
+  .countdown { display: inline-block; background: #fff; padding: 8px 16px; border-radius: 10px; margin: 10px 0; font-weight: 700; color: #f59e0b; border: 1px solid #fde68a; }
+  /* Weight progress */
+  .wp-stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  .wp-box { flex:1; min-width:95px; text-align:center; border-radius:12px; padding:12px; }
+  .wp-box .l { font-size:12px; }
+  .wp-box .v { font-size:20px; font-weight:800; }
+  .wp-chart { background:#fff; border:1px solid #f1f5f9; border-radius:14px; padding:10px; overflow-x:auto; }
 </style>
-</head>
-<body>
-<div class="document">
 
-  <div class="header">
-    <div class="header-inner">
-      <div class="brand">
-        <div class="brand-logo">Nx</div>
-        <div class="brand-text">
-          <h1>NutraX</h1>
-          <p>استشارات التغذية الإكلينيكية</p>
+<div class="mp-wrap">
+
+  {% if request.args.get('welcome') %}
+  <div class="celebration">
+    🎉 <strong>أهلاً بيك في نوتراكس!</strong> تم حفظ بياناتك بنجاح. ابدأ رحلتك الصحية دلوقتي.
+  </div>
+  {% endif %}
+
+  <div class="welcome-banner">
+    <div>
+      <h1>أهلاً {{ user.name or '' }} 👋</h1>
+      <p>سعيدين برؤيتك. متابعتك مع د. محمد بدأت من هنا.</p>
+    </div>
+    <div class="welcome-emoji">🌟</div>
+  </div>
+
+  <div class="quick-stats">
+    <div class="qstat" style="--c: #10b981">
+      <div class="qstat-icon">⚖️</div>
+      <div class="qstat-val">{{ user.weight or '-' }}</div>
+      <div class="qstat-lbl">الوزن الحالي (kg)</div>
+    </div>
+    <div class="qstat" style="--c: #3b82f6">
+      <div class="qstat-icon">📏</div>
+      <div class="qstat-val">{{ user.height or '-' }}</div>
+      <div class="qstat-lbl">الطول (cm)</div>
+    </div>
+    <div class="qstat" style="--c: #f59e0b">
+      <div class="qstat-icon">🎯</div>
+      <div class="qstat-val" style="font-size: 16px;">
+        {% if user.goal == 'weight_loss' %}تخسيس
+        {% elif user.goal == 'muscle_gain' %}عضل
+        {% elif user.goal == 'bulking' %}تضخيم
+        {% else %}مكتنز{% endif %}
+      </div>
+      <div class="qstat-lbl">الهدف</div>
+    </div>
+    <div class="qstat" style="--c: #8b5cf6">
+      <div class="qstat-icon">📅</div>
+      <div class="qstat-val">{{ user.age or '-' }}</div>
+      <div class="qstat-lbl">العمر</div>
+    </div>
+  </div>
+
+  {% if active_access and active_access.has_access %}
+    <div class="sub-banner {% if active_access.is_trial %}sub-trial{% else %}sub-active{% endif %}">
+      <div class="sub-status-line">
+        <div class="sub-info">
+          <strong>
+            {% if active_access.is_trial %}🎁 فترة تجريبية{% else %}💎 اشتراك نشط{% endif %}
+            - {{ active_access.plan_name }}
+          </strong>
+          <span>متبقي {{ active_access.days_left }} يوم</span>
+        </div>
+        <a href="/pricing" class="sub-btn">إدارة الاشتراك</a>
+      </div>
+    </div>
+  {% else %}
+    <div class="sub-banner sub-none">
+      <div class="sub-status-line">
+        <div class="sub-info">
+          <strong>⚠️ مفيش اشتراك نشط</strong>
+          <span>عشان تكلم د. محمد وتطلب خطط، محتاج اشتراك. جرّب 7 أيام مجاناً!</span>
+        </div>
+        <a href="/pricing" class="sub-btn sub-btn-warn">شوف الخطط 🚀</a>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if today_tip %}
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div class="tip-card">
+      <div class="tip-icon">{{ today_tip.icon }}</div>
+      <div class="tip-content">
+        <strong>💡 نصيحة اليوم: {{ today_tip.title }}</strong>
+        <p>{{ today_tip.tip }}</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ═══════════ تقدّم الوزن ═══════════ -->
+  <div class="card">
+    <h2 class="card-title">⚖️ تقدّمك في الوزن</h2>
+    {% if weight and weight.has_data %}
+      {% if weight.message %}
+      <div style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:1px solid #6ee7b7;border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:26px;">{{ weight.message_icon }}</span>
+        <span style="font-size:14px;font-weight:700;color:#065f46;line-height:1.6;">{{ weight.message }}</span>
+      </div>
+      {% endif %}
+      <div class="wp-stats">
+        <div class="wp-box" style="background:#f0fdf4;border:1px solid #86efac">
+          <div class="l" style="color:#047857">البداية</div>
+          <div class="v" style="color:#065f46">{{ weight.start }}<span style="font-size:11px"> kg</span></div>
+        </div>
+        <div class="wp-box" style="background:#eff6ff;border:1px solid #93c5fd">
+          <div class="l" style="color:#1d4ed8">الحالي</div>
+          <div class="v" style="color:#1e3a8a">{{ weight.current }}<span style="font-size:11px"> kg</span></div>
+        </div>
+        <div class="wp-box" style="background:{% if weight.change < 0 %}#f0fdf4{% elif weight.change > 0 %}#fef2f2{% else %}#f8fafc{% endif %};border:1px solid {% if weight.change < 0 %}#86efac{% elif weight.change > 0 %}#fca5a5{% else %}#e2e8f0{% endif %}">
+          <div class="l" style="color:#64748b">التغيّر</div>
+          <div class="v" style="color:{% if weight.change < 0 %}#059669{% elif weight.change > 0 %}#dc2626{% else %}#475569{% endif %}">
+            {% if weight.change > 0 %}▲ +{{ weight.change }}{% elif weight.change < 0 %}▼ {{ weight.change }}{% else %}{{ weight.change }}{% endif %}<span style="font-size:11px"> kg</span>
+          </div>
+        </div>
+        {% if weight.pace %}
+        <div class="wp-box" style="background:#fdf4ff;border:1px solid #d8b4fe">
+          <div class="l" style="color:#7e22ce">المعدل الأسبوعي</div>
+          <div class="v" style="color:#6b21a8">{% if weight.pace > 0 %}+{% endif %}{{ weight.pace }}<span style="font-size:11px"> kg/أسبوع</span></div>
+        </div>
+        {% endif %}
+        {% if weight.bmi %}
+        <div class="wp-box" style="background:#fffbeb;border:1px solid #fcd34d">
+          <div class="l" style="color:#92400e">مؤشر الكتلة BMI</div>
+          <div class="v" style="color:{{ weight.bmi_color }}">{{ weight.bmi }}<span style="font-size:11px"> {{ weight.bmi_label }}</span></div>
+        </div>
+        {% endif %}
+        {% if weight.days_tracking > 0 %}
+        <div class="wp-box" style="background:#f0f9ff;border:1px solid #7dd3fc">
+          <div class="l" style="color:#0369a1">بتتابع بقالك</div>
+          <div class="v" style="color:#075985">{{ weight.days_tracking }}<span style="font-size:11px"> يوم</span></div>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if weight.count > 1 %}
+      <div class="wp-chart">
+        <svg viewBox="0 0 600 200" style="width:100%;min-width:320px;height:auto" xmlns="http://www.w3.org/2000/svg">
+          <polyline points="{{ weight.points }}" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          {% for dot in weight.dots %}
+          <circle cx="{{ dot.x }}" cy="{{ dot.y }}" r="4.5" fill="#059669"/>
+          <text x="{{ dot.x }}" y="{{ dot.y - 10 }}" text-anchor="middle" font-size="12" fill="#0f172a" font-weight="700">{{ dot.w }}</text>
+          <text x="{{ dot.x }}" y="194" text-anchor="middle" font-size="10" fill="#94a3b8">{{ dot.d }}</text>
+          {% endfor %}
+        </svg>
+      </div>
+      {% else %}
+      <p style="color:#64748b;font-size:13px;text-align:center">سجّلت قياس واحد لحد دلوقتي. سجّل كمان عشان يبان خط التقدّم.</p>
+      {% endif %}
+
+      <div style="text-align:center;margin-top:14px">
+        <a href="/history" class="plan-act pa-primary" style="display:inline-block">+ سجّل وزن جديد</a>
+      </div>
+    {% else %}
+      <div style="text-align:center;padding:14px">
+        <p style="color:#475569;margin-bottom:14px">لسه ماسجّلتش وزنك. سجّل وزنك عشان نتابع تقدّمك ونوريك نزولك أول بأول.</p>
+        <a href="/history" class="plan-act pa-primary" style="font-size:15px;padding:12px 28px">+ سجّل وزنك دلوقتي</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Current Plan / Pending Request / Request New -->
+  <div class="card">
+    <h2 class="card-title">📋 خطتك الحالية</h2>
+
+    {% if latest_plan %}
+      <div class="plan-box">
+        <h3>✅ عندك خطة نشطة</h3>
+        <p class="plan-box-meta">
+          📅 {{ latest_plan.updated_at.strftime('%Y-%m-%d') if latest_plan.updated_at and latest_plan.updated_at.__class__.__name__ != 'str' else (latest_plan.updated_at[:10] if latest_plan.updated_at else '-') }}
+        </p>
+        <div class="plan-actions">
+          <a href="/my-plans-history/{{ latest_plan.id }}" class="plan-act pa-primary">👁️ عرض الخطة كاملة</a>
+          <a href="/my-plans-history/{{ latest_plan.id }}/pdf" class="plan-act pa-secondary">📄 تحميل PDF</a>
         </div>
       </div>
-      <div class="doc-meta">
-        <div class="label">رقم الملف</div>
-        <div class="value">{{ file_number }}</div>
+    {% elif pending_request %}
+      <div class="pending-box">
+        <div class="pending-icon">⏳</div>
+        <strong style="display: block; margin-bottom: 4px;">طلب خطة قيد المراجعة</strong>
+        <p style="margin: 0; font-size: 14px;">
+          د. محمد بيراجع طلبك دلوقتي. هتوصلك إشعار لما الخطة جاهزة.
+        </p>
       </div>
-    </div>
-  </div>
-
-  <div class="title-band">
-    <h2>{{ plan_title or 'النظام الغذائي الأسبوعي المتخصص' }}</h2>
-    <span class="pill">{{ date }}</span>
-  </div>
-
-  <div class="section">
-    <div class="section-title">بيانات الحالة</div>
-    <div class="client-grid">
-      <div class="info-tile"><div class="lbl">الاسم</div><div class="val">{{ client.name }}</div></div>
-      <div class="info-tile"><div class="lbl">العمر</div><div class="val">{{ client.age }} سنة</div></div>
-      <div class="info-tile"><div class="lbl">الجنس</div><div class="val">{{ client.gender }}</div></div>
-      <div class="info-tile"><div class="lbl">الطول</div><div class="val">{{ client.height }} سم</div></div>
-    </div>
-
-    <div class="metrics-bar">
-      <div class="metric"><div class="big">{{ client.weight }}<span class="unit">كجم</span></div><div class="small">الوزن</div></div>
-      <div class="metric"><div class="big">{{ client.bmi }}</div><div class="small">مؤشر كتلة الجسم</div></div>
-      <div class="metric"><div class="big">{{ client.body_fat }}<span class="unit">%</span></div><div class="small">نسبة الدهون</div></div>
-      <div class="metric"><div class="big">{{ client.tdee }}<span class="unit">kcal</span></div><div class="small">TDEE اليومي</div></div>
-    </div>
-
-    <div class="target-card">
-      <div>
-        <div class="t-label">الهدف اليومي من السعرات</div>
-        <div class="t-big">{{ client.target_kcal }} <span class="u">kcal</span></div>
+    {% elif can_request %}
+      <div style="text-align: center; padding: 14px;">
+        <p style="color: #475569; margin-bottom: 14px;">لسه ما عندكش خطة. اطلب أول خطة دلوقتي.</p>
+        <a href="/request-plan" class="plan-act pa-primary" style="font-size: 15px; padding: 12px 28px;">
+          + اطلب خطة جديدة
+        </a>
       </div>
-      <div style="text-align:left;">
-        <div class="t-label">عجز يومي</div>
-        <div style="font-size:16px; font-weight:700;">-{{ client.deficit }} kcal</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">الحالة الصحية</div>
-    <div class="conditions-row">
-      {% for c in conditions %}<span class="badge warn">{{ c }}</span>{% endfor %}
-    </div>
-    <div class="notes-strip">
-      <strong>ملاحظات كلينيكية:</strong> {{ clinical_notes }}
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">قوائم الطعام</div>
-    <div class="food-rules">
-      <div class="rule-card ok">
-        <h4>✓ مسموح بحرية</h4>
-        <ul>{% for item in allowed %}<li>{{ item }}</li>{% endfor %}</ul>
-      </div>
-      <div class="rule-card no">
-        <h4>✕ ممنوع أو مقلل</h4>
-        <ul>{% for item in forbidden %}<li>{{ item }}</li>{% endfor %}</ul>
-      </div>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">الجدول الأسبوعي التفصيلي</div>
-    <div class="meal-plan">
-      {% for day in days %}
-      <div class="day-card">
-        <div class="day-header">
-          <div class="day-name">{{ day.name }}</div>
-          <div class="day-kcal">{{ day.total_kcal }} kcal</div>
+    {% else %}
+      <div class="waiting-box">
+        <strong style="display: block; margin-bottom: 8px;">⏰ طلبت خطة جديدة قريباً</strong>
+        <p>تقدر تطلب خطة جديدة بعد:</p>
+        <div class="countdown">
+          {{ days_left }} يوم و {{ hours_left }} ساعة
         </div>
-        <div class="meals">
-          {% if day.meals %}
-            {% for meal in day.meals %}
-            <div class="meal">
-              <div class="meal-label">{{ meal.emoji }} {{ meal.label }}</div>
-              <div class="meal-content">{{ meal.text | measures }}</div>
-            </div>
-            {% endfor %}
-          {% else %}
-            <div class="meal"><div class="meal-label">🌅 الفطار</div><div class="meal-content">{{ day.breakfast | measures }}</div></div>
-            <div class="meal"><div class="meal-label">☀️ الغداء</div><div class="meal-content">{{ day.lunch | measures }}</div></div>
-            <div class="meal"><div class="meal-label">🌙 العشاء</div><div class="meal-content">{{ day.dinner | measures }}</div></div>
-            <div class="meal"><div class="meal-label">🍎 سناك</div><div class="meal-content">{{ day.snack | measures }}</div></div>
-          {% endif %}
-        </div>
+        <p style="font-size: 13px;">آخر طلب: {{ last_request_date or '-' }}</p>
       </div>
-      {% endfor %}
-    </div>
+    {% endif %}
   </div>
 
-  <div class="section">
-    <div class="section-title">البروتوكولات والنصائح</div>
-    <div class="tips-grid">
-      <div class="tip-box">
-        <h5>💧 الماء أساس كل شيء</h5>
-        <ul>{% for t in tips.water %}<li>{{ t }}</li>{% endfor %}</ul>
-      </div>
-      <div class="tip-box">
-        <h5>🍽️ عادات الأكل الصحية</h5>
-        <ul>{% for t in tips.habits %}<li>{{ t }}</li>{% endfor %}</ul>
-      </div>
-      <div class="tip-box">
-        <h5>🔥 رفع معدل الحرق</h5>
-        <ul>{% for t in tips.metabolism %}<li>{{ t }}</li>{% endfor %}</ul>
-      </div>
-      <div class="tip-box warn">
-        <h5>⚠️ تحذيرات مهمة</h5>
-        <ul>{% for t in tips.warnings %}<li>{{ t }}</li>{% endfor %}</ul>
-      </div>
-    </div>
-  </div>
+  <!-- Quick Actions -->
+  <div class="card">
+    <h2 class="card-title">⚡ إجراءات سريعة</h2>
+    <div class="actions-grid">
+      <a href="/my-plans-history" class="action-card">
+        <div class="action-icon">📚</div>
+        <div class="action-name">خططي السابقة</div>
+        <div class="action-desc">شوف كل الخطط اللي اتعملت ليك</div>
+      </a>
 
-  <div class="footer">
-    <div class="footer-brand">
-      <div class="f-logo">Nx</div>
-      <div>
-        <div style="font-weight:700;">{{ clinic_name }}</div>
-        <div class="micro">{{ author }}</div>
-      </div>
+      <a href="/messages" class="action-card">
+        <div class="action-icon">💬</div>
+        <div class="action-name">شات مع د. محمد</div>
+        <div class="action-desc">{% if unread_messages > 0 %}<strong style="color:#dc2626">{{ unread_messages }} جديد</strong>{% else %}محادثة جديدة{% endif %}</div>
+      </a>
+
+      <a href="/history" class="action-card">
+        <div class="action-icon">⚖️</div>
+        <div class="action-name">تطور الوزن</div>
+        <div class="action-desc">سجّل وزنك وشوف التطور</div>
+      </a>
+
+      <a href="/knowledge" class="action-card">
+        <div class="action-icon">📖</div>
+        <div class="action-name">مكتبة المعرفة</div>
+        <div class="action-desc">معلومات + كتب + فيديوهات</div>
+      </a>
+
+      <a href="/daily-tips" class="action-card">
+        <div class="action-icon">💡</div>
+        <div class="action-name">نصائح يومية</div>
+        <div class="action-desc">نصائح مخصصة لحالتك</div>
+      </a>
+
+      <a href="/settings" class="action-card">
+        <div class="action-icon">⚙️</div>
+        <div class="action-name">إعداداتي</div>
+        <div class="action-desc">عدّل بياناتك</div>
+      </a>
     </div>
-    <div class="next-review">🗓 مراجعة بعد {{ review_weeks }} أسابيع</div>
   </div>
 
 </div>
-</body>
-</html>
+
+{% endblock %}
