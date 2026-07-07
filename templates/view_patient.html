@@ -18,6 +18,7 @@
     <a href="/patients/{{ patient.id }}/status/draft" class="btn btn-outline"><i class="fa-solid fa-pencil"></i> {{ 'ارجاع لمسودة' if is_ar else 'Back to Draft' }}</a>
     {% endif %}
     <form method="POST" action="/patients/{{ patient.id }}/delete" onsubmit="return confirm('{{ 'حذف المريض؟' if is_ar else 'Delete patient?' }}')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash"></i></button>
     </form>
   </div>
