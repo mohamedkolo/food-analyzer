@@ -568,6 +568,31 @@ def dashboard():
                            role=role, pending_count=pending_count, total_clients=total_clients,
                            total_plans=total_plans, recent_requests=recent_requests)
 
+COUNTRY_DIAL_CODES = {
+    "مصر": "20", "السعودية": "966", "الإمارات": "971", "الكويت": "965",
+    "قطر": "974", "البحرين": "973", "عمان": "968", "الأردن": "962",
+    "لبنان": "961", "المغرب": "212", "الجزائر": "213", "تونس": "216",
+}
+
+def build_whatsapp_link(phone, country=None):
+    """يحوّل رقم العميل المحلي لرابط واتساب صحيح بكود الدولة."""
+    if not phone:
+        return None
+    digits = re.sub(r"\D", "", str(phone))
+    if not digits:
+        return None
+    if digits.startswith("00"):
+        digits = digits[2:]
+    code = COUNTRY_DIAL_CODES.get((country or "").strip())
+    if code:
+        if digits.startswith(code):
+            pass  # الرقم أصلاً بكود الدولة
+        elif digits.startswith("0"):
+            digits = code + digits[1:]
+        else:
+            digits = code + digits
+    return f"https://wa.me/{digits}"
+
 def build_weight_progress(user_id, user=None):
     """بيحضّر بيانات رسم تطور الوزن للعميل (نقاط SVG + أرقام + إحصائيات تحفيزية)."""
     out = {"has_data": False, "count": 0, "start": None, "current": None,
@@ -2685,6 +2710,7 @@ def admin_user_profile(uid):
 
     return render_template("admin_user_profile.html",
                            user=target_user, lang=session.get("lang", "ar"),
+                           client_whatsapp=build_whatsapp_link(target_user.get("phone"), target_user.get("country")),
                            conditions=conditions, allergies=allergies,
                            liked_foods=liked_foods, disliked_foods=disliked_foods,
                            bmi=bmi, tdee=tdee,
