@@ -11,12 +11,14 @@
       <i class="fa-solid fa-arrow-right"></i> تعديل البيانات
     </a>
     <form method="POST" action="/regenerate_plan" style="display:inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-outline" style="background:#fff3cd;border-color:#ffc107;color:#856404">
         <i class="fa-solid fa-shuffle"></i> تجديد الخطة كاملة
       </button>
     </form>
     {% if current_request_id %}
     <form method="POST" action="/admin/requests/{{ current_request_id }}/approve" style="display:inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-success">
         <i class="fa-solid fa-paper-plane"></i> اعتماد وإرسال للعميل
       </button>
