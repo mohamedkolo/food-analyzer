@@ -24,6 +24,7 @@
   </p>
 
   <form method="POST" action="/log_weight" style="max-width:320px;margin:0 auto">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="form-group">
       <label class="form-label" style="text-align:center">{{ 'وزنك الحالي (كجم)' if is_ar else 'Current weight (kg)' }}</label>
       <input class="form-input" type="number" name="weight" step="0.1" required placeholder="70" style="font-size:18px;text-align:center">
@@ -106,6 +107,7 @@
     <i class="fa-solid fa-plus-circle"></i> {{ 'سجل وزن جديد' if is_ar else 'Log New Weight' }}
   </div>
   <form method="POST" action="/log_weight">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="form-group">
       <label class="form-label">{{ 'الوزن (كجم)' if is_ar else 'Weight (kg)' }}</label>
       <input class="form-input" type="number" name="weight" step="0.1" required placeholder="70" style="font-size:18px;text-align:center">
