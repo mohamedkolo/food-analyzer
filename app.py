@@ -2701,6 +2701,24 @@ def admin_user_update(uid):
     return redirect(f"/admin/users/{uid}?updated=1")
 
 
+@app.route("/admin/users/<int:uid>/reset-password", methods=["POST"])
+@admin_required
+def admin_reset_password(uid):
+    """الأدمن يعيّن كلمة سر جديدة لعميل نسي كلمة سره"""
+    target = db_row("SELECT * FROM users WHERE id=?", (uid,))
+    if not target or target.get("is_admin"):
+        return redirect("/admin/users")
+    new_pw = request.form.get("new_password", "").strip()
+    if len(new_pw) < 6:
+        return redirect(f"/admin/users/{uid}?pwreset=short")
+    try:
+        db_run("UPDATE users SET password=? WHERE id=?", (hp(new_pw), uid))
+        return redirect(f"/admin/users/{uid}?pwreset=ok")
+    except Exception as e:
+        print(f"admin reset password error: {e}")
+        return redirect(f"/admin/users/{uid}?pwreset=err")
+
+
 @app.route("/admin/users/<int:uid>/notes", methods=["POST"])
 @admin_required
 def admin_user_notes(uid):
