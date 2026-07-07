@@ -7,6 +7,7 @@
   <a href="/patients" class="btn btn-outline"><i class="fa-solid fa-arrow-right"></i> {{ 'رجوع' if is_ar else 'Back' }}</a>
 </div>
 <form method="POST" action="/patients/new">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="card">
     <div class="card-title"><i class="fa-solid fa-user"></i> {{ 'البيانات الشخصية' if is_ar else 'Personal Data' }}</div>
     <div class="grid-2">
