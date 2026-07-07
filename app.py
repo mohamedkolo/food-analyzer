@@ -922,6 +922,37 @@ def admin_request_approve(rid):
     session.pop("current_request_id", None)
     return redirect("/admin/requests")
 
+@app.route("/change-password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    """تغيير كلمة السر — لكل المستخدمين بما فيهم الأدمن"""
+    u = get_user_by_id(session["uid"])
+    error = ""
+    success = False
+    if request.method == "POST":
+        current = request.form.get("current_password", "")
+        new_pw = request.form.get("new_password", "")
+        confirm = request.form.get("confirm_password", "")
+        if not verify_password(u.get("password"), current):
+            error = "كلمة السر الحالية غير صحيحة"
+        elif len(new_pw) < 6:
+            error = "كلمة السر الجديدة لازم تكون 6 أحرف على الأقل"
+        elif new_pw != confirm:
+            error = "تأكيد كلمة السر غير مطابق"
+        elif new_pw == current:
+            error = "كلمة السر الجديدة لازم تختلف عن الحالية"
+        else:
+            try:
+                db_run("UPDATE users SET password=? WHERE id=?", (hp(new_pw), session["uid"]))
+                success = True
+            except Exception as e:
+                print(f"change password error: {e}")
+                error = "حصلت مشكلة أثناء الحفظ — حاول تاني"
+    return render_template("change_password.html", user=u,
+                           lang=session.get("lang", "ar"),
+                           error=error, success=success)
+
+
 @app.route("/settings", methods=["GET","POST"])
 @login_required
 def settings():
