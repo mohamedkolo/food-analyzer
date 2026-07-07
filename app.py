@@ -201,12 +201,16 @@ def init_db():
 
     # حساب الأدمن: يتعمل مرة واحدة فقط من متغير بيئة — ولا يتم إعادة تعيين الباسورد أبداً
     admin = db_row("SELECT id FROM users WHERE email='admin@nutrax.com'")
+    _admin_pw = os.environ.get("ADMIN_PASSWORD")
     if not admin:
-        _admin_pw = os.environ.get("ADMIN_PASSWORD")
         if _admin_pw:
             db_run("INSERT INTO users (name,email,password,is_admin,role,active) VALUES (?,?,?,1,'admin',1)", ("Admin","admin@nutrax.com",hp(_admin_pw)))
         else:
             print("WARNING: no admin account exists. Set ADMIN_PASSWORD env var and restart to create one.")
+    elif _admin_pw:
+        # ترحيل لمرة واحدة: لو الأدمن لسه بالباسورد القديم المكشوف على GitHub، نستبدله بالجديد.
+        # الشرط بيتحقق مرة واحدة بس — أول ما الباسورد يتغير، السطر ده مبيعملش حاجة تاني.
+        db_run("UPDATE users SET password=? WHERE email='admin@nutrax.com' AND password=?", (hp(_admin_pw), _legacy_hp("nutrax2025")))
 
 init_db()
 
