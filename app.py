@@ -208,9 +208,12 @@ def init_db():
         else:
             print("WARNING: no admin account exists. Set ADMIN_PASSWORD env var and restart to create one.")
     elif _admin_pw:
-        # ترحيل لمرة واحدة: لو الأدمن لسه بالباسورد القديم المكشوف على GitHub، نستبدله بالجديد.
-        # الشرط بيتحقق مرة واحدة بس — أول ما الباسورد يتغير، السطر ده مبيعملش حاجة تاني.
-        db_run("UPDATE users SET password=? WHERE email='admin@nutrax.com' AND password=?", (hp(_admin_pw), _legacy_hp("nutrax2025")))
+        # ترحيل لمرة واحدة: لو الأدمن لسه باسورده هو الباسورد القديم المكشوف على GitHub (بأي صيغة تشفير)، نستبدله.
+        # أول ما يتغير، الشرط مبيتحققش تاني ومفيش أي لمس للباسورد بعدها.
+        _cur = db_row("SELECT password FROM users WHERE email='admin@nutrax.com'")
+        if _cur and verify_password(_cur.get("password"), "nutrax2025"):
+            db_run("UPDATE users SET password=? WHERE email='admin@nutrax.com'", (hp(_admin_pw),))
+            print("admin password migrated away from compromised default.")
 
 init_db()
 
