@@ -11,6 +11,7 @@
       رفض طلب: <strong id="rejectClientName"></strong>
     </p>
     <form id="rejectForm" method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <textarea name="reason" class="form-textarea" placeholder="سبب الرفض (هيتبعت رساله للعميل)" rows="4" required style="width:100%;padding:11px;border:2px solid var(--gray-2);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;resize:vertical;margin-bottom:14px"></textarea>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button type="button" onclick="closeRejectModal()" class="btn" style="background:var(--gray);color:var(--text)">إلغاء</button>
@@ -311,6 +312,7 @@ document.addEventListener('keydown', function(e) {
       رفض طلب: <strong id="rejectClientName"></strong>
     </p>
     <form id="rejectForm" method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <textarea name="reason" class="form-textarea" placeholder="سبب الرفض (هيتبعت رساله للعميل)" rows="4" required style="width:100%;padding:11px;border:2px solid var(--gray-2);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;resize:vertical;margin-bottom:14px"></textarea>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button type="button" onclick="closeRejectModal()" class="btn" style="background:var(--gray);color:var(--text)">إلغاء</button>
