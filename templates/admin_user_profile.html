@@ -329,6 +329,7 @@
       </button>
 
       <form method="POST" action="/admin/users/{{ user.id }}/grant-trial" style="display: contents;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="act-btn act-warning"
                 onclick="return confirm('إعطاء العميل 7 أيام تجربة مجانية؟')">
           🎁 إعطاء 7 أيام تجربة
@@ -337,6 +338,7 @@
 
       {% if active_sub and active_sub.status in ['active', 'trialing'] %}
       <form method="POST" action="/admin/users/{{ user.id }}/cancel-subscription" style="display: contents;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="act-btn act-danger"
                 onclick="return confirm('إلغاء اشتراك العميل؟ هيستمر حتى نهاية الفترة المدفوعة.')">
           ❌ إلغاء الاشتراك
@@ -355,6 +357,7 @@
       </h3>
 
       <form method="POST" action="/admin/users/{{ user.id }}/manual-activate">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="info-grid" style="margin-bottom: 12px;">
 
           <div class="info-item">
@@ -476,6 +479,7 @@
   <div class="section">
     <h2 class="section-title">✏️ تعديل بيانات العميل</h2>
     <form method="POST" action="/admin/users/{{ user.id }}/update">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       <!-- 👤 معلومات شخصية -->
       <div style="margin-bottom: 22px;">
@@ -732,6 +736,7 @@
 
     <!-- Add weight form -->
     <form method="POST" action="/admin/users/{{ user.id }}/add-weight" class="inline-form" style="margin-bottom: 18px;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="number" step="0.1" name="weight" placeholder="الوزن الجديد (kg)" required>
       <input type="date" name="logged_date" value="{{ today_date or '' }}">
       <button type="submit" class="act-btn act-primary" style="padding: 8px 18px;">+ إضافة قياس وزن</button>
@@ -779,6 +784,7 @@
   <div class="section">
     <h2 class="section-title">📝 ملاحظاتك على العميل</h2>
     <form method="POST" action="/admin/users/{{ user.id }}/notes">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <textarea name="notes" placeholder="اكتب ملاحظاتك عن العميل (ممنوع للعميل يشوفها)..."
                 style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:10px; font-family:inherit; font-size: 14px;">{{ doctor_notes or '' }}</textarea>
       <button type="submit" class="act-btn act-primary" style="margin-top: 10px;">💾 حفظ الملاحظات</button>
