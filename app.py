@@ -3,6 +3,10 @@ import hashlib, os, json, io, random, re
 from datetime import timedelta, datetime
 
 app = Flask(__name__)
+
+# ═══ حماية CSRF ═══
+from flask_wtf import CSRFProtect
+csrf = CSRFProtect(app)
 from pdf_generator import pdf_bp
 app.register_blueprint(pdf_bp)
 # SECRET_KEY لازم يجي من متغير بيئة — لو مش موجود نولّد واحد عشوائي (الجلسات هتتقطع مع كل restart لحد ما تضيفه)
@@ -2311,6 +2315,7 @@ def payment_cancel():
 
 
 @app.route("/webhook/stripe", methods=["POST"])
+@csrf.exempt
 def stripe_webhook():
     """استقبال أحداث Stripe (الدفع نجح، اشتراك اتجدد، إلخ)"""
     payload = request.data
