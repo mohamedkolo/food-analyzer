@@ -331,11 +331,13 @@
               {% if is_active %}
               <form method="POST" action="/admin/users/{{ u.id }}/block" style="display: contents;"
                     onsubmit="return confirm('حظر العميل؟ مش هيقدر يدخل تاني.')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="reason" value="حظر إداري">
                 <button type="submit" class="act-icon-btn act-block" title="حظر">🚫</button>
               </form>
               {% else %}
               <form method="POST" action="/admin/users/{{ u.id }}/unblock" style="display: contents;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="act-icon-btn act-view" title="إلغاء الحظر">✓</button>
               </form>
               {% endif %}
@@ -343,6 +345,7 @@
               <!-- Delete -->
               <form method="POST" action="/admin/users/{{ u.id }}/delete" style="display: contents;"
                     onsubmit="return confirm('⚠️ حذف العميل نهائياً؟ ده مش هيرجع تاني!')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="act-icon-btn act-delete" title="حذف نهائي">🗑️</button>
               </form>
             </div>
