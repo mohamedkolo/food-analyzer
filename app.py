@@ -790,6 +790,42 @@ def admin_users():
     except: all_users = []
     return render_template("admin_users.html", user=u, lang=session.get("lang","ar"), users=all_users)
 
+@app.route("/admin/users/export")
+@admin_required
+def admin_users_export():
+    """تصدير كل العملاء لملف CSV يفتح في Excel بالعربي سليم"""
+    import csv
+    try:
+        rows = db_rows("SELECT * FROM users ORDER BY id")
+    except Exception:
+        rows = []
+    goal_labels = {"weight_loss": "تخسيس", "muscle_gain": "زيادة عضل",
+                   "bulking": "تضخيم", "maintain": "محافظة", "maintenance": "محافظة"}
+    role_labels = {"client": "عميل", "nutritionist": "أخصائي", "admin": "أدمن"}
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["#", "الاسم", "الإيميل", "التليفون", "البلد", "العمر", "الجنس",
+                "الطول", "الوزن", "الهدف", "الدور", "الحالة", "تاريخ التسجيل"])
+    for u in rows:
+        created = u.get("created_at")
+        created_str = created.strftime("%Y-%m-%d") if hasattr(created, "strftime") else (str(created)[:10] if created else "")
+        w.writerow([
+            u.get("id"), u.get("name") or "", u.get("email") or "", u.get("phone") or "",
+            u.get("country") or "", u.get("age") or "", u.get("gender") or "",
+            u.get("height") or "", u.get("weight") or "",
+            goal_labels.get(u.get("goal"), u.get("goal") or ""),
+            role_labels.get(u.get("role"), u.get("role") or ""),
+            "نشط" if u.get("active", 1) else "موقوف",
+            created_str,
+        ])
+    # BOM عشان Excel يقرأ العربي صح
+    data = "\ufeff" + buf.getvalue()
+    out = io.BytesIO(data.encode("utf-8"))
+    out.seek(0)
+    fname = f"NutraX_clients_{datetime.now().strftime('%Y-%m-%d')}.csv"
+    return send_file(out, as_attachment=True, download_name=fname, mimetype="text/csv; charset=utf-8")
+
+
 @app.route("/admin/users/new", methods=["GET","POST"])
 @admin_required
 def admin_new_user():
