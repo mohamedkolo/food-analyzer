@@ -48,6 +48,7 @@
       </div>
       <form method="POST" action="/delete_plan/{{ plan.id }}"
             onsubmit="return confirm('{{ 'تحذف الجدول ده؟' if is_ar else 'Delete this plan?' }}')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-danger" style="padding:7px 14px;font-size:13px">
           <i class="fa-solid fa-trash"></i>
         </button>
