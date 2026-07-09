@@ -122,23 +122,48 @@ def add_notification(db_run, type_, title, message, link=None, related_user_id=N
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if DATABASE_URL:
-    import psycopg2, psycopg2.extras
-    def get_db(): return psycopg2.connect(DATABASE_URL)
+    import psycopg2, psycopg2.extras, psycopg2.pool
+    # ═══ مخزن اتصالات: بنفتح الاتصال مرة ونعيد استخدامه بدل اتصال جديد لكل استعلام ═══
+    _pg_pool = psycopg2.pool.ThreadedConnectionPool(minconn=1, maxconn=8, dsn=DATABASE_URL)
+
+    def _pool_exec(sql, params, fetch):
+        """ينفّذ الاستعلام باتصال من المخزن، ولو الاتصال باظ (قطع شبكة مثلاً) يجرب باتصال جديد"""
+        last_err = None
+        for attempt in range(2):
+            conn = _pg_pool.getconn()
+            try:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                    cur.execute(sql, params)
+                    if fetch == "one":
+                        result = cur.fetchone()
+                    elif fetch == "all":
+                        result = cur.fetchall()
+                    else:
+                        result = None
+                conn.commit()
+                _pg_pool.putconn(conn)
+                return result
+            except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
+                # اتصال بايظ — نتخلص منه ونحاول تاني باتصال جديد
+                last_err = e
+                try: _pg_pool.putconn(conn, close=True)
+                except Exception: pass
+            except Exception:
+                try:
+                    conn.rollback()
+                    _pg_pool.putconn(conn)
+                except Exception:
+                    try: _pg_pool.putconn(conn, close=True)
+                    except Exception: pass
+                raise
+        raise last_err
+
     def db_row(sql, params=()):
-        sql = sql.replace("?","%s")
-        conn = get_db(); cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute(sql, params); r = cur.fetchone(); conn.close(); return r
+        return _pool_exec(sql.replace("?", "%s"), params, "one")
     def db_rows(sql, params=()):
-        sql = sql.replace("?","%s")
-        conn = get_db(); cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute(sql, params); r = cur.fetchall(); conn.close(); return r
+        return _pool_exec(sql.replace("?", "%s"), params, "all")
     def db_run(sql, params=(), commit=True):
-        sql = sql.replace("?","%s")
-        conn = get_db(); cur = conn.cursor()
-        try: cur.execute(sql, params)
-        except: conn.rollback(); conn.close(); raise
-        if commit: conn.commit()
-        conn.close()
+        _pool_exec(sql.replace("?", "%s"), params, None)
 else:
     import sqlite3
     DB = "/tmp/nutrax.db"
