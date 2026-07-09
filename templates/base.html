@@ -2,6 +2,9 @@
 <html lang="{{ lang or 'ar' }}" dir="{{ 'rtl' if (lang or 'ar') == 'ar' else 'ltr' }}">
 <head>
 <meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <script>
 // إضافة توكن CSRF تلقائياً لكل طلبات fetch من نوع POST — من غير ما نعدل كل استدعاء يدوياً
