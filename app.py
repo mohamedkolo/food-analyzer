@@ -738,6 +738,13 @@ def build_weight_progress(user_id, user=None):
             out["message"], out["message_icon"] = "وزنك ثابت زي ما هو مطلوب — ده بالظبط هدف المحافظة، ممتاز!", "🎯"
         else:
             out["message"], out["message_icon"] = f"في تغيّر {abs(ch)} كجم — لو مش مقصود راجع التزامك بالخطة.", "📋"
+    elif goal == "cutting":
+        if ch < 0:
+            out["message"], out["message_icon"] = f"نزلت {abs(ch)} كجم مع الحفاظ على عضلاتك — التنشيف ماشي مظبوط، ثبّت البروتين والتمرين!", "🔥"
+        elif ch > 0:
+            out["message"], out["message_icon"] = "الوزن زاد شوية — في التنشيف راجع سعراتك، وممكن يكون احتباس مياه مؤقت.", "📋"
+        else:
+            out["message"], out["message_icon"] = "الوزن ثابت — في التنشيف بنستهدف نزول 0.5-1% أسبوعياً، ظبط العجز مع الدكتور.", "⚖️"
     else:  # weight_loss
         if ch < 0:
             out["message"], out["message_icon"] = f"نزلت {abs(ch)} كجم من أول ما بدأت — شغل جامد، استمر!", "🔥"
@@ -866,7 +873,7 @@ def admin_users_export():
     except Exception:
         rows = []
     goal_labels = {"weight_loss": "تخسيس", "muscle_gain": "زيادة عضل",
-                   "bulking": "تضخيم", "maintain": "محافظة", "maintenance": "محافظة"}
+                   "bulking": "تضخيم", "cutting": "تنشيف", "maintain": "محافظة", "maintenance": "محافظة"}
     role_labels = {"client": "عميل", "nutritionist": "أخصائي", "admin": "أدمن"}
     buf = io.StringIO()
     w = csv.writer(buf)
@@ -1328,6 +1335,7 @@ def preview():
 def _filtered_meals(data, pool_key, culture=None):
     """بيرجّع وجبات pool_key بعد تطبيق: الحالة المرضية + الحساسية + المرفوض + الكيتو/لو-كارب."""
     goal = data.get("goal_type", "weight_loss")
+    if goal == "cutting": goal = "weight_loss"  # التنشيف = وجبات عجز سعرات + بروتين عالي
     culture = culture or data.get("culture", "مصري")
     diet_type = data.get("diet_plan_type", "standard")
     symptoms = data.get("symptoms", []) or []
@@ -1847,6 +1855,8 @@ def _rank_by_condition(meals, cond_keys):
 def generate_weekly_plan(data):
     symptoms = data.get("symptoms", [])
     goal = data.get("goal_type", "weight_loss")
+    is_cutting = (goal == "cutting")
+    if is_cutting: goal = "weight_loss"  # وجبات العجز + هنفضّل البروتين تحت
     culture = data.get("culture", "مصري")
     diet_type = data.get("diet_plan_type", "standard")
 
@@ -1926,7 +1936,7 @@ def generate_weekly_plan(data):
     random.shuffle(dinners)
 
     # تفضيل البروتين العالي للأهداف اللي محتاجة بروتين أكتر
-    _prefer_protein = (goal in ("muscle_gain", "bulking")) or (data.get("activity_level") == "athlete")
+    _prefer_protein = (goal in ("muscle_gain", "bulking")) or is_cutting or (data.get("activity_level") == "athlete")
     if _prefer_protein:
         breakfasts = sorted(breakfasts, key=lambda m: m.get("p", 0), reverse=True)
         lunches = sorted(lunches, key=lambda m: m.get("p", 0), reverse=True)
@@ -2132,7 +2142,7 @@ def build_pdf(data, plan=None):
     clinical_notes = " | ".join(notes_parts) if notes_parts else "لا توجد ملاحظات"
     uid = session.get("uid", 0)
     file_num = f"NX-{dt.datetime.now().year}-{uid:03d}"
-    goal_labels = {"weight_loss":"خطة تخسيس","muscle_gain":"خطة زيادة عضل","bulking":"خطة تضخيم","maintenance":"خطة مكتنز"}
+    goal_labels = {"weight_loss":"خطة تخسيس","muscle_gain":"خطة زيادة عضل","bulking":"خطة تضخيم","cutting":"خطة تنشيف","maintenance":"خطة مكتنز"}
     plan_title = goal_labels.get(goal, "خطة غذائية")
     pdf_days = []
     for d in plan:
