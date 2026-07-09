@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% block title %}{{ 'توليد خطة' if (lang or 'ar')=='ar' else 'Generate Plan' }}{% endblock %}
+{% block content %}
+{% set is_ar = (lang or 'ar') == 'ar' %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+  <div class="page-title" style="margin:0">
+    <i class="fa-solid fa-wand-magic-sparkles"></i>
+    {{ 'توليد خطة غذائية' if is_ar else 'Generate Meal Plan' }}
+  </div>
+</div>
+
+<form method="POST" action="/generate">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <!-- ═══════════ الهدف ═══════════ -->
+  <div class="card">
+    <div class="card-title">
+      <i class="fa-solid fa-bullseye"></i>
+      {{ 'اختر الهدف من الخطة' if is_ar else 'Choose Goal' }}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+      {% for goal in [
+        ('weight_loss','🥗','تخسيس','Weight Loss','1200-1500 kcal'),
+        ('cutting','🔥','تنشيف','Cutting','عجز معتدل + بروتين عالي'),
+        ('maintenance','🍽️','مكتنز','Maintenance','1800-2200 kcal'),
+        ('muscle_gain','💪','زيادة عضل','Muscle Gain','2200-2600 kcal'),
+        ('bulking','🔥','تضخيم','Bulking','3000-3500 kcal')
+      ] %}
+      <label style="cursor:pointer">
+        <input type="radio" name="goal_type" value="{{ goal[0] }}" {% if loop.first %}checked{% endif %} style="display:none" class="goal-radio">
+        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:12px;padding:16px;text-align:center;transition:all 0.2s;background:white">
+          <div style="font-size:32px;margin-bottom:8px">{{ goal[1] }}</div>
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">{{ goal[2] if is_ar else goal[3] }}</div>
+          <div style="font-size:11px;color:var(--gray-dark)">{{ goal[4] }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ═══════════ المطبخ ═══════════ -->
+  <div class="card">
+    <div class="card-title">
+      <i class="fa-solid fa-utensils"></i>
+      {{ 'اختر المطبخ المفضل' if is_ar else 'Preferred Cuisine' }}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
+      {% for cul in [('مصري','🇪🇬','Egyptian'),('خليجي','🇸🇦','Gulf'),('شامي','🇱🇧','Levantine'),('مغربي','🇲🇦','Moroccan'),('عالمي','🌍','International')] %}
+      <label style="cursor:pointer">
+        <input type="radio" name="culture" value="{{ cul[0] }}" {% if loop.first %}checked{% endif %} style="display:none" class="culture-radio">
+        <div class="culture-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:14px;text-align:center;transition:all 0.2s;background:white">
+          <div style="font-size:28px">{{ cul[1] }}</div>
+          <div style="font-weight:700;font-size:14px;margin-top:4px">{{ cul[0] if is_ar else cul[2] }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ═══════════ نظام التغذية ═══════════ -->
+  {% if diet_plans %}
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-clock"></i> {{ 'نظام الأكل' if is_ar else 'Eating System' }}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
+      {% for key, info in diet_plans.items() %}
+      <label style="cursor:pointer">
+        <input type="radio" name="diet_plan_type" value="{{ key }}" {% if loop.first %}checked{% endif %} style="display:none">
+        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:12px;background:white;transition:all .2s">
+          <div style="font-weight:700;font-size:13px">{{ info.name }}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">{{ info.description }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ═══════════ بيانات العميل ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-user"></i> {{ 'بيانات العميل' if is_ar else 'Client Data' }}</div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">{{ 'الاسم' if is_ar else 'Name' }}</label>
+        <input class="form-input" type="text" name="name" required placeholder="{{ 'محمد احمد' if is_ar else 'John Smith' }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ 'الجنس' if is_ar else 'Gender' }}</label>
+        <select class="form-select" name="gender">
+          <option value="ذكر">{{ 'ذكر' if is_ar else 'Male' }}</option>
+          <option value="انثى">{{ 'انثى' if is_ar else 'Female' }}</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="form-group">
+        <label class="form-label">{{ 'العمر' if is_ar else 'Age' }}</label>
+        <input class="form-input" type="number" name="age" placeholder="30">
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ 'الطول (سم)' if is_ar else 'Height (cm)' }}</label>
+        <input class="form-input" type="number" name="height" step="0.5" id="hField">
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ 'الوزن (كجم)' if is_ar else 'Weight (kg)' }}</label>
+        <input class="form-input" type="number" name="weight" step="0.1" id="wField">
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="form-group">
+        <label class="form-label">{{ 'دهون الجسم %' if is_ar else 'Body Fat %' }}</label>
+        <input class="form-input" type="number" name="fat_pct" step="0.1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">BMI</label>
+        <input class="form-input" type="number" name="bmi" step="0.1" id="bmiField">
+      </div>
+      <div class="form-group">
+        <label class="form-label">TDEE (kcal)</label>
+        <input class="form-input" type="number" name="tdee" id="tdeeField">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">{{ 'الهدف اليومي (kcal)' if is_ar else 'Daily Target (kcal)' }}</label>
+        <input class="form-input" type="number" name="goal_cal" id="goalField" value="1400">
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ 'مستوى النشاط' if is_ar else 'Activity Level' }}</label>
+        <select class="form-select" name="activity_level" id="actField">
+          <option value="sedentary">{{ 'قليل الحركة (مكتبي) — 1.0 جم/كجم' if is_ar else 'Sedentary — 1.0 g/kg' }}</option>
+          <option value="light">{{ 'نشاط خفيف (مشي) — 1.3 جم/كجم' if is_ar else 'Light — 1.3 g/kg' }}</option>
+          <option value="regular" selected>{{ 'تمارين منتظمة / تخسيس — 1.6 جم/كجم' if is_ar else 'Regular / Fat loss — 1.6 g/kg' }}</option>
+          <option value="athlete">{{ 'رياضي / بناء عضل — 2.0 جم/كجم' if is_ar else 'Athlete / Muscle — 2.0 g/kg' }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="background:#f0f7f4;border:1px solid #cfe3d9;border-radius:10px;padding:12px;margin-top:6px">
+      <div style="font-size:13px;font-weight:700;color:#1b4332;margin-bottom:8px">
+        <i class="fa-solid fa-sliders"></i>
+        {{ 'نسب الماكروز (بتتحط تلقائياً حسب النظام — تقدر تعدّلها)' if is_ar else 'Macros (auto-set by diet — editable)' }}
+      </div>
+      <div class="grid-3">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">{{ 'بروتين (جم/كجم)' if is_ar else 'Protein (g/kg)' }}</label>
+          <input class="form-input" type="number" step="0.1" name="protein_per_kg" id="proteinPerKg" value="1.6">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">{{ 'دهون %' if is_ar else 'Fat %' }}</label>
+          <input class="form-input" type="number" step="1" name="fat_pct_cal" id="fatPctCal" value="30">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">{{ 'كارب %' if is_ar else 'Carb %' }}</label>
+          <input class="form-input" type="number" step="1" name="carb_pct_cal" id="carbPctCal" value="45" readonly
+                 style="background:#eef4f1">
+        </div>
+      </div>
+      <div style="font-size:11px;color:#52796f;margin-top:6px">
+        {{ 'الكارب بيتحسب تلقائياً من الباقي بعد البروتين والدهون.' if is_ar else 'Carbs are auto-calculated from the remainder.' }}
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ الأمراض ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-stethoscope"></i> {{ 'الحالات المرضية' if is_ar else 'Medical Conditions' }}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
+      {% for cond in [
+        ('قولون عصبي','IBS'),('سكري النوع الثاني','Type 2 Diabetes'),
+        ('ضغط الدم المرتفع','High Blood Pressure'),('امراض القلب','Heart Disease'),
+        ('الفشل الكلوي المزمن','Chronic Kidney Failure'),('الحمل','Pregnancy'),
+        ('الرضاعة الطبيعية','Breastfeeding'),('السمنة','Obesity'),('G6PD','G6PD'),
+        ('ثلاسيميا','Thalassemia'),('نقص الحديد','Iron Deficiency'),
+        ('نقص فيتامين D3','Vitamin D3 Deficiency'),('حرق بطيء','Slow Metabolism'),
+        ('امساك مزمن','Chronic Constipation'),('حساسية اللاكتوز','Lactose Intolerance')
+      ] %}
+      <label style="display:flex;align-items:center;gap:8px;background:var(--gray);border:1.5px solid var(--gray-2);border-radius:10px;padding:10px;cursor:pointer">
+        <input type="checkbox" name="symptoms" value="{{ cond[0] }}" style="width:18px;height:18px">
+        <span style="font-size:13px;font-weight:600">{{ cond[0] if is_ar else cond[1] }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ═══════════ الحساسية الغذائية ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-triangle-exclamation" style="color:#dc2626"></i> {{ 'الحساسية الغذائية' if is_ar else 'Food Allergies' }}</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">{{ 'اختر أي حساسية عند العميل (الأكلات هتتشال من الخطة):' if is_ar else 'Select any allergy (those foods will be removed from the plan):' }}</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
+      {% for allergy in [
+        ('اللاكتوز','Lactose'),('الجلوتين','Gluten'),('المكسرات','Nuts'),('البيض','Eggs'),
+        ('الأسماك','Fish'),('الفول السوداني','Peanuts'),('الصويا','Soy'),
+        ('المحار','Shellfish'),('السمسم','Sesame')
+      ] %}
+      <label style="display:flex;align-items:center;gap:8px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:10px;cursor:pointer">
+        <input type="checkbox" name="allergies" value="{{ allergy[0] }}" style="width:18px;height:18px">
+        <span style="font-size:12px;font-weight:600;color:#991b1b">{{ allergy[0] if is_ar else allergy[1] }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ═══════════ الأكلات المفضلة ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-heart" style="color:#16a34a"></i> {{ 'الأكلات المفضلة عند العميل' if is_ar else 'Favorite Foods' }}</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'اكتب الأكلات اللي بيحبها مفصولة بفواصل:' if is_ar else 'List foods they like, separated by commas:' }}</p>
+    <textarea class="form-input" name="liked_foods" rows="2"
+      placeholder="{{ 'مثلاً: شوفان، سلمون، افوكادو، دجاج مشوي، تفاح' if is_ar else 'e.g. oats, salmon, avocado, grilled chicken, apple' }}"
+      style="resize:vertical"></textarea>
+  </div>
+
+  <!-- ═══════════ الأكلات اللي مش بيحبها ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-ban" style="color:#dc2626"></i> {{ 'أكلات لازم تتشال من الخطة' if is_ar else 'Foods to Exclude' }}</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'اكتب الأكلات اللي مش بياكلها مفصولة بفواصل (هتتشال من الخطة):' if is_ar else 'List foods to remove from the plan, separated by commas:' }}</p>
+    <textarea class="form-input" name="disliked_foods" rows="2"
+      placeholder="{{ 'مثلاً: كبدة، باذنجان، بصل، فلفل حار، كوسة' if is_ar else 'e.g. liver, eggplant, onion, chili, zucchini' }}"
+      style="resize:vertical"></textarea>
+  </div>
+
+  <!-- ═══════════ ملاحظات ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-note-sticky"></i> {{ 'ملاحظات إضافية' if is_ar else 'Additional Notes' }}</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'أي ملاحظة فيها كلمة "اشيل" أو "بدون" أو "تجنب" + اسم أكل، هيتم استثناء الأكل ده تلقائياً' if is_ar else 'Any note with a food name after "remove/without/avoid" will exclude that food automatically' }}</p>
+    <textarea class="form-input" name="notes" rows="3"
+      placeholder="{{ 'مثلاً: اشيل الموز، بدون فلفل حار، تجنب الجبن...' if is_ar else 'e.g. remove banana, without chili, avoid cheese...' }}"
+      style="resize:vertical"></textarea>
+  </div>
+
+  <button type="submit" class="btn btn-success btn-full" style="font-size:17px;padding:16px">
+    <i class="fa-solid fa-wand-magic-sparkles"></i>
+    {{ 'ولّد الخطة الآن' if is_ar else 'Generate Plan Now' }}
+  </button>
+</form>
+
+<style>
+  .goal-card:hover, .culture-card:hover { border-color: var(--blue-light) !important; transform: translateY(-2px); }
+  input[type="radio"]:checked + .goal-card, input[type="radio"]:checked + .culture-card {
+    border-color: var(--blue-dark) !important;
+    background: linear-gradient(135deg, #e8f4fd 0%, #d1e9fc 100%) !important;
+    box-shadow: 0 4px 12px rgba(30,82,171,0.2);
+  }
+</style>
+
+<script>
+const h=document.getElementById('hField'),w=document.getElementById('wField');
+const bmi=document.getElementById('bmiField'),tdee=document.getElementById('tdeeField'),goal=document.getElementById('goalField');
+function calc(){
+  const hv=parseFloat(h.value),wv=parseFloat(w.value);
+  if(hv&&wv) bmi.value=(wv/((hv/100)**2)).toFixed(1);
+}
+function calcGoal(){
+  const t=parseFloat(tdee.value);
+  const gt=document.querySelector('input[name="goal_type"]:checked')?.value || 'weight_loss';
+  if(t){
+    if(gt==='weight_loss') goal.value=Math.round(t-600);
+    else if(gt==='maintenance') goal.value=Math.round(t);
+    else if(gt==='muscle_gain') goal.value=Math.round(t+300);
+    else if(gt==='bulking') goal.value=Math.round(t+600);
+  }
+}
+h.addEventListener('input',calc);
+w.addEventListener('input',calc);
+tdee.addEventListener('input',calcGoal);
+document.querySelectorAll('input[name="goal_type"]').forEach(r=>r.addEventListener('change',calcGoal));
+
+// ===== ضبط الماكروز تلقائياً =====
+const actSel=document.getElementById('actField');
+const pPerKg=document.getElementById('proteinPerKg');
+const fatPct=document.getElementById('fatPctCal');
+const carbPct=document.getElementById('carbPctCal');
+const ACT_P={sedentary:1.0,light:1.3,regular:1.6,athlete:2.0};
+const DIET_FAT={keto:70,low_carb:40};
+function setProteinFromAct(){ if(actSel&&pPerKg) pPerKg.value=ACT_P[actSel.value]||1.6; }
+function setFatFromDiet(){
+  const d=document.querySelector('input[name="diet_plan_type"]:checked')?.value;
+  if(fatPct) fatPct.value = DIET_FAT[d] || 30;
+}
+function calcCarb(){
+  const wv=parseFloat(w.value), gc=parseFloat(goal.value);
+  const ppk=parseFloat(pPerKg.value), fp=parseFloat(fatPct.value);
+  if(wv&&gc&&ppk>=0&&fp>=0){
+    const pc=wv*ppk*4, fc=gc*fp/100;
+    let cc=gc-pc-fc; if(cc<0) cc=0;
+    carbPct.value=Math.round(cc/gc*100);
+  }
+}
+function updateMacros(){ setFatFromDiet(); calcCarb(); }
+if(actSel) actSel.addEventListener('change',()=>{setProteinFromAct();calcCarb();});
+document.querySelectorAll('input[name="diet_plan_type"]').forEach(r=>r.addEventListener('change',updateMacros));
+[pPerKg,fatPct,w,goal].forEach(el=>el&&el.addEventListener('input',calcCarb));
+document.querySelectorAll('input[name="goal_type"]').forEach(r=>r.addEventListener('change',calcCarb));
+tdee.addEventListener('input',()=>setTimeout(calcCarb,0));
+setProteinFromAct(); setFatFromDiet(); calcCarb();
+</script>
+{% endblock %}

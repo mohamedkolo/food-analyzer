@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>أهلاً بيك في NutraX</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Cairo',sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:linear-gradient(160deg,#f0fdf4 0%,#ffffff 45%,#ecfdf5 100%);min-height:100vh;color:#0f172a}
+.progress-wrap{position:fixed;top:0;left:0;right:0;height:6px;background:#e2e8f0;z-index:100}
+.progress-bar{height:100%;background:linear-gradient(90deg,#10b981,#1b4332);width:0%;transition:width .4s ease;border-radius:0 4px 4px 0}
+.step{display:none;min-height:100vh;padding:60px 22px 120px;max-width:520px;margin:0 auto;flex-direction:column;justify-content:center;animation:slideIn .35s ease}
+.step.active{display:flex}
+@keyframes slideIn{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:translateX(0)}}
+.step-emoji{font-size:56px;text-align:center;margin-bottom:14px}
+h1{font-size:26px;font-weight:900;text-align:center;color:#1b4332;line-height:1.5;margin-bottom:8px}
+.sub{font-size:14.5px;color:#64748b;text-align:center;line-height:1.8;margin-bottom:28px}
+.cards{display:flex;flex-direction:column;gap:12px}
+.cards.grid2{display:grid;grid-template-columns:1fr 1fr}
+.opt{background:#fff;border:2.5px solid #e2e8f0;border-radius:16px;padding:16px;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:14px;text-align:right}
+.opt:active{transform:scale(.97)}
+.opt.selected{border-color:#10b981;background:#ecfdf5;box-shadow:0 4px 18px rgba(16,185,129,.18)}
+.opt .oemoji{font-size:30px;flex-shrink:0}
+.opt .otitle{font-weight:800;font-size:15.5px;color:#1e293b}
+.opt .odesc{font-size:12px;color:#94a3b8;margin-top:2px;line-height:1.5}
+.opt.center{flex-direction:column;text-align:center;gap:6px;padding:20px 12px}
+.bignum{display:flex;align-items:center;justify-content:center;gap:14px;margin:16px 0}
+.bignum input{width:150px;font-size:44px;font-weight:900;text-align:center;border:none;border-bottom:4px solid #10b981;background:transparent;color:#1b4332;outline:none;font-family:inherit}
+.bignum .unit{font-size:18px;color:#64748b;font-weight:700}
+.dateRow{display:flex;gap:10px;justify-content:center}
+.dateRow select{flex:1;max-width:130px;padding:14px 10px;font-size:16px;font-weight:700;border:2px solid #e2e8f0;border-radius:12px;background:#fff;font-family:inherit;color:#1e293b;text-align:center}
+.chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+.chip{padding:10px 16px;background:#fff;border:2px solid #e2e8f0;border-radius:999px;font-size:13.5px;font-weight:700;cursor:pointer;transition:all .15s;color:#475569}
+.chip.selected{background:#10b981;border-color:#10b981;color:#fff}
+.navBtns{position:fixed;bottom:0;left:0;right:0;padding:14px 22px 22px;background:linear-gradient(transparent,#fff 35%);display:flex;gap:10px;max-width:520px;margin:0 auto}
+.btn-next{flex:1;padding:16px;background:linear-gradient(135deg,#10b981,#1b4332);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:900;cursor:pointer;font-family:inherit;box-shadow:0 6px 20px rgba(16,185,129,.35);transition:all .2s}
+.btn-next:disabled{opacity:.4;box-shadow:none}
+.btn-back{padding:16px 20px;background:#fff;color:#64748b;border:2px solid #e2e8f0;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
+.feature{display:flex;align-items:flex-start;gap:12px;background:#fff;border:1.5px solid #d1fae5;border-radius:14px;padding:14px;margin-bottom:10px}
+.feature .femoji{font-size:26px}
+.feature b{color:#1b4332;font-size:14.5px}
+.feature p{font-size:12.5px;color:#64748b;line-height:1.6}
+.result-card{background:#fff;border:2px solid #a7f3d0;border-radius:18px;padding:18px;margin-bottom:12px;text-align:center}
+.result-card .rlabel{font-size:12.5px;color:#64748b;font-weight:700}
+.result-card .rvalue{font-size:34px;font-weight:900;color:#1b4332}
+.result-card .rvalue small{font-size:14px;color:#10b981}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.result-grid .result-card{margin:0;padding:14px}
+.result-grid .rvalue{font-size:24px}
+.evid{font-size:11px;color:#94a3b8;text-align:center;line-height:1.7;margin-top:10px}
+input[type=text]{width:100%;padding:14px;border:2px solid #e2e8f0;border-radius:12px;font-family:inherit;font-size:14px;margin-top:8px}
+.err{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;padding:12px;border-radius:12px;text-align:center;font-weight:700;font-size:13.5px;margin-bottom:14px}
+</style>
+</head>
+<body>
+<div class="progress-wrap"><div class="progress-bar" id="pbar"></div></div>
+
+<form method="POST" action="/onboarding" id="onbForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="age" id="f_age">
+<input type="hidden" name="gender" id="f_gender">
+<input type="hidden" name="goal" id="f_goal">
+<input type="hidden" name="activity" id="f_activity">
+<input type="hidden" name="conditions" id="f_conditions" value="[]">
+<input type="hidden" name="allergies" id="f_allergies" value="[]">
+<input type="hidden" name="liked_foods" id="f_liked" value="[]">
+<input type="hidden" name="disliked_foods" id="f_disliked" value="[]">
+<input type="hidden" name="height" id="f_height">
+<input type="hidden" name="weight" id="f_weight">
+
+{% if error %}<div class="err" style="position:fixed;top:16px;left:22px;right:22px;z-index:200">⚠️ {{ error }}</div>{% endif %}
+
+<!-- ═══ 0: ترحيب ═══ -->
+<div class="step active" data-step="0">
+  <div class="step-emoji">👨‍⚕️</div>
+  <h1>أهلاً {{ user.name.split()[0] if user.name else 'بيك' }}!<br>إنت دلوقتي مع دكتور حقيقي</h1>
+  <p class="sub">NutraX مش مجرد تطبيق — ده عيادة تغذية إكلينيكية في جيبك</p>
+  <div class="feature"><span class="femoji">🩺</span><div><b>خطط من د. محمد شخصياً</b><p>مش خوارزمية — أخصائي تغذية إكلينيكية بيراجع حالتك بنفسه</p></div></div>
+  <div class="feature"><span class="femoji">🧬</span><div><b>بنراعي حالتك الصحية</b><p>سكري، ضغط، قولون، فافيزم، ثلاسيميا — خطتك على مقاس جسمك</p></div></div>
+  <div class="feature"><span class="femoji">💬</span><div><b>تواصل مباشر</b><p>شات وواتساب مع الدكتور — مش بوت بيرد عليك</p></div></div>
+</div>
+
+<!-- ═══ 1: تاريخ الميلاد ═══ -->
+<div class="step" data-step="1">
+  <div class="step-emoji">🎂</div>
+  <h1>تاريخ ميلادك إيه؟</h1>
+  <p class="sub">العمر بيدخل في حساب احتياجك اليومي من السعرات بدقة</p>
+  <div class="dateRow">
+    <select id="bDay"></select>
+    <select id="bMonth"></select>
+    <select id="bYear"></select>
+  </div>
+</div>
+
+<!-- ═══ 2: النوع ═══ -->
+<div class="step" data-step="2">
+  <div class="step-emoji">🧍</div>
+  <h1>النوع؟</h1>
+  <p class="sub">معادلات الحرق بتختلف بين الرجالة والستات</p>
+  <div class="cards grid2">
+    <div class="opt center" data-field="gender" data-value="ذكر"><span class="oemoji">👨</span><span class="otitle">ذكر</span></div>
+    <div class="opt center" data-field="gender" data-value="أنثى"><span class="oemoji">👩</span><span class="otitle">أنثى</span></div>
+  </div>
+</div>
+
+<!-- ═══ 3: الطول ═══ -->
+<div class="step" data-step="3">
+  <div class="step-emoji">📏</div>
+  <h1>طولك كام؟</h1>
+  <p class="sub">بالسنتيمتر</p>
+  <div class="bignum"><input type="number" id="inHeight" min="100" max="230" placeholder="170"><span class="unit">سم</span></div>
+</div>
+
+<!-- ═══ 4: الوزن ═══ -->
+<div class="step" data-step="4">
+  <div class="step-emoji">⚖️</div>
+  <h1>وزنك الحالي؟</h1>
+  <p class="sub">بالكيلوجرام — وهنتابعه معاك أسبوعياً</p>
+  <div class="bignum"><input type="number" id="inWeight" min="30" max="300" step="0.5" placeholder="80"><span class="unit">كجم</span></div>
+</div>
+
+<!-- ═══ 5: الهدف ═══ -->
+<div class="step" data-step="5">
+  <div class="step-emoji">🎯</div>
+  <h1>هدفك إيه؟</h1>
+  <p class="sub">اختار الأقرب ليك — وهنبني كل حاجة عليه</p>
+  <div class="cards">
+    <div class="opt" data-field="goal" data-value="weight_loss"><span class="oemoji">🥗</span><div><div class="otitle">تخسيس</div><div class="odesc">نزول وزن صحي ومستدام</div></div></div>
+    <div class="opt" data-field="goal" data-value="cutting"><span class="oemoji">🔥</span><div><div class="otitle">تنشيف دهون</div><div class="odesc">حرق الدهون مع الحفاظ على العضل — لأهل الجيم</div></div></div>
+    <div class="opt" data-field="goal" data-value="muscle_gain"><span class="oemoji">💪</span><div><div class="otitle">زيادة عضل</div><div class="odesc">بناء عضل صافي بأقل دهون ممكنة</div></div></div>
+    <div class="opt" data-field="goal" data-value="bulking"><span class="oemoji">🏋️</span><div><div class="otitle">تضخيم</div><div class="odesc">زيادة وزن وكتلة بشكل عام</div></div></div>
+    <div class="opt" data-field="goal" data-value="maintain"><span class="oemoji">⚖️</span><div><div class="otitle">تثبيت</div><div class="odesc">محافظة على وزنك الحالي بأكل صحي</div></div></div>
+  </div>
+</div>
+
+<!-- ═══ 6: النشاط ═══ -->
+<div class="step" data-step="6">
+  <div class="step-emoji">🏃</div>
+  <h1>مستوى نشاطك؟</h1>
+  <p class="sub">بصدق — ده بيفرق كتير في حساب سعراتك</p>
+  <div class="cards">
+    <div class="opt" data-field="activity" data-value="1.2"><span class="oemoji">🪑</span><div><div class="otitle">قليل الحركة</div><div class="odesc">شغل مكتبي ومفيش رياضة</div></div></div>
+    <div class="opt" data-field="activity" data-value="1.375"><span class="oemoji">🚶</span><div><div class="otitle">نشاط خفيف</div><div class="odesc">مشي أو رياضة خفيفة 1-3 أيام</div></div></div>
+    <div class="opt" data-field="activity" data-value="1.55"><span class="oemoji">🏃</span><div><div class="otitle">نشاط متوسط</div><div class="odesc">تمرين 3-5 أيام في الأسبوع</div></div></div>
+    <div class="opt" data-field="activity" data-value="1.725"><span class="oemoji">🏋️</span><div><div class="otitle">نشاط عالي</div><div class="odesc">تمرين قوي 6-7 أيام</div></div></div>
+  </div>
+</div>
+
+<!-- ═══ 7: الحالات الصحية ═══ -->
+<div class="step" data-step="7">
+  <div class="step-emoji">🩺</div>
+  <h1>عندك أي حالة صحية؟</h1>
+  <p class="sub">اختار كل اللي ينطبق — ودي أهم خطوة عشان خطتك تبقى آمنة ليك</p>
+  <div class="chips" id="condChips">
+    <span class="chip" data-v="سكري">🩸 سكري</span>
+    <span class="chip" data-v="ضغط الدم">❤️ ضغط</span>
+    <span class="chip" data-v="قولون عصبي">🌀 قولون عصبي</span>
+    <span class="chip" data-v="أمراض القلب">❤️‍🩹 قلب</span>
+    <span class="chip" data-v="كلى">🫘 كلى</span>
+    <span class="chip" data-v="G6PD">🧬 فافيزم G6PD</span>
+    <span class="chip" data-v="ثلاسيميا">🩹 ثلاسيميا</span>
+    <span class="chip" data-v="حساسية اللاكتوز">🥛 حساسية لاكتوز</span>
+    <span class="chip" data-v="حمل">🤰 حمل/رضاعة</span>
+    <span class="chip" data-v="كوليسترول">🫀 كوليسترول</span>
+    <span class="chip" data-v="غدة درقية">🦋 غدة درقية</span>
+  </div>
+  <p class="sub" style="margin-top:18px;margin-bottom:10px">وحساسية من أي أكل؟</p>
+  <div class="chips" id="allergyChips">
+    <span class="chip" data-v="حساسية الجلوتين">🌾 جلوتين</span>
+    <span class="chip" data-v="حساسية المكسرات">🌰 مكسرات</span>
+    <span class="chip" data-v="حساسية البيض">🥚 بيض</span>
+    <span class="chip" data-v="حساسية الأسماك">🐟 أسماك</span>
+    <span class="chip" data-v="حساسية الفول السوداني">🥜 فول سوداني</span>
+  </div>
+</div>
+
+<!-- ═══ 8: أكل بتحبه/بتكرهه ═══ -->
+<div class="step" data-step="8">
+  <div class="step-emoji">😋</div>
+  <h1>آخر سؤال — ذوقك في الأكل</h1>
+  <p class="sub">اختياري، بس بيخلي خطتك ألذ والتزامك أسهل</p>
+  <b style="font-size:14px;color:#1b4332">أكل بتحبه:</b>
+  <input type="text" id="inLiked" placeholder="مثلاً: فراخ مشوية، رز، موز">
+  <b style="font-size:14px;color:#1b4332;display:block;margin-top:16px">أكل مش بتحبه:</b>
+  <input type="text" id="inDisliked" placeholder="مثلاً: باذنجان، سمك">
+</div>
+
+<!-- ═══ 9: النتيجة ═══ -->
+<div class="step" data-step="9">
+  <div class="step-emoji">🎉</div>
+  <h1>خطتك العلمية جاهزة!</h1>
+  <p class="sub" id="resIntro">دي أرقامك المحسوبة بأحدث المعايير العلمية</p>
+  <div class="result-card"><div class="rlabel" id="calLabel">سعراتك اليومية المستهدفة</div><div class="rvalue"><span id="resCal">0</span> <small>سعرة</small></div></div>
+  <div class="result-grid">
+    <div class="result-card"><div class="rlabel">🥩 بروتين يومي</div><div class="rvalue"><span id="resProt">0</span><small> جم</small></div></div>
+    <div class="result-card"><div class="rlabel">🔥 حرقك اليومي TDEE</div><div class="rvalue"><span id="resTdee">0</span><small> سعرة</small></div></div>
+  </div>
+  <div class="evid" id="resEvid"></div>
+</div>
+</form>
+
+<div class="navBtns">
+  <button type="button" class="btn-back" id="btnBack" style="display:none">رجوع</button>
+  <button type="button" class="btn-next" id="btnNext">يلا نبدأ 🚀</button>
+</div>
+
+<script>
+const TOTAL = 10;
+let cur = 0;
+const answers = {};
+const steps = document.querySelectorAll('.step');
+const pbar = document.getElementById('pbar');
+const btnNext = document.getElementById('btnNext');
+const btnBack = document.getElementById('btnBack');
+
+// تعبئة تاريخ الميلاد
+const dSel=document.getElementById('bDay'), mSel=document.getElementById('bMonth'), ySel=document.getElementById('bYear');
+const months=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+for(let i=1;i<=31;i++) dSel.innerHTML+=`<option value="${i}">${i}</option>`;
+months.forEach((m,i)=>mSel.innerHTML+=`<option value="${i}">${m}</option>`);
+const nowY=new Date().getFullYear();
+for(let y=nowY-13;y>=nowY-90;y--) ySel.innerHTML+=`<option value="${y}">${y}</option>`;
+ySel.value=nowY-30; dSel.value=1;
+
+// اختيار الكروت
+document.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',()=>{
+  const field=o.dataset.field;
+  o.parentElement.querySelectorAll('.opt').forEach(x=>x.classList.remove('selected'));
+  o.classList.add('selected');
+  answers[field]=o.dataset.value;
+  validate();
+  setTimeout(next, 260); // ينتقل لوحده بعد الاختيار — زي التطبيقات الكبيرة
+}));
+
+// الشيبس (اختيار متعدد)
+['condChips','allergyChips'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',e=>{
+    const c=e.target.closest('.chip'); if(!c)return;
+    c.classList.toggle('selected');
+  });
+});
+
+function collectChips(id){
+  return [...document.querySelectorAll('#'+id+' .chip.selected')].map(c=>c.dataset.v);
+}
+
+function calcAge(){
+  const bd=new Date(ySel.value, mSel.value, dSel.value);
+  let age=(Date.now()-bd)/(365.25*24*3600*1000);
+  return Math.floor(age);
+}
+
+function validate(){
+  let ok=true;
+  if(cur===2) ok=!!answers.gender;
+  if(cur===3) ok=+document.getElementById('inHeight').value>=100;
+  if(cur===4) ok=+document.getElementById('inWeight').value>=30;
+  if(cur===5) ok=!!answers.goal;
+  if(cur===6) ok=!!answers.activity;
+  btnNext.disabled=!ok;
+}
+['inHeight','inWeight'].forEach(id=>document.getElementById(id).addEventListener('input',validate));
+
+// ═══ الحسابات العلمية ═══
+function computePlan(){
+  const w=+document.getElementById('inWeight').value, h=+document.getElementById('inHeight').value;
+  const age=calcAge(), male=answers.gender==='ذكر', act=+answers.activity, goal=answers.goal;
+  // Mifflin-St Jeor
+  const bmr = 10*w + 6.25*h - 5*age + (male?5:-161);
+  const tdee = Math.round(bmr*act);
+  let cal, prot, evid, label='سعراتك اليومية المستهدفة';
+  if(goal==='weight_loss'){
+    cal=Math.max(Math.round(tdee*0.8), male?1500:1200); prot=Math.round(w*1.8);
+    evid='عجز 20% آمن + بروتين 1.8 جم/كجم للحفاظ على العضل أثناء النزول (الأبحاث: أقل من 1.3 جم/كجم بيزود فقدان العضل)';
+  } else if(goal==='cutting'){
+    cal=Math.round(tdee*0.825); prot=Math.round(w*2.2); label='سعرات التنشيف (نزول 0.5-1% أسبوعياً)';
+    evid='وفق توصيات Helms وزملاؤه: عجز معتدل يحقق نزول 0.5-1% من الوزن أسبوعياً + بروتين 2.2 جم/كجم (المعادل لـ 2.3-3.1 جم/كجم كتلة صافية) + دهون 15-30% — أقصى حفاظ على العضل';
+  } else if(goal==='muscle_gain'){
+    cal=Math.round(tdee*1.10); prot=Math.round(w*2.0); label='سعرات بناء العضل الصافي';
+    evid='فائض معتدل 10% (الأبحاث الحديثة: الفائض الكبير بيتحول دهون مش عضل) + بروتين 2.0 جم/كجم وفق توصيات ISSN للمتمرنين';
+  } else if(goal==='bulking'){
+    cal=Math.round(tdee*1.18); prot=Math.round(w*1.8); label='سعرات التضخيم';
+    evid='فائض 18% للزيادة الأسرع + بروتين 1.8 جم/كجم — ومراجعة كل 4 أسابيع مع الدكتور';
+  } else {
+    cal=tdee; prot=Math.round(w*1.2); label='سعرات المحافظة';
+    evid='سعرات = حرقك اليومي + بروتين 1.2 جم/كجم للحفاظ على الكتلة العضلية';
+  }
+  document.getElementById('resCal').textContent=cal;
+  document.getElementById('resProt').textContent=prot;
+  document.getElementById('resTdee').textContent=tdee;
+  document.getElementById('calLabel').textContent=label;
+  document.getElementById('resEvid').textContent='📚 '+evid;
+}
+
+function show(i){
+  steps.forEach(s=>s.classList.remove('active'));
+  steps[i].classList.add('active');
+  pbar.style.width=((i+1)/TOTAL*100)+'%';
+  btnBack.style.display=i>0?'block':'none';
+  btnNext.textContent = i===0?'يلا نبدأ 🚀' : (i===TOTAL-1?'✅ ابدأ رحلتك مع د. محمد':'التالي');
+  window.scrollTo(0,0);
+  validate();
+  if(i===TOTAL-1) computePlan();
+}
+
+function next(){
+  if(btnNext.disabled) return;
+  if(cur===TOTAL-1){ submitAll(); return; }
+  cur++; show(cur);
+}
+btnNext.addEventListener('click', next);
+btnBack.addEventListener('click', ()=>{ if(cur>0){cur--; show(cur);} });
+
+function toJsonList(txt){
+  return JSON.stringify(txt.split(/[,،;]+/).map(s=>s.trim()).filter(s=>s.length>1));
+}
+
+function submitAll(){
+  document.getElementById('f_age').value=calcAge();
+  document.getElementById('f_gender').value=answers.gender;
+  document.getElementById('f_goal').value=answers.goal;
+  document.getElementById('f_activity').value=answers.activity;
+  document.getElementById('f_height').value=document.getElementById('inHeight').value;
+  document.getElementById('f_weight').value=document.getElementById('inWeight').value;
+  document.getElementById('f_conditions').value=JSON.stringify(collectChips('condChips'));
+  document.getElementById('f_allergies').value=JSON.stringify(collectChips('allergyChips'));
+  document.getElementById('f_liked').value=toJsonList(document.getElementById('inLiked').value);
+  document.getElementById('f_disliked').value=toJsonList(document.getElementById('inDisliked').value);
+  document.getElementById('onbForm').submit();
+}
+show(0);
+</script>
+</body>
+</html>
