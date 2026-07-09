@@ -16,6 +16,47 @@ if not os.environ.get("SECRET_KEY"):
     print("WARNING: SECRET_KEY env var not set — using a random key. Sessions will reset on every restart. Set SECRET_KEY in Render environment settings.")
 app.permanent_session_lifetime = timedelta(days=30)
 
+# ═══ تسريع الموقع ═══
+import gzip as _gzip
+
+@app.route("/health")
+def health():
+    """نقطة خفيفة لخدمات الـ ping — بتمنع Render من تنييم الموقع"""
+    return "ok", 200
+
+@app.after_request
+def speed_headers(resp):
+    """① كاش طويل للملفات الثابتة  ② ضغط gzip للصفحات (بيوفر ~80% من الحجم)"""
+    try:
+        # كاش الملفات الثابتة أسبوع — ما عدا service worker لازم يفضل طازة
+        if request.path.startswith("/static"):
+            if request.path.endswith("sw.js"):
+                resp.headers["Cache-Control"] = "no-cache"
+            else:
+                resp.headers["Cache-Control"] = "public, max-age=604800"
+        # ضغط gzip للردود النصية
+        if (resp.direct_passthrough
+                or not (200 <= resp.status_code < 300)
+                or "gzip" not in (request.headers.get("Accept-Encoding") or "").lower()
+                or "Content-Encoding" in resp.headers):
+            return resp
+        ct = resp.content_type or ""
+        if not any(t in ct for t in ("text/html", "text/css", "text/plain",
+                                     "application/json", "application/javascript", "image/svg")):
+            return resp
+        data = resp.get_data()
+        if len(data) < 500:
+            return resp
+        gz = _gzip.compress(data, 6)
+        if len(gz) < len(data):
+            resp.set_data(gz)
+            resp.headers["Content-Encoding"] = "gzip"
+            resp.headers["Content-Length"] = str(len(gz))
+            resp.headers["Vary"] = "Accept-Encoding"
+    except Exception as _e:
+        print(f"speed headers error: {_e}")
+    return resp
+
 from meal_database import (
     get_meal_pool, get_snacks_for_goal, filter_by_conditions,
     get_diet_plan_info, DIET_PLAN_TYPES,
@@ -3039,7 +3080,7 @@ def admin_user_payments(uid):
 # ═══════════════════════════════════════════════════════════════════
 
 ONBOARDING_EXEMPT = {
-    "login", "logout", "set_lang", "onboarding", "static",
+    "login", "logout", "set_lang", "onboarding", "static", "health",
     "stripe_webhook", "check_access_endpoint", "register",
     "track_whatsapp_click", "pricing", "payment_cancel"
 }
