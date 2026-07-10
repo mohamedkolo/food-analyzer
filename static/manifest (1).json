@@ -1,0 +1,27 @@
+{
+  "name": "NutraX - تغذية إكلينيكية",
+  "short_name": "NutraX",
+  "description": "خطط غذائية ومتابعة مع د. محمد",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#14332b",
+  "theme_color": "#14332b",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
