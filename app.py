@@ -229,6 +229,7 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS blocked_users (id SERIAL PRIMARY KEY, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""",
             """CREATE TABLE IF NOT EXISTS subscriptions (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, stripe_customer_id TEXT, stripe_subscription_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, current_period_start TIMESTAMP, current_period_end TIMESTAMP, trial_end TIMESTAMP, cancel_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS payments (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, stripe_session_id TEXT UNIQUE, stripe_payment_intent_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, expires_at TIMESTAMP, metadata TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS meal_checks (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, UNIQUE(user_id, check_date, meal_key))""",
         ]
         for sql in tables_pg:
             try: db_run(sql)
@@ -244,6 +245,7 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS blocked_users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""",
             """CREATE TABLE IF NOT EXISTS subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, stripe_customer_id TEXT, stripe_subscription_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, current_period_start TIMESTAMP, current_period_end TIMESTAMP, trial_end TIMESTAMP, cancel_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS payments (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, stripe_session_id TEXT UNIQUE, stripe_payment_intent_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, expires_at TIMESTAMP, metadata TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS meal_checks (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, UNIQUE(user_id, check_date, meal_key))""",
         ]
         for sql in tables_sq:
             try: db_run(sql)
@@ -770,6 +772,81 @@ def build_weight_progress(user_id, user=None):
     out["dots"] = [{"x": coords[i][0], "y": coords[i][1], "w": round(pts[i][1], 1), "d": pts[i][0]} for i in range(n)]
     return out
 
+ARABIC_DAYS = ["الاحد","الاثنين","الثلاثاء","الاربعاء","الخميس","الجمعة","السبت"]
+
+# ═══════════════════════════════════════════════
+# MEAL TRACKING (تتبع وجبات اليوم + نسبة الالتزام)
+# ═══════════════════════════════════════════════
+
+def get_meal_tracking(user_id):
+    """بيرجّع وجبات النهارده من خطة العميل المعتمدة + حالة التعليم + نسبة التزام الأسبوع"""
+    out = {"has_plan": False, "today_meals": [], "today_date": datetime.now().strftime("%Y-%m-%d"),
+           "day_name": "", "week_pct": None, "today_done": 0, "today_total": 0}
+    try:
+        latest = db_row("SELECT plan_data FROM plan_requests WHERE client_id=? AND status='approved' ORDER BY updated_at DESC LIMIT 1", (user_id,))
+        if not latest or not latest.get("plan_data"):
+            return out
+        pd = json.loads(latest["plan_data"])
+        plan = pd.get("plan") or []
+        if not plan:
+            return out
+        # اليوم الحالي: الخطة بتبدأ بالأحد — Python: Monday=0..Sunday=6
+        idx = (datetime.now().weekday() + 1) % 7
+        idx = min(idx, len(plan) - 1)
+        day = plan[idx]
+        labels = day.get("meal_labels") or {}
+        emojis = day.get("meal_emojis") or {}
+        meal_keys = [k for k in ["breakfast","snack1","meal1","pre_workout","lunch","post_workout","iftar","snack","snack2","suhoor","meal2","dinner"] if day.get(k)]
+        checks = {}
+        try:
+            rows = db_rows("SELECT meal_key FROM meal_checks WHERE user_id=? AND check_date=?", (user_id, out["today_date"]))
+            checks = {r["meal_key"]: 1 for r in (rows or [])}
+        except Exception:
+            pass
+        for k in meal_keys:
+            out["today_meals"].append({"key": k, "label": labels.get(k, k), "emoji": emojis.get(k, "🍽️"),
+                                       "text": day.get(k, ""), "checked": bool(checks.get(k))})
+        out["has_plan"] = True
+        out["day_name"] = day.get("day", "")
+        out["today_total"] = len(meal_keys)
+        out["today_done"] = sum(1 for m in out["today_meals"] if m["checked"])
+        # التزام آخر 7 أيام
+        try:
+            week_ago = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d")
+            r = db_row("SELECT COUNT(*) as c FROM meal_checks WHERE user_id=? AND check_date>=?", (user_id, week_ago))
+            done = (r or {}).get("c", 0)
+            expected = max(len(meal_keys) * 7, 1)
+            out["week_pct"] = min(round(done / expected * 100), 100)
+        except Exception:
+            pass
+    except Exception as _e:
+        print(f"meal tracking error: {_e}")
+    return out
+
+
+@app.route("/track/meal", methods=["POST"])
+@login_required
+def track_meal():
+    """العميل بيعلّم ✅ أو يشيل العلامة من وجبة النهارده"""
+    meal_key = (request.form.get("meal_key") or "").strip()[:30]
+    checked = 1 if request.form.get("checked") == "1" else 0
+    day_date = datetime.now().strftime("%Y-%m-%d")
+    if not meal_key:
+        return jsonify({"ok": False}), 400
+    try:
+        exists = db_row("SELECT id FROM meal_checks WHERE user_id=? AND check_date=? AND meal_key=?",
+                        (session["uid"], day_date, meal_key))
+        if checked and not exists:
+            db_run("INSERT INTO meal_checks (user_id, check_date, meal_key) VALUES (?,?,?)",
+                   (session["uid"], day_date, meal_key))
+        elif not checked and exists:
+            db_run("DELETE FROM meal_checks WHERE id=?", (exists["id"],))
+        return jsonify({"ok": True, "checked": checked})
+    except Exception as e:
+        print(f"track meal error: {e}")
+        return jsonify({"ok": False}), 500
+
+
 @app.route("/my-plan")
 @login_required
 def my_plan():
@@ -790,12 +867,12 @@ def my_plan():
     today_tip = tips[datetime.now().day % len(tips)] if tips else None
 
     weight = build_weight_progress(session["uid"], u)
-
+    tracking = get_meal_tracking(session["uid"])
     return render_template("my_plan.html", user=u, lang=session.get("lang","ar"),
                            latest_plan=latest_plan, pending_request=pending_request,
                            can_request=can_request, days_left=days_left,
                            hours_left=hours_left, last_request_date=last_date,
-                           today_tip=today_tip, weight=weight)
+                           today_tip=today_tip, weight=weight, tracking=tracking)
 
 @app.route("/request-plan", methods=["GET","POST"])
 @login_required
@@ -2823,6 +2900,7 @@ def admin_user_profile(uid):
     return render_template("admin_user_profile.html",
                            user=target_user, lang=session.get("lang", "ar"),
                            client_whatsapp=build_whatsapp_link(target_user.get("phone"), target_user.get("country")),
+                           tracking=get_meal_tracking(uid),
                            conditions=conditions, allergies=allergies,
                            liked_foods=liked_foods, disliked_foods=disliked_foods,
                            bmi=bmi, tdee=tdee,
