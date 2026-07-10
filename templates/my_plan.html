@@ -143,7 +143,62 @@
   <!-- ═══════════ تقدّم الوزن ═══════════ -->
   <div class="card">
     <h2 class="card-title">⚖️ تقدّمك في الوزن</h2>
+    {% if today_meals %}
+    <!-- ═══ وجبات النهارده ═══ -->
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div class="card-title" style="margin:0;">🍽️ وجبات النهارده ({{ today_meals.day_name }})</div>
+        <span id="todayCount" style="font-size:13px;font-weight:800;color:#059669;">{{ today_meals.done }}/{{ today_meals.total }}</span>
+      </div>
+      <div style="height:8px;background:#e2e8f0;border-radius:999px;overflow:hidden;margin-bottom:12px;">
+        <div id="todayBar" style="height:100%;background:linear-gradient(90deg,#10b981,#059669);border-radius:999px;transition:width .4s;width:{{ (today_meals.done / today_meals.total * 100)|round|int }}%;"></div>
+      </div>
+      {% for m in today_meals.meals %}
+      <div class="meal-check" data-key="{{ m.key }}" style="display:flex;align-items:flex-start;gap:10px;padding:11px 8px;border-bottom:1px dashed #e2e8f0;cursor:pointer;border-radius:8px;transition:background .15s;{% if m.done %}opacity:.55;{% endif %}">
+        <span class="mc-box" style="width:24px;height:24px;flex-shrink:0;border:2.5px solid {% if m.done %}#10b981;background:#10b981;{% else %}#cbd5e1;{% endif %}border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px;margin-top:2px;">{% if m.done %}✓{% endif %}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:800;font-size:13px;color:#1b4332;">{{ m.emoji }} {{ m.label }}</div>
+          <div class="mc-text" style="font-size:12.5px;color:#475569;line-height:1.7;{% if m.done %}text-decoration:line-through;{% endif %}">{{ m.text }}</div>
+        </div>
+      </div>
+      {% endfor %}
+      <div style="text-align:center;margin-top:10px;font-size:12px;color:#94a3b8;">التزامك آخر أسبوع: <b id="adhPct" style="color:#059669;">{{ adherence }}%</b> — د. محمد بيشوف النسبة دي 👀</div>
+    </div>
+    <script>
+    document.querySelectorAll('.meal-check').forEach(row => {
+      row.addEventListener('click', async () => {
+        const fd = new FormData();
+        fd.append('meal_key', row.dataset.key);
+        try {
+          const r = await fetch('/track-meal', {method:'POST', body: fd});
+          const j = await r.json();
+          if (!j.ok) return;
+          const box = row.querySelector('.mc-box'), txt = row.querySelector('.mc-text');
+          if (j.done) {
+            box.style.borderColor='#10b981'; box.style.background='#10b981'; box.textContent='✓';
+            row.style.opacity='.55'; txt.style.textDecoration='line-through';
+          } else {
+            box.style.borderColor='#cbd5e1'; box.style.background='transparent'; box.textContent='';
+            row.style.opacity='1'; txt.style.textDecoration='none';
+          }
+          const total = document.querySelectorAll('.meal-check').length;
+          const done = document.querySelectorAll('.mc-box[style*="rgb(16, 185, 129)"], .mc-box[style*="#10b981"]').length;
+          document.getElementById('todayCount').textContent = done + '/' + total;
+          document.getElementById('todayBar').style.width = (done/total*100) + '%';
+          document.getElementById('adhPct').textContent = j.adherence + '%';
+        } catch(e) {}
+      });
+    });
+    </script>
+    {% endif %}
+
     {% if weight and weight.has_data %}
+      {% if weight.message %}
+      <div style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:1px solid #6ee7b7;border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:26px;">{{ weight.message_icon }}</span>
+        <span style="font-size:14px;font-weight:700;color:#065f46;line-height:1.6;">{{ weight.message }}</span>
+      </div>
+      {% endif %}
       <div class="wp-stats">
         <div class="wp-box" style="background:#f0fdf4;border:1px solid #86efac">
           <div class="l" style="color:#047857">البداية</div>
@@ -159,6 +214,24 @@
             {% if weight.change > 0 %}▲ +{{ weight.change }}{% elif weight.change < 0 %}▼ {{ weight.change }}{% else %}{{ weight.change }}{% endif %}<span style="font-size:11px"> kg</span>
           </div>
         </div>
+        {% if weight.pace %}
+        <div class="wp-box" style="background:#fdf4ff;border:1px solid #d8b4fe">
+          <div class="l" style="color:#7e22ce">المعدل الأسبوعي</div>
+          <div class="v" style="color:#6b21a8">{% if weight.pace > 0 %}+{% endif %}{{ weight.pace }}<span style="font-size:11px"> kg/أسبوع</span></div>
+        </div>
+        {% endif %}
+        {% if weight.bmi %}
+        <div class="wp-box" style="background:#fffbeb;border:1px solid #fcd34d">
+          <div class="l" style="color:#92400e">مؤشر الكتلة BMI</div>
+          <div class="v" style="color:{{ weight.bmi_color }}">{{ weight.bmi }}<span style="font-size:11px"> {{ weight.bmi_label }}</span></div>
+        </div>
+        {% endif %}
+        {% if weight.days_tracking > 0 %}
+        <div class="wp-box" style="background:#f0f9ff;border:1px solid #7dd3fc">
+          <div class="l" style="color:#0369a1">بتتابع بقالك</div>
+          <div class="v" style="color:#075985">{{ weight.days_tracking }}<span style="font-size:11px"> يوم</span></div>
+        </div>
+        {% endif %}
       </div>
 
       {% if weight.count > 1 %}
@@ -192,6 +265,55 @@
     <h2 class="card-title">📋 خطتك الحالية</h2>
 
     {% if latest_plan %}
+    {% if tracking and tracking.has_plan %}
+    <!-- ═══ تتبع وجبات النهارده ═══ -->
+    <div style="background:#fff;border:2px solid #a7f3d0;border-radius:16px;padding:16px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-weight:900;font-size:15px;color:#1b4332;">✅ وجبات النهارده ({{ tracking.day_name }})</div>
+        <div id="todayCount" style="font-size:12px;font-weight:800;color:#059669;background:#ecfdf5;padding:4px 12px;border-radius:999px;">{{ tracking.today_done }}/{{ tracking.today_total }}</div>
+      </div>
+      {% for m in tracking.today_meals %}
+      <div class="track-meal" data-key="{{ m.key }}" style="display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:12px;cursor:pointer;transition:all .15s;{% if m.checked %}background:#ecfdf5;{% endif %}border:1.5px solid {% if m.checked %}#6ee7b7{% else %}#e2e8f0{% endif %};margin-bottom:8px;">
+        <div class="track-box" style="width:24px;height:24px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;background:{% if m.checked %}#10b981{% else %}#e2e8f0{% endif %};margin-top:2px;">{% if m.checked %}✓{% endif %}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:800;font-size:13px;color:#1b4332;">{{ m.emoji }} {{ m.label }}</div>
+          <div style="font-size:12px;color:#64748b;line-height:1.6;{% if m.checked %}text-decoration:line-through;opacity:.6;{% endif %}">{{ m.text }}</div>
+        </div>
+      </div>
+      {% endfor %}
+      {% if tracking.week_pct is not none %}
+      <div style="margin-top:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:#64748b;margin-bottom:4px;"><span>التزامك آخر 7 أيام</span><span>{{ tracking.week_pct }}%</span></div>
+        <div style="height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden;"><div style="height:100%;width:{{ tracking.week_pct }}%;background:linear-gradient(90deg,#10b981,#1b4332);border-radius:99px;"></div></div>
+      </div>
+      {% endif %}
+    </div>
+    <script>
+    document.querySelectorAll('.track-meal').forEach(el => {
+      el.addEventListener('click', async () => {
+        const box = el.querySelector('.track-box');
+        const nowChecked = box.textContent.trim() !== '✓';
+        try {
+          const fd = new FormData();
+          fd.append('meal_key', el.dataset.key);
+          fd.append('checked', nowChecked ? '1' : '0');
+          fd.append('csrf_token', document.querySelector('input[name=csrf_token]') ? document.querySelector('input[name=csrf_token]').value : '');
+          const r = await fetch('/track/meal', {method:'POST', body: fd});
+          if (!(await r.json()).ok) return;
+          box.textContent = nowChecked ? '✓' : '';
+          box.style.background = nowChecked ? '#10b981' : '#e2e8f0';
+          el.style.background = nowChecked ? '#ecfdf5' : '#fff';
+          el.style.borderColor = nowChecked ? '#6ee7b7' : '#e2e8f0';
+          const txt = el.querySelector('div[style*="line-height"]');
+          txt.style.textDecoration = nowChecked ? 'line-through' : 'none';
+          txt.style.opacity = nowChecked ? '.6' : '1';
+          const done = document.querySelectorAll('.track-box').length ? [...document.querySelectorAll('.track-box')].filter(b=>b.textContent.trim()==='✓').length : 0;
+          document.getElementById('todayCount').textContent = done + '/' + document.querySelectorAll('.track-box').length;
+        } catch(e) {}
+      });
+    });
+    </script>
+    {% endif %}
       <div class="plan-box">
         <h3>✅ عندك خطة نشطة</h3>
         <p class="plan-box-meta">
