@@ -19,6 +19,22 @@ app.permanent_session_lifetime = timedelta(days=30)
 # ═══ تسريع الموقع ═══
 import gzip as _gzip
 
+@app.route("/.well-known/assetlinks.json")
+def assetlinks():
+    """ملف Digital Asset Links — بيربط تطبيق Google Play بالموقع (TWA).
+    البصمة SHA256 بتتحط في متغير بيئة PLAY_SHA256 في Render لما تيجي من Play Console."""
+    sha = os.environ.get("PLAY_SHA256", "").strip()
+    package = os.environ.get("PLAY_PACKAGE", "com.nutrax.app").strip()
+    if not sha:
+        return jsonify([]), 200
+    fingerprints = [f.strip().upper() for f in sha.split(",") if f.strip()]
+    return jsonify([{
+        "relation": ["delegate_permission/common.handle_all_urls"],
+        "target": {"namespace": "android_app", "package_name": package,
+                   "sha256_cert_fingerprints": fingerprints}
+    }]), 200
+
+
 @app.route("/health")
 def health():
     """نقطة خفيفة لخدمات الـ ping — بتمنع Render من تنييم الموقع"""
@@ -3193,7 +3209,7 @@ def admin_user_payments(uid):
 # ═══════════════════════════════════════════════════════════════════
 
 ONBOARDING_EXEMPT = {
-    "login", "logout", "set_lang", "onboarding", "static", "health",
+    "login", "logout", "set_lang", "onboarding", "static", "health", "assetlinks",
     "stripe_webhook", "check_access_endpoint", "register",
     "track_whatsapp_click", "pricing", "payment_cancel"
 }
