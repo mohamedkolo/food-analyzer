@@ -67,6 +67,11 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .nav-item.active i{color:var(--blue)}
 .nav-item.danger{color:#991b1b}
 .nav-item.danger i{color:#991b1b}
+.nav-more summary{list-style:none}
+.nav-more summary::-webkit-details-marker{display:none}
+.nav-more summary::after{content:'▾';margin-right:auto;font-size:11px;color:var(--muted);transition:transform .2s}
+.nav-more[open] summary::after{transform:rotate(180deg)}
+.nav-more > a, .nav-more > button{margin-right:14px;font-size:13px}
 .nav-divider{height:1px;background:var(--gray-2);margin:12px 0}
 .nav-badge{position:absolute;left:12px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;min-width:20px;text-align:center}
 .main{margin-top:var(--header-h);margin-right:var(--sidebar-w);padding:24px 20px;min-height:calc(100vh - var(--header-h))}
@@ -179,44 +184,47 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
       <i class="fa-solid fa-house"></i> {{ 'الرئيسية' if is_ar else 'Dashboard' }}
     </a>
     <a href="/admin/requests" class="nav-item {% if request.endpoint in ['admin_requests'] %}active{% endif %}">
-      <i class="fa-solid fa-bell" style="color:#f59e0b"></i> {{ 'طلبات العملاء' if is_ar else 'Client Requests' }}
+      <i class="fa-solid fa-bell" style="color:#c9a961"></i> {{ 'طلبات العملاء' if is_ar else 'Client Requests' }}
       {% if pending_count and pending_count > 0 %}<span class="nav-badge">{{ pending_count }}</span>{% endif %}
     </a>
-    <a href="/admin/notifications" class="nav-item {% if request.endpoint=='admin_notifications' %}active{% endif %}">
-      <i class="fa-solid fa-bell-concierge" style="color:#ef4444"></i> {{ 'الإشعارات' if is_ar else 'Notifications' }}
-      {% if notif_unread and notif_unread > 0 %}<span class="nav-badge">{{ notif_unread }}</span>{% endif %}
-    </a>
-    <button type="button" id="nxPushBtn" class="nav-item" onclick="nxEnablePush()">
-      <i class="fa-solid fa-mobile-screen-button" style="color:#1e4a3d"></i> {{ 'فعّل إشعارات الموبايل' if is_ar else 'Enable Phone Alerts' }}
-    </button>
     <a href="/messages" class="nav-item {% if request.endpoint in ['messages','chat'] %}active{% endif %}">
       <i class="fa-solid fa-comments" style="color:#2c5a4a"></i> {{ 'الرسائل' if is_ar else 'Messages' }}
       {% if unread_messages and unread_messages > 0 %}<span class="nav-badge">{{ unread_messages }}</span>{% endif %}
     </a>
+    {% if is_admin %}
+    <a href="/admin/users" class="nav-item {% if request.endpoint in ['admin_users','admin_new_user','admin_user_profile'] %}active{% endif %}">
+      <i class="fa-solid fa-users" style="color:#1e4a3d"></i> {{ 'العملاء' if is_ar else 'Clients' }}
+    </a>
+    {% endif %}
     <a href="/generate" class="nav-item {% if request.endpoint in ['generate','preview'] %}active{% endif %}">
       <i class="fa-solid fa-file-medical" style="color:var(--green-light)"></i> {{ 'توليد جدول' if is_ar else 'Generate' }}
     </a>
-    <a href="/analyzer" class="nav-item {% if request.endpoint=='analyzer' %}active{% endif %}">
-      <i class="fa-solid fa-magnifying-glass"></i> {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
-    </a>
-    <a href="/saved" class="nav-item {% if request.endpoint=='saved' %}active{% endif %}">
-      <i class="fa-solid fa-bookmark"></i> {{ 'جداولي المحفوظة' if is_ar else 'Saved Plans' }}
-    </a>
-    {% if is_admin %}
-    <div class="nav-divider"></div>
-    <div class="nav-section">{{ 'الإدارة' if is_ar else 'Admin' }}</div>
-    <a href="/admin/users" class="nav-item {% if request.endpoint in ['admin_users','admin_new_user'] %}active{% endif %}">
-      <i class="fa-solid fa-user-shield" style="color:#dc2626"></i> {{ 'إدارة المستخدمين' if is_ar else 'Manage Users' }}
-    </a>
-    <a href="/admin/blocked" class="nav-item {% if request.endpoint=='admin_blocked_list' %}active{% endif %}">
-      <i class="fa-solid fa-ban" style="color:#7f1d1d"></i> {{ 'الحسابات المحظورة' if is_ar else 'Blocked Users' }}
-    </a>
-    {% endif %}
-    <div class="nav-divider"></div>
-    <div class="nav-section">{{ 'أدوات' if is_ar else 'Tools' }}</div>
-    <a href="/clinical" class="nav-item {% if request.endpoint=='clinical' %}active{% endif %}">
-      <i class="fa-solid fa-book-medical"></i> {{ 'المرجع الكلينيكي' if is_ar else 'Clinical Reference' }}
-    </a>
+    <details class="nav-more" {% if request.endpoint in ['admin_notifications','analyzer','saved','clinical','admin_blocked_list'] %}open{% endif %}>
+      <summary class="nav-item"><i class="fa-solid fa-ellipsis"></i> {{ 'أدوات وإدارة' if is_ar else 'More' }}
+        {% if notif_unread and notif_unread > 0 %}<span class="nav-badge">{{ notif_unread }}</span>{% endif %}
+      </summary>
+      <a href="/admin/notifications" class="nav-item {% if request.endpoint=='admin_notifications' %}active{% endif %}">
+        <i class="fa-solid fa-bell-concierge" style="color:#c9a961"></i> {{ 'الإشعارات' if is_ar else 'Notifications' }}
+        {% if notif_unread and notif_unread > 0 %}<span class="nav-badge">{{ notif_unread }}</span>{% endif %}
+      </a>
+      <a href="/analyzer" class="nav-item {% if request.endpoint=='analyzer' %}active{% endif %}">
+        <i class="fa-solid fa-magnifying-glass"></i> {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
+      </a>
+      <a href="/saved" class="nav-item {% if request.endpoint=='saved' %}active{% endif %}">
+        <i class="fa-solid fa-bookmark"></i> {{ 'جداولي المحفوظة' if is_ar else 'Saved Plans' }}
+      </a>
+      <a href="/clinical" class="nav-item {% if request.endpoint=='clinical' %}active{% endif %}">
+        <i class="fa-solid fa-book-medical"></i> {{ 'المرجع الكلينيكي' if is_ar else 'Clinical Reference' }}
+      </a>
+      {% if is_admin %}
+      <a href="/admin/blocked" class="nav-item {% if request.endpoint=='admin_blocked_list' %}active{% endif %}">
+        <i class="fa-solid fa-ban" style="color:#7f1d1d"></i> {{ 'الحسابات المحظورة' if is_ar else 'Blocked Users' }}
+      </a>
+      {% endif %}
+      <button type="button" id="nxPushBtn" class="nav-item" onclick="nxEnablePush()">
+        <i class="fa-solid fa-mobile-screen-button" style="color:#1e4a3d"></i> {{ 'فعّل إشعارات الموبايل' if is_ar else 'Enable Phone Alerts' }}
+      </button>
+    </details>
   {% else %}
     <div class="nav-section">{{ 'القائمة' if is_ar else 'Menu' }}</div>
     <a href="/my-plan" class="nav-item {% if request.endpoint in ['my_plan','dashboard'] %}active{% endif %}">
@@ -225,22 +233,28 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
     <a href="/request-plan" class="nav-item {% if request.endpoint=='request_plan' %}active{% endif %}">
       <i class="fa-solid fa-paper-plane"></i> {{ 'طلب خطة جديدة' if is_ar else 'Request Plan' }}
     </a>
-    <a href="/history" class="nav-item {% if request.endpoint=='history' %}active{% endif %}">
-      <i class="fa-solid fa-chart-line"></i> {{ 'سجل الوزن' if is_ar else 'Weight Log' }}
-    </a>
-    <a href="/daily-tips" class="nav-item {% if request.endpoint=='daily_tips' %}active{% endif %}">
-      <i class="fa-solid fa-bell" style="color:#f59e0b"></i> {{ 'نصائحك اليومية' if is_ar else 'Daily Tips' }}
-    </a>
     <a href="/messages" class="nav-item {% if request.endpoint in ['messages','chat'] %}active{% endif %}">
       <i class="fa-solid fa-comments" style="color:#2c5a4a"></i> {{ 'الرسائل' if is_ar else 'Messages' }}
       {% if unread_messages and unread_messages > 0 %}<span class="nav-badge">{{ unread_messages }}</span>{% endif %}
     </a>
-    <a href="/knowledge" class="nav-item {% if request.endpoint=='knowledge' %}active{% endif %}">
-      <i class="fa-solid fa-book-open" style="color:#1e4a3d"></i> {{ 'مركز المعرفة' if is_ar else 'Knowledge Hub' }}
+    <a href="/history" class="nav-item {% if request.endpoint=='history' %}active{% endif %}">
+      <i class="fa-solid fa-chart-line"></i> {{ 'وزني' if is_ar else 'My Weight' }}
     </a>
-    <button type="button" id="nxPushBtn" class="nav-item" onclick="nxEnablePush()">
-      <i class="fa-solid fa-mobile-screen-button" style="color:#1e4a3d"></i> {{ 'فعّل إشعارات الموبايل' if is_ar else 'Enable Phone Alerts' }}
-    </button>
+    <details class="nav-more" {% if request.endpoint in ['daily_tips','knowledge','my_plans_history'] %}open{% endif %}>
+      <summary class="nav-item"><i class="fa-solid fa-ellipsis"></i> {{ 'المزيد' if is_ar else 'More' }}</summary>
+      <a href="/daily-tips" class="nav-item {% if request.endpoint=='daily_tips' %}active{% endif %}">
+        <i class="fa-solid fa-bell" style="color:#c9a961"></i> {{ 'نصائحك اليومية' if is_ar else 'Daily Tips' }}
+      </a>
+      <a href="/knowledge" class="nav-item {% if request.endpoint=='knowledge' %}active{% endif %}">
+        <i class="fa-solid fa-book-open" style="color:#1e4a3d"></i> {{ 'مركز المعرفة' if is_ar else 'Knowledge Hub' }}
+      </a>
+      <a href="/my-plans-history" class="nav-item {% if request.endpoint=='my_plans_history' %}active{% endif %}">
+        <i class="fa-solid fa-clock-rotate-left"></i> {{ 'خططي السابقة' if is_ar else 'Past Plans' }}
+      </a>
+      <button type="button" id="nxPushBtn" class="nav-item" onclick="nxEnablePush()">
+        <i class="fa-solid fa-mobile-screen-button" style="color:#1e4a3d"></i> {{ 'فعّل إشعارات الموبايل' if is_ar else 'Enable Phone Alerts' }}
+      </button>
+    </details>
   {% endif %}
 
   <div class="nav-divider"></div>
