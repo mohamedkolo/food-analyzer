@@ -136,7 +136,7 @@
     </div>
 
     <div style="background:#f0f7f4;border:1px solid #cfe3d9;border-radius:10px;padding:12px;margin-top:6px">
-      <div style="font-size:13px;font-weight:700;color:#1b4332;margin-bottom:8px">
+      <div style="font-size:13px;font-weight:700;color:#14332b;margin-bottom:8px">
         <i class="fa-solid fa-sliders"></i>
         {{ 'نسب الماكروز (بتتحط تلقائياً حسب النظام — تقدر تعدّلها)' if is_ar else 'Macros (auto-set by diet — editable)' }}
       </div>
@@ -202,7 +202,7 @@
 
   <!-- ═══════════ الأكلات المفضلة ═══════════ -->
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-heart" style="color:#16a34a"></i> {{ 'الأكلات المفضلة عند العميل' if is_ar else 'Favorite Foods' }}</div>
+    <div class="card-title"><i class="fa-solid fa-heart" style="color:#1e4a3d"></i> {{ 'الأكلات المفضلة عند العميل' if is_ar else 'Favorite Foods' }}</div>
     <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'اكتب الأكلات اللي بيحبها مفصولة بفواصل:' if is_ar else 'List foods they like, separated by commas:' }}</p>
     <textarea class="form-input" name="liked_foods" rows="2"
       placeholder="{{ 'مثلاً: شوفان، سلمون، افوكادو، دجاج مشوي، تفاح' if is_ar else 'e.g. oats, salmon, avocado, grilled chicken, apple' }}"

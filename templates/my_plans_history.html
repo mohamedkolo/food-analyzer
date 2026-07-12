@@ -35,7 +35,7 @@
   }
 
   .new-plan-btn {
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #1e4a3d, #1e4a3d);
     color: #fff;
     padding: 12px 24px;
     border-radius: 12px;
@@ -63,7 +63,7 @@
     border-radius: 16px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
     margin-bottom: 24px;
-    border: 1px solid #f1f5f9;
+    border: 1px solid #f5f1e8;
   }
 
   .stat-item {
@@ -73,7 +73,7 @@
   .stat-num {
     font-size: 28px;
     font-weight: 800;
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #1e4a3d, #1e4a3d);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -91,7 +91,7 @@
   .filter-tabs {
     display: flex;
     gap: 6px;
-    background: #f1f5f9;
+    background: #f5f1e8;
     padding: 5px;
     border-radius: 12px;
     width: fit-content;
@@ -114,7 +114,7 @@
 
   .filter-tab.active {
     background: #fff;
-    color: #059669;
+    color: #1e4a3d;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
@@ -130,7 +130,7 @@
     border-radius: 18px;
     padding: 22px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-    border: 1px solid #f1f5f9;
+    border: 1px solid #f5f1e8;
     position: relative;
     transition: all 0.25s;
     overflow: hidden;
@@ -150,8 +150,8 @@
   }
 
   .plan-card.active-plan {
-    border-color: #10b981;
-    background: linear-gradient(180deg, #f0fdf4 0%, #fff 30%);
+    border-color: #1e4a3d;
+    background: linear-gradient(180deg, #faf8f3 0%, #fff 30%);
   }
 
   .plan-card-head {
@@ -176,8 +176,8 @@
     font-weight: 700;
   }
 
-  .status-active { background: #d1fae5; color: #065f46; }
-  .status-expired { background: #f1f5f9; color: #475569; }
+  .status-active { background: #ede7d8; color: #14332b; }
+  .status-expired { background: #f5f1e8; color: #475569; }
   .status-archived { background: #fef3c7; color: #92400e; }
 
   .plan-name {
@@ -197,7 +197,7 @@
   }
 
   .plan-meta {
-    background: #f8fafc;
+    background: #faf8f3;
     border-radius: 12px;
     padding: 12px 14px;
     margin-bottom: 16px;
@@ -237,21 +237,21 @@
   }
 
   .btn-view {
-    background: #10b981;
+    background: #1e4a3d;
     color: #fff;
     grid-column: 1 / -1;
   }
 
   .btn-view:hover {
-    background: #059669;
+    background: #1e4a3d;
   }
 
   .btn-pdf {
-    background: #dbeafe;
-    color: #1e40af;
+    background: #f0ead9;
+    color: #14332b;
   }
 
-  .btn-pdf:hover { background: #bfdbfe; }
+  .btn-pdf:hover { background: #ede7d8; }
 
   .btn-reactivate {
     background: #fef3c7;
@@ -347,12 +347,12 @@
     {% set goal = plan.goal_type or 'weight_loss' %}
     {% set is_active = plan.is_currently_active %}
     {% set emoji_map = {'weight_loss': '🥗', 'muscle_gain': '💪', 'bulking': '🔥', 'maintenance': '🍽️'} %}
-    {% set color_map = {'weight_loss': '#10b981', 'muscle_gain': '#3b82f6', 'bulking': '#f59e0b', 'maintenance': '#8b5cf6'} %}
+    {% set color_map = {'weight_loss': '#1e4a3d', 'muscle_gain': '#2c5a4a', 'bulking': '#f59e0b', 'maintenance': '#8b5cf6'} %}
     {% set name_map = {'weight_loss': 'خطة تخسيس', 'muscle_gain': 'زيادة عضل', 'bulking': 'خطة تضخيم', 'maintenance': 'خطة مكتنز'} %}
 
     <div class="plan-card {% if is_active %}active-plan{% endif %}"
          data-status="{% if is_active %}active{% else %}expired{% endif %}"
-         style="--accent: {{ color_map.get(goal, '#10b981') }}">
+         style="--accent: {{ color_map.get(goal, '#1e4a3d') }}">
 
       <div class="plan-card-head">
         <span class="plan-emoji">{{ emoji_map.get(goal, '📋') }}</span>

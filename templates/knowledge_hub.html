@@ -9,7 +9,7 @@
 </div>
 
 <!-- Welcome Banner -->
-<div class="card" style="background:linear-gradient(135deg,#1b4332 0%,#2d6a4f 100%);color:white;padding:24px">
+<div class="card" style="background:linear-gradient(135deg,#14332b 0%,#1e4a3d 100%);color:white;padding:24px">
   <div style="font-size:22px;font-weight:800;margin-bottom:6px">
     👋 {{ 'أهلاً بيك في مركز المعرفة' if is_ar else 'Welcome to Knowledge Hub' }}
   </div>
@@ -63,7 +63,7 @@
 <div id="analyzer-section" class="card">
   <div class="card-title">
     <i class="fa-solid fa-magnifying-glass-chart"></i> {{ 'محلل الأطعمة المجاني' if is_ar else 'Free Food Analyzer' }}
-    <span style="background:#dcfce7;color:#14532d;padding:2px 10px;border-radius:20px;font-size:11px;margin-right:auto">300+ {{ 'أكلة' if is_ar else 'foods' }}</span>
+    <span style="background:#f0ead9;color:#14332b;padding:2px 10px;border-radius:20px;font-size:11px;margin-right:auto">300+ {{ 'أكلة' if is_ar else 'foods' }}</span>
   </div>
   <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
     {{ 'اكتب اسم أي وجبة أو تصفح حسب الفئة' if is_ar else 'Type any food or browse by category' }}
@@ -431,7 +431,7 @@ function renderPlanMeals() {
         '<div style="font-size:11px;color:var(--muted);font-weight:700">' +
           flag + ' ' + m.cu + ' • ' + m.g + ' • ' + typeLabel +
         '</div>' +
-        '<div style="background:#d8e2dc;color:#1b4332;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">' +
+        '<div style="background:#d8e2dc;color:#14332b;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">' +
           m.c + ' kcal' + (m.p > 0 ? ' • ' + m.p + 'p' : '') +
         '</div>' +
       '</div>' +
@@ -538,7 +538,7 @@ renderPlanMeals();
 <!-- ════════ BOOKS SECTION (NEW) ════════ -->
 <div id="books-section" style="margin-top:24px">
   <div class="page-title" style="font-size:18px">
-    <i class="fa-solid fa-book" style="color:#1b4332"></i> {{ 'كتب التغذية الإكلينيكية' if is_ar else 'Clinical Nutrition Books' }}
+    <i class="fa-solid fa-book" style="color:#14332b"></i> {{ 'كتب التغذية الإكلينيكية' if is_ar else 'Clinical Nutrition Books' }}
   </div>
   <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
     {{ 'مراجع عالمية معتمدة في التغذية الإكلينيكية' if is_ar else 'World-class clinical nutrition references' }}
@@ -548,7 +548,7 @@ renderPlanMeals();
 
     <!-- الكتاب الأول -->
     <div class="book-card">
-      <div style="height:200px;background:linear-gradient(135deg,#1b4332,#2d6a4f);display:flex;align-items:center;justify-content:center;color:white;font-size:48px">
+      <div style="height:200px;background:linear-gradient(135deg,#14332b,#1e4a3d);display:flex;align-items:center;justify-content:center;color:white;font-size:48px">
         📘
       </div>
       <div style="padding:16px">
@@ -558,11 +558,11 @@ renderPlanMeals();
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px">
           {{ 'المرجع الأول عالمياً في التغذية الإكلينيكية - 16 إصدار' if is_ar else 'The leading clinical nutrition reference - 16 editions' }}
         </div>
-        <div style="font-size:11px;color:#16a34a;font-weight:700">
+        <div style="font-size:11px;color:#1e4a3d;font-weight:700">
           ✍️ Mahan, Raymond — 1192 {{ 'صفحة' if is_ar else 'pages' }}
         </div>
         <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
-          <span style="background:#dcfce7;color:#14532d;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">{{ 'سريري' if is_ar else 'Clinical' }}</span>
+          <span style="background:#f0ead9;color:#14332b;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">{{ 'سريري' if is_ar else 'Clinical' }}</span>
           <span style="background:#fef3c7;color:#78350f;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">{{ 'مرجع' if is_ar else 'Reference' }}</span>
         </div>
       </div>
@@ -570,7 +570,7 @@ renderPlanMeals();
 
     <!-- الكتاب الثاني -->
     <div class="book-card">
-      <div style="height:200px;background:linear-gradient(135deg,#1e40af,#3b82f6);display:flex;align-items:center;justify-content:center;color:white;font-size:48px">
+      <div style="height:200px;background:linear-gradient(135deg,#14332b,#2c5a4a);display:flex;align-items:center;justify-content:center;color:white;font-size:48px">
         📗
       </div>
       <div style="padding:16px">
@@ -580,11 +580,11 @@ renderPlanMeals();
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px">
           {{ 'مرجع متقدم في التغذية والأيض - بيغطي البيوكيميا والفسيولوجي' if is_ar else 'Advanced nutrition & metabolism - biochemistry & physiology' }}
         </div>
-        <div style="font-size:11px;color:#16a34a;font-weight:700">
+        <div style="font-size:11px;color:#1e4a3d;font-weight:700">
           ✍️ Gropper, Smith — 624 {{ 'صفحة' if is_ar else 'pages' }}
         </div>
         <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
-          <span style="background:#dbeafe;color:#1e3a8a;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">{{ 'متقدم' if is_ar else 'Advanced' }}</span>
+          <span style="background:#f0ead9;color:#14332b;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">{{ 'متقدم' if is_ar else 'Advanced' }}</span>
           <span style="background:#fce7f3;color:#831843;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">{{ 'أيض' if is_ar else 'Metabolism' }}</span>
         </div>
       </div>
@@ -643,10 +643,10 @@ renderPlanMeals();
   background: white; border: 1.5px solid var(--gray-2); border-radius: 14px;
   padding: 18px; cursor: pointer; transition: all 0.2s;
 }
-.article-card:hover { transform: translateY(-2px); border-color: #16a34a; box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
+.article-card:hover { transform: translateY(-2px); border-color: #1e4a3d; box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
 .nutrition-card {
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-  border: 2px solid #86efac; border-radius: 12px; padding: 14px;
+  background: linear-gradient(135deg, #faf8f3, #f0ead9);
+  border: 2px solid #d9cfb4; border-radius: 12px; padding: 14px;
 }
 </style>
 
@@ -813,12 +813,12 @@ function showFoodInfo(name) {
   if (!f) return;
   document.getElementById('foodResult').innerHTML =
     '<div class="nutrition-card">' +
-      '<div style="font-weight:800;font-size:15px;color:#14532d;margin-bottom:10px">' + (IS_AR ? f.ar : f.en) + ' <span style="font-size:11px;color:var(--muted);font-weight:600">(' + f.per + ')</span></div>' +
+      '<div style="font-weight:800;font-size:15px;color:#14332b;margin-bottom:10px">' + (IS_AR ? f.ar : f.en) + ' <span style="font-size:11px;color:var(--muted);font-weight:600">(' + f.per + ')</span></div>' +
       '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">' +
-        '<div><div style="font-size:11px;color:#166534">سعرات</div><div style="font-size:18px;font-weight:800;color:#14532d">' + f.cal + '</div></div>' +
-        '<div><div style="font-size:11px;color:#166534">بروتين</div><div style="font-size:18px;font-weight:800;color:#14532d">' + f.p + 'g</div></div>' +
-        '<div><div style="font-size:11px;color:#166534">كارب</div><div style="font-size:18px;font-weight:800;color:#14532d">' + f.c + 'g</div></div>' +
-        '<div><div style="font-size:11px;color:#166534">دهون</div><div style="font-size:18px;font-weight:800;color:#14532d">' + f.f + 'g</div></div>' +
+        '<div><div style="font-size:11px;color:#166534">سعرات</div><div style="font-size:18px;font-weight:800;color:#14332b">' + f.cal + '</div></div>' +
+        '<div><div style="font-size:11px;color:#166534">بروتين</div><div style="font-size:18px;font-weight:800;color:#14332b">' + f.p + 'g</div></div>' +
+        '<div><div style="font-size:11px;color:#166534">كارب</div><div style="font-size:18px;font-weight:800;color:#14332b">' + f.c + 'g</div></div>' +
+        '<div><div style="font-size:11px;color:#166534">دهون</div><div style="font-size:18px;font-weight:800;color:#14332b">' + f.f + 'g</div></div>' +
       '</div>' +
     '</div>';
 }
@@ -1057,9 +1057,9 @@ function showDisease(key) {
   var tips = IS_AR ? d.tipsAr : d.tipsEn;
   var content =
     '<div style="display:grid;gap:14px">' +
-      '<div style="background:#dcfce7;border:1px solid #86efac;border-radius:10px;padding:14px">' +
-        '<div style="font-weight:800;color:#14532d;margin-bottom:8px">✅ ' + (IS_AR ? 'مسموح' : 'Allowed') + '</div>' +
-        '<ul style="margin:0;padding-right:18px;line-height:2;color:#14532d;font-size:13px">' + allowed.map(function(x){return '<li>'+x+'</li>';}).join('') + '</ul>' +
+      '<div style="background:#f0ead9;border:1px solid #d9cfb4;border-radius:10px;padding:14px">' +
+        '<div style="font-weight:800;color:#14332b;margin-bottom:8px">✅ ' + (IS_AR ? 'مسموح' : 'Allowed') + '</div>' +
+        '<ul style="margin:0;padding-right:18px;line-height:2;color:#14332b;font-size:13px">' + allowed.map(function(x){return '<li>'+x+'</li>';}).join('') + '</ul>' +
       '</div>' +
       '<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:14px">' +
         '<div style="font-weight:800;color:#991b1b;margin-bottom:8px">🚫 ' + (IS_AR ? 'ممنوع' : 'Forbidden') + '</div>' +
@@ -1083,17 +1083,17 @@ var articlesData = [
   {key:'water', icon:'💧',
     img:'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=800&h=400&fit=crop',
     titleAr:'8 أكواب ماء يومياً - أسطورة أم حقيقة؟', titleEn:'8 Glasses of Water - Myth or Fact?',
-    contentAr:'<img src="https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><p><strong>القاعدة "8 أكواب يومياً" مش دقيقة 100%.</strong> الاحتياج بيختلف حسب الوزن والنشاط والطقس.</p><h3 style="color:#16a34a;margin-top:16px">القاعدة الصحيحة:</h3><p>الوزن × 35 مل = احتياجك اليومي</p><p>مثال: 70 كجم = 2450 مل (10 أكواب)</p>',
+    contentAr:'<img src="https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><p><strong>القاعدة "8 أكواب يومياً" مش دقيقة 100%.</strong> الاحتياج بيختلف حسب الوزن والنشاط والطقس.</p><h3 style="color:#1e4a3d;margin-top:16px">القاعدة الصحيحة:</h3><p>الوزن × 35 مل = احتياجك اليومي</p><p>مثال: 70 كجم = 2450 مل (10 أكواب)</p>',
     contentEn:'<p>The "8 glasses" rule is not accurate. Use: Weight × 35ml = daily need.</p>'},
   {key:'protein', icon:'💪',
     img:'https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=800&h=400&fit=crop',
     titleAr:'البروتين: كم تحتاج يومياً؟', titleEn:'Protein: How Much Do You Need?',
-    contentAr:'<img src="https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><h3 style="color:#16a34a">حسب الهدف:</h3><ul style="margin-right:20px;line-height:2"><li><strong>عادي:</strong> 0.8 جم/كجم</li><li><strong>رياضي:</strong> 1.2-1.6 جم/كجم</li><li><strong>بناء عضل:</strong> 1.6-2.2 جم/كجم</li><li><strong>تخسيس:</strong> 1.6-2.4 جم/كجم</li></ul>',
+    contentAr:'<img src="https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><h3 style="color:#1e4a3d">حسب الهدف:</h3><ul style="margin-right:20px;line-height:2"><li><strong>عادي:</strong> 0.8 جم/كجم</li><li><strong>رياضي:</strong> 1.2-1.6 جم/كجم</li><li><strong>بناء عضل:</strong> 1.6-2.2 جم/كجم</li><li><strong>تخسيس:</strong> 1.6-2.4 جم/كجم</li></ul>',
     contentEn:'<p>By Goal: Regular: 0.8g/kg, Athletic: 1.2-1.6g/kg, Muscle gain: 1.6-2.2g/kg</p>'},
   {key:'breakfast', icon:'🌅',
     img:'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&h=400&fit=crop',
     titleAr:'الفطار الصحي - مكوناته الأساسية', titleEn:'Healthy Breakfast Components',
-    contentAr:'<img src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><p>الفطار الصحي يحتوي على:</p><h3 style="color:#16a34a;margin-top:16px">1. بروتين (20-30 جم)</h3><p>بيض، جبن قريش، زبادي يوناني</p><h3 style="color:#16a34a;margin-top:14px">2. كارب معقد</h3><p>شوفان، خبز أسمر، بطاطا حلوة</p><h3 style="color:#16a34a;margin-top:14px">3. دهون صحية</h3><p>أفوكادو، مكسرات، زيت زيتون</p>',
+    contentAr:'<img src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><p>الفطار الصحي يحتوي على:</p><h3 style="color:#1e4a3d;margin-top:16px">1. بروتين (20-30 جم)</h3><p>بيض، جبن قريش، زبادي يوناني</p><h3 style="color:#1e4a3d;margin-top:14px">2. كارب معقد</h3><p>شوفان، خبز أسمر، بطاطا حلوة</p><h3 style="color:#1e4a3d;margin-top:14px">3. دهون صحية</h3><p>أفوكادو، مكسرات، زيت زيتون</p>',
     contentEn:'<p>Healthy breakfast: protein, complex carbs, healthy fats, fruits/vegetables.</p>'},
   {key:'weightloss', icon:'📉',
     img:'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=400&fit=crop',
@@ -1123,7 +1123,7 @@ var articlesData = [
   {key:'metabolism', icon:'🔥',
     img:'https://images.unsplash.com/photo-1533560904424-a0c61dc306fc?w=800&h=400&fit=crop',
     titleAr:'إزاي ترفع معدل الحرق؟', titleEn:'How to Boost Metabolism?',
-    contentAr:'<img src="https://images.unsplash.com/photo-1533560904424-a0c61dc306fc?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><h3 style="color:#16a34a">طرق علمية:</h3><ol style="margin-right:20px;line-height:2.2"><li>تمرين المقاومة</li><li>البروتين</li><li>الماء البارد</li><li>الشاي الأخضر</li><li>القهوة</li><li>النوم الجيد</li></ol>',
+    contentAr:'<img src="https://images.unsplash.com/photo-1533560904424-a0c61dc306fc?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><h3 style="color:#1e4a3d">طرق علمية:</h3><ol style="margin-right:20px;line-height:2.2"><li>تمرين المقاومة</li><li>البروتين</li><li>الماء البارد</li><li>الشاي الأخضر</li><li>القهوة</li><li>النوم الجيد</li></ol>',
     contentEn:'<p>Resistance training, protein, cold water, green tea boost metabolism.</p>'},
   {key:'vitamins', icon:'💊',
     img:'https://images.unsplash.com/photo-1584473457406-6240486418e9?w=800&h=400&fit=crop',
@@ -1133,12 +1133,12 @@ var articlesData = [
   {key:'gym_nutrition', icon:'🏋️',
     img:'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=400&fit=crop',
     titleAr:'تغذية الرياضي - دليل شامل', titleEn:'Athlete Nutrition Guide',
-    contentAr:'<img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><h3 style="color:#16a34a">قبل التمرين:</h3><p>كارب معقد + بروتين خفيف</p><h3 style="color:#16a34a;margin-top:14px">بعد التمرين:</h3><p>بروتين 20-40 جم + كارب</p>',
+    contentAr:'<img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><h3 style="color:#1e4a3d">قبل التمرين:</h3><p>كارب معقد + بروتين خفيف</p><h3 style="color:#1e4a3d;margin-top:14px">بعد التمرين:</h3><p>بروتين 20-40 جم + كارب</p>',
     contentEn:'<p>Pre-workout: complex carbs. Post: 20-40g protein.</p>'},
   {key:'fasting', icon:'🌙',
     img:'https://images.unsplash.com/photo-1490818387583-1baba5e638af?w=800&h=400&fit=crop',
     titleAr:'الصيام المتقطع - فوائد وأضرار', titleEn:'Intermittent Fasting',
-    contentAr:'<img src="https://images.unsplash.com/photo-1490818387583-1baba5e638af?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><h3 style="color:#16a34a">أنواع الصيام:</h3><ul style="margin-right:20px;line-height:2"><li>16:8</li><li>18:6</li><li>5:2</li></ul>',
+    contentAr:'<img src="https://images.unsplash.com/photo-1490818387583-1baba5e638af?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><h3 style="color:#1e4a3d">أنواع الصيام:</h3><ul style="margin-right:20px;line-height:2"><li>16:8</li><li>18:6</li><li>5:2</li></ul>',
     contentEn:'<p>16:8, 18:6, 5:2 protocols.</p>'}
 ];
 
@@ -1152,7 +1152,7 @@ function renderArticles() {
       '</div>' +
       '<div style="padding:14px">' +
         '<div style="font-weight:800;color:var(--blue);font-size:14px;margin-bottom:6px;line-height:1.5">' + title + '</div>' +
-        '<div style="font-size:11px;color:#16a34a;font-weight:700">📖 ' + (IS_AR?'اقرا المزيد':'Read More') + '</div>' +
+        '<div style="font-size:11px;color:#1e4a3d;font-weight:700">📖 ' + (IS_AR?'اقرا المزيد':'Read More') + '</div>' +
       '</div>' +
     '</div>';
   });
@@ -1226,11 +1226,11 @@ function calcTDEE() {
   document.getElementById('tdeeResult').innerHTML =
     '<div class="nutrition-card" style="margin-bottom:10px;text-align:center">' +
       '<div style="font-size:12px;color:#166534;font-weight:700;margin-bottom:6px">TDEE</div>' +
-      '<div style="font-size:36px;font-weight:900;color:#14532d">' + tdee + ' <span style="font-size:14px">kcal</span></div></div>' +
+      '<div style="font-size:36px;font-weight:900;color:#14332b">' + tdee + ' <span style="font-size:14px">kcal</span></div></div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">' +
       '<div style="background:#fef2f2;border-radius:10px;padding:10px;text-align:center"><div style="font-size:11px;color:#991b1b;font-weight:700">' + (IS_AR?'تخسيس':'Cutting') + '</div><div style="font-size:18px;font-weight:800;color:#dc2626">' + cutting + '</div></div>' +
-      '<div style="background:#eff6ff;border-radius:10px;padding:10px;text-align:center"><div style="font-size:11px;color:#1e3a8a;font-weight:700">' + (IS_AR?'ثبات':'Maintain') + '</div><div style="font-size:18px;font-weight:800;color:#2563eb">' + tdee + '</div></div>' +
-      '<div style="background:#f0fdf4;border-radius:10px;padding:10px;text-align:center"><div style="font-size:11px;color:#14532d;font-weight:700">' + (IS_AR?'زيادة':'Bulking') + '</div><div style="font-size:18px;font-weight:800;color:#16a34a">' + bulking + '</div></div></div>';
+      '<div style="background:#faf8f3;border-radius:10px;padding:10px;text-align:center"><div style="font-size:11px;color:#14332b;font-weight:700">' + (IS_AR?'ثبات':'Maintain') + '</div><div style="font-size:18px;font-weight:800;color:#2c5a4a">' + tdee + '</div></div>' +
+      '<div style="background:#faf8f3;border-radius:10px;padding:10px;text-align:center"><div style="font-size:11px;color:#14332b;font-weight:700">' + (IS_AR?'زيادة':'Bulking') + '</div><div style="font-size:18px;font-weight:800;color:#1e4a3d">' + bulking + '</div></div></div>';
 }
 
 // ═══════ BMI ═══════
@@ -1244,10 +1244,10 @@ function calcBMI() {
   var bmi = (weight / (height * height)).toFixed(1);
   var status, color, advice;
   if (bmi < 18.5) {
-    status = IS_AR?'نحافة':'Underweight'; color = '#2563eb';
+    status = IS_AR?'نحافة':'Underweight'; color = '#2c5a4a';
     advice = IS_AR?'وزنك تحت الطبيعي - احتاج زيادة وزن صحية':'Need healthy weight gain';
   } else if (bmi < 25) {
-    status = IS_AR?'طبيعي':'Normal'; color = '#16a34a';
+    status = IS_AR?'طبيعي':'Normal'; color = '#1e4a3d';
     advice = IS_AR?'مبروك! وزنك طبيعي':'Great! Healthy weight';
   } else if (bmi < 30) {
     status = IS_AR?'زيادة وزن':'Overweight'; color = '#f59e0b';
@@ -1260,7 +1260,7 @@ function calcBMI() {
     '<div class="nutrition-card" style="text-align:center">' +
       '<div style="font-size:40px;font-weight:900;color:' + color + ';margin-bottom:6px">' + bmi + '</div>' +
       '<div style="font-size:16px;font-weight:800;color:' + color + ';margin-bottom:10px">' + status + '</div>' +
-      '<div style="font-size:13px;color:#14532d;line-height:1.6">' + advice + '</div></div>';
+      '<div style="font-size:13px;color:#14332b;line-height:1.6">' + advice + '</div></div>';
 }
 
 document.addEventListener('keydown', function(e) {
