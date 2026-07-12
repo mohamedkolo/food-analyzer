@@ -733,7 +733,7 @@ def build_weight_progress(user_id, user=None):
             if bmi < 18.5:
                 out["bmi_label"], out["bmi_color"] = "نحافة", "#1d6fa5"
             elif bmi < 25:
-                out["bmi_label"], out["bmi_color"] = "وزن صحي", "#059669"
+                out["bmi_label"], out["bmi_color"] = "وزن صحي", "#1e4a3d"
             elif bmi < 30:
                 out["bmi_label"], out["bmi_color"] = "زيادة وزن", "#b7791f"
             else:
@@ -1264,7 +1264,7 @@ def terms():
 
 
 @app.route("/analyzer")
-@staff_required
+@subscription_required
 def analyzer():
     return render_template("analyzer.html", user=get_user_by_id(session["uid"]), lang=session.get("lang","ar"))
 
@@ -2380,21 +2380,21 @@ def build_pdf(data, plan=None):
 * {{ box-sizing: border-box; }}
 body {{ font-family: 'Cairo','Amiri','DejaVu Sans',sans-serif; direction: rtl; color:#1b2d24; margin:0; }}
 .hdr {{ display:flex; justify-content:space-between; align-items:center;
-        border-bottom:3px solid #1b4332; padding-bottom:6px; margin-bottom:8px; }}
-.hdr .t {{ font-size:18px; font-weight:800; color:#1b4332; }}
+        border-bottom:3px solid #14332b; padding-bottom:6px; margin-bottom:8px; }}
+.hdr .t {{ font-size:18px; font-weight:800; color:#14332b; }}
 .hdr .s {{ font-size:11px; color:#52796f; }}
 .meta {{ display:flex; flex-wrap:wrap; gap:6px 16px; font-size:11px;
          background:#f0f7f4; border:1px solid #cfe3d9; border-radius:6px;
          padding:7px 10px; margin-bottom:8px; }}
-.meta b {{ color:#1b4332; }}
+.meta b {{ color:#14332b; }}
 table {{ width:100%; border-collapse:collapse; table-layout:fixed; }}
 th,td {{ border:1px solid #2d5a44; padding:6px 6px; font-size:9.5px;
          vertical-align:top; word-wrap:break-word; line-height:1.5; text-align:right; }}
 td .it {{ display:block; padding:2px 0; border-bottom:1px dashed #dcebe4; }}
 td .it:last-child {{ border-bottom:none; }}
-td b {{ color:#1b4332; font-weight:700; }}
-th {{ background:#1b4332; color:#fff; font-weight:700; }}
-td.dcell {{ background:#e8f3ee; font-weight:800; color:#1b4332; font-size:11px; text-align:center; }}
+td b {{ color:#14332b; font-weight:700; }}
+th {{ background:#14332b; color:#fff; font-weight:700; }}
+td.dcell {{ background:#e8f3ee; font-weight:800; color:#14332b; font-size:11px; text-align:center; }}
 .dcol {{ width:62px; }} .kcol,.kcell {{ width:48px; text-align:center; }}
 .kcell {{ font-weight:700; color:#2d5a44; }}
 tr:nth-child(even) td {{ background:#fafdfb; }}
@@ -2409,7 +2409,7 @@ tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
 .summary {{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
             background:#eef4f1; border:1px solid #cfe3d9; border-radius:6px;
             padding:7px 12px; margin-top:8px; font-size:11px; }}
-.summary b {{ color:#1b4332; }}
+.summary b {{ color:#14332b; }}
 </style></head><body>
 <div class="hdr">
   <div><div class="t">{_esc(td['plan_title'])} — {_esc(td['diet_plan_name'])}</div>
