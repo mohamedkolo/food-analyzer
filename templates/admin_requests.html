@@ -117,9 +117,9 @@ document.getElementById('rejectModal').addEventListener('click', function(e) {
   {% endfor %}
 
   {% if pending_count == 0 %}
-  <div class="card" style="text-align:center;padding:30px;background:#f0fdf4;border:2px dashed #86efac">
-    <i class="fa-solid fa-check-circle" style="font-size:40px;color:#16a34a;margin-bottom:10px"></i>
-    <h3 style="color:#14532d;font-weight:800">مفيش طلبات جديدة</h3>
+  <div class="card" style="text-align:center;padding:30px;background:#faf8f3;border:2px dashed #d9cfb4">
+    <i class="fa-solid fa-check-circle" style="font-size:40px;color:#1e4a3d;margin-bottom:10px"></i>
+    <h3 style="color:#14332b;font-weight:800">مفيش طلبات جديدة</h3>
   </div>
   {% endif %}
 </div>
@@ -129,15 +129,15 @@ document.getElementById('rejectModal').addEventListener('click', function(e) {
 
 {% if has_approved %}
 <div style="margin-top:20px">
-  <button onclick="toggleDone()" id="doneToggle" style="width:100%;padding:14px 18px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:2px solid #86efac;border-radius:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-family:'Cairo',sans-serif">
+  <button onclick="toggleDone()" id="doneToggle" style="width:100%;padding:14px 18px;background:linear-gradient(135deg,#faf8f3,#f0ead9);border:2px solid #d9cfb4;border-radius:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-family:'Cairo',sans-serif">
     <div style="display:flex;align-items:center;gap:10px">
       <div style="font-size:22px">✅</div>
       <div style="text-align:right">
-        <div style="font-weight:800;font-size:15px;color:#14532d">الطلبات المكتملة</div>
+        <div style="font-weight:800;font-size:15px;color:#14332b">الطلبات المكتملة</div>
         <div style="font-size:12px;color:#166534;margin-top:2px">اضغط للعرض</div>
       </div>
     </div>
-    <i id="doneIcon" class="fa-solid fa-chevron-down" style="font-size:18px;color:#16a34a"></i>
+    <i id="doneIcon" class="fa-solid fa-chevron-down" style="font-size:18px;color:#1e4a3d"></i>
   </button>
 
   <div id="doneList" style="display:none;margin-top:12px">
@@ -155,7 +155,7 @@ document.getElementById('rejectModal').addEventListener('click', function(e) {
             </div>
           </div>
           <div>
-            <span style="background:#dcfce7;color:#14532d;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">مكتمل</span>
+            <span style="background:#f0ead9;color:#14332b;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">مكتمل</span>
           </div>
         </div>
 
@@ -201,7 +201,7 @@ document.getElementById('rejectModal').addEventListener('click', function(e) {
   </div>
 </div>
 
-<div id="toast" style="display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#16a34a;color:white;padding:14px 24px;border-radius:100px;font-weight:700;z-index:2000">
+<div id="toast" style="display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1e4a3d;color:white;padding:14px 24px;border-radius:100px;font-weight:700;z-index:2000">
   <i class="fa-solid fa-check-circle"></i> <span id="toastMsg">تم</span>
 </div>
 

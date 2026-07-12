@@ -29,8 +29,8 @@
   }
 
   .refresh-btn {
-    background: #f1f5f9;
-    border: 1px solid #e2e8f0;
+    background: #f5f1e8;
+    border: 1px solid #e7e0d0;
     padding: 8px 16px;
     border-radius: 10px;
     color: #475569;
@@ -40,7 +40,7 @@
     transition: all 0.2s;
   }
 
-  .refresh-btn:hover { background: #e2e8f0; }
+  .refresh-btn:hover { background: #e7e0d0; }
 
   /* Stats Grid */
   .stats-grid {
@@ -55,7 +55,7 @@
     border-radius: 16px;
     padding: 22px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-    border: 1px solid #f1f5f9;
+    border: 1px solid #f5f1e8;
     position: relative;
     overflow: hidden;
   }
@@ -92,7 +92,7 @@
   .tabs {
     display: flex;
     gap: 4px;
-    background: #f1f5f9;
+    background: #f5f1e8;
     padding: 4px;
     border-radius: 12px;
     margin-bottom: 20px;
@@ -114,7 +114,7 @@
 
   .tab-btn.active {
     background: #fff;
-    color: #059669;
+    color: #1e4a3d;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
@@ -129,7 +129,7 @@
 
   .filter-input {
     padding: 10px 14px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #e7e0d0;
     border-radius: 10px;
     font-family: inherit;
     font-size: 14px;
@@ -140,7 +140,7 @@
 
   .filter-input:focus {
     outline: none;
-    border-color: #10b981;
+    border-color: #1e4a3d;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   }
 
@@ -150,7 +150,7 @@
     border-radius: 16px;
     overflow-x: auto;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-    border: 1px solid #f1f5f9;
+    border: 1px solid #f5f1e8;
   }
 
   table {
@@ -159,7 +159,7 @@
     font-size: 14px;
   }
 
-  thead { background: #f8fafc; }
+  thead { background: #faf8f3; }
 
   th {
     text-align: right;
@@ -167,18 +167,18 @@
     font-weight: 700;
     color: #475569;
     font-size: 13px;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 2px solid #e7e0d0;
     white-space: nowrap;
   }
 
   td {
     padding: 14px 16px;
     color: #0f172a;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid #f5f1e8;
     white-space: nowrap;
   }
 
-  tbody tr:hover { background: #f8fafc; }
+  tbody tr:hover { background: #faf8f3; }
   tbody tr:last-child td { border-bottom: 0; }
 
   /* Badges */
@@ -191,15 +191,15 @@
     letter-spacing: 0.2px;
   }
 
-  .badge-success { background: #d1fae5; color: #065f46; }
+  .badge-success { background: #ede7d8; color: #14332b; }
   .badge-warning { background: #fef3c7; color: #92400e; }
   .badge-danger { background: #fee2e2; color: #991b1b; }
-  .badge-info { background: #dbeafe; color: #1e40af; }
-  .badge-gray { background: #f1f5f9; color: #475569; }
+  .badge-info { background: #f0ead9; color: #14332b; }
+  .badge-gray { background: #f5f1e8; color: #475569; }
 
   /* Plan colors */
-  .plan-consultation { color: #3b82f6; font-weight: 700; }
-  .plan-single_plan { color: #10b981; font-weight: 700; }
+  .plan-consultation { color: #2c5a4a; font-weight: 700; }
+  .plan-single_plan { color: #1e4a3d; font-weight: 700; }
   .plan-monthly_subscription { color: #f59e0b; font-weight: 700; }
 
   .empty-state {
@@ -218,7 +218,7 @@
   .user-name { font-weight: 700; color: #0f172a; }
   .user-email { font-size: 12px; color: #94a3b8; }
 
-  .amount-cell { font-weight: 700; color: #059669; }
+  .amount-cell { font-weight: 700; color: #1e4a3d; }
 
   .date-cell { font-size: 13px; color: #64748b; }
 
@@ -239,7 +239,7 @@
 
   <!-- Stats Cards -->
   <div class="stats-grid">
-    <div class="stat-card" style="--c: #10b981">
+    <div class="stat-card" style="--c: #1e4a3d">
       <div class="stat-label">إجمالي الإيرادات (الكل)</div>
       <div class="stat-value">{{ "%.0f"|format(stats.total_revenue / 100) if stats.total_revenue else 0 }}</div>
       <div class="stat-trend">{{ stats.total_revenue_currency or 'مختلط' }}</div>
@@ -251,7 +251,7 @@
       <div class="stat-trend">{{ stats.trialing_count or 0 }} في فترة تجريبية</div>
     </div>
 
-    <div class="stat-card" style="--c: #3b82f6">
+    <div class="stat-card" style="--c: #2c5a4a">
       <div class="stat-label">الدفعات الناجحة</div>
       <div class="stat-value">{{ stats.successful_payments or 0 }}</div>
       <div class="stat-trend">من إجمالي {{ stats.total_attempts or 0 }} محاولة</div>
