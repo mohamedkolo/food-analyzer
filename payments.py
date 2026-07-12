@@ -58,7 +58,7 @@ PRICING = {
         "duration_days": 1,
         "type": "one_time",
         "icon": "💬",
-        "color": "#3b82f6",
+        "color": "#2c5a4a",
         "prices": build_prices("consultation"),
         "features_ar": [
             "محادثة مع د. محمد لمدة 24 ساعة",
@@ -81,7 +81,7 @@ PRICING = {
         "duration_days": 7,
         "type": "one_time",
         "icon": "📋",
-        "color": "#10b981",
+        "color": "#1e4a3d",
         "prices": build_prices("single_plan"),
         "features_ar": [
             "خطة غذائية كاملة من د. محمد",
@@ -107,7 +107,7 @@ PRICING = {
         "type": "subscription",
         "trial_days": 7,
         "icon": "👑",
-        "color": "#f59e0b",
+        "color": "#c9a961",
         "badge": "الأكثر توفيراً",
         "badge_en": "Best Value",
         "prices": build_prices("monthly_subscription"),
