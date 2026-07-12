@@ -240,6 +240,9 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
     <a href="/history" class="nav-item {% if request.endpoint=='history' %}active{% endif %}">
       <i class="fa-solid fa-chart-line"></i> {{ 'وزني' if is_ar else 'My Weight' }}
     </a>
+    <a href="/analyzer" class="nav-item {% if request.endpoint=='analyzer' %}active{% endif %}">
+      <i class="fa-solid fa-magnifying-glass"></i> {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
+    </a>
     <details class="nav-more" {% if request.endpoint in ['daily_tips','knowledge','my_plans_history'] %}open{% endif %}>
       <summary class="nav-item"><i class="fa-solid fa-ellipsis"></i> {{ 'المزيد' if is_ar else 'More' }}</summary>
       <a href="/daily-tips" class="nav-item {% if request.endpoint=='daily_tips' %}active{% endif %}">
