@@ -15,7 +15,7 @@
     padding: 48px 32px;
     text-align: center;
     box-shadow: 0 8px 30px rgba(16, 185, 129, 0.12);
-    border: 2px solid #d1fae5;
+    border: 2px solid #ede7d8;
     position: relative;
     overflow: hidden;
   }
@@ -27,7 +27,7 @@
     left: 0;
     right: 0;
     height: 6px;
-    background: linear-gradient(90deg, #10b981, #34d399, #6ee7b7);
+    background: linear-gradient(90deg, #1e4a3d, #c9a961, #c9a961);
   }
 
   .success-icon {
@@ -35,7 +35,7 @@
     height: 100px;
     margin: 0 auto 24px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #1e4a3d, #1e4a3d);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -54,7 +54,7 @@
   .success-title {
     font-size: 32px;
     font-weight: 800;
-    color: #065f46;
+    color: #14332b;
     margin: 0 0 12px;
   }
 
@@ -66,8 +66,8 @@
   }
 
   .info-box {
-    background: #f0fdf4;
-    border: 1px solid #86efac;
+    background: #faf8f3;
+    border: 1px solid #d9cfb4;
     border-radius: 14px;
     padding: 20px;
     margin: 24px 0;
@@ -78,7 +78,7 @@
     display: flex;
     justify-content: space-between;
     padding: 8px 0;
-    border-bottom: 1px dashed #d1fae5;
+    border-bottom: 1px dashed #ede7d8;
     font-size: 15px;
   }
 
@@ -108,7 +108,7 @@
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #1e4a3d, #1e4a3d);
     color: #fff;
     box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
   }
@@ -119,11 +119,11 @@
   }
 
   .btn-secondary {
-    background: #f1f5f9;
+    background: #f5f1e8;
     color: #475569;
   }
 
-  .btn-secondary:hover { background: #e2e8f0; }
+  .btn-secondary:hover { background: #e7e0d0; }
 
   .confetti {
     position: absolute;
@@ -195,7 +195,7 @@
 <script>
 // Confetti effect
 (function() {
-  const colors = ['#10b981', '#34d399', '#6ee7b7', '#f59e0b', '#3b82f6'];
+  const colors = ['#1e4a3d', '#c9a961', '#c9a961', '#f59e0b', '#2c5a4a'];
   const container = document.getElementById('confetti');
   if (!container) return;
   for (let i = 0; i < 30; i++) {
