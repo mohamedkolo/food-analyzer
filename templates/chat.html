@@ -6,7 +6,7 @@
   <a href="/messages" class="btn btn-outline" style="padding:8px 12px">
     <i class="fa-solid fa-arrow-right"></i>
   </a>
-  <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#1b4332,#2d6a4f);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">
+  <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#14332b,#1e4a3d);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">
     {{ other.name[0] if other.name else '?' }}
   </div>
   <div>
@@ -22,7 +22,7 @@
       {% for m in messages %}
         {% set is_me = m.sender_id == user.id %}
         <div style="display:flex;{{ 'justify-content:flex-end' if is_me else 'justify-content:flex-start' }}">
-          <div style="max-width:75%;background:{{ '#dcfce7' if is_me else '#f3f4f6' }};color:{{ '#14532d' if is_me else '#1f2937' }};padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.6">
+          <div style="max-width:75%;background:{{ '#f0ead9' if is_me else '#f3f4f6' }};color:{{ '#14332b' if is_me else '#1f2937' }};padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.6">
             {{ m.message }}
             <div style="font-size:10px;color:var(--muted);margin-top:4px;text-align:left">
               {{ m.created_at.strftime('%H:%M') if m.created_at.strftime is defined else m.created_at }}

@@ -3,7 +3,7 @@
 {% block content %}
 
 <!-- Welcome Banner -->
-<div class="card" style="background:linear-gradient(135deg,#1b4332 0%,#2d6a4f 100%);color:white;padding:24px;margin-bottom:20px">
+<div class="card" style="background:linear-gradient(135deg,#14332b 0%,#1e4a3d 100%);color:white;padding:24px;margin-bottom:20px">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
     <div>
       <div style="font-size:14px;opacity:0.85;margin-bottom:4px">أهلا</div>
@@ -30,15 +30,15 @@
     {% endif %}
   </div>
 
-  <div class="card" style="text-align:center;padding:18px;border-top:4px solid #2563eb">
+  <div class="card" style="text-align:center;padding:18px;border-top:4px solid #2c5a4a">
     <div style="font-size:34px;margin-bottom:6px">👥</div>
-    <div style="font-size:32px;font-weight:900;color:#2563eb">{{ total_clients or 0 }}</div>
+    <div style="font-size:32px;font-weight:900;color:#2c5a4a">{{ total_clients or 0 }}</div>
     <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">إجمالي العملاء</div>
   </div>
 
-  <div class="card" style="text-align:center;padding:18px;border-top:4px solid #16a34a">
+  <div class="card" style="text-align:center;padding:18px;border-top:4px solid #1e4a3d">
     <div style="font-size:34px;margin-bottom:6px">✅</div>
-    <div style="font-size:32px;font-weight:900;color:#16a34a">{{ total_plans or 0 }}</div>
+    <div style="font-size:32px;font-weight:900;color:#1e4a3d">{{ total_plans or 0 }}</div>
     <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">خطط مكتملة</div>
   </div>
 
@@ -97,7 +97,7 @@
   </div>
   <div style="display:flex;flex-direction:column;gap:8px">
     {% for req in recent_requests %}
-    <a href="/admin/requests" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--gray);border-radius:10px;text-decoration:none;color:var(--text);transition:all 0.2s" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='var(--gray)'">
+    <a href="/admin/requests" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--gray);border-radius:10px;text-decoration:none;color:var(--text);transition:all 0.2s" onmouseover="this.style.background='#e7e0d0'" onmouseout="this.style.background='var(--gray)'">
       <div>
         <div style="font-weight:700;font-size:14px">{{ req.client_name or 'عميل' }}</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px">{{ req.created_at }}</div>
@@ -106,7 +106,7 @@
         {% if req.status == 'pending' %}
         <span style="background:#fff3cd;color:#856404;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">⏳ جديد</span>
         {% elif req.status == 'approved' %}
-        <span style="background:#dcfce7;color:#14532d;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">✓ مكتمل</span>
+        <span style="background:#f0ead9;color:#14332b;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">✓ مكتمل</span>
         {% endif %}
       </div>
     </a>
