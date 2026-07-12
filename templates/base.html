@@ -47,7 +47,7 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .role-badge{font-size:10px;padding:2px 8px;border-radius:6px;font-weight:700;margin-right:4px}
 .role-admin{background:#fee;color:#8b0000}
 .role-nutritionist{background:#f0ead9;color:#14332b}
-.role-client{background:#dbeafe;color:#1e3a8a}
+.role-client{background:#f0ead9;color:#14332b}
 /* جرس الإشعارات */
 .notif-bell{position:relative;width:36px;height:36px;padding:0;justify-content:center}
 .notif-bell i{font-size:16px}
@@ -82,7 +82,7 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px}
 .metric{background:var(--white);border:1.5px solid var(--gray-2);border-radius:14px;padding:16px;text-align:center}
 .alert{padding:12px 16px;border-radius:10px;font-size:14px;font-weight:500;margin-bottom:12px;line-height:1.6;display:flex;align-items:flex-start;gap:8px}
-.alert-info{background:var(--blue-pale);color:#1e3a8a;border:1px solid #93c5fd}
+.alert-info{background:var(--blue-pale);color:#14332b;border:1px solid #d9cfb4}
 .alert-success{background:var(--green-pale);color:#14332b;border:1px solid #d9cfb4}
 .alert-warn{background:#fffbeb;color:#78350f;border:1px solid #fcd34d}
 .alert-error{background:var(--red-pale);color:#7f1d1d;border:1px solid #fca5a5}
@@ -469,6 +469,15 @@ async function nxEnablePush(){
 {% endif %}
 
 {% block extra_script %}{% endblock %}
+
+<!-- ═══ زرار المحادثة العائم (للعملاء) ═══ -->
+{% if user is defined and user and not is_staff and not request.path.startswith('/messages') %}
+<a href="/messages" id="chatFab" title="راسل د. محمد"
+   style="position:fixed;bottom:20px;left:20px;z-index:990;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#14332b,#1e4a3d);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 22px rgba(20,51,43,.4);text-decoration:none;border:2px solid #c9a961;transition:transform .15s">
+  <i class="fa-solid fa-comment-dots" style="font-size:23px"></i>
+</a>
+<style>a#chatFab:hover{transform:scale(1.08)} @media(max-width:768px){ a#chatFab{bottom:16px;left:14px;width:54px;height:54px} }</style>
+{% endif %}
 
 <!-- ═══ زرار تثبيت التطبيق (PWA) ═══ -->
 <div id="pwaInstallBar" style="display:none;position:fixed;bottom:16px;left:12px;right:12px;z-index:9999;background:linear-gradient(135deg,#14332b,#1e4a3d);color:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.25);align-items:center;gap:10px;">

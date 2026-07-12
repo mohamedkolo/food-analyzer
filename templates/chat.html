@@ -30,6 +30,14 @@
           </div>
         </div>
       {% endfor %}
+      {% if messages[-1].sender_id == user.id and (not user.role or user.role == 'client') %}
+      <div style="display:flex;justify-content:flex-start">
+        <div style="max-width:75%;background:#faf8f3;border:1px dashed #c9a961;color:#14332b;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.7">
+          <div style="font-size:10px;font-weight:800;color:#c9a961;margin-bottom:4px">⚡ رد تلقائي</div>
+          وصلت رسالتك لد. محمد ✅ هيرد عليك شخصياً في أقرب وقت — عادةً خلال ساعات العمل.
+        </div>
+      </div>
+      {% endif %}
     {% else %}
       <div style="margin:auto;text-align:center;color:var(--muted)">
         <div style="font-size:42px;margin-bottom:10px">👋</div>
