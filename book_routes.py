@@ -23,7 +23,7 @@ API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if "user_id" not in session:
+        if "uid" not in session:
             return jsonify({"error": "غير مصرح"}), 401
         return f(*args, **kwargs)
     return decorated
@@ -39,7 +39,7 @@ def get_db():
 # ── صفحة مساعد الكتاب ────────────────────────────────────────────────────────
 @book_bp.route("/book-assistant")
 def book_assistant():
-    if "user_id" not in session:
+    if "uid" not in session:
         return render_template("login.html")
     return render_template("book_assistant.html")
 
