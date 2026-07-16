@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+.env.*
+*.pem
+*.key
+
+# NotebookLM auth / session data (never commit cookies or login state)
+.notebooklm/
+storage_state.json
+storage_state*.json
+*cookies*.json
+*.cookies
+
+# Flask instance folder (often holds local secrets/config)
+instance/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
