@@ -1544,6 +1544,50 @@ def terms():
 def analyzer():
     return render_template("analyzer.html", user=get_user_by_id(session["uid"]), lang=session.get("lang","ar"))
 
+@app.route("/api/food/barcode/<code>")
+@subscription_required
+def food_barcode_lookup(code):
+    """يجيب بيانات منتج معلّب بالباركود من Open Food Facts (قاعدة بيانات مجانية بدون مفتاح API)."""
+    import urllib.request as _ur
+
+    clean_code = re.sub(r"\D", "", code or "")[:20]
+    if not clean_code:
+        return jsonify({"ok": False, "error": "باركود غير صالح"}), 400
+
+    try:
+        req = _ur.Request(
+            f"https://world.openfoodfacts.org/api/v2/product/{clean_code}.json",
+            headers={"User-Agent": "NutraX-FoodAnalyzer/1.0 (contact: admin@nutrax.com)"}
+        )
+        with _ur.urlopen(req, timeout=8) as r:
+            data = json.loads(r.read())
+    except Exception as e:
+        print(f"[barcode] fetch error: {e}")
+        return jsonify({"ok": False, "error": "تعذر الاتصال بقاعدة بيانات الباركود"}), 502
+
+    if data.get("status") != 1 or not data.get("product"):
+        return jsonify({"ok": False, "error": "المنتج ده مش موجود في القاعدة"}), 404
+
+    p = data["product"]
+    nutr = p.get("nutriments") or {}
+    cal, protein, carbs, fat = (nutr.get("energy-kcal_100g"), nutr.get("proteins_100g"),
+                                 nutr.get("carbohydrates_100g"), nutr.get("fat_100g"))
+    if cal is None or protein is None or carbs is None or fat is None:
+        return jsonify({"ok": False, "error": "البيانات الغذائية لهذا المنتج ناقصة"}), 404
+
+    name_ar = p.get("product_name_ar") or ""
+    name_en = p.get("product_name") or p.get("generic_name") or ""
+    food = {
+        "n": name_ar or name_en or "منتج بدون اسم",
+        "en": name_en if name_ar and name_en != name_ar else "",
+        "cat": "packaged", "cal": round(float(cal)), "p": round(float(protein), 1),
+        "c": round(float(carbs), 1), "f": round(float(fat), 1),
+        "safe": [], "units": [],
+        "note": "من قاعدة بيانات Open Food Facts (منتج معلّب) — تأكد من مطابقة الباركود للمنتج.",
+        "tip": "", "barcode": clean_code,
+    }
+    return jsonify({"ok": True, "food": food})
+
 @app.route("/planner")
 @staff_required
 def planner():
