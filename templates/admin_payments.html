@@ -227,6 +227,7 @@
   @media (max-width: 768px) {
     .stat-value { font-size: 24px; }
     th, td { padding: 10px 12px; font-size: 13px; }
+    .analytics-cols { grid-template-columns: 1fr !important; }
   }
 </style>
 
@@ -263,6 +264,68 @@
       <div class="stat-trend">من إجمالي {{ stats.total_users or 0 }} مستخدم</div>
     </div>
   </div>
+
+  <!-- Revenue Trend Chart -->
+  {% if analytics %}
+  <div class="stat-card" style="--c:#1e4a3d;margin-bottom:16px;">
+    <div class="stat-label">📈 الإيرادات اليومية (آخر {{ analytics.revenue_chart|length }} يوم) — جنيه مصري</div>
+    {% if analytics.revenue_chart and analytics.revenue_max > 0 %}
+    <svg viewBox="0 0 700 170" style="width:100%;height:170px;margin-top:10px;" preserveAspectRatio="none">
+      <line x1="0" y1="150" x2="700" y2="150" stroke="#e7e0d0" stroke-width="1"/>
+      {% set bar_w = 700 / analytics.revenue_chart|length %}
+      {% for d in analytics.revenue_chart %}
+        {% set h = (d.amount / analytics.revenue_max * 130) if d.amount > 0 else 0 %}
+        {% set x = loop.index0 * bar_w %}
+        <rect x="{{ '%.1f'|format(x + bar_w * 0.2) }}" y="{{ '%.1f'|format(150 - h) }}"
+              width="{{ '%.1f'|format(bar_w * 0.6) }}" height="{{ '%.1f'|format(h) }}"
+              rx="3" fill="#1e4a3d">
+          <title>{{ d.label }}: {{ d.amount }} ج.م</title>
+        </rect>
+      {% endfor %}
+    </svg>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-top:4px;">
+      <span>{{ analytics.revenue_chart[0].label }}</span>
+      <span>{{ analytics.revenue_chart[-1].label }}</span>
+    </div>
+    {% else %}
+    <div style="color:#94a3b8;font-size:13px;padding:20px 0;">مفيش دفعات جنيه مصري مكتملة في الفترة دي</div>
+    {% endif %}
+  </div>
+
+  <!-- Renewals soon / Recently lost -->
+  <div class="analytics-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
+    <div class="stat-card" style="--c:#f59e0b;">
+      <div class="stat-label">🔔 تجديدات قريبة (خلال 7 أيام)</div>
+      {% if analytics.renewals_soon %}
+      <div style="margin-top:10px;">
+        {% for r in analytics.renewals_soon %}
+        <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #f5f1e8;font-size:13px;">
+          <span style="font-weight:700;color:#0f172a;">{{ r.name }}{% if r.is_trial %} <span style="color:#f59e0b;">(تجربة)</span>{% endif %}</span>
+          <span style="color:#64748b;white-space:nowrap;">{{ r.plan_name }} · {{ r.days_left }} يوم</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="color:#94a3b8;font-size:13px;padding:16px 0;">مفيش تجديدات قريبة</div>
+      {% endif %}
+    </div>
+    <div class="stat-card" style="--c:#dc2626;">
+      <div class="stat-label">⚠️ فقدوا الوصول مؤخراً (آخر 7 أيام)</div>
+      {% if analytics.recently_lost %}
+      <div style="margin-top:10px;">
+        {% for r in analytics.recently_lost %}
+        <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #f5f1e8;font-size:13px;">
+          <span style="font-weight:700;color:#0f172a;">{{ r.name }}</span>
+          <span style="color:#64748b;white-space:nowrap;">{{ r.plan_name }} · {{ r.reason }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="color:#94a3b8;font-size:13px;padding:16px 0;">مفيش حد فقد الوصول مؤخراً 🎉</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Tabs -->
   <div class="tabs">

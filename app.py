@@ -109,7 +109,7 @@ from payments import (
     has_active_access, get_user_access_info,
     cancel_user_subscription, detect_currency,
     get_supported_currencies, STRIPE_PUBLIC_KEY,
-    send_renewal_reminders
+    send_renewal_reminders, build_admin_analytics
 )
 
 # ═══════════════════════════════════════════════
@@ -2942,10 +2942,12 @@ def admin_payments_view():
     except Exception as e:
         print(f"Stats compute error: {e}")
 
+    analytics = build_admin_analytics(db_rows)
+
     return render_template("admin_payments.html",
                            user=user, lang=session.get("lang", "ar"),
                            payments=payments, subscriptions=subscriptions,
-                           stats=stats)
+                           stats=stats, analytics=analytics)
 
 
 @app.route("/check-access")

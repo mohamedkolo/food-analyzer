@@ -478,6 +478,97 @@ def send_renewal_reminders(db_run, db_rows, push_to_user, days_before=3):
 
 
 # ═══════════════════════════════════════════════
+# ADMIN ANALYTICS
+# ═══════════════════════════════════════════════
+
+def build_admin_analytics(db_rows, days_chart=14, days_horizon=7):
+    """بيحسب رسم الإيرادات اليومية (جنيه مصري فقط) + قوائم التجديدات القريبة والعملاء المفقودين مؤخراً."""
+    out = {"revenue_chart": [], "revenue_max": 0, "renewals_soon": [], "recently_lost": []}
+    now = datetime.now()
+
+    # ── رسم الإيرادات اليومية (آخر N يوم، جنيه مصري بس عشان مفيش تحويل عملات) ──
+    try:
+        since = now - timedelta(days=days_chart - 1)
+        rows = db_rows("""SELECT amount, created_at FROM payments
+                          WHERE status='completed' AND currency='EGP' AND created_at >= ?""", (since,))
+        totals = {}
+        for r in (rows or []):
+            d = r.get("created_at")
+            key = d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)[:10]
+            totals[key] = totals.get(key, 0) + (r.get("amount") or 0)
+        chart = []
+        for i in range(days_chart):
+            d = (since + timedelta(days=i)).date()
+            key = d.strftime("%Y-%m-%d")
+            chart.append({"date": key, "label": d.strftime("%m/%d"), "amount": round(totals.get(key, 0) / 100)})
+        out["revenue_chart"] = chart
+        out["revenue_max"] = max((c["amount"] for c in chart), default=0)
+    except Exception as e:
+        print(f"[analytics] revenue chart error: {e}")
+
+    # ── تجديدات قريبة (خلال أيام قليلة) ──
+    try:
+        soon = now + timedelta(days=days_horizon)
+        subs = db_rows("""SELECT s.*, u.name as user_name, u.email as user_email FROM subscriptions s
+                          LEFT JOIN users u ON s.user_id = u.id
+                          WHERE s.status IN ('active','trialing') AND s.current_period_end BETWEEN ? AND ?
+                          ORDER BY s.current_period_end ASC""", (now, soon))
+        for s in (subs or []):
+            plan = PRICING.get(s.get("plan_key"), {})
+            end = _as_datetime(s.get("current_period_end"), now)
+            out["renewals_soon"].append({
+                "name": s.get("user_name") or "-", "email": s.get("user_email") or "-",
+                "plan_name": plan.get("name", s.get("plan_key")),
+                "is_trial": s.get("status") == "trialing",
+                "days_left": max(0, (end - now).days),
+            })
+        pays = db_rows("""SELECT p.*, u.name as user_name, u.email as user_email FROM payments p
+                          LEFT JOIN users u ON p.user_id = u.id
+                          WHERE p.status='completed' AND p.expires_at BETWEEN ? AND ?
+                          ORDER BY p.expires_at ASC""", (now, soon))
+        for p in (pays or []):
+            plan = PRICING.get(p.get("plan_key"), {})
+            end = _as_datetime(p.get("expires_at"), now)
+            out["renewals_soon"].append({
+                "name": p.get("user_name") or "-", "email": p.get("user_email") or "-",
+                "plan_name": plan.get("name", p.get("plan_key")),
+                "is_trial": False,
+                "days_left": max(0, (end - now).days),
+            })
+        out["renewals_soon"].sort(key=lambda x: x["days_left"])
+    except Exception as e:
+        print(f"[analytics] renewals query error: {e}")
+
+    # ── عملاء فقدوا الوصول مؤخراً (آخر أسبوع) — إشارة churn ──
+    try:
+        week_ago = now - timedelta(days=days_horizon)
+        canceled = db_rows("""SELECT s.*, u.name as user_name, u.email as user_email FROM subscriptions s
+                              LEFT JOIN users u ON s.user_id = u.id
+                              WHERE s.status='canceled' AND s.updated_at BETWEEN ? AND ?
+                              ORDER BY s.updated_at DESC""", (week_ago, now))
+        for s in (canceled or []):
+            plan = PRICING.get(s.get("plan_key"), {})
+            out["recently_lost"].append({
+                "name": s.get("user_name") or "-", "email": s.get("user_email") or "-",
+                "plan_name": plan.get("name", s.get("plan_key")), "reason": "إلغاء اشتراك",
+            })
+        expired = db_rows("""SELECT p.*, u.name as user_name, u.email as user_email FROM payments p
+                             LEFT JOIN users u ON p.user_id = u.id
+                             WHERE p.status='completed' AND p.expires_at BETWEEN ? AND ?
+                             ORDER BY p.expires_at DESC""", (week_ago, now))
+        for p in (expired or []):
+            plan = PRICING.get(p.get("plan_key"), {})
+            out["recently_lost"].append({
+                "name": p.get("user_name") or "-", "email": p.get("user_email") or "-",
+                "plan_name": plan.get("name", p.get("plan_key")), "reason": "انتهت الخطة",
+            })
+    except Exception as e:
+        print(f"[analytics] recently-lost query error: {e}")
+
+    return out
+
+
+# ═══════════════════════════════════════════════
 # ACCESS CONTROL
 # ═══════════════════════════════════════════════
 
