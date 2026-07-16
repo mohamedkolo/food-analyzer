@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, session, send_file, jsonify
-import hashlib, os, json, io, random, re
+import hashlib, os, json, io, random, re, threading
 from datetime import timedelta, datetime
 
 app = Flask(__name__)
@@ -108,7 +108,8 @@ from payments import (
     handle_subscription_updated, handle_subscription_canceled,
     has_active_access, get_user_access_info,
     cancel_user_subscription, detect_currency,
-    get_supported_currencies, STRIPE_PUBLIC_KEY
+    get_supported_currencies, STRIPE_PUBLIC_KEY,
+    send_renewal_reminders
 )
 
 # ═══════════════════════════════════════════════
@@ -279,6 +280,8 @@ def init_db():
         "ALTER TABLE users ADD COLUMN allergies TEXT",
         "ALTER TABLE users ADD COLUMN onboarded_at TIMESTAMP",
         "ALTER TABLE users ADD COLUMN lifestyle_data TEXT",
+        "ALTER TABLE subscriptions ADD COLUMN reminder_sent INTEGER DEFAULT 0",
+        "ALTER TABLE payments ADD COLUMN reminder_sent INTEGER DEFAULT 0",
     ]:
         try: db_run(col_sql)
         except: pass
@@ -306,6 +309,18 @@ try:
     ensure_notif_table(db_run, is_postgres=bool(DATABASE_URL))
 except Exception as _e:
     print(f"notif table init error: {_e}")
+
+# ── تذكير تجديد الاشتراك: فحص دوري في الخلفية كل 12 ساعة ──
+def _renewal_reminders_loop():
+    import time
+    while True:
+        try:
+            send_renewal_reminders(db_run, db_rows, push_to_user)
+        except Exception as e:
+            print(f"[reminders] loop error: {e}")
+        time.sleep(12 * 3600)
+
+threading.Thread(target=_renewal_reminders_loop, daemon=True).start()
 
 def get_user(email, pw):
     u = db_row("SELECT * FROM users WHERE email=?", (email,))

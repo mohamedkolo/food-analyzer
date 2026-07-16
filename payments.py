@@ -414,6 +414,70 @@ def handle_subscription_canceled(sub_obj, db_run):
 
 
 # ═══════════════════════════════════════════════
+# RENEWAL REMINDERS
+# ═══════════════════════════════════════════════
+
+def _as_datetime(value, fallback):
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace('Z', ''))
+        except ValueError:
+            return fallback
+    return value or fallback
+
+
+def send_renewal_reminders(db_run, db_rows, push_to_user, days_before=3):
+    """يفحص الاشتراكات والخطط اللي هتنتهي قريب ويبعت تذكير بوش نوتيفيكيشن مرة واحدة بس لكل واحدة."""
+    now = datetime.now()
+    soon = now + timedelta(days=days_before)
+
+    try:
+        subs = db_rows("""SELECT * FROM subscriptions
+                          WHERE status IN ('active', 'trialing')
+                          AND current_period_end BETWEEN ? AND ?
+                          AND COALESCE(reminder_sent, 0) = 0""",
+                       (now, soon))
+    except Exception as e:
+        print(f"[reminders] subscriptions query error: {e}")
+        subs = []
+
+    for sub in subs:
+        try:
+            plan = PRICING.get(sub["plan_key"], {})
+            end_date = _as_datetime(sub["current_period_end"], now)
+            days_left = max(0, (end_date - now).days)
+            label = "تجربتك المجانية" if sub["status"] == "trialing" else plan.get("name", "اشتراكك")
+            push_to_user(sub["user_id"], "تذكير بالاشتراك",
+                         f"{label} هتنتهي خلال {days_left} يوم. جدّد دلوقتي عشان تفضل مستمر.",
+                         url="/pricing")
+            db_run("UPDATE subscriptions SET reminder_sent=1 WHERE id=?", (sub["id"],))
+        except Exception as e:
+            print(f"[reminders] subscription {sub.get('id')} error: {e}")
+
+    try:
+        pays = db_rows("""SELECT * FROM payments
+                          WHERE status='completed'
+                          AND expires_at BETWEEN ? AND ?
+                          AND COALESCE(reminder_sent, 0) = 0""",
+                       (now, soon))
+    except Exception as e:
+        print(f"[reminders] payments query error: {e}")
+        pays = []
+
+    for pay in pays:
+        try:
+            plan = PRICING.get(pay["plan_key"], {})
+            end_date = _as_datetime(pay["expires_at"], now)
+            days_left = max(0, (end_date - now).days)
+            push_to_user(pay["user_id"], "تذكير بانتهاء الخطة",
+                         f"{plan.get('name', 'خطتك')} هتنتهي خلال {days_left} يوم. جدّد دلوقتي عشان تفضل مستمر.",
+                         url="/pricing")
+            db_run("UPDATE payments SET reminder_sent=1 WHERE id=?", (pay["id"],))
+        except Exception as e:
+            print(f"[reminders] payment {pay.get('id')} error: {e}")
+
+
+# ═══════════════════════════════════════════════
 # ACCESS CONTROL
 # ═══════════════════════════════════════════════
 
