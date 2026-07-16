@@ -272,6 +272,125 @@ const CONDITIONS = [
     bad_en: ['Unprescribed iron supplements','Heavily iron-fortified foods','Very large amounts of liver/red meat'],
     ref: 'إرشادات طبية عامة — General clinical guidance (not covered in reference textbook)'
   },
+  {
+    icon: 'fa-bacteria', color: '#b34700',
+    name_ar: 'التهاب الأمعاء (كرون والتهاب القولون التقرحي)', name_en: 'Inflammatory Bowel Disease (Crohn\'s & Ulcerative Colitis)',
+    overview_ar: 'أمراض التهابية مزمنة تصيب الجهاز الهضمي، ببداية غالباً بين سن 15-25. كرون ممكن يصيب أي جزء من الجهاز الهضمي ويسبب سوء امتصاص، بينما التهاب القولون التقرحي يقتصر على القولون. فترات نشاط وفترات هدوء متبادلة.',
+    overview_en: 'Chronic inflammatory GI diseases, usually starting between ages 15-25. Crohn\'s can affect any part of the GI tract causing malabsorption, while ulcerative colitis is limited to the colon. Both alternate between active flares and remission.',
+    macros: [
+      {label: 'البروتين / Protein', val: 'زيادة الاحتياج بسبب فقد الأنسجة — increased need due to tissue losses'},
+      {label: 'فيتامين B12 / Vitamin B12', val: 'حقن لازمة لو الدواء (اللفائفي) متأثر — injections needed if the ileum is affected'},
+      {label: 'الحديد والكالسيوم والزنك / Iron, calcium, zinc', val: 'سوء امتصاص شائع، مكملات غالباً لازمة — malabsorption common, supplements often needed'},
+      {label: 'أثناء النوبة / During flares', val: 'وجبات صغيرة متكررة، قليلة الألياف — small frequent meals, low fiber'},
+    ],
+    good_ar: ['بروتين سهل الهضم (بيض، سمك، دجاج)','أرز أبيض وقت النوبة','موز','شوربات مصفاة'],
+    good_en: ['Easily-digested protein (egg/fish/chicken)','White rice during flares','Banana','Strained soups'],
+    bad_ar: ['ألياف عالية وقت النوبة النشطة','الألبان لو فيه حساسية لاكتوز مصاحبة','الكافيين والكحول','الأكل الحار جداً'],
+    bad_en: ['High fiber during active flares','Dairy if concurrent lactose intolerance','Caffeine & alcohol','Very spicy food'],
+    ref: 'Ch.24 — Lower GI Disorders, pp.768-769'
+  },
+  {
+    icon: 'fa-notes-medical', color: '#78350f',
+    name_ar: 'تليف الكبد (السيروزيس)', name_en: 'Liver Cirrhosis',
+    overview_ar: 'المرحلة النهائية من تلف الكبد المزمن — تدمير تدريجي لأنسجة الكبد يحل محله نسيج ندبي. بيأثر على تكوين البروتينات، تنقية السموم، وامتصاص الدهون. 40% من الحالات بدون أعراض في البداية.',
+    overview_en: 'The final stage of chronic liver damage — progressive scarring replaces healthy liver tissue. Affects protein synthesis, toxin clearance, and fat absorption. 40% of cases are initially asymptomatic.',
+    macros: [
+      {label: 'البروتين / Protein', val: 'حسب حالة الدماغ الكبدي — يحدده الطبيب — depends on hepatic encephalopathy status, physician-directed'},
+      {label: 'الصوديوم / Sodium', val: 'مقيّد بشدة لو فيه استسقاء (تجمع سوائل) — strictly limited if ascites (fluid retention) present'},
+      {label: 'السوائل / Fluids', val: 'حسب حالة الاستسقاء والتورم — based on ascites/edema status'},
+      {label: 'فيتامينات / Vitamins', val: 'مكملات فيتامينات ذائبة بالدهون غالباً لازمة — fat-soluble vitamin supplements often needed'},
+    ],
+    good_ar: ['بروتين متوسط حسب توجيه الطبيب','أطعمة قليلة الصوديوم','وجبات صغيرة متكررة','كربوهيدرات معقدة'],
+    good_en: ['Moderate protein per physician guidance','Low-sodium foods','Small frequent meals','Complex carbohydrates'],
+    bad_ar: ['الكحول تماماً','الملح والأطعمة المملحة','الأطعمة المصنعة عالية الصوديوم','أي مكمل من غير استشارة طبيب'],
+    bad_en: ['Alcohol entirely','Salt & salty foods','High-sodium processed foods','Any supplement without medical advice'],
+    ref: 'Ch.25 — Liver Disease and Gallstones, pp.790-792'
+  },
+  {
+    icon: 'fa-triangle-exclamation', color: '#dc2626',
+    name_ar: 'حساسية الطعام', name_en: 'Food Allergies',
+    overview_ar: 'رد فعل مناعي تجاه بروتين معين في الطعام (مختلف عن عدم تحمل الطعام اللي مالوش علاقة بالمناعة). الأطعمة الأكتر تسبباً: البيض والسمك واللبن والفول السوداني والمحار وفول الصويا والمكسرات والقمح. أخطر حالاته الحساسية المفرطة (anaphylaxis) اللي محتاجة إبرة إبينفرين فورية.',
+    overview_en: 'An immune reaction to a specific food protein (different from food intolerance, which is not immune-related). Most common triggers: eggs, fish, milk, peanuts, shellfish, soy, tree nuts, wheat. The most dangerous form is anaphylaxis, requiring immediate epinephrine.',
+    macros: [
+      {label: 'التشخيص / Diagnosis', val: 'يوميات طعام وأعراض + فحوصات طبية — لا يشخّص ذاتياً — food/symptom diary + medical tests, never self-diagnosed'},
+      {label: 'العلاج / Treatment', val: 'استبعاد تام لمصدر الحساسية من الأكل — complete elimination of the allergen'},
+      {label: 'إعادة التقييم / Reevaluation', val: 'أغلب الأطفال يتخطون الحساسية خلال 3-5 سنين (إلا الفول السوداني والمكسرات والمحار) — most children outgrow it in 3-5 years (except peanuts/tree nuts/shellfish)'},
+      {label: 'قراءة الملصقات / Label reading', val: 'ضروري — مصادر مخفية كتير في الأكل المصنّع — essential, many hidden sources in processed food'},
+    ],
+    good_ar: ['أطعمة طازة غير مصنعة بمكونات معروفة','بدائل موثقة خالية من مسبب الحساسية'],
+    good_en: ['Fresh unprocessed foods with known ingredients','Verified allergen-free alternatives'],
+    bad_ar: ['المكوّن المسبب للحساسية بأي شكل أو كمية','الأطعمة المصنعة اللي مالهاش قايمة مكونات واضحة','منتجات معرضة للتلوث المتبادل'],
+    bad_en: ['The allergen in any form or amount','Processed foods without clear ingredient lists','Products at risk of cross-contamination'],
+    ref: 'Highlight 25 — Food Allergies, pp.806-808'
+  },
+  {
+    icon: 'fa-bone', color: '#64748b',
+    name_ar: 'هشاشة العظام', name_en: 'Osteoporosis',
+    overview_ar: 'ضعف وتخلخل في العظام بيزود خطر الكسور، خصوصاً في الورك والعمود الفقري والمعصم. أكتر انتشاراً في السيدات فوق الخمسين بعد سن اليأس (فقدان هرمون الاستروجين). أهم فترة للوقاية: بناء كثافة العظام في العقود التلاتة الأولى من العمر.',
+    overview_en: 'Weakened, porous bones with increased fracture risk, especially hip, spine, and wrist. Most common in women over 50 post-menopause (estrogen loss). The most critical prevention window is building bone density in the first three decades of life.',
+    macros: [
+      {label: 'الكالسيوم / Calcium', val: 'غذاء غني بالكالسيوم طول العمر، خصوصاً الشباب — calcium-rich diet lifelong, especially in youth'},
+      {label: 'فيتامين D / Vitamin D', val: 'ضروري لامتصاص الكالسيوم — شمس معتدلة أو مكمل — essential for calcium absorption - moderate sun or supplement'},
+      {label: 'النشاط / Activity', val: 'تمارين تحمل وزن منتظمة (مشي، مقاومة) — regular weight-bearing exercise (walking, resistance)'},
+      {label: 'تجنب / Avoid', val: 'التدخين والكحول الزائد — smoking and excess alcohol'},
+    ],
+    good_ar: ['ألبان ومنتجاتها','سمك بعظمه (سردين)','خضار ورقية داكنة','مكسرات ولوز'],
+    good_en: ['Dairy products','Bone-in fish (sardines)','Dark leafy greens','Nuts & almonds'],
+    bad_ar: ['التدخين','الكحول الزائد','الملح الزائد (يزود إفراز الكالسيوم)','الكافيين الزائد جداً'],
+    bad_en: ['Smoking','Excess alcohol','Excess salt (increases calcium excretion)','Very excessive caffeine'],
+    ref: 'Highlight 12 — Osteoporosis and Calcium, pp.431-434'
+  },
+  {
+    icon: 'fa-heart-pulse', color: '#b91c1c',
+    name_ar: 'فقر الدم بسبب نقص الحديد', name_en: 'Iron-Deficiency Anemia',
+    overview_ar: 'أكتر نقص غذائي انتشاراً في العالم — بيأثر على أكتر من 1.2 مليار شخص. الفئات الأكتر عرضة: السيدات في سن الإنجاب (فقد دم بالدورة الشهرية)، الحوامل، الأطفال الصغار، والمراهقين. الأعراض: إرهاق، شحوب، ضيق نفس، دوخة.',
+    overview_en: 'The most common nutrient deficiency worldwide, affecting over 1.2 billion people. Most vulnerable: women of reproductive age (menstrual losses), pregnant women, young children, and adolescents. Symptoms: fatigue, paleness, shortness of breath, dizziness.',
+    macros: [
+      {label: 'الحديد الحيواني (الهيمي) / Heme iron', val: 'أعلى امتصاصاً — لحوم حمراء وكبدة ودواجن وأسماك — best absorbed - red meat, liver, poultry, fish'},
+      {label: 'الحديد النباتي / Non-heme iron', val: 'امتصاص أقل — عدس وسبانخ وحبوب مدعّمة — lower absorption - lentils, spinach, fortified grains'},
+      {label: 'فيتامين C / Vitamin C', val: 'يزود امتصاص الحديد النباتي بشكل كبير — significantly boosts non-heme iron absorption'},
+      {label: 'مثبطات الامتصاص / Absorption inhibitors', val: 'الشاي والقهوة والكالسيوم وقت الوجبة — tea, coffee, and calcium at mealtime'},
+    ],
+    good_ar: ['لحوم حمراء وكبدة','عدس وفول','سبانخ وخضار ورقية','فيتامين C مع كل وجبة حديد نباتي'],
+    good_en: ['Red meat & liver','Lentils & beans','Spinach & leafy greens','Vitamin C with plant-iron meals'],
+    bad_ar: ['شاي أو قهوة وقت الوجبة مباشرة','مكملات كالسيوم وقت وجبة الحديد','الاعتماد على حديد نباتي بدون فيتامين C'],
+    bad_en: ['Tea/coffee right at mealtime','Calcium supplements at iron-rich meals','Relying on plant iron without vitamin C'],
+    ref: 'Ch.13 — The Trace Minerals, pp.445-446'
+  },
+  {
+    icon: 'fa-brain', color: '#7c3aed',
+    name_ar: 'اضطرابات الأكل (فقدان الشهية والشره العصبي)', name_en: 'Eating Disorders (Anorexia & Bulimia Nervosa)',
+    overview_ar: 'اضطرابات نفسية خطيرة، مش مجرد "حمية قاسية". فقدان الشهية العصبي: رفض الحفاظ على وزن طبيعي مع تشويه في إدراك شكل الجسم. الشره العصبي: نوبات أكل شره متبعة بتقيؤ أو إسهال دوائي. ⚠️ تحتاج فريق طبي متعدد التخصصات (طبيب نفسي + طبيب + أخصائي تغذية) — مش علاج غذائي فقط.',
+    overview_en: 'Serious psychiatric disorders, not just an extreme diet. Anorexia: refusal to maintain normal weight with distorted body image. Bulimia: binge-eating episodes followed by vomiting/laxative misuse. ⚠️ Requires a multidisciplinary medical team (psychiatrist + physician + dietitian), not diet therapy alone.',
+    macros: [
+      {label: 'علامات خطر / Warning signs', val: 'فقدان وزن شديد، انقطاع الدورة، هوس بالسعرات، تمرين مفرط — severe weight loss, amenorrhea, calorie obsession, excessive exercise'},
+      {label: 'الهدف الأول / First goal', val: 'وقف فقدان الوزن وتثبيت أنماط أكل منتظمة — stop weight loss, establish regular eating patterns'},
+      {label: 'الإحالة / Referral', val: 'لازم إحالة فورية لطبيب نفسي عند الاشتباه — immediate psychiatric referral when suspected'},
+      {label: 'معدل آمن / Safe rate', val: 'استرجاع وزن تدريجي، مش سريع — gradual weight restoration, not rapid'},
+    ],
+    good_ar: ['خطة أكل منظمة تحت إشراف طبي متعدد التخصصات', 'وجبات وسناكات منتظمة صغيرة'],
+    good_en: ['Structured meal plan under multidisciplinary medical supervision', 'Regular small meals & snacks'],
+    bad_ar: ['أي نصيحة تخسيس من غير تقييم طبي ونفسي أولاً','تجاهل علامات الخطر لظن إنها "التزام قوي بالدايت"'],
+    bad_en: ['Any weight-loss advice without medical/psychiatric evaluation first','Dismissing warning signs as "strong diet discipline"'],
+    ref: 'Highlight 8 — Eating Disorders, pp.270-273'
+  },
+  {
+    icon: 'fa-ribbon', color: '#9333ea',
+    name_ar: 'التغذية والوقاية من السرطان', name_en: 'Nutrition & Cancer Prevention',
+    overview_ar: 'النظام الغذائي ونمط الحياة يؤثران بقوة على خطر الإصابة بالسرطان. السمنة عامل خطر لعدة أنواع سرطان (القولون، الثدي بعد سن اليأس، البنكرياس). الخضار والفاكهة والألياف عوامل وقائية موثقة.',
+    overview_en: 'Diet and lifestyle strongly influence cancer risk. Obesity is a risk factor for several cancers (colon, postmenopausal breast, pancreas). Vegetables, fruit, and fiber are well-documented protective factors.',
+    macros: [
+      {label: 'الوزن / Weight', val: 'الحفاظ على وزن صحي طول العمر — maintain a healthy weight lifelong'},
+      {label: 'النشاط / Activity', val: '30-60 دقيقة نشاط بدني 5 أيام أسبوعياً — 30-60 min activity 5 days/week'},
+      {label: 'اللحوم الحمراء والمصنعة / Red & processed meat', val: 'تقليلها — مرتبطة بسرطان القولون — limit - linked to colon cancer'},
+      {label: 'الكحول / Alcohol', val: 'كوب واحد يومياً للسيدات، اتنين للرجال كحد أقصى — max 1 drink/day women, 2 men'},
+    ],
+    good_ar: ['5 حصص أو أكتر خضار وفاكهة يومياً','حبوب كاملة بدل المكررة','خضار الكرنبيات (بروكلي، قرنبيط)','ثوم وبصل'],
+    good_en: ['5+ servings vegetables & fruit daily','Whole grains instead of refined','Cruciferous vegetables (broccoli, cauliflower)','Garlic & onion'],
+    bad_ar: ['اللحوم المصنعة (سجق، لانشون)','الأطعمة المملحة والمخللة بكثرة','الكحول الزائد','التدخين بأي شكل'],
+    bad_en: ['Processed meats (sausage, luncheon meat)','Heavily salted/pickled foods','Excess alcohol','Any form of tobacco'],
+    ref: 'Ch.29 — Cancer and HIV Infection, pp.902-905'
+  },
 ];
 
 function renderConditions() {
