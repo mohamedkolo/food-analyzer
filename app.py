@@ -113,6 +113,17 @@ from payments import (
 )
 
 # ═══════════════════════════════════════════════
+# DEVELOPER API PLATFORM (منتج SaaS منفصل - اشتراك شهري لمطورين تانيين)
+# ═══════════════════════════════════════════════
+from api_platform import (
+    ensure_api_table, API_TIERS, make_require_api_key,
+    get_or_create_api_key, regenerate_api_key, get_usage_info,
+    create_api_checkout_session, handle_api_checkout_completed,
+    handle_api_invoice_paid, handle_api_subscription_updated,
+    handle_api_subscription_canceled,
+)
+
+# ═══════════════════════════════════════════════
 # NOTIFICATIONS MODULE (إشعارات الأدمن)
 # ═══════════════════════════════════════════════
 from notifications import (
@@ -314,6 +325,13 @@ try:
     ensure_notif_table(db_run, is_postgres=bool(DATABASE_URL))
 except Exception as _e:
     print(f"notif table init error: {_e}")
+
+# ── جدول مفاتيح الـ API (منتج المطورين) ──
+try:
+    ensure_api_table(db_run, is_postgres=bool(DATABASE_URL))
+except Exception as _e:
+    print(f"api_keys table init error: {_e}")
+require_api_key = make_require_api_key(db_row, db_run)
 
 # ── تذكير تجديد الاشتراك: فحص دوري في الخلفية كل 12 ساعة ──
 def _renewal_reminders_loop():
@@ -1544,15 +1562,13 @@ def terms():
 def analyzer():
     return render_template("analyzer.html", user=get_user_by_id(session["uid"]), lang=session.get("lang","ar"))
 
-@app.route("/api/food/barcode/<code>")
-@subscription_required
-def food_barcode_lookup(code):
-    """يجيب بيانات منتج معلّب بالباركود من Open Food Facts (قاعدة بيانات مجانية بدون مفتاح API)."""
+def _lookup_barcode(code):
+    """يجيب بيانات منتج معلّب بالباركود من Open Food Facts. بيرجّع (payload_dict, status_code)."""
     import urllib.request as _ur
 
     clean_code = re.sub(r"\D", "", code or "")[:20]
     if not clean_code:
-        return jsonify({"ok": False, "error": "باركود غير صالح"}), 400
+        return {"ok": False, "error": "باركود غير صالح"}, 400
 
     try:
         req = _ur.Request(
@@ -1563,17 +1579,17 @@ def food_barcode_lookup(code):
             data = json.loads(r.read())
     except Exception as e:
         print(f"[barcode] fetch error: {e}")
-        return jsonify({"ok": False, "error": "تعذر الاتصال بقاعدة بيانات الباركود"}), 502
+        return {"ok": False, "error": "تعذر الاتصال بقاعدة بيانات الباركود"}, 502
 
     if data.get("status") != 1 or not data.get("product"):
-        return jsonify({"ok": False, "error": "المنتج ده مش موجود في القاعدة"}), 404
+        return {"ok": False, "error": "المنتج ده مش موجود في القاعدة"}, 404
 
     p = data["product"]
     nutr = p.get("nutriments") or {}
     cal, protein, carbs, fat = (nutr.get("energy-kcal_100g"), nutr.get("proteins_100g"),
                                  nutr.get("carbohydrates_100g"), nutr.get("fat_100g"))
     if cal is None or protein is None or carbs is None or fat is None:
-        return jsonify({"ok": False, "error": "البيانات الغذائية لهذا المنتج ناقصة"}), 404
+        return {"ok": False, "error": "البيانات الغذائية لهذا المنتج ناقصة"}, 404
 
     name_ar = p.get("product_name_ar") or ""
     name_en = p.get("product_name") or p.get("generic_name") or ""
@@ -1586,7 +1602,107 @@ def food_barcode_lookup(code):
         "note": "من قاعدة بيانات Open Food Facts (منتج معلّب) — تأكد من مطابقة الباركود للمنتج.",
         "tip": "", "barcode": clean_code,
     }
-    return jsonify({"ok": True, "food": food})
+    return {"ok": True, "food": food}, 200
+
+
+@app.route("/api/food/barcode/<code>")
+@subscription_required
+def food_barcode_lookup(code):
+    payload, status = _lookup_barcode(code)
+    return jsonify(payload), status
+
+
+# ═══════════════════════════════════════════════════════════════════
+# DEVELOPER API PLATFORM — صفحات + endpoints للمطورين الخارجيين
+# ═══════════════════════════════════════════════════════════════════
+
+@app.route("/developers")
+def developers_docs():
+    """صفحة عامة: شرح الـ API + الأسعار — متاحة للجميع من غير تسجيل دخول."""
+    u = get_user_by_id(session["uid"]) if "uid" in session else None
+    user_currency = detect_currency(u.get("country")) if u else "USD"
+    return render_template("api_docs.html", user=u, lang=session.get("lang", "ar"),
+                           tiers=API_TIERS, user_currency=user_currency)
+
+
+@app.route("/dashboard/api")
+@login_required
+def api_dashboard():
+    u = get_user_by_id(session["uid"])
+    usage = get_usage_info(session["uid"], db_row, db_run)
+    user_currency = detect_currency(u.get("country")) if u else "USD"
+    return render_template("api_dashboard.html", user=u, lang=session.get("lang", "ar"),
+                           usage=usage, tiers=API_TIERS, user_currency=user_currency,
+                           api_base=request.url_root.rstrip("/"))
+
+
+@app.route("/dashboard/api/regenerate", methods=["POST"])
+@login_required
+def api_regenerate_key():
+    regenerate_api_key(session["uid"], db_row, db_run)
+    return redirect("/dashboard/api")
+
+
+@app.route("/dashboard/api/checkout/<tier_key>")
+@login_required
+def api_checkout(tier_key):
+    u = get_user_by_id(session["uid"])
+    if tier_key not in API_TIERS or not API_TIERS[tier_key]["prices"]:
+        return redirect("/dashboard/api")
+    currency = request.args.get("currency", "").upper()
+    if currency not in get_supported_currencies():
+        currency = detect_currency(u.get("country"))
+    try:
+        checkout_session = create_api_checkout_session(u, tier_key, currency)
+        return redirect(checkout_session.url, code=303)
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return render_template("payment_cancel.html", user=u, lang=session.get("lang", "ar"),
+                               error=f"خطأ في إنشاء جلسة الدفع: {str(e)}"), 500
+
+
+@app.route("/api/v1/health")
+def api_v1_health():
+    return jsonify({"ok": True, "service": "nutrax-api", "time": datetime.now().isoformat()})
+
+
+@app.route("/api/v1/meal-plan", methods=["POST"])
+@csrf.exempt
+@require_api_key
+def api_v1_meal_plan():
+    """بيولّد خطة وجبات أسبوعية كاملة — نفس محرك توليد الخطط بتاع الموقع، متاح كـ API لمطورين تانيين."""
+    body = request.get_json(silent=True) or {}
+    data = {
+        "goal_type": body.get("goal_type", "weight_loss"),
+        "culture": body.get("culture", "مصري"),
+        "diet_plan_type": body.get("diet_plan_type", "standard"),
+        "activity_level": body.get("activity_level", "regular"),
+        "symptoms": body.get("conditions") or body.get("symptoms") or [],
+        "allergies": body.get("allergies") or [],
+        "disliked_foods": body.get("disliked_foods", ""),
+        "notes": body.get("notes", ""),
+        "user_id": 0,
+    }
+    if data["culture"] not in ["مصري", "خليجي", "شامي", "مغربي", "عالمي"]:
+        return jsonify({"ok": False, "error": "invalid_culture",
+                         "message": "culture لازم يكون واحد من: مصري, خليجي, شامي, مغربي, عالمي"}), 400
+    try:
+        plan = generate_weekly_plan(data)
+    except Exception as e:
+        print(f"[api/v1/meal-plan] error: {e}")
+        return jsonify({"ok": False, "error": "generation_failed"}), 500
+    return jsonify({"ok": True, "plan": plan, "meta": {
+        "goal_type": data["goal_type"], "culture": data["culture"],
+        "diet_plan_type": data["diet_plan_type"], "days": len(plan),
+    }})
+
+
+@app.route("/api/v1/food/barcode/<code>")
+@require_api_key
+def api_v1_barcode(code):
+    payload, status = _lookup_barcode(code)
+    return jsonify(payload), status
+
 
 @app.route("/planner")
 @staff_required
@@ -3018,13 +3134,20 @@ def stripe_webhook():
     handled = True
     try:
         if event_type == "checkout.session.completed":
-            handled = handle_checkout_completed(data_obj, db_run, db_row)
+            metadata = (data_obj.get("metadata", {}) or {}) if isinstance(data_obj, dict) else (data_obj.metadata or {})
+            if metadata.get("product") == "api":
+                handled = handle_api_checkout_completed(data_obj, db_run, db_row)
+            else:
+                handled = handle_checkout_completed(data_obj, db_run, db_row)
         elif event_type == "invoice.payment_succeeded":
-            handled = handle_invoice_paid(data_obj, db_run, db_row)
+            if not handle_api_invoice_paid(data_obj, db_run, db_row):
+                handled = handle_invoice_paid(data_obj, db_run, db_row)
         elif event_type in ("customer.subscription.updated", "customer.subscription.trial_will_end"):
-            handled = handle_subscription_updated(data_obj, db_run)
+            if not handle_api_subscription_updated(data_obj, db_run, db_row):
+                handled = handle_subscription_updated(data_obj, db_run)
         elif event_type == "customer.subscription.deleted":
-            handled = handle_subscription_canceled(data_obj, db_run)
+            if not handle_api_subscription_canceled(data_obj, db_run, db_row):
+                handled = handle_subscription_canceled(data_obj, db_run)
     except Exception as e:
         print(f"Webhook handler error: {e}")
         import traceback; traceback.print_exc()
@@ -3578,7 +3701,8 @@ def admin_user_payments(uid):
 ONBOARDING_EXEMPT = {
     "login", "logout", "set_lang", "onboarding", "static", "health", "assetlinks",
     "stripe_webhook", "check_access_endpoint", "register",
-    "track_whatsapp_click", "pricing", "payment_cancel"
+    "track_whatsapp_click", "pricing", "payment_cancel",
+    "developers_docs", "api_v1_health", "api_v1_meal_plan", "api_v1_barcode",
 }
 
 @app.before_request

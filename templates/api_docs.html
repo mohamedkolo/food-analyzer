@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block content %}
+{% set is_ar = (lang or 'ar') == 'ar' %}
+
+<style>
+  .api-wrap { max-width: 1000px; margin: 0 auto; }
+  .api-hero { text-align: center; padding: 20px 16px 30px; }
+  .api-hero h1 { font-size: clamp(26px, 4.5vw, 38px); font-weight: 900; color: var(--blue); margin: 0 0 12px; }
+  .api-hero p { font-size: 16px; color: var(--muted); max-width: 620px; margin: 0 auto; line-height: 1.7; }
+  .api-hero .btn { margin-top: 18px; }
+  .code-block { background: #0f172a; color: #e2e8f0; border-radius: 12px; padding: 18px 20px; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.8; overflow-x: auto; direction: ltr; text-align: left; white-space: pre; }
+  .code-block .cm { color: #64748b; }
+  .code-block .k { color: #c9a961; }
+  .endpoint-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .method { font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 6px; color: #fff; }
+  .method.post { background: #1a5c3a; }
+  .method.get { background: #1d6fa5; }
+  .endpoint-path { font-family: 'Courier New', monospace; font-size: 13px; font-weight: 700; color: var(--text); direction: ltr; }
+  .tiers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 20px 0; }
+  .tier-card { background: var(--white); border: 2px solid var(--gray-2); border-radius: 16px; padding: 22px; text-align: center; }
+  .tier-card.mid { border-color: #c9a961; box-shadow: 0 8px 24px rgba(201,169,97,.18); }
+  .tier-name { font-size: 17px; font-weight: 800; color: var(--blue); margin-bottom: 6px; }
+  .tier-price { font-size: 30px; font-weight: 900; color: var(--text); margin: 8px 0; }
+  .tier-price small { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .tier-quota { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+</style>
+
+<div class="api-wrap">
+  <div class="api-hero">
+    <h1>🔌 {{ 'NutraX Developer API' if not is_ar else 'واجهة برمجة NutraX للمطورين' }}</h1>
+    <p>
+      {{ 'ولّد خطط وجبات عربية جاهزة (مصري/خليجي/شامي/مغربي) وحلل باركود المنتجات — بطلب API واحد. مبني على نفس محرك NutraX اللي بيستخدمه آلاف العملاء.' if is_ar else 'Generate ready-made Arabic meal plans and analyze packaged-food barcodes — one API call. Powered by the same engine behind NutraX.' }}
+    </p>
+    {% if user %}
+      <a href="/dashboard/api" class="btn btn-primary"><i class="fa-solid fa-key"></i> {{ 'ادخل الداشبورد واحصل على مفتاحك' if is_ar else 'Go to your API dashboard' }}</a>
+    {% else %}
+      <a href="/register" class="btn btn-primary"><i class="fa-solid fa-user-plus"></i> {{ 'سجّل مجاناً وابدأ فوراً' if is_ar else 'Sign up free & start' }}</a>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-bolt"></i> {{ 'ابدأ في دقيقة' if is_ar else 'Quick start' }}</div>
+    <div class="code-block"><span class="cm"># {{ 'مفتاحك من /dashboard/api' if is_ar else 'Your key from /dashboard/api' }}</span>
+curl -X POST {{ request.url_root.rstrip('/') }}/api/v1/meal-plan \
+  -H "X-API-Key: nutrax_live_xxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{"goal_type":"weight_loss","culture":"مصري","diet_plan_type":"standard"}'</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-code"></i> {{ 'الـ Endpoints' if is_ar else 'Endpoints' }}</div>
+
+    <div style="margin-bottom:20px">
+      <div class="endpoint-row"><span class="method post">POST</span><span class="endpoint-path">/api/v1/meal-plan</span></div>
+      <p style="font-size:13px;color:var(--muted-2);margin-bottom:8px">{{ 'بيولّد خطة أسبوعية كاملة (7 أيام × فطار/غدا/عشا/سناك) حسب الهدف والمطبخ.' if is_ar else 'Generates a full 7-day plan (breakfast/lunch/dinner/snack) by goal & cuisine.' }}</p>
+      <div class="code-block">{
+  "goal_type": "weight_loss | muscle_gain | bulking | maintenance | cutting",
+  "culture": "مصري | خليجي | شامي | مغربي | عالمي",
+  "diet_plan_type": "standard | keto | low_carb | five_meals | intermittent_16_8 | intermittent_18_6",
+  "conditions": ["سكري", "ضغط"],
+  "allergies": ["لاكتوز"],
+  "disliked_foods": "سمك، مشروم"
+}</div>
+    </div>
+
+    <div style="margin-bottom:8px">
+      <div class="endpoint-row"><span class="method get">GET</span><span class="endpoint-path">/api/v1/food/barcode/&lt;code&gt;</span></div>
+      <p style="font-size:13px;color:var(--muted-2)">{{ 'بيانات غذائية لمنتج معلّب بالباركود (سعرات/بروتين/كارب/دهون لكل 100 جرام).' if is_ar else 'Nutrition facts for a packaged product by barcode (per 100g).' }}</p>
+    </div>
+
+    <div>
+      <div class="endpoint-row"><span class="method get">GET</span><span class="endpoint-path">/api/v1/health</span></div>
+      <p style="font-size:13px;color:var(--muted-2)">{{ 'فحص حالة السيرفر — بدون مفتاح.' if is_ar else 'Server status check — no key required.' }}</p>
+    </div>
+
+    <div class="alert alert-info" style="margin-top:16px">
+      <i class="fa-solid fa-circle-info"></i>
+      {{ 'كل الطلبات (ما عدا /health) لازم تبعت هيدر X-API-Key. تعدي الحد الشهري بيرجّع 429.' if is_ar else 'All requests except /health need an X-API-Key header. Exceeding your monthly quota returns 429.' }}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-gem"></i> {{ 'الأسعار' if is_ar else 'Pricing' }}</div>
+    <div class="tiers-grid">
+      {% for key, t in tiers.items() %}
+      <div class="tier-card {% if key == 'starter' %}mid{% endif %}">
+        <div class="tier-name">{{ t.name if is_ar else t.name_en }}</div>
+        <div class="tier-price">
+          {% if t.prices %}
+            {{ t.prices[user_currency] if user_currency in t.prices else t.prices.USD }}
+            <small>{{ user_currency if user_currency in t.prices else 'USD' }} / {{ 'شهرياً' if is_ar else 'mo' }}</small>
+          {% else %}
+            {{ '0' }}<small>{{ 'مجاناً' if is_ar else 'free' }}</small>
+          {% endif %}
+        </div>
+        <div class="tier-quota">{{ t.quota }} {{ 'طلب/شهر' if is_ar else 'requests/mo' }}</div>
+        {% if user %}
+          {% if t.prices %}
+          <a href="/dashboard/api/checkout/{{ key }}" class="btn btn-outline btn-full">{{ 'اشترك' if is_ar else 'Subscribe' }}</a>
+          {% else %}
+          <a href="/dashboard/api" class="btn btn-outline btn-full">{{ 'مفعّل تلقائياً' if is_ar else 'Auto-enabled' }}</a>
+          {% endif %}
+        {% else %}
+          <a href="/register" class="btn btn-outline btn-full">{{ 'سجّل الأول' if is_ar else 'Sign up first' }}</a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
