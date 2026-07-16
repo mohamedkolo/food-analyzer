@@ -353,9 +353,8 @@ def staff_required(f):
     def decorated(*args, **kwargs):
         if "uid" not in session: return redirect("/")
         u = get_user_by_id(session["uid"])
-        if not u or u.get("role") not in ["admin", "nutritionist"]:
-            if not u.get("is_admin"):
-                return redirect("/my-plan")
+        if not u or (u.get("role") not in ["admin", "nutritionist"] and not u.get("is_admin")):
+            return redirect("/my-plan")
         return f(*args, **kwargs)
     return decorated
 
