@@ -170,6 +170,108 @@ const CONDITIONS = [
     bad_en: ['Coffee & caffeine','Chocolate','Onion & garlic','Tomatoes','Fried food'],
     ref: 'Ch.23 — Upper GI Disorders, pp.730-750'
   },
+  {
+    icon: 'fa-wheat-awn', color: '#b34700',
+    name_ar: 'الداء الزلاقي (حساسية الجلوتين)', name_en: 'Celiac Disease',
+    overview_ar: 'مرض مناعي يهاجم الامعاء الدقيقة كرد فعل على الجلوتين (بروتين في القمح والشعير والشوفان الملوث)، ويسبب سوء امتصاص شديد. العلاج الوحيد الفعال هو الامتناع التام عن الجلوتين مدى الحياة.',
+    overview_en: 'An immune disorder that damages the small intestine in reaction to gluten (found in wheat, barley, and contaminated oats), causing severe malabsorption. Lifelong complete gluten avoidance is the only effective treatment.',
+    macros: [
+      {label: 'العلاج / Treatment', val: 'امتناع تام عن الجلوتين مدى الحياة — lifelong strict gluten-free diet'},
+      {label: 'سوء الامتصاص / Malabsorption', val: 'نقص حديد، فوليك، B12، كالسيوم شائع — iron, folate, B12, calcium deficiency common'},
+      {label: 'مدة التحسن / Recovery', val: 'الاعراض تتحسن خلال اسابيع، شفاء الامعاء ياخد سنين — symptoms improve in weeks, mucosal healing takes years'},
+      {label: 'اللاكتوز / Lactose', val: 'حساسية مؤقتة شائعة لحد ما الامعاء تتعافى — temporary lactose intolerance common until healed'},
+    ],
+    good_ar: ['ارز','ذرة','بطاطس','كينوا','فول الصويا','لحوم واسماك طازة بدون بهارات مصنعة'],
+    good_en: ['Rice','Corn','Potatoes','Quinoa','Soy','Fresh unprocessed meat & fish'],
+    bad_ar: ['قمح وخبز عادي','شعير','الشوفان (الا لو موثق خالي من التلوث)','صوصات ومنتجات مصنعة فيها جلوتين مخفي'],
+    bad_en: ['Wheat & regular bread','Barley','Oats (unless certified gluten-free)','Processed sauces with hidden gluten'],
+    ref: 'Ch.24 — Lower GI Disorders, pp.767-768'
+  },
+  {
+    icon: 'fa-glass-water', color: '#0891b2',
+    name_ar: 'حساسية اللاكتوز', name_en: 'Lactose Intolerance',
+    overview_ar: 'نقص انزيم اللاكتيز يمنع هضم سكر اللاكتوز في اللبن، فيسبب انتفاخ وغازات واسهال. مش لازم منع الالبان تماماً — اغلب الناس يقدروا يتحملوا كمية بسيطة من غير اعراض.',
+    overview_en: 'Insufficient lactase enzyme prevents digestion of milk sugar (lactose), causing bloating, gas, and diarrhea. Total dairy elimination usually is not necessary - most people tolerate small amounts symptom-free.',
+    macros: [
+      {label: 'الكمية المتحملة / Tolerable amount', val: 'لغاية 6 جم لاكتوز يومياً غالباً من غير اعراض (نص كوب لبن) — up to 6g/day (1/2 cup milk) often tolerated'},
+      {label: 'الزبادي والجبن الناضج / Yogurt & aged cheese', val: 'اقل لاكتوز، غالباً اسهل في التحمل — lower lactose, usually better tolerated'},
+      {label: 'التوزيع / Timing', val: 'وزّع الالبان على اليوم بدل مرة واحدة — spread dairy intake through the day'},
+      {label: 'كالسيوم وفيتامين D / Calcium & Vit D', val: 'لازم مصادر بديلة لو قللت الالبان كتير — need alternative sources if restricting dairy heavily'},
+    ],
+    good_ar: ['زبادي وكفير','جبن ناضج (رومي/شيدر)','لبن خالي اللاكتوز','حليب نباتي (صويا/لوز)'],
+    good_en: ['Yogurt & kefir','Aged cheese (cheddar/romy)','Lactose-free milk','Plant milk (soy/almond)'],
+    bad_ar: ['لبن كامل الدسم بكمية كبيرة دفعة واحدة','آيس كريم','حليب مبخر او مركز'],
+    bad_en: ['Large amounts of whole milk at once','Ice cream','Evaporated or condensed milk'],
+    ref: 'Ch.4 — The Carbohydrates, pp.110-111'
+  },
+  {
+    icon: 'fa-flask', color: '#b45309',
+    name_ar: 'الكبد الدهني', name_en: 'Fatty Liver',
+    overview_ar: 'تراكم دهون في أنسجة الكبد، غالباً مصاحب لمقاومة الانسولين والسمنة والسكري. غالباً بدون اعراض ولو تُرك ممكن يتطور لالتهاب وتليف كبدي.',
+    overview_en: 'Accumulation of fat in liver tissue, often accompanying insulin resistance, obesity, and diabetes. Often asymptomatic but may progress to inflammation and cirrhosis if untreated.',
+    macros: [
+      {label: 'الوزن / Weight', val: 'فقدان تدريجي — فقدان سريع جداً يزيد الضرر — gradual loss; very rapid loss can worsen liver damage'},
+      {label: 'السكر والدهون / Sugar & fat', val: 'التحكم في السكري والدهون بيحسن الحالة — controlling diabetes/lipids improves the condition'},
+      {label: 'النشاط / Activity', val: 'زيادة النشاط البدني تحسن حساسية الانسولين — increased activity improves insulin sensitivity'},
+      {label: 'الكحول / Alcohol', val: 'يجب تجنبه تماماً — must be avoided completely'},
+    ],
+    good_ar: ['خضار وفاكهة','حبوب كاملة','بروتين قليل الدهن','زيت زيتون بكميات معتدلة'],
+    good_en: ['Vegetables & fruit','Whole grains','Lean protein','Moderate olive oil'],
+    bad_ar: ['كحول','سكريات مضافة ومشروبات محلاة','اكل مقلي ودهون مشبعة عالية','فقدان وزن سريع جداً/حميات قاسية'],
+    bad_en: ['Alcohol','Added sugars & sweet drinks','Fried food & high saturated fat','Very rapid weight loss/crash diets'],
+    ref: 'Ch.25 — Liver Disease and Gallstones, pp.787-789'
+  },
+  {
+    icon: 'fa-gem', color: '#78716c',
+    name_ar: 'حصوات المرارة', name_en: 'Gallstones',
+    overview_ar: 'حصوات تتكون في المرارة من تركّز الكوليسترول او صبغة البيليروبين. 85% من الحالات بدون اعراض، لكن ممكن تسبب الم شديد بعد الاكل الدهني. تحذير مهم: فقدان الوزن السريع جداً بيزوّد خطر تكوّن الحصوات بشكل كبير (لغاية 25% من الحالات في حميات قليلة السعرات جداً).',
+    overview_en: 'Stones form in the gallbladder from concentrated cholesterol or bilirubin. 85% are asymptomatic, but can cause severe pain after fatty meals. Important: very rapid weight loss significantly raises gallstone risk (up to 25% on very-low-calorie diets).',
+    macros: [
+      {label: 'السعرات / Calories', val: 'تجنب الحميات قليلة السعرات جداً (VLCD) — avoid very-low-calorie diets'},
+      {label: 'الدهون / Fat', val: 'نظام قليل الدهون (اقل من 30%) يقلل الاعراض — low-fat diet (<30%) reduces symptoms'},
+      {label: 'معدل فقدان الوزن / Weight-loss rate', val: '0.5-1 كجم اسبوعياً كحد آمن — 0.5-1 kg/week is the safe limit'},
+      {label: 'الوجبات / Meals', val: 'صغيرة ومتكررة بدل وجبات دهنية كبيرة — small frequent meals instead of large fatty ones'},
+    ],
+    good_ar: ['وجبات صغيرة متكررة','دهون صحية بكميات معتدلة','الياف كتير','ماء كفاية'],
+    good_en: ['Small frequent meals','Moderate healthy fats','High fiber','Adequate water'],
+    bad_ar: ['اكل مقلي او دهون عالية دفعة واحدة','انظمة تخسيس قاسية وسريعة جداً','الصيام الطويل'],
+    bad_en: ['Fried/high-fat food in one meal','Very rapid crash diets','Prolonged fasting'],
+    ref: 'Ch.25 — Liver Disease and Gallstones, pp.798-801'
+  },
+  {
+    icon: 'fa-dna', color: '#7c3aed',
+    name_ar: 'نقص إنزيم G6PD (الفول المصري)', name_en: 'G6PD Deficiency (Favism)',
+    overview_ar: 'نقص وراثي في انزيم G6PD يخلي كريات الدم الحمراء حساسة لمواد معينة في الاكل والادوية، وممكن يسبب انحلال دم حاد ("نوبة الفوال") خصوصاً بعد اكل الفول. ⚠️ إرشادات طبية عامة — الكتاب المرجعي الحالي مش بيغطي الحالة دي بالتفصيل، لأنها اكتر انتشاراً في منطقتنا من الغرب.',
+    overview_en: 'An inherited G6PD enzyme deficiency makes red blood cells sensitive to certain foods/drugs, potentially causing acute hemolysis ("favism attack"), especially after eating fava beans. ⚠️ General medical guidance - the current reference textbook does not cover this condition in detail, as it is more prevalent regionally than in Western populations.',
+    macros: [
+      {label: 'الممنوع الاهم / Key restriction', val: 'الفول بكل اشكاله — fava beans in any form (most common regional trigger)'},
+      {label: 'حذر ايضاً / Also caution', val: 'بقوليات حمراء بكميات كبيرة — large amounts of red legumes'},
+      {label: 'الادوية / Medications', val: 'استشارة طبيب قبل اي دواء جديد — consult a doctor before any new medication'},
+      {label: 'النوبة الحادة / Acute attack', val: 'طوارئ طبية فورية — immediate medical emergency, not diet-treatable'},
+    ],
+    good_ar: ['ارز','خضار وفاكهة عادية','لحوم واسماك ودواجن','منتجات الالبان'],
+    good_en: ['Rice','Regular fruits & vegetables','Meat, fish & poultry','Dairy products'],
+    bad_ar: ['الفول بكل انواعه','اللوبيا والبقوليات الحمراء بكميات كبيرة','اي دواء جديد من غير استشارة طبيب'],
+    bad_en: ['Fava beans in any form','Large amounts of red legumes','Any new medication without medical advice'],
+    ref: 'إرشادات طبية عامة — General clinical guidance (not covered in reference textbook)'
+  },
+  {
+    icon: 'fa-vial', color: '#dc2626',
+    name_ar: 'الثلاسيميا', name_en: 'Thalassemia',
+    overview_ar: 'اضطراب وراثي في تكوين الهيموجلوبين يسبب فقر دم مزمن. المرضى غالباً بياخدوا نقل دم متكرر، وده بيسبب تراكم زيادة حديد خطيرة في الجسم (اخطر من نقص الحديد نفسه). ⚠️ إرشادات طبية عامة — الكتاب المرجعي الحالي مش بيغطي الحالة دي بالتفصيل.',
+    overview_en: 'A genetic hemoglobin disorder causing chronic anemia. Patients often receive repeated blood transfusions, which causes dangerous iron overload (more dangerous than iron deficiency itself). ⚠️ General medical guidance - the current reference textbook does not cover this condition in detail.',
+    macros: [
+      {label: 'الحديد / Iron', val: 'تجنب مكملات ومنتجات مدعّمة بالحديد الا بأمر طبيب — avoid iron supplements/fortified foods unless doctor-directed'},
+      {label: 'فيتامين C / Vitamin C', val: 'بحذر مع الوجبات — بيزود امتصاص الحديد — use cautiously with meals, increases iron absorption'},
+      {label: 'الشاي / Tea', val: 'مع الوجبات يقلل امتصاص الحديد (مفيد هنا) — with meals reduces iron absorption (helpful here)'},
+      {label: 'فوليك وكالسيوم وD / Folate, calcium & D', val: 'احتياجات اعلى بسبب فقر الدم المزمن — higher needs due to chronic anemia'},
+    ],
+    good_ar: ['شاي مع الوجبات','البان ومنتجاتها','خضار وفاكهة متنوعة','حبوب كاملة'],
+    good_en: ['Tea with meals','Dairy products','Varied fruits & vegetables','Whole grains'],
+    bad_ar: ['مكملات حديد من غير وصفة','اطعمة مدعّمة بالحديد بكثرة','كبدة ولحوم حمراء بكميات كبيرة جداً'],
+    bad_en: ['Unprescribed iron supplements','Heavily iron-fortified foods','Very large amounts of liver/red meat'],
+    ref: 'إرشادات طبية عامة — General clinical guidance (not covered in reference textbook)'
+  },
 ];
 
 function renderConditions() {
