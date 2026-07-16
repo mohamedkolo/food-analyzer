@@ -290,13 +290,14 @@ def create_checkout_session(user, plan_key, currency="EGP"):
 # ═══════════════════════════════════════════════
 
 def verify_webhook(payload, signature):
-    """Verify webhook signature - returns Stripe event or None"""
+    """Verify webhook signature - returns Stripe event or None.
+
+    Requires STRIPE_WEBHOOK_SECRET to be set; without it every request is
+    rejected rather than trusting an unverified payload (use `stripe listen`
+    to get a whsec_ secret for local testing).
+    """
     if not STRIPE_WEBHOOK_SECRET:
-        # In dev without webhook secret, parse directly (NOT SECURE)
-        try:
-            return json.loads(payload)
-        except:
-            return None
+        return None
     try:
         return stripe.Webhook.construct_event(payload, signature, STRIPE_WEBHOOK_SECRET)
     except (ValueError, stripe.error.SignatureVerificationError):
@@ -390,11 +391,12 @@ def handle_subscription_updated(sub_obj, db_run):
     status = sub_obj.get('status')
     period_end = datetime.fromtimestamp(sub_obj.get('current_period_end', 0))
     try:
-        db_run("""UPDATE subscriptions SET status=?, current_period_end=?, updated_at=? 
+        db_run("""UPDATE subscriptions SET status=?, current_period_end=?, updated_at=?
                   WHERE stripe_subscription_id=?""",
                (status, period_end, datetime.now(), subscription_id))
         return True
-    except:
+    except Exception as e:
+        print(f"handle_subscription_updated error (subscription={subscription_id}): {e}")
         return False
 
 
@@ -402,11 +404,12 @@ def handle_subscription_canceled(sub_obj, db_run):
     """Handle subscription cancellation"""
     subscription_id = sub_obj.get('id')
     try:
-        db_run("""UPDATE subscriptions SET status='canceled', cancel_at=?, updated_at=? 
+        db_run("""UPDATE subscriptions SET status='canceled', cancel_at=?, updated_at=?
                   WHERE stripe_subscription_id=?""",
                (datetime.now(), datetime.now(), subscription_id))
         return True
-    except:
+    except Exception as e:
+        print(f"handle_subscription_canceled error (subscription={subscription_id}): {e}")
         return False
 
 
