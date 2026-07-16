@@ -135,6 +135,17 @@
         <div style="font-weight:900;font-size:15px;color:#14332b;">✅ وجبات النهارده ({{ tracking.day_name }})</div>
         <div id="todayCount" style="font-size:12px;font-weight:800;color:#1e4a3d;background:#faf8f3;padding:4px 12px;border-radius:999px;">{{ tracking.today_done }}/{{ tracking.today_total }}</div>
       </div>
+      {% if streak and streak.current_streak > 0 %}
+      <div style="display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,#fff7ed,#fef3c7);border:1.5px solid #f3d98a;border-radius:12px;padding:10px 14px;margin-bottom:12px;">
+        <span style="font-size:22px;">🔥</span>
+        <div style="flex:1;">
+          <div style="font-weight:900;font-size:14px;color:#92400e;">{{ streak.current_streak }} يوم متتالي من الالتزام الكامل!</div>
+          {% if streak.badge %}
+          <div style="font-size:12px;font-weight:700;color:#b45309;">{{ streak.badge.emoji }} {{ streak.badge.label }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
       {% for m in tracking.today_meals %}
       <div class="track-meal" data-key="{{ m.key }}" style="display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:12px;cursor:pointer;transition:all .15s;{% if m.checked %}background:#faf8f3;{% endif %}border:1.5px solid {% if m.checked %}#c9a961{% else %}#e7e0d0{% endif %};margin-bottom:8px;">
         <div class="track-box" style="width:24px;height:24px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;background:{% if m.checked %}#1e4a3d{% else %}#e7e0d0{% endif %};margin-top:2px;">{% if m.checked %}✓{% endif %}</div>

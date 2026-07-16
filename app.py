@@ -857,6 +857,78 @@ def get_meal_tracking(user_id):
     return out
 
 
+def get_meal_streak(user_id, max_days=90):
+    """بيحسب تتابع الالتزام الحالي (أيام متتالية بالتزام كامل بكل وجبات اليوم) وأطول تتابع، من بيانات meal_checks الموجودة."""
+    out = {"current_streak": 0, "best_streak": 0, "badge": None}
+    try:
+        latest = db_row("""SELECT plan_data FROM plan_requests
+                           WHERE client_id=? AND status='approved'
+                           ORDER BY updated_at DESC LIMIT 1""", (user_id,))
+        if not latest or not latest.get("plan_data"):
+            return out
+        pd = json.loads(latest["plan_data"])
+        plan = pd.get("plan") or []
+        if not plan:
+            return out
+        diet_type = (pd.get("data") or {}).get("diet_plan_type", "standard")
+        meal_list = get_diet_plan_info(diet_type).get("meals", [])
+
+        # الوجبات المتوقعة لكل يوم أسبوع (0=الأحد..6=السبت) حسب الخطة
+        expected_by_weekday = {}
+        for i in range(7):
+            day = plan[min(i, len(plan) - 1)]
+            expected_by_weekday[i] = [k for k in meal_list if day.get(k)]
+
+        rows = db_rows("SELECT check_date, meal_key FROM meal_checks WHERE user_id=?", (user_id,))
+        done_by_date = {}
+        for r in (rows or []):
+            d = str(r["check_date"])[:10]
+            done_by_date.setdefault(d, set()).add(r["meal_key"])
+
+        def is_complete(d):
+            widx = (d.weekday() + 1) % 7
+            expected = expected_by_weekday.get(widx, [])
+            if not expected:
+                return None  # يوم مفيهوش وجبات متوقعة أصلاً — نتجاهله
+            done = done_by_date.get(d.strftime("%Y-%m-%d"), set())
+            return all(k in done for k in expected)
+
+        today = datetime.now().date()
+        current, run, best, counting_current = 0, 0, 0, True
+        for back in range(1, max_days + 1):
+            complete = is_complete(today - timedelta(days=back))
+            if complete is None:
+                continue
+            if complete:
+                run += 1
+                best = max(best, run)
+                if counting_current:
+                    current = run
+            else:
+                run = 0
+                counting_current = False
+
+        if is_complete(today):
+            current += 1
+            best = max(best, current)
+
+        out["current_streak"] = current
+        out["best_streak"] = max(best, current)
+    except Exception as e:
+        print(f"[streak] error: {e}")
+        return out
+
+    if out["current_streak"] >= 30:
+        out["badge"] = {"emoji": "🏆", "label": "شهر كامل!"}
+    elif out["current_streak"] >= 14:
+        out["badge"] = {"emoji": "🥇", "label": "أسبوعين متتاليين"}
+    elif out["current_streak"] >= 7:
+        out["badge"] = {"emoji": "🔥", "label": "أسبوع كامل"}
+    elif out["current_streak"] >= 3:
+        out["badge"] = {"emoji": "⭐", "label": "بداية قوية"}
+    return out
+
+
 def send_meal_time_reminders():
     """يفحص وجبات النهاردة لكل عميل عنده خطة معتمدة، ويبعت تذكير لأي وجبة فات وقتها ومتسجلتش (مرة واحدة بس لكل وجبة/يوم)."""
     now = datetime.now()
@@ -966,11 +1038,13 @@ def my_plan():
 
     weight = build_weight_progress(session["uid"], u)
     tracking = get_meal_tracking(session["uid"])
+    streak = get_meal_streak(session["uid"])
     return render_template("my_plan.html", user=u, lang=session.get("lang","ar"),
                            latest_plan=latest_plan, pending_request=pending_request,
                            can_request=can_request, days_left=days_left,
                            hours_left=hours_left, last_request_date=last_date,
-                           today_tip=today_tip, weight=weight, tracking=tracking)
+                           today_tip=today_tip, weight=weight, tracking=tracking,
+                           streak=streak)
 
 @app.route("/request-plan", methods=["GET","POST"])
 @login_required
