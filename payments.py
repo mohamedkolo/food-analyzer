@@ -290,13 +290,14 @@ def create_checkout_session(user, plan_key, currency="EGP"):
 # ═══════════════════════════════════════════════
 
 def verify_webhook(payload, signature):
-    """Verify webhook signature - returns Stripe event or None"""
+    """Verify webhook signature - returns Stripe event or None.
+
+    Requires STRIPE_WEBHOOK_SECRET to be set; without it every request is
+    rejected rather than trusting an unverified payload (use `stripe listen`
+    to get a whsec_ secret for local testing).
+    """
     if not STRIPE_WEBHOOK_SECRET:
-        # In dev without webhook secret, parse directly (NOT SECURE)
-        try:
-            return json.loads(payload)
-        except:
-            return None
+        return None
     try:
         return stripe.Webhook.construct_event(payload, signature, STRIPE_WEBHOOK_SECRET)
     except (ValueError, stripe.error.SignatureVerificationError):
