@@ -248,6 +248,7 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS subscriptions (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, stripe_customer_id TEXT, stripe_subscription_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, current_period_start TIMESTAMP, current_period_end TIMESTAMP, trial_end TIMESTAMP, cancel_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS payments (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, stripe_session_id TEXT UNIQUE, stripe_payment_intent_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, expires_at TIMESTAMP, metadata TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS meal_checks (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, UNIQUE(user_id, check_date, meal_key))""",
+            """CREATE TABLE IF NOT EXISTS meal_reminders_sent (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, UNIQUE(user_id, check_date, meal_key))""",
         ]
         for sql in tables_pg:
             try: db_run(sql)
@@ -264,6 +265,7 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, stripe_customer_id TEXT, stripe_subscription_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, current_period_start TIMESTAMP, current_period_end TIMESTAMP, trial_end TIMESTAMP, cancel_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS payments (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, stripe_session_id TEXT UNIQUE, stripe_payment_intent_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, expires_at TIMESTAMP, metadata TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS meal_checks (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, UNIQUE(user_id, check_date, meal_key))""",
+            """CREATE TABLE IF NOT EXISTS meal_reminders_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, UNIQUE(user_id, check_date, meal_key))""",
         ]
         for sql in tables_sq:
             try: db_run(sql)
@@ -853,6 +855,71 @@ def get_meal_tracking(user_id):
     except Exception as _e:
         print(f"meal tracking error: {_e}")
     return out
+
+
+def send_meal_time_reminders():
+    """يفحص وجبات النهاردة لكل عميل عنده خطة معتمدة، ويبعت تذكير لأي وجبة فات وقتها ومتسجلتش (مرة واحدة بس لكل وجبة/يوم)."""
+    now = datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    try:
+        clients = db_rows("SELECT id FROM users WHERE role='client' AND active=1")
+    except Exception as e:
+        print(f"[meal reminders] users query error: {e}")
+        return
+
+    for c in (clients or []):
+        uid = c["id"]
+        try:
+            latest = db_row("""SELECT plan_data FROM plan_requests
+                               WHERE client_id=? AND status='approved'
+                               ORDER BY updated_at DESC LIMIT 1""", (uid,))
+            if not latest or not latest.get("plan_data"):
+                continue
+            pd = json.loads(latest["plan_data"])
+            plan = pd.get("plan") or []
+            if not plan:
+                continue
+            diet_type = (pd.get("data") or {}).get("diet_plan_type", "standard")
+            plan_info = get_diet_plan_info(diet_type)
+            meal_hours = plan_info.get("meal_hours", {})
+            labels = plan_info.get("meal_labels", {})
+            emojis = plan_info.get("meal_emojis", {})
+
+            idx = (now.weekday() + 1) % 7
+            idx = min(idx, len(plan) - 1)
+            day = plan[idx]
+
+            checked = {r["meal_key"] for r in (db_rows(
+                "SELECT meal_key FROM meal_checks WHERE user_id=? AND check_date=?", (uid, today)) or [])}
+            reminded = {r["meal_key"] for r in (db_rows(
+                "SELECT meal_key FROM meal_reminders_sent WHERE user_id=? AND check_date=?", (uid, today)) or [])}
+
+            for meal_key in plan_info.get("meals", []):
+                if not day.get(meal_key) or meal_key in checked or meal_key in reminded:
+                    continue
+                hour = meal_hours.get(meal_key)
+                if hour is None or now.hour < hour:
+                    continue
+                push_to_user(uid, f"{emojis.get(meal_key, '🍽️')} فاتك تسجّل {labels.get(meal_key, meal_key)}؟",
+                            "متنساش تاخد وجبتك حسب خطتك — سجّلها من التطبيق.",
+                            url="/my-plan")
+                db_run("INSERT INTO meal_reminders_sent (user_id, check_date, meal_key) VALUES (?,?,?)",
+                       (uid, today, meal_key))
+        except Exception as e:
+            print(f"[meal reminders] user {uid} error: {e}")
+
+
+# ── تذكير مواعيد الوجبات: فحص دوري في الخلفية كل 30 دقيقة ──
+def _meal_reminders_loop():
+    import time
+    while True:
+        try:
+            send_meal_time_reminders()
+        except Exception as e:
+            print(f"[meal reminders] loop error: {e}")
+        time.sleep(30 * 60)
+
+threading.Thread(target=_meal_reminders_loop, daemon=True).start()
 
 
 @app.route("/track/meal", methods=["POST"])

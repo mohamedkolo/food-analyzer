@@ -993,6 +993,7 @@ DIET_PLAN_TYPES = {
         "meals": ["breakfast", "lunch", "dinner", "snack"],
         "meal_labels": {"breakfast": "الفطار", "lunch": "الغداء", "dinner": "العشاء", "snack": "سناك"},
         "meal_emojis": {"breakfast": "🌅", "lunch": "☀️", "dinner": "🌙", "snack": "🍎"},
+        "meal_hours": {"breakfast": 8, "lunch": 14, "dinner": 20, "snack": 17},
         "description": "3 وجبات رئيسية + سناك"
     },
     "five_meals": {
@@ -1000,6 +1001,7 @@ DIET_PLAN_TYPES = {
         "meals": ["breakfast", "snack1", "lunch", "snack2", "dinner"],
         "meal_labels": {"breakfast": "الفطار", "snack1": "سناك صباحي", "lunch": "الغداء", "snack2": "سناك عصر", "dinner": "العشاء"},
         "meal_emojis": {"breakfast": "🌅", "snack1": "☕", "lunch": "☀️", "snack2": "🍎", "dinner": "🌙"},
+        "meal_hours": {"breakfast": 8, "snack1": 10, "lunch": 14, "snack2": 17, "dinner": 20},
         "description": "تقسيم السعرات على 5 وجبات صغيرة"
     },
     "intermittent_16_8": {
@@ -1007,6 +1009,7 @@ DIET_PLAN_TYPES = {
         "meals": ["meal1", "snack", "meal2"],
         "meal_labels": {"meal1": "الفطار (12ظ)", "snack": "سناك (4ع)", "meal2": "الوجبة الرئيسية (7م)"},
         "meal_emojis": {"meal1": "🌅", "snack": "🍎", "meal2": "🍽️"},
+        "meal_hours": {"meal1": 12, "snack": 16, "meal2": 19},
         "description": "صيام 16 ساعة + أكل في 8 ساعات (فطار + سناك + وجبة رئيسية)"
     },
     "intermittent_18_6": {
@@ -1014,6 +1017,7 @@ DIET_PLAN_TYPES = {
         "meals": ["meal1", "meal2"],
         "meal_labels": {"meal1": "الوجبة الأولى (2ع)", "meal2": "الوجبة الثانية (7م)"},
         "meal_emojis": {"meal1": "🕑", "meal2": "🕖"},
+        "meal_hours": {"meal1": 14, "meal2": 19},
         "description": "صيام 18 ساعة + أكل في 6 ساعات"
     },
     "ramadan": {
@@ -1021,6 +1025,7 @@ DIET_PLAN_TYPES = {
         "meals": ["iftar", "snack", "suhoor"],
         "meal_labels": {"iftar": "الفطار", "snack": "سناك", "suhoor": "السحور"},
         "meal_emojis": {"iftar": "🌙", "snack": "🍎", "suhoor": "🌄"},
+        "meal_hours": {"iftar": 18, "snack": 22, "suhoor": 4},
         "description": "نظام رمضاني متوازن"
     },
     "workout": {
@@ -1028,6 +1033,7 @@ DIET_PLAN_TYPES = {
         "meals": ["pre_workout", "breakfast", "post_workout", "lunch", "dinner"],
         "meal_labels": {"pre_workout": "قبل التمرين", "breakfast": "الفطار", "post_workout": "بعد التمرين", "lunch": "الغداء", "dinner": "العشاء"},
         "meal_emojis": {"pre_workout": "💪", "breakfast": "🌅", "post_workout": "🏋️", "lunch": "☀️", "dinner": "🌙"},
+        "meal_hours": {"pre_workout": 6, "breakfast": 8, "post_workout": 9, "lunch": 14, "dinner": 20},
         "description": "للرياضيين - وجبات حول التمرين"
     }
 }
