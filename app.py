@@ -118,7 +118,8 @@ from payments import (
 from notifications import (
     add_notification, get_unread_count, get_all_notifications,
     mark_all_read, mark_read, get_type_meta,
-    ensure_table as ensure_notif_table
+    ensure_table as ensure_notif_table,
+    send_plan_pdf_email
 )
 
 # ═══════════════════════════════════════════════
@@ -1212,14 +1213,29 @@ def admin_request_approve(rid):
     db_run("UPDATE plan_requests SET status='approved', plan_data=?, updated_at=? WHERE id=?",
            (json.dumps({"plan": plan, "data": data}), datetime.now().isoformat(), rid))
     # ── إشعار موبايل للعميل إن خطته جاهزة ──
+    client = None
     try:
         req = db_row("SELECT client_id FROM plan_requests WHERE id=?", (rid,))
         if req and req.get("client_id"):
+            client = get_user_by_id(req["client_id"])
             push_to_user(req["client_id"], "خطتك الغذائية جاهزة! 🎉",
                          "د. محمد جهّزلك خطة جديدة. افتح التطبيق لمشاهدتها.",
                          url="/my-plan")
     except Exception as _e:
         print(f"push to client (plan) error: {_e}")
+
+    # ── إرسال الخطة PDF بالإيميل للعميل ──
+    try:
+        if client and client.get("email"):
+            pdf_bytes = build_pdf(data, plan)
+            threading.Thread(
+                target=send_plan_pdf_email,
+                args=(client["email"], client.get("name"), pdf_bytes),
+                daemon=True
+            ).start()
+    except Exception as _e:
+        print(f"email plan pdf error: {_e}")
+
     session.pop("current_request_id", None)
     return redirect("/admin/requests")
 

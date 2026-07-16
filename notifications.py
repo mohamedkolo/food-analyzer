@@ -21,6 +21,7 @@ import ssl
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 
 # ═══════════════════════════════════════════════
 # إعدادات الإيميل (من الـ environment variables)
@@ -202,4 +203,60 @@ def send_admin_email(type_, title, message, link=None):
         return True
     except Exception as e:
         print(f"[notif] SMTP error: {e}")
+        return False
+
+
+# ═══════════════════════════════════════════════
+# إرسال خطة PDF للعميل بالإيميل
+# ═══════════════════════════════════════════════
+def send_plan_pdf_email(to_email, client_name, pdf_bytes, filename="meal_plan.pdf"):
+    """بيبعت خطة الأكل PDF كمرفق لإيميل العميل. بيرجّع True لو اتبعت."""
+    if not (SMTP_HOST and SMTP_USER and SMTP_PASS):
+        print("[notif] SMTP not configured - plan email skipped")
+        return False
+    if not to_email:
+        return False
+
+    msg = MIMEMultipart("mixed")
+    msg["From"] = SMTP_FROM
+    msg["To"] = to_email
+    msg["Subject"] = "🎉 خطتك الغذائية جاهزة - NutraX"
+
+    body = MIMEMultipart("alternative")
+    html = f"""\
+<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;max-width:520px;margin:auto;
+     border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+  <div style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:18px 22px;">
+    <div style="font-size:22px;font-weight:bold;">🎉 خطتك الغذائية جاهزة</div>
+  </div>
+  <div style="padding:22px;color:#0f172a;">
+    <p style="margin:0 0 18px;color:#475569;line-height:1.7;font-size:15px;">
+      أهلاً {client_name or 'بيك'}، د. محمد جهّزلك خطة غذائية جديدة — هتلاقيها مرفقة في الإيميل ده (PDF)،
+      وكمان متاحة على طول من داخل التطبيق.
+    </p>
+  </div>
+  <div style="background:#f8fafc;padding:14px 22px;color:#94a3b8;font-size:12px;text-align:center;">
+    NutraX Clinical Nutrition — إشعار تلقائي
+  </div>
+</div>"""
+    plain = f"أهلاً {client_name or ''}، خطتك الغذائية الجديدة مرفقة في هذا الإيميل (PDF)."
+    body.attach(MIMEText(plain, "plain", "utf-8"))
+    body.attach(MIMEText(html, "html", "utf-8"))
+    msg.attach(body)
+
+    attachment = MIMEApplication(pdf_bytes, _subtype="pdf")
+    attachment.add_header("Content-Disposition", "attachment", filename=filename)
+    msg.attach(attachment)
+
+    context = ssl.create_default_context()
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+            server.ehlo()
+            server.starttls(context=context)
+            server.login(SMTP_USER, SMTP_PASS)
+            server.sendmail(SMTP_FROM, [to_email], msg.as_string())
+        print(f"[notif] plan PDF emailed to {to_email}")
+        return True
+    except Exception as e:
+        print(f"[notif] plan PDF SMTP error: {e}")
         return False
