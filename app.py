@@ -2271,7 +2271,40 @@ def _rank_by_condition(meals, cond_keys):
             neutral.append(m)
     return good + neutral + bad
 
+def _apply_clinical_safety_caps(data):
+    """يظبط هدف السعرات تلقائياً لحالات حساسة (حصوات المرارة، اضطرابات الأكل) قبل توليد الخطة، ويسجّل السبب في الملاحظات."""
+    symptoms = data.get("symptoms", []) or []
+    try:
+        tdee_val = float(data.get("tdee", 0) or 0)
+        goal_cal_val = float(data.get("goal_cal", 0) or 0)
+    except (TypeError, ValueError):
+        tdee_val = goal_cal_val = 0
+    if not tdee_val or not goal_cal_val:
+        return
+
+    flags = []
+
+    if "حصوات المرارة" in symptoms:
+        max_safe_deficit = 750  # أقصى عجز سعرات آمن يومياً (فقدان 0.5-1 كجم أسبوعياً)
+        min_safe_cal = tdee_val - max_safe_deficit
+        if goal_cal_val < min_safe_cal:
+            data["goal_cal"] = str(int(min_safe_cal))
+            flags.append(f"⚠️ حصوات المرارة: السعرات المستهدفة اتظبطت تلقائياً لـ {int(min_safe_cal)} kcal "
+                        f"(أقصى عجز {max_safe_deficit} kcal/يوم) لأن فقدان الوزن السريع بيزود خطر تكوّن الحصوات.")
+
+    if "اضطراب في الأكل" in symptoms:
+        if goal_cal_val < tdee_val:
+            data["goal_cal"] = str(int(tdee_val))
+        flags.append("⚠️ اضطراب أكل مسجل: الخطة اتظبطت على سعرات المحافظة (من غير عجز) بدل التخسيس — "
+                     "الحالة دي لازم متابعة طبيب نفسي/طبيب مصاحبة للتغذية.")
+
+    if flags:
+        existing_notes = data.get("notes", "") or ""
+        data["notes"] = " | ".join(flags) + (" | " + existing_notes if existing_notes else "")
+
+
 def generate_weekly_plan(data):
+    _apply_clinical_safety_caps(data)
     symptoms = data.get("symptoms", [])
     goal = data.get("goal_type", "weight_loss")
     is_cutting = (goal == "cutting")
