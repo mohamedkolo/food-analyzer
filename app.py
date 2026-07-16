@@ -1607,6 +1607,12 @@ def chat(other_id):
     other = get_user_by_id(other_id)
     if not other: return redirect("/messages")
 
+    # عميل يقدر يكلم الستاف (الأدمن/الأخصائي) بس، مش أي مستخدم تاني
+    if role == "client":
+        other_role = get_user_role(other)
+        if other_role not in ("admin", "nutritionist"):
+            return redirect("/messages")
+
     if request.method == "POST":
         msg = request.form.get("message", "").strip()
         if msg:
@@ -2655,18 +2661,24 @@ def stripe_webhook():
     event_type = event.get("type") if isinstance(event, dict) else event["type"]
     data_obj = event["data"]["object"] if isinstance(event, dict) else event.data.object
 
+    handled = True
     try:
         if event_type == "checkout.session.completed":
-            handle_checkout_completed(data_obj, db_run, db_row)
+            handled = handle_checkout_completed(data_obj, db_run, db_row)
         elif event_type == "invoice.payment_succeeded":
-            handle_invoice_paid(data_obj, db_run, db_row)
+            handled = handle_invoice_paid(data_obj, db_run, db_row)
         elif event_type in ("customer.subscription.updated", "customer.subscription.trial_will_end"):
-            handle_subscription_updated(data_obj, db_run)
+            handled = handle_subscription_updated(data_obj, db_run)
         elif event_type == "customer.subscription.deleted":
-            handle_subscription_canceled(data_obj, db_run)
+            handled = handle_subscription_canceled(data_obj, db_run)
     except Exception as e:
         print(f"Webhook handler error: {e}")
         import traceback; traceback.print_exc()
+        handled = False
+
+    if not handled:
+        # رد غير 2xx يخلي Stripe يعيد محاولة إرسال الحدث تاني بدل ما يضيع بصمت
+        return jsonify({"status": "error"}), 500
 
     return jsonify({"status": "ok"}), 200
 
