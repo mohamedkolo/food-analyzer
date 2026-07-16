@@ -249,6 +249,7 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS payments (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, stripe_session_id TEXT UNIQUE, stripe_payment_intent_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, expires_at TIMESTAMP, metadata TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS meal_checks (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, UNIQUE(user_id, check_date, meal_key))""",
             """CREATE TABLE IF NOT EXISTS meal_reminders_sent (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, UNIQUE(user_id, check_date, meal_key))""",
+            """CREATE TABLE IF NOT EXISTS weekly_summary_sent (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, week_key TEXT NOT NULL, UNIQUE(user_id, week_key))""",
         ]
         for sql in tables_pg:
             try: db_run(sql)
@@ -266,6 +267,7 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS payments (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, stripe_session_id TEXT UNIQUE, stripe_payment_intent_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, expires_at TIMESTAMP, metadata TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS meal_checks (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, UNIQUE(user_id, check_date, meal_key))""",
             """CREATE TABLE IF NOT EXISTS meal_reminders_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, UNIQUE(user_id, check_date, meal_key))""",
+            """CREATE TABLE IF NOT EXISTS weekly_summary_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, week_key TEXT NOT NULL, UNIQUE(user_id, week_key))""",
         ]
         for sql in tables_sq:
             try: db_run(sql)
@@ -992,6 +994,79 @@ def _meal_reminders_loop():
         time.sleep(30 * 60)
 
 threading.Thread(target=_meal_reminders_loop, daemon=True).start()
+
+
+def _weekly_weight_delta(user_id):
+    """فرق الوزن بين أول وآخر تسجيل في آخر 7 أيام (None لو أقل من تسجيلين)."""
+    try:
+        week_ago = datetime.now() - timedelta(days=7)
+        logs = db_rows("""SELECT weight, logged_at FROM weight_log
+                          WHERE user_id=? AND logged_at >= ? ORDER BY logged_at ASC""",
+                       (user_id, week_ago))
+        if not logs or len(logs) < 2:
+            return None
+        return round(float(logs[-1]["weight"]) - float(logs[0]["weight"]), 1)
+    except Exception:
+        return None
+
+
+def send_weekly_summaries():
+    """يبعت ملخص أسبوعي (وزن + التزام + تتابع) لكل عميل نشط عنده خطة، مرة واحدة بس في الأسبوع لكل عميل."""
+    now = datetime.now()
+    year, week_num, _ = now.isocalendar()
+    week_key = f"{year}-W{week_num:02d}"
+    try:
+        clients = db_rows("SELECT id FROM users WHERE role='client' AND active=1")
+    except Exception as e:
+        print(f"[weekly summary] users query error: {e}")
+        return
+
+    for c in (clients or []):
+        uid = c["id"]
+        try:
+            if db_row("SELECT id FROM weekly_summary_sent WHERE user_id=? AND week_key=?", (uid, week_key)):
+                continue
+
+            tracking = get_meal_tracking(uid)
+            if not tracking.get("has_plan"):
+                continue
+
+            streak = get_meal_streak(uid)
+            delta = _weekly_weight_delta(uid)
+
+            parts = []
+            if delta is not None:
+                if delta < 0:
+                    parts.append(f"نزل وزنك {abs(delta)} كجم")
+                elif delta > 0:
+                    parts.append(f"زاد وزنك {delta} كجم")
+                else:
+                    parts.append("وزنك ثابت")
+            if tracking.get("week_pct") is not None:
+                parts.append(f"التزامك بالوجبات {tracking['week_pct']}%")
+            if streak.get("current_streak", 0) > 0:
+                parts.append(f"تتابع {streak['current_streak']} يوم 🔥")
+
+            if not parts:
+                continue
+
+            push_to_user(uid, "📊 ملخص أسبوعك", "، ".join(parts) + ". كمّل كده!", url="/my-plan")
+            db_run("INSERT INTO weekly_summary_sent (user_id, week_key) VALUES (?,?)", (uid, week_key))
+        except Exception as e:
+            print(f"[weekly summary] user {uid} error: {e}")
+
+
+# ── ملخص أسبوعي تلقائي: فحص دوري في الخلفية كل 3 ساعات (بيتبعت مرة واحدة بس لكل عميل كل أسبوع) ──
+def _weekly_summary_loop():
+    import time
+    while True:
+        try:
+            send_weekly_summaries()
+        except Exception as e:
+            print(f"[weekly summary] loop error: {e}")
+        time.sleep(3 * 3600)
+
+threading.Thread(target=_weekly_summary_loop, daemon=True).start()
 
 
 @app.route("/track/meal", methods=["POST"])
