@@ -42,7 +42,68 @@
     <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">خطط مكتملة</div>
   </div>
 
+  <div class="card" style="text-align:center;padding:18px;border-top:4px solid #8b5cf6">
+    <div style="font-size:34px;margin-bottom:6px">💬</div>
+    <div style="font-size:32px;font-weight:900;color:#8b5cf6">{{ unread_messages or 0 }}</div>
+    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">رسايل غير مقروءة</div>
+    {% if unread_messages and unread_messages > 0 %}
+    <a href="/messages" style="display:block;margin-top:10px;font-size:12px;color:#8b5cf6;font-weight:700">شوف الرسايل ←</a>
+    {% endif %}
+  </div>
+
 </div>
+
+<!-- مركز المتابعة -->
+{% if (renewals_soon and renewals_soon|length > 0) or (at_risk_clients and at_risk_clients|length > 0) or (recently_lost and recently_lost|length > 0) %}
+<div class="card">
+  <div class="card-title"><i class="fa-solid fa-list-check"></i> مركز المتابعة</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">
+
+    <div>
+      <div style="font-weight:800;font-size:13px;color:#b45309;margin-bottom:8px;">🔔 تجديدات قريبة (7 أيام)</div>
+      {% if renewals_soon %}
+        {% for r in renewals_soon[:5] %}
+        <div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:12.5px;">
+          <span style="font-weight:700;">{{ r.name }}</span>
+          <span style="color:var(--muted);white-space:nowrap;">{{ r.days_left }} يوم</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="color:var(--muted-2);font-size:12.5px;padding:8px 0;">مفيش حالياً</div>
+      {% endif %}
+    </div>
+
+    <div>
+      <div style="font-weight:800;font-size:13px;color:#b45309;margin-bottom:8px;">⚠️ محتاجين متابعة (التزام أقل من 40%)</div>
+      {% if at_risk_clients %}
+        {% for c in at_risk_clients[:5] %}
+        <a href="/admin/users/{{ c.id }}" style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:12.5px;text-decoration:none;color:var(--text);">
+          <span style="font-weight:700;">{{ c.name }}</span>
+          <span style="color:#dc2626;white-space:nowrap;">{{ c.week_pct }}%</span>
+        </a>
+        {% endfor %}
+      {% else %}
+        <div style="color:var(--muted-2);font-size:12.5px;padding:8px 0;">مفيش حالياً 🎉</div>
+      {% endif %}
+    </div>
+
+    <div>
+      <div style="font-weight:800;font-size:13px;color:#b45309;margin-bottom:8px;">🚪 فقدوا الوصول مؤخراً</div>
+      {% if recently_lost %}
+        {% for r in recently_lost[:5] %}
+        <div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:12.5px;">
+          <span style="font-weight:700;">{{ r.name }}</span>
+          <span style="color:var(--muted);white-space:nowrap;">{{ r.reason }}</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="color:var(--muted-2);font-size:12.5px;padding:8px 0;">مفيش حالياً</div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endif %}
 
 <!-- Quick Actions -->
 <div class="card">

@@ -658,6 +658,7 @@ def dashboard():
     total_clients = 0
     total_plans = 0
     recent_requests = []
+    unread_messages = 0
     try:
         pending_count = get_pending_requests_count()
         r = db_row("SELECT COUNT(*) as cnt FROM users WHERE role='client'")
@@ -665,11 +666,19 @@ def dashboard():
         r2 = db_row("SELECT COUNT(*) as cnt FROM plan_requests WHERE status='approved'")
         total_plans = r2.get("cnt", 0) if r2 else 0
         recent_requests = db_rows("SELECT * FROM plan_requests ORDER BY created_at DESC LIMIT 5")
+        r3 = db_row("SELECT COUNT(*) as cnt FROM messages WHERE receiver_id=? AND is_read=0", (session["uid"],))
+        unread_messages = r3.get("cnt", 0) if r3 else 0
     except:
         pass
+
+    analytics = build_admin_analytics(db_rows)
+    at_risk = get_at_risk_clients()
+
     return render_template("dashboard.html", user=u, lang=session.get("lang","ar"),
                            role=role, pending_count=pending_count, total_clients=total_clients,
-                           total_plans=total_plans, recent_requests=recent_requests)
+                           total_plans=total_plans, recent_requests=recent_requests,
+                           unread_messages=unread_messages, renewals_soon=analytics["renewals_soon"],
+                           recently_lost=analytics["recently_lost"], at_risk_clients=at_risk)
 
 COUNTRY_DIAL_CODES = {
     "مصر": "20", "السعودية": "966", "الإمارات": "971", "الكويت": "965",
@@ -929,6 +938,27 @@ def get_meal_streak(user_id, max_days=90):
     elif out["current_streak"] >= 3:
         out["badge"] = {"emoji": "⭐", "label": "بداية قوية"}
     return out
+
+
+def get_at_risk_clients(threshold=40, limit=10):
+    """عملاء عندهم خطة معتمدة والتزامهم بالوجبات آخر 7 أيام أقل من حد معيّن — إشارة مبكرة إنهم محتاجين متابعة."""
+    out = []
+    try:
+        clients = db_rows("SELECT id, name, email FROM users WHERE role='client' AND active=1")
+    except Exception as e:
+        print(f"[at risk] users query error: {e}")
+        return out
+    for c in (clients or []):
+        try:
+            tracking = get_meal_tracking(c["id"])
+            pct = tracking.get("week_pct")
+            if tracking.get("has_plan") and pct is not None and pct < threshold:
+                out.append({"id": c["id"], "name": c.get("name") or "-",
+                           "email": c.get("email") or "-", "week_pct": pct})
+        except Exception:
+            continue
+    out.sort(key=lambda x: x["week_pct"])
+    return out[:limit]
 
 
 def send_meal_time_reminders():
