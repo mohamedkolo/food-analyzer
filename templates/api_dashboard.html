@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+{% set is_ar = (lang or 'ar') == 'ar' %}
+
+<style>
+  .key-box { display: flex; align-items: center; gap: 10px; background: var(--gray); border: 1.5px dashed var(--gray-2); border-radius: 10px; padding: 12px 14px; font-family: 'Courier New', monospace; font-size: 13px; direction: ltr; text-align: left; overflow-x: auto; }
+  .key-box code { flex: 1; white-space: nowrap; }
+  .usage-bar-track { background: var(--gray-2); border-radius: 8px; height: 12px; overflow: hidden; margin: 8px 0; }
+  .usage-bar-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--blue-light)); border-radius: 8px; }
+  .usage-bar-fill.warn { background: linear-gradient(90deg, #b34700, #d97706); }
+  .tiers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 14px; }
+  .tier-card { border: 2px solid var(--gray-2); border-radius: 14px; padding: 18px; text-align: center; }
+  .tier-card.current { border-color: var(--blue); background: var(--blue-pale); }
+  .tier-name { font-weight: 800; color: var(--blue); margin-bottom: 6px; }
+  .tier-price { font-size: 22px; font-weight: 900; }
+</style>
+
+<div class="page-title"><i class="fa-solid fa-plug"></i> {{ 'واجهة API للمطورين' if is_ar else 'Developer API' }}</div>
+
+{% if request.args.get('checkout') == 'success' %}
+<div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> {{ 'تم تفعيل اشتراك الـ API بنجاح!' if is_ar else 'API subscription activated!' }}</div>
+{% elif request.args.get('checkout') == 'cancel' %}
+<div class="alert alert-warn"><i class="fa-solid fa-triangle-exclamation"></i> {{ 'اتلغت عملية الدفع.' if is_ar else 'Checkout was canceled.' }}</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-title"><i class="fa-solid fa-key"></i> {{ 'مفتاحك' if is_ar else 'Your API Key' }}</div>
+  <div class="key-box">
+    <code id="apiKeyVal">{{ usage.api_key }}</code>
+    <button class="btn btn-outline" style="padding:6px 12px" onclick="navigator.clipboard.writeText(document.getElementById('apiKeyVal').textContent); this.textContent='{{ '✓ اتنسخ' if is_ar else '✓ Copied' }}'">{{ 'نسخ' if is_ar else 'Copy' }}</button>
+  </div>
+  <form method="POST" action="/dashboard/api/regenerate" style="margin-top:12px" onsubmit="return confirm('{{ 'المفتاح القديم هيتوقف عن الشغل فوراً. متأكد؟' if is_ar else 'The old key stops working immediately. Sure?' }}')">
+    <button type="submit" class="btn btn-danger"><i class="fa-solid fa-rotate"></i> {{ 'ولّد مفتاح جديد' if is_ar else 'Regenerate key' }}</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title"><i class="fa-solid fa-chart-simple"></i> {{ 'الاستخدام هذا الشهر' if is_ar else 'This month\'s usage' }}</div>
+  <div class="metrics">
+    <div class="metric"><div style="font-size:22px;font-weight:900;color:var(--blue)">{{ usage.tier_name }}</div><div style="font-size:12px;color:var(--muted)">{{ 'الخطة' if is_ar else 'Plan' }}</div></div>
+    <div class="metric"><div style="font-size:22px;font-weight:900;color:var(--blue)">{{ usage.used }}/{{ usage.quota }}</div><div style="font-size:12px;color:var(--muted)">{{ 'طلبات مستخدمة' if is_ar else 'Requests used' }}</div></div>
+    <div class="metric"><div style="font-size:22px;font-weight:900;color:var(--blue)">{{ usage.remaining }}</div><div style="font-size:12px;color:var(--muted)">{{ 'متبقي' if is_ar else 'Remaining' }}</div></div>
+  </div>
+  {% set pct = ((usage.used / usage.quota * 100) if usage.quota else 0) %}
+  <div class="usage-bar-track"><div class="usage-bar-fill {% if pct >= 80 %}warn{% endif %}" style="width:{{ pct if pct <= 100 else 100 }}%"></div></div>
+  {% if usage.reset_at %}
+  <div style="font-size:12px;color:var(--muted)">{{ 'بيتصفّر في' if is_ar else 'Resets on' }}: {{ usage.reset_at.strftime('%Y-%m-%d') if usage.reset_at.strftime is defined else usage.reset_at }}</div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-title"><i class="fa-solid fa-gem"></i> {{ 'رقّي خطتك' if is_ar else 'Upgrade plan' }}</div>
+  <div class="tiers-grid">
+    {% for key, t in tiers.items() %}
+    <div class="tier-card {% if usage.tier == key %}current{% endif %}">
+      <div class="tier-name">{{ t.name if is_ar else t.name_en }}</div>
+      {% if t.prices %}
+      <div class="tier-price">{{ t.prices[user_currency] if user_currency in t.prices else t.prices.USD }} <small style="font-size:12px;color:var(--muted)">{{ user_currency if user_currency in t.prices else 'USD' }}/{{ 'شهر' if is_ar else 'mo' }}</small></div>
+      {% else %}
+      <div class="tier-price">{{ 'مجاني' if is_ar else 'Free' }}</div>
+      {% endif %}
+      <div style="font-size:12px;color:var(--muted);margin:6px 0 12px">{{ t.quota }} {{ 'طلب/شهر' if is_ar else 'req/mo' }}</div>
+      {% if usage.tier == key %}
+        <button class="btn btn-outline btn-full" disabled>{{ 'خطتك الحالية' if is_ar else 'Current plan' }}</button>
+      {% elif t.prices %}
+        <a href="/dashboard/api/checkout/{{ key }}" class="btn btn-primary btn-full">{{ 'رقّي' if is_ar else 'Upgrade' }}</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><i class="fa-solid fa-book"></i> {{ 'التوثيق الكامل' if is_ar else 'Full docs' }}</div>
+  <a href="/developers" class="btn btn-outline"><i class="fa-solid fa-arrow-{{ 'left' if is_ar else 'right' }}"></i> {{ 'اعرض توثيق الـ API' if is_ar else 'View API docs' }}</a>
+</div>
+
+{% endblock %}

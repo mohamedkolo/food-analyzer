@@ -262,6 +262,9 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 
   <div class="nav-divider"></div>
   <div class="nav-section">{{ 'الحساب' if is_ar else 'Account' }}</div>
+  <a href="/dashboard/api" class="nav-item {% if request.endpoint in ['api_dashboard','developers_docs'] %}active{% endif %}">
+    <i class="fa-solid fa-plug" style="color:#c9a961"></i> {{ 'API للمطورين' if is_ar else 'Developer API' }}
+  </a>
   <a href="/settings" class="nav-item {% if request.endpoint=='settings' %}active{% endif %}">
     <i class="fa-solid fa-gear"></i> {{ 'الإعدادات' if is_ar else 'Settings' }}
   </a>
@@ -295,6 +298,7 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
           <li><a href="/pricing"><i class="fa-solid fa-gem"></i> {{ 'الأسعار' if is_ar else 'Pricing' }}</a></li>
           <li><a href="/analyzer"><i class="fa-solid fa-magnifying-glass"></i> {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}</a></li>
           <li><a href="/knowledge"><i class="fa-solid fa-book-open"></i> {{ 'مركز المعرفة' if is_ar else 'Knowledge' }}</a></li>
+          <li><a href="/developers"><i class="fa-solid fa-plug"></i> {{ 'API للمطورين' if is_ar else 'Developer API' }}</a></li>
         </ul>
       </div>
 
