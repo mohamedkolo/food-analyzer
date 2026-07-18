@@ -2843,6 +2843,15 @@ def build_pdf(data, plan=None):
             f'<span><b>دهون:</b> {_esc(_fg)} جم ({int(_fatp)}%)</span>'
             f'<span><b>كارب:</b> {_esc(_cg)} جم</span>'
         )
+        # ── سكري النوع الأول: توزيع الكارب على عدد الوجبات لعدّ الكارب (بدون حساب جرعة أنسولين) ──
+        _is_t1d = any(("النوع الاول" in s or "النوع الأول" in s or "type 1" in s.lower()) for s in (symptoms or []))
+        if _is_t1d:
+            _meal_count = max(len(plan_info.get("meals", []) or []), 1)
+            _carb_per_meal = round(_cg / _meal_count)
+            macro_meta += (
+                f'<span><b>🩸 كارب/وجبة (نوع 1):</b> ~{_esc(_carb_per_meal)} جم × {_meal_count} وجبات '
+                f'(للعدّ التقريبي فقط — نسبة الأنسولين للكارب ومعامل التصحيح بيحددهم طبيب الغدد الصماء)</span>'
+            )
 
     _tcal = int(_kcal) if _kcal > 0 else None
     _tp = round(_w * _ppk) if _w > 0 else None

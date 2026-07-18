@@ -52,6 +52,23 @@ const CONDITIONS = [
     ref: 'Ch.26 — Diabetes Mellitus, pp.818-836'
   },
   {
+    icon: 'fa-syringe', color: '#b91c1c',
+    name_ar: 'السكري النوع الأول', name_en: 'Type 1 Diabetes',
+    overview_ar: 'مرض مناعي ذاتي بيدمّر خلايا البنكرياس المنتجة للأنسولين — المريض محتاج أنسولين مدى الحياة (مش مقاومة أنسولين زي النوع التاني). الأساس الغذائي هنا مختلف جذرياً: مش "امنع الكارب"، لكن **عدّ الكارب بدقة** عشان يتحدد جرعة الأنسولين المناسبة لكل وجبة.',
+    overview_en: 'An autoimmune disease that destroys insulin-producing pancreatic cells - the patient needs insulin for life (not insulin resistance like Type 2). The dietary approach is fundamentally different: not "avoid carbs" but **precise carb counting** to determine the right insulin dose per meal.',
+    macros: [
+      {label: 'عدّ الكارب / Carb counting', val: 'حساب جرامات الكارب بدقة في كل وجبة — الموقع بيعرضها تلقائياً — precise carb grams per meal, shown automatically by this app'},
+      {label: 'نسبة الأنسولين للكارب (ICR) / Insulin-to-carb ratio', val: '⚠️ بيحددها طبيب الغدد الصماء فردياً — مش معادلة عامة — set individually by an endocrinologist, not a general formula'},
+      {label: 'معامل التصحيح / Correction factor', val: '⚠️ بيحدده الطبيب برضه بناءً على تتبع دقيق — also physician-determined based on individual tracking'},
+      {label: 'التوقيت / Timing', val: 'ثبات نسبي في مواعيد وكميات الوجبات يسهّل ضبط الجرعات — relatively consistent meal timing/amounts eases dose adjustment'},
+    ],
+    good_ar: ['كارب معقّد موزون بدقة','بروتين وألياف مع كل وجبة (يبطّئ ارتفاع السكر)','سناك متاح لتجنب هبوط السكر المفاجئ'],
+    good_en: ['Precisely-measured complex carbs','Protein & fiber with every meal (slows glucose spikes)','Available snack to avoid sudden hypoglycemia'],
+    bad_ar: ['كارب سريع منفرد بدون تغطية بجرعة أنسولين','تفويت وجبة من غير تعديل الجرعة مع الطبيب','تقدير الكارب بالعين بدون وزن/قياس'],
+    bad_en: ['Isolated fast carbs without insulin coverage','Skipping a meal without physician-guided dose adjustment','Eyeballing carbs instead of weighing/measuring'],
+    ref: 'Ch.26 — Diabetes Mellitus, pp.818-836 (تمييز النوع الأول عن الثاني إرشاد عام — general Type 1 vs Type 2 distinction)'
+  },
+  {
     icon: 'fa-heart', color: '#dc2626',
     name_ar: 'امراض القلب وضغط الدم', name_en: 'Cardiovascular & Hypertension',
     overview_ar: 'نظام TLC يستهدف خفض LDL والكوليسترول مع الحفاظ على HDL. DASH يخفض الضغط الانقباضي 8-14 نقطة.',
