@@ -391,6 +391,91 @@ const CONDITIONS = [
     bad_en: ['Processed meats (sausage, luncheon meat)','Heavily salted/pickled foods','Excess alcohol','Any form of tobacco'],
     ref: 'Ch.29 — Cancer and HIV Infection, pp.902-905'
   },
+  {
+    icon: 'fa-child-reaching', color: '#0891b2',
+    name_ar: 'سمنة الأطفال والمراهقين', name_en: 'Childhood & Adolescent Obesity',
+    overview_ar: 'بتُقيّم بمنحنيات BMI-للعمر (مش نفس معايير الكبار): فوق المئين 85 = خطر زيادة وزن، فوق 95 = زيادة وزن. عامل خطر جيني قوي (طفل والديه سمينين خطره أكبر من 80%)، وعوامل بيئية (وجبات جاهزة، قلة حركة، شاشات). ⚠️ لا يستخدم أبداً نفس عجز السعرات القاسي بتاع الكبار — الهدف الأساسي إبطاء زيادة الوزن مع النمو الطبيعي، مش نزول وزن سريع.',
+    overview_en: 'Assessed with BMI-for-age growth charts (not adult cutoffs): above the 85th percentile = at risk, above the 95th = overweight. Strong genetic risk (child of two obese parents has >80% risk) plus environmental factors (convenience food, inactivity, screen time). ⚠️ Never apply an adult-style aggressive calorie deficit — the goal is slowing weight gain relative to normal growth, not rapid loss.',
+    macros: [
+      {label: 'الهدف / Goal', val: 'إبطاء زيادة الوزن مع استمرار النمو الطبيعي في الطول — slow weight gain while normal height growth continues'},
+      {label: 'النشاط / Activity', val: 'تقليل وقت الشاشات، زيادة اللعب الحركي — reduce screen time, increase active play'},
+      {label: 'الأسرة / Family', val: 'تغيير نمط أكل الأسرة كلها، مش الطفل لوحده — change the whole family\'s eating pattern, not just the child'},
+      {label: 'تجنب / Avoid', val: 'أي حمية تقييدية قاسية أو وصم الطفل بالسمنة — any harsh restrictive diet or shaming the child'},
+    ],
+    good_ar: ['وجبات أسرية منتظمة على المائدة','فاكهة وخضار متاحة دايماً في البيت','مياه بدل المشروبات المحلاة','نشاط بدني ممتع مش إجباري'],
+    good_en: ['Regular family meals at the table','Fruit & vegetables always available at home','Water instead of sweet drinks','Enjoyable, not forced, physical activity'],
+    bad_ar: ['المشروبات المحلاة والعصائر الصناعية','الوجبات السريعة المتكررة','استخدام الأكل كمكافأة أو عقاب','حميات تخسيس قاسية للأطفال'],
+    bad_en: ['Sweet drinks & artificial juices','Frequent fast food','Using food as reward/punishment','Harsh weight-loss diets for children'],
+    ref: 'Ch.15 — Life Cycle Nutrition: Childhood & Adolescence, pp.535-536'
+  },
+  {
+    icon: 'fa-person-cane', color: '#57534e',
+    name_ar: 'تغذية كبار السن', name_en: 'Older Adult Nutrition',
+    overview_ar: 'الاحتياجات الغذائية بتختلف جوهرياً بعد سن الـ70. السعرات بتقل حوالي 5% كل عقد (نشاط أقل + معدل حرق أبطأ)، لكن احتياج معظم الفيتامينات والمعادن بيفضل زي ما هو أو بيزيد — يعني الطعام لازم يكون "كثيف غذائياً" مش بس أقل سعرات. الجفاف وفقدان الكتلة العضلية (ساركوبينيا) من أكتر المخاطر انتشاراً.',
+    overview_en: 'Nutritional needs change substantially after age 70. Calorie needs drop ~5% per decade (less activity + slower metabolism), but most vitamin/mineral needs stay the same or increase - meaning food must be more "nutrient-dense," not just lower-calorie. Dehydration and muscle loss (sarcopenia) are among the most common risks.',
+    macros: [
+      {label: 'السوائل / Fluids', val: '6 أكواب ماء يومياً على الأقل — العطش بيقل مع العمر — at least 6 glasses/day - thirst sensation declines with age'},
+      {label: 'البروتين / Protein', val: 'كافٍ في كل وجبة لمنع فقدان العضلات (ساركوبينيا) — adequate at every meal to prevent sarcopenia'},
+      {label: 'كثافة العناصر الغذائية / Nutrient density', val: 'أولوية على تقليل السعرات — priority over simply cutting calories'},
+      {label: 'المضغ والامتصاص / Chewing & absorption', val: 'مشاكل الأسنان والمعدة الضامرة بتقلل الامتصاص — dental issues and atrophic gastritis reduce absorption'},
+    ],
+    good_ar: ['بروتين موزع على كل الوجبات','ماء وسوائل منتظمة طول اليوم','أطعمة سهلة المضغ والهضم لو فيه مشاكل أسنان','فيتامين B12 وD والكالسيوم بانتظام'],
+    good_en: ['Protein spread across all meals','Regular water/fluids through the day','Easy-to-chew food if dental issues exist','Regular vitamin B12, D, and calcium'],
+    bad_ar: ['تقليل الأكل بحجة "قل نشاطي" من غير مراعاة كثافة العناصر','إهمال شرب الماء لتجنب الحمام','تجاهل فقدان الوزن غير المقصود (علامة خطر)'],
+    bad_en: ['Cutting food broadly without nutrient density in mind','Avoiding water to avoid bathroom trips','Ignoring unintentional weight loss (a warning sign)'],
+    ref: 'Ch.16 — Life Cycle Nutrition: Adulthood & Later Years, p.569'
+  },
+  {
+    icon: 'fa-pills', color: '#0e7490',
+    name_ar: 'تفاعل الأدوية مع الأكل', name_en: 'Diet-Drug Interactions',
+    overview_ar: 'مرجع عملي مش حالة مرضية بذاتها — مهم لأي مريض بياخد أدوية مزمنة. أشهر الأمثلة: الوارفارين (مضاد تجلط) بيتأثر بفيتامين K (الخضار الورقية) — لازم كمية ثابتة يومياً مش تقلبات. عصير الجريب فروت بيوقف إنزيمات كبدية وبيزوّد تأثير أدوية كتير لمدة تصل 12 ساعة. مثبطات MAO (بعض مضادات الاكتئاب) خطر مع التيرامين (الأجبان المعتقة، اللحوم المصنعة، الصويا صوص).',
+    overview_en: 'A practical reference, not a disease itself - relevant for any patient on chronic medication. Key examples: warfarin (blood thinner) interacts with vitamin K (leafy greens) - needs a consistent daily amount, not swings. Grapefruit juice blocks liver enzymes and boosts many drugs\' effects for up to 12 hours. MAO inhibitors (some antidepressants) are dangerous with tyramine (aged cheese, processed meat, soy sauce).',
+    macros: [
+      {label: 'الوارفارين / Warfarin', val: 'كمية ثابتة يومياً من فيتامين K — مش الامتناع، بل الثبات — consistent daily vitamin K, not avoidance'},
+      {label: 'عصير الجريب فروت / Grapefruit juice', val: 'يتجنب تماماً مع أدوية كتير (قلب، كوليسترول) — avoid entirely with many drugs (heart, cholesterol)'},
+      {label: 'مثبطات MAO / MAO inhibitors', val: 'تجنب الأجبان المعتقة واللحوم المصنعة والصويا صوص — avoid aged cheese, processed meat, soy sauce'},
+      {label: 'مدرات البول / Diuretics', val: 'ممكن تسبب فقد بوتاسيوم/ماغنسيوم/كالسيوم — راقب مع الطبيب — may cause potassium/magnesium/calcium loss - monitor with physician'},
+    ],
+    good_ar: ['سؤال الطبيب/الصيدلي عن أي تفاعل قبل بدء مكمل جديد','ثبات في تناول الخضار الورقية لمرضى الوارفارين','قراءة نشرة الدواء لتعليمات الأكل'],
+    good_en: ['Ask the doctor/pharmacist about interactions before any new supplement','Consistent leafy-green intake for warfarin patients','Read medication inserts for food instructions'],
+    bad_ar: ['عصير الجريب فروت مع أدوية القلب/الكوليسترول من غير استشارة','تغيير مفاجئ في كمية فيتامين K مع الوارفارين','أعشاب مثل الجينسنج وسانت جونز وورت مع أدوية بدون استشارة'],
+    bad_en: ['Grapefruit juice with heart/cholesterol drugs without medical advice','Sudden change in vitamin K intake on warfarin','Herbs like ginseng/St. John\'s wort with medications without advice'],
+    ref: 'Ch.19 — Medications, Herbal Products & Diet-Drug Interactions, pp.651-653'
+  },
+  {
+    icon: 'fa-droplet', color: '#991b1b',
+    name_ar: 'فقر الدم المصاحب للمرض المزمن', name_en: 'Anemia of Chronic Disease',
+    overview_ar: 'مختلف عن فقر الدم بنقص الحديد العادي — بيحصل مع أمراض مزمنة (فشل كلوي، التهابات مزمنة، سرطان) حتى لو مخازن الحديد في الجسم كافية. شائع جداً في المستشفيات (20-40% من المرضى المنومين عندهم درجة من فقر الدم). ⚠️ إعطاء مكملات حديد هنا غالباً ملوش فايدة ومش الحل، لازم علاج المرض الأساسي أولاً.',
+    overview_en: 'Different from ordinary iron-deficiency anemia - occurs alongside chronic illness (kidney failure, chronic inflammation, cancer) even when iron stores are adequate. Very common in hospitals (20-40% of inpatients show some degree of anemia). ⚠️ Iron supplements are usually not the answer here - the underlying disease needs treatment first.',
+    macros: [
+      {label: 'التمييز / Distinction', val: 'لازم فحوصات دم تفرّق بينه وبين نقص الحديد الحقيقي — blood tests needed to distinguish from true iron deficiency'},
+      {label: 'حديد إضافي / Extra iron', val: 'غالباً مش مفيد ولا مطلوب هنا — usually not helpful or needed here'},
+      {label: 'العلاج الأساسي / Primary treatment', val: 'علاج المرض المزمن المسبب — treating the underlying chronic disease'},
+      {label: 'البروتين والطاقة / Protein & energy', val: 'دعم عام كافٍ لأن سوء التغذية بيفاقم أي نوع أنيميا — adequate general support since malnutrition worsens any anemia type'},
+    ],
+    good_ar: ['غذاء متوازن يدعم الحالة العامة','متابعة دورية مع الطبيب المعالج للمرض الأساسي','بروتين كافٍ'],
+    good_en: ['Balanced diet supporting overall status','Regular follow-up with the physician treating the underlying disease','Adequate protein'],
+    bad_ar: ['أخذ مكملات حديد من غير تشخيص دقيق (ممكن تضر لو الحديد أصلاً زيادة)','تجاهل علاج المرض الأساسي والتركيز على الأنيميا فقط'],
+    bad_en: ['Taking iron supplements without accurate diagnosis (can harm if iron is already high)','Ignoring the underlying disease while focusing only on the anemia'],
+    ref: 'Highlight 19 — Anemia in Illness, pp.657-658'
+  },
+  {
+    icon: 'fa-shield-virus', color: '#4338ca',
+    name_ar: 'عدوى فيروس نقص المناعة (HIV)', name_en: 'HIV Infection',
+    overview_ar: 'الفيروس بيهاجم خلايا المناعة (CD4)، وبيزود القابلية لعدوى وأمراض تانية. العلاج الدوائي الحديث بيبطئ تقدم المرض بشكل كبير، لكن أدوية العلاج نفسها ممكن تسبب مشاكل استقلابية (توزيع دهون غير طبيعي، مقاومة أنسولين، دهون دم مرتفعة). فقدان الوزن والهزال (Wasting) من أكبر المخاطر التغذوية.',
+    overview_en: 'The virus attacks immune cells (CD4), increasing susceptibility to infections and other diseases. Modern antiretroviral therapy dramatically slows progression, but the medications themselves can cause metabolic complications (abnormal fat redistribution, insulin resistance, high blood lipids). Weight loss and wasting are among the biggest nutritional risks.',
+    macros: [
+      {label: 'الهدف الأول / Primary goal', val: 'الحفاظ على الوزن وكتلة العضلات — maintaining weight and muscle mass'},
+      {label: 'البروتين والسعرات / Protein & calories', val: 'نظام عالي السعرات والبروتين لبعض الحالات — high-calorie, high-protein diet for some cases'},
+      {label: 'المضاعفات الاستقلابية / Metabolic complications', val: 'دهون مشبعة أقل، ألياف أكتر، تقليل السكريات المضافة — less saturated fat, more fiber, less added sugar'},
+      {label: 'أمان الطعام / Food safety', val: 'حساسية عالية جداً للتسمم الغذائي — لازم نظافة صارمة في التحضير — very high foodborne-illness risk - strict food safety needed'},
+    ],
+    good_ar: ['وجبات صغيرة متكررة وسناكات غنية بالطاقة','بروتين عالي الجودة (بيض، دجاج، سمك، بقوليات)','دهون أحادية ومتعددة غير مشبعة بدل المشبعة'],
+    good_en: ['Small frequent meals & energy-dense snacks','High-quality protein (egg, chicken, fish, legumes)','Mono/polyunsaturated fats instead of saturated'],
+    bad_ar: ['أكل نيء أو غير مطهو جيداً (خطر عدوى مرتفع)','دهون مشبعة وسكريات مضافة زيادة','إهمال علامات فقدان الوزن غير المقصود'],
+    bad_en: ['Raw or undercooked food (high infection risk)','Excess saturated fat and added sugar','Ignoring signs of unintentional weight loss'],
+    ref: 'Ch.29 — Cancer and HIV Infection, pp.911-916'
+  },
 ];
 
 function renderConditions() {
