@@ -1836,6 +1836,7 @@ def generate():
             "liked_foods": request.form.get("liked_foods",""),
             "disliked_foods": request.form.get("disliked_foods",""),
             "notes": request.form.get("notes",""),
+            "insulin_tdd": request.form.get("insulin_tdd",""),
         }
         session["pdf_data"] = data
         plan = generate_weekly_plan(data)
@@ -2843,15 +2844,31 @@ def build_pdf(data, plan=None):
             f'<span><b>دهون:</b> {_esc(_fg)} جم ({int(_fatp)}%)</span>'
             f'<span><b>كارب:</b> {_esc(_cg)} جم</span>'
         )
-        # ── سكري النوع الأول: توزيع الكارب على عدد الوجبات لعدّ الكارب (بدون حساب جرعة أنسولين) ──
+        # ── سكري النوع الأول: توزيع الكارب على عدد الوجبات لعدّ الكارب، وحساب ICR/CF لو الجرعة اليومية متوفرة ──
         _is_t1d = any(("النوع الاول" in s or "النوع الأول" in s or "type 1" in s.lower()) for s in (symptoms or []))
         if _is_t1d:
             _meal_count = max(len(plan_info.get("meals", []) or []), 1)
             _carb_per_meal = round(_cg / _meal_count)
             macro_meta += (
-                f'<span><b>🩸 كارب/وجبة (نوع 1):</b> ~{_esc(_carb_per_meal)} جم × {_meal_count} وجبات '
-                f'(للعدّ التقريبي فقط — نسبة الأنسولين للكارب ومعامل التصحيح بيحددهم طبيب الغدد الصماء)</span>'
+                f'<span><b>🩸 كارب/وجبة (نوع 1):</b> ~{_esc(_carb_per_meal)} جم × {_meal_count} وجبات</span>'
             )
+            try:
+                _tdd = float(data.get("insulin_tdd") or 0)
+            except (TypeError, ValueError):
+                _tdd = 0
+            if _tdd > 0:
+                _icr = round(500 / _tdd, 1)
+                _cf = round(1800 / _tdd)
+                macro_meta += (
+                    f'<span><b>نسبة الأنسولين للكارب (500 Rule):</b> 1 وحدة / {_esc(_icr)} جم كارب</span>'
+                    f'<span><b>معامل التصحيح (1800 Rule):</b> 1 وحدة تخفّض ~{_esc(_cf)} مجم/دل</span>'
+                    f'<span style="font-size:11px;color:#991b1b">⚠️ دي قواعد بداية تقديرية معيارية — لازم تأكيد وضبط من طبيب الغدد الصماء حسب استجابة المريض الفعلية</span>'
+                )
+            else:
+                macro_meta += (
+                    '<span style="font-size:11px;color:#991b1b">نسبة الأنسولين للكارب ومعامل التصحيح: '
+                    'محتاجين "إجمالي جرعة الأنسولين اليومية" من الطبيب — لسه متدخلش</span>'
+                )
 
     _tcal = int(_kcal) if _kcal > 0 else None
     _tp = round(_w * _ppk) if _w > 0 else None

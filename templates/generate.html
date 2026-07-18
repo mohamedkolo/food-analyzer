@@ -167,6 +167,7 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
       {% for cond in [
         ('قولون عصبي','IBS'),('سكري النوع الثاني','Type 2 Diabetes'),
+        ('سكري النوع الاول','Type 1 Diabetes'),
         ('ضغط الدم المرتفع','High Blood Pressure'),('امراض القلب','Heart Disease'),
         ('الفشل الكلوي المزمن','Chronic Kidney Failure'),('الحمل','Pregnancy'),
         ('الرضاعة الطبيعية','Breastfeeding'),('السمنة','Obesity'),('G6PD','G6PD'),
@@ -183,6 +184,17 @@
         <span style="font-size:13px;font-weight:600">{{ cond[0] if is_ar else cond[1] }}</span>
       </label>
       {% endfor %}
+    </div>
+
+    <div id="t1dInsulinBox" style="display:none;background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:12px;margin-top:10px">
+      <label class="form-label">
+        <i class="fa-solid fa-syringe" style="color:#b91c1c"></i>
+        {{ 'إجمالي جرعة الأنسولين اليومية (وحدة/يوم) — الرقم من الطبيب المعالج' if is_ar else 'Total Daily Insulin Dose (units/day) — from the treating physician' }}
+      </label>
+      <input class="form-input" type="number" step="1" min="1" name="insulin_tdd" id="insulinTdd" placeholder="{{ 'مثلاً: 40' if is_ar else 'e.g. 40' }}">
+      <div style="font-size:11px;color:#991b1b;margin-top:6px">
+        {{ 'لو اترك فاضي، هيتعرض عدّ الكارب لكل وجبة بس، من غير نسبة الأنسولين للكارب.' if is_ar else 'If left empty, only carb-per-meal counting will show, without the insulin-to-carb ratio.' }}
+      </div>
     </div>
   </div>
 
@@ -296,5 +308,14 @@ document.querySelectorAll('input[name="diet_plan_type"]').forEach(r=>r.addEventL
 document.querySelectorAll('input[name="goal_type"]').forEach(r=>r.addEventListener('change',calcCarb));
 tdee.addEventListener('input',()=>setTimeout(calcCarb,0));
 setProteinFromAct(); setFatFromDiet(); calcCarb();
+
+// ── إظهار خانة جرعة الأنسولين اليومية لما "سكري النوع الأول" يتاختار ──
+const t1dCheckbox = document.querySelector('input[name="symptoms"][value="سكري النوع الاول"]');
+const t1dInsulinBox = document.getElementById('t1dInsulinBox');
+if (t1dCheckbox && t1dInsulinBox) {
+  t1dCheckbox.addEventListener('change', () => {
+    t1dInsulinBox.style.display = t1dCheckbox.checked ? 'block' : 'none';
+  });
+}
 </script>
 {% endblock %}
