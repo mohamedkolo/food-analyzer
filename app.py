@@ -154,7 +154,7 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL:
     import psycopg2, psycopg2.extras, psycopg2.pool
     # ═══ مخزن اتصالات: بنفتح الاتصال مرة ونعيد استخدامه بدل اتصال جديد لكل استعلام ═══
-    _pg_pool = psycopg2.pool.ThreadedConnectionPool(minconn=1, maxconn=8, dsn=DATABASE_URL)
+    _pg_pool = psycopg2.pool.ThreadedConnectionPool(minconn=1, maxconn=20, dsn=DATABASE_URL)
 
     def _pool_exec(sql, params, fetch):
         """ينفّذ الاستعلام باتصال من المخزن، ولو الاتصال باظ (قطع شبكة مثلاً) يجرب باتصال جديد"""
