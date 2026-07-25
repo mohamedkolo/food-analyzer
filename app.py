@@ -575,6 +575,28 @@ def is_email_blocked(email):
     except Exception:
         return False
 
+# ═══ حماية تسجيل الدخول من محاولات التخمين المتكررة (Brute-force) ═══
+# ملاحظة: تخزين في الذاكرة — يشتغل صح طول ما السيرفر عامل بـ worker واحد (وضع Render الحالي).
+# لو زاد عدد الـ workers مستقبلاً، لازم ينتقل التخزين لقاعدة البيانات أو Redis.
+_LOGIN_MAX_ATTEMPTS = 5
+_LOGIN_WINDOW_SECONDS = 15 * 60
+import time as _time
+_login_attempts = {}
+
+def _is_login_rate_limited(email):
+    if not email: return False
+    now = _time.time()
+    attempts = [t for t in _login_attempts.get(email, []) if now - t < _LOGIN_WINDOW_SECONDS]
+    _login_attempts[email] = attempts
+    return len(attempts) >= _LOGIN_MAX_ATTEMPTS
+
+def _record_failed_login(email):
+    if not email: return
+    _login_attempts.setdefault(email, []).append(_time.time())
+
+def _clear_login_attempts(email):
+    _login_attempts.pop(email, None)
+
 def get_unread_messages_count(user_id):
     """Get count of unread messages - safe if table missing"""
     try:
@@ -620,17 +642,22 @@ def login():
             return render_template("login.html", error=error, tab="login", lang=lang)
         action = request.form.get("action")
         if action == "login":
+            if _is_login_rate_limited(check_email):
+                error = "محاولات دخول كتير غلط على الحساب ده. حاول تاني بعد 15 دقيقة."
+                return render_template("login.html", error=error, tab="login", lang=lang)
             u = get_user(request.form.get("email","").lower(), request.form.get("password",""))
             if u:
                 if not u.get("active", 1):
                     error = "هذا الحساب غير مفعل. تواصل مع الإدارة."
                 else:
+                    _clear_login_attempts(check_email)
                     session.permanent = True
                     session["uid"] = u["id"]
                     session["lang"] = u["lang"] or "ar"
                     session["role"] = get_user_role(u)
                     return redirect("/dashboard")
             else:
+                _record_failed_login(check_email)
                 error = "البريد او كلمة المرور غير صحيحة"
         elif action == "register":
             tab = "register"
