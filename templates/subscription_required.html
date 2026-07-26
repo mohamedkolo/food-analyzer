@@ -42,20 +42,22 @@
     <div class="reason-box">ℹ️ {{ reason }}</div>
     {% endif %}
 
+    {# Prices come from PRICING so this page can never drift from /pricing.
+       They used to be hardcoded at 149/299/599 while PRICING charged
+       250/500/1000, quoting the client a price the checkout did not honour. #}
     <div class="quick-plans">
-      {% for icon, ar_name, en_name, egp, aed, ar_period, en_period, best in [
-        ('💬','استشارة فردية','Single consultation','149','19','شات 24 ساعة','24-hour chat', false),
-        ('📋','خطة واحدة','One plan','299','35','خطة + متابعة 7 أيام','Plan + 7 days of follow-up', false),
-        ('👑','اشتراك شهري','Monthly subscription','599','69','/ شهر — كل حاجة','/ month — everything', true)] %}
+      {% for plan_key, plan in pricing.items() %}
+      {% set best = plan.type == 'subscription' %}
+      {% set plan_label = plan.name if is_ar else (plan.name_en or plan.name) %}
       <div class="quick-plan{{ ' recommended' if best }}">
-        {% if best %}<div class="recommended-badge">{{ t('الأكثر توفيراً','Best value') }}</div>{% endif %}
-        <div class="qp-icon">{{ icon }}</div>
-        <div class="qp-name">{{ ar_name if is_ar else en_name }}</div>
-        <div class="qp-price">{{ egp }} {{ t('ج.م','EGP') }}</div>
-        <div class="qp-period">{{ ar_period if is_ar else en_period }}</div>
+        {% if plan.badge %}<div class="recommended-badge">{{ plan.badge if is_ar else (plan.badge_en or plan.badge) }}</div>{% endif %}
+        <div class="qp-icon">{{ plan.icon }}</div>
+        <div class="qp-name">{{ plan_label }}</div>
+        <div class="qp-price">{{ "%.0f"|format(plan.prices.EGP / 100) }} {{ t('ج.م','EGP') }}</div>
+        <div class="qp-period">{{ plan.description if is_ar else (plan.description_en or plan.description) }}</div>
         <div class="wa-buttons">
-          <a class="wa-btn wa-btn-egypt" data-wa-egypt data-plan="{{ ar_name if is_ar else en_name }}" data-price="{{ egp }} {{ t('ج.م','EGP') }}" target="_blank">🇪🇬 {{ t('مصر','Egypt') }}</a>
-          <a class="wa-btn wa-btn-uae" data-wa-uae data-plan="{{ ar_name if is_ar else en_name }}" data-price="{{ aed }} {{ t('د.إ','AED') }}" target="_blank">🇦🇪 {{ t('الخليج','Gulf') }}</a>
+          <a class="wa-btn wa-btn-egypt" data-wa-egypt data-plan="{{ plan_label }}" data-price="{{ "%.0f"|format(plan.prices.EGP / 100) }} {{ t('ج.م','EGP') }}" target="_blank">🇪🇬 {{ t('مصر','Egypt') }}</a>
+          <a class="wa-btn wa-btn-uae" data-wa-uae data-plan="{{ plan_label }}" data-price="{{ "%.0f"|format(plan.prices.AED / 100) }} {{ t('د.إ','AED') }}" target="_blank">🇦🇪 {{ t('الخليج','Gulf') }}</a>
         </div>
       </div>
       {% endfor %}

@@ -1617,7 +1617,8 @@ def privacy():
 
 @app.route("/terms")
 def terms():
-    return render_template("terms.html", lang=session.get("lang", "ar"))
+    # pass PRICING so the plan list in the terms cannot drift from what we charge
+    return render_template("terms.html", lang=session.get("lang", "ar"), pricing=PRICING)
 
 
 @app.route("/analyzer")

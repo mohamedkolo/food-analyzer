@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}{{ t('شروط الاستخدام','Terms of Use') }}{% endblock %}
 {% block content %}
 
 <style>
@@ -9,132 +10,140 @@
   .legal-content h2 { font-size: 22px; font-weight: 800; color: #1e4a3d; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 2px solid #ede7d8; }
   .legal-content h3 { font-size: 17px; font-weight: 700; color: #0f172a; margin: 20px 0 8px; }
   .legal-content p { color: #475569; margin: 0 0 12px; }
-  .legal-content ul { color: #475569; padding-right: 22px; margin: 0 0 16px; }
+  .legal-content ul { color: #475569; padding-inline-start: 22px; margin: 0 0 16px; }
   .legal-content ul li { margin-bottom: 6px; }
   .legal-content strong { color: #0f172a; font-weight: 700; }
-  .warning-box { background: #fef3c7; border-right: 4px solid #f59e0b; border-radius: 10px; padding: 16px 20px; margin: 16px 0; color: #78350f; }
+  .warning-box { background: #fef3c7; border-inline-start: 4px solid #f59e0b; border-radius: 10px; padding: 16px 20px; margin: 16px 0; color: #78350f; }
   .contact-box { background: #faf8f3; border: 2px solid #d9cfb4; border-radius: 14px; padding: 20px; margin-top: 32px; text-align: center; }
 </style>
 
 <div class="legal-wrap">
   <div class="legal-hero">
-    <h1>📜 شروط الاستخدام</h1>
-    <p>آخر تحديث: يونيو 2026</p>
+    <h1>📜 {{ t('شروط الاستخدام','Terms of Use') }}</h1>
+    <p>{{ t('آخر تحديث: يونيو 2026','Last updated: June 2026') }}</p>
   </div>
 
   <div class="legal-content">
 
-    <h2>1. القبول بالشروط</h2>
+    <h2>1. {{ t('القبول بالشروط','Acceptance of these terms') }}</h2>
     <p>
-      باستخدامك لموقع <strong>NutraX</strong>، إنت بتوافق على هذه الشروط.
-      لو مش موافق، يرجى عدم استخدام الموقع.
+      {{ t('باستخدامك لموقع','By using') }} <strong>NutraX</strong>{{ t('، إنت بتوافق على هذه الشروط. لو مش موافق، يرجى عدم استخدام الموقع.',', you agree to these terms. If you do not agree, please do not use the site.') }}
     </p>
 
-    <h2>2. الخدمات المقدمة</h2>
-    <p>NutraX يقدم خدمات:</p>
+    <h2>2. {{ t('الخدمات المقدمة','Services provided') }}</h2>
+    <p>{{ t('NutraX يقدم خدمات:','NutraX provides:') }}</p>
     <ul>
-      <li>توليد خطط غذائية مخصصة</li>
-      <li>استشارات تغذية أونلاين مع د. محمد</li>
-      <li>محلل الأطعمة (سعرات وماكروز)</li>
-      <li>متابعة الوزن والتقدم</li>
-      <li>مكتبة معلومات تغذوية</li>
+      <li>{{ t('توليد خطط غذائية مخصصة','Generation of personalised meal plans') }}</li>
+      <li>{{ t('استشارات تغذية أونلاين مع د. محمد','Online nutrition consultations with Dr. Mohamed') }}</li>
+      <li>{{ t('محلل الأطعمة (سعرات وماكروز)','A food analyzer (calories and macros)') }}</li>
+      <li>{{ t('متابعة الوزن والتقدم','Weight and progress tracking') }}</li>
+      <li>{{ t('مكتبة معلومات تغذوية','A nutrition knowledge library') }}</li>
     </ul>
 
     <div class="warning-box">
-      ⚠️ <strong>تنبيه طبي مهم:</strong> الخطط المُولّدة <strong>للإرشاد العام فقط</strong>،
-      وليست بديلاً عن الاستشارة الطبية المباشرة. لو عندك حالة طبية خاصة،
-      راجع طبيبك قبل تطبيق أي خطة غذائية.
+      ⚠️ <strong>{{ t('تنبيه طبي مهم:','Important medical notice:') }}</strong>
+      {{ t('الخطط المُولّدة','The generated plans are') }} <strong>{{ t('للإرشاد العام فقط','for general guidance only') }}</strong>{{ t('، وليست بديلاً عن الاستشارة الطبية المباشرة. لو عندك حالة طبية خاصة، راجع طبيبك قبل تطبيق أي خطة غذائية.',' and are not a substitute for direct medical advice. If you have a specific medical condition, consult your doctor before following any meal plan.') }}
     </div>
 
-    <h2>3. الحساب والتسجيل</h2>
+    <h2>3. {{ t('الحساب والتسجيل','Accounts and registration') }}</h2>
     <ul>
-      <li>لازم تكون <strong>أكبر من 13 سنة</strong> للتسجيل</li>
-      <li>بياناتك لازم تكون <strong>صحيحة ودقيقة</strong></li>
-      <li>إنت المسؤول عن الحفاظ على كلمة سرك</li>
-      <li>ممنوع مشاركة حسابك مع شخص آخر</li>
-      <li>لو شككت في اختراق حسابك، أبلغنا فوراً</li>
+      <li>{{ t('لازم تكون','You must be') }} <strong>{{ t('أكبر من 13 سنة','over 13 years old') }}</strong> {{ t('للتسجيل','to register') }}</li>
+      <li>{{ t('بياناتك لازم تكون','Your details must be') }} <strong>{{ t('صحيحة ودقيقة','true and accurate') }}</strong></li>
+      <li>{{ t('إنت المسؤول عن الحفاظ على كلمة سرك','You are responsible for keeping your password secure') }}</li>
+      <li>{{ t('ممنوع مشاركة حسابك مع شخص آخر','You may not share your account with anyone else') }}</li>
+      <li>{{ t('لو شككت في اختراق حسابك، أبلغنا فوراً','If you suspect your account has been compromised, tell us immediately') }}</li>
     </ul>
 
-    <h2>4. الاشتراكات والدفع</h2>
-    <h3>أ) أنواع الخطط:</h3>
+    <h2>4. {{ t('الاشتراكات والدفع','Subscriptions and payment') }}</h2>
+    <h3>{{ t('أ) أنواع الخطط:','a) Plan types:') }}</h3>
+    {# priced from PRICING so the terms cannot quote a figure we do not charge #}
     <ul>
-      <li><strong>استشارة فردية</strong> — 149 ج.م — صالحة 24 ساعة</li>
-      <li><strong>خطة واحدة</strong> — 299 ج.م — صالحة 7 أيام</li>
-      <li><strong>اشتراك شهري</strong> — 599 ج.م — متجدد شهرياً</li>
+      {% for plan_key, plan in pricing.items() %}
+      <li>
+        <strong>{{ plan.name if is_ar else (plan.name_en or plan.name) }}</strong>
+        — {{ "%.0f"|format(plan.prices.EGP / 100) }} {{ t('ج.م','EGP') }} —
+        {% if plan.type == 'subscription' %}{{ t('متجدد شهرياً','renews monthly') }}
+        {% elif plan.duration_days == 1 %}{{ t('صالحة 24 ساعة','valid for 24 hours') }}
+        {% else %}{{ t('صالحة','valid for') }} {{ plan.duration_days }} {{ t('أيام','days') }}{% endif %}
+      </li>
+      {% endfor %}
     </ul>
 
-    <h3>ب) طرق الدفع:</h3>
+    <h3>{{ t('ب) طرق الدفع:','b) Payment methods:') }}</h3>
     <ul>
-      <li>فودافون كاش (مصر)</li>
-      <li>InstaPay (مصر)</li>
-      <li>تحويل بنكي (مصر / الإمارات)</li>
-      <li>كاش (للقاء المباشر)</li>
+      <li>{{ t('فودافون كاش (مصر)','Vodafone Cash (Egypt)') }}</li>
+      <li>{{ t('InstaPay (مصر)','InstaPay (Egypt)') }}</li>
+      <li>{{ t('تحويل بنكي (مصر / الإمارات)','Bank transfer (Egypt / UAE)') }}</li>
+      <li>{{ t('كاش (للقاء المباشر)','Cash (for in-person visits)') }}</li>
     </ul>
 
-    <h3>ج) سياسة الاسترداد:</h3>
+    <h3>{{ t('ج) سياسة الاسترداد:','c) Refund policy:') }}</h3>
     <p>
-      <strong>المدفوعات غير قابلة للاسترداد</strong> بعد تفعيل الاشتراك،
-      إلا في حالة عدم تقديم الخدمة من جانبنا. لو واجهت مشكلة،
-      تواصل معنا في أول 48 ساعة.
+      <strong>{{ t('المدفوعات غير قابلة للاسترداد','Payments are non-refundable') }}</strong>
+      {{ t('بعد تفعيل الاشتراك، إلا في حالة عدم تقديم الخدمة من جانبنا. لو واجهت مشكلة، تواصل معنا في أول 48 ساعة.','once a subscription is activated, except where we fail to deliver the service. If you run into a problem, contact us within the first 48 hours.') }}
     </p>
 
-    <h2>5. الاستخدام المقبول</h2>
-    <p>ممنوع منعاً باتاً:</p>
+    <h2>5. {{ t('الاستخدام المقبول','Acceptable use') }}</h2>
+    <p>{{ t('ممنوع منعاً باتاً:','The following are strictly prohibited:') }}</p>
     <ul>
-      <li>استخدام الموقع لأي غرض غير قانوني</li>
-      <li>محاولة اختراق أو الإضرار بالموقع</li>
-      <li>نسخ أو إعادة بيع المحتوى بدون إذن</li>
-      <li>إنشاء حسابات وهمية أو متعددة</li>
-      <li>إرسال رسائل مسيئة أو مزعجة للدكتور أو لأي مستخدم</li>
-      <li>مشاركة الخطط الخاصة بك مع أشخاص آخرين</li>
+      <li>{{ t('استخدام الموقع لأي غرض غير قانوني','Using the site for any unlawful purpose') }}</li>
+      <li>{{ t('محاولة اختراق أو الإضرار بالموقع','Attempting to breach or damage the site') }}</li>
+      <li>{{ t('نسخ أو إعادة بيع المحتوى بدون إذن','Copying or reselling the content without permission') }}</li>
+      <li>{{ t('إنشاء حسابات وهمية أو متعددة','Creating fake or multiple accounts') }}</li>
+      <li>{{ t('إرسال رسائل مسيئة أو مزعجة للدكتور أو لأي مستخدم','Sending abusive or harassing messages to the doctor or any user') }}</li>
+      <li>{{ t('مشاركة الخطط الخاصة بك مع أشخاص آخرين','Sharing your own plans with other people') }}</li>
     </ul>
 
-    <h2>6. الملكية الفكرية</h2>
+    <h2>6. {{ t('الملكية الفكرية','Intellectual property') }}</h2>
     <p>
-      كل المحتوى (الخطط، النصوص، الصور، الكود) هو ملك خاص لـ NutraX.
-      ممنوع نسخ أو إعادة استخدام أي جزء بدون إذن مكتوب.
+      {{ t('كل المحتوى (الخطط، النصوص، الصور، الكود) هو ملك خاص لـ NutraX. ممنوع نسخ أو إعادة استخدام أي جزء بدون إذن مكتوب.','All content (plans, text, images, code) is the property of NutraX. No part may be copied or reused without written permission.') }}
     </p>
 
-    <h2>7. حدود المسؤولية</h2>
-    <p>NutraX <strong>غير مسؤول عن</strong>:</p>
+    <h2>7. {{ t('حدود المسؤولية','Limitation of liability') }}</h2>
+    <p>NutraX <strong>{{ t('غير مسؤول عن','is not liable for') }}</strong>:</p>
     <ul>
-      <li>أي ضرر صحي ناتج عن تطبيق خطة غير مناسبة لحالتك</li>
-      <li>عدم الحصول على النتائج المتوقعة</li>
-      <li>الأعطال التقنية أو انقطاع الخدمة المؤقت</li>
-      <li>أي خسائر مالية ناتجة عن استخدام الموقع</li>
+      <li>{{ t('أي ضرر صحي ناتج عن تطبيق خطة غير مناسبة لحالتك','Any harm to health resulting from following a plan unsuited to your condition') }}</li>
+      <li>{{ t('عدم الحصول على النتائج المتوقعة','Failure to achieve the results you expected') }}</li>
+      <li>{{ t('الأعطال التقنية أو انقطاع الخدمة المؤقت','Technical faults or temporary service interruptions') }}</li>
+      <li>{{ t('أي خسائر مالية ناتجة عن استخدام الموقع','Any financial loss arising from use of the site') }}</li>
     </ul>
 
     <div class="warning-box">
-      ⚠️ <strong>تنبيه:</strong> لو عندك حالة طبية مزمنة (سكر، ضغط، أمراض كلى، حمل، إلخ)،
-      <strong>لازم تستشير طبيبك</strong> قبل اتباع أي خطة من الموقع.
+      ⚠️ <strong>{{ t('تنبيه:','Warning:') }}</strong>
+      {{ t('لو عندك حالة طبية مزمنة (سكر، ضغط، أمراض كلى، حمل، إلخ)،','If you have a chronic medical condition (diabetes, blood pressure, kidney disease, pregnancy, etc.),') }}
+      <strong>{{ t('لازم تستشير طبيبك','you must consult your doctor') }}</strong>
+      {{ t('قبل اتباع أي خطة من الموقع.','before following any plan from this site.') }}
     </div>
 
-    <h2>8. إنهاء الحساب</h2>
+    <h2>8. {{ t('إنهاء الحساب','Account termination') }}</h2>
     <p>
-      نحتفظ بالحق في إيقاف أو حذف أي حساب يخالف هذه الشروط،
-      دون إشعار مسبق وبدون استرداد المدفوعات.
+      {{ t('نحتفظ بالحق في إيقاف أو حذف أي حساب يخالف هذه الشروط، دون إشعار مسبق وبدون استرداد المدفوعات.','We reserve the right to suspend or delete any account that breaches these terms, without prior notice and without refund.') }}
     </p>
 
-    <h2>9. التغييرات على الشروط</h2>
+    <h2>9. {{ t('التغييرات على الشروط','Changes to these terms') }}</h2>
     <p>
-      ممكن نحدث هذه الشروط في أي وقت. التغييرات تسري فور نشرها على الموقع.
-      استمرار استخدامك للموقع بعد التغيير = موافقة على الشروط الجديدة.
+      {{ t('ممكن نحدث هذه الشروط في أي وقت. التغييرات تسري فور نشرها على الموقع. استمرار استخدامك للموقع بعد التغيير = موافقة على الشروط الجديدة.','We may update these terms at any time. Changes take effect as soon as they are published on the site. Continuing to use the site after a change means you accept the new terms.') }}
     </p>
 
-    <h2>10. القانون المطبق</h2>
+    <h2>10. {{ t('القانون المطبق','Governing law') }}</h2>
     <p>
-      هذه الشروط تخضع للقوانين المعمول بها في جمهورية مصر العربية،
-      وأي نزاع يتم حله ودياً، أو عبر المحاكم المختصة في حالة عدم التوافق.
+      {{ t('هذه الشروط تخضع للقوانين المعمول بها في جمهورية مصر العربية، وأي نزاع يتم حله ودياً، أو عبر المحاكم المختصة في حالة عدم التوافق.','These terms are governed by the laws in force in the Arab Republic of Egypt. Any dispute will be resolved amicably, or through the competent courts if no agreement is reached.') }}
     </p>
+    {% if not is_ar %}
+    <p>
+      This English text is provided for convenience. In the event of any
+      discrepancy, the Arabic version of these terms prevails.
+    </p>
+    {% endif %}
 
-    <h2>11. التواصل</h2>
+    <h2>11. {{ t('التواصل','Contact') }}</h2>
     <div class="contact-box">
       <p style="margin: 0 0 8px; font-weight: 700; color: #14332b;">
-        لأي استفسار قانوني:
+        {{ t('لأي استفسار قانوني:','For any legal enquiry:') }}
       </p>
       <p style="margin: 0; color: #14332b;">
         📧 admin@nutrax.com<br/>
-        📱 واتساب: 01004294521 (مصر) — 0501038664 (الإمارات)
+        📱 {{ t('واتساب','WhatsApp') }}: 01004294521 ({{ t('مصر','Egypt') }}) — 0501038664 ({{ t('الإمارات','UAE') }})
       </p>
     </div>
 
