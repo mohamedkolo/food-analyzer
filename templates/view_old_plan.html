@@ -1,5 +1,9 @@
 {% extends "base.html" %}
+{% block title %}{{ t('خطة سابقة','Previous Plan') }}{% endblock %}
 {% block content %}
+
+{# stored cuisine values are always Arabic; map them for display #}
+{% set culture_names = {'مصري':t('مصري','Egyptian'),'خليجي':t('خليجي','Gulf'),'شامي':t('شامي','Levantine'),'مغربي':t('مغربي','Moroccan'),'عالمي':t('عالمي','International')} %}
 
 <style>
   .vop-wrap {
@@ -197,13 +201,13 @@
       {% if goal == 'weight_loss' %}🥗 {{ t('خطة تخسيس','Weight Loss Plan') }}
       {% elif goal == 'muscle_gain' %}💪 {{ t('خطة زيادة عضل','Muscle Gain Plan') }}
       {% elif goal == 'bulking' %}🔥 {{ t('خطة تضخيم','Bulking Plan') }}
-      {% else %}🍽️ خطة غذائية{% endif %}
+      {% else %}🍽️ {{ t('خطة غذائية','Meal Plan') }}{% endif %}
     </h1>
     <div class="plan-meta-line">
       <span>📅 {{ created_date }}</span>
-      <span>🍽️ {{ plan_data.get('culture') or 'مصري' }}</span>
+      <span>🍽️ {{ culture_names.get(plan_data.get('culture'), plan_data.get('culture') or t('مصري','Egyptian')) }}</span>
       <span>🔥 {{ plan_data.get('goal_cal') or '-' }} kcal</span>
-      <span>📊 {{ plan_info.get('name') or 'نظام تقليدي' }}</span>
+      <span>📊 {{ plan_info.get('name') or t('نظام تقليدي','Standard pattern') }}</span>
     </div>
 
     <div class="header-actions">
@@ -293,7 +297,7 @@
         </div>
 
         {% set meal_keys = plan_info.get('meals') or ['breakfast', 'lunch', 'dinner', 'snack'] %}
-        {% set meal_labels = plan_info.get('meal_labels') or {'breakfast':'الفطار', 'lunch':'الغداء', 'dinner':'العشاء', 'snack':'سناك'} %}
+        {% set meal_labels = plan_info.get('meal_labels') or {'breakfast':t('الفطار','Breakfast'), 'lunch':t('الغداء','Lunch'), 'dinner':t('العشاء','Dinner'), 'snack':t('سناك','Snack')} %}
         {% set meal_emojis = plan_info.get('meal_emojis') or {'breakfast':'🌅', 'lunch':'☀️', 'dinner':'🌙', 'snack':'🍎'} %}
 
         {% for mk in meal_keys %}
