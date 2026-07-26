@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}{{ t('لوحة المدفوعات','Payments') }}{% endblock %}
 {% block content %}
 
 <style>
@@ -162,7 +163,7 @@
   thead { background: #faf8f3; }
 
   th {
-    text-align: right;
+    text-align: start;
     padding: 14px 16px;
     font-weight: 700;
     color: #475569;
@@ -234,41 +235,41 @@
 <div class="admin-pay">
 
   <div class="page-head">
-    <h1 class="page-title">💰 لوحة المدفوعات</h1>
-    <a href="/admin/payments" class="refresh-btn">🔄 تحديث</a>
+    <h1 class="page-title">💰 {{ t('لوحة المدفوعات','Payments Dashboard') }}</h1>
+    <a href="/admin/payments" class="refresh-btn">🔄 {{ t('تحديث','Refresh') }}</a>
   </div>
 
   <!-- Stats Cards -->
   <div class="stats-grid">
     <div class="stat-card" style="--c: #1e4a3d">
-      <div class="stat-label">إجمالي الإيرادات (الكل)</div>
+      <div class="stat-label">{{ t('إجمالي الإيرادات (الكل)','Total revenue (all time)') }}</div>
       <div class="stat-value">{{ "%.0f"|format(stats.total_revenue / 100) if stats.total_revenue else 0 }}</div>
-      <div class="stat-trend">{{ stats.total_revenue_currency or 'مختلط' }}</div>
+      <div class="stat-trend">{{ stats.total_revenue_currency or t('مختلط','Mixed') }}</div>
     </div>
 
     <div class="stat-card" style="--c: #f59e0b">
-      <div class="stat-label">المشتركين النشطين</div>
+      <div class="stat-label">{{ t('المشتركين النشطين','Active subscribers') }}</div>
       <div class="stat-value">{{ stats.active_subscriptions or 0 }}</div>
-      <div class="stat-trend">{{ stats.trialing_count or 0 }} في فترة تجريبية</div>
+      <div class="stat-trend">{{ stats.trialing_count or 0 }} {{ t('في فترة تجريبية','on trial') }}</div>
     </div>
 
     <div class="stat-card" style="--c: #2c5a4a">
-      <div class="stat-label">الدفعات الناجحة</div>
+      <div class="stat-label">{{ t('الدفعات الناجحة','Successful payments') }}</div>
       <div class="stat-value">{{ stats.successful_payments or 0 }}</div>
-      <div class="stat-trend">من إجمالي {{ stats.total_attempts or 0 }} محاولة</div>
+      <div class="stat-trend">{{ t('من إجمالي','out of') }} {{ stats.total_attempts or 0 }} {{ t('محاولة','attempts') }}</div>
     </div>
 
     <div class="stat-card" style="--c: #8b5cf6">
-      <div class="stat-label">عملاء مدفوعين</div>
+      <div class="stat-label">{{ t('عملاء مدفوعين','Paying customers') }}</div>
       <div class="stat-value">{{ stats.paying_customers or 0 }}</div>
-      <div class="stat-trend">من إجمالي {{ stats.total_users or 0 }} مستخدم</div>
+      <div class="stat-trend">{{ t('من إجمالي','out of') }} {{ stats.total_users or 0 }} {{ t('مستخدم','users') }}</div>
     </div>
   </div>
 
   <!-- Revenue Trend Chart -->
   {% if analytics %}
   <div class="stat-card" style="--c:#1e4a3d;margin-bottom:16px;">
-    <div class="stat-label">📈 الإيرادات اليومية (آخر {{ analytics.revenue_chart|length }} يوم) — جنيه مصري</div>
+    <div class="stat-label">📈 {{ t('الإيرادات اليومية (آخر','Daily revenue (last') }} {{ analytics.revenue_chart|length }} {{ t('يوم) — جنيه مصري','days) — Egyptian pounds') }}</div>
     {% if analytics.revenue_chart and analytics.revenue_max > 0 %}
     <svg viewBox="0 0 700 170" style="width:100%;height:170px;margin-top:10px;" preserveAspectRatio="none">
       <line x1="0" y1="150" x2="700" y2="150" stroke="#e7e0d0" stroke-width="1"/>
@@ -279,7 +280,7 @@
         <rect x="{{ '%.1f'|format(x + bar_w * 0.2) }}" y="{{ '%.1f'|format(150 - h) }}"
               width="{{ '%.1f'|format(bar_w * 0.6) }}" height="{{ '%.1f'|format(h) }}"
               rx="3" fill="#1e4a3d">
-          <title>{{ d.label }}: {{ d.amount }} ج.م</title>
+          <title>{{ d.label }}: {{ d.amount }} {{ t('ج.م','EGP') }}</title>
         </rect>
       {% endfor %}
     </svg>
@@ -288,29 +289,29 @@
       <span>{{ analytics.revenue_chart[-1].label }}</span>
     </div>
     {% else %}
-    <div style="color:#94a3b8;font-size:13px;padding:20px 0;">مفيش دفعات جنيه مصري مكتملة في الفترة دي</div>
+    <div style="color:#94a3b8;font-size:13px;padding:20px 0;">{{ t('مفيش دفعات جنيه مصري مكتملة في الفترة دي','No completed EGP payments in this period') }}</div>
     {% endif %}
   </div>
 
   <!-- Renewals soon / Recently lost -->
   <div class="analytics-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
     <div class="stat-card" style="--c:#f59e0b;">
-      <div class="stat-label">🔔 تجديدات قريبة (خلال 7 أيام)</div>
+      <div class="stat-label">🔔 {{ t('تجديدات قريبة (خلال 7 أيام)','Renewals due soon (within 7 days)') }}</div>
       {% if analytics.renewals_soon %}
       <div style="margin-top:10px;">
         {% for r in analytics.renewals_soon %}
         <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #f5f1e8;font-size:13px;">
-          <span style="font-weight:700;color:#0f172a;">{{ r.name }}{% if r.is_trial %} <span style="color:#f59e0b;">(تجربة)</span>{% endif %}</span>
-          <span style="color:#64748b;white-space:nowrap;">{{ r.plan_name }} · {{ r.days_left }} يوم</span>
+          <span style="font-weight:700;color:#0f172a;">{{ r.name }}{% if r.is_trial %} <span style="color:#f59e0b;">({{ t('تجربة','trial') }})</span>{% endif %}</span>
+          <span style="color:#64748b;white-space:nowrap;">{{ r.plan_name }} · {{ r.days_left }} {{ t('يوم','days') }}</span>
         </div>
         {% endfor %}
       </div>
       {% else %}
-      <div style="color:#94a3b8;font-size:13px;padding:16px 0;">مفيش تجديدات قريبة</div>
+      <div style="color:#94a3b8;font-size:13px;padding:16px 0;">{{ t('مفيش تجديدات قريبة','No renewals due soon') }}</div>
       {% endif %}
     </div>
     <div class="stat-card" style="--c:#dc2626;">
-      <div class="stat-label">⚠️ فقدوا الوصول مؤخراً (آخر 7 أيام)</div>
+      <div class="stat-label">⚠️ {{ t('فقدوا الوصول مؤخراً (آخر 7 أيام)','Recently lost access (last 7 days)') }}</div>
       {% if analytics.recently_lost %}
       <div style="margin-top:10px;">
         {% for r in analytics.recently_lost %}
@@ -321,7 +322,7 @@
         {% endfor %}
       </div>
       {% else %}
-      <div style="color:#94a3b8;font-size:13px;padding:16px 0;">مفيش حد فقد الوصول مؤخراً 🎉</div>
+      <div style="color:#94a3b8;font-size:13px;padding:16px 0;">{{ t('مفيش حد فقد الوصول مؤخراً','Nobody has lost access recently') }} 🎉</div>
       {% endif %}
     </div>
   </div>
@@ -329,27 +330,27 @@
 
   <!-- Tabs -->
   <div class="tabs">
-    <button class="tab-btn active" onclick="showTab('subs')">📋 الاشتراكات ({{ subscriptions|length }})</button>
-    <button class="tab-btn" onclick="showTab('pays')">💳 الدفعات ({{ payments|length }})</button>
+    <button class="tab-btn active" onclick="showTab('subs')">📋 {{ t('الاشتراكات','Subscriptions') }} ({{ subscriptions|length }})</button>
+    <button class="tab-btn" onclick="showTab('pays')">💳 {{ t('الدفعات','Payments') }} ({{ payments|length }})</button>
   </div>
 
   <!-- Filters -->
   <div class="filters">
-    <input type="text" id="searchInput" class="filter-input" placeholder="🔍 ابحث بإسم العميل أو الإيميل...">
+    <input type="text" id="searchInput" class="filter-input" placeholder="{{ t('🔍 ابحث بإسم العميل أو الإيميل...','🔍 Search by client name or email…') }}">
     <select id="statusFilter" class="filter-input">
-      <option value="">كل الحالات</option>
-      <option value="active">نشط</option>
-      <option value="trialing">فترة تجريبية</option>
-      <option value="completed">مكتمل</option>
-      <option value="canceled">ملغي</option>
-      <option value="failed">فاشل</option>
-      <option value="past_due">متأخر</option>
+      <option value="">{{ t('كل الحالات','All statuses') }}</option>
+      <option value="active">{{ t('نشط','Active') }}</option>
+      <option value="trialing">{{ t('فترة تجريبية','Trialing') }}</option>
+      <option value="completed">{{ t('مكتمل','Completed') }}</option>
+      <option value="canceled">{{ t('ملغي','Canceled') }}</option>
+      <option value="failed">{{ t('فاشل','Failed') }}</option>
+      <option value="past_due">{{ t('متأخر','Past due') }}</option>
     </select>
     <select id="planFilter" class="filter-input">
-      <option value="">كل الخطط</option>
-      <option value="consultation">استشارة فردية</option>
-      <option value="single_plan">خطة واحدة</option>
-      <option value="monthly_subscription">اشتراك شهري</option>
+      <option value="">{{ t('كل الخطط','All plans') }}</option>
+      <option value="consultation">{{ t('استشارة فردية','Single consultation') }}</option>
+      <option value="single_plan">{{ t('خطة واحدة','Single plan') }}</option>
+      <option value="monthly_subscription">{{ t('اشتراك شهري','Monthly subscription') }}</option>
     </select>
   </div>
 
@@ -361,12 +362,12 @@
         <thead>
           <tr>
             <th>#</th>
-            <th>العميل</th>
-            <th>الخطة</th>
-            <th>الحالة</th>
-            <th>المبلغ</th>
-            <th>تاريخ البداية</th>
-            <th>التجديد القادم</th>
+            <th>{{ t('العميل','Client') }}</th>
+            <th>{{ t('الخطة','Plan') }}</th>
+            <th>{{ t('الحالة','Status') }}</th>
+            <th>{{ t('المبلغ','Amount') }}</th>
+            <th>{{ t('تاريخ البداية','Start date') }}</th>
+            <th>{{ t('التجديد القادم','Next renewal') }}</th>
             <th>Stripe ID</th>
           </tr>
         </thead>
@@ -376,22 +377,22 @@
             <td>{{ sub.id }}</td>
             <td>
               <div class="user-cell">
-                <span class="user-name">{{ sub.user_name or 'مجهول' }}</span>
+                <span class="user-name">{{ sub.user_name or t('مجهول','Unknown') }}</span>
                 <span class="user-email">{{ sub.user_email or '-' }}</span>
               </div>
             </td>
             <td><span class="plan-{{ sub.plan_key }}">
-              {% if sub.plan_key == 'monthly_subscription' %}👑 اشتراك شهري
-              {% elif sub.plan_key == 'single_plan' %}📋 خطة واحدة
-              {% elif sub.plan_key == 'consultation' %}💬 استشارة
+              {% if sub.plan_key == 'monthly_subscription' %}👑 {{ t('اشتراك شهري','Monthly subscription') }}
+              {% elif sub.plan_key == 'single_plan' %}📋 {{ t('خطة واحدة','Single plan') }}
+              {% elif sub.plan_key == 'consultation' %}💬 {{ t('استشارة','Consultation') }}
               {% else %}{{ sub.plan_key }}{% endif %}
             </span></td>
             <td>
-              {% if sub.status == 'active' %}<span class="badge badge-success">نشط</span>
-              {% elif sub.status == 'trialing' %}<span class="badge badge-info">تجريبي</span>
-              {% elif sub.status == 'canceled' %}<span class="badge badge-gray">ملغي</span>
-              {% elif sub.status == 'past_due' %}<span class="badge badge-warning">متأخر</span>
-              {% elif sub.status == 'unpaid' %}<span class="badge badge-danger">غير مدفوع</span>
+              {% if sub.status == 'active' %}<span class="badge badge-success">{{ t('نشط','Active') }}</span>
+              {% elif sub.status == 'trialing' %}<span class="badge badge-info">{{ t('تجريبي','Trial') }}</span>
+              {% elif sub.status == 'canceled' %}<span class="badge badge-gray">{{ t('ملغي','Canceled') }}</span>
+              {% elif sub.status == 'past_due' %}<span class="badge badge-warning">{{ t('متأخر','Past due') }}</span>
+              {% elif sub.status == 'unpaid' %}<span class="badge badge-danger">{{ t('غير مدفوع','Unpaid') }}</span>
               {% else %}<span class="badge badge-gray">{{ sub.status }}</span>{% endif %}
             </td>
             <td class="amount-cell">{{ "%.0f"|format((sub.amount or 0) / 100) }} {{ sub.currency or 'USD' }}</td>
@@ -407,8 +408,8 @@
     <div class="table-wrap">
       <div class="empty-state">
         <div class="icon">📋</div>
-        <p><strong>مفيش اشتراكات لسه</strong></p>
-        <p style="font-size: 14px; margin-top: 6px;">أول اشتراك هيظهر هنا تلقائياً</p>
+        <p><strong>{{ t('مفيش اشتراكات لسه','No subscriptions yet') }}</strong></p>
+        <p style="font-size: 14px; margin-top: 6px;">{{ t('أول اشتراك هيظهر هنا تلقائياً','The first subscription will appear here automatically') }}</p>
       </div>
     </div>
     {% endif %}
@@ -422,12 +423,12 @@
         <thead>
           <tr>
             <th>#</th>
-            <th>العميل</th>
-            <th>الخطة</th>
-            <th>الحالة</th>
-            <th>المبلغ</th>
-            <th>التاريخ</th>
-            <th>تنتهي في</th>
+            <th>{{ t('العميل','Client') }}</th>
+            <th>{{ t('الخطة','Plan') }}</th>
+            <th>{{ t('الحالة','Status') }}</th>
+            <th>{{ t('المبلغ','Amount') }}</th>
+            <th>{{ t('التاريخ','Date') }}</th>
+            <th>{{ t('تنتهي في','Expires on') }}</th>
             <th>Stripe ID</th>
           </tr>
         </thead>
@@ -437,21 +438,21 @@
             <td>{{ pay.id }}</td>
             <td>
               <div class="user-cell">
-                <span class="user-name">{{ pay.user_name or 'مجهول' }}</span>
+                <span class="user-name">{{ pay.user_name or t('مجهول','Unknown') }}</span>
                 <span class="user-email">{{ pay.user_email or '-' }}</span>
               </div>
             </td>
             <td><span class="plan-{{ pay.plan_key }}">
-              {% if pay.plan_key == 'monthly_subscription' %}👑 اشتراك شهري
-              {% elif pay.plan_key == 'single_plan' %}📋 خطة واحدة
-              {% elif pay.plan_key == 'consultation' %}💬 استشارة
+              {% if pay.plan_key == 'monthly_subscription' %}👑 {{ t('اشتراك شهري','Monthly subscription') }}
+              {% elif pay.plan_key == 'single_plan' %}📋 {{ t('خطة واحدة','Single plan') }}
+              {% elif pay.plan_key == 'consultation' %}💬 {{ t('استشارة','Consultation') }}
               {% else %}{{ pay.plan_key }}{% endif %}
             </span></td>
             <td>
-              {% if pay.status == 'completed' %}<span class="badge badge-success">مكتمل</span>
-              {% elif pay.status == 'pending' %}<span class="badge badge-warning">قيد المعالجة</span>
-              {% elif pay.status == 'failed' %}<span class="badge badge-danger">فاشل</span>
-              {% elif pay.status == 'refunded' %}<span class="badge badge-gray">مسترد</span>
+              {% if pay.status == 'completed' %}<span class="badge badge-success">{{ t('مكتمل','Completed') }}</span>
+              {% elif pay.status == 'pending' %}<span class="badge badge-warning">{{ t('قيد المعالجة','Processing') }}</span>
+              {% elif pay.status == 'failed' %}<span class="badge badge-danger">{{ t('فاشل','Failed') }}</span>
+              {% elif pay.status == 'refunded' %}<span class="badge badge-gray">{{ t('مسترد','Refunded') }}</span>
               {% else %}<span class="badge badge-gray">{{ pay.status }}</span>{% endif %}
             </td>
             <td class="amount-cell">{{ "%.0f"|format((pay.amount or 0) / 100) }} {{ pay.currency or 'USD' }}</td>
@@ -467,8 +468,8 @@
     <div class="table-wrap">
       <div class="empty-state">
         <div class="icon">💳</div>
-        <p><strong>مفيش دفعات لسه</strong></p>
-        <p style="font-size: 14px; margin-top: 6px;">أول دفعة هتظهر هنا تلقائياً</p>
+        <p><strong>{{ t('مفيش دفعات لسه','No payments yet') }}</strong></p>
+        <p style="font-size: 14px; margin-top: 6px;">{{ t('أول دفعة هتظهر هنا تلقائياً','The first payment will appear here automatically') }}</p>
       </div>
     </div>
     {% endif %}

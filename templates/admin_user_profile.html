@@ -1,5 +1,20 @@
 {% extends "base.html" %}
+{% block title %}{{ user.name or t('ملف العميل','Client Profile') }}{% endblock %}
 {% block content %}
+
+{# stored gender values are Arabic; map them for display #}
+{% set gender_names = {'ذكر':t('ذكر','Male'),'أنثى':t('أنثى','Female'),'انثى':t('أنثى','Female'),'male':t('ذكر','Male'),'female':t('أنثى','Female')} %}
+
+<script>
+// confirm() prompts fired from inline handlers, resolved server-side
+const MSG = {
+  grantTrial:  {{ t('إعطاء العميل 7 أيام تجربة مجانية؟','Give this client a free 7-day trial?')|tojson }},
+  cancelSub:   {{ t('إلغاء اشتراك العميل؟ هيستمر حتى نهاية الفترة المدفوعة.', "Cancel this client's subscription? It stays active until the end of the paid period.")|tojson }},
+  activateSub: {{ t('تأكيد تفعيل الاشتراك للعميل؟','Confirm activating the subscription for this client?')|tojson }},
+  resetPw:     {{ t('متأكد إنك عايز تغير كلمة سر العميل ده؟',"Are you sure you want to change this client's password?")|tojson }}
+};
+</script>
+
 
 <style>
   .profile-wrap {
@@ -153,7 +168,7 @@
 
   /* Tables */
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th { text-align: right; padding: 10px 12px; background: #faf8f3; font-weight: 700; color: #475569; font-size: 13px; border-bottom: 1px solid #e7e0d0; }
+  th { text-align: start; padding: 10px 12px; background: #faf8f3; font-weight: 700; color: #475569; font-size: 13px; border-bottom: 1px solid #e7e0d0; }
   td { padding: 10px 12px; border-bottom: 1px solid #f5f1e8; color: #0f172a; }
   tbody tr:hover { background: #faf8f3; }
 
@@ -240,24 +255,24 @@
 
 <div class="profile-wrap">
 
-  <a href="/admin/users" class="back-link">← الرجوع لقائمة العملاء</a>
+  <a href="/admin/users" class="back-link">← {{ t('الرجوع لقائمة العملاء','Back to client list') }}</a>
 
   <!-- User Header -->
   <div class="user-head">
     <div class="avatar">{{ (user.name or 'U')[0]|upper }}</div>
     <div class="user-info">
-      <h1 class="user-name">{{ user.name or 'بدون اسم' }}</h1>
+      <h1 class="user-name">{{ user.name or t('بدون اسم','Unnamed') }}</h1>
       <div class="user-meta">
         <span>📧 {{ user.email }}</span>
         {% if user.phone %}<span>📱 {{ user.phone }}</span>{% endif %}
         {% if user.country %}<span>🌍 {{ user.country }}</span>{% endif %}
-        {% if user.age %}<span>🎂 {{ user.age }} سنة</span>{% endif %}
-        {% if user.gender %}<span>{% if user.gender == 'ذكر' or user.gender == 'male' %}♂️{% else %}♀️{% endif %} {{ user.gender }}</span>{% endif %}
+        {% if user.age %}<span>🎂 {{ user.age }} {{ t('سنة','yrs') }}</span>{% endif %}
+        {% if user.gender %}<span>{% if user.gender == 'ذكر' or user.gender == 'male' %}♂️{% else %}♀️{% endif %} {{ gender_names.get(user.gender, user.gender) }}</span>{% endif %}
       </div>
     </div>
     <div class="head-actions">
-      <a href="/messages/{{ user.id }}" class="head-btn">💬 بدء محادثة</a>
-      <a href="/admin/users" class="head-btn">→ رجوع</a>
+      <a href="/messages/{{ user.id }}" class="head-btn">💬 {{ t('بدء محادثة','Start a chat') }}</a>
+      <a href="/admin/users" class="head-btn">→ {{ t('رجوع','Back') }}</a>
     </div>
   </div>
 
@@ -266,12 +281,12 @@
     <div class="qstat">
       <div class="qstat-icon">📏</div>
       <div class="qstat-val">{{ user.height or '-' }}</div>
-      <div class="qstat-lbl">الطول (cm)</div>
+      <div class="qstat-lbl">{{ t('الطول','Height') }} (cm)</div>
     </div>
     <div class="qstat">
       <div class="qstat-icon">⚖️</div>
       <div class="qstat-val">{{ user.weight or '-' }}</div>
-      <div class="qstat-lbl">الوزن (kg)</div>
+      <div class="qstat-lbl">{{ t('الوزن','Weight') }} (kg)</div>
     </div>
     <div class="qstat">
       <div class="qstat-icon">📊</div>
@@ -286,53 +301,53 @@
     <div class="qstat">
       <div class="qstat-icon">📋</div>
       <div class="qstat-val">{{ plan_requests|length }}</div>
-      <div class="qstat-lbl">خطط</div>
+      <div class="qstat-lbl">{{ t('خطط','Plans') }}</div>
     </div>
     <div class="qstat">
       <div class="qstat-icon">💰</div>
       <div class="qstat-val">{{ payments|length }}</div>
-      <div class="qstat-lbl">دفعات</div>
+      <div class="qstat-lbl">{{ t('دفعات','Payments') }}</div>
     </div>
   </div>
 
   <!-- Subscription Status -->
   <div class="section">
-    <h2 class="section-title">💎 حالة الاشتراك</h2>
+    <h2 class="section-title">💎 {{ t('حالة الاشتراك','Subscription status') }}</h2>
     {% if active_sub %}
       <div class="sub-card {% if active_sub.status == 'trialing' %}sub-trial{% else %}sub-active{% endif %}">
-        <div class="sub-row"><span>الخطة</span><strong>{{ active_sub.plan_name or active_sub.plan_key }}</strong></div>
-        <div class="sub-row"><span>الحالة</span><strong>
-          {% if active_sub.status == 'active' %}<span class="badge b-success">نشط</span>
-          {% elif active_sub.status == 'trialing' %}<span class="badge b-info">فترة تجريبية</span>
+        <div class="sub-row"><span>{{ t('الخطة','Plan') }}</span><strong>{{ active_sub.plan_name or active_sub.plan_key }}</strong></div>
+        <div class="sub-row"><span>{{ t('الحالة','Status') }}</span><strong>
+          {% if active_sub.status == 'active' %}<span class="badge b-success">{{ t('نشط','Active') }}</span>
+          {% elif active_sub.status == 'trialing' %}<span class="badge b-info">{{ t('فترة تجريبية','Trial') }}</span>
           {% else %}<span class="badge b-warn">{{ active_sub.status }}</span>{% endif %}
         </strong></div>
-        <div class="sub-row"><span>تاريخ البداية</span><strong>{{ active_sub.start_date or '-' }}</strong></div>
-        <div class="sub-row"><span>التجديد القادم</span><strong>{{ active_sub.end_date or '-' }}</strong></div>
+        <div class="sub-row"><span>{{ t('تاريخ البداية','Start date') }}</span><strong>{{ active_sub.start_date or '-' }}</strong></div>
+        <div class="sub-row"><span>{{ t('التجديد القادم','Next renewal') }}</span><strong>{{ active_sub.end_date or '-' }}</strong></div>
         <div class="sub-row"><span>المبلغ الشهري</span><strong>{{ "%.0f"|format((active_sub.amount or 0) / 100) }} {{ active_sub.currency }}</strong></div>
       </div>
     {% elif active_payment %}
       <div class="sub-card sub-active">
-        <div class="sub-row"><span>الخطة المدفوعة</span><strong>{{ active_payment.plan_name or active_payment.plan_key }}</strong></div>
-        <div class="sub-row"><span>تنتهي في</span><strong>{{ active_payment.expires or '-' }}</strong></div>
+        <div class="sub-row"><span>{{ t('الخطة المدفوعة','Paid plan') }}</span><strong>{{ active_payment.plan_name or active_payment.plan_key }}</strong></div>
+        <div class="sub-row"><span>{{ t('تنتهي في','Expires on') }}</span><strong>{{ active_payment.expires or '-' }}</strong></div>
         <div class="sub-row"><span>المبلغ</span><strong>{{ "%.0f"|format((active_payment.amount or 0) / 100) }} {{ active_payment.currency }}</strong></div>
       </div>
     {% else %}
       <div class="sub-card sub-none">
-        <strong>⚠️ مفيش اشتراك نشط</strong> - العميل ده مش بيقدر يدخل الشات أو يطلب خطط جديدة.
+        <strong>⚠️ {{ t('مفيش اشتراك نشط','No active subscription') }}</strong> - {{ t('العميل ده مش بيقدر يدخل الشات أو يطلب خطط جديدة.','This client cannot use the chat or request new plans.') }}
       </div>
     {% endif %}
 
     <!-- Subscription Actions -->
     <div class="actions-grid">
       <button type="button" class="act-btn act-primary" onclick="document.getElementById('manualActivateBox').style.display = document.getElementById('manualActivateBox').style.display === 'none' ? 'block' : 'none';">
-        💰 تفعيل اشتراك مدفوع
+        💰 {{ t('تفعيل اشتراك مدفوع','Activate a paid subscription') }}
       </button>
 
       <form method="POST" action="/admin/users/{{ user.id }}/grant-trial" style="display: contents;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="act-btn act-warning"
-                onclick="return confirm('إعطاء العميل 7 أيام تجربة مجانية؟')">
-          🎁 إعطاء 7 أيام تجربة
+                onclick="return confirm(MSG.grantTrial)">
+          🎁 {{ t('إعطاء 7 أيام تجربة','Grant a 7-day trial') }}
         </button>
       </form>
 
@@ -340,20 +355,20 @@
       <form method="POST" action="/admin/users/{{ user.id }}/cancel-subscription" style="display: contents;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="act-btn act-danger"
-                onclick="return confirm('إلغاء اشتراك العميل؟ هيستمر حتى نهاية الفترة المدفوعة.')">
-          ❌ إلغاء الاشتراك
+                onclick="return confirm(MSG.cancelSub)">
+          ❌ {{ t('إلغاء الاشتراك','Cancel subscription') }}
         </button>
       </form>
       {% endif %}
 
-      <a href="/admin/users/{{ user.id }}/payments" class="act-btn act-secondary">📊 كل عمليات الدفع</a>
+      <a href="/admin/users/{{ user.id }}/payments" class="act-btn act-secondary">📊 {{ t('كل عمليات الدفع','All payment records') }}</a>
     </div>
 
     <!-- ═══════════ Manual Activation Form ═══════════ -->
     <div id="manualActivateBox" style="display:none; margin-top: 16px; padding: 20px; background: linear-gradient(135deg, #faf8f3, #faf8f3); border: 2px solid #1e4a3d; border-radius: 14px;">
       <h3 style="margin: 0 0 12px; color: #14332b; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-        💰 تفعيل اشتراك مدفوع للعميل
-        <span style="font-size: 12px; font-weight: 600; background: #ede7d8; padding: 3px 10px; border-radius: 999px;">بعد ما العميل يدفع</span>
+        💰 {{ t('تفعيل اشتراك مدفوع للعميل','Activate a paid subscription for this client') }}
+        <span style="font-size: 12px; font-weight: 600; background: #ede7d8; padding: 3px 10px; border-radius: 999px;">{{ t('بعد ما العميل يدفع','after the client has paid') }}</span>
       </h3>
 
       <form method="POST" action="/admin/users/{{ user.id }}/manual-activate">
@@ -361,71 +376,71 @@
         <div class="info-grid" style="margin-bottom: 12px;">
 
           <div class="info-item">
-            <div class="info-lbl">نوع الخطة <span style="color:#dc2626">*</span></div>
+            <div class="info-lbl">{{ t('نوع الخطة','Plan type') }} <span style="color:#dc2626">*</span></div>
             <select name="plan_key" required
                     style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
-              <option value="">اختار</option>
-              <option value="consultation">💬 استشارة فردية (24 ساعة)</option>
-              <option value="single_plan">📋 خطة واحدة (7 أيام متابعة)</option>
-              <option value="monthly_subscription">👑 اشتراك شهري (30 يوم)</option>
+              <option value="">{{ t('اختار','Select') }}</option>
+              <option value="consultation">💬 {{ t('استشارة فردية (24 ساعة)','Single consultation (24 hours)') }}</option>
+              <option value="single_plan">📋 {{ t('خطة واحدة (7 أيام متابعة)','Single plan (7 days follow-up)') }}</option>
+              <option value="monthly_subscription">👑 {{ t('اشتراك شهري (30 يوم)','Monthly subscription (30 days)') }}</option>
             </select>
           </div>
 
           <div class="info-item">
-            <div class="info-lbl">المبلغ المدفوع <span style="color:#dc2626">*</span></div>
+            <div class="info-lbl">{{ t('المبلغ المدفوع','Amount paid') }} <span style="color:#dc2626">*</span></div>
             <input type="number" name="amount" step="0.01" min="0" required
-                   placeholder="مثال: 599"
+                   placeholder="{{ t('مثال: 599','e.g. 1000') }}"
                    style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
 
           <div class="info-item">
-            <div class="info-lbl">العملة</div>
+            <div class="info-lbl">{{ t('العملة','Currency') }}</div>
             <select name="currency"
                     style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px;">
-              <option value="EGP" selected>🇪🇬 EGP (جنيه)</option>
-              <option value="AED">🇦🇪 AED (درهم)</option>
-              <option value="SAR">🇸🇦 SAR (ريال)</option>
-              <option value="USD">🌍 USD (دولار)</option>
+              <option value="EGP" selected>🇪🇬 EGP</option>
+              <option value="AED">🇦🇪 AED</option>
+              <option value="SAR">🇸🇦 SAR</option>
+              <option value="USD">🌍 USD</option>
             </select>
           </div>
 
           <div class="info-item">
-            <div class="info-lbl">طريقة الدفع</div>
+            <div class="info-lbl">{{ t('طريقة الدفع','Payment method') }}</div>
             <select name="payment_method"
                     style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px;">
-              <option value="vodafone_cash">📱 فودافون كاش</option>
+              <option value="vodafone_cash">📱 {{ t('فودافون كاش','Vodafone Cash') }}</option>
               <option value="instapay">⚡ InstaPay</option>
-              <option value="bank_transfer_eg">🏦 تحويل بنكي مصري</option>
-              <option value="bank_transfer_ae">🏦 تحويل بنكي إماراتي</option>
-              <option value="cash">💵 كاش / Cash</option>
-              <option value="other">أخرى</option>
+              <option value="bank_transfer_eg">🏦 {{ t('تحويل بنكي مصري','Egyptian bank transfer') }}</option>
+              <option value="bank_transfer_ae">🏦 {{ t('تحويل بنكي إماراتي','UAE bank transfer') }}</option>
+              <option value="cash">💵 {{ t('كاش','Cash') }}</option>
+              <option value="other">{{ t('أخرى','Other') }}</option>
             </select>
           </div>
         </div>
 
         <div class="info-item" style="margin-bottom: 12px;">
-          <div class="info-lbl">ملاحظات (اختياري)</div>
+          <div class="info-lbl">{{ t('ملاحظات (اختياري)','Notes (optional)') }}</div>
           <input type="text" name="notes"
-                 placeholder="مثال: رقم العملية في فودافون كاش، تاريخ التحويل، إلخ..."
+                 placeholder="{{ t('مثال: رقم العملية في فودافون كاش، تاريخ التحويل، إلخ...','e.g. Vodafone Cash transaction number, transfer date, etc.') }}"
                  style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
         </div>
 
         <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 13px; color: #9a3412;">
-          ℹ️ <strong>المدة بتتحدد تلقائياً حسب نوع الخطة:</strong><br/>
-          • استشارة فردية = 1 يوم<br/>
-          • خطة واحدة = 7 أيام<br/>
-          • اشتراك شهري = 30 يوم<br/>
-          العميل هيوصله رسالة في الشات بتفعيل الاشتراك.
+          ℹ️ <strong>{{ t('المدة بتتحدد تلقائياً حسب نوع الخطة:','Duration is set automatically from the plan type:') }}</strong><br/>
+          • {{ t('استشارة فردية = 1 يوم','Single consultation = 1 day') }}<br/>
+          • {{ t('خطة واحدة = 7 أيام','Single plan = 7 days') }}<br/>
+          • {{ t('اشتراك شهري = 30 يوم','Monthly subscription = 30 days') }}<br/>
+          {{ t('العميل هيوصله رسالة في الشات بتفعيل الاشتراك.','The client receives a chat message confirming activation.') }}
         </div>
 
         <div style="display: flex; gap: 10px;">
           <button type="submit" class="act-btn act-primary" style="flex: 1; padding: 12px;"
-                  onclick="return confirm('تأكيد تفعيل الاشتراك للعميل؟')">
-            ✅ تفعيل الاشتراك دلوقتي
+                  onclick="return confirm(MSG.activateSub)">
+            ✅ {{ t('تفعيل الاشتراك دلوقتي','Activate subscription now') }}
           </button>
           <button type="button" class="act-btn act-secondary" style="flex: 0 0 auto; padding: 12px 20px;"
                   onclick="document.getElementById('manualActivateBox').style.display = 'none';">
-            إلغاء
+            {{ t('إلغاء','Cancel') }}
           </button>
         </div>
       </form>
@@ -434,42 +449,42 @@
 
   <!-- Medical Conditions & Preferences -->
   <div class="section">
-    <h2 class="section-title">🏥 الحالات الطبية والتفضيلات</h2>
+    <h2 class="section-title">🏥 {{ t('الحالات الطبية والتفضيلات','Medical conditions and preferences') }}</h2>
     <div class="info-grid">
 
       <div style="grid-column: 1 / -1;">
-        <div class="info-lbl">الحالات الطبية</div>
+        <div class="info-lbl">{{ t('الحالات الطبية','Medical conditions') }}</div>
         <div class="tags" style="margin-top: 6px;">
           {% if conditions %}
             {% for c in conditions %}<span class="tag tag-medical">⚕️ {{ c }}</span>{% endfor %}
-          {% else %}<span class="tag">مفيش حالات مسجلة</span>{% endif %}
+          {% else %}<span class="tag">{{ t('مفيش حالات مسجلة','No conditions recorded') }}</span>{% endif %}
         </div>
       </div>
 
       <div style="grid-column: 1 / -1;">
-        <div class="info-lbl">الحساسية الغذائية</div>
+        <div class="info-lbl">{{ t('الحساسية الغذائية','Food allergies') }}</div>
         <div class="tags" style="margin-top: 6px;">
           {% if allergies %}
             {% for a in allergies %}<span class="tag tag-allergy">⚠️ {{ a }}</span>{% endfor %}
-          {% else %}<span class="tag">مفيش حساسية مسجلة</span>{% endif %}
+          {% else %}<span class="tag">{{ t('مفيش حساسية مسجلة','No allergies recorded') }}</span>{% endif %}
         </div>
       </div>
 
       <div style="grid-column: 1 / -1;">
-        <div class="info-lbl">أكلات بيحبها</div>
+        <div class="info-lbl">{{ t('أكلات بيحبها','Foods they like') }}</div>
         <div class="tags" style="margin-top: 6px;">
           {% if liked_foods %}
             {% for f in liked_foods %}<span class="tag tag-liked">😋 {{ f }}</span>{% endfor %}
-          {% else %}<span class="tag">مفيش بيانات</span>{% endif %}
+          {% else %}<span class="tag">{{ t('مفيش بيانات','No data') }}</span>{% endif %}
         </div>
       </div>
 
       <div style="grid-column: 1 / -1;">
-        <div class="info-lbl">أكلات مش بيحبها</div>
+        <div class="info-lbl">{{ t('أكلات مش بيحبها','Foods they dislike') }}</div>
         <div class="tags" style="margin-top: 6px;">
           {% if disliked_foods %}
             {% for f in disliked_foods %}<span class="tag tag-disliked">🚫 {{ f }}</span>{% endfor %}
-          {% else %}<span class="tag">مفيش بيانات</span>{% endif %}
+          {% else %}<span class="tag">{{ t('مفيش بيانات','No data') }}</span>{% endif %}
         </div>
       </div>
     </div>
@@ -477,140 +492,141 @@
 
   <!-- Edit User Data (Comprehensive) -->
   <div class="section">
-    <h2 class="section-title">✏️ تعديل بيانات العميل</h2>
+    <h2 class="section-title">✏️ {{ t('تعديل بيانات العميل','Edit client details') }}</h2>
     <form method="POST" action="/admin/users/{{ user.id }}/update">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-      <!-- 👤 معلومات شخصية -->
+      <!-- 👤 {{ t('معلومات شخصية','Personal information') }} -->
       <div style="margin-bottom: 22px;">
         <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #1e4a3d;">
-          👤 معلومات شخصية
+          👤 {{ t('معلومات شخصية','Personal information') }}
         </h3>
         <div class="info-grid">
           <div class="info-item">
-            <div class="info-lbl">الاسم</div>
+            <div class="info-lbl">{{ t('الاسم','Name') }}</div>
             <input type="text" name="name" value="{{ user.name or '' }}" required
                    style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
           <div class="info-item">
-            <div class="info-lbl">الإيميل</div>
+            <div class="info-lbl">{{ t('الإيميل','Email') }}</div>
             <input type="email" name="email" value="{{ user.email or '' }}" required
                    style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
           <div class="info-item">
-            <div class="info-lbl">التليفون</div>
+            <div class="info-lbl">{{ t('التليفون','Phone') }}</div>
             <input type="text" name="phone" value="{{ user.phone or '' }}"
                    style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
           <div class="info-item">
-            <div class="info-lbl">البلد</div>
+            <div class="info-lbl">{{ t('البلد','Country') }}</div>
             <input type="text" name="country" value="{{ user.country or '' }}"
                    style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
           <div class="info-item">
-            <div class="info-lbl">العمر</div>
+            <div class="info-lbl">{{ t('العمر','Age') }}</div>
             <input type="number" name="age" value="{{ user.age or '' }}" min="10" max="100"
                    style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
           <div class="info-item">
-            <div class="info-lbl">الجنس</div>
+            <div class="info-lbl">{{ t('الجنس','Gender') }}</div>
             <select name="gender" style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
               <option value="">-</option>
-              <option value="ذكر" {% if user.gender == 'ذكر' %}selected{% endif %}>ذكر</option>
-              <option value="أنثى" {% if user.gender == 'أنثى' %}selected{% endif %}>أنثى</option>
+              <option value="ذكر" {% if user.gender == 'ذكر' %}selected{% endif %}>{{ t('ذكر','Male') }}</option>
+              <option value="أنثى" {% if user.gender == 'أنثى' %}selected{% endif %}>{{ t('أنثى','Female') }}</option>
             </select>
           </div>
         </div>
       </div>
 
-      <!-- 📏 القياسات والهدف -->
+      <!-- 📏 {{ t('القياسات والهدف','Measurements and goal') }} -->
       <div style="margin-bottom: 22px;">
         <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #2c5a4a;">
-          📏 القياسات والهدف
+          📏 {{ t('القياسات والهدف','Measurements and goal') }}
         </h3>
         <div class="info-grid">
           <div class="info-item">
-            <div class="info-lbl">الوزن (kg)</div>
+            <div class="info-lbl">{{ t('الوزن','Weight') }} (kg)</div>
             <input type="number" step="0.1" name="weight" value="{{ user.weight or '' }}"
                    style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px;">
           </div>
           <div class="info-item">
-            <div class="info-lbl">الطول (cm)</div>
+            <div class="info-lbl">{{ t('الطول','Height') }} (cm)</div>
             <input type="number" step="0.5" name="height" value="{{ user.height or '' }}"
                    style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px;">
           </div>
           <div class="info-item">
-            <div class="info-lbl">الهدف</div>
+            <div class="info-lbl">{{ t('الهدف','Goal') }}</div>
             <select name="goal" style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px;">
-              <option value="weight_loss" {% if user.goal == 'weight_loss' %}selected{% endif %}>تخسيس</option>
-              <option value="muscle_gain" {% if user.goal == 'muscle_gain' %}selected{% endif %}>زيادة عضل</option>
-              <option value="bulking" {% if user.goal == 'bulking' %}selected{% endif %}>تضخيم</option>
-              <option value="maintenance" {% if user.goal == 'maintenance' %}selected{% endif %}>مكتنز</option>
+              <option value="weight_loss" {% if user.goal == 'weight_loss' %}selected{% endif %}>{{ t('تخسيس','Weight Loss') }}</option>
+              <option value="muscle_gain" {% if user.goal == 'muscle_gain' %}selected{% endif %}>{{ t('زيادة عضل','Muscle Gain') }}</option>
+              <option value="bulking" {% if user.goal == 'bulking' %}selected{% endif %}>{{ t('تضخيم','Bulking') }}</option>
+              <option value="maintenance" {% if user.goal == 'maintenance' %}selected{% endif %}>{{ t('مكتنز','Maintenance') }}</option>
             </select>
           </div>
           <div class="info-item">
-            <div class="info-lbl">مستوى النشاط</div>
+            <div class="info-lbl">{{ t('مستوى النشاط','Activity level') }}</div>
             <select name="activity" style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px;">
-              <option value="1.2" {% if user.activity == 1.2 %}selected{% endif %}>قليل</option>
-              <option value="1.375" {% if user.activity == 1.375 %}selected{% endif %}>خفيف</option>
-              <option value="1.55" {% if user.activity == 1.55 %}selected{% endif %}>متوسط</option>
-              <option value="1.725" {% if user.activity == 1.725 %}selected{% endif %}>عالي</option>
-              <option value="1.9" {% if user.activity == 1.9 %}selected{% endif %}>عالي جداً</option>
+              <option value="1.2" {% if user.activity == 1.2 %}selected{% endif %}>{{ t('قليل','Sedentary') }}</option>
+              <option value="1.375" {% if user.activity == 1.375 %}selected{% endif %}>{{ t('خفيف','Light') }}</option>
+              <option value="1.55" {% if user.activity == 1.55 %}selected{% endif %}>{{ t('متوسط','Moderate') }}</option>
+              <option value="1.725" {% if user.activity == 1.725 %}selected{% endif %}>{{ t('عالي','High') }}</option>
+              <option value="1.9" {% if user.activity == 1.9 %}selected{% endif %}>{{ t('عالي جداً','Very high') }}</option>
             </select>
           </div>
         </div>
       </div>
 
-      <!-- 🏥 الحالات الطبية والحساسية -->
+      <!-- 🏥 {{ t('الحالات الطبية والحساسية','Medical conditions and allergies') }} -->
       <div style="margin-bottom: 22px;">
         <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #ef4444;">
-          🏥 الحالات الطبية والحساسية
+          🏥 {{ t('الحالات الطبية والحساسية','Medical conditions and allergies') }}
         </h3>
 
         <div class="info-item" style="margin-bottom: 10px;">
-          <div class="info-lbl" style="margin-bottom: 8px;">⚕️ الحالات الطبية</div>
+          <div class="info-lbl" style="margin-bottom: 8px;">⚕️ {{ t('الحالات الطبية','Medical conditions') }}</div>
           <div class="chips-edit" id="editConditions">
-            {% set cond_options = ['قولون عصبي', 'سكري النوع الثاني', 'ضغط الدم المرتفع', 'أمراض القلب', 'الفشل الكلوي المزمن', 'ثلاسيميا', 'نقص G6PD', 'الحمل', 'الرضاعة الطبيعية'] %}
-            {% for c in cond_options %}
-            <span class="chip-e {% if c in conditions %}selected{% endif %}" data-val="{{ c }}">{{ c }}</span>
+            {# data-val is the stored value and stays Arabic; only the label is localized #}
+            {% set cond_options = [('قولون عصبي','IBS'), ('سكري النوع الثاني','Type 2 diabetes'), ('ضغط الدم المرتفع','Hypertension'), ('أمراض القلب','Heart disease'), ('الفشل الكلوي المزمن','Chronic kidney failure'), ('ثلاسيميا','Thalassemia'), ('نقص G6PD','G6PD deficiency'), ('الحمل','Pregnancy'), ('الرضاعة الطبيعية','Breastfeeding')] %}
+            {% for c, c_en in cond_options %}
+            <span class="chip-e {% if c in conditions %}selected{% endif %}" data-val="{{ c }}">{{ c if is_ar else c_en }}</span>
             {% endfor %}
           </div>
           <input type="hidden" name="conditions" id="conditionsHidden" value='{{ conditions|tojson }}'>
         </div>
 
         <div class="info-item">
-          <div class="info-lbl" style="margin-bottom: 8px;">⚠️ الحساسية الغذائية</div>
+          <div class="info-lbl" style="margin-bottom: 8px;">⚠️ {{ t('الحساسية الغذائية','Food allergies') }}</div>
           <div class="chips-edit" id="editAllergies">
-            {% set allergy_options = ['اللاكتوز', 'الجلوتين', 'المكسرات', 'البيض', 'الأسماك', 'الفول السوداني', 'الصويا', 'المحار', 'السمسم'] %}
-            {% for a in allergy_options %}
-            <span class="chip-e {% if a in allergies %}selected{% endif %}" data-val="{{ a }}">{{ a }}</span>
+            {% set allergy_options = [('اللاكتوز','Lactose'), ('الجلوتين','Gluten'), ('المكسرات','Tree nuts'), ('البيض','Eggs'), ('الأسماك','Fish'), ('الفول السوداني','Peanuts'), ('الصويا','Soy'), ('المحار','Shellfish'), ('السمسم','Sesame')] %}
+            {% for a, a_en in allergy_options %}
+            <span class="chip-e {% if a in allergies %}selected{% endif %}" data-val="{{ a }}">{{ a if is_ar else a_en }}</span>
             {% endfor %}
           </div>
           <input type="hidden" name="allergies" id="allergiesHidden" value='{{ allergies|tojson }}'>
         </div>
       </div>
 
-      <!-- 🍽️ التفضيلات الغذائية -->
+      <!-- 🍽️ {{ t('التفضيلات الغذائية','Food preferences') }} -->
       <div style="margin-bottom: 22px;">
         <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #f59e0b;">
-          🍽️ التفضيلات الغذائية
+          🍽️ {{ t('التفضيلات الغذائية','Food preferences') }}
         </h3>
 
         <div class="info-item" style="margin-bottom: 10px;">
-          <div class="info-lbl" style="margin-bottom: 6px;">😋 أكلات بيحبها (افصل بفاصلة)</div>
-          <textarea name="liked_foods_text" placeholder="مثال: دجاج، لحمة، بيض، شوفان..."
-                    style="width:100%; padding:10px 12px; border:1px solid #e7e0d0; border-radius:8px; font-family:inherit; min-height:60px;">{{ liked_foods|join('، ') }}</textarea>
+          <div class="info-lbl" style="margin-bottom: 6px;">😋 {{ t('أكلات بيحبها (افصل بفاصلة)','Foods they like (comma separated)') }}</div>
+          <textarea name="liked_foods_text" placeholder="{{ t('مثال: دجاج، لحمة، بيض، شوفان...','e.g. chicken, red meat, eggs, oats…') }}"
+                    style="width:100%; padding:10px 12px; border:1px solid #e7e0d0; border-radius:8px; font-family:inherit; min-height:60px;">{{ liked_foods|join('، ' if is_ar else ', ') }}</textarea>
         </div>
 
         <div class="info-item">
-          <div class="info-lbl" style="margin-bottom: 6px;">🚫 أكلات مش بيحبها (افصل بفاصلة)</div>
-          <textarea name="disliked_foods_text" placeholder="مثال: كبدة، ملوخية، باميا..."
-                    style="width:100%; padding:10px 12px; border:1px solid #e7e0d0; border-radius:8px; font-family:inherit; min-height:60px;">{{ disliked_foods|join('، ') }}</textarea>
+          <div class="info-lbl" style="margin-bottom: 6px;">🚫 {{ t('أكلات مش بيحبها (افصل بفاصلة)','Foods they dislike (comma separated)') }}</div>
+          <textarea name="disliked_foods_text" placeholder="{{ t('مثال: كبدة، ملوخية، باميا...','e.g. liver, molokhia, okra…') }}"
+                    style="width:100%; padding:10px 12px; border:1px solid #e7e0d0; border-radius:8px; font-family:inherit; min-height:60px;">{{ disliked_foods|join('، ' if is_ar else ', ') }}</textarea>
         </div>
       </div>
 
       <button type="submit" class="act-btn act-primary" style="width:100%; padding: 14px; font-size: 15px;">
-        💾 حفظ كل التعديلات
+        💾 {{ t('حفظ كل التعديلات','Save all changes') }}
       </button>
     </form>
   </div>
@@ -666,45 +682,45 @@
 
   <!-- Plans History -->
   <div class="section">
-    <h2 class="section-title">📋 الخطط السابقة ({{ plan_requests|length }})</h2>
+    <h2 class="section-title">📋 {{ t('الخطط السابقة','Previous plans') }} ({{ plan_requests|length }})</h2>
     {% if plan_requests %}
       <div class="plans-mini-grid">
         {% for p in plan_requests %}
         <div class="plan-mini">
           <div class="plan-mini-head">
-            <span class="plan-mini-title">طلب #{{ p.id }}</span>
-            {% if p.status == 'approved' %}<span class="badge b-success">معتمد</span>
-            {% elif p.status == 'pending' %}<span class="badge b-warn">قيد المراجعة</span>
-            {% elif p.status == 'rejected' %}<span class="badge b-danger">مرفوض</span>
+            <span class="plan-mini-title">{{ t('طلب','Request') }} #{{ p.id }}</span>
+            {% if p.status == 'approved' %}<span class="badge b-success">{{ t('معتمد','Approved') }}</span>
+            {% elif p.status == 'pending' %}<span class="badge b-warn">{{ t('قيد المراجعة','Under review') }}</span>
+            {% elif p.status == 'rejected' %}<span class="badge b-danger">{{ t('مرفوض','Rejected') }}</span>
             {% else %}<span class="badge b-gray">{{ p.status }}</span>{% endif %}
           </div>
           <div class="plan-mini-date">📅 {{ p.created_date or '-' }}</div>
           {% if p.status == 'approved' %}
-          <a href="/admin/requests/{{ p.id }}/generate" class="act-btn act-primary" style="display:block; font-size: 13px; padding: 8px;">عرض الخطة</a>
+          <a href="/admin/requests/{{ p.id }}/generate" class="act-btn act-primary" style="display:block; font-size: 13px; padding: 8px;">{{ t('عرض الخطة','View plan') }}</a>
           {% else %}
-          <a href="/admin/requests" class="act-btn act-secondary" style="display:block; font-size: 13px; padding: 8px;">عرض في الطلبات</a>
+          <a href="/admin/requests" class="act-btn act-secondary" style="display:block; font-size: 13px; padding: 8px;">{{ t('عرض في الطلبات','View in requests') }}</a>
           {% endif %}
         </div>
         {% endfor %}
       </div>
     {% else %}
-      <div class="empty-mini">📭 العميل لسه ما طلبش أي خطة</div>
+      <div class="empty-mini">📭 {{ t('العميل لسه ما طلبش أي خطة','This client has not requested a plan yet') }}</div>
     {% endif %}
   </div>
 
   <!-- Payments History -->
   <div class="section">
-    <h2 class="section-title">💰 سجل الدفعات ({{ payments|length }})</h2>
+    <h2 class="section-title">💰 {{ t('سجل الدفعات','Payment history') }} ({{ payments|length }})</h2>
     {% if payments %}
       <div style="overflow-x:auto;">
         <table>
           <thead>
             <tr>
-              <th>التاريخ</th>
-              <th>الخطة</th>
-              <th>المبلغ</th>
-              <th>الحالة</th>
-              <th>تنتهي في</th>
+              <th>{{ t('التاريخ','Date') }}</th>
+              <th>{{ t('الخطة','Plan') }}</th>
+              <th>{{ t('المبلغ','Amount') }}</th>
+              <th>{{ t('الحالة','Status') }}</th>
+              <th>{{ t('تنتهي في','Expires on') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -714,9 +730,9 @@
               <td>{{ pay.plan_label or pay.plan_key }}</td>
               <td><strong>{{ "%.0f"|format((pay.amount or 0) / 100) }} {{ pay.currency }}</strong></td>
               <td>
-                {% if pay.status == 'completed' %}<span class="badge b-success">مكتمل</span>
-                {% elif pay.status == 'pending' %}<span class="badge b-warn">معلق</span>
-                {% elif pay.status == 'failed' %}<span class="badge b-danger">فشل</span>
+                {% if pay.status == 'completed' %}<span class="badge b-success">{{ t('مكتمل','Completed') }}</span>
+                {% elif pay.status == 'pending' %}<span class="badge b-warn">{{ t('معلق','Pending') }}</span>
+                {% elif pay.status == 'failed' %}<span class="badge b-danger">{{ t('فشل','Failed') }}</span>
                 {% else %}<span class="badge b-gray">{{ pay.status }}</span>{% endif %}
               </td>
               <td>{{ pay.expires_date or '-' }}</td>
@@ -726,20 +742,20 @@
         </table>
       </div>
     {% else %}
-      <div class="empty-mini">💸 مفيش دفعات لسه</div>
+      <div class="empty-mini">💸 {{ t('مفيش دفعات لسه','No payments yet') }}</div>
     {% endif %}
   </div>
 
   <!-- Weight Progress -->
   <div class="section">
-    <h2 class="section-title">📈 تطور الوزن</h2>
+    <h2 class="section-title">📈 {{ t('تطور الوزن','Weight progress') }}</h2>
 
     <!-- Add weight form -->
     <form method="POST" action="/admin/users/{{ user.id }}/add-weight" class="inline-form" style="margin-bottom: 18px;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="number" step="0.1" name="weight" placeholder="الوزن الجديد (kg)" required>
+      <input type="number" step="0.1" name="weight" placeholder="{{ t('الوزن الجديد (kg)','New weight (kg)') }}" required>
       <input type="date" name="logged_date" value="{{ today_date or '' }}">
-      <button type="submit" class="act-btn act-primary" style="padding: 8px 18px;">+ إضافة قياس وزن</button>
+      <button type="submit" class="act-btn act-primary" style="padding: 8px 18px;">+ {{ t('إضافة قياس وزن','Add a weight entry') }}</button>
     </form>
 
     {% if weight_logs and weight_logs|length > 0 %}
@@ -753,9 +769,9 @@
         <table>
           <thead>
             <tr>
-              <th>التاريخ</th>
-              <th>الوزن (kg)</th>
-              <th>الفرق</th>
+              <th>{{ t('التاريخ','Date') }}</th>
+              <th>{{ t('الوزن','Weight') }} (kg)</th>
+              <th>{{ t('الفرق','Change') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -776,7 +792,7 @@
         </table>
       </div>
     {% else %}
-      <div class="empty-mini">⚖️ مفيش قياسات وزن مسجلة لسه</div>
+      <div class="empty-mini">⚖️ {{ t('مفيش قياسات وزن مسجلة لسه','No weight entries recorded yet') }}</div>
     {% endif %}
   </div>
 
@@ -788,10 +804,10 @@
   <!-- Contact WhatsApp actual -->
   {% if client_whatsapp %}
   <div class="section">
-    <h2 class="section-title">💬 تواصل مع العميل</h2>
+    <h2 class="section-title">💬 {{ t('تواصل مع العميل','Contact the client') }}</h2>
     <a href="{{ client_whatsapp }}" target="_blank" rel="noopener"
        style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;padding:11px 22px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">
-      <span style="font-size:18px;">💬</span> فتح واتساب مع {{ user.name or 'العميل' }}
+      <span style="font-size:18px;">💬</span> {{ t('فتح واتساب مع','Open WhatsApp with') }} {{ user.name or t('العميل','the client') }}
     </a>
     <span style="font-size:12px;color:#94a3b8;margin-right:10px;">({{ user.phone }})</span>
   </div>
@@ -800,17 +816,17 @@
   {% if tracking and tracking.has_plan %}
   <!-- التزام العميل بالخطة -->
   <div class="section">
-    <h2 class="section-title">✅ التزام العميل بالخطة</h2>
+    <h2 class="section-title">✅ {{ t('التزام العميل بالخطة','Client adherence to the plan') }}</h2>
     <div style="display:flex;gap:12px;flex-wrap:wrap;">
       <div style="flex:1;min-width:140px;background:#faf8f3;border:1px solid #d9cfb4;border-radius:12px;padding:14px;text-align:center;">
-        <div style="font-size:11.5px;font-weight:700;color:#64748b;">النهارده ({{ tracking.day_name }})</div>
+        <div style="font-size:11.5px;font-weight:700;color:#64748b;">{{ t('النهارده','Today') }} ({{ tracking.day_name }})</div>
         <div style="font-size:26px;font-weight:900;color:#14332b;">{{ tracking.today_done }}/{{ tracking.today_total }}</div>
-        <div style="font-size:11px;color:#94a3b8;">وجبات متعلّم عليها</div>
+        <div style="font-size:11px;color:#94a3b8;">{{ t('وجبات متعلّم عليها','meals ticked off') }}</div>
       </div>
       <div style="flex:1;min-width:140px;background:{% if tracking.week_pct and tracking.week_pct >= 70 %}#faf8f3;border:1px solid #d9cfb4{% elif tracking.week_pct and tracking.week_pct >= 40 %}#fffbeb;border:1px solid #fcd34d{% else %}#fef2f2;border:1px solid #fecaca{% endif %};border-radius:12px;padding:14px;text-align:center;">
-        <div style="font-size:11.5px;font-weight:700;color:#64748b;">التزام آخر 7 أيام</div>
+        <div style="font-size:11.5px;font-weight:700;color:#64748b;">{{ t('التزام آخر 7 أيام','Adherence, last 7 days') }}</div>
         <div style="font-size:26px;font-weight:900;color:#14332b;">{{ tracking.week_pct if tracking.week_pct is not none else '—' }}{% if tracking.week_pct is not none %}%{% endif %}</div>
-        <div style="font-size:11px;color:#94a3b8;">{% if tracking.week_pct and tracking.week_pct >= 70 %}ملتزم ممتاز 👏{% elif tracking.week_pct and tracking.week_pct >= 40 %}محتاج تشجيع{% else %}اتواصل معاه{% endif %}</div>
+        <div style="font-size:11px;color:#94a3b8;">{% if tracking.week_pct and tracking.week_pct >= 70 %}{{ t('ملتزم ممتاز','Excellent adherence') }} 👏{% elif tracking.week_pct and tracking.week_pct >= 40 %}{{ t('محتاج تشجيع','Needs encouragement') }}{% else %}{{ t('اتواصل معاه','Reach out to them') }}{% endif %}</div>
       </div>
     </div>
   </div>
@@ -818,32 +834,32 @@
 
   <!-- Reset Password -->
   <div class="section">
-    <h2 class="section-title">🔑 إعادة تعيين كلمة السر</h2>
+    <h2 class="section-title">🔑 {{ t('إعادة تعيين كلمة السر','Reset password') }}</h2>
     {% if request.args.get('pwreset') == 'ok' %}
-    <div style="background:#f0ead9;color:#14332b;border:1px solid #d9cfb4;padding:10px 14px;border-radius:8px;margin-bottom:10px;">✅ تم تغيير كلمة سر العميل بنجاح — بلّغه بيها على واتساب أو الشات.</div>
+    <div style="background:#f0ead9;color:#14332b;border:1px solid #d9cfb4;padding:10px 14px;border-radius:8px;margin-bottom:10px;">✅ {{ t('تم تغيير كلمة سر العميل بنجاح — بلّغه بيها على واتساب أو الشات.',"The client's password was changed — send it to them on WhatsApp or in the chat.") }}</div>
     {% elif request.args.get('pwreset') == 'short' %}
-    <div style="background:#fee;color:#8b0000;border:1px solid #fca5a5;padding:10px 14px;border-radius:8px;margin-bottom:10px;">⚠️ كلمة السر لازم 6 أحرف على الأقل.</div>
+    <div style="background:#fee;color:#8b0000;border:1px solid #fca5a5;padding:10px 14px;border-radius:8px;margin-bottom:10px;">⚠️ {{ t('كلمة السر لازم 6 أحرف على الأقل.','The password must be at least 6 characters.') }}</div>
     {% elif request.args.get('pwreset') == 'err' %}
-    <div style="background:#fee;color:#8b0000;border:1px solid #fca5a5;padding:10px 14px;border-radius:8px;margin-bottom:10px;">⚠️ حصلت مشكلة — حاول تاني.</div>
+    <div style="background:#fee;color:#8b0000;border:1px solid #fca5a5;padding:10px 14px;border-radius:8px;margin-bottom:10px;">⚠️ {{ t('حصلت مشكلة — حاول تاني.','Something went wrong — try again.') }}</div>
     {% endif %}
-    <p style="font-size:13px;color:#64748b;margin:0 0 10px;">لو العميل نسي كلمة سره: اكتب واحدة جديدة هنا، احفظ، وابعتهاله. يقدر يغيّرها بعدين من إعداداته.</p>
+    <p style="font-size:13px;color:#64748b;margin:0 0 10px;">{{ t('لو العميل نسي كلمة سره: اكتب واحدة جديدة هنا، احفظ، وابعتهاله. يقدر يغيّرها بعدين من إعداداته.','If the client forgot their password: type a new one here, save, and send it to them. They can change it later in their settings.') }}</p>
     <form method="POST" action="/admin/users/{{ user.id }}/reset-password" style="display:flex;gap:8px;flex-wrap:wrap;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="text" name="new_password" minlength="6" required placeholder="كلمة السر الجديدة (6+ أحرف)"
+      <input type="text" name="new_password" minlength="6" required placeholder="{{ t('كلمة السر الجديدة (6+ أحرف)','New password (6+ characters)') }}"
              style="flex:1;min-width:200px;padding:10px 12px;border:1px solid #e7e0d0;border-radius:10px;font-family:inherit;font-size:14px;">
       <button type="submit" class="act-btn act-primary"
-              onclick="return confirm('متأكد إنك عايز تغير كلمة سر العميل ده؟')">🔑 تعيين</button>
+              onclick="return confirm(MSG.resetPw)">🔑 {{ t('تعيين','Set') }}</button>
     </form>
   </div>
 
   <!-- Doctor's Notes -->
   <div class="section">
-    <h2 class="section-title">📝 ملاحظاتك على العميل</h2>
+    <h2 class="section-title">📝 {{ t('ملاحظاتك على العميل','Your notes on this client') }}</h2>
     <form method="POST" action="/admin/users/{{ user.id }}/notes">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <textarea name="notes" placeholder="اكتب ملاحظاتك عن العميل (ممنوع للعميل يشوفها)..."
+      <textarea name="notes" placeholder="{{ t('اكتب ملاحظاتك عن العميل (ممنوع للعميل يشوفها)...','Write your notes about this client (never shown to them)…') }}"
                 style="width:100%; padding:12px; border:1px solid #e7e0d0; border-radius:10px; font-family:inherit; font-size: 14px;">{{ doctor_notes or '' }}</textarea>
-      <button type="submit" class="act-btn act-primary" style="margin-top: 10px;">💾 حفظ الملاحظات</button>
+      <button type="submit" class="act-btn act-primary" style="margin-top: 10px;">💾 {{ t('حفظ الملاحظات','Save notes') }}</button>
     </form>
   </div>
 
@@ -864,7 +880,7 @@
     data: {
       labels: labels.reverse(),
       datasets: [{
-        label: 'الوزن (kg)',
+        label: {{ t('الوزن (kg)','Weight (kg)')|tojson }},
         data: data.reverse(),
         borderColor: '#1e4a3d',
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
