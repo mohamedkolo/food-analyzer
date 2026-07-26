@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}{{ t('الأسعار','Pricing') }}{% endblock %}
 {% block content %}
 
 <style>
@@ -52,63 +53,64 @@
 
   {% if active_access and active_access.has_access %}
   <div class="access-banner">
-    ✅ عندك اشتراك نشط: <strong>{{ active_access.plan_name }}</strong> — متبقي {{ active_access.days_left }} يوم
+    ✅ {{ t('عندك اشتراك نشط','You have an active subscription') }}: <strong>{{ active_access.plan_name }}</strong> — {{ t('متبقي','remaining') }} {{ active_access.days_left }} {{ t('يوم','days') }}
   </div>
   {% endif %}
 
   <div class="pricing-hero">
-    <h1>اختر الخطة المناسبة ليك</h1>
-    <p>تواصل مع د. محمد عبر واتساب لإتمام الاشتراك بسهولة</p>
+    <h1>{{ t('اختر الخطة المناسبة ليك','Choose the plan that suits you') }}</h1>
+    <p>{{ t('تواصل مع د. محمد عبر واتساب لإتمام الاشتراك بسهولة','Message Dr. Mohamed on WhatsApp to set your subscription up easily') }}</p>
   </div>
 
   <div class="how-it-works">
-    <h2 class="how-title">🚀 إزاي تبدأ في 3 خطوات</h2>
+    <h2 class="how-title">🚀 {{ t('إزاي تبدأ في 3 خطوات','How to start in 3 steps') }}</h2>
     <div class="steps">
-      <div class="step"><div class="step-num">1</div><div class="step-emoji">👇</div><div class="step-text">اختار الخطة المناسبة واضغط واتساب</div></div>
-      <div class="step"><div class="step-num">2</div><div class="step-emoji">💬</div><div class="step-text">د. محمد يرد عليك ويتفق معاك على الدفع</div></div>
-      <div class="step"><div class="step-num">3</div><div class="step-emoji">✅</div><div class="step-text">بعد الدفع، اشتراكك يتفعل فوراً</div></div>
+      <div class="step"><div class="step-num">1</div><div class="step-emoji">👇</div><div class="step-text">{{ t('اختار الخطة المناسبة واضغط واتساب','Pick the right plan and tap WhatsApp') }}</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-emoji">💬</div><div class="step-text">{{ t('د. محمد يرد عليك ويتفق معاك على الدفع','Dr. Mohamed replies and arranges payment with you') }}</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-emoji">✅</div><div class="step-text">{{ t('بعد الدفع، اشتراكك يتفعل فوراً','Once paid, your subscription activates immediately') }}</div></div>
     </div>
   </div>
 
   <div class="currency-switcher" id="currencySwitcher">
-    <button class="currency-btn" data-currency="EGP">🇪🇬 جنيه</button>
-    <button class="currency-btn" data-currency="AED">🇦🇪 درهم</button>
-    <button class="currency-btn" data-currency="SAR">🇸🇦 ريال</button>
-    <button class="currency-btn" data-currency="USD">🌍 دولار</button>
+    <button class="currency-btn" data-currency="EGP">🇪🇬 {{ t('جنيه','EGP') }}</button>
+    <button class="currency-btn" data-currency="AED">🇦🇪 {{ t('درهم','AED') }}</button>
+    <button class="currency-btn" data-currency="SAR">🇸🇦 {{ t('ريال','SAR') }}</button>
+    <button class="currency-btn" data-currency="USD">🌍 {{ t('دولار','USD') }}</button>
   </div>
 
   <div class="pricing-grid">
     {% for plan_key, plan in pricing.items() %}
     {% set is_sub = plan.type == 'subscription' %}
     <div class="pricing-card {% if is_sub %}featured{% endif %}" style="--accent: {{ plan.color }};">
-      {% if plan.badge %}<div class="badge">{{ plan.badge }}</div>{% endif %}
+      {% if plan.badge %}<div class="badge">{{ plan.badge if is_ar else (plan.badge_en or plan.badge) }}</div>{% endif %}
       <div class="card-icon">{{ plan.icon }}</div>
-      <h2 class="card-title">{{ plan.name }}</h2>
-      <p class="card-desc">{{ plan.description }}</p>
+      <h2 class="card-title">{{ plan.name if is_ar else (plan.name_en or plan.name) }}</h2>
+      <p class="card-desc">{{ plan.description if is_ar else (plan.description_en or plan.description) }}</p>
       <div class="card-price" data-prices='{"EGP":{{ plan.prices.EGP }},"AED":{{ plan.prices.AED }},"USD":{{ plan.prices.USD }},"SAR":{{ plan.prices.SAR }}}'>
         <span class="price-amount" data-amount>{{ "%.0f"|format(plan.prices.EGP / 100) }}</span>
-        <span class="price-currency" data-currency-label>ج.م</span>
-        {% if is_sub %}<span class="price-period">/ شهرياً</span>{% endif %}
+        <span class="price-currency" data-currency-label>{{ t('ج.م','EGP') }}</span>
+        {% if is_sub %}<span class="price-period">{{ t('/ شهرياً','/ month') }}</span>{% endif %}
       </div>
       <ul class="features-list">
-        {% for feat in plan.features_ar %}<li>{{ feat }}</li>{% endfor %}
+        {% for feat in (plan.features_ar if is_ar else (plan.features_en or plan.features_ar)) %}<li>{{ feat }}</li>{% endfor %}
       </ul>
-      <a class="whatsapp-cta wa-egypt" data-wa-egypt data-plan-name="{{ plan.name }}" href="#" target="_blank">
-        🇪🇬 اشترك من مصر (واتساب)
+      {% set plan_label = plan.name if is_ar else (plan.name_en or plan.name) %}
+      <a class="whatsapp-cta wa-egypt" data-wa-egypt data-plan-name="{{ plan_label }}" href="#" target="_blank">
+        🇪🇬 {{ t('اشترك من مصر (واتساب)','Subscribe from Egypt (WhatsApp)') }}
       </a>
-      <div class="or-divider">أو</div>
-      <a class="whatsapp-cta wa-uae" data-wa-uae data-plan-name="{{ plan.name }}" href="#" target="_blank">
-        🇦🇪 اشترك من الخليج (واتساب)
+      <div class="or-divider">{{ t('أو','or') }}</div>
+      <a class="whatsapp-cta wa-uae" data-wa-uae data-plan-name="{{ plan_label }}" href="#" target="_blank">
+        🇦🇪 {{ t('اشترك من الخليج (واتساب)','Subscribe from the Gulf (WhatsApp)') }}
       </a>
     </div>
     {% endfor %}
   </div>
 
   <div class="trust-strip">
-    <div class="trust-item"><div class="trust-icon">📱</div><div class="trust-text">تواصل مباشر<br/>مع د. محمد</div></div>
-    <div class="trust-item"><div class="trust-icon">💳</div><div class="trust-text">طرق دفع متعددة<br/>فودافون / تحويل / InstaPay</div></div>
-    <div class="trust-item"><div class="trust-icon">🌍</div><div class="trust-text">عملاء من كل العالم<br/>مصر + الخليج</div></div>
-    <div class="trust-item"><div class="trust-icon">🛡️</div><div class="trust-text">آمن ومضمون<br/>تأكيد قبل التفعيل</div></div>
+    <div class="trust-item"><div class="trust-icon">📱</div><div class="trust-text">{{ t('تواصل مباشر','Direct contact') }}<br/>{{ t('مع د. محمد','with Dr. Mohamed') }}</div></div>
+    <div class="trust-item"><div class="trust-icon">💳</div><div class="trust-text">{{ t('طرق دفع متعددة','Multiple payment methods') }}<br/>{{ t('فودافون / تحويل / InstaPay','Vodafone / transfer / InstaPay') }}</div></div>
+    <div class="trust-item"><div class="trust-icon">🌍</div><div class="trust-text">{{ t('عملاء من كل العالم','Clients worldwide') }}<br/>{{ t('مصر + الخليج','Egypt + the Gulf') }}</div></div>
+    <div class="trust-item"><div class="trust-icon">🛡️</div><div class="trust-text">{{ t('آمن ومضمون','Safe and guaranteed') }}<br/>{{ t('تأكيد قبل التفعيل','Confirmation before activation') }}</div></div>
   </div>
 </div>
 
@@ -117,10 +119,17 @@
   const PHONE_EGYPT = '201004294521';
   const PHONE_UAE = '971501038664';
   const switcher = document.getElementById('currencySwitcher');
-  const labels = { EGP: 'ج.م', AED: 'د.إ', USD: '$', SAR: 'ر.س' };
+  const labels = {{ ({'EGP':'ج.م','AED':'د.إ','USD':'$','SAR':'ر.س'} if is_ar
+                     else {'EGP':'EGP','AED':'AED','USD':'$','SAR':'SAR'})|tojson }};
+
+  // The client sends this themselves, so it follows their own language.
+  const MSG_TEMPLATE = {{ t('السلام عليكم د. محمد 👋\n\nعاوز أشترك في خطة "{plan}" بـ {amount}.\n\nممكن نتفق على طريقة الدفع؟',
+                            'Hello Dr. Mohamed 👋\n\nI would like to subscribe to the "{plan}" plan for {amount}.\n\nCould we arrange payment?')|tojson }};
 
   function buildMessage(planName, currency, amount) {
-    const msg = `السلام عليكم د. محمد 👋\n\nعاوز أشترك في خطة "${planName}" بـ ${amount} ${labels[currency]}.\n\nممكن نتفق على طريقة الدفع؟`;
+    const msg = MSG_TEMPLATE
+      .replace('{plan}', planName)
+      .replace('{amount}', amount + ' ' + labels[currency]);
     return encodeURIComponent(msg);
   }
 

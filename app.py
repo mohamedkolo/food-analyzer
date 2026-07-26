@@ -3107,14 +3107,19 @@ def subscription_required_page():
     """صفحة الـ paywall - بتظهر لما العميل يحاول يدخل حاجة محتاجة اشتراك"""
     user = get_user_by_id(session["uid"])
     reason_key = request.args.get("reason", "")
+    _lang = session.get("lang", "ar")
     reasons_map = {
-        "chat": "محتاج اشتراك علشان تكلم د. محمد مباشرة في الشات.",
-        "plan": "محتاج اشتراك أو خطة مدفوعة علشان تطلب خطة جديدة.",
+        "chat": ("محتاج اشتراك علشان تكلم د. محمد مباشرة في الشات.",
+                 "You need a subscription to chat with Dr. Mohamed directly."),
+        "plan": ("محتاج اشتراك أو خطة مدفوعة علشان تطلب خطة جديدة.",
+                 "You need a subscription or a paid plan to request a new plan."),
     }
-    reason = reasons_map.get(reason_key, "محتاج اشتراك علشان تستخدم الخدمة دي.")
+    reason = reasons_map.get(reason_key,
+                             ("محتاج اشتراك علشان تستخدم الخدمة دي.",
+                              "You need a subscription to use this feature."))[0 if _lang == "ar" else 1]
     user_currency = detect_currency(user.get("country")) if user else "EGP"
     return render_template("subscription_required.html",
-                           user=user, lang=session.get("lang", "ar"),
+                           user=user, lang=_lang,
                            reason=reason, pricing=PRICING,
                            user_currency=user_currency)
 
