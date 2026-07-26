@@ -205,8 +205,8 @@
 <div class="users-wrap">
 
   <div class="page-head">
-    <h1 class="page-title">👥 إدارة العملاء</h1>
-    <a href="/admin/users/new" class="add-btn">+ إضافة عميل جديد</a>
+    <h1 class="page-title">👥 {{ t('إدارة العملاء','Manage Clients') }}</h1>
+    <a href="/admin/users/new" class="add-btn">+ {{ t('إضافة عميل جديد','Add New Client') }}</a>
   </div>
 
   <!-- Quick Stats -->
@@ -214,42 +214,42 @@
     <div class="qstat" style="--c: #1e4a3d">
       <div class="qstat-icon">👥</div>
       <div class="qstat-val">{{ users|length }}</div>
-      <div class="qstat-lbl">إجمالي المستخدمين</div>
+      <div class="qstat-lbl">{{ t('إجمالي المستخدمين','Total Users') }}</div>
     </div>
     <div class="qstat" style="--c: #2c5a4a">
       <div class="qstat-icon">✅</div>
       <div class="qstat-val">{{ users|selectattr('active', 'eq', 1)|list|length }}</div>
-      <div class="qstat-lbl">حسابات نشطة</div>
+      <div class="qstat-lbl">{{ t('حسابات نشطة','Active Accounts') }}</div>
     </div>
     <div class="qstat" style="--c: #f59e0b">
       <div class="qstat-icon">👨‍⚕️</div>
       <div class="qstat-val">{{ users|selectattr('role', 'eq', 'nutritionist')|list|length }}</div>
-      <div class="qstat-lbl">أخصائيين تغذية</div>
+      <div class="qstat-lbl">{{ t('أخصائيين تغذية','Nutritionists') }}</div>
     </div>
     <div class="qstat" style="--c: #ef4444">
       <div class="qstat-icon">🚫</div>
       <div class="qstat-val">{{ users|selectattr('active', 'eq', 0)|list|length }}</div>
-      <div class="qstat-lbl">محظورين</div>
+      <div class="qstat-lbl">{{ t('محظورين','Blocked') }}</div>
     </div>
   </div>
 
   <!-- Filters -->
   <div class="filters-bar">
-    <input type="text" id="searchInput" class="filter-input" placeholder="🔍 ابحث بالاسم أو الإيميل أو التليفون...">
+    <input type="text" id="searchInput" class="filter-input" placeholder="{{ t('🔍 ابحث بالاسم أو الإيميل أو التليفون...','🔍 Search by name, email or phone...') }}">
     <select id="roleFilter" class="filter-select">
-      <option value="">كل الأدوار</option>
-      <option value="client">عملاء</option>
-      <option value="nutritionist">أخصائيين</option>
+      <option value="">{{ t('كل الأدوار','All roles') }}</option>
+      <option value="client">{{ t('عملاء','Clients') }}</option>
+      <option value="nutritionist">{{ t('أخصائيين','Nutritionists') }}</option>
       <option value="admin">Admin</option>
     </select>
     <select id="statusFilter" class="filter-select">
-      <option value="">الكل</option>
-      <option value="active">نشط</option>
-      <option value="blocked">محظور</option>
+      <option value="">{{ t('الكل','All') }}</option>
+      <option value="active">{{ t('نشط','Active') }}</option>
+      <option value="blocked">{{ t('محظور','Blocked') }}</option>
     </select>
     <a href="/admin/users/export"
        style="display:inline-flex;align-items:center;gap:6px;background:#14332b;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;white-space:nowrap;">
-      📥 تصدير Excel
+      📥 {{ t('تصدير Excel','Export Excel') }}
     </a>
   </div>
 
@@ -259,13 +259,13 @@
     <table id="usersTable">
       <thead>
         <tr>
-          <th>العميل</th>
-          <th>التليفون</th>
-          <th>البلد</th>
-          <th>الدور</th>
-          <th>الحالة</th>
-          <th>تاريخ التسجيل</th>
-          <th style="text-align:center">الإجراءات</th>
+          <th>{{ t('العميل','Client') }}</th>
+          <th>{{ t('التليفون','Phone') }}</th>
+          <th>{{ t('البلد','Country') }}</th>
+          <th>{{ t('الدور','Role') }}</th>
+          <th>{{ t('الحالة','Status') }}</th>
+          <th>{{ t('تاريخ التسجيل','Registered') }}</th>
+          <th style="text-align:center">{{ t('الإجراءات','Actions') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -281,9 +281,9 @@
               <div class="avatar-sm">{{ (u.name or 'U')[0]|upper }}</div>
               <div>
                 {% if not is_admin %}
-                <a href="/admin/users/{{ u.id }}" class="user-name-link">{{ u.name or 'بدون اسم' }}</a>
+                <a href="/admin/users/{{ u.id }}" class="user-name-link">{{ u.name or t('بدون اسم','No name') }}</a>
                 {% else %}
-                <span class="user-name-link">{{ u.name or 'بدون اسم' }}</span>
+                <span class="user-name-link">{{ u.name or t('بدون اسم','No name') }}</span>
                 {% endif %}
                 <div class="user-email-sm">{{ u.email }}</div>
               </div>
@@ -295,12 +295,12 @@
 
           <td>
             {% if u.role == 'admin' or u.is_admin %}<span class="badge b-purple">👑 Admin</span>
-            {% elif u.role == 'nutritionist' %}<span class="badge b-info">👨‍⚕️ أخصائي</span>
+            {% elif u.role == 'nutritionist' %}<span class="badge b-info">👨‍⚕️ {{ t('أخصائي','Nutritionist') }}</span>
             {% else %}<span class="badge b-gray">👤 عميل</span>{% endif %}
           </td>
 
           <td>
-            {% if is_active %}<span class="badge b-success">● نشط</span>
+            {% if is_active %}<span class="badge b-success">● {{ t('نشط','Active') }}</span>
             {% else %}<span class="badge b-danger">🚫 محظور</span>{% endif %}
           </td>
 
@@ -314,7 +314,7 @@
             {% if not is_admin %}
             <div class="row-actions">
               <!-- View profile - the new button! -->
-              <a href="/admin/users/{{ u.id }}" class="act-icon-btn act-view" title="عرض الملف الشامل">👁️</a>
+              <a href="/admin/users/{{ u.id }}" class="act-icon-btn act-view" title="{{ t('عرض الملف الشامل','View full profile') }}">👁️</a>
 
               <!-- Toggle active -->
               <a href="/admin/users/{{ u.id }}/toggle" class="act-icon-btn act-toggle"
@@ -326,31 +326,31 @@
               <!-- Change role dropdown via select -->
               <select onchange="if(this.value){window.location.href='/admin/users/{{ u.id }}/role/'+this.value}"
                       style="padding: 5px 8px; border-radius: 7px; border: 1px solid #e7e0d0; font-size: 12px; background: #fff;">
-                <option value="">📝 دور</option>
-                <option value="client">عميل</option>
-                <option value="nutritionist">أخصائي</option>
+                <option value="">📝 {{ t('دور','Role') }}</option>
+                <option value="client">{{ t('عميل','Client') }}</option>
+                <option value="nutritionist">{{ t('أخصائي','Nutritionist') }}</option>
               </select>
 
               <!-- Block -->
               {% if is_active %}
               <form method="POST" action="/admin/users/{{ u.id }}/block" style="display: contents;"
-                    onsubmit="return confirm('حظر العميل؟ مش هيقدر يدخل تاني.')">
+                    onsubmit="return confirm('{{ t('حظر العميل؟ مش هيقدر يدخل تاني.','Block this client? They will not be able to sign in again.') }}')">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="reason" value="حظر إداري">
-                <button type="submit" class="act-icon-btn act-block" title="حظر">🚫</button>
+                <button type="submit" class="act-icon-btn act-block" title="{{ t('حظر','Block') }}">🚫</button>
               </form>
               {% else %}
               <form method="POST" action="/admin/users/{{ u.id }}/unblock" style="display: contents;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="act-icon-btn act-view" title="إلغاء الحظر">✓</button>
+                <button type="submit" class="act-icon-btn act-view" title="{{ t('إلغاء الحظر','Unblock') }}">✓</button>
               </form>
               {% endif %}
 
               <!-- Delete -->
               <form method="POST" action="/admin/users/{{ u.id }}/delete" style="display: contents;"
-                    onsubmit="return confirm('⚠️ حذف العميل نهائياً؟ ده مش هيرجع تاني!')">
+                    onsubmit="return confirm('{{ t('⚠️ حذف العميل نهائياً؟ ده مش هيرجع تاني!','⚠️ Permanently delete this client? This cannot be undone!') }}')">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="act-icon-btn act-delete" title="حذف نهائي">🗑️</button>
+                <button type="submit" class="act-icon-btn act-delete" title="{{ t('حذف نهائي','Delete permanently') }}">🗑️</button>
               </form>
             </div>
             {% else %}
@@ -364,8 +364,8 @@
     {% else %}
     <div class="empty-state">
       <div class="icon">👥</div>
-      <p><strong>مفيش عملاء لسه</strong></p>
-      <p style="font-size: 14px; margin-top: 6px;">العملاء اللي هيسجلوا هيظهروا هنا</p>
+      <p><strong>{{ t('مفيش عملاء لسه','No clients yet') }}</strong></p>
+      <p style="font-size: 14px; margin-top: 6px;">{{ t('العملاء اللي هيسجلوا هيظهروا هنا','Clients who register will show up here') }}</p>
     </div>
     {% endif %}
   </div>

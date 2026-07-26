@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}محادثة - {{ other.name }}{% endblock %}
+{% block title %}{{ t('محادثة','Chat') }} - {{ other.name }}{% endblock %}
 {% block content %}
 
 <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
@@ -11,7 +11,7 @@
   </div>
   <div>
     <div style="font-weight:800;font-size:15px">{{ other.name or other.email }}</div>
-    <div style="font-size:11px;color:var(--muted)">{{ other.role or 'عميل' }}</div>
+    <div style="font-size:11px;color:var(--muted)">{{ other.role or t('عميل','Client') }}</div>
   </div>
 </div>
 
@@ -33,15 +33,15 @@
       {% if messages[-1].sender_id == user.id and (not user.role or user.role == 'client') %}
       <div style="display:flex;justify-content:flex-start">
         <div style="max-width:75%;background:#faf8f3;border:1px dashed #c9a961;color:#14332b;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.7">
-          <div style="font-size:10px;font-weight:800;color:#c9a961;margin-bottom:4px">⚡ رد تلقائي</div>
-          وصلت رسالتك لد. محمد ✅ هيرد عليك شخصياً في أقرب وقت — عادةً خلال ساعات العمل.
+          <div style="font-size:10px;font-weight:800;color:#c9a961;margin-bottom:4px">⚡ {{ t('رد تلقائي','Auto-reply') }}</div>
+          {{ t('وصلت رسالتك لد. محمد ✅ هيرد عليك شخصياً في أقرب وقت — عادةً خلال ساعات العمل.','Your message reached Dr. Mohamed ✅ He will reply personally as soon as possible - usually within working hours.') }}
         </div>
       </div>
       {% endif %}
     {% else %}
       <div style="margin:auto;text-align:center;color:var(--muted)">
         <div style="font-size:42px;margin-bottom:10px">👋</div>
-        <div style="font-size:13px">ابدأ المحادثة دلوقتي</div>
+        <div style="font-size:13px">{{ t('ابدأ المحادثة دلوقتي','Start the conversation now') }}</div>
       </div>
     {% endif %}
   </div>
@@ -50,7 +50,7 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="text" name="message" required autocomplete="off"
            class="form-input" 
-           placeholder="اكتب رسالتك هنا..." 
+           placeholder="{{ t('اكتب رسالتك هنا...','Type your message here...') }}" 
            style="flex:1;margin:0">
     <button type="submit" class="btn btn-success" style="padding:0 18px">
       <i class="fa-solid fa-paper-plane"></i>

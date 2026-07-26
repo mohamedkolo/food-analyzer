@@ -307,10 +307,10 @@
 
   <div class="history-head">
     <div>
-      <h1 class="history-title">📚 خططك السابقة</h1>
-      <p class="history-subtitle">شوف كل الخطط اللي اتعملت ليك من قبل وأعد تفعيل أو عدّل أي منها</p>
+      <h1 class="history-title">📚 {{ t('خططك السابقة','Your Previous Plans') }}</h1>
+      <p class="history-subtitle">{{ t('شوف كل الخطط اللي اتعملت ليك من قبل وأعد تفعيل أو عدّل أي منها','See every plan made for you before, and reactivate or edit any of them') }}</p>
     </div>
-    <a href="/request-plan" class="new-plan-btn">+ اطلب خطة جديدة</a>
+    <a href="/request-plan" class="new-plan-btn">+ {{ t('اطلب خطة جديدة','Request a new plan') }}</a>
   </div>
 
   <!-- Stats Summary -->
@@ -318,27 +318,27 @@
   <div class="stats-bar">
     <div class="stat-item">
       <div class="stat-num">{{ plans|length }}</div>
-      <div class="stat-lbl">إجمالي الخطط</div>
+      <div class="stat-lbl">{{ t('إجمالي الخطط','Total Plans') }}</div>
     </div>
     <div class="stat-item">
       <div class="stat-num">{{ active_count or 0 }}</div>
-      <div class="stat-lbl">خطط نشطة</div>
+      <div class="stat-lbl">{{ t('خطط نشطة','Active Plans') }}</div>
     </div>
     <div class="stat-item">
       <div class="stat-num">{{ archived_count or 0 }}</div>
-      <div class="stat-lbl">خطط منتهية</div>
+      <div class="stat-lbl">{{ t('خطط منتهية','Expired Plans') }}</div>
     </div>
     <div class="stat-item">
       <div class="stat-num">{{ days_following or 0 }}</div>
-      <div class="stat-lbl">يوم في المتابعة</div>
+      <div class="stat-lbl">{{ t('يوم في المتابعة','Days Tracked') }}</div>
     </div>
   </div>
 
   <!-- Filter Tabs -->
   <div class="filter-tabs">
-    <button class="filter-tab active" onclick="filterPlans('all', this)">الكل ({{ plans|length }})</button>
-    <button class="filter-tab" onclick="filterPlans('active', this)">النشطة ({{ active_count or 0 }})</button>
-    <button class="filter-tab" onclick="filterPlans('expired', this)">المنتهية ({{ archived_count or 0 }})</button>
+    <button class="filter-tab active" onclick="filterPlans('all', this)">{{ t('الكل','All') }} ({{ plans|length }})</button>
+    <button class="filter-tab" onclick="filterPlans('active', this)">{{ t('النشطة','Active') }} ({{ active_count or 0 }})</button>
+    <button class="filter-tab" onclick="filterPlans('expired', this)">{{ t('المنتهية','Expired') }} ({{ archived_count or 0 }})</button>
   </div>
 
   <!-- Plans Grid -->
@@ -348,7 +348,7 @@
     {% set is_active = plan.is_currently_active %}
     {% set emoji_map = {'weight_loss': '🥗', 'muscle_gain': '💪', 'bulking': '🔥', 'maintenance': '🍽️'} %}
     {% set color_map = {'weight_loss': '#1e4a3d', 'muscle_gain': '#2c5a4a', 'bulking': '#f59e0b', 'maintenance': '#8b5cf6'} %}
-    {% set name_map = {'weight_loss': 'خطة تخسيس', 'muscle_gain': 'زيادة عضل', 'bulking': 'خطة تضخيم', 'maintenance': 'خطة مكتنز'} %}
+    {% set name_map = {'weight_loss': t('خطة تخسيس','Weight Loss Plan'), 'muscle_gain': t('زيادة عضل','Muscle Gain'), 'bulking': t('خطة تضخيم','Bulking Plan'), 'maintenance': t('خطة مكتنز','Maintenance Plan')} %}
 
     <div class="plan-card {% if is_active %}active-plan{% endif %}"
          data-status="{% if is_active %}active{% else %}expired{% endif %}"
@@ -357,33 +357,33 @@
       <div class="plan-card-head">
         <span class="plan-emoji">{{ emoji_map.get(goal, '📋') }}</span>
         {% if is_active %}
-        <span class="plan-status status-active">● نشطة دلوقتي</span>
+        <span class="plan-status status-active">● {{ t('نشطة دلوقتي','Active now') }}</span>
         {% else %}
-        <span class="plan-status status-expired">منتهية</span>
+        <span class="plan-status status-expired">{{ t('منتهية','Expired') }}</span>
         {% endif %}
       </div>
 
-      <h3 class="plan-name">{{ name_map.get(goal, 'خطة غذائية') }}</h3>
+      <h3 class="plan-name">{{ name_map.get(goal, t('خطة غذائية','Meal Plan')) }}</h3>
       <div class="plan-date">
-        📅 {{ plan.created_date or 'تاريخ غير محدد' }}
+        📅 {{ plan.created_date or t('تاريخ غير محدد','Date not set') }}
       </div>
 
       <div class="plan-meta">
         <div class="meta-row">
-          <span>الوزن وقتها:</span>
-          <strong>{{ plan.weight or '-' }} كجم</strong>
+          <span>{{ t('الوزن وقتها:','Weight then:') }}</span>
+          <strong>{{ plan.weight or '-' }} {{ t('كجم','kg') }}</strong>
         </div>
         <div class="meta-row">
-          <span>السعرات المستهدفة:</span>
+          <span>{{ t('السعرات المستهدفة:','Target calories:') }}</span>
           <strong>{{ plan.goal_cal or '-' }} kcal</strong>
         </div>
         <div class="meta-row">
-          <span>المطبخ:</span>
-          <strong>{{ plan.culture or 'مصري' }}</strong>
+          <span>{{ t('المطبخ:','Cuisine:') }}</span>
+          <strong>{{ plan.culture or t('مصري','Egyptian') }}</strong>
         </div>
         {% if plan.conditions_count %}
         <div class="meta-row">
-          <span>الحالات الطبية:</span>
+          <span>{{ t('الحالات الطبية:','Medical conditions:') }}</span>
           <strong>{{ plan.conditions_count }}</strong>
         </div>
         {% endif %}
@@ -391,7 +391,7 @@
 
       <div class="plan-actions">
         <a href="/my-plans-history/{{ plan.id }}" class="action-btn btn-view">
-          👁️ عرض الخطة كاملة
+          👁️ {{ t('عرض الخطة كاملة','View full plan') }}
         </a>
 
         <a href="/my-plans-history/{{ plan.id }}/pdf" class="action-btn btn-pdf">
@@ -401,13 +401,13 @@
         {% if not is_active %}
         <form method="POST" action="/my-plans-history/{{ plan.id }}/reactivate" style="display: contents;">
           <button type="submit" class="action-btn btn-reactivate"
-                  onclick="return confirm('تأكيد إعادة تفعيل الخطة دي كخطتك الحالية؟')">
-            ↻ إعادة تفعيل
+                  onclick="return confirm('{{ t('تأكيد إعادة تفعيل الخطة دي كخطتك الحالية؟','Reactivate this plan as your current plan?') }}')">
+            ↻ {{ t('إعادة تفعيل','Reactivate') }}
           </button>
         </form>
         {% else %}
         <a href="/my-plans-history/{{ plan.id }}/edit" class="action-btn btn-edit">
-          ✏️ تعديل
+          ✏️ {{ t('تعديل','Edit') }}
         </a>
         {% endif %}
       </div>
@@ -419,9 +419,9 @@
   {% else %}
   <div class="empty-state">
     <div class="empty-icon">📋</div>
-    <h2 class="empty-title">لسه ماعملتش أي خطط</h2>
-    <p class="empty-desc">أول خطة هتيجي ليك بعد ما تطلبها من د. محمد. كل الخطط بعد كده هتظهر هنا.</p>
-    <a href="/request-plan" class="new-plan-btn">+ اطلب أول خطة دلوقتي</a>
+    <h2 class="empty-title">{{ t('لسه ماعملتش أي خطط','No plans yet') }}</h2>
+    <p class="empty-desc">{{ t('أول خطة هتيجي ليك بعد ما تطلبها من د. محمد. كل الخطط بعد كده هتظهر هنا.','Your first plan arrives once you request it from Dr. Mohamed. Every plan after that shows up here.') }}</p>
+    <a href="/request-plan" class="new-plan-btn">+ {{ t('اطلب أول خطة دلوقتي','Request your first plan now') }}</a>
   </div>
   {% endif %}
 
