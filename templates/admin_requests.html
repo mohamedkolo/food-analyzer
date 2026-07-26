@@ -1,91 +1,59 @@
 {% extends "base.html" %}
-{% block title %}طلبات العملاء
-
-<!-- Reject Modal -->
-<div id="rejectModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;padding:20px;align-items:center;justify-content:center">
-  <div style="background:white;border-radius:14px;max-width:480px;width:100%;padding:24px">
-    <h3 style="color:#dc2626;font-weight:800;margin-bottom:8px">
-      <i class="fa-solid fa-xmark-circle"></i> رفض طلب الخطة
-    </h3>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:14px">
-      رفض طلب: <strong id="rejectClientName"></strong>
-    </p>
-    <form id="rejectForm" method="POST">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <textarea name="reason" class="form-textarea" placeholder="سبب الرفض (هيتبعت رساله للعميل)" rows="4" required style="width:100%;padding:11px;border:2px solid var(--gray-2);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;resize:vertical;margin-bottom:14px"></textarea>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button type="button" onclick="closeRejectModal()" class="btn" style="background:var(--gray);color:var(--text)">إلغاء</button>
-        <button type="submit" class="btn" style="background:#dc2626;color:white">
-          <i class="fa-solid fa-check"></i> تأكيد الرفض
-        </button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<script>
-function rejectRequest(id, name) {
-  document.getElementById('rejectClientName').textContent = name || '';
-  document.getElementById('rejectForm').action = '/admin/requests/' + id + '/reject';
-  document.getElementById('rejectModal').style.display = 'flex';
-}
-function closeRejectModal() {
-  document.getElementById('rejectModal').style.display = 'none';
-}
-document.getElementById('rejectModal').addEventListener('click', function(e) {
-  if (e.target === this) closeRejectModal();
-});
-</script>
-
-{% endblock %}
+{% block title %}{{ t('طلبات العملاء','Client Requests') }}{% endblock %}
 {% block content %}
 
+{# Filter into real lists. A {% set %} counter inside a {% for %} does not escape the
+   loop scope in Jinja, so the old pending_count / has_approved flags never changed. #}
+{% set pending_reqs  = requests | selectattr('status', 'equalto', 'pending')  | list %}
+{% set approved_reqs = requests | selectattr('status', 'equalto', 'approved') | list %}
+
+{# stored request_data values are always Arabic; these maps render them in the admin's UI language #}
+{% set goal_names = {'weight_loss':t('تخسيس','Weight Loss'),'maintenance':t('مكتنز','Maintenance'),'muscle_gain':t('زيادة عضل','Muscle Gain'),'bulking':t('تضخيم','Bulking')} %}
+{% set culture_names = {'مصري':t('مصري','Egyptian'),'خليجي':t('خليجي','Gulf'),'شامي':t('شامي','Levantine'),'مغربي':t('مغربي','Moroccan'),'عالمي':t('عالمي','International')} %}
+{% set gender_names = {'ذكر':t('ذكر','Male'),'انثى':t('أنثى','Female'),'male':t('ذكر','Male'),'female':t('أنثى','Female')} %}
+
 <div class="page-title">
-  <i class="fa-solid fa-bell"></i> طلبات العملاء
+  <i class="fa-solid fa-bell"></i> {{ t('طلبات العملاء','Client Requests') }}
 </div>
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:10px 14px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:10px">
   <div style="font-size:15px;font-weight:800;color:#78350f;display:flex;align-items:center;gap:8px">
     <i class="fa-solid fa-clock" style="font-size:18px"></i>
-    طلبات جديدة
+    {{ t('طلبات جديدة','New Requests') }}
   </div>
-  <div style="font-size:11px;color:#92400e;font-weight:600">بانتظار المعالجة</div>
+  <div style="font-size:11px;color:#92400e;font-weight:600">{{ t('بانتظار المعالجة','Awaiting action') }}</div>
 </div>
 
 <div style="display:grid;gap:12px;margin-bottom:30px" id="pendingArea">
-  {% set pending_count = 0 %}
-  {% for req in requests %}
-    {% if req.status == 'pending' %}
-    {% set pending_count = pending_count + 1 %}
+  {% for req in pending_reqs %}
     {% set rdata = req.request_data | from_json if req.request_data else {} %}
     <div class="card" style="padding:16px;border:2px solid #f59e0b;background:linear-gradient(135deg,#fffbeb 0%,#ffffff 100%)">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px">
         <div>
           <div style="font-size:17px;font-weight:800;color:var(--blue)">
-            <i class="fa-solid fa-user-circle"></i> {{ req.client_name or 'عميل' }}
+            <i class="fa-solid fa-user-circle"></i> {{ req.client_name or t('عميل','Client') }}
           </div>
           <div style="font-size:12px;color:var(--muted);margin-top:4px">
             <i class="fa-regular fa-clock"></i> {{ req.created_at }}
           </div>
         </div>
         <div>
-          <span style="background:#fff3cd;color:#856404;padding:5px 12px;border-radius:100px;font-size:12px;font-weight:800">جديد</span>
+          <span style="background:#fff3cd;color:#856404;padding:5px 12px;border-radius:100px;font-size:12px;font-weight:800">{{ t('جديد','New') }}</span>
         </div>
       </div>
 
       <div style="background:var(--gray);padding:12px;border-radius:10px;margin-bottom:12px">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;font-size:12px">
-          {% set goal_names = {'weight_loss':'تخسيس','maintenance':'مكتنز','muscle_gain':'زيادة عضل','bulking':'تضخيم'} %}
-          <div><strong>الهدف:</strong> {{ goal_names.get(rdata.goal_type, '-') }}</div>
-          <div><strong>المطبخ:</strong> {{ rdata.culture or '-' }}</div>
-          <div><strong>السعرات:</strong> {{ rdata.goal_cal or '-' }} kcal</div>
-          <div><strong>الجنس:</strong> {{ rdata.gender or '-' }}</div>
-          <div><strong>الطول:</strong> {{ rdata.height or '-' }} سم</div>
-          <div><strong>الوزن:</strong> {{ rdata.weight or '-' }} كجم</div>
+          <div><strong>{{ t('الهدف','Goal') }}:</strong> {{ goal_names.get(rdata.goal_type, '-') }}</div>
+          <div><strong>{{ t('المطبخ','Cuisine') }}:</strong> {{ culture_names.get(rdata.culture, rdata.culture or '-') }}</div>
+          <div><strong>{{ t('السعرات','Calories') }}:</strong> {{ rdata.goal_cal or '-' }} kcal</div>
+          <div><strong>{{ t('الجنس','Gender') }}:</strong> {{ gender_names.get(rdata.gender, rdata.gender or '-') }}</div>
+          <div><strong>{{ t('الطول','Height') }}:</strong> {{ rdata.height or '-' }} {{ t('سم','cm') }}</div>
+          <div><strong>{{ t('الوزن','Weight') }}:</strong> {{ rdata.weight or '-' }} {{ t('كجم','kg') }}</div>
         </div>
         {% if rdata.symptoms and rdata.symptoms|length > 0 %}
         <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-2)">
-          <strong style="font-size:12px;color:#991b1b;">حالات صحية:</strong>
+          <strong style="font-size:12px;color:#991b1b;">{{ t('حالات صحية','Health conditions') }}:</strong>
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
             {% for s in rdata.symptoms %}
             <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">{{ s }}</span>
@@ -95,7 +63,7 @@ document.getElementById('rejectModal').addEventListener('click', function(e) {
         {% endif %}
         {% if rdata.notes %}
         <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-2)">
-          <strong style="font-size:12px;color:#dc2626;">ملاحظات العميل:</strong>
+          <strong style="font-size:12px;color:#dc2626;">{{ t('ملاحظات العميل','Client notes') }}:</strong>
           <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:13px;font-weight:600;color:#1a1a1a">{{ rdata.notes }}</div>
         </div>
         {% endif %}
@@ -103,79 +71,76 @@ document.getElementById('rejectModal').addEventListener('click', function(e) {
 
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <a href="/admin/requests/{{ req.id }}/generate" class="btn btn-primary" style="flex:1;min-width:140px">
-          <i class="fa-solid fa-wand-magic-sparkles"></i> توليد AI
+          <i class="fa-solid fa-wand-magic-sparkles"></i> {{ t('توليد AI','Generate with AI') }}
         </a>
         <a href="/admin/requests/{{ req.id }}/manual" class="btn" style="flex:1;min-width:140px;background:#f97316;color:white">
-          <i class="fa-solid fa-pen-to-square"></i> توليد يدوي
+          <i class="fa-solid fa-pen-to-square"></i> {{ t('توليد يدوي','Build manually') }}
         </a>
-        <button onclick="rejectRequest({{ req.id }}, '{{ req.client_name }}')" class="btn" style="flex:1;min-width:140px;background:#dc2626;color:white">
-          <i class="fa-solid fa-xmark"></i> رفض الطلب
+        <button type="button" class="js-reject btn" data-id="{{ req.id }}" data-name="{{ req.client_name or '' }}" style="flex:1;min-width:140px;background:#dc2626;color:white">
+          <i class="fa-solid fa-xmark"></i> {{ t('رفض الطلب','Reject') }}
         </button>
       </div>
     </div>
-    {% endif %}
   {% endfor %}
 
-  {% if pending_count == 0 %}
+  {% if not pending_reqs %}
   <div class="card" style="text-align:center;padding:30px;background:#faf8f3;border:2px dashed #d9cfb4">
     <i class="fa-solid fa-check-circle" style="font-size:40px;color:#1e4a3d;margin-bottom:10px"></i>
-    <h3 style="color:#14332b;font-weight:800">مفيش طلبات جديدة</h3>
+    <h3 style="color:#14332b;font-weight:800">{{ t('مفيش طلبات جديدة','No new requests') }}</h3>
   </div>
   {% endif %}
 </div>
 
-{% set has_approved = false %}
-{% for req in requests %}{% if req.status == 'approved' %}{% set has_approved = true %}{% endif %}{% endfor %}
-
-{% if has_approved %}
+{% if approved_reqs %}
 <div style="margin-top:20px">
   <button onclick="toggleDone()" id="doneToggle" style="width:100%;padding:14px 18px;background:linear-gradient(135deg,#faf8f3,#f0ead9);border:2px solid #d9cfb4;border-radius:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-family:'Cairo',sans-serif">
     <div style="display:flex;align-items:center;gap:10px">
       <div style="font-size:22px">✅</div>
-      <div style="text-align:right">
-        <div style="font-weight:800;font-size:15px;color:#14332b">الطلبات المكتملة</div>
-        <div style="font-size:12px;color:#166534;margin-top:2px">اضغط للعرض</div>
+      <div style="text-align:{{ 'right' if is_ar else 'left' }}">
+        <div style="font-weight:800;font-size:15px;color:#14332b">{{ t('الطلبات المكتملة','Completed Requests') }}</div>
+        <div style="font-size:12px;color:#166534;margin-top:2px">{{ t('اضغط للعرض','Tap to view') }}</div>
       </div>
     </div>
     <i id="doneIcon" class="fa-solid fa-chevron-down" style="font-size:18px;color:#1e4a3d"></i>
   </button>
 
   <div id="doneList" style="display:none;margin-top:12px">
-    {% for req in requests %}
-      {% if req.status == 'approved' %}
+    {% for req in approved_reqs %}
       {% set rdata = req.request_data | from_json if req.request_data else {} %}
       <div class="card" style="padding:14px;opacity:0.85;background:#fafafa;border:1px solid var(--gray-2);margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px">
           <div>
             <div style="font-size:15px;font-weight:700;color:var(--text)">
-              <i class="fa-solid fa-user-circle" style="color:var(--muted)"></i> {{ req.client_name or 'عميل' }}
+              <i class="fa-solid fa-user-circle" style="color:var(--muted)"></i> {{ req.client_name or t('عميل','Client') }}
             </div>
             <div style="font-size:11px;color:var(--muted);margin-top:3px">
               <i class="fa-regular fa-calendar"></i> {{ req.created_at }}
             </div>
           </div>
           <div>
-            <span style="background:#f0ead9;color:#14332b;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">مكتمل</span>
+            <span style="background:#f0ead9;color:#14332b;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">{{ t('مكتمل','Done') }}</span>
           </div>
         </div>
 
         <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-bottom:10px">
-          {% set goal_names = {'weight_loss':'تخسيس','maintenance':'مكتنز','muscle_gain':'زيادة عضل','bulking':'تضخيم'} %}
           <span style="background:white;padding:3px 8px;border-radius:6px;border:1px solid var(--gray-2)">{{ goal_names.get(rdata.goal_type, '-') }}</span>
-          <span style="background:white;padding:3px 8px;border-radius:6px;border:1px solid var(--gray-2)">{{ rdata.culture or '-' }}</span>
+          <span style="background:white;padding:3px 8px;border-radius:6px;border:1px solid var(--gray-2)">{{ culture_names.get(rdata.culture, rdata.culture or '-') }}</span>
           <span style="background:white;padding:3px 8px;border-radius:6px;border:1px solid var(--gray-2)">{{ rdata.goal_cal or '-' }} kcal</span>
         </div>
 
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button onclick="sendWA('{{ req.client_name|e }}', '{{ rdata.goal_type or 'weight_loss' }}', '{{ rdata.culture or 'مصري' }}', '{{ rdata.goal_cal or '1400' }}')" class="btn" style="flex:1;min-width:140px;background:#25D366;color:white;border:none;font-size:12px;padding:8px">
-            <i class="fa-brands fa-whatsapp"></i> واتساب
+        <div style="display:flex;gap:6px;flex-wrap:wrap"
+             data-name="{{ req.client_name or '' }}"
+             data-goal="{{ rdata.goal_type or 'weight_loss' }}"
+             data-culture="{{ rdata.culture or 'مصري' }}"
+             data-cal="{{ rdata.goal_cal or '1400' }}">
+          <button type="button" class="js-wa btn" style="flex:1;min-width:140px;background:#25D366;color:white;border:none;font-size:12px;padding:8px">
+            <i class="fa-brands fa-whatsapp"></i> {{ t('واتساب','WhatsApp') }}
           </button>
-          <button onclick="copyMsg('{{ req.client_name|e }}', '{{ rdata.goal_type or 'weight_loss' }}', '{{ rdata.culture or 'مصري' }}', '{{ rdata.goal_cal or '1400' }}')" class="btn btn-outline" style="font-size:12px;padding:8px">
-            <i class="fa-solid fa-copy"></i> نسخ
+          <button type="button" class="js-copy btn btn-outline" style="font-size:12px;padding:8px">
+            <i class="fa-solid fa-copy"></i> {{ t('نسخ','Copy') }}
           </button>
         </div>
       </div>
-      {% endif %}
     {% endfor %}
   </div>
 </div>
@@ -185,29 +150,36 @@ document.getElementById('rejectModal').addEventListener('click', function(e) {
   <div style="background:white;border-radius:16px;padding:24px;max-width:420px;width:100%">
     <div style="text-align:center;margin-bottom:16px">
       <div style="font-size:48px">📱</div>
-      <h3 style="color:var(--blue);margin-top:8px">رقم العميل</h3>
-      <p style="color:var(--muted);font-size:13px;margin-top:4px">اكتب رقم واتساب مع كود الدولة</p>
+      <h3 style="color:var(--blue);margin-top:8px">{{ t('رقم العميل','Client number') }}</h3>
+      <p style="color:var(--muted);font-size:13px;margin-top:4px">{{ t('اكتب رقم واتساب مع كود الدولة','Enter the WhatsApp number with country code') }}</p>
     </div>
     <div class="form-group">
       <input type="tel" id="phoneInput" class="form-input" placeholder="971501234567" style="font-size:16px;text-align:left;direction:ltr">
-      <div style="font-size:11px;color:var(--muted);margin-top:6px">مثال: 971501234567</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">{{ t('مثال','Example') }}: 971501234567</div>
     </div>
     <div style="display:flex;gap:8px;margin-top:16px">
-      <button onclick="closeModal()" class="btn btn-outline" style="flex:1">إلغاء</button>
+      <button onclick="closeModal()" class="btn btn-outline" style="flex:1">{{ t('إلغاء','Cancel') }}</button>
       <button onclick="confirmPhone()" class="btn btn-success" style="flex:2">
-        <i class="fa-brands fa-whatsapp"></i> فتح الواتساب
+        <i class="fa-brands fa-whatsapp"></i> {{ t('فتح الواتساب','Open WhatsApp') }}
       </button>
     </div>
   </div>
 </div>
 
 <div id="toast" style="display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1e4a3d;color:white;padding:14px 24px;border-radius:100px;font-weight:700;z-index:2000">
-  <i class="fa-solid fa-check-circle"></i> <span id="toastMsg">تم</span>
+  <i class="fa-solid fa-check-circle"></i> <span id="toastMsg">{{ t('تم','Done') }}</span>
 </div>
 
 <script>
 var SITE_URL = window.location.origin;
 var pendingMessage = '';
+// Admin-facing UI strings follow the admin's language. The outbound WhatsApp
+// body in buildMessage() stays Arabic — it is sent to Arabic-speaking clients.
+var UI = {
+  copied:   {{ t('تم النسخ','Copied')|tojson }},
+  waOpened: {{ t('تم فتح الواتساب','WhatsApp opened')|tojson }},
+  badPhone: {{ t('رقم غير صحيح','Invalid number')|tojson }}
+};
 
 function toggleDone() {
   var list = document.getElementById('doneList');
@@ -243,6 +215,13 @@ function buildMessage(name, goalType, culture, goalCal) {
     'أخصائي التغذية الإكلينيكية';
 }
 
+// Client names come from data-* attributes rather than inline onclick arguments:
+// an apostrophe in a name used to be HTML-escaped into the handler and broke it.
+function rowArgs(btn) {
+  var d = btn.closest('[data-culture]');
+  return [d.dataset.name, d.dataset.goal, d.dataset.culture, d.dataset.cal];
+}
+
 function sendWA(name, goalType, culture, goalCal) {
   pendingMessage = buildMessage(name, goalType, culture, goalCal);
   document.getElementById('phoneModal').style.display = 'flex';
@@ -252,13 +231,13 @@ function sendWA(name, goalType, culture, goalCal) {
 function copyMsg(name, goalType, culture, goalCal) {
   var message = buildMessage(name, goalType, culture, goalCal);
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(message).then(function() { showToast('تم النسخ'); });
+    navigator.clipboard.writeText(message).then(function() { showToast(UI.copied); });
   } else {
     var textarea = document.createElement('textarea');
     textarea.value = message;
     document.body.appendChild(textarea);
     textarea.select();
-    try { document.execCommand('copy'); showToast('تم النسخ'); } catch(e) {}
+    try { document.execCommand('copy'); showToast(UI.copied); } catch(e) {}
     document.body.removeChild(textarea);
   }
 }
@@ -272,14 +251,14 @@ function closeModal() {
 function confirmPhone() {
   var phone = document.getElementById('phoneInput').value.trim().replace(/[^0-9]/g, '');
   if (!phone || phone.length < 9) {
-    alert('رقم غير صحيح');
+    alert(UI.badPhone);
     return;
   }
   if (!pendingMessage) { closeModal(); return; }
   var encodedMsg = encodeURIComponent(pendingMessage);
   window.open('https://wa.me/' + phone + '?text=' + encodedMsg, '_blank');
   closeModal();
-  showToast('تم فتح الواتساب');
+  showToast(UI.waOpened);
 }
 
 function showToast(msg) {
@@ -291,6 +270,16 @@ function showToast(msg) {
 
 document.getElementById('phoneInput').addEventListener('keypress', function(e) {
   if (e.key === 'Enter') { e.preventDefault(); confirmPhone(); }
+});
+
+document.querySelectorAll('.js-wa').forEach(function(b) {
+  b.addEventListener('click', function() { sendWA.apply(null, rowArgs(b)); });
+});
+document.querySelectorAll('.js-copy').forEach(function(b) {
+  b.addEventListener('click', function() { copyMsg.apply(null, rowArgs(b)); });
+});
+document.querySelectorAll('.js-reject').forEach(function(b) {
+  b.addEventListener('click', function() { rejectRequest(b.dataset.id, b.dataset.name); });
 });
 
 document.addEventListener('keydown', function(e) {
@@ -306,18 +295,18 @@ document.addEventListener('keydown', function(e) {
 <div id="rejectModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;padding:20px;align-items:center;justify-content:center">
   <div style="background:white;border-radius:14px;max-width:480px;width:100%;padding:24px">
     <h3 style="color:#dc2626;font-weight:800;margin-bottom:8px">
-      <i class="fa-solid fa-xmark-circle"></i> رفض طلب الخطة
+      <i class="fa-solid fa-xmark-circle"></i> {{ t('رفض طلب الخطة','Reject plan request') }}
     </h3>
     <p style="color:var(--muted);font-size:13px;margin-bottom:14px">
-      رفض طلب: <strong id="rejectClientName"></strong>
+      {{ t('رفض طلب','Rejecting request from') }}: <strong id="rejectClientName"></strong>
     </p>
     <form id="rejectForm" method="POST">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <textarea name="reason" class="form-textarea" placeholder="سبب الرفض (هيتبعت رساله للعميل)" rows="4" required style="width:100%;padding:11px;border:2px solid var(--gray-2);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;resize:vertical;margin-bottom:14px"></textarea>
+      <textarea name="reason" class="form-textarea" placeholder="{{ t('سبب الرفض (هيتبعت رساله للعميل)','Reason for rejection (sent to the client)') }}" rows="4" required style="width:100%;padding:11px;border:2px solid var(--gray-2);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;resize:vertical;margin-bottom:14px"></textarea>
       <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button type="button" onclick="closeRejectModal()" class="btn" style="background:var(--gray);color:var(--text)">إلغاء</button>
+        <button type="button" onclick="closeRejectModal()" class="btn" style="background:var(--gray);color:var(--text)">{{ t('إلغاء','Cancel') }}</button>
         <button type="submit" class="btn" style="background:#dc2626;color:white">
-          <i class="fa-solid fa-check"></i> تأكيد الرفض
+          <i class="fa-solid fa-check"></i> {{ t('تأكيد الرفض','Confirm rejection') }}
         </button>
       </div>
     </form>
