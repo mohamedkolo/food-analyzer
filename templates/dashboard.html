@@ -1,16 +1,17 @@
 {% extends "base.html" %}
-{% block title %}الرئيسية{% endblock %}
+{% set is_ar = (lang or 'ar') == 'ar' %}
+{% block title %}{{ 'الرئيسية' if is_ar else 'Home' }}{% endblock %}
 {% block content %}
 
 <!-- Welcome Banner -->
 <div class="card" style="background:linear-gradient(135deg,#14332b 0%,#1e4a3d 100%);color:white;padding:24px;margin-bottom:20px">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
     <div>
-      <div style="font-size:14px;opacity:0.85;margin-bottom:4px">أهلا</div>
-      <div style="font-size:24px;font-weight:900">د. {{ user.name if user else '' }}</div>
+      <div style="font-size:14px;opacity:0.85;margin-bottom:4px">{{ 'أهلا' if is_ar else 'Welcome' }}</div>
+      <div style="font-size:24px;font-weight:900">{{ 'د.' if is_ar else 'Dr.' }} {{ user.name if user else '' }}</div>
       <div style="font-size:13px;opacity:0.85;margin-top:6px">
-        {% if role == 'admin' %}مدير النظام
-        {% elif role == 'nutritionist' %}أخصائي تغذية
+        {% if role == 'admin' %}{{ 'مدير النظام' if is_ar else 'System Administrator' }}
+        {% elif role == 'nutritionist' %}{{ 'أخصائي تغذية' if is_ar else 'Nutritionist' }}
         {% endif %}
       </div>
     </div>
@@ -24,57 +25,57 @@
   <div class="card" style="text-align:center;padding:18px;border-top:4px solid #f59e0b">
     <div style="font-size:34px;margin-bottom:6px">🔔</div>
     <div style="font-size:32px;font-weight:900;color:#f59e0b">{{ pending_count or 0 }}</div>
-    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">طلبات جديدة</div>
+    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">{{ 'طلبات جديدة' if is_ar else 'New Requests' }}</div>
     {% if pending_count and pending_count > 0 %}
-    <a href="/admin/requests" style="display:block;margin-top:10px;font-size:12px;color:#f59e0b;font-weight:700">شوف الطلبات ←</a>
+    <a href="/admin/requests" style="display:block;margin-top:10px;font-size:12px;color:#f59e0b;font-weight:700">{{ 'شوف الطلبات ←' if is_ar else 'View requests →' }}</a>
     {% endif %}
   </div>
 
   <div class="card" style="text-align:center;padding:18px;border-top:4px solid #2c5a4a">
     <div style="font-size:34px;margin-bottom:6px">👥</div>
     <div style="font-size:32px;font-weight:900;color:#2c5a4a">{{ total_clients or 0 }}</div>
-    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">إجمالي العملاء</div>
+    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">{{ 'إجمالي العملاء' if is_ar else 'Total Clients' }}</div>
   </div>
 
   <div class="card" style="text-align:center;padding:18px;border-top:4px solid #1e4a3d">
     <div style="font-size:34px;margin-bottom:6px">✅</div>
     <div style="font-size:32px;font-weight:900;color:#1e4a3d">{{ total_plans or 0 }}</div>
-    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">خطط مكتملة</div>
+    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">{{ 'خطط مكتملة' if is_ar else 'Completed Plans' }}</div>
   </div>
 
   <div class="card" style="text-align:center;padding:18px;border-top:4px solid #8b5cf6">
     <div style="font-size:34px;margin-bottom:6px">💬</div>
     <div style="font-size:32px;font-weight:900;color:#8b5cf6">{{ unread_messages or 0 }}</div>
-    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">رسايل غير مقروءة</div>
+    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">{{ 'رسايل غير مقروءة' if is_ar else 'Unread Messages' }}</div>
     {% if unread_messages and unread_messages > 0 %}
-    <a href="/messages" style="display:block;margin-top:10px;font-size:12px;color:#8b5cf6;font-weight:700">شوف الرسايل ←</a>
+    <a href="/messages" style="display:block;margin-top:10px;font-size:12px;color:#8b5cf6;font-weight:700">{{ 'شوف الرسايل ←' if is_ar else 'View messages →' }}</a>
     {% endif %}
   </div>
 
 </div>
 
-<!-- مركز المتابعة -->
+<!-- مركز المتابعة / Follow-up center -->
 {% if (renewals_soon and renewals_soon|length > 0) or (at_risk_clients and at_risk_clients|length > 0) or (recently_lost and recently_lost|length > 0) %}
 <div class="card">
-  <div class="card-title"><i class="fa-solid fa-list-check"></i> مركز المتابعة</div>
+  <div class="card-title"><i class="fa-solid fa-list-check"></i> {{ 'مركز المتابعة' if is_ar else 'Follow-up Center' }}</div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">
 
     <div>
-      <div style="font-weight:800;font-size:13px;color:#b45309;margin-bottom:8px;">🔔 تجديدات قريبة (7 أيام)</div>
+      <div style="font-weight:800;font-size:13px;color:#b45309;margin-bottom:8px;">🔔 {{ 'تجديدات قريبة (7 أيام)' if is_ar else 'Renewals due (7 days)' }}</div>
       {% if renewals_soon %}
         {% for r in renewals_soon[:5] %}
         <div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:12.5px;">
           <span style="font-weight:700;">{{ r.name }}</span>
-          <span style="color:var(--muted);white-space:nowrap;">{{ r.days_left }} يوم</span>
+          <span style="color:var(--muted);white-space:nowrap;">{{ r.days_left }} {{ 'يوم' if is_ar else 'days' }}</span>
         </div>
         {% endfor %}
       {% else %}
-        <div style="color:var(--muted-2);font-size:12.5px;padding:8px 0;">مفيش حالياً</div>
+        <div style="color:var(--muted-2);font-size:12.5px;padding:8px 0;">{{ 'مفيش حالياً' if is_ar else 'None right now' }}</div>
       {% endif %}
     </div>
 
     <div>
-      <div style="font-weight:800;font-size:13px;color:#b45309;margin-bottom:8px;">⚠️ محتاجين متابعة (التزام أقل من 40%)</div>
+      <div style="font-weight:800;font-size:13px;color:#b45309;margin-bottom:8px;">⚠️ {{ 'محتاجين متابعة (التزام أقل من 40%)' if is_ar else 'Need follow-up (adherence under 40%)' }}</div>
       {% if at_risk_clients %}
         {% for c in at_risk_clients[:5] %}
         <a href="/admin/users/{{ c.id }}" style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:12.5px;text-decoration:none;color:var(--text);">
@@ -83,12 +84,12 @@
         </a>
         {% endfor %}
       {% else %}
-        <div style="color:var(--muted-2);font-size:12.5px;padding:8px 0;">مفيش حالياً 🎉</div>
+        <div style="color:var(--muted-2);font-size:12.5px;padding:8px 0;">{{ 'مفيش حالياً 🎉' if is_ar else 'None right now 🎉' }}</div>
       {% endif %}
     </div>
 
     <div>
-      <div style="font-weight:800;font-size:13px;color:#b45309;margin-bottom:8px;">🚪 فقدوا الوصول مؤخراً</div>
+      <div style="font-weight:800;font-size:13px;color:#b45309;margin-bottom:8px;">🚪 {{ 'فقدوا الوصول مؤخراً' if is_ar else 'Recently lost access' }}</div>
       {% if recently_lost %}
         {% for r in recently_lost[:5] %}
         <div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:12.5px;">
@@ -97,7 +98,7 @@
         </div>
         {% endfor %}
       {% else %}
-        <div style="color:var(--muted-2);font-size:12.5px;padding:8px 0;">مفيش حالياً</div>
+        <div style="color:var(--muted-2);font-size:12.5px;padding:8px 0;">{{ 'مفيش حالياً' if is_ar else 'None right now' }}</div>
       {% endif %}
     </div>
 
@@ -108,43 +109,43 @@
 <!-- Quick Actions -->
 <div class="card">
   <div class="card-title">
-    <i class="fa-solid fa-bolt"></i> إجراءات سريعة
+    <i class="fa-solid fa-bolt"></i> {{ 'إجراءات سريعة' if is_ar else 'Quick Actions' }}
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
 
     <a href="/admin/requests" class="quick-action">
       <div style="font-size:28px;margin-bottom:6px">📋</div>
-      <div style="font-weight:700;color:var(--blue)">طلبات العملاء</div>
+      <div style="font-weight:700;color:var(--blue)">{{ 'طلبات العملاء' if is_ar else 'Client Requests' }}</div>
       {% if pending_count and pending_count > 0 %}
-      <div style="font-size:11px;color:#dc2626;font-weight:800;margin-top:3px">⚠️ {{ pending_count }} جديد</div>
+      <div style="font-size:11px;color:#dc2626;font-weight:800;margin-top:3px">⚠️ {{ pending_count }} {{ 'جديد' if is_ar else 'new' }}</div>
       {% endif %}
     </a>
 
     <a href="/generate" class="quick-action">
       <div style="font-size:28px;margin-bottom:6px">⚡</div>
-      <div style="font-weight:700;color:var(--blue)">توليد خطة جديدة</div>
+      <div style="font-weight:700;color:var(--blue)">{{ 'توليد خطة جديدة' if is_ar else 'Generate New Plan' }}</div>
     </a>
 
     <a href="/patients" class="quick-action">
       <div style="font-size:28px;margin-bottom:6px">👥</div>
-      <div style="font-weight:700;color:var(--blue)">المرضى</div>
+      <div style="font-weight:700;color:var(--blue)">{{ 'المرضى' if is_ar else 'Patients' }}</div>
     </a>
 
     <a href="/saved" class="quick-action">
       <div style="font-size:28px;margin-bottom:6px">🔖</div>
-      <div style="font-weight:700;color:var(--blue)">جداول محفوظة</div>
+      <div style="font-weight:700;color:var(--blue)">{{ 'جداول محفوظة' if is_ar else 'Saved Plans' }}</div>
     </a>
 
     {% if role == 'admin' %}
     <a href="/admin/users" class="quick-action">
       <div style="font-size:28px;margin-bottom:6px">⚙️</div>
-      <div style="font-weight:700;color:var(--blue)">إدارة المستخدمين</div>
+      <div style="font-weight:700;color:var(--blue)">{{ 'إدارة المستخدمين' if is_ar else 'Manage Users' }}</div>
     </a>
     {% endif %}
 
     <a href="/clinical" class="quick-action">
       <div style="font-size:28px;margin-bottom:6px">📚</div>
-      <div style="font-weight:700;color:var(--blue)">المرجع الكلينيكي</div>
+      <div style="font-weight:700;color:var(--blue)">{{ 'المرجع الكلينيكي' if is_ar else 'Clinical Reference' }}</div>
     </a>
 
   </div>
@@ -154,20 +155,20 @@
 {% if recent_requests and recent_requests|length > 0 %}
 <div class="card">
   <div class="card-title">
-    <i class="fa-solid fa-clock"></i> آخر الطلبات
+    <i class="fa-solid fa-clock"></i> {{ 'آخر الطلبات' if is_ar else 'Latest Requests' }}
   </div>
   <div style="display:flex;flex-direction:column;gap:8px">
     {% for req in recent_requests %}
     <a href="/admin/requests" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--gray);border-radius:10px;text-decoration:none;color:var(--text);transition:all 0.2s" onmouseover="this.style.background='#e7e0d0'" onmouseout="this.style.background='var(--gray)'">
       <div>
-        <div style="font-weight:700;font-size:14px">{{ req.client_name or 'عميل' }}</div>
+        <div style="font-weight:700;font-size:14px">{{ req.client_name or ('عميل' if is_ar else 'Client') }}</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px">{{ req.created_at }}</div>
       </div>
       <div>
         {% if req.status == 'pending' %}
-        <span style="background:#fff3cd;color:#856404;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">⏳ جديد</span>
+        <span style="background:#fff3cd;color:#856404;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">⏳ {{ 'جديد' if is_ar else 'New' }}</span>
         {% elif req.status == 'approved' %}
-        <span style="background:#f0ead9;color:#14332b;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">✓ مكتمل</span>
+        <span style="background:#f0ead9;color:#14332b;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">✓ {{ 'مكتمل' if is_ar else 'Done' }}</span>
         {% endif %}
       </div>
     </a>
