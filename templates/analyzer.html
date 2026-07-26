@@ -234,53 +234,39 @@
 <div class="anlz-wrap">
 
   <div class="anlz-hero">
-    <h1>🔍 محلل الطعام</h1>
-    <p>اكتب اسم الطعام لتشوف معلوماته الغذائية كاملة</p>
+    <h1>🔍 {{ t('محلل الطعام','Food Analyzer') }}</h1>
+    <p>{{ t('اكتب اسم الطعام لتشوف معلوماته الغذائية كاملة','Type a food name to see its full nutrition information') }}</p>
   </div>
 
   <div class="search-box">
     <input type="text" class="search-input" id="searchInput"
-           placeholder="🔍 ابحث... (مثلاً: دجاج، أرز، تفاح)">
+           placeholder="{{ t('🔍 ابحث... (مثلاً: دجاج، أرز، تفاح)','🔍 Search… (e.g. chicken, rice, apple)') }}">
   </div>
 
   <div class="search-box" style="display:flex;gap:8px;align-items:center;padding:14px 16px;">
     <input type="text" inputmode="numeric" id="barcodeInput"
-           placeholder="📦 أو اكتب باركود منتج معلّب (الرقم اللي تحت الخطوط)"
+           placeholder="{{ t('📦 أو اكتب باركود منتج معلّب (الرقم اللي تحت الخطوط)','📦 Or enter a packaged product barcode (the number under the lines)') }}"
            style="flex:1;border:1.5px solid #e7e0d0;border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;">
     <button id="barcodeBtn" type="button"
             style="background:#1e4a3d;color:#fff;border:0;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;">
-      بحث
+      {{ t('بحث','Search') }}
     </button>
   </div>
   <div id="barcodeResult"></div>
 
   <div class="cat-strip" id="catStrip">
-    <span class="cat-chip" data-cat="">📋 كل الفئات</span>
-    <span class="cat-chip" data-cat="poultry">🍗 دواجن</span>
-    <span class="cat-chip" data-cat="meat">🥩 لحوم</span>
-    <span class="cat-chip" data-cat="fish">🐟 أسماك وبحريات</span>
-    <span class="cat-chip" data-cat="dairy">🥛 ألبان وبيض</span>
-    <span class="cat-chip" data-cat="grain">🌾 نشويات</span>
-    <span class="cat-chip" data-cat="legume">🫘 بقوليات</span>
-    <span class="cat-chip" data-cat="veg">🥗 خضار</span>
-    <span class="cat-chip" data-cat="fruit">🍎 فاكهة</span>
-    <span class="cat-chip" data-cat="nut">🌰 مكسرات وزيوت</span>
-    <span class="cat-chip" data-cat="spice">🧂 توابل وصوصات</span>
-    <span class="cat-chip" data-cat="drink">☕ مشروبات</span>
-    <span class="cat-chip" data-cat="sweet">🍬 حلويات</span>
-    <span class="cat-chip" data-cat="fast">🍔 أكل جاهز</span>
-    <span class="cat-chip" data-cat="supplement">💪 مكملات</span>
+    {# data-cat is the lookup key and never changes; only the label is localized #}
+    {% for key, icon, ar, en in [('','📋','كل الفئات','All categories'), ('poultry','🍗','دواجن','Poultry'), ('meat','🥩','لحوم','Meat'), ('fish','🐟','أسماك وبحريات','Fish & seafood'), ('dairy','🥛','ألبان وبيض','Dairy & eggs'), ('grain','🌾','نشويات','Grains & starches'), ('legume','🫘','بقوليات','Legumes'), ('veg','🥗','خضار','Vegetables'), ('fruit','🍎','فاكهة','Fruit'), ('nut','🌰','مكسرات وزيوت','Nuts & oils'), ('spice','🧂','توابل وصوصات','Spices & sauces'), ('drink','☕','مشروبات','Drinks'), ('sweet','🍬','حلويات','Sweets'), ('fast','🍔','أكل جاهز','Fast food'), ('supplement','💪','مكملات','Supplements')] %}
+    <span class="cat-chip" data-cat="{{ key }}">{{ icon }} {{ ar if is_ar else en }}</span>
+    {% endfor %}
   </div>
 
-  <div style="font-size:12px;font-weight:700;color:#64748b;padding:2px 4px;">🩺 فلترة حسب الحالة الصحية:</div>
+  <div style="font-size:12px;font-weight:700;color:#64748b;padding:2px 4px;">🩺 {{ t('فلترة حسب الحالة الصحية:','Filter by health condition:') }}</div>
   <div class="cat-strip" id="medStrip" style="padding-top:4px;">
-    <span class="med-chip cat-chip active" data-med="">الكل</span>
-    <span class="med-chip cat-chip" data-med="dm">🩸 آمن للسكري</span>
-    <span class="med-chip cat-chip" data-med="htn">❤️ آمن للضغط</span>
-    <span class="med-chip cat-chip" data-med="ckd">🫘 آمن للكلى</span>
-    <span class="med-chip cat-chip" data-med="ibs">🌀 لطيف على القولون</span>
-    <span class="med-chip cat-chip" data-med="heart">❤️‍🩹 صديق للقلب</span>
-    <span class="med-chip cat-chip" data-med="keto">🥑 كيتو</span>
+    <span class="med-chip cat-chip active" data-med="">{{ t('الكل','All') }}</span>
+    {% for key, icon, ar, en in [('dm','🩸','آمن للسكري','Diabetes-safe'), ('htn','❤️','آمن للضغط','Blood-pressure-safe'), ('ckd','🫘','آمن للكلى','Kidney-safe'), ('ibs','🌀','لطيف على القولون','Gut-gentle'), ('heart','❤️‍🩹','صديق للقلب','Heart-friendly'), ('keto','🥑','كيتو','Keto')] %}
+    <span class="med-chip cat-chip" data-med="{{ key }}">{{ icon }} {{ ar if is_ar else en }}</span>
+    {% endfor %}
   </div>
 
   <div id="cmpResult"></div>
@@ -290,8 +276,8 @@
   <div id="resultsContainer">
     <div class="empty-state" id="emptyState">
       <div class="emoji">🔍</div>
-      <h3>ابدأ بكتابة اسم الطعام</h3>
-      <p>أو اختار فئة من فوق لتظهر الأطعمة</p>
+      <h3>{{ t('ابدأ بكتابة اسم الطعام','Start by typing a food name') }}</h3>
+      <p>{{ t('أو اختار فئة من فوق لتظهر الأطعمة','Or pick a category above to list foods') }}</p>
     </div>
   </div>
 
@@ -300,8 +286,8 @@
 <div class="cmp-bar" id="cmpBar">
   <div class="cmp-bar-names" id="cmpBarNames"></div>
   <div class="cmp-bar-actions">
-    <button class="cmp-go" id="cmpGo" disabled>⚖️ قارن</button>
-    <button class="cmp-clear" id="cmpClear">إلغاء</button>
+    <button class="cmp-go" id="cmpGo" disabled>⚖️ {{ t('قارن','Compare') }}</button>
+    <button class="cmp-clear" id="cmpClear">{{ t('إلغاء','Cancel') }}</button>
   </div>
 </div>
 
@@ -831,13 +817,37 @@ const FOODS = [
   {n:"جوز برازيلي", en:"Brazil nuts", cat:"nut", cal:659, p:14, c:12, f:67, safe:["dm", "htn", "ibs", "heart"], units:[["حفنة (30جم)", 30]], note:"أغنى مصدر سيلينيوم.", tip:"💡 حبتين يومياً كفاية وزيادة."}
 ];
 
-const CAT_NAMES = {
-  poultry: "🍗 دواجن", meat: "🥩 لحوم", fish: "🐟 أسماك وبحريات",
-  dairy: "🥛 ألبان وبيض", grain: "🌾 نشويات", legume: "🫘 بقوليات", veg: "🥗 خضار",
-  fruit: "🍎 فاكهة", nut: "🌰 مكسرات وزيوت", spice: "🧂 توابل وصوصات",
-  drink: "☕ مشروبات", sweet: "🍬 حلويات", fast: "🍔 أكل جاهز", supplement: "💪 مكملات"
+const IS_AR = {{ ('true' if is_ar else 'false') }};
+// keys stay fixed; the labels follow the viewer's language
+const CAT_NAMES = {{ ({"poultry": "🍗 دواجن", "meat": "🥩 لحوم", "fish": "🐟 أسماك وبحريات", "dairy": "🥛 ألبان وبيض", "grain": "🌾 نشويات", "legume": "🫘 بقوليات", "veg": "🥗 خضار", "fruit": "🍎 فاكهة", "nut": "🌰 مكسرات وزيوت", "spice": "🧂 توابل وصوصات", "drink": "☕ مشروبات", "sweet": "🍬 حلويات", "fast": "🍔 أكل جاهز", "supplement": "💪 مكملات"} if is_ar else {"poultry": "🍗 Poultry", "meat": "🥩 Meat", "fish": "🐟 Fish & seafood", "dairy": "🥛 Dairy & eggs", "grain": "🌾 Grains & starches", "legume": "🫘 Legumes", "veg": "🥗 Vegetables", "fruit": "🍎 Fruit", "nut": "🌰 Nuts & oils", "spice": "🧂 Spices & sauces", "drink": "☕ Drinks", "sweet": "🍬 Sweets", "fast": "🍔 Fast food", "supplement": "💪 Supplements"})|tojson }};
+const MED_NAMES = {{ ({"dm": "سكري", "htn": "ضغط", "ckd": "كلى", "ibs": "قولون", "keto": "كيتو", "heart": "قلب"} if is_ar else {"dm": "Diabetes", "htn": "BP", "ckd": "Kidney", "ibs": "Gut", "keto": "Keto", "heart": "Heart"})|tojson }};
+// strings this script writes into the DOM
+const AZ = {
+  protein: {{ t("بروتين", "protein")|tojson }},
+  carbs:   {{ t("كارب", "carbs")|tojson }},
+  fats:    {{ t("دهون", "fats")|tojson }},
+  grams:   {{ t("جم", "g")|tojson }},
+  gramUnit: {{ t("جرام", "grams")|tojson }},
+  qtyLabel: {{ t("الكمية والوحدة", "Quantity and unit")|tojson }},
+  kcal:    {{ t("سعرة", "kcal")|tojson }},
+  addCmp:  {{ t("⚖️ أضف للمقارنة", "⚖️ Add to comparison")|tojson }},
+  inCmp:   {{ t("✓ في المقارنة", "✓ In comparison")|tojson }},
+  results: {{ t("نتيجة", "results")|tojson }},
+  per100:  {{ t("لكل 100 جرام", "per 100 grams")|tojson }},
+  equal:   {{ t("متساويين", "equal")|tojson }},
+  diffPrefix: {{ t("فرق", "difference of")|tojson }},
+  diffCol: {{ t("الفرق", "Difference")|tojson }},
+  cmpTitle: {{ t("⚖️ مقارنة (لكل 100 جرام)", "⚖️ Comparison (per 100 grams)")|tojson }},
+  cmpCal:  {{ t("🔥 السعرات", "🔥 Calories")|tojson }},
+  cmpProt: {{ t("🥩 البروتين", "🥩 Protein")|tojson }},
+  cmpCarb: {{ t("🍞 الكارب", "🍞 Carbs")|tojson }},
+  cmpFat:  {{ t("🥑 الدهون", "🥑 Fats")|tojson }},
+  picked:  {{ t("اخترت", "Selected")|tojson }},
+  bcSearching: {{ t("بدور على المنتج...", "Looking up the product…")|tojson }},
+  bcNotFound:  {{ t("مش لاقيين المنتج ده", "Could not find that product")|tojson }},
+  cmpLegend:   {{ t("التظليل بيوضح <b>أقل سعرات/كارب/دهون</b> و<b>أعلى بروتين</b> — الأفضل فعلياً بيعتمد على هدف المريض (تخسيس، بناء عضل، حالة مرضية معينة).", "Highlighting marks the <b>lowest calories/carbs/fats</b> and the <b>highest protein</b> — which is actually better depends on the patient’s goal (weight loss, muscle gain, a specific condition).")|tojson }},
+  bcError:     {{ t("حصلت مشكلة في الاتصال", "A connection problem occurred")|tojson }}
 };
-const MED_NAMES = { dm: "سكري", htn: "ضغط", ckd: "كلى", ibs: "قولون", keto: "كيتو", heart: "قلب" };
 
 const searchInput = document.getElementById('searchInput');
 const catStrip = document.getElementById('catStrip');
@@ -853,34 +863,34 @@ function makeCard(food) {
   return `
     <div class="food-card">
       <div class="food-head">
-        <h3 class="food-name">${food.n}${food.en ? `<span style="display:block;font-size:11px;color:#94a3b8;font-weight:500;direction:ltr;text-align:right;">${food.en}</span>` : ''}</h3>
+        <h3 class="food-name">${IS_AR ? food.n : (food.en || food.n)}${(IS_AR ? food.en : food.n) ? `<span style="display:block;font-size:11px;color:#94a3b8;font-weight:500;direction:${IS_AR ? 'ltr' : 'rtl'};text-align:start;">${IS_AR ? food.en : food.n}</span>` : ''}</h3>
         <div class="food-cal">${food.cal} <small>kcal/100g</small></div>
       </div>
       <div class="macros">
-        <span class="macro-pill m-prot">🥩 ${food.p}g بروتين</span>
-        <span class="macro-pill m-carb">🍞 ${food.c}g كارب</span>
-        <span class="macro-pill m-fat">🥑 ${food.f}g دهون</span>
+        <span class="macro-pill m-prot">🥩 ${food.p}g ${AZ.protein}</span>
+        <span class="macro-pill m-carb">🍞 ${food.c}g ${AZ.carbs}</span>
+        <span class="macro-pill m-fat">🥑 ${food.f}g ${AZ.fats}</span>
       </div>
       <div class="qty-section">
         <div>
-          <div class="qty-label">الكمية والوحدة</div>
+          <div class="qty-label">${AZ.qtyLabel}</div>
           <input type="number" class="qty-input" value="100" min="0.5" max="2000" step="0.5" data-food='${JSON.stringify(food)}' style="width:70px;">
           ${food.units && food.units.length ? `<select class="unit-select" style="padding:6px 8px;border:1.5px solid #e7e0d0;border-radius:8px;font-family:inherit;font-size:12px;background:#fff;max-width:130px;">
-            <option value="1" selected>جرام</option>
-            ${food.units.map(u => `<option value="${u[1]}">${u[0]} (${u[1]}جم)</option>`).join('')}
+            <option value="1" selected>${AZ.gramUnit}</option>
+            ${food.units.map(u => `<option value="${u[1]}">${u[0]} (${u[1]}${AZ.grams})</option>`).join('')}
           </select>` : ''}
         </div>
         <div class="qty-result">
-          <div><strong class="r-cal">${food.cal}</strong><span>سعرة</span></div>
-          <div><strong class="r-p">${food.p}</strong><span>بروتين g</span></div>
-          <div><strong class="r-c">${food.c}</strong><span>كارب g</span></div>
-          <div><strong class="r-f">${food.f}</strong><span>دهون g</span></div>
+          <div><strong class="r-cal">${food.cal}</strong><span>${AZ.kcal}</span></div>
+          <div><strong class="r-p">${food.p}</strong><span>${AZ.protein} g</span></div>
+          <div><strong class="r-c">${food.c}</strong><span>${AZ.carbs} g</span></div>
+          <div><strong class="r-f">${food.f}</strong><span>${AZ.fats} g</span></div>
         </div>
       </div>
       ${food.safe && food.safe.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">${food.safe.map(s => `<span style="font-size:10px;background:#faf8f3;color:#14332b;border:1px solid #d9cfb4;padding:2px 8px;border-radius:999px;font-weight:700;">✓ ${MED_NAMES[s]}</span>`).join('')}</div>` : ''}
       ${food.note ? `<div class="food-note">ℹ️ ${food.note}</div>` : ''}
       ${food.tip ? `<div class="food-tip">${food.tip}</div>` : ''}
-      <button type="button" class="cmp-btn">⚖️ أضف للمقارنة</button>
+      <button type="button" class="cmp-btn">${AZ.addCmp}</button>
     </div>`;
 }
 
@@ -900,8 +910,8 @@ function render() {
     resultsContainer.innerHTML = `
       <div class="empty-state">
         <div class="emoji">🔍</div>
-        <h3>ابدأ بكتابة اسم الطعام</h3>
-        <p>أو اختار فئة من فوق لتظهر الأطعمة</p>
+        <h3>{{ t('ابدأ بكتابة اسم الطعام','Start by typing a food name') }}</h3>
+        <p>{{ t('أو اختار فئة من فوق لتظهر الأطعمة','Or pick a category above to list foods') }}</p>
       </div>`;
     resultsCount.style.display = 'none';
     return;
@@ -911,15 +921,15 @@ function render() {
     resultsContainer.innerHTML = `
       <div class="empty-state">
         <div class="emoji">😕</div>
-        <h3>مفيش نتائج</h3>
-        <p>جرّب بحث تاني أو فئة مختلفة</p>
+        <h3>{{ t('مفيش نتائج','No results') }}</h3>
+        <p>{{ t('جرّب بحث تاني أو فئة مختلفة','Try another search or a different category') }}</p>
       </div>`;
     resultsCount.style.display = 'none';
     return;
   }
 
   resultsCount.style.display = 'block';
-  resultsCount.textContent = `${filtered.length} نتيجة — لكل 100 جرام`;
+  resultsCount.textContent = `${filtered.length} ${AZ.results} — ${AZ.per100}`;
   resultsContainer.innerHTML = filtered.map(makeCard).join('');
 
   // Attach qty listeners
@@ -995,7 +1005,7 @@ function syncCmpButtons() {
     if (!food || !btn) return;
     const picked = cmpList.some(f => f.n === food.n);
     btn.classList.toggle('active', picked);
-    btn.textContent = picked ? '✓ في المقارنة' : '⚖️ أضف للمقارنة';
+    btn.textContent = picked ? AZ.inCmp : AZ.addCmp;
   });
 }
 
@@ -1007,7 +1017,7 @@ function updateCmpBar() {
     cmpBar.classList.add('show');
     document.body.classList.add('cmp-open');
     cmpBarNames.textContent = cmpList.length === 1
-      ? `اخترت: ${cmpList[0].n} — اختار أكلة تانية للمقارنة`
+      ? `${AZ.picked}: ${IS_AR ? cmpList[0].n : (cmpList[0].en || cmpList[0].n)}`
       : `${cmpList[0].n}  ⚖️  ${cmpList[1].n}`;
     cmpGo.disabled = cmpList.length < 2;
   }
@@ -1038,7 +1048,7 @@ function cmpRow(label, a, b, unit, lowerIsHighlighted) {
     <td>${label}</td>
     <td class="${aCls}">${a}${unit}</td>
     <td class="${bCls}">${b}${unit}</td>
-    <td style="color:#64748b;font-size:12px;">${diff === '0' ? 'متساويين' : 'فرق ' + diff + unit}</td>
+    <td style="color:#64748b;font-size:12px;">${diff === '0' ? AZ.equal : AZ.diffPrefix + ' ' + diff + unit}</td>
   </tr>`;
 }
 
@@ -1047,20 +1057,17 @@ function showComparison() {
   const [a, b] = cmpList;
   cmpResult.innerHTML = `
     <div class="cmp-table-wrap">
-      <div style="font-weight:900;font-size:16px;color:#14332b;margin-bottom:12px;">⚖️ مقارنة (لكل 100 جرام)</div>
+      <div style="font-weight:900;font-size:16px;color:#14332b;margin-bottom:12px;">${AZ.cmpTitle}</div>
       <table class="cmp-table">
-        <thead><tr><th></th><th>${a.n}</th><th>${b.n}</th><th>الفرق</th></tr></thead>
+        <thead><tr><th></th><th>${IS_AR ? a.n : (a.en || a.n)}</th><th>${IS_AR ? b.n : (b.en || b.n)}</th><th>${AZ.diffCol}</th></tr></thead>
         <tbody>
-          ${cmpRow('🔥 السعرات', a.cal, b.cal, ' kcal', true)}
-          ${cmpRow('🥩 البروتين', a.p, b.p, ' جم', false)}
-          ${cmpRow('🍞 الكارب', a.c, b.c, ' جم', true)}
-          ${cmpRow('🥑 الدهون', a.f, b.f, ' جم', true)}
+          ${cmpRow(AZ.cmpCal, a.cal, b.cal, ' kcal', true)}
+          ${cmpRow(AZ.cmpProt, a.p, b.p, ' ' + AZ.grams, false)}
+          ${cmpRow(AZ.cmpCarb, a.c, b.c, ' ' + AZ.grams, true)}
+          ${cmpRow(AZ.cmpFat, a.f, b.f, ' ' + AZ.grams, true)}
         </tbody>
       </table>
-      <div class="cmp-legend">
-        التظليل بيوضح <b>أقل سعرات/كارب/دهون</b> و<b>أعلى بروتين</b> — الأفضل فعلياً بيعتمد على هدف المريض
-        (تخسيس، بناء عضل، حالة مرضية معينة).
-      </div>
+      <div class="cmp-legend">${AZ.cmpLegend}</div>
     </div>`;
   cmpResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -1089,12 +1096,12 @@ const barcodeResult = document.getElementById('barcodeResult');
 async function lookupBarcode() {
   const code = barcodeInput.value.trim();
   if (!code) return;
-  barcodeResult.innerHTML = `<div class="empty-state"><div class="emoji">⏳</div><h3>بدور على المنتج...</h3></div>`;
+  barcodeResult.innerHTML = `<div class="empty-state"><div class="emoji">⏳</div><h3>${AZ.bcSearching}</h3></div>`;
   try {
     const res = await fetch(`/api/food/barcode/${encodeURIComponent(code)}`);
     const data = await res.json();
     if (!data.ok) {
-      barcodeResult.innerHTML = `<div class="empty-state"><div class="emoji">😕</div><h3>${data.error || 'مش لاقيين المنتج ده'}</h3></div>`;
+      barcodeResult.innerHTML = `<div class="empty-state"><div class="emoji">😕</div><h3>${data.error || AZ.bcNotFound}</h3></div>`;
       return;
     }
     barcodeResult.innerHTML = makeCard(data.food);
@@ -1114,7 +1121,7 @@ async function lookupBarcode() {
     }
     syncCmpButtons();
   } catch (e) {
-    barcodeResult.innerHTML = `<div class="empty-state"><div class="emoji">⚠️</div><h3>حصلت مشكلة في الاتصال</h3></div>`;
+    barcodeResult.innerHTML = `<div class="empty-state"><div class="emoji">⚠️</div><h3>${AZ.bcError}</h3></div>`;
   }
 }
 
