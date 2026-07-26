@@ -167,9 +167,67 @@
     line-height: 1.6;
   }
 
+  /* ── مقارنة أكلتين ── */
+  .cmp-btn {
+    margin-top: 10px;
+    background: #faf8f3;
+    border: 1.5px solid #e7e0d0;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #1e4a3d;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .cmp-btn:hover { border-color: #1e4a3d; }
+  .cmp-btn.active { background: #1e4a3d; color: #fff; border-color: #1e4a3d; }
+
+  .cmp-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #14332b;
+    color: #fff;
+    padding: 12px 16px;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+    z-index: 995;   /* أعلى من زرار المحادثة العائم (990) عشان الأزرار تبقى قابلة للضغط */
+  }
+  .cmp-bar.show { display: flex; }
+  /* لما شريط المقارنة يظهر، نرفع زرار المحادثة العائم فوقه عشان ميغطيهوش */
+  body.cmp-open #chatFab { bottom: 92px !important; }
+  .cmp-bar-names { font-size: 13px; font-weight: 700; }
+  .cmp-bar-actions { display: flex; gap: 8px; }
+  .cmp-bar button {
+    border: 0; border-radius: 8px; padding: 8px 16px;
+    font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .cmp-go { background: #c9a961; color: #14332b; }
+  .cmp-go:disabled { opacity: 0.45; cursor: not-allowed; }
+  .cmp-clear { background: transparent; color: #d9cfb4; border: 1.5px solid #2c5a4a !important; }
+
+  .cmp-table-wrap {
+    background: #fff; border: 2px solid #1e4a3d; border-radius: 16px;
+    padding: 18px; margin-bottom: 16px; overflow-x: auto;
+  }
+  .cmp-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .cmp-table th, .cmp-table td { padding: 10px 12px; text-align: center; border-bottom: 1px solid #f5f1e8; }
+  .cmp-table th { background: #faf8f3; font-weight: 800; color: #14332b; font-size: 13px; }
+  .cmp-table td:first-child, .cmp-table th:first-child { text-align: right; font-weight: 700; color: #475569; }
+  .cmp-win { background: #f0ead9; font-weight: 800; color: #14332b; border-radius: 6px; }
+  .cmp-legend { font-size: 11.5px; color: #64748b; margin-top: 10px; line-height: 1.7; }
+
   @media (max-width: 600px) {
     .qty-section { grid-template-columns: 1fr; }
     .qty-result { grid-template-columns: repeat(2, 1fr); }
+    .cmp-bar { flex-direction: column; align-items: stretch; }
+    .cmp-bar-actions { justify-content: stretch; }
+    .cmp-bar-actions button { flex: 1; }
   }
 </style>
 
@@ -225,6 +283,8 @@
     <span class="med-chip cat-chip" data-med="keto">🥑 كيتو</span>
   </div>
 
+  <div id="cmpResult"></div>
+
   <div class="results-count" id="resultsCount" style="display:none;"></div>
 
   <div id="resultsContainer">
@@ -235,6 +295,14 @@
     </div>
   </div>
 
+</div>
+
+<div class="cmp-bar" id="cmpBar">
+  <div class="cmp-bar-names" id="cmpBarNames"></div>
+  <div class="cmp-bar-actions">
+    <button class="cmp-go" id="cmpGo" disabled>⚖️ قارن</button>
+    <button class="cmp-clear" id="cmpClear">إلغاء</button>
+  </div>
 </div>
 
 <script>
@@ -812,6 +880,7 @@ function makeCard(food) {
       ${food.safe && food.safe.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">${food.safe.map(s => `<span style="font-size:10px;background:#faf8f3;color:#14332b;border:1px solid #d9cfb4;padding:2px 8px;border-radius:999px;font-weight:700;">✓ ${MED_NAMES[s]}</span>`).join('')}</div>` : ''}
       ${food.note ? `<div class="food-note">ℹ️ ${food.note}</div>` : ''}
       ${food.tip ? `<div class="food-tip">${food.tip}</div>` : ''}
+      <button type="button" class="cmp-btn">⚖️ أضف للمقارنة</button>
     </div>`;
 }
 
@@ -876,6 +945,8 @@ function render() {
       recalc();
     });
   });
+
+  syncCmpButtons();
 }
 
 searchInput.addEventListener('input', e => {
@@ -901,6 +972,111 @@ medStrip.addEventListener('click', e => {
   chip.classList.add('active');
   currentMed = chip.dataset.med;
   render();
+});
+
+// ══════════ مقارنة أكلتين جنب بعض ══════════
+let cmpList = [];   // أقصى اتنين
+const cmpBar = document.getElementById('cmpBar');
+const cmpBarNames = document.getElementById('cmpBarNames');
+const cmpGo = document.getElementById('cmpGo');
+const cmpClear = document.getElementById('cmpClear');
+const cmpResult = document.getElementById('cmpResult');
+
+function cmpFoodOf(card) {
+  const inp = card.querySelector('.qty-input');
+  if (!inp) return null;
+  try { return JSON.parse(inp.dataset.food); } catch (e) { return null; }
+}
+
+function syncCmpButtons() {
+  document.querySelectorAll('.food-card').forEach(card => {
+    const food = cmpFoodOf(card);
+    const btn = card.querySelector('.cmp-btn');
+    if (!food || !btn) return;
+    const picked = cmpList.some(f => f.n === food.n);
+    btn.classList.toggle('active', picked);
+    btn.textContent = picked ? '✓ في المقارنة' : '⚖️ أضف للمقارنة';
+  });
+}
+
+function updateCmpBar() {
+  if (cmpList.length === 0) {
+    cmpBar.classList.remove('show');
+    document.body.classList.remove('cmp-open');
+  } else {
+    cmpBar.classList.add('show');
+    document.body.classList.add('cmp-open');
+    cmpBarNames.textContent = cmpList.length === 1
+      ? `اخترت: ${cmpList[0].n} — اختار أكلة تانية للمقارنة`
+      : `${cmpList[0].n}  ⚖️  ${cmpList[1].n}`;
+    cmpGo.disabled = cmpList.length < 2;
+  }
+  syncCmpButtons();
+}
+
+function toggleCmp(food) {
+  const i = cmpList.findIndex(f => f.n === food.n);
+  if (i > -1) {
+    cmpList.splice(i, 1);
+  } else {
+    if (cmpList.length >= 2) cmpList.shift();   // الأقدم يخرج
+    cmpList.push(food);
+  }
+  updateCmpBar();
+}
+
+function cmpRow(label, a, b, unit, lowerIsHighlighted) {
+  const av = Number(a), bv = Number(b);
+  let aCls = '', bCls = '';
+  if (av !== bv) {
+    const aWins = lowerIsHighlighted ? av < bv : av > bv;
+    aCls = aWins ? 'cmp-win' : '';
+    bCls = aWins ? '' : 'cmp-win';
+  }
+  const diff = Math.abs(av - bv).toFixed(1).replace(/\.0$/, '');
+  return `<tr>
+    <td>${label}</td>
+    <td class="${aCls}">${a}${unit}</td>
+    <td class="${bCls}">${b}${unit}</td>
+    <td style="color:#64748b;font-size:12px;">${diff === '0' ? 'متساويين' : 'فرق ' + diff + unit}</td>
+  </tr>`;
+}
+
+function showComparison() {
+  if (cmpList.length < 2) return;
+  const [a, b] = cmpList;
+  cmpResult.innerHTML = `
+    <div class="cmp-table-wrap">
+      <div style="font-weight:900;font-size:16px;color:#14332b;margin-bottom:12px;">⚖️ مقارنة (لكل 100 جرام)</div>
+      <table class="cmp-table">
+        <thead><tr><th></th><th>${a.n}</th><th>${b.n}</th><th>الفرق</th></tr></thead>
+        <tbody>
+          ${cmpRow('🔥 السعرات', a.cal, b.cal, ' kcal', true)}
+          ${cmpRow('🥩 البروتين', a.p, b.p, ' جم', false)}
+          ${cmpRow('🍞 الكارب', a.c, b.c, ' جم', true)}
+          ${cmpRow('🥑 الدهون', a.f, b.f, ' جم', true)}
+        </tbody>
+      </table>
+      <div class="cmp-legend">
+        التظليل بيوضح <b>أقل سعرات/كارب/دهون</b> و<b>أعلى بروتين</b> — الأفضل فعلياً بيعتمد على هدف المريض
+        (تخسيس، بناء عضل، حالة مرضية معينة).
+      </div>
+    </div>`;
+  cmpResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.cmp-btn');
+  if (!btn) return;
+  const food = cmpFoodOf(btn.closest('.food-card'));
+  if (food) toggleCmp(food);
+});
+
+cmpGo.addEventListener('click', showComparison);
+cmpClear.addEventListener('click', () => {
+  cmpList = [];
+  cmpResult.innerHTML = '';
+  updateCmpBar();
 });
 
 render(); // Initial
@@ -936,6 +1112,7 @@ async function lookupBarcode() {
         card.querySelector('.r-f').textContent = (food.f * ratio).toFixed(1);
       });
     }
+    syncCmpButtons();
   } catch (e) {
     barcodeResult.innerHTML = `<div class="empty-state"><div class="emoji">⚠️</div><h3>حصلت مشكلة في الاتصال</h3></div>`;
   }
