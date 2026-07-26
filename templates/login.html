@@ -42,26 +42,27 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(
 </style>
 </head>
 <body>
+{% set is_ar = (lang or 'ar') == 'ar' %}
 <div class="container">
   <div class="logo">
     <i class="fa-solid fa-leaf"></i>
     <h1>NutraX</h1>
-    <p>{{ 'استشارات التغذية الإكلينيكية' if (lang or 'ar')=='ar' else 'Clinical Nutrition' }}</p>
+    <p>{{ 'استشارات التغذية الإكلينيكية' if is_ar else 'Clinical Nutrition' }}</p>
   </div>
 
   <div class="card">
     <!-- Tabs -->
     <div class="tabs">
       <button class="tab {% if tab != 'register' %}active{% endif %}" onclick="switchTab('login')" id="tabLogin">
-        <i class="fa-solid fa-arrow-right-to-bracket"></i> تسجيل الدخول
+        <i class="fa-solid fa-arrow-right-to-bracket"></i> {{ 'تسجيل الدخول' if is_ar else 'Sign In' }}
       </button>
       <button class="tab {% if tab == 'register' %}active{% endif %}" onclick="switchTab('register')" id="tabRegister">
-        <i class="fa-solid fa-user-plus"></i> إنشاء حساب
+        <i class="fa-solid fa-user-plus"></i> {{ 'إنشاء حساب' if is_ar else 'Sign Up' }}
       </button>
     </div>
 
     {% if error %}
-    <div class="msg {% if 'تم التسجيل' in error %}msg-success{% else %}msg-error{% endif %}">
+    <div class="msg {% if is_success %}msg-success{% else %}msg-error{% endif %}">
       {{ error }}
     </div>
     {% endif %}
@@ -72,7 +73,7 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(
       <input type="hidden" name="action" value="login">
 
       <div class="form-group">
-        <label class="form-label">البريد الإلكتروني</label>
+        <label class="form-label">{{ 'البريد الإلكتروني' if is_ar else 'Email' }}</label>
         <div class="input-wrap">
           <i class="fa-solid fa-envelope input-icon"></i>
           <input class="form-input with-icon" type="email" name="email" required placeholder="you@example.com" style="text-align:left;direction:ltr">
@@ -80,7 +81,7 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(
       </div>
 
       <div class="form-group">
-        <label class="form-label">كلمة المرور</label>
+        <label class="form-label">{{ 'كلمة المرور' if is_ar else 'Password' }}</label>
         <div class="input-wrap">
           <i class="fa-solid fa-lock input-icon"></i>
           <input class="form-input with-icon" type="password" name="password" required>
@@ -89,18 +90,18 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(
 
       <button type="submit" class="btn">
         <i class="fa-solid fa-arrow-right-to-bracket"></i>
-        تسجيل الدخول
+        {{ 'تسجيل الدخول' if is_ar else 'Sign In' }}
       </button>
 
       <div style="text-align:center;margin-top:14px;font-size:13px;color:#64748b;">
-        نسيت كلمة السر؟ كلمنا واتساب ونظبطهالك:
+        {{ 'نسيت كلمة السر؟ كلمنا واتساب ونظبطهالك:' if is_ar else 'Forgot your password? Message us on WhatsApp:' }}
         <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap;">
           <a href="https://wa.me/201004294521?text=%D9%86%D8%B3%D9%8A%D8%AA%20%D9%83%D9%84%D9%85%D8%A9%20%D8%A7%D9%84%D8%B3%D8%B1%20%D8%A8%D8%AA%D8%A7%D8%B9%D8%AA%20%D8%AD%D8%B3%D8%A7%D8%A8%D9%8A%20%D9%81%D9%8A%20NutraX"
              target="_blank" rel="noopener"
-             style="display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;padding:8px 16px;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px;">🇪🇬 مصر</a>
+             style="display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;padding:8px 16px;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px;">🇪🇬 {{ 'مصر' if is_ar else 'Egypt' }}</a>
           <a href="https://wa.me/971501038664?text=%D9%86%D8%B3%D9%8A%D8%AA%20%D9%83%D9%84%D9%85%D8%A9%20%D8%A7%D9%84%D8%B3%D8%B1%20%D8%A8%D8%AA%D8%A7%D8%B9%D8%AA%20%D8%AD%D8%B3%D8%A7%D8%A8%D9%8A%20%D9%81%D9%8A%20NutraX"
              target="_blank" rel="noopener"
-             style="display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;padding:8px 16px;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px;">🇦🇪 الإمارات</a>
+             style="display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;padding:8px 16px;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px;">🇦🇪 {{ 'الإمارات' if is_ar else 'UAE' }}</a>
         </div>
       </div>
     </form>
@@ -110,19 +111,19 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="action" value="register">
 
-      <div class="section-title">📝 المعلومات الأساسية</div>
+      <div class="section-title">📝 {{ 'المعلومات الأساسية' if is_ar else 'Basic Information' }}</div>
 
       <div class="form-group">
-        <label class="form-label">الاسم الكامل <span class="req">*</span></label>
+        <label class="form-label">{{ 'الاسم الكامل' if is_ar else 'Full Name' }} <span class="req">*</span></label>
         <div class="input-wrap">
           <i class="fa-solid fa-user input-icon"></i>
-          <input class="form-input with-icon" type="text" name="name" required placeholder="محمد أحمد">
+          <input class="form-input with-icon" type="text" name="name" required placeholder="{{ 'محمد أحمد' if is_ar else 'John Smith' }}">
         </div>
       </div>
 
       <div class="row">
         <div class="form-group">
-          <label class="form-label">السن <span class="req">*</span></label>
+          <label class="form-label">{{ 'السن' if is_ar else 'Age' }} <span class="req">*</span></label>
           <div class="input-wrap">
             <i class="fa-solid fa-calendar input-icon"></i>
             <input class="form-input with-icon" type="number" name="age" required placeholder="30" min="10" max="100">
@@ -130,41 +131,41 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(
         </div>
 
         <div class="form-group">
-          <label class="form-label">البلد <span class="req">*</span></label>
+          <label class="form-label">{{ 'البلد' if is_ar else 'Country' }} <span class="req">*</span></label>
           <select class="form-select" name="country" required>
-            <option value="">اختر</option>
-            <option value="EG">🇪🇬 مصر</option>
-            <option value="AE">🇦🇪 الإمارات</option>
-            <option value="SA">🇸🇦 السعودية</option>
-            <option value="KW">🇰🇼 الكويت</option>
-            <option value="QA">🇶🇦 قطر</option>
-            <option value="BH">🇧🇭 البحرين</option>
-            <option value="OM">🇴🇲 عمان</option>
-            <option value="JO">🇯🇴 الأردن</option>
-            <option value="LB">🇱🇧 لبنان</option>
-            <option value="SY">🇸🇾 سوريا</option>
-            <option value="MA">🇲🇦 المغرب</option>
-            <option value="DZ">🇩🇿 الجزائر</option>
-            <option value="TN">🇹🇳 تونس</option>
-            <option value="OTHER">🌍 دولة أخرى</option>
+            <option value="">{{ 'اختر' if is_ar else 'Select' }}</option>
+            <option value="EG">🇪🇬 {{ 'مصر' if is_ar else 'Egypt' }}</option>
+            <option value="AE">🇦🇪 {{ 'الإمارات' if is_ar else 'UAE' }}</option>
+            <option value="SA">🇸🇦 {{ 'السعودية' if is_ar else 'Saudi Arabia' }}</option>
+            <option value="KW">🇰🇼 {{ 'الكويت' if is_ar else 'Kuwait' }}</option>
+            <option value="QA">🇶🇦 {{ 'قطر' if is_ar else 'Qatar' }}</option>
+            <option value="BH">🇧🇭 {{ 'البحرين' if is_ar else 'Bahrain' }}</option>
+            <option value="OM">🇴🇲 {{ 'عمان' if is_ar else 'Oman' }}</option>
+            <option value="JO">🇯🇴 {{ 'الأردن' if is_ar else 'Jordan' }}</option>
+            <option value="LB">🇱🇧 {{ 'لبنان' if is_ar else 'Lebanon' }}</option>
+            <option value="SY">🇸🇾 {{ 'سوريا' if is_ar else 'Syria' }}</option>
+            <option value="MA">🇲🇦 {{ 'المغرب' if is_ar else 'Morocco' }}</option>
+            <option value="DZ">🇩🇿 {{ 'الجزائر' if is_ar else 'Algeria' }}</option>
+            <option value="TN">🇹🇳 {{ 'تونس' if is_ar else 'Tunisia' }}</option>
+            <option value="OTHER">🌍 {{ 'دولة أخرى' if is_ar else 'Other country' }}</option>
           </select>
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">رقم الواتساب <span class="req">*</span></label>
+        <label class="form-label">{{ 'رقم الواتساب' if is_ar else 'WhatsApp Number' }} <span class="req">*</span></label>
         <div class="input-wrap">
           <i class="fa-brands fa-whatsapp input-icon" style="color:#25D366"></i>
           <input class="form-input with-icon" type="tel" name="phone" required placeholder="+971501234567" style="text-align:left;direction:ltr">
         </div>
-        <div class="hint">📱 لازم يكون مع كود الدولة (مثلاً +971 أو +20)</div>
+        <div class="hint">📱 {{ 'لازم يكون مع كود الدولة (مثلاً +971 أو +20)' if is_ar else 'Must include the country code (e.g. +971 or +20)' }}</div>
       </div>
 
       <div class="section-divider"></div>
-      <div class="section-title">🔐 بيانات الدخول</div>
+      <div class="section-title">🔐 {{ 'بيانات الدخول' if is_ar else 'Login Details' }}</div>
 
       <div class="form-group">
-        <label class="form-label">البريد الإلكتروني <span class="req">*</span></label>
+        <label class="form-label">{{ 'البريد الإلكتروني' if is_ar else 'Email' }} <span class="req">*</span></label>
         <div class="input-wrap">
           <i class="fa-solid fa-envelope input-icon"></i>
           <input class="form-input with-icon" type="email" name="reg_email" required placeholder="you@example.com" style="text-align:left;direction:ltr">
@@ -172,28 +173,28 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(
       </div>
 
       <div class="form-group">
-        <label class="form-label">كلمة المرور <span class="req">*</span></label>
+        <label class="form-label">{{ 'كلمة المرور' if is_ar else 'Password' }} <span class="req">*</span></label>
         <div class="input-wrap">
           <i class="fa-solid fa-lock input-icon"></i>
-          <input class="form-input with-icon" type="password" name="reg_password" required minlength="6" placeholder="6 أحرف على الأقل">
+          <input class="form-input with-icon" type="password" name="reg_password" required minlength="6" placeholder="{{ '6 أحرف على الأقل' if is_ar else 'At least 6 characters' }}">
         </div>
       </div>
 
       <button type="submit" class="btn btn-success">
         <i class="fa-solid fa-user-plus"></i>
-        إنشاء حسابي الجديد
+        {{ 'إنشاء حسابي الجديد' if is_ar else 'Create My Account' }}
       </button>
 
       <div class="info" style="margin-top:14px">
         <i class="fa-solid fa-circle-info"></i>
-        بعد التسجيل، تقدر تطلب خطة غذائية مخصصة من د. محمد
+        {{ 'بعد التسجيل، تقدر تطلب خطة غذائية مخصصة من د. محمد' if is_ar else 'After signing up, you can request a personalized meal plan from Dr. Mohamed' }}
       </div>
     </form>
   </div>
 
   <div class="lang-switch">
-    <a href="/lang/{{ 'en' if (lang or 'ar')=='ar' else 'ar' }}">
-      <i class="fa-solid fa-globe"></i> {{ 'English' if (lang or 'ar')=='ar' else 'عربي' }}
+    <a href="/lang/{{ 'en' if is_ar else 'ar' }}">
+      <i class="fa-solid fa-globe"></i> {{ 'English' if is_ar else 'عربي' }}
     </a>
   </div>
 </div>

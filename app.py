@@ -629,26 +629,52 @@ def inject_globals():
     return ctx
 
 
+# رسائل صفحة الدخول/التسجيل بالعربي والإنجليزي
+_LOGIN_MSGS = {
+    "blocked":      ("هذا الحساب محظور. تواصل مع الإدارة.",
+                     "This account is blocked. Please contact support."),
+    "rate_limited": ("محاولات دخول كتير غلط على الحساب ده. حاول تاني بعد 15 دقيقة.",
+                     "Too many failed login attempts for this account. Try again in 15 minutes."),
+    "inactive":     ("هذا الحساب غير مفعل. تواصل مع الإدارة.",
+                     "This account is not active. Please contact support."),
+    "bad_creds":    ("البريد او كلمة المرور غير صحيحة",
+                     "Incorrect email or password"),
+    "all_required": ("كل البيانات مطلوبة",
+                     "All fields are required"),
+    "pw_short":     ("كلمة السر لازم 6 أحرف على الأقل",
+                     "Password must be at least 6 characters"),
+    "registered":   ("تم التسجيل بنجاح! سجل دخولك دلوقتي.",
+                     "Registered successfully! You can sign in now."),
+    "email_taken":  ("البريد الإلكتروني مستخدم بالفعل",
+                     "This email is already registered"),
+}
+
+def _login_msg(key, lang):
+    ar, en = _LOGIN_MSGS[key]
+    return ar if (lang or "ar") == "ar" else en
+
+
 @app.route("/", methods=["GET","POST"])
 def login():
     if "uid" in session: return redirect("/dashboard")
     lang = session.get("lang", "ar")
     error = ""
+    is_success = False
     tab = request.args.get("tab", "login")
     if request.method == "POST":
         check_email = request.form.get("email", "").lower().strip()
         if is_email_blocked(check_email):
-            error = "هذا الحساب محظور. تواصل مع الإدارة."
-            return render_template("login.html", error=error, tab="login", lang=lang)
+            error = _login_msg("blocked", lang)
+            return render_template("login.html", error=error, tab="login", lang=lang, is_success=False)
         action = request.form.get("action")
         if action == "login":
             if _is_login_rate_limited(check_email):
-                error = "محاولات دخول كتير غلط على الحساب ده. حاول تاني بعد 15 دقيقة."
-                return render_template("login.html", error=error, tab="login", lang=lang)
+                error = _login_msg("rate_limited", lang)
+                return render_template("login.html", error=error, tab="login", lang=lang, is_success=False)
             u = get_user(request.form.get("email","").lower(), request.form.get("password",""))
             if u:
                 if not u.get("active", 1):
-                    error = "هذا الحساب غير مفعل. تواصل مع الإدارة."
+                    error = _login_msg("inactive", lang)
                 else:
                     _clear_login_attempts(check_email)
                     session.permanent = True
@@ -658,7 +684,7 @@ def login():
                     return redirect("/dashboard")
             else:
                 _record_failed_login(check_email)
-                error = "البريد او كلمة المرور غير صحيحة"
+                error = _login_msg("bad_creds", lang)
         elif action == "register":
             tab = "register"
             name = request.form.get("name","").strip()
@@ -668,19 +694,20 @@ def login():
             age = request.form.get("age","")
             phone = request.form.get("phone","").strip()
             if not name or not email or not pw or not country or not phone:
-                error = "كل البيانات مطلوبة"
+                error = _login_msg("all_required", lang)
             elif len(pw) < 6:
-                error = "كلمة السر لازم 6 أحرف على الأقل"
+                error = _login_msg("pw_short", lang)
             else:
                 try: age_int = int(age) if age else None
                 except: age_int = None
                 r = register(name, email, pw, country, age_int, phone)
                 if r == "ok":
-                    error = "تم التسجيل بنجاح! سجل دخولك دلوقتي."
+                    error = _login_msg("registered", lang)
+                    is_success = True
                     tab = "login"
                 else:
-                    error = "البريد الإلكتروني مستخدم بالفعل"
-    return render_template("login.html", error=error, tab=tab, lang=lang)
+                    error = _login_msg("email_taken", lang)
+    return render_template("login.html", error=error, tab=tab, lang=lang, is_success=is_success)
 
 @app.route("/logout")
 def logout():
