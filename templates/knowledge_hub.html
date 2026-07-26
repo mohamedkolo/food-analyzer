@@ -388,6 +388,7 @@ var typeLabels = {
   dinner: '{{ "🌙 عشاء" if is_ar else "🌙 Dinner" }}',
   snack: '{{ "🍎 سناك" if is_ar else "🍎 Snack" }}'
 };
+// keys below are the stored cuisine values and must stay Arabic
 var cultureFlags = { 'مصري':'🇪🇬', 'خليجي':'🇸🇦', 'شامي':'🇱🇧', 'مغربي':'🇲🇦', 'عالمي':'🌍' };
 
 function filterByCulture(c) {
@@ -652,6 +653,8 @@ renderPlanMeals();
 
 <script>
 var IS_AR = {{ 'true' if is_ar else 'false' }};
+// serving-basis label for the food lookup cards
+var PER_100 = {{ t('100جم','100g')|tojson }};
 
 function scrollToSection(id) {
   var el = document.getElementById(id);
@@ -755,8 +758,8 @@ var bigFoodDB = [
 
 var foodDB = {};
 bigFoodDB.forEach(function(f) {
-  foodDB[f.ar] = {ar: f.ar, en: f.en, cal: f.cal, p: f.p, c: f.c, f: f.f, per: '100جم'};
-  foodDB[f.en.toLowerCase()] = {ar: f.ar, en: f.en, cal: f.cal, p: f.p, c: f.c, f: f.f, per: '100جم'};
+  foodDB[f.ar] = {ar: f.ar, en: f.en, cal: f.cal, p: f.p, c: f.c, f: f.f, per: PER_100};
+  foodDB[f.en.toLowerCase()] = {ar: f.ar, en: f.en, cal: f.cal, p: f.p, c: f.c, f: f.f, per: PER_100};
 });
 
 var foodCategories = {
@@ -815,10 +818,10 @@ function showFoodInfo(name) {
     '<div class="nutrition-card">' +
       '<div style="font-weight:800;font-size:15px;color:#14332b;margin-bottom:10px">' + (IS_AR ? f.ar : f.en) + ' <span style="font-size:11px;color:var(--muted);font-weight:600">(' + f.per + ')</span></div>' +
       '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">' +
-        '<div><div style="font-size:11px;color:#166534">سعرات</div><div style="font-size:18px;font-weight:800;color:#14332b">' + f.cal + '</div></div>' +
-        '<div><div style="font-size:11px;color:#166534">بروتين</div><div style="font-size:18px;font-weight:800;color:#14332b">' + f.p + 'g</div></div>' +
-        '<div><div style="font-size:11px;color:#166534">كارب</div><div style="font-size:18px;font-weight:800;color:#14332b">' + f.c + 'g</div></div>' +
-        '<div><div style="font-size:11px;color:#166534">دهون</div><div style="font-size:18px;font-weight:800;color:#14332b">' + f.f + 'g</div></div>' +
+        '<div><div style="font-size:11px;color:#166534">' + (IS_AR ? 'سعرات' : 'Calories') + '</div><div style="font-size:18px;font-weight:800;color:#14332b">' + f.cal + '</div></div>' +
+        '<div><div style="font-size:11px;color:#166534">' + (IS_AR ? 'بروتين' : 'Protein') + '</div><div style="font-size:18px;font-weight:800;color:#14332b">' + f.p + 'g</div></div>' +
+        '<div><div style="font-size:11px;color:#166534">' + (IS_AR ? 'كارب' : 'Carbs') + '</div><div style="font-size:18px;font-weight:800;color:#14332b">' + f.c + 'g</div></div>' +
+        '<div><div style="font-size:11px;color:#166534">' + (IS_AR ? 'دهون' : 'Fats') + '</div><div style="font-size:18px;font-weight:800;color:#14332b">' + f.f + 'g</div></div>' +
       '</div>' +
     '</div>';
 }
