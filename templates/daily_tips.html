@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}النصائح اليومية{% endblock %}
+{% block title %}{{ t('النصائح اليومية','Daily Tips') }}{% endblock %}
 {% block content %}
 
 <div class="page-title">
-  <i class="fa-solid fa-bell"></i> نصائحك اليومية
+  <i class="fa-solid fa-bell"></i> {{ t('نصائحك اليومية','Your Daily Tips') }}
 </div>
 
 <!-- Today's Featured Tip -->
@@ -12,7 +12,7 @@
 <div class="card" style="background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border:3px solid #f59e0b;padding:24px">
   <div style="text-align:center">
     <div style="font-size:14px;color:#78350f;font-weight:700;margin-bottom:10px">
-      💫 نصيحة اليوم
+      💫 {{ t('نصيحة اليوم','Tip of the day') }}
     </div>
     <div style="font-size:64px;margin-bottom:14px">{{ today_tip.icon }}</div>
     <div style="font-size:20px;font-weight:900;color:#78350f;margin-bottom:10px">{{ today_tip.title }}</div>
@@ -28,11 +28,11 @@
   <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
     <div style="font-size:38px">🔔</div>
     <div style="flex:1;min-width:200px">
-      <div style="font-weight:800;color:#14332b;margin-bottom:4px">شغل الإشعارات اليومية</div>
-      <div style="font-size:12px;color:#14332b">هنبعتلك نصيحة كل يوم على وقت الفطار</div>
+      <div style="font-weight:800;color:#14332b;margin-bottom:4px">{{ t('شغل الإشعارات اليومية','Turn on daily notifications') }}</div>
+      <div style="font-size:12px;color:#14332b">{{ t('هنبعتلك نصيحة كل يوم على وقت الفطار','We will send you a tip every day at breakfast time') }}</div>
     </div>
     <button onclick="enableNotifications()" class="btn btn-primary">
-      <i class="fa-solid fa-bell"></i> تشغيل
+      <i class="fa-solid fa-bell"></i> {{ t('تشغيل','Enable') }}
     </button>
   </div>
 </div>
@@ -40,7 +40,7 @@
 <!-- All Tips -->
 <div class="card">
   <div class="card-title">
-    <i class="fa-solid fa-list"></i> كل النصائح
+    <i class="fa-solid fa-list"></i> {{ t('كل النصائح','All Tips') }}
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
     {% for tip in tips %}
@@ -56,50 +56,50 @@
 <!-- Reminder Settings -->
 <div class="card">
   <div class="card-title">
-    <i class="fa-solid fa-clock"></i> أوقات التذكير
+    <i class="fa-solid fa-clock"></i> {{ t('أوقات التذكير','Reminder Times') }}
   </div>
   <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
-    اختار الأوقات اللي عايز تتذكر فيها (لما الإشعارات شغالة)
+    {{ t('اختار الأوقات اللي عايز تتذكر فيها (لما الإشعارات شغالة)','Pick the times you want reminders (when notifications are on)') }}
   </p>
 
   <div style="display:flex;flex-direction:column;gap:10px">
     <label class="reminder-row">
       <input type="checkbox" id="rem1" checked onchange="saveReminders()">
       <div>
-        <div style="font-weight:700">🌅 الفطار - 8:00 صباحاً</div>
-        <div style="font-size:11px;color:var(--muted)">نصيحة الصباح</div>
+        <div style="font-weight:700">🌅 {{ t('الفطار - 8:00 صباحاً','Breakfast - 8:00 AM') }}</div>
+        <div style="font-size:11px;color:var(--muted)">{{ t('نصيحة الصباح','Morning tip') }}</div>
       </div>
     </label>
 
     <label class="reminder-row">
       <input type="checkbox" id="rem2" checked onchange="saveReminders()">
       <div>
-        <div style="font-weight:700">💧 شرب الماء - 11:00 صباحاً</div>
-        <div style="font-size:11px;color:var(--muted)">تذكير بالماء</div>
+        <div style="font-weight:700">💧 {{ t('شرب الماء - 11:00 صباحاً','Drink water - 11:00 AM') }}</div>
+        <div style="font-size:11px;color:var(--muted)">{{ t('تذكير بالماء','Water reminder') }}</div>
       </div>
     </label>
 
     <label class="reminder-row">
       <input type="checkbox" id="rem3" checked onchange="saveReminders()">
       <div>
-        <div style="font-weight:700">🍽️ الغداء - 1:30 ظهراً</div>
-        <div style="font-size:11px;color:var(--muted)">تذكير بوقت الأكل</div>
+        <div style="font-weight:700">🍽️ {{ t('الغداء - 1:30 ظهراً','Lunch - 1:30 PM') }}</div>
+        <div style="font-size:11px;color:var(--muted)">{{ t('تذكير بوقت الأكل','Mealtime reminder') }}</div>
       </div>
     </label>
 
     <label class="reminder-row">
       <input type="checkbox" id="rem4" onchange="saveReminders()">
       <div>
-        <div style="font-weight:700">🚶 المشي - 5:00 مساءً</div>
-        <div style="font-size:11px;color:var(--muted)">تذكير بالنشاط</div>
+        <div style="font-weight:700">🚶 {{ t('المشي - 5:00 مساءً','Walk - 5:00 PM') }}</div>
+        <div style="font-size:11px;color:var(--muted)">{{ t('تذكير بالنشاط','Activity reminder') }}</div>
       </div>
     </label>
 
     <label class="reminder-row">
       <input type="checkbox" id="rem5" checked onchange="saveReminders()">
       <div>
-        <div style="font-weight:700">🌙 العشاء - 8:00 مساءً</div>
-        <div style="font-size:11px;color:var(--muted)">تذكير بالعشاء</div>
+        <div style="font-weight:700">🌙 {{ t('العشاء - 8:00 مساءً','Dinner - 8:00 PM') }}</div>
+        <div style="font-size:11px;color:var(--muted)">{{ t('تذكير بالعشاء','Dinner reminder') }}</div>
       </div>
     </label>
   </div>
@@ -151,7 +151,7 @@ var allTips = [
 // Check notification status
 function checkNotificationStatus() {
   if (!('Notification' in window)) {
-    document.getElementById('notifStatus').innerHTML = '<span style="color:#dc2626">❌ المتصفح ده مش بيدعم الإشعارات</span>';
+    document.getElementById('notifStatus').innerHTML = '<span style="color:#dc2626">❌ {{ t('المتصفح ده مش بيدعم الإشعارات','This browser does not support notifications') }}</span>';
     return;
   }
 
@@ -168,7 +168,7 @@ function checkNotificationStatus() {
 
 function enableNotifications() {
   if (!('Notification' in window)) {
-    alert('المتصفح ده مش بيدعم الإشعارات');
+    alert("{{ t('المتصفح ده مش بيدعم الإشعارات','This browser does not support notifications') }}");
     return;
   }
 
@@ -183,7 +183,7 @@ function enableNotifications() {
         badge: '/static/icon-192.png'
       });
     } else {
-      alert('لازم توافق على الإشعارات عشان تشتغل');
+      alert("{{ t('لازم توافق على الإشعارات عشان تشتغل','You need to allow notifications for this to work') }}");
     }
   });
 }

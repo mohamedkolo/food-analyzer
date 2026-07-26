@@ -63,14 +63,14 @@
 
   {% if request.args.get('welcome') %}
   <div class="celebration">
-    🎉 <strong>أهلاً بيك في نوتراكس!</strong> تم حفظ بياناتك بنجاح. ابدأ رحلتك الصحية دلوقتي.
+    🎉 {% if is_ar %}<strong>أهلاً بيك في نوتراكس!</strong> تم حفظ بياناتك بنجاح. ابدأ رحلتك الصحية دلوقتي.{% else %}<strong>Welcome to NutraX!</strong> Your details were saved. Start your health journey now.{% endif %}
   </div>
   {% endif %}
 
   <div class="welcome-banner">
     <div>
-      <h1>أهلاً {{ user.name or '' }} 👋</h1>
-      <p>سعيدين برؤيتك. متابعتك مع د. محمد بدأت من هنا.</p>
+      <h1>{{ t('أهلاً','Hi') }} {{ user.name or '' }} 👋</h1>
+      <p>{{ t('سعيدين برؤيتك. متابعتك مع د. محمد بدأت من هنا.','Good to see you. Your follow-up with Dr. Mohamed starts here.') }}</p>
     </div>
     <div class="welcome-emoji">🌟</div>
   </div>
@@ -79,27 +79,27 @@
     <div class="qstat" style="--c: #1e4a3d">
       <div class="qstat-icon">⚖️</div>
       <div class="qstat-val">{{ user.weight or '-' }}</div>
-      <div class="qstat-lbl">الوزن الحالي (kg)</div>
+      <div class="qstat-lbl">{{ t('الوزن الحالي (kg)','Current weight (kg)') }}</div>
     </div>
     <div class="qstat" style="--c: #2c5a4a">
       <div class="qstat-icon">📏</div>
       <div class="qstat-val">{{ user.height or '-' }}</div>
-      <div class="qstat-lbl">الطول (cm)</div>
+      <div class="qstat-lbl">{{ t('الطول (cm)','Height (cm)') }}</div>
     </div>
     <div class="qstat" style="--c: #f59e0b">
       <div class="qstat-icon">🎯</div>
       <div class="qstat-val" style="font-size: 16px;">
-        {% if user.goal == 'weight_loss' %}تخسيس
-        {% elif user.goal == 'muscle_gain' %}عضل
-        {% elif user.goal == 'bulking' %}تضخيم
-        {% else %}مكتنز{% endif %}
+        {% if user.goal == 'weight_loss' %}{{ t('تخسيس','Weight loss') }}
+        {% elif user.goal == 'muscle_gain' %}{{ t('عضل','Muscle') }}
+        {% elif user.goal == 'bulking' %}{{ t('تضخيم','Bulking') }}
+        {% else %}{{ t('مكتنز','Maintenance') }}{% endif %}
       </div>
-      <div class="qstat-lbl">الهدف</div>
+      <div class="qstat-lbl">{{ t('الهدف','Goal') }}</div>
     </div>
     <div class="qstat" style="--c: #c9a961">
       <div class="qstat-icon">📅</div>
       <div class="qstat-val">{{ user.age or '-' }}</div>
-      <div class="qstat-lbl">العمر</div>
+      <div class="qstat-lbl">{{ t('العمر','Age') }}</div>
     </div>
   </div>
 
@@ -108,22 +108,22 @@
       <div class="sub-status-line">
         <div class="sub-info">
           <strong>
-            {% if active_access.is_trial %}🎁 فترة تجريبية{% else %}💎 اشتراك نشط{% endif %}
+            {% if active_access.is_trial %}🎁 {{ t('فترة تجريبية','Free trial') }}{% else %}💎 {{ t('اشتراك نشط','Active subscription') }}{% endif %}
             - {{ active_access.plan_name }}
           </strong>
-          <span>متبقي {{ active_access.days_left }} يوم</span>
+          <span>{{ active_access.days_left }} {{ t('يوم متبقي','days left') }}</span>
         </div>
-        <a href="/pricing" class="sub-btn">إدارة الاشتراك</a>
+        <a href="/pricing" class="sub-btn">{{ t('إدارة الاشتراك','Manage subscription') }}</a>
       </div>
     </div>
   {% else %}
     <div class="sub-banner sub-none">
       <div class="sub-status-line">
         <div class="sub-info">
-          <strong>⚠️ مفيش اشتراك نشط</strong>
-          <span>عشان تكلم د. محمد وتطلب خطط، محتاج اشتراك. جرّب 7 أيام مجاناً!</span>
+          <strong>⚠️ {{ t('مفيش اشتراك نشط','No active subscription') }}</strong>
+          <span>{{ t('عشان تكلم د. محمد وتطلب خطط، محتاج اشتراك. جرّب 7 أيام مجاناً!','To chat with Dr. Mohamed and request plans you need a subscription. Try 7 days free!') }}</span>
         </div>
-        <a href="/pricing" class="sub-btn sub-btn-warn">شوف الخطط 🚀</a>
+        <a href="/pricing" class="sub-btn sub-btn-warn">{{ t('شوف الخطط','View plans') }} 🚀</a>
       </div>
     </div>
   {% endif %}
@@ -132,14 +132,14 @@
     <!-- ═══ وجبات النهارده والتتبع (فوق خالص) ═══ -->
     <div style="background:#fff;border:2px solid #d9cfb4;border-radius:16px;padding:16px;margin-bottom:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-weight:900;font-size:15px;color:#14332b;">✅ وجبات النهارده ({{ tracking.day_name }})</div>
+        <div style="font-weight:900;font-size:15px;color:#14332b;">✅ {{ t('وجبات النهارده','Today\'s meals') }} ({{ tracking.day_name }})</div>
         <div id="todayCount" style="font-size:12px;font-weight:800;color:#1e4a3d;background:#faf8f3;padding:4px 12px;border-radius:999px;">{{ tracking.today_done }}/{{ tracking.today_total }}</div>
       </div>
       {% if streak and streak.current_streak > 0 %}
       <div style="display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,#fff7ed,#fef3c7);border:1.5px solid #f3d98a;border-radius:12px;padding:10px 14px;margin-bottom:12px;">
         <span style="font-size:22px;">🔥</span>
         <div style="flex:1;">
-          <div style="font-weight:900;font-size:14px;color:#92400e;">{{ streak.current_streak }} يوم متتالي من الالتزام الكامل!</div>
+          <div style="font-weight:900;font-size:14px;color:#92400e;">{% if is_ar %}{{ streak.current_streak }} يوم متتالي من الالتزام الكامل!{% else %}{{ streak.current_streak }} consecutive days of full adherence!{% endif %}</div>
           {% if streak.badge %}
           <div style="font-size:12px;font-weight:700;color:#b45309;">{{ streak.badge.emoji }} {{ streak.badge.label }}</div>
           {% endif %}
@@ -157,7 +157,7 @@
       {% endfor %}
       {% if tracking.week_pct is not none %}
       <div style="margin-top:10px;">
-        <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:#64748b;margin-bottom:4px;"><span>التزامك آخر 7 أيام</span><span>{{ tracking.week_pct }}%</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:#64748b;margin-bottom:4px;"><span>{{ t('التزامك آخر 7 أيام','Your adherence, last 7 days') }}</span><span>{{ tracking.week_pct }}%</span></div>
         <div style="height:8px;background:#e7e0d0;border-radius:99px;overflow:hidden;"><div style="height:100%;width:{{ tracking.week_pct }}%;background:linear-gradient(90deg,#1e4a3d,#14332b);border-radius:99px;"></div></div>
       </div>
       {% endif %}
@@ -191,7 +191,7 @@
 
   <!-- ═══════════ تقدّم الوزن ═══════════ -->
   <div class="card">
-    <h2 class="card-title">⚖️ تقدّمك في الوزن</h2>
+    <h2 class="card-title">⚖️ {{ t('تقدّمك في الوزن','Your Weight Progress') }}</h2>
     {% if weight and weight.has_data %}
       {% if weight.message %}
       <div style="background:linear-gradient(135deg,#faf8f3,#ede7d8);border:1px solid #c9a961;border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
@@ -201,35 +201,35 @@
       {% endif %}
       <div class="wp-stats">
         <div class="wp-box" style="background:#faf8f3;border:1px solid #d9cfb4">
-          <div class="l" style="color:#14332b">البداية</div>
+          <div class="l" style="color:#14332b">{{ t('البداية','Start') }}</div>
           <div class="v" style="color:#14332b">{{ weight.start }}<span style="font-size:11px"> kg</span></div>
         </div>
         <div class="wp-box" style="background:#faf8f3;border:1px solid #d9cfb4">
-          <div class="l" style="color:#1e4a3d">الحالي</div>
+          <div class="l" style="color:#1e4a3d">{{ t('الحالي','Current') }}</div>
           <div class="v" style="color:#14332b">{{ weight.current }}<span style="font-size:11px"> kg</span></div>
         </div>
         <div class="wp-box" style="background:{% if weight.change < 0 %}#faf8f3{% elif weight.change > 0 %}#fef2f2{% else %}#faf8f3{% endif %};border:1px solid {% if weight.change < 0 %}#d9cfb4{% elif weight.change > 0 %}#fca5a5{% else %}#e7e0d0{% endif %}">
-          <div class="l" style="color:#64748b">التغيّر</div>
+          <div class="l" style="color:#64748b">{{ t('التغيّر','Change') }}</div>
           <div class="v" style="color:{% if weight.change < 0 %}#1e4a3d{% elif weight.change > 0 %}#dc2626{% else %}#475569{% endif %}">
             {% if weight.change > 0 %}▲ +{{ weight.change }}{% elif weight.change < 0 %}▼ {{ weight.change }}{% else %}{{ weight.change }}{% endif %}<span style="font-size:11px"> kg</span>
           </div>
         </div>
         {% if weight.pace %}
         <div class="wp-box" style="background:#faf8f3;border:1px solid #d9cfb4">
-          <div class="l" style="color:#a4884a">المعدل الأسبوعي</div>
-          <div class="v" style="color:#14332b">{% if weight.pace > 0 %}+{% endif %}{{ weight.pace }}<span style="font-size:11px"> kg/أسبوع</span></div>
+          <div class="l" style="color:#a4884a">{{ t('المعدل الأسبوعي','Weekly rate') }}</div>
+          <div class="v" style="color:#14332b">{% if weight.pace > 0 %}+{% endif %}{{ weight.pace }}<span style="font-size:11px"> {{ t('kg/أسبوع','kg/week') }}</span></div>
         </div>
         {% endif %}
         {% if weight.bmi %}
         <div class="wp-box" style="background:#fffbeb;border:1px solid #fcd34d">
-          <div class="l" style="color:#92400e">مؤشر الكتلة BMI</div>
+          <div class="l" style="color:#92400e">{{ t('مؤشر الكتلة BMI','BMI') }}</div>
           <div class="v" style="color:{{ weight.bmi_color }}">{{ weight.bmi }}<span style="font-size:11px"> {{ weight.bmi_label }}</span></div>
         </div>
         {% endif %}
         {% if weight.days_tracking > 0 %}
         <div class="wp-box" style="background:#f5f1e8;border:1px solid #d6cdb8">
-          <div class="l" style="color:#1e4a3d">بتتابع بقالك</div>
-          <div class="v" style="color:#14332b">{{ weight.days_tracking }}<span style="font-size:11px"> يوم</span></div>
+          <div class="l" style="color:#1e4a3d">{{ t('بتتابع بقالك','Tracking for') }}</div>
+          <div class="v" style="color:#14332b">{{ weight.days_tracking }}<span style="font-size:11px"> {{ t('يوم','days') }}</span></div>
         </div>
         {% endif %}
       </div>
@@ -246,16 +246,16 @@
         </svg>
       </div>
       {% else %}
-      <p style="color:#64748b;font-size:13px;text-align:center">سجّلت قياس واحد لحد دلوقتي. سجّل كمان عشان يبان خط التقدّم.</p>
+      <p style="color:#64748b;font-size:13px;text-align:center">{{ t('سجّلت قياس واحد لحد دلوقتي. سجّل كمان عشان يبان خط التقدّم.','You have logged one measurement so far. Log more to see the progress line.') }}</p>
       {% endif %}
 
       <div style="text-align:center;margin-top:14px">
-        <a href="/history" class="plan-act pa-primary" style="display:inline-block">+ سجّل وزن جديد</a>
+        <a href="/history" class="plan-act pa-primary" style="display:inline-block">+ {{ t('سجّل وزن جديد','Log new weight') }}</a>
       </div>
     {% else %}
       <div style="text-align:center;padding:14px">
-        <p style="color:#475569;margin-bottom:14px">لسه ماسجّلتش وزنك. سجّل وزنك عشان نتابع تقدّمك ونوريك نزولك أول بأول.</p>
-        <a href="/history" class="plan-act pa-primary" style="font-size:15px;padding:12px 28px">+ سجّل وزنك دلوقتي</a>
+        <p style="color:#475569;margin-bottom:14px">{{ t('لسه ماسجّلتش وزنك. سجّل وزنك عشان نتابع تقدّمك ونوريك نزولك أول بأول.','You have not logged your weight yet. Log it so we can track your progress.') }}</p>
+        <a href="/history" class="plan-act pa-primary" style="font-size:15px;padding:12px 28px">+ {{ t('سجّل وزنك دلوقتي','Log your weight now') }}</a>
       </div>
     {% endif %}
   </div>
@@ -265,7 +265,7 @@
     <div class="tip-card">
       <div class="tip-icon">{{ today_tip.icon }}</div>
       <div class="tip-content">
-        <strong>💡 نصيحة اليوم: {{ today_tip.title }}</strong>
+        <strong>💡 {{ t('نصيحة اليوم','Tip of the day') }}: {{ today_tip.title }}</strong>
         <p>{{ today_tip.tip }}</p>
       </div>
     </div>
@@ -274,84 +274,84 @@
 
   <!-- Current Plan / Pending Request / Request New -->
   <div class="card">
-    <h2 class="card-title">📋 خطتك الحالية</h2>
+    <h2 class="card-title">📋 {{ t('خطتك الحالية','Your Current Plan') }}</h2>
 
     {% if latest_plan %}
       <div class="plan-box">
-        <h3>✅ عندك خطة نشطة</h3>
+        <h3>✅ {{ t('عندك خطة نشطة','You have an active plan') }}</h3>
         <p class="plan-box-meta">
           📅 {{ latest_plan.updated_at.strftime('%Y-%m-%d') if latest_plan.updated_at and latest_plan.updated_at.__class__.__name__ != 'str' else (latest_plan.updated_at[:10] if latest_plan.updated_at else '-') }}
         </p>
         <div class="plan-actions">
-          <a href="/my-plans-history/{{ latest_plan.id }}" class="plan-act pa-primary">👁️ عرض الخطة كاملة</a>
-          <a href="/my-plans-history/{{ latest_plan.id }}/pdf" class="plan-act pa-secondary">📄 تحميل PDF</a>
+          <a href="/my-plans-history/{{ latest_plan.id }}" class="plan-act pa-primary">👁️ {{ t('عرض الخطة كاملة','View full plan') }}</a>
+          <a href="/my-plans-history/{{ latest_plan.id }}/pdf" class="plan-act pa-secondary">📄 {{ t('تحميل PDF','Download PDF') }}</a>
         </div>
       </div>
     {% elif pending_request %}
       <div class="pending-box">
         <div class="pending-icon">⏳</div>
-        <strong style="display: block; margin-bottom: 4px;">طلب خطة قيد المراجعة</strong>
+        <strong style="display: block; margin-bottom: 4px;">{{ t('طلب خطة قيد المراجعة','Plan request under review') }}</strong>
         <p style="margin: 0; font-size: 14px;">
-          د. محمد بيراجع طلبك دلوقتي. هتوصلك إشعار لما الخطة جاهزة.
+          {{ t('د. محمد بيراجع طلبك دلوقتي. هتوصلك إشعار لما الخطة جاهزة.','Dr. Mohamed is reviewing your request. You will get a notification when the plan is ready.') }}
         </p>
       </div>
     {% elif can_request %}
       <div style="text-align: center; padding: 14px;">
-        <p style="color: #475569; margin-bottom: 14px;">لسه ما عندكش خطة. اطلب أول خطة دلوقتي.</p>
+        <p style="color: #475569; margin-bottom: 14px;">{{ t('لسه ما عندكش خطة. اطلب أول خطة دلوقتي.','You do not have a plan yet. Request your first one now.') }}</p>
         <a href="/request-plan" class="plan-act pa-primary" style="font-size: 15px; padding: 12px 28px;">
-          + اطلب خطة جديدة
+          + {{ t('اطلب خطة جديدة','Request a new plan') }}
         </a>
       </div>
     {% else %}
       <div class="waiting-box">
-        <strong style="display: block; margin-bottom: 8px;">⏰ طلبت خطة جديدة قريباً</strong>
-        <p>تقدر تطلب خطة جديدة بعد:</p>
+        <strong style="display: block; margin-bottom: 8px;">⏰ {{ t('طلبت خطة جديدة قريباً','You requested a plan recently') }}</strong>
+        <p>{{ t('تقدر تطلب خطة جديدة بعد:','You can request a new plan in:') }}</p>
         <div class="countdown">
-          {{ days_left }} يوم و {{ hours_left }} ساعة
+          {{ days_left }} {{ t('يوم','days') }} {{ t('و','and') }} {{ hours_left }} {{ t('ساعة','hours') }}
         </div>
-        <p style="font-size: 13px;">آخر طلب: {{ last_request_date or '-' }}</p>
+        <p style="font-size: 13px;">{{ t('آخر طلب:','Last request:') }} {{ last_request_date or '-' }}</p>
       </div>
     {% endif %}
   </div>
 
   <!-- Quick Actions -->
   <div class="card">
-    <h2 class="card-title">⚡ إجراءات سريعة</h2>
+    <h2 class="card-title">⚡ {{ t('إجراءات سريعة','Quick Actions') }}</h2>
     <div class="actions-grid">
       <a href="/my-plans-history" class="action-card">
         <div class="action-icon">📚</div>
-        <div class="action-name">خططي السابقة</div>
-        <div class="action-desc">شوف كل الخطط اللي اتعملت ليك</div>
+        <div class="action-name">{{ t('خططي السابقة','My Previous Plans') }}</div>
+        <div class="action-desc">{{ t('شوف كل الخطط اللي اتعملت ليك','See every plan made for you') }}</div>
       </a>
 
       <a href="/messages" class="action-card">
         <div class="action-icon">💬</div>
-        <div class="action-name">شات مع د. محمد</div>
-        <div class="action-desc">{% if unread_messages > 0 %}<strong style="color:#dc2626">{{ unread_messages }} جديد</strong>{% else %}محادثة جديدة{% endif %}</div>
+        <div class="action-name">{{ t('شات مع د. محمد','Chat with Dr. Mohamed') }}</div>
+        <div class="action-desc">{% if unread_messages > 0 %}<strong style="color:#dc2626">{{ unread_messages }} {{ t('جديد','new') }}</strong>{% else %}{{ t('محادثة جديدة','New conversation') }}{% endif %}</div>
       </a>
 
       <a href="/history" class="action-card">
         <div class="action-icon">⚖️</div>
-        <div class="action-name">تطور الوزن</div>
-        <div class="action-desc">سجّل وزنك وشوف التطور</div>
+        <div class="action-name">{{ t('تطور الوزن','Weight Progress') }}</div>
+        <div class="action-desc">{{ t('سجّل وزنك وشوف التطور','Log your weight and see progress') }}</div>
       </a>
 
       <a href="/knowledge" class="action-card">
         <div class="action-icon">📖</div>
-        <div class="action-name">مكتبة المعرفة</div>
-        <div class="action-desc">معلومات + كتب + فيديوهات</div>
+        <div class="action-name">{{ t('مكتبة المعرفة','Knowledge Library') }}</div>
+        <div class="action-desc">{{ t('معلومات + كتب + فيديوهات','Articles + books + videos') }}</div>
       </a>
 
       <a href="/daily-tips" class="action-card">
         <div class="action-icon">💡</div>
-        <div class="action-name">نصائح يومية</div>
-        <div class="action-desc">نصائح مخصصة لحالتك</div>
+        <div class="action-name">{{ t('نصائح يومية','Daily Tips') }}</div>
+        <div class="action-desc">{{ t('نصائح مخصصة لحالتك','Tips tailored to your condition') }}</div>
       </a>
 
       <a href="/settings" class="action-card">
         <div class="action-icon">⚙️</div>
-        <div class="action-name">إعداداتي</div>
-        <div class="action-desc">عدّل بياناتك</div>
+        <div class="action-name">{{ t('إعداداتي','My Settings') }}</div>
+        <div class="action-desc">{{ t('عدّل بياناتك','Edit your details') }}</div>
       </a>
     </div>
   </div>

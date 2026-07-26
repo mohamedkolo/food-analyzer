@@ -296,12 +296,12 @@
           <td>
             {% if u.role == 'admin' or u.is_admin %}<span class="badge b-purple">👑 Admin</span>
             {% elif u.role == 'nutritionist' %}<span class="badge b-info">👨‍⚕️ {{ t('أخصائي','Nutritionist') }}</span>
-            {% else %}<span class="badge b-gray">👤 عميل</span>{% endif %}
+            {% else %}<span class="badge b-gray">👤 {{ t('عميل','Client') }}</span>{% endif %}
           </td>
 
           <td>
             {% if is_active %}<span class="badge b-success">● {{ t('نشط','Active') }}</span>
-            {% else %}<span class="badge b-danger">🚫 محظور</span>{% endif %}
+            {% else %}<span class="badge b-danger">🚫 {{ t('محظور','Blocked') }}</span>{% endif %}
           </td>
 
           <td style="font-size: 13px; color: #64748b">
@@ -318,8 +318,8 @@
 
               <!-- Toggle active -->
               <a href="/admin/users/{{ u.id }}/toggle" class="act-icon-btn act-toggle"
-                 title="{% if is_active %}إيقاف{% else %}تفعيل{% endif %}"
-                 onclick="return confirm('تأكيد {% if is_active %}إيقاف{% else %}تفعيل{% endif %} الحساب؟')">
+                 title="{% if is_active %}{{ t('إيقاف','Deactivate') }}{% else %}{{ t('تفعيل','Activate') }}{% endif %}"
+                 onclick="return confirm('{% if is_active %}{{ t('تأكيد إيقاف الحساب؟','Confirm deactivating this account?') }}{% else %}{{ t('تأكيد تفعيل الحساب؟','Confirm activating this account?') }}{% endif %}')">
                 {% if is_active %}⏸️{% else %}▶️{% endif %}
               </a>
 

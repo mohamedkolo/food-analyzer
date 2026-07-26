@@ -114,14 +114,14 @@
   <div class="card">
     <div class="card-title"><i class="fa-solid fa-stethoscope"></i> {{ t('الخطوة 5: أمراضك أو حالاتك (اختر كل اللي ينطبق عليك)','Step 5: Your conditions (select all that apply)') }}</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px">
-      {% for cond in [
-        'قولون عصبي','سكري النوع الثاني','ضغط الدم المرتفع','امراض القلب',
-        'الفشل الكلوي المزمن','الحمل','الرضاعة الطبيعية','G6PD','ثلاسيميا',
-        'نقص الحديد','نقص فيتامين D3','حرق بطيء','حساسية اللاكتوز'
+      {% for cond, cond_en in [
+        ('قولون عصبي','IBS'),('سكري النوع الثاني','Type 2 Diabetes'),('ضغط الدم المرتفع','Hypertension'),('امراض القلب','Heart Disease'),
+        ('الفشل الكلوي المزمن','Chronic Kidney Disease'),('الحمل','Pregnancy'),('الرضاعة الطبيعية','Breastfeeding'),('G6PD','G6PD'),('ثلاسيميا','Thalassemia'),
+        ('نقص الحديد','Iron Deficiency'),('نقص فيتامين D3','Vitamin D3 Deficiency'),('حرق بطيء','Slow Metabolism'),('حساسية اللاكتوز','Lactose Intolerance')
       ] %}
       <label style="display:flex;align-items:center;gap:8px;background:var(--gray);border:1.5px solid var(--gray-2);border-radius:10px;padding:10px;cursor:pointer">
         <input type="checkbox" name="symptoms" value="{{ cond }}" style="width:18px;height:18px">
-        <span style="font-size:12px;font-weight:600">{{ cond }}</span>
+        <span style="font-size:12px;font-weight:600">{{ cond if is_ar else cond_en }}</span>
       </label>
       {% endfor %}
     </div>
@@ -132,10 +132,10 @@
     <div class="card-title"><i class="fa-solid fa-triangle-exclamation"></i> {{ t('الخطوة 6: الحساسية الغذائية','Step 6: Food Allergies') }}</div>
     <p style="font-size:12px;color:var(--muted);margin-bottom:10px">{{ t('اختر أي حساسية عندك (أكلات هتتشال نهائياً من خطتك):','Select any allergy you have (those foods are removed from your plan entirely):') }}</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
-      {% for allergy in ['اللاكتوز','الجلوتين','المكسرات','البيض','الأسماك','الفول السوداني','الصويا','المحار','السمسم'] %}
+      {% for allergy, allergy_en in [('اللاكتوز','Lactose'),('الجلوتين','Gluten'),('المكسرات','Tree nuts'),('البيض','Eggs'),('الأسماك','Fish'),('الفول السوداني','Peanuts'),('الصويا','Soy'),('المحار','Shellfish'),('السمسم','Sesame')] %}
       <label style="display:flex;align-items:center;gap:8px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:10px;cursor:pointer">
         <input type="checkbox" name="allergies" value="{{ allergy }}" style="width:18px;height:18px">
-        <span style="font-size:12px;font-weight:600;color:#991b1b">{{ allergy }}</span>
+        <span style="font-size:12px;font-weight:600;color:#991b1b">{{ allergy if is_ar else allergy_en }}</span>
       </label>
       {% endfor %}
     </div>
@@ -153,7 +153,7 @@
   <!-- ═══════════ 8. الأكلات اللي مش بتحبها ═══════════ -->
   <div class="card">
     <div class="card-title"><i class="fa-solid fa-ban" style="color:#dc2626"></i> {{ t('الخطوة 8: الأكلات اللي مش بتحبها','Step 8: Foods You Dislike') }}</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">اكتب الأكلات اللي مش بتحبها أو مش بتاكلها مفصولة بفواصل (هتتشال من خطتك):</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ t('اكتب الأكلات اللي مش بتحبها أو مش بتاكلها مفصولة بفواصل (هتتشال من خطتك):','List foods you dislike or do not eat, separated by commas (they are removed from your plan):') }}</p>
     <textarea class="form-input" name="disliked_foods" rows="2" 
       placeholder="{{ t('مثلاً: كبدة، باذنجان، بصل، فلفل حار، كوسة','e.g. liver, eggplant, onion, chili, zucchini') }}" 
       style="resize:vertical"></textarea>
@@ -162,7 +162,7 @@
   <!-- ═══════════ 9. ملاحظات إضافية ═══════════ -->
   <div class="card">
     <div class="card-title"><i class="fa-solid fa-note-sticky"></i> {{ t('الخطوة 9: ملاحظات إضافية للدكتور','Step 9: Extra Notes for the Doctor') }}</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">أي تفاصيل تانية: أدوية، عادات، مواعيد التمرين، ميزانية الأكل، تفضيلات...</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ t('أي تفاصيل تانية: أدوية، عادات، مواعيد التمرين، ميزانية الأكل، تفضيلات...','Anything else: medications, habits, training times, food budget, preferences...') }}</p>
     <textarea class="form-input" name="notes" rows="3" 
       placeholder="{{ t('مثلاً: بتمرن المغرب، باكل في الشغل، بتاخد دواء معين...','e.g. I train in the evening, I eat at work, I take a certain medication...') }}" 
       style="resize:vertical"></textarea>

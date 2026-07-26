@@ -429,13 +429,13 @@ function urlBase64ToUint8Array(base64String){
 
 async function nxEnablePush(){
   if(!('serviceWorker' in navigator) || !('PushManager' in window)){
-    alert('المتصفح ده مش بيدعم الإشعارات.\nلو على آيفون: لازم تضيف الموقع للشاشة الرئيسية الأول (Add to Home Screen) وتفتحه منها.');
+    alert("{{ t('المتصفح ده مش بيدعم الإشعارات. لو على آيفون: لازم تضيف الموقع للشاشة الرئيسية الأول (Add to Home Screen) وتفتحه منها.','This browser does not support notifications. On iPhone: add the site to your Home Screen first (Add to Home Screen) and open it from there.') }}");
     return;
   }
   try{
     var permission = await Notification.requestPermission();
     if(permission !== 'granted'){
-      alert('لازم تسمح بالإشعارات عشان توصلك على الموبايل.');
+      alert("{{ t('لازم تسمح بالإشعارات عشان توصلك على الموبايل.','You need to allow notifications to receive them on your phone.') }}");
       return;
     }
 
@@ -445,7 +445,7 @@ async function nxEnablePush(){
     var data = await res.json();
     var key = data.key || data.publicKey || '';
     if(!key){
-      alert('السيرفر لسه مش جاهز للإشعارات (مفاتيح VAPID ناقصة على Render).');
+      alert("{{ t('السيرفر لسه مش جاهز للإشعارات (مفاتيح VAPID ناقصة على Render).','The server is not ready for notifications yet (VAPID keys missing on Render).') }}");
       return;
     }
 
@@ -464,12 +464,12 @@ async function nxEnablePush(){
     });
 
     if(save.ok){
-      alert('✅ تم تفعيل إشعارات الموبايل بنجاح!\nهتوصلك الإشعارات حتى والموقع مقفول.');
+      alert("{{ t('✅ تم تفعيل إشعارات الموبايل بنجاح! هتوصلك الإشعارات حتى والموقع مقفول.','✅ Mobile notifications enabled! You will get them even when the site is closed.') }}");
     }else{
-      alert('حصلت مشكلة في حفظ الاشتراك. حاول تاني.');
+      alert("{{ t('حصلت مشكلة في حفظ الاشتراك. حاول تاني.','There was a problem saving the subscription. Please try again.') }}");
     }
   }catch(e){
-    alert('حصل خطأ: ' + (e && e.message ? e.message : e));
+    alert("{{ t('حصل خطأ: ','An error occurred: ') }}" + (e && e.message ? e.message : e));
   }
 }
 </script>

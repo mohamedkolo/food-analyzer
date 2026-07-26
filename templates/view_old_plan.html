@@ -188,15 +188,15 @@
 
 <div class="vop-wrap">
 
-  <a href="/my-plans-history" class="back-link">← الرجوع لقائمة الخطط</a>
+  <a href="/my-plans-history" class="back-link">← {{ t('الرجوع لقائمة الخطط','Back to plans list') }}</a>
 
   <!-- Plan Header -->
   <div class="plan-header">
     <h1>
       {% set goal = plan_data.get('goal_type', 'weight_loss') %}
-      {% if goal == 'weight_loss' %}🥗 خطة تخسيس
-      {% elif goal == 'muscle_gain' %}💪 خطة زيادة عضل
-      {% elif goal == 'bulking' %}🔥 خطة تضخيم
+      {% if goal == 'weight_loss' %}🥗 {{ t('خطة تخسيس','Weight Loss Plan') }}
+      {% elif goal == 'muscle_gain' %}💪 {{ t('خطة زيادة عضل','Muscle Gain Plan') }}
+      {% elif goal == 'bulking' %}🔥 {{ t('خطة تضخيم','Bulking Plan') }}
       {% else %}🍽️ خطة غذائية{% endif %}
     </h1>
     <div class="plan-meta-line">
@@ -207,32 +207,32 @@
     </div>
 
     <div class="header-actions">
-      <a href="/my-plans-history/{{ plan_req.id }}/pdf" class="h-btn h-btn-primary">📄 تحميل PDF</a>
+      <a href="/my-plans-history/{{ plan_req.id }}/pdf" class="h-btn h-btn-primary">📄 {{ t('تحميل PDF','Download PDF') }}</a>
       <form method="POST" action="/my-plans-history/{{ plan_req.id }}/reactivate" style="display: contents;">
         <button type="submit" class="h-btn"
-                onclick="return confirm('تأكيد إعادة تفعيل الخطة دي كخطتك الحالية؟')">
-          ↻ إعادة تفعيل
+                onclick="return confirm('{{ t('تأكيد إعادة تفعيل الخطة دي كخطتك الحالية؟','Reactivate this plan as your current plan?') }}')">
+          ↻ {{ t('إعادة تفعيل','Reactivate') }}
         </button>
       </form>
-      <a href="/my-plans-history/{{ plan_req.id }}/edit" class="h-btn">✏️ تعديل</a>
+      <a href="/my-plans-history/{{ plan_req.id }}/edit" class="h-btn">✏️ {{ t('تعديل','Edit') }}</a>
     </div>
   </div>
 
   <!-- Patient Snapshot at the time -->
   <div class="snapshot">
-    <h2 class="snapshot-title">📊 بياناتك وقت الخطة</h2>
+    <h2 class="snapshot-title">📊 {{ t('بياناتك وقت الخطة','Your data at the time of the plan') }}</h2>
     <div class="snap-grid">
       <div class="snap-item">
         <div class="snap-val">{{ plan_data.get('weight') or '-' }}</div>
-        <div class="snap-lbl">الوزن (kg)</div>
+        <div class="snap-lbl">{{ t('الوزن (kg)','Weight (kg)') }}</div>
       </div>
       <div class="snap-item">
         <div class="snap-val">{{ plan_data.get('height') or '-' }}</div>
-        <div class="snap-lbl">الطول (cm)</div>
+        <div class="snap-lbl">{{ t('الطول (cm)','Height (cm)') }}</div>
       </div>
       <div class="snap-item">
         <div class="snap-val">{{ plan_data.get('age') or '-' }}</div>
-        <div class="snap-lbl">العمر</div>
+        <div class="snap-lbl">{{ t('العمر','Age') }}</div>
       </div>
       <div class="snap-item">
         <div class="snap-val">{{ plan_data.get('bmi') or '-' }}</div>
@@ -244,13 +244,13 @@
       </div>
       <div class="snap-item">
         <div class="snap-val">{{ plan_data.get('fat_pct') or '-' }}</div>
-        <div class="snap-lbl">دهون (%)</div>
+        <div class="snap-lbl">{{ t('دهون (%)','Body fat (%)') }}</div>
       </div>
     </div>
 
     {% if plan_data.get('symptoms') %}
     <div style="margin-top: 16px;">
-      <strong style="color: #475569; font-size: 14px;">⚕️ حالات طبية وقتها:</strong>
+      <strong style="color: #475569; font-size: 14px;">⚕️ {{ t('حالات طبية وقتها:','Medical conditions then:') }}</strong>
       <div class="tags">
         {% for s in plan_data.get('symptoms', []) %}
         <span class="tag tag-medical">{{ s }}</span>
@@ -261,7 +261,7 @@
 
     {% if plan_data.get('allergies') %}
     <div style="margin-top: 12px;">
-      <strong style="color: #475569; font-size: 14px;">⚠️ حساسية:</strong>
+      <strong style="color: #475569; font-size: 14px;">⚠️ {{ t('حساسية:','Allergies:') }}</strong>
       <div class="tags">
         {% for a in plan_data.get('allergies', []) %}
         <span class="tag tag-allergy">{{ a }}</span>
@@ -272,7 +272,7 @@
 
     {% if plan_data.get('notes') %}
     <div style="margin-top: 12px; padding: 12px; background: #faf8f3; border-radius: 10px; border-right: 4px solid #1e4a3d;">
-      <strong style="color: #14332b; font-size: 13px;">📝 ملاحظات:</strong>
+      <strong style="color: #14332b; font-size: 13px;">📝 {{ t('ملاحظات:','Notes:') }}</strong>
       <p style="margin: 6px 0 0; color: #0f172a; font-size: 14px;">{{ plan_data.get('notes') }}</p>
     </div>
     {% endif %}
@@ -280,13 +280,13 @@
 
   <!-- 7 Days Plan -->
   <div class="days-section">
-    <h2 class="snapshot-title">📅 الخطة الأسبوعية كاملة</h2>
+    <h2 class="snapshot-title">📅 {{ t('الخطة الأسبوعية كاملة','Full Weekly Plan') }}</h2>
 
     {% if plan_days %}
       {% for day in plan_days %}
       <div class="day-card">
         <div class="day-head">
-          <span class="day-name">{{ day.day or 'يوم' }}</span>
+          <span class="day-name">{{ day.day or t('يوم','Day') }}</span>
           {% if day.total_cal %}
           <span class="day-cals">🔥 {{ day.total_cal }} kcal</span>
           {% endif %}
@@ -312,8 +312,8 @@
     {% else %}
     <div class="empty-meals">
       <p style="font-size: 50px; margin-bottom: 12px;">📋</p>
-      <p><strong>الخطة دي ما تمش حفظ تفاصيلها بشكل كامل</strong></p>
-      <p style="font-size: 14px; margin-top: 6px;">حمّل الـ PDF عشان تشوف التفاصيل لو متاحة</p>
+      <p><strong>{{ t('الخطة دي ما تمش حفظ تفاصيلها بشكل كامل','This plan did not have its full details saved') }}</strong></p>
+      <p style="font-size: 14px; margin-top: 6px;">{{ t('حمّل الـ PDF عشان تشوف التفاصيل لو متاحة','Download the PDF to see details if available') }}</p>
     </div>
     {% endif %}
   </div>
