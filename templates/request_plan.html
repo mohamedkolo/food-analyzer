@@ -1,449 +1,192 @@
 {% extends "base.html" %}
+{% block title %}{{ t('طلب خطة جديدة','Request New Plan') }}{% endblock %}
 {% block content %}
 
+<div class="page-title">
+  <i class="fa-solid fa-paper-plane"></i> {{ t('طلب خطة غذائية جديدة','Request a New Meal Plan') }}
+</div>
+
+<div class="alert alert-info">
+  <i class="fa-solid fa-circle-info"></i>
+  {{ t('املا الاستمارة كاملة بدقة - كل اللي تكتبه هيتأخد في الاعتبار في خطتك.','Fill the form carefully - everything you enter is taken into account in your plan.') }}
+</div>
+
+<form method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <!-- ═══════════ 1. الهدف ═══════════ -->
+  <div class="card">
+    <div class="card-title">
+      <i class="fa-solid fa-bullseye"></i> {{ t('الخطوة 1: ما هو هدفك؟','Step 1: What is your goal?') }}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+      {% for goal in [
+        ('weight_loss','🥗',t('تخسيس','Weight Loss')),
+        ('maintenance','🍽️',t('الحفاظ على الوزن','Maintain Weight')),
+        ('muscle_gain','💪',t('زيادة عضل','Muscle Gain')),
+        ('bulking','🔥',t('تضخيم','Bulking'))
+      ] %}
+      <label style="cursor:pointer">
+        <input type="radio" name="goal_type" value="{{ goal[0] }}" {% if loop.first %}checked{% endif %} style="display:none">
+        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:12px;padding:14px;text-align:center;background:white;transition:all .2s">
+          <div style="font-size:28px;margin-bottom:6px">{{ goal[1] }}</div>
+          <div style="font-weight:700;font-size:13px">{{ goal[2] }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ═══════════ 2. المطبخ ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-utensils"></i> {{ t('الخطوة 2: المطبخ المفضل','Step 2: Preferred Cuisine') }}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
+      {% for cul in [('مصري','🇪🇬',t('مصري','Egyptian')),('خليجي','🇸🇦',t('خليجي','Gulf')),('شامي','🇱🇧',t('شامي','Levantine')),('مغربي','🇲🇦',t('مغربي','Moroccan')),('عالمي','🌍',t('عالمي','International'))] %}
+      <label style="cursor:pointer">
+        <input type="radio" name="culture" value="{{ cul[0] }}" {% if loop.first %}checked{% endif %} style="display:none">
+        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:12px;text-align:center;background:white;transition:all .2s">
+          <div style="font-size:24px">{{ cul[1] }}</div>
+          <div style="font-weight:700;font-size:13px;margin-top:4px">{{ cul[2] }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ═══════════ 3. نظام التغذية ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-clock"></i> {{ t('الخطوة 3: نظام الأكل','Step 3: Eating Pattern') }}</div>
+    <div style="display:grid;gap:8px">
+      {% for key, info in diet_plans.items() %}
+      <label style="cursor:pointer">
+        <input type="radio" name="diet_plan_type" value="{{ key }}" {% if loop.first %}checked{% endif %} style="display:none">
+        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:14px;background:white;transition:all .2s;display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <div>
+            <div style="font-weight:700;font-size:14px">{{ info.name }}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">{{ info.description }}</div>
+          </div>
+          <div style="color:var(--blue);font-size:18px">→</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ═══════════ 4. البيانات الشخصية ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-user"></i> {{ t('الخطوة 4: بياناتك الشخصية','Step 4: Your Personal Details') }}</div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">{{ t('الجنس','Gender') }}</label>
+        <select class="form-select" name="gender">
+          <option value="ذكر" {% if user.gender == 'male' or user.gender == 'ذكر' %}selected{% endif %}>{{ t('ذكر','Male') }}</option>
+          <option value="انثى" {% if user.gender == 'female' or user.gender == 'انثى' %}selected{% endif %}>{{ t('أنثى','Female') }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ t('العمر','Age') }}</label>
+        <input class="form-input" type="number" name="age" value="{{ user.age or '' }}" placeholder="30">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">{{ t('الطول (سم)','Height (cm)') }}</label>
+        <input class="form-input" type="number" name="height" step="0.5" value="{{ user.height or '' }}" placeholder="170" id="hField">
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ t('الوزن (كجم)','Weight (kg)') }}</label>
+        <input class="form-input" type="number" name="weight" step="0.1" value="{{ user.weight or '' }}" placeholder="70" id="wField">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">{{ t('نسبة الدهون % (اختياري)','Body fat % (optional)') }}</label>
+        <input class="form-input" type="number" name="fat_pct" step="0.1" placeholder="25">
+      </div>
+      <div class="form-group">
+        <label class="form-label">BMI</label>
+        <input class="form-input" type="number" name="bmi" step="0.1" id="bmiField" readonly>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ 5. الأمراض والحالات ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-stethoscope"></i> {{ t('الخطوة 5: أمراضك أو حالاتك (اختر كل اللي ينطبق عليك)','Step 5: Your conditions (select all that apply)') }}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px">
+      {% for cond in [
+        'قولون عصبي','سكري النوع الثاني','ضغط الدم المرتفع','امراض القلب',
+        'الفشل الكلوي المزمن','الحمل','الرضاعة الطبيعية','G6PD','ثلاسيميا',
+        'نقص الحديد','نقص فيتامين D3','حرق بطيء','حساسية اللاكتوز'
+      ] %}
+      <label style="display:flex;align-items:center;gap:8px;background:var(--gray);border:1.5px solid var(--gray-2);border-radius:10px;padding:10px;cursor:pointer">
+        <input type="checkbox" name="symptoms" value="{{ cond }}" style="width:18px;height:18px">
+        <span style="font-size:12px;font-weight:600">{{ cond }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ═══════════ 6. الحساسية ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-triangle-exclamation"></i> {{ t('الخطوة 6: الحساسية الغذائية','Step 6: Food Allergies') }}</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">{{ t('اختر أي حساسية عندك (أكلات هتتشال نهائياً من خطتك):','Select any allergy you have (those foods are removed from your plan entirely):') }}</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
+      {% for allergy in ['اللاكتوز','الجلوتين','المكسرات','البيض','الأسماك','الفول السوداني','الصويا','المحار','السمسم'] %}
+      <label style="display:flex;align-items:center;gap:8px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:10px;cursor:pointer">
+        <input type="checkbox" name="allergies" value="{{ allergy }}" style="width:18px;height:18px">
+        <span style="font-size:12px;font-weight:600;color:#991b1b">{{ allergy }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ═══════════ 7. الأكلات المفضلة ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-heart" style="color:#16a34a"></i> {{ t('الخطوة 7: الأكلات اللي بتحبها','Step 7: Foods You Like') }}</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ t('اكتب الأكلات اللي بتحبها مفصولة بفواصل (هنحاول نضعها في خطتك):','List foods you like, separated by commas (we will try to include them):') }}</p>
+    <textarea class="form-input" name="liked_foods" rows="2" 
+      placeholder="{{ t('مثلاً: شوفان، سلمون، افوكادو، دجاج مشوي، تفاح','e.g. oats, salmon, avocado, grilled chicken, apple') }}" 
+      style="resize:vertical"></textarea>
+  </div>
+
+  <!-- ═══════════ 8. الأكلات اللي مش بتحبها ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-ban" style="color:#dc2626"></i> {{ t('الخطوة 8: الأكلات اللي مش بتحبها','Step 8: Foods You Dislike') }}</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">اكتب الأكلات اللي مش بتحبها أو مش بتاكلها مفصولة بفواصل (هتتشال من خطتك):</p>
+    <textarea class="form-input" name="disliked_foods" rows="2" 
+      placeholder="{{ t('مثلاً: كبدة، باذنجان، بصل، فلفل حار، كوسة','e.g. liver, eggplant, onion, chili, zucchini') }}" 
+      style="resize:vertical"></textarea>
+  </div>
+
+  <!-- ═══════════ 9. ملاحظات إضافية ═══════════ -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-note-sticky"></i> {{ t('الخطوة 9: ملاحظات إضافية للدكتور','Step 9: Extra Notes for the Doctor') }}</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">أي تفاصيل تانية: أدوية، عادات، مواعيد التمرين، ميزانية الأكل، تفضيلات...</p>
+    <textarea class="form-input" name="notes" rows="3" 
+      placeholder="{{ t('مثلاً: بتمرن المغرب، باكل في الشغل، بتاخد دواء معين...','e.g. I train in the evening, I eat at work, I take a certain medication...') }}" 
+      style="resize:vertical"></textarea>
+  </div>
+
+  <button type="submit" class="btn btn-success btn-full" style="font-size:16px;padding:16px">
+    <i class="fa-solid fa-paper-plane"></i> {{ t('إرسال الطلب للدكتور','Send Request to the Doctor') }}
+  </button>
+</form>
+
 <style>
-  .history-wrap {
-    max-width: 1100px;
-    margin: 20px auto;
-    padding: 16px;
-    font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
-  }
-
-  .history-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-
-  .history-title {
-    font-size: 28px;
-    font-weight: 800;
-    color: #0f172a;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .history-subtitle {
-    color: #64748b;
-    font-size: 15px;
-    margin-top: 4px;
-  }
-
-  .new-plan-btn {
-    background: linear-gradient(135deg, #1e4a3d, #1e4a3d);
-    color: #fff;
-    padding: 12px 24px;
-    border-radius: 12px;
-    border: 0;
-    font-family: inherit;
-    font-weight: 700;
-    font-size: 15px;
-    text-decoration: none;
-    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
-    transition: all 0.25s;
-  }
-
-  .new-plan-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.45);
-  }
-
-  /* Stats summary */
-  .stats-bar {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
-    background: #fff;
-    padding: 20px;
-    border-radius: 16px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-    margin-bottom: 24px;
-    border: 1px solid #f5f1e8;
-  }
-
-  .stat-item {
-    text-align: center;
-  }
-
-  .stat-num {
-    font-size: 28px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #1e4a3d, #1e4a3d);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    line-height: 1;
-  }
-
-  .stat-lbl {
-    font-size: 13px;
-    color: #64748b;
-    margin-top: 6px;
-    font-weight: 600;
-  }
-
-  /* Filter tabs */
-  .filter-tabs {
-    display: flex;
-    gap: 6px;
-    background: #f5f1e8;
-    padding: 5px;
-    border-radius: 12px;
-    width: fit-content;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-  }
-
-  .filter-tab {
-    background: transparent;
-    border: 0;
-    padding: 9px 18px;
-    border-radius: 9px;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    color: #475569;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .filter-tab.active {
-    background: #fff;
-    color: #1e4a3d;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  }
-
-  /* Plan cards grid */
-  .plans-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 18px;
-  }
-
-  .plan-card {
-    background: #fff;
-    border-radius: 18px;
-    padding: 22px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-    border: 1px solid #f5f1e8;
-    position: relative;
-    transition: all 0.25s;
-    overflow: hidden;
-  }
-
-  .plan-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 5px;
-    background: var(--accent);
-  }
-
-  .plan-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  }
-
-  .plan-card.active-plan {
-    border-color: #1e4a3d;
-    background: linear-gradient(180deg, #faf8f3 0%, #fff 30%);
-  }
-
-  .plan-card-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: start;
-    margin-bottom: 14px;
-  }
-
-  .plan-emoji {
-    font-size: 38px;
-    line-height: 1;
-  }
-
-  .plan-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  .status-active { background: #ede7d8; color: #14332b; }
-  .status-expired { background: #f5f1e8; color: #475569; }
-  .status-archived { background: #fef3c7; color: #92400e; }
-
-  .plan-name {
-    font-size: 19px;
-    font-weight: 800;
-    color: #0f172a;
-    margin: 0 0 6px;
-  }
-
-  .plan-date {
-    color: #94a3b8;
-    font-size: 13px;
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .plan-meta {
-    background: #faf8f3;
-    border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 16px;
-    font-size: 13px;
-  }
-
-  .meta-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 4px 0;
-    color: #475569;
-  }
-
-  .meta-row strong { color: #0f172a; font-weight: 700; }
-
-  .plan-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-
-  .action-btn {
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: 0;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    text-decoration: none;
-    text-align: center;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-  }
-
-  .btn-view {
-    background: #1e4a3d;
-    color: #fff;
-    grid-column: 1 / -1;
-  }
-
-  .btn-view:hover {
-    background: #1e4a3d;
-  }
-
-  .btn-pdf {
-    background: #f0ead9;
-    color: #14332b;
-  }
-
-  .btn-pdf:hover { background: #ede7d8; }
-
-  .btn-reactivate {
-    background: #fef3c7;
-    color: #92400e;
-  }
-
-  .btn-reactivate:hover { background: #fde68a; }
-
-  .btn-edit {
-    background: #ede9fe;
-    color: #5b21b6;
-  }
-
-  .btn-edit:hover { background: #ddd6fe; }
-
-  /* Empty state */
-  .empty-state {
-    text-align: center;
-    background: #fff;
-    border-radius: 20px;
-    padding: 60px 24px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-  }
-
-  .empty-icon {
-    font-size: 72px;
-    margin-bottom: 16px;
-    opacity: 0.5;
-  }
-
-  .empty-title {
-    font-size: 22px;
-    font-weight: 800;
-    color: #0f172a;
-    margin: 0 0 8px;
-  }
-
-  .empty-desc {
-    color: #64748b;
-    margin: 0 0 24px;
-    font-size: 15px;
-  }
-
-  .hidden { display: none !important; }
-
-  @media (max-width: 640px) {
-    .history-head { flex-direction: column; align-items: stretch; }
-    .plans-grid { grid-template-columns: 1fr; }
+  .goal-card:hover { border-color: var(--blue-light) !important; }
+  input[type="radio"]:checked + .goal-card {
+    border-color: var(--blue-light) !important;
+    background: linear-gradient(135deg,#e8f4fd,#d1e9fc) !important;
   }
 </style>
 
-<div class="history-wrap">
-
-  <div class="history-head">
-    <div>
-      <h1 class="history-title">📚 خططك السابقة</h1>
-      <p class="history-subtitle">شوف كل الخطط اللي اتعملت ليك من قبل وأعد تفعيل أو عدّل أي منها</p>
-    </div>
-    <a href="/request-plan" class="new-plan-btn">+ اطلب خطة جديدة</a>
-  </div>
-
-  <!-- Stats Summary -->
-  {% if plans %}
-  <div class="stats-bar">
-    <div class="stat-item">
-      <div class="stat-num">{{ plans|length }}</div>
-      <div class="stat-lbl">إجمالي الخطط</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num">{{ active_count or 0 }}</div>
-      <div class="stat-lbl">خطط نشطة</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num">{{ archived_count or 0 }}</div>
-      <div class="stat-lbl">خطط منتهية</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num">{{ days_following or 0 }}</div>
-      <div class="stat-lbl">يوم في المتابعة</div>
-    </div>
-  </div>
-
-  <!-- Filter Tabs -->
-  <div class="filter-tabs">
-    <button class="filter-tab active" onclick="filterPlans('all', this)">الكل ({{ plans|length }})</button>
-    <button class="filter-tab" onclick="filterPlans('active', this)">النشطة ({{ active_count or 0 }})</button>
-    <button class="filter-tab" onclick="filterPlans('expired', this)">المنتهية ({{ archived_count or 0 }})</button>
-  </div>
-
-  <!-- Plans Grid -->
-  <div class="plans-grid" id="plansGrid">
-    {% for plan in plans %}
-    {% set goal = plan.goal_type or 'weight_loss' %}
-    {% set is_active = plan.is_currently_active %}
-    {% set emoji_map = {'weight_loss': '🥗', 'muscle_gain': '💪', 'bulking': '🔥', 'maintenance': '🍽️'} %}
-    {% set color_map = {'weight_loss': '#1e4a3d', 'muscle_gain': '#2c5a4a', 'bulking': '#f59e0b', 'maintenance': '#8b5cf6'} %}
-    {% set name_map = {'weight_loss': 'خطة تخسيس', 'muscle_gain': 'زيادة عضل', 'bulking': 'خطة تضخيم', 'maintenance': 'خطة مكتنز'} %}
-
-    <div class="plan-card {% if is_active %}active-plan{% endif %}"
-         data-status="{% if is_active %}active{% else %}expired{% endif %}"
-         style="--accent: {{ color_map.get(goal, '#1e4a3d') }}">
-
-      <div class="plan-card-head">
-        <span class="plan-emoji">{{ emoji_map.get(goal, '📋') }}</span>
-        {% if is_active %}
-        <span class="plan-status status-active">● نشطة دلوقتي</span>
-        {% else %}
-        <span class="plan-status status-expired">منتهية</span>
-        {% endif %}
-      </div>
-
-      <h3 class="plan-name">{{ name_map.get(goal, 'خطة غذائية') }}</h3>
-      <div class="plan-date">
-        📅 {{ plan.created_date or 'تاريخ غير محدد' }}
-      </div>
-
-      <div class="plan-meta">
-        <div class="meta-row">
-          <span>الوزن وقتها:</span>
-          <strong>{{ plan.weight or '-' }} كجم</strong>
-        </div>
-        <div class="meta-row">
-          <span>السعرات المستهدفة:</span>
-          <strong>{{ plan.goal_cal or '-' }} kcal</strong>
-        </div>
-        <div class="meta-row">
-          <span>المطبخ:</span>
-          <strong>{{ plan.culture or 'مصري' }}</strong>
-        </div>
-        {% if plan.conditions_count %}
-        <div class="meta-row">
-          <span>الحالات الطبية:</span>
-          <strong>{{ plan.conditions_count }}</strong>
-        </div>
-        {% endif %}
-      </div>
-
-      <div class="plan-actions">
-        <a href="/my-plans-history/{{ plan.id }}" class="action-btn btn-view">
-          👁️ عرض الخطة كاملة
-        </a>
-
-        <a href="/my-plans-history/{{ plan.id }}/pdf" class="action-btn btn-pdf">
-          📄 PDF
-        </a>
-
-        {% if not is_active %}
-        <form method="POST" action="/my-plans-history/{{ plan.id }}/reactivate" style="display: contents;">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="action-btn btn-reactivate"
-                  onclick="return confirm('تأكيد إعادة تفعيل الخطة دي كخطتك الحالية؟')">
-            ↻ إعادة تفعيل
-          </button>
-        </form>
-        {% else %}
-        <a href="/my-plans-history/{{ plan.id }}/edit" class="action-btn btn-edit">
-          ✏️ تعديل
-        </a>
-        {% endif %}
-      </div>
-
-    </div>
-    {% endfor %}
-  </div>
-
-  {% else %}
-  <div class="empty-state">
-    <div class="empty-icon">📋</div>
-    <h2 class="empty-title">لسه ماعملتش أي خطط</h2>
-    <p class="empty-desc">أول خطة هتيجي ليك بعد ما تطلبها من د. محمد. كل الخطط بعد كده هتظهر هنا.</p>
-    <a href="/request-plan" class="new-plan-btn">+ اطلب أول خطة دلوقتي</a>
-  </div>
-  {% endif %}
-
-</div>
-
 <script>
-function filterPlans(status, btn) {
-  // Update active tab
-  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-  btn.classList.add('active');
-
-  // Filter cards
-  document.querySelectorAll('.plan-card').forEach(card => {
-    const cardStatus = card.dataset.status;
-    if (status === 'all' || cardStatus === status) {
-      card.style.display = '';
-    } else {
-      card.style.display = 'none';
-    }
-  });
+const h=document.getElementById('hField'),w=document.getElementById('wField'),bmi=document.getElementById('bmiField');
+function calc(){
+  const hv=parseFloat(h.value),wv=parseFloat(w.value);
+  if(hv&&wv) bmi.value=(wv/((hv/100)**2)).toFixed(1);
 }
+h.addEventListener('input',calc); w.addEventListener('input',calc); calc();
 </script>
-
 {% endblock %}
