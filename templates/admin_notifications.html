@@ -30,15 +30,15 @@
 
 <div class="notif-wrap">
   <div class="notif-head">
-    <h1>🔔 الإشعارات
+    <h1>🔔 {{ t('الإشعارات', 'Notifications') }}
       {% if unread_before and unread_before > 0 %}
-      <span class="notif-count-pill">{{ unread_before }} جديد</span>
+      <span class="notif-count-pill">{{ unread_before }} {{ t('جديد', 'new') }}</span>
       {% endif %}
     </h1>
     {% if notifications %}
     <form method="post" action="/admin/notifications/read" style="margin:0;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit" class="read-all-btn">✓ علّم الكل كمقروء</button>
+      <button type="submit" class="read-all-btn">✓ {{ t('علّم الكل كمقروء', 'Mark all as read') }}</button>
     </form>
     {% endif %}
   </div>
@@ -56,7 +56,7 @@
         <h3 class="notif-title">{{ n.title }}</h3>
         <p class="notif-msg">{{ n.message }}</p>
         {% if n.link %}
-        <a class="notif-open" href="{{ n.link }}">افتح ←</a>
+        <a class="notif-open" href="{{ n.link }}">{{ t('افتح ←', 'Open →') }}</a>
         {% endif %}
       </div>
     </div>
@@ -65,7 +65,7 @@
   {% else %}
   <div class="notif-empty">
     <div class="big">🔕</div>
-    <p>مفيش إشعارات لسه</p>
+    <p>{{ t('مفيش إشعارات لسه', 'No notifications yet') }}</p>
   </div>
   {% endif %}
 </div>

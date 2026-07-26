@@ -154,40 +154,40 @@
 
     <div class="success-icon">✓</div>
 
-    <h1 class="success-title">تم الدفع بنجاح! 🎉</h1>
+    <h1 class="success-title">{{ t('تم الدفع بنجاح! 🎉', 'Payment successful! 🎉') }}</h1>
     <p class="success-msg">
-      شكراً لثقتك فينا. إيميل تأكيد الدفع هيوصلك دلوقتي.<br/>
-      الآن تقدر تستخدم الخدمة بدون أي قيود.
+      {{ t('شكراً لثقتك فينا. إيميل تأكيد الدفع هيوصلك دلوقتي.', 'Thank you for your trust. A payment confirmation email is on its way.') }}<br/>
+      {{ t('الآن تقدر تستخدم الخدمة بدون أي قيود.', 'You can now use the service without restrictions.') }}
     </p>
 
     <div class="info-box">
       <div class="info-row">
-        <span class="info-label">📦 الخطة</span>
-        <span class="info-value">{{ plan_name or 'تم تأكيد الدفع' }}</span>
+        <span class="info-label">📦 {{ t('الخطة', 'Plan') }}</span>
+        <span class="info-value">{{ plan_name or t('تم تأكيد الدفع', 'Payment confirmed') }}</span>
       </div>
       {% if amount %}
       <div class="info-row">
-        <span class="info-label">💰 المبلغ المدفوع</span>
+        <span class="info-label">💰 {{ t('المبلغ المدفوع', 'Amount paid') }}</span>
         <span class="info-value">{{ amount }}</span>
       </div>
       {% endif %}
       {% if expires_at %}
       <div class="info-row">
-        <span class="info-label">⏰ سارية حتى</span>
+        <span class="info-label">⏰ {{ t('سارية حتى', 'Valid until') }}</span>
         <span class="info-value">{{ expires_at }}</span>
       </div>
       {% endif %}
       {% if is_trial %}
       <div class="info-row">
-        <span class="info-label">🎁 الحالة</span>
-        <span class="info-value" style="color:#f59e0b">فترة تجريبية مجانية</span>
+        <span class="info-label">🎁 {{ t('الحالة', 'Status') }}</span>
+        <span class="info-value" style="color:#f59e0b">{{ t('فترة تجريبية مجانية', 'Free trial period') }}</span>
       </div>
       {% endif %}
     </div>
 
     <div class="actions">
-      <a href="/messages" class="btn btn-primary">💬 ابدأ المحادثة دلوقتي</a>
-      <a href="/dashboard" class="btn btn-secondary">العودة للرئيسية</a>
+      <a href="/messages" class="btn btn-primary">💬 {{ t('ابدأ المحادثة دلوقتي', 'Start chatting now') }}</a>
+      <a href="/dashboard" class="btn btn-secondary">{{ t('العودة للرئيسية', 'Back to home') }}</a>
     </div>
   </div>
 </div>

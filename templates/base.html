@@ -407,7 +407,7 @@ if ('serviceWorker' in navigator) {
     e.preventDefault();
     soundOn = !soundOn;
     localStorage.setItem('nutrax_notif_sound', soundOn ? '1' : '0');
-    alert(soundOn ? '🔔 صوت الإشعارات: مفعّل' : '🔕 صوت الإشعارات: مكتوم');
+    alert(soundOn ? "{{ t('🔔 صوت الإشعارات: مفعّل', '🔔 Notification sound: on') }}" : "{{ t('🔕 صوت الإشعارات: مكتوم', '🔕 Notification sound: muted') }}");
   });
 
   setInterval(poll, 20000);  // فحص كل 20 ثانية
@@ -479,7 +479,7 @@ async function nxEnablePush(){
 
 <!-- ═══ زرار المحادثة العائم (للعملاء) ═══ -->
 {% if user is defined and user and not is_staff and not request.path.startswith('/messages') %}
-<a href="/messages" id="chatFab" title="راسل د. محمد"
+<a href="/messages" id="chatFab" title="{{ t('راسل د. محمد', 'Message Dr. Mohamed') }}"
    style="position:fixed;bottom:20px;left:20px;z-index:990;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#14332b,#1e4a3d);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 22px rgba(20,51,43,.4);text-decoration:none;border:2px solid #c9a961;transition:transform .15s">
   <i class="fa-solid fa-comment-dots" style="font-size:23px"></i>
 </a>
@@ -490,8 +490,8 @@ async function nxEnablePush(){
 <div id="pwaInstallBar" style="display:none;position:fixed;bottom:16px;left:12px;right:12px;z-index:9999;background:linear-gradient(135deg,#14332b,#1e4a3d);color:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.25);align-items:center;gap:10px;">
   <span style="font-size:26px;">📲</span>
   <div style="flex:1;min-width:0;">
-    <div style="font-weight:800;font-size:14px;">ثبّت تطبيق NutraX</div>
-    <div id="pwaInstallHint" style="font-size:11.5px;opacity:.85;">افتحه من شاشتك الرئيسية زي أي تطبيق</div>
+    <div style="font-weight:800;font-size:14px;">{{ t('ثبّت تطبيق NutraX', 'Install the NutraX app') }}</div>
+    <div id="pwaInstallHint" style="font-size:11.5px;opacity:.85;">{{ t('افتحه من شاشتك الرئيسية زي أي تطبيق', 'Open it from your home screen like any app') }}</div>
   </div>
   <button id="pwaInstallBtn" style="background:#fff;color:#14332b;border:none;border-radius:9px;padding:9px 16px;font-family:inherit;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap;">تثبيت</button>
   <button id="pwaInstallClose" style="background:transparent;color:#fff;border:none;font-size:18px;cursor:pointer;padding:4px 6px;opacity:.7;">✕</button>
@@ -518,7 +518,7 @@ async function nxEnablePush(){
 
   // آيفون مفيهوش beforeinstallprompt — نعرض تعليمات
   if (isIOS) {
-    hint.textContent = 'من سفاري: زرار المشاركة ⬆️ ثم "إضافة إلى الشاشة الرئيسية"';
+    hint.textContent = '{{ t('من سفاري: زرار المشاركة ⬆️ ثم «إضافة إلى الشاشة الرئيسية»', 'In Safari: Share button ⬆️ then «Add to Home Screen»') }}';
     btn.style.display = 'none';
     setTimeout(() => { bar.style.display = 'flex'; }, 2500);
   }

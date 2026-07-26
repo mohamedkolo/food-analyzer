@@ -112,23 +112,23 @@
   <div class="cancel-card">
     <div class="cancel-icon">✕</div>
 
-    <h1 class="cancel-title">تم إلغاء الدفع</h1>
+    <h1 class="cancel-title">{{ t('تم إلغاء الدفع', 'Payment Cancelled') }}</h1>
     <p class="cancel-msg">
-      مفيش مشكلة - مفيش أي مبلغ اتخصم منك.<br/>
-      ممكن تجرّب تاني في أي وقت أو تختار خطة تانية تناسبك.
+      {{ t('مفيش مشكلة - مفيش أي مبلغ اتخصم منك.', 'No problem - nothing was charged.') }}<br/>
+      {{ t('ممكن تجرّب تاني في أي وقت أو تختار خطة تانية تناسبك.', 'You can try again anytime, or pick a different plan.') }}
     </p>
 
     <div class="reassure-box">
-      💡 <strong>للعلم:</strong> الاشتراك الشهري بيجي مع <strong>7 أيام تجربة مجانية</strong> - تقدر تجرّب الخدمة كاملة قبل ما تدفع جنيه واحد.
+      💡 {% if is_ar %}<strong>للعلم:</strong> الاشتراك الشهري بيجي مع <strong>7 أيام تجربة مجانية</strong> - تقدر تجرّب الخدمة كاملة قبل ما تدفع جنيه واحد.{% else %}<strong>Note:</strong> The monthly subscription includes a <strong>7-day free trial</strong> - you can try the full service before paying anything.{% endif %}
     </div>
 
     <div class="actions">
-      <a href="/pricing" class="btn btn-primary">شوف الخطط تاني</a>
-      <a href="/dashboard" class="btn btn-secondary">العودة للرئيسية</a>
+      <a href="/pricing" class="btn btn-primary">{{ t('شوف الخطط تاني', 'View plans again') }}</a>
+      <a href="/dashboard" class="btn btn-secondary">{{ t('العودة للرئيسية', 'Back to home') }}</a>
     </div>
 
     <p class="support-link">
-      عندك مشكلة في الدفع؟ <a href="/messages">كلمنا دلوقتي</a>
+      {{ t('عندك مشكلة في الدفع؟', 'Having trouble paying?') }} <a href="/messages">{{ t('كلمنا دلوقتي', 'Message us now') }}</a>
     </p>
   </div>
 </div>

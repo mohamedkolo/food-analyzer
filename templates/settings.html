@@ -1,67 +1,67 @@
 {% extends "base.html" %}
-{% block title %}الإعدادات{% endblock %}
+{% block title %}{{ t('الإعدادات','Settings') }}{% endblock %}
 
 {% block content %}
-<div class="page-title"><span class="icon">⚙️</span> الإعدادات الشخصية</div>
+<div class="page-title"><span class="icon">⚙️</span> {{ t('الإعدادات الشخصية','Personal Settings') }}</div>
 
 {% if saved %}
-<div class="alert alert-success">✅ تم الحفظ وحساب أهدافك!</div>
+<div class="alert alert-success">✅ {{ t('تم الحفظ وحساب أهدافك!','Saved and your targets recalculated!') }}</div>
 {% endif %}
 
 <div class="card">
-  <div class="card-title">📏 البيانات الجسمية</div>
+  <div class="card-title">📏 {{ t('البيانات الجسمية','Body Measurements') }}</div>
   <form method="POST" action="/settings">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="grid-3">
       <div class="form-group">
-        <label class="form-label">الطول (سم)</label>
+        <label class="form-label">{{ t('الطول (سم)','Height (cm)') }}</label>
         <input class="form-input" type="number" name="height" value="{{ user.height or '' }}" placeholder="170" step="0.5">
       </div>
       <div class="form-group">
-        <label class="form-label">الوزن (كجم)</label>
+        <label class="form-label">{{ t('الوزن (كجم)','Weight (kg)') }}</label>
         <input class="form-input" type="number" name="weight" value="{{ user.weight or '' }}" placeholder="70" step="0.1">
       </div>
       <div class="form-group">
-        <label class="form-label">العمر (سنة)</label>
+        <label class="form-label">{{ t('العمر (سنة)','Age (years)') }}</label>
         <input class="form-input" type="number" name="age" value="{{ user.age or '' }}" placeholder="25">
       </div>
     </div>
 
     <div class="grid-2">
       <div class="form-group">
-        <label class="form-label">الجنس</label>
+        <label class="form-label">{{ t('الجنس','Gender') }}</label>
         <select class="form-select" name="gender">
-          <option value="ذكر" {% if user.gender=='ذكر' %}selected{% endif %}>ذكر</option>
-          <option value="أنثى" {% if user.gender=='أنثى' %}selected{% endif %}>أنثى</option>
+          <option value="ذكر" {% if user.gender=='ذكر' %}selected{% endif %}>{{ t('ذكر','Male') }}</option>
+          <option value="أنثى" {% if user.gender=='أنثى' %}selected{% endif %}>{{ t('أنثى','Female') }}</option>
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">🎯 هدفك</label>
+        <label class="form-label">🎯 {{ t('هدفك','Your Goal') }}</label>
         <select class="form-select" name="goal">
-          <option value="maintain" {% if user.goal=='maintain' %}selected{% endif %}>⚖️ ثبات الوزن</option>
-          <option value="fat_loss" {% if user.goal=='fat_loss' %}selected{% endif %}>🔥 خسارة دهون</option>
-          <option value="muscle_gain" {% if user.goal=='muscle_gain' %}selected{% endif %}>💪 بناء عضل</option>
+          <option value="maintain" {% if user.goal=='maintain' %}selected{% endif %}>⚖️ {{ t('ثبات الوزن','Maintain weight') }}</option>
+          <option value="fat_loss" {% if user.goal=='fat_loss' %}selected{% endif %}>🔥 {{ t('خسارة دهون','Fat loss') }}</option>
+          <option value="muscle_gain" {% if user.goal=='muscle_gain' %}selected{% endif %}>💪 {{ t('بناء عضل','Build muscle') }}</option>
         </select>
       </div>
     </div>
 
     <div class="form-group">
-      <label class="form-label">🏃 مستوى النشاط</label>
+      <label class="form-label">🏃 {{ t('مستوى النشاط','Activity Level') }}</label>
       <select class="form-select" name="activity">
-        <option value="1.2"    {% if user.activity==1.2 %}selected{% endif %}>مستقر (عمل مكتبي)</option>
-        <option value="1.375"  {% if user.activity==1.375 %}selected{% endif %}>خفيف (1-3 أيام رياضة)</option>
-        <option value="1.55"   {% if user.activity==1.55 or not user.activity %}selected{% endif %}>معتدل (3-5 أيام)</option>
-        <option value="1.725"  {% if user.activity==1.725 %}selected{% endif %}>نشيط (6-7 أيام)</option>
-        <option value="1.9"    {% if user.activity==1.9 %}selected{% endif %}>رياضي محترف</option>
+        <option value="1.2"    {% if user.activity==1.2 %}selected{% endif %}>{{ t('مستقر (عمل مكتبي)','Sedentary (desk job)') }}</option>
+        <option value="1.375"  {% if user.activity==1.375 %}selected{% endif %}>{{ t('خفيف (1-3 أيام رياضة)','Light (1-3 days exercise)') }}</option>
+        <option value="1.55"   {% if user.activity==1.55 or not user.activity %}selected{% endif %}>{{ t('معتدل (3-5 أيام)','Moderate (3-5 days)') }}</option>
+        <option value="1.725"  {% if user.activity==1.725 %}selected{% endif %}>{{ t('نشيط (6-7 أيام)','Active (6-7 days)') }}</option>
+        <option value="1.9"    {% if user.activity==1.9 %}selected{% endif %}>{{ t('رياضي محترف','Professional athlete') }}</option>
       </select>
     </div>
 
-    <button type="submit" class="btn btn-primary btn-full">💾 حفظ وحساب الأهداف</button>
+    <button type="submit" class="btn btn-primary btn-full">💾 {{ t('حفظ وحساب الأهداف','Save & recalculate targets') }}</button>
   </form>
 </div>
 
 <div class="card">
-  <div class="card-title">🔐 الأمان</div>
+  <div class="card-title">🔐 {{ t('الأمان','Security') }}</div>
   <a href="/change-password" class="btn btn-full" style="display:block;text-align:center;background:#f0f7f4;border:1px solid #cfe3d9;color:#14332b;text-decoration:none;padding:10px;border-radius:8px;">🔑 تغيير كلمة السر</a>
 </div>
 {% endblock %}

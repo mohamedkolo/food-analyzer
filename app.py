@@ -234,6 +234,14 @@ def verify_password(stored_hash, pw):
         return True
     return False
 
+@app.template_global('t')
+def t(ar, en):
+    """ترجمة سريعة داخل القوالب: {{ t('عربي', 'English') }} — بتقرأ اللغة من الجلسة مباشرة."""
+    try:
+        return ar if session.get("lang", "ar") == "ar" else en
+    except Exception:
+        return ar
+
 @app.template_filter('from_json')
 def from_json_filter(s):
     if not s: return {}
