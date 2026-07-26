@@ -1,31 +1,35 @@
 {% extends "base.html" %}
-{% block title %}معاينة الخطة{% endblock %}
+{% block title %}{{ t('معاينة الخطة','Plan Preview') }}{% endblock %}
 {% block content %}
+
+{# stored plan values are always Arabic; these maps render them in the admin's UI language #}
+{% set goal_names = {'weight_loss':t('تخسيس','Weight Loss'),'maintenance':t('مكتنز','Maintenance'),'muscle_gain':t('عضل','Muscle'),'bulking':t('تضخيم','Bulking')} %}
+{% set culture_names = {'مصري':t('مصري','Egyptian'),'خليجي':t('خليجي','Gulf'),'شامي':t('شامي','Levantine'),'مغربي':t('مغربي','Moroccan'),'عالمي':t('عالمي','International')} %}
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
   <div class="page-title" style="margin:0">
-    <i class="fa-solid fa-eye"></i> معاينة الخطة
+    <i class="fa-solid fa-eye"></i> {{ t('معاينة الخطة','Plan Preview') }}
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <a href="/generate" class="btn btn-outline">
-      <i class="fa-solid fa-arrow-right"></i> تعديل البيانات
+      <i class="fa-solid {{ 'fa-arrow-right' if is_ar else 'fa-arrow-left' }}"></i> {{ t('تعديل البيانات','Edit details') }}
     </a>
     <form method="POST" action="/regenerate_plan" style="display:inline">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-outline" style="background:#fff3cd;border-color:#ffc107;color:#856404">
-        <i class="fa-solid fa-shuffle"></i> تجديد الخطة كاملة
+        <i class="fa-solid fa-shuffle"></i> {{ t('تجديد الخطة كاملة','Regenerate whole plan') }}
       </button>
     </form>
     {% if current_request_id %}
     <form method="POST" action="/admin/requests/{{ current_request_id }}/approve" style="display:inline">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-success">
-        <i class="fa-solid fa-paper-plane"></i> اعتماد وإرسال للعميل
+        <i class="fa-solid fa-paper-plane"></i> {{ t('اعتماد وإرسال للعميل','Approve and send to client') }}
       </button>
     </form>
     {% endif %}
     <a href="/download_pdf" class="btn btn-success">
-      <i class="fa-solid fa-download"></i> تحميل PDF
+      <i class="fa-solid fa-download"></i> {{ t('تحميل PDF','Download PDF') }}
     </a>
   </div>
 </div>
@@ -37,10 +41,10 @@
     <div style="font-size:42px">✍️</div>
     <div style="flex:1;min-width:200px">
       <div style="font-weight:900;color:#9a3412;font-size:17px;margin-bottom:4px">
-        وضع التوليد اليدوي
+        {{ t('وضع التوليد اليدوي','Manual build mode') }}
       </div>
       <div style="font-size:13px;color:#9a3412">
-        كل الوجبات فاضية - اضغط على أي وجبة عشان تكتبها بنفسك
+        {{ t('كل الوجبات فاضية - اضغط على أي وجبة عشان تكتبها بنفسك','Every meal is empty — click any meal to write it yourself') }}
       </div>
     </div>
   </div>
@@ -54,13 +58,13 @@
     <div style="flex:1">
       <div style="font-weight:900;color:#78350f;font-size:16px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
         <i class="fa-solid fa-triangle-exclamation"></i>
-        ملاحظات مهمة من العميل - اقرأها قبل توليد الخطة
+        {{ t('ملاحظات مهمة من العميل - اقرأها قبل توليد الخطة','Important notes from the client — read before building the plan') }}
       </div>
-      <div style="background:white;padding:14px 16px;border-radius:10px;font-size:15px;color:#1a1a1a;line-height:1.8;border-right:4px solid #f59e0b;font-weight:500">
+      <div style="background:white;padding:14px 16px;border-radius:10px;font-size:15px;color:#1a1a1a;line-height:1.8;border-inline-start:4px solid #f59e0b;font-weight:500">
         "{{ data.notes }}"
       </div>
       <div style="font-size:11px;color:#78350f;margin-top:8px">
-        💡 راجع الجدول كويس وتأكد إنه متوافق مع ملاحظات العميل
+        💡 {{ t('راجع الجدول كويس وتأكد إنه متوافق مع ملاحظات العميل','Review the plan carefully and check it matches the client notes') }}
       </div>
     </div>
   </div>
@@ -71,7 +75,7 @@
 {% if data.symptoms and data.symptoms|length > 0 %}
 <div style="background:#fee2e2;border:2px solid #fca5a5;border-radius:12px;padding:12px 16px;margin-bottom:16px">
   <div style="font-weight:800;color:#991b1b;font-size:13px;margin-bottom:6px">
-    <i class="fa-solid fa-stethoscope"></i> الحالات الصحية:
+    <i class="fa-solid fa-stethoscope"></i> {{ t('الحالات الصحية','Health conditions') }}:
   </div>
   <div style="display:flex;gap:6px;flex-wrap:wrap">
     {% for s in data.symptoms %}
@@ -85,24 +89,23 @@
 <div class="card" style="background:linear-gradient(135deg,#14332b 0%,#1e4a3d 100%);color:white">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
     <div>
-      <div style="font-size:13px;opacity:0.8">العميل</div>
+      <div style="font-size:13px;opacity:0.8">{{ t('العميل','Client') }}</div>
       <div style="font-size:22px;font-weight:800">{{ data.name }}</div>
     </div>
     <div style="display:flex;gap:20px;flex-wrap:wrap">
       <div style="text-align:center">
         <div style="font-size:22px;font-weight:800">{{ data.goal_cal }}</div>
-        <div style="font-size:11px;opacity:0.8">الهدف kcal</div>
+        <div style="font-size:11px;opacity:0.8">{{ t('الهدف kcal','Target kcal') }}</div>
       </div>
       <div style="text-align:center">
         <div style="font-size:22px;font-weight:800">
-          {% set goal_names = {'weight_loss':'تخسيس','maintenance':'مكتنز','muscle_gain':'عضل','bulking':'تضخيم'} %}
-          {{ goal_names.get(data.goal_type, 'خطة') }}
+          {{ goal_names.get(data.goal_type, t('خطة','Plan')) }}
         </div>
-        <div style="font-size:11px;opacity:0.8">نوع الخطة</div>
+        <div style="font-size:11px;opacity:0.8">{{ t('نوع الخطة','Plan type') }}</div>
       </div>
       <div style="text-align:center">
-        <div style="font-size:22px;font-weight:800">{{ data.culture }}</div>
-        <div style="font-size:11px;opacity:0.8">المطبخ</div>
+        <div style="font-size:22px;font-weight:800">{{ culture_names.get(data.culture, data.culture) }}</div>
+        <div style="font-size:11px;opacity:0.8">{{ t('المطبخ','Cuisine') }}</div>
       </div>
     </div>
   </div>
@@ -113,11 +116,11 @@
   <div style="display:flex;align-items:flex-start;gap:12px">
     <div style="font-size:22px">✏️</div>
     <div style="flex:1">
-      <div style="font-weight:800;color:#14332b;margin-bottom:6px">3 طرق لتعديل الجدول:</div>
-      <ul style="color:#166534;font-size:13px;margin:0;padding-right:18px;line-height:1.8">
-        <li><strong>اضغط على نص أي وجبة</strong> عشان تعدلها بإيدك (تضيف جرامات أو تغير الكمية)</li>
-        <li>زرار <i class="fa-solid fa-shuffle" style="color:#2c5a4a"></i> = استبدال عشوائي من القاعدة</li>
-        <li>زرار <i class="fa-solid fa-list" style="color:#1e4a3d"></i> = <strong>اختر من قائمة وجبات</strong> بمزاجك</li>
+      <div style="font-weight:800;color:#14332b;margin-bottom:6px">{{ t('3 طرق لتعديل الجدول:','3 ways to edit the plan:') }}</div>
+      <ul style="color:#166534;font-size:13px;margin:0;padding-inline-start:18px;line-height:1.8">
+        <li><strong>{{ t('اضغط على نص أي وجبة','Click any meal text') }}</strong> {{ t('عشان تعدلها بإيدك (تضيف جرامات أو تغير الكمية)','to edit it by hand (add grams or change the amount)') }}</li>
+        <li>{{ t('زرار','The') }} <i class="fa-solid fa-shuffle" style="color:#2c5a4a"></i> {{ t('= استبدال عشوائي من القاعدة','button swaps in a random meal from the database') }}</li>
+        <li>{{ t('زرار','The') }} <i class="fa-solid fa-list" style="color:#1e4a3d"></i> {{ t('= اختر من قائمة وجبات بمزاجك','button lets you pick from a list of meals yourself') }}</li>
       </ul>
     </div>
   </div>
@@ -139,18 +142,18 @@
 
     <div style="display:grid;gap:8px">
       {% set meal_configs = [
-        ('breakfast', '🌅', 'الفطار'),
-        ('lunch', '☀️', 'الغداء'),
-        ('dinner', '🌙', 'العشاء'),
-        ('snack', '🍎', 'سناك'),
-        ('meal1', '🕛', 'الوجبة الأولى'),
-        ('meal2', '🕖', 'الوجبة الثانية'),
-        ('iftar', '🌙', 'الفطار (رمضان)'),
-        ('suhoor', '🌄', 'السحور'),
-        ('snack1', '☕', 'سناك صباحي'),
-        ('snack2', '🍎', 'سناك عصر'),
-        ('pre_workout', '💪', 'قبل التمرين'),
-        ('post_workout', '🏋️', 'بعد التمرين'),
+        ('breakfast', '🌅', t('الفطار','Breakfast')),
+        ('lunch', '☀️', t('الغداء','Lunch')),
+        ('dinner', '🌙', t('العشاء','Dinner')),
+        ('snack', '🍎', t('سناك','Snack')),
+        ('meal1', '🕛', t('الوجبة الأولى','First meal')),
+        ('meal2', '🕖', t('الوجبة الثانية','Second meal')),
+        ('iftar', '🌙', t('الفطار (رمضان)','Iftar (Ramadan)')),
+        ('suhoor', '🌄', t('السحور','Suhoor')),
+        ('snack1', '☕', t('سناك صباحي','Morning snack')),
+        ('snack2', '🍎', t('سناك عصر','Afternoon snack')),
+        ('pre_workout', '💪', t('قبل التمرين','Pre-workout')),
+        ('post_workout', '🏋️', t('بعد التمرين','Post-workout')),
       ] %}
 
       {% for key, emoji, label in meal_configs %}
@@ -163,10 +166,10 @@
           </div>
           {% if key not in ['snack','snack1','snack2','pre_workout','post_workout'] %}
           <div style="display:flex;gap:4px">
-            <button class="swap-btn" data-day="{{ day_idx }}" data-type="{{ key }}" title="استبدال عشوائي">
+            <button class="swap-btn" data-day="{{ day_idx }}" data-type="{{ key }}" title="{{ t('استبدال عشوائي','Random swap') }}">
               <i class="fa-solid fa-shuffle"></i>
             </button>
-            <button class="pick-btn" data-day="{{ day_idx }}" data-type="{{ key }}" data-label="{{ label }}" title="اختر من قائمة" style="background:#faf8f3;color:#1e4a3d;border-color:#d9cfb4">
+            <button class="pick-btn" data-day="{{ day_idx }}" data-type="{{ key }}" data-label="{{ label }}" title="{{ t('اختر من قائمة','Pick from a list') }}" style="background:#faf8f3;color:#1e4a3d;border-color:#d9cfb4">
               <i class="fa-solid fa-list"></i>
             </button>
           </div>
@@ -181,13 +184,13 @@
 
 <div style="position:sticky;bottom:10px;margin-top:20px">
   <a href="/download_pdf" class="btn btn-success btn-full" style="font-size:17px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.2)">
-    <i class="fa-solid fa-file-pdf"></i> تحميل الخطة كـ PDF
+    <i class="fa-solid fa-file-pdf"></i> {{ t('تحميل الخطة كـ PDF','Download plan as PDF') }}
   </a>
 </div>
 
 <!-- Save indicator -->
 <div id="saveIndicator" style="position:fixed;bottom:80px;left:20px;background:#1e4a3d;color:white;padding:10px 18px;border-radius:100px;font-weight:700;font-size:13px;display:none;box-shadow:0 4px 16px rgba(22,163,74,0.4);z-index:1000">
-  <i class="fa-solid fa-check-circle"></i> تم الحفظ
+  <i class="fa-solid fa-check-circle"></i> {{ t('تم الحفظ','Saved') }}
 </div>
 
 <!-- ═══════ MEAL PICKER MODAL ═══════ -->
@@ -196,20 +199,20 @@
     <div style="padding:18px 20px;border-bottom:1px solid var(--gray-2);display:flex;justify-content:space-between;align-items:center">
       <div>
         <div style="font-size:17px;font-weight:800;color:var(--blue)">
-          <i class="fa-solid fa-list"></i> اختار <span id="pickerLabel">الوجبة</span>
+          <i class="fa-solid fa-list"></i> {{ t('اختار','Choose') }} <span id="pickerLabel">{{ t('الوجبة','the meal') }}</span>
         </div>
-        <div style="font-size:12px;color:var(--muted);margin-top:3px">اختار من قائمة الوجبات المتاحة</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">{{ t('اختار من قائمة الوجبات المتاحة','Pick from the available meals') }}</div>
       </div>
       <button onclick="closePicker()" style="background:var(--gray);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px">✕</button>
     </div>
     <div id="pickerOptions" style="flex:1;overflow-y:auto;padding:14px">
       <div style="text-align:center;padding:30px;color:var(--muted)">
         <i class="fa-solid fa-spinner fa-spin" style="font-size:32px"></i>
-        <div style="margin-top:10px">جاري تحميل الخيارات...</div>
+        <div style="margin-top:10px">{{ t('جاري تحميل الخيارات...','Loading options…') }}</div>
       </div>
     </div>
     <div style="padding:14px 20px;border-top:1px solid var(--gray-2);text-align:center;font-size:11px;color:var(--muted)">
-      💡 اضغط على أي وجبة عشان تستبدل بيها
+      💡 {{ t('اضغط على أي وجبة عشان تستبدل بيها','Click any meal to swap it in') }}
     </div>
   </div>
 </div>
@@ -328,6 +331,16 @@ document.querySelectorAll('.swap-btn').forEach(btn => {
 let currentPickDay = null;
 let currentPickType = null;
 
+// Strings this script injects into the DOM, resolved server-side.
+const PV = {
+  loading:  {{ t('جاري تحميل الخيارات...','Loading options…')|tojson }},
+  noOpts:   {{ t('مفيش خيارات متاحة حالياً','No options available right now')|tojson }},
+  error:    {{ t('حصل خطأ - حاول تاني','Something went wrong — try again')|tojson }},
+  protein:  {{ t('ب','P')|tojson }},
+  saveFail: {{ t('فشل الحفظ','Save failed')|tojson }},
+  cultures: {{ culture_names|tojson }}
+};
+
 document.querySelectorAll('.pick-btn').forEach(btn => {
   btn.addEventListener('click', async function() {
     currentPickDay = this.dataset.day;
@@ -338,7 +351,7 @@ document.querySelectorAll('.pick-btn').forEach(btn => {
     document.getElementById('pickerOptions').innerHTML = `
       <div style="text-align:center;padding:30px;color:var(--muted)">
         <i class="fa-solid fa-spinner fa-spin" style="font-size:32px"></i>
-        <div style="margin-top:10px">جاري تحميل الخيارات...</div>
+        <div style="margin-top:10px">${PV.loading}</div>
       </div>
     `;
     document.getElementById('pickerModal').style.display = 'flex';
@@ -350,6 +363,7 @@ document.querySelectorAll('.pick-btn').forEach(btn => {
       const data = await res.json();
 
       if (data.ok && data.options && data.options.length > 0) {
+        // keys are the stored Arabic culture names returned by /get_meal_options
         const cultureEmojis = {
           'مصري': '🇪🇬',
           'خليجي': '🇸🇦',
@@ -360,14 +374,15 @@ document.querySelectorAll('.pick-btn').forEach(btn => {
 
         const html = data.options.map(opt => {
           const emoji = cultureEmojis[opt.source] || '🍽️';
+          const source = PV.cultures[opt.source] || opt.source;
           return `
             <div class="option-card" onclick="selectMeal(this, \`${opt.meal.replace(/`/g, "\\`")}\`)">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
                 <div style="font-size:11px;color:var(--muted);font-weight:700">
-                  ${emoji} ${opt.source}
+                  ${emoji} ${source}
                 </div>
                 <div style="background:#d8e2dc;color:#14332b;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">
-                  ${opt.cal} kcal • ${opt.p}ب
+                  ${opt.cal} kcal • ${opt.p}${PV.protein}
                 </div>
               </div>
               <div style="font-size:13px;color:var(--text);font-weight:500;line-height:1.6">
@@ -382,7 +397,7 @@ document.querySelectorAll('.pick-btn').forEach(btn => {
         document.getElementById('pickerOptions').innerHTML = `
           <div style="text-align:center;padding:30px;color:var(--muted)">
             <i class="fa-solid fa-inbox" style="font-size:32px"></i>
-            <div style="margin-top:10px">مفيش خيارات متاحة حالياً</div>
+            <div style="margin-top:10px">${PV.noOpts}</div>
           </div>
         `;
       }
@@ -390,7 +405,7 @@ document.querySelectorAll('.pick-btn').forEach(btn => {
       document.getElementById('pickerOptions').innerHTML = `
         <div style="text-align:center;padding:30px;color:#dc2626">
           <i class="fa-solid fa-triangle-exclamation" style="font-size:32px"></i>
-          <div style="margin-top:10px">حصل خطأ - حاول تاني</div>
+          <div style="margin-top:10px">${PV.error}</div>
         </div>
       `;
     }
@@ -425,7 +440,7 @@ async function selectMeal(card, mealText) {
       setTimeout(closePicker, 500);
     }
   } catch(e) {
-    alert('فشل الحفظ');
+    alert(PV.saveFail);
   }
 }
 
