@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}{{ t('إنشاء حساب','Create Account') }}{% endblock %}
 {% block content %}
 
 <style>
@@ -64,7 +65,7 @@
 
   <div class="prog-section">
     <div class="prog-info">
-      <span>خطوة <span id="curStep">1</span> من 6</span>
+      <span>{{ t('خطوة','Step') }} <span id="curStep">1</span> {{ t('من','of') }} 6</span>
       <span class="prog-num" id="progPct">17%</span>
     </div>
     <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
@@ -76,216 +77,218 @@
     <!-- STEP 1: ACCOUNT -->
     <div class="step active" data-step="1">
       <div class="step-icon">👋</div>
-      <h2 class="step-title">يلا نعمل حسابك</h2>
-      <p class="step-sub">معلوماتك الأساسية - 30 ثانية بس</p>
-      <div class="field"><label class="field-label">الاسم الكامل <span class="req">*</span></label><input type="text" name="name" required minlength="2" placeholder="مثال: أحمد محمد"></div>
-      <div class="field"><label class="field-label">الإيميل <span class="req">*</span></label><input type="email" name="email" required placeholder="example@email.com"></div>
-      <div class="field"><label class="field-label">كلمة السر <span class="req">*</span></label><input type="password" name="password" required minlength="6" placeholder="6 حروف على الأقل"><div class="field-hint">6 حروف على الأقل</div></div>
-      <div class="field"><label class="field-label">رقم التليفون <span class="req">*</span></label><input type="text" name="phone" required placeholder="01xxxxxxxxx"></div>
-      <div class="nav"><button type="button" class="btn btn-next" onclick="nextStep()">التالي →</button></div>
-      <div class="login-link">عندك حساب بالفعل؟ <a href="/">سجل دخول</a></div>
+      <h2 class="step-title">{{ t('يلا نعمل حسابك',"Let's create your account") }}</h2>
+      <p class="step-sub">{{ t('معلوماتك الأساسية - 30 ثانية بس','Your basic details — takes 30 seconds') }}</p>
+      <div class="field"><label class="field-label">{{ t('الاسم الكامل','Full name') }} <span class="req">*</span></label><input type="text" name="name" required minlength="2" placeholder="{{ t('مثال: أحمد محمد','e.g. Ahmed Mohamed') }}"></div>
+      <div class="field"><label class="field-label">{{ t('الإيميل','Email') }} <span class="req">*</span></label><input type="email" name="email" required placeholder="example@email.com"></div>
+      <div class="field"><label class="field-label">{{ t('كلمة السر','Password') }} <span class="req">*</span></label><input type="password" name="password" required minlength="6" placeholder="{{ t('6 حروف على الأقل','At least 6 characters') }}"><div class="field-hint">{{ t('6 حروف على الأقل','At least 6 characters') }}</div></div>
+      <div class="field"><label class="field-label">{{ t('رقم التليفون','Phone number') }} <span class="req">*</span></label><input type="text" name="phone" required placeholder="01xxxxxxxxx"></div>
+      <div class="nav"><button type="button" class="btn btn-next" onclick="nextStep()">{{ t('التالي →','Next →') }}</button></div>
+      <div class="login-link">{{ t('عندك حساب بالفعل؟','Already have an account?') }} <a href="/">{{ t('سجل دخول','Log in') }}</a></div>
     </div>
 
     <!-- STEP 2: PERSONAL -->
     <div class="step" data-step="2">
       <div class="step-icon">📋</div>
-      <h2 class="step-title">بياناتك الشخصية</h2>
-      <p class="step-sub">مهمة عشان نحسب احتياجاتك من السعرات</p>
+      <h2 class="step-title">{{ t('بياناتك الشخصية','Your personal details') }}</h2>
+      <p class="step-sub">{{ t('مهمة عشان نحسب احتياجاتك من السعرات','We need these to calculate your calorie needs') }}</p>
       <div class="row-2">
-        <div class="field"><label class="field-label">البلد <span class="req">*</span></label>
+        <div class="field"><label class="field-label">{{ t('البلد','Country') }} <span class="req">*</span></label>
           <select name="country" required>
-            <option value="">اختار</option><option value="مصر">🇪🇬 مصر</option><option value="السعودية">🇸🇦 السعودية</option><option value="الإمارات">🇦🇪 الإمارات</option><option value="الكويت">🇰🇼 الكويت</option><option value="قطر">🇶🇦 قطر</option><option value="البحرين">🇧🇭 البحرين</option><option value="عمان">🇴🇲 عمان</option><option value="الأردن">🇯🇴 الأردن</option><option value="لبنان">🇱🇧 لبنان</option><option value="المغرب">🇲🇦 المغرب</option><option value="الجزائر">🇩🇿 الجزائر</option><option value="تونس">🇹🇳 تونس</option><option value="other">دولة أخرى</option>
+            <option value="">{{ t('اختار','Select') }}</option>
+            {# option values are stored as-is; only the labels are localized #}
+            {% for code, flag, en in [('مصر','🇪🇬','Egypt'),('السعودية','🇸🇦','Saudi Arabia'),('الإمارات','🇦🇪','UAE'),('الكويت','🇰🇼','Kuwait'),('قطر','🇶🇦','Qatar'),('البحرين','🇧🇭','Bahrain'),('عمان','🇴🇲','Oman'),('الأردن','🇯🇴','Jordan'),('لبنان','🇱🇧','Lebanon'),('المغرب','🇲🇦','Morocco'),('الجزائر','🇩🇿','Algeria'),('تونس','🇹🇳','Tunisia')] %}
+            <option value="{{ code }}">{{ flag }} {{ code if is_ar else en }}</option>
+            {% endfor %}
+            <option value="other">{{ t('دولة أخرى','Other country') }}</option>
           </select>
         </div>
-        <div class="field"><label class="field-label">العمر <span class="req">*</span></label><input type="number" name="age" required min="10" max="100" placeholder="مثال: 30"></div>
+        <div class="field"><label class="field-label">{{ t('العمر','Age') }} <span class="req">*</span></label><input type="number" name="age" required min="10" max="100" placeholder="{{ t('مثال: 30','e.g. 30') }}"></div>
       </div>
-      <div class="field"><label class="field-label">الجنس <span class="req">*</span></label><select name="gender" required><option value="">اختار</option><option value="ذكر">ذكر</option><option value="أنثى">أنثى</option></select></div>
+      <div class="field"><label class="field-label">{{ t('الجنس','Gender') }} <span class="req">*</span></label><select name="gender" required><option value="">{{ t('اختار','Select') }}</option><option value="ذكر">{{ t('ذكر','Male') }}</option><option value="أنثى">{{ t('أنثى','Female') }}</option></select></div>
       <div class="row-2">
-        <div class="field"><label class="field-label">الطول (cm) <span class="req">*</span></label><input type="number" name="height" required step="0.5" min="50" max="250" placeholder="170"></div>
-        <div class="field"><label class="field-label">الوزن الحالي (kg) <span class="req">*</span></label><input type="number" name="weight" required step="0.1" min="20" max="300" placeholder="70.5"></div>
+        <div class="field"><label class="field-label">{{ t('الطول','Height') }} (cm) <span class="req">*</span></label><input type="number" name="height" required step="0.5" min="50" max="250" placeholder="170"></div>
+        <div class="field"><label class="field-label">{{ t('الوزن الحالي','Current weight') }} (kg) <span class="req">*</span></label><input type="number" name="weight" required step="0.1" min="20" max="300" placeholder="70.5"></div>
       </div>
-      <div class="nav"><button type="button" class="btn btn-prev" onclick="prevStep()">← رجوع</button><button type="button" class="btn btn-next" onclick="nextStep()">التالي →</button></div>
+      <div class="nav"><button type="button" class="btn btn-prev" onclick="prevStep()">{{ t('← رجوع','← Back') }}</button><button type="button" class="btn btn-next" onclick="nextStep()">{{ t('التالي →','Next →') }}</button></div>
     </div>
 
     <!-- STEP 3: GOAL -->
     <div class="step" data-step="3">
       <div class="step-icon">🎯</div>
-      <h2 class="step-title">إيه هدفك؟</h2>
-      <p class="step-sub">عشان نفصّل خطتك على هدفك بالظبط</p>
+      <h2 class="step-title">{{ t('إيه هدفك؟',"What's your goal?") }}</h2>
+      <p class="step-sub">{{ t('عشان نفصّل خطتك على هدفك بالظبط','So we can tailor your plan to exactly that') }}</p>
       <div class="goal-cards" id="goalCards">
-        <label class="goal-card" data-value="weight_loss"><input type="radio" name="goal" value="weight_loss"><div class="icon">🥗</div><div class="name">تخسيس</div></label>
-        <label class="goal-card" data-value="muscle_gain"><input type="radio" name="goal" value="muscle_gain"><div class="icon">💪</div><div class="name">عضل</div></label>
-        <label class="goal-card" data-value="bulking"><input type="radio" name="goal" value="bulking"><div class="icon">🔥</div><div class="name">تضخيم</div></label>
-        <label class="goal-card" data-value="maintenance"><input type="radio" name="goal" value="maintenance"><div class="icon">🍽️</div><div class="name">مكتنز</div></label>
+        {% for val, icon, ar, en in [('weight_loss','🥗','تخسيس','Weight Loss'),('muscle_gain','💪','عضل','Muscle'),('bulking','🔥','تضخيم','Bulking'),('maintenance','🍽️','مكتنز','Maintenance')] %}
+        <label class="goal-card" data-value="{{ val }}"><input type="radio" name="goal" value="{{ val }}"><div class="icon">{{ icon }}</div><div class="name">{{ ar if is_ar else en }}</div></label>
+        {% endfor %}
       </div>
-      <div class="field" style="margin-top: 22px;"><label class="field-label">مستوى نشاطك اليومي <span class="req">*</span></label>
+      <div class="field" style="margin-top: 22px;"><label class="field-label">{{ t('مستوى نشاطك اليومي','Your daily activity level') }} <span class="req">*</span></label>
         <select name="activity" required>
-          <option value="1.2">قليل (شغل مكتبي + مفيش رياضة)</option>
-          <option value="1.375">خفيف (رياضة 1-3 مرات/أسبوع)</option>
-          <option value="1.55" selected>متوسط (رياضة 3-5 مرات/أسبوع)</option>
-          <option value="1.725">عالي (رياضة يومياً)</option>
-          <option value="1.9">عالي جداً (رياضي محترف)</option>
+          <option value="1.2">{{ t('قليل (شغل مكتبي + مفيش رياضة)','Sedentary (desk job, no exercise)') }}</option>
+          <option value="1.375">{{ t('خفيف (رياضة 1-3 مرات/أسبوع)','Light (exercise 1-3 times/week)') }}</option>
+          <option value="1.55" selected>{{ t('متوسط (رياضة 3-5 مرات/أسبوع)','Moderate (exercise 3-5 times/week)') }}</option>
+          <option value="1.725">{{ t('عالي (رياضة يومياً)','High (daily exercise)') }}</option>
+          <option value="1.9">{{ t('عالي جداً (رياضي محترف)','Very high (competitive athlete)') }}</option>
         </select>
       </div>
-      <div class="nav"><button type="button" class="btn btn-prev" onclick="prevStep()">← رجوع</button><button type="button" class="btn btn-next" onclick="nextStep()">التالي →</button></div>
+      <div class="nav"><button type="button" class="btn btn-prev" onclick="prevStep()">{{ t('← رجوع','← Back') }}</button><button type="button" class="btn btn-next" onclick="nextStep()">{{ t('التالي →','Next →') }}</button></div>
     </div>
 
     <!-- STEP 4: LIFESTYLE (جديد) -->
     <div class="step" data-step="4">
       <div class="step-icon">🌙</div>
-      <h2 class="step-title"><span class="opt-tag">اختياري</span>نمط حياتك</h2>
-      <p class="step-sub">عشان نقدر نديك نصايح أدق عن نومك ومستوى التوتر</p>
+      <h2 class="step-title"><span class="opt-tag">{{ t('اختياري','Optional') }}</span>{{ t('نمط حياتك','Your lifestyle') }}</h2>
+      <p class="step-sub">{{ t('عشان نقدر نديك نصايح أدق عن نومك ومستوى التوتر','So we can give you sharper advice on sleep and stress') }}</p>
 
       <div class="field">
-        <label class="field-label">😴 ساعات النوم يومياً</label>
+        <label class="field-label">😴 {{ t('ساعات النوم يومياً','Hours of sleep per day') }}</label>
         <div class="slider-wrap">
-          <div class="slider-row"><span style="font-size:12px; color:#64748b;">من 3 لـ 12 ساعة</span><span class="slider-val"><span id="sleepVal">7</span> ساعات</span></div>
+          <div class="slider-row"><span style="font-size:12px; color:#64748b;">{{ t('من 3 لـ 12 ساعة','3 to 12 hours') }}</span><span class="slider-val"><span id="sleepVal">7</span> {{ t('ساعات','hrs') }}</span></div>
           <input type="range" name="sleep_hours" min="3" max="12" value="7" oninput="document.getElementById('sleepVal').textContent = this.value">
         </div>
       </div>
 
       <div class="field">
-        <label class="field-label">💧 شرب المياه يومياً (كوب)</label>
+        <label class="field-label">💧 {{ t('شرب المياه يومياً (كوب)','Water per day (cups)') }}</label>
         <div class="slider-wrap">
-          <div class="slider-row"><span style="font-size:12px; color:#64748b;">من 0 لـ 15 كوب</span><span class="slider-val"><span id="waterVal">6</span> كوب</span></div>
+          <div class="slider-row"><span style="font-size:12px; color:#64748b;">{{ t('من 0 لـ 15 كوب','0 to 15 cups') }}</span><span class="slider-val"><span id="waterVal">6</span> {{ t('كوب','cups') }}</span></div>
           <input type="range" name="water_cups" min="0" max="15" value="6" oninput="document.getElementById('waterVal').textContent = this.value">
         </div>
       </div>
 
       <div class="field">
-        <label class="field-label">😰 مستوى التوتر (1 = هادي / 10 = توتر شديد)</label>
+        <label class="field-label">😰 {{ t('مستوى التوتر (1 = هادي / 10 = توتر شديد)','Stress level (1 = calm / 10 = very stressed)') }}</label>
         <div class="slider-wrap">
-          <div class="slider-row"><span style="font-size:12px; color:#64748b;">من 1 لـ 10</span><span class="slider-val"><span id="stressVal">5</span> / 10</span></div>
+          <div class="slider-row"><span style="font-size:12px; color:#64748b;">{{ t('من 1 لـ 10','1 to 10') }}</span><span class="slider-val"><span id="stressVal">5</span> / 10</span></div>
           <input type="range" name="stress_level" min="1" max="10" value="5" oninput="document.getElementById('stressVal').textContent = this.value">
         </div>
       </div>
 
       <div class="row-2">
         <div class="field">
-          <label class="field-label">☕ كافيين يومياً</label>
+          <label class="field-label">☕ {{ t('كافيين يومياً','Caffeine per day') }}</label>
           <select name="caffeine">
-            <option value="none">لا شيء</option>
-            <option value="low" selected>قليل (1-2 كوب)</option>
-            <option value="medium">متوسط (3-4 كوب)</option>
-            <option value="high">كتير (5+ كوب)</option>
+            <option value="none">{{ t('لا شيء','None') }}</option>
+            <option value="low" selected>{{ t('قليل (1-2 كوب)','Low (1-2 cups)') }}</option>
+            <option value="medium">{{ t('متوسط (3-4 كوب)','Moderate (3-4 cups)') }}</option>
+            <option value="high">{{ t('كتير (5+ كوب)','High (5+ cups)') }}</option>
           </select>
         </div>
         <div class="field">
-          <label class="field-label">🚬 التدخين</label>
+          <label class="field-label">🚬 {{ t('التدخين','Smoking') }}</label>
           <select name="smoking">
-            <option value="no" selected>لا</option>
-            <option value="light">خفيف (أقل من 10 سجائر)</option>
-            <option value="heavy">كتير (10+ سجائر)</option>
-            <option value="vape">سحبة/فيب</option>
-            <option value="quit">قلعت قريب</option>
+            <option value="no" selected>{{ t('لا','No') }}</option>
+            <option value="light">{{ t('خفيف (أقل من 10 سجائر)','Light (under 10 cigarettes)') }}</option>
+            <option value="heavy">{{ t('كتير (10+ سجائر)','Heavy (10+ cigarettes)') }}</option>
+            <option value="vape">{{ t('سحبة/فيب','Vape') }}</option>
+            <option value="quit">{{ t('قلعت قريب','Recently quit') }}</option>
           </select>
         </div>
       </div>
 
       <div class="nav">
-        <button type="button" class="btn btn-prev" onclick="prevStep()">← رجوع</button>
-        <button type="button" class="btn btn-skip" onclick="nextStep()">تخطي ←</button>
-        <button type="button" class="btn btn-next" onclick="nextStep()">التالي →</button>
+        <button type="button" class="btn btn-prev" onclick="prevStep()">{{ t('← رجوع','← Back') }}</button>
+        <button type="button" class="btn btn-skip" onclick="nextStep()">{{ t('تخطي ←','Skip →') }}</button>
+        <button type="button" class="btn btn-next" onclick="nextStep()">{{ t('التالي →','Next →') }}</button>
       </div>
     </div>
 
     <!-- STEP 5: MEDICAL HISTORY (جديد) -->
     <div class="step" data-step="5">
       <div class="step-icon">⚕️</div>
-      <h2 class="step-title"><span class="opt-tag">اختياري</span>تاريخك المرضي</h2>
-      <p class="step-sub">معلوماتك دي سرية تماماً وبتساعدنا نديك خطة أمن لحالتك</p>
+      <h2 class="step-title"><span class="opt-tag">{{ t('اختياري','Optional') }}</span>{{ t('تاريخك المرضي','Your medical history') }}</h2>
+      <p class="step-sub">{{ t('معلوماتك دي سرية تماماً وبتساعدنا نديك خطة أمن لحالتك','This is kept strictly confidential and helps us build a plan that is safe for you') }}</p>
 
-      <div class="info-tip">🔒 كل البيانات دي محفوظة وسرية. د. محمد بس اللي يقدر يشوفها.</div>
+      <div class="info-tip">🔒 {{ t('كل البيانات دي محفوظة وسرية. د. محمد بس اللي يقدر يشوفها.','All of this is stored confidentially. Only Dr. Mohamed can see it.') }}</div>
 
       <div class="field">
-        <label class="field-label">💊 الأدوية اللي بتاخدها حالياً</label>
-        <textarea name="medications" placeholder="مثال: ميتفورمين للسكر، ادول للصداع... لو مفيش، سيب فاضي."></textarea>
+        <label class="field-label">💊 {{ t('الأدوية اللي بتاخدها حالياً','Medications you currently take') }}</label>
+        <textarea name="medications" placeholder="{{ t('مثال: ميتفورمين للسكر، ادول للصداع... لو مفيش، سيب فاضي.','e.g. Metformin for diabetes, paracetamol for headaches… leave blank if none.') }}"></textarea>
       </div>
 
       <div class="field">
-        <label class="field-label">🏥 عمليات جراحية سابقة</label>
-        <textarea name="past_surgeries" placeholder="مثال: عملية مرارة سنة 2020... لو مفيش، سيب فاضي."></textarea>
+        <label class="field-label">🏥 {{ t('عمليات جراحية سابقة','Past surgeries') }}</label>
+        <textarea name="past_surgeries" placeholder="{{ t('مثال: عملية مرارة سنة 2020... لو مفيش، سيب فاضي.','e.g. Gallbladder removal in 2020… leave blank if none.') }}"></textarea>
       </div>
 
+      {# data-val is the stored value and stays Arabic; only the label is localized #}
       <div class="field">
-        <label class="field-label">👨‍👩‍👧 أمراض في العائلة (وراثية)</label>
+        <label class="field-label">👨‍👩‍👧 {{ t('أمراض في العائلة (وراثية)','Family (hereditary) conditions') }}</label>
         <div class="chips-group" id="familyChips">
-          <span class="chip" data-val="سكري">🩸 سكري</span>
-          <span class="chip" data-val="ضغط">❤️ ضغط</span>
-          <span class="chip" data-val="قلب">💓 أمراض قلب</span>
-          <span class="chip" data-val="سرطان">⚠️ سرطان</span>
-          <span class="chip" data-val="كولسترول">🔴 كولسترول</span>
-          <span class="chip" data-val="سمنة">⚖️ سمنة</span>
-          <span class="chip" data-val="غدة درقية">🦋 غدة درقية</span>
-          <span class="chip" data-val="كلى">🟤 كلى</span>
+          {% for val, icon, en in [('سكري','🩸','Diabetes'),('ضغط','❤️','Blood pressure'),('قلب','💓','Heart disease'),('سرطان','⚠️','Cancer'),('كولسترول','🔴','Cholesterol'),('سمنة','⚖️','Obesity'),('غدة درقية','🦋','Thyroid'),('كلى','🟤','Kidney')] %}
+          <span class="chip" data-val="{{ val }}">{{ icon }} {{ val if is_ar else en }}</span>
+          {% endfor %}
         </div>
         <input type="hidden" name="family_diseases" id="familyHid">
       </div>
 
       <div class="field">
-        <label class="field-label">💉 المكملات والفيتامينات</label>
+        <label class="field-label">💉 {{ t('المكملات والفيتامينات','Supplements and vitamins') }}</label>
         <div class="chips-group" id="suppChips">
-          <span class="chip" data-val="فيتامين د">☀️ فيتامين د</span>
-          <span class="chip" data-val="حديد">🩸 حديد</span>
-          <span class="chip" data-val="أوميجا 3">🐟 أوميجا 3</span>
-          <span class="chip" data-val="كالسيوم">🦴 كالسيوم</span>
-          <span class="chip" data-val="ماغنسيوم">💊 ماغنسيوم</span>
-          <span class="chip" data-val="زنك">🛡️ زنك</span>
-          <span class="chip" data-val="ملتي فيتامين">🌈 ملتي فيتامين</span>
-          <span class="chip" data-val="بروتين">💪 بروتين</span>
-          <span class="chip" data-val="كرياتين">⚡ كرياتين</span>
+          {% for val, icon, en in [('فيتامين د','☀️','Vitamin D'),('حديد','🩸','Iron'),('أوميجا 3','🐟','Omega 3'),('كالسيوم','🦴','Calcium'),('ماغنسيوم','💊','Magnesium'),('زنك','🛡️','Zinc'),('ملتي فيتامين','🌈','Multivitamin'),('بروتين','💪','Protein'),('كرياتين','⚡','Creatine')] %}
+          <span class="chip" data-val="{{ val }}">{{ icon }} {{ val if is_ar else en }}</span>
+          {% endfor %}
         </div>
         <input type="hidden" name="supplements" id="suppHid">
       </div>
 
       <div class="nav">
-        <button type="button" class="btn btn-prev" onclick="prevStep()">← رجوع</button>
-        <button type="button" class="btn btn-skip" onclick="nextStep()">تخطي ←</button>
-        <button type="button" class="btn btn-next" onclick="nextStep()">التالي →</button>
+        <button type="button" class="btn btn-prev" onclick="prevStep()">{{ t('← رجوع','← Back') }}</button>
+        <button type="button" class="btn btn-skip" onclick="nextStep()">{{ t('تخطي ←','Skip →') }}</button>
+        <button type="button" class="btn btn-next" onclick="nextStep()">{{ t('التالي →','Next →') }}</button>
       </div>
     </div>
 
     <!-- STEP 6: PREFERENCES -->
     <div class="step" data-step="6">
       <div class="step-icon">🍽️</div>
-      <h2 class="step-title"><span class="opt-tag">اختياري</span>تفضيلاتك الغذائية</h2>
-      <p class="step-sub">قولنا أي حاجة بتحبها أو بتتحساس منها</p>
+      <h2 class="step-title"><span class="opt-tag">{{ t('اختياري','Optional') }}</span>{{ t('تفضيلاتك الغذائية','Your food preferences') }}</h2>
+      <p class="step-sub">{{ t('قولنا أي حاجة بتحبها أو بتتحساس منها','Tell us anything you love or react badly to') }}</p>
 
       <div class="field">
-        <label class="field-label">😋 أكلات بتحبها</label>
+        <label class="field-label">😋 {{ t('أكلات بتحبها','Foods you like') }}</label>
         <div class="chips-group" id="likedChips">
-          <span class="chip" data-val="دجاج">🍗 دجاج</span><span class="chip" data-val="لحمة">🥩 لحمة</span><span class="chip" data-val="سمك">🐟 سمك</span><span class="chip" data-val="بيض">🥚 بيض</span><span class="chip" data-val="جبن">🧀 جبن</span><span class="chip" data-val="فول">🥘 فول</span><span class="chip" data-val="ارز">🍚 ارز</span><span class="chip" data-val="مكرونة">🍝 مكرونة</span><span class="chip" data-val="بطاطا">🍠 بطاطا</span><span class="chip" data-val="شوفان">🥣 شوفان</span><span class="chip" data-val="مكسرات">🌰 مكسرات</span><span class="chip" data-val="فاكهة">🍎 فاكهة</span>
+          {% for val, icon, en in [('دجاج','🍗','Chicken'),('لحمة','🥩','Red meat'),('سمك','🐟','Fish'),('بيض','🥚','Eggs'),('جبن','🧀','Cheese'),('فول','🥘','Fava beans'),('ارز','🍚','Rice'),('مكرونة','🍝','Pasta'),('بطاطا','🍠','Sweet potato'),('شوفان','🥣','Oats'),('مكسرات','🌰','Nuts'),('فاكهة','🍎','Fruit')] %}
+          <span class="chip" data-val="{{ val }}">{{ icon }} {{ val if is_ar else en }}</span>
+          {% endfor %}
         </div>
         <input type="hidden" name="liked_foods" id="likedHid">
       </div>
 
       <div class="field">
-        <label class="field-label">🚫 أكلات مش بتحبها</label>
+        <label class="field-label">🚫 {{ t('أكلات مش بتحبها',"Foods you don't like") }}</label>
         <div class="chips-group" id="dislikedChips">
-          <span class="chip" data-val="كبدة">🥩 كبدة</span><span class="chip" data-val="ملوخية">🥬 ملوخية</span><span class="chip" data-val="باميا">🌶️ باميا</span><span class="chip" data-val="كرنب">🥬 كرنب</span><span class="chip" data-val="سمك">🐟 سمك</span><span class="chip" data-val="بيض">🥚 بيض</span><span class="chip" data-val="جبن">🧀 جبن</span><span class="chip" data-val="مأكولات بحرية">🦐 مأكولات بحرية</span>
+          {% for val, icon, en in [('كبدة','🥩','Liver'),('ملوخية','🥬','Molokhia'),('باميا','🌶️','Okra'),('كرنب','🥬','Cabbage'),('سمك','🐟','Fish'),('بيض','🥚','Eggs'),('جبن','🧀','Cheese'),('مأكولات بحرية','🦐','Seafood')] %}
+          <span class="chip" data-val="{{ val }}">{{ icon }} {{ val if is_ar else en }}</span>
+          {% endfor %}
         </div>
         <input type="hidden" name="disliked_foods" id="dislikedHid">
       </div>
 
       <div class="field">
-        <label class="field-label">⚠️ حساسية غذائية</label>
+        <label class="field-label">⚠️ {{ t('حساسية غذائية','Food allergies') }}</label>
         <div class="chips-group" id="allergiesChips">
-          <span class="chip" data-val="اللاكتوز">🥛 لاكتوز</span><span class="chip" data-val="الجلوتين">🍞 جلوتين</span><span class="chip" data-val="المكسرات">🌰 مكسرات</span><span class="chip" data-val="البيض">🥚 بيض</span><span class="chip" data-val="الأسماك">🐟 أسماك</span><span class="chip" data-val="الفول السوداني">🥜 فول سوداني</span><span class="chip" data-val="الصويا">🫘 صويا</span><span class="chip" data-val="المحار">🦐 محار</span><span class="chip" data-val="السمسم">🌱 سمسم</span>
+          {% for val, icon, ar, en in [('اللاكتوز','🥛','لاكتوز','Lactose'),('الجلوتين','🍞','جلوتين','Gluten'),('المكسرات','🌰','مكسرات','Tree nuts'),('البيض','🥚','بيض','Eggs'),('الأسماك','🐟','أسماك','Fish'),('الفول السوداني','🥜','فول سوداني','Peanuts'),('الصويا','🫘','صويا','Soy'),('المحار','🦐','محار','Shellfish'),('السمسم','🌱','سمسم','Sesame')] %}
+          <span class="chip" data-val="{{ val }}">{{ icon }} {{ ar if is_ar else en }}</span>
+          {% endfor %}
         </div>
         <input type="hidden" name="allergies" id="allergiesHid">
       </div>
 
       <div class="field">
-        <label class="field-label">⚕️ حالات طبية حالية</label>
+        <label class="field-label">⚕️ {{ t('حالات طبية حالية','Current medical conditions') }}</label>
         <div class="chips-group" id="condChips">
-          <span class="chip" data-val="قولون عصبي">قولون عصبي</span><span class="chip" data-val="سكري النوع الثاني">سكري</span><span class="chip" data-val="ضغط الدم المرتفع">ضغط</span><span class="chip" data-val="أمراض القلب">قلب</span><span class="chip" data-val="الفشل الكلوي المزمن">كلى</span><span class="chip" data-val="ثلاسيميا">ثلاسيميا</span><span class="chip" data-val="نقص G6PD">G6PD</span><span class="chip" data-val="الحمل">حمل</span><span class="chip" data-val="الرضاعة الطبيعية">رضاعة</span>
+          {% for val, ar, en in [('قولون عصبي','قولون عصبي','IBS'),('سكري النوع الثاني','سكري','Diabetes'),('ضغط الدم المرتفع','ضغط','Hypertension'),('أمراض القلب','قلب','Heart'),('الفشل الكلوي المزمن','كلى','Kidney'),('ثلاسيميا','ثلاسيميا','Thalassemia'),('نقص G6PD','G6PD','G6PD'),('الحمل','حمل','Pregnancy'),('الرضاعة الطبيعية','رضاعة','Breastfeeding')] %}
+          <span class="chip" data-val="{{ val }}">{{ ar if is_ar else en }}</span>
+          {% endfor %}
         </div>
         <input type="hidden" name="conditions" id="condHid">
       </div>
 
       <div class="nav">
-        <button type="button" class="btn btn-prev" onclick="prevStep()">← رجوع</button>
-        <button type="submit" class="btn btn-submit">✅ إنشاء الحساب</button>
+        <button type="button" class="btn btn-prev" onclick="prevStep()">{{ t('← رجوع','← Back') }}</button>
+        <button type="submit" class="btn btn-submit">✅ {{ t('إنشاء الحساب','Create account') }}</button>
       </div>
     </div>
 
@@ -295,6 +298,10 @@
 <script>
 let curStep = 1;
 const totalSteps = 6;
+const MSG = {
+  fillRequired: {{ t('من فضلك املأ كل الحقول المطلوبة','Please fill in all required fields')|tojson }},
+  pickGoal:     {{ t('اختار هدفك أولاً','Pick your goal first')|tojson }}
+};
 
 function updateProgress() {
   const pct = (curStep / totalSteps) * 100;
@@ -316,13 +323,13 @@ function validateStep(n) {
   for (const f of required) {
     if (!f.value || f.value.trim() === '') {
       f.focus(); f.style.borderColor = '#ef4444';
-      alert('من فضلك املأ كل الحقول المطلوبة');
+      alert(MSG.fillRequired);
       return false;
     }
   }
   if (n === 3) {
     const goal = step.querySelector('input[name="goal"]:checked');
-    if (!goal) { alert('اختار هدفك أولاً'); return false; }
+    if (!goal) { alert(MSG.pickGoal); return false; }
   }
   return true;
 }

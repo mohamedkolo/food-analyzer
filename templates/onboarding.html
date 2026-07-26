@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+{% set is_ar = (lang or 'ar') == 'ar' %}
+<html lang="{{ 'ar' if is_ar else 'en' }}" dir="{{ 'rtl' if is_ar else 'ltr' }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>أهلاً بيك في NutraX</title>
+<title>{{ t('أهلاً بيك في NutraX','Welcome to NutraX') }}</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Cairo',sans-serif;-webkit-tap-highlight-color:transparent}
@@ -74,18 +75,18 @@ input[type=text]{width:100%;padding:14px;border:2px solid #e7e0d0;border-radius:
 <!-- ═══ 0: ترحيب ═══ -->
 <div class="step active" data-step="0">
   <div class="step-emoji">👨‍⚕️</div>
-  <h1>أهلاً {{ user.name.split()[0] if user.name else 'بيك' }}!<br>إنت دلوقتي مع دكتور حقيقي</h1>
-  <p class="sub">NutraX مش مجرد تطبيق — ده عيادة تغذية إكلينيكية في جيبك</p>
-  <div class="feature"><span class="femoji">🩺</span><div><b>خطط من د. محمد شخصياً</b><p>مش خوارزمية — أخصائي تغذية إكلينيكية بيراجع حالتك بنفسه</p></div></div>
-  <div class="feature"><span class="femoji">🧬</span><div><b>بنراعي حالتك الصحية</b><p>سكري، ضغط، قولون، فافيزم، ثلاسيميا — خطتك على مقاس جسمك</p></div></div>
-  <div class="feature"><span class="femoji">💬</span><div><b>تواصل مباشر</b><p>شات وواتساب مع الدكتور — مش بوت بيرد عليك</p></div></div>
+  <h1>{{ t('أهلاً','Hi') }} {{ user.name.split()[0] if user.name else t('بيك','there') }}!<br>{{ t('إنت دلوقتي مع دكتور حقيقي',"You're now with a real doctor") }}</h1>
+  <p class="sub">{{ t('NutraX مش مجرد تطبيق — ده عيادة تغذية إكلينيكية في جيبك','NutraX is more than an app — it is a clinical nutrition practice in your pocket') }}</p>
+  <div class="feature"><span class="femoji">🩺</span><div><b>{{ t('خطط من د. محمد شخصياً','Plans from Dr. Mohamed personally') }}</b><p>{{ t('مش خوارزمية — أخصائي تغذية إكلينيكية بيراجع حالتك بنفسه','Not an algorithm — a clinical dietitian reviews your case himself') }}</p></div></div>
+  <div class="feature"><span class="femoji">🧬</span><div><b>{{ t('بنراعي حالتك الصحية','We account for your health conditions') }}</b><p>{{ t('سكري، ضغط، قولون، فافيزم، ثلاسيميا — خطتك على مقاس جسمك','Diabetes, blood pressure, IBS, G6PD, thalassemia — your plan is built around your body') }}</p></div></div>
+  <div class="feature"><span class="femoji">💬</span><div><b>{{ t('تواصل مباشر','Direct contact') }}</b><p>{{ t('شات وواتساب مع الدكتور — مش بوت بيرد عليك','Chat and WhatsApp with the doctor — not a bot answering you') }}</p></div></div>
 </div>
 
 <!-- ═══ 1: تاريخ الميلاد ═══ -->
 <div class="step" data-step="1">
   <div class="step-emoji">🎂</div>
-  <h1>تاريخ ميلادك إيه؟</h1>
-  <p class="sub">العمر بيدخل في حساب احتياجك اليومي من السعرات بدقة</p>
+  <h1>{{ t('تاريخ ميلادك إيه؟',"What's your date of birth?") }}</h1>
+  <p class="sub">{{ t('العمر بيدخل في حساب احتياجك اليومي من السعرات بدقة','Age feeds directly into calculating your daily calorie needs') }}</p>
   <div class="dateRow">
     <select id="bDay"></select>
     <select id="bMonth"></select>
@@ -96,118 +97,149 @@ input[type=text]{width:100%;padding:14px;border:2px solid #e7e0d0;border-radius:
 <!-- ═══ 2: النوع ═══ -->
 <div class="step" data-step="2">
   <div class="step-emoji">🧍</div>
-  <h1>النوع؟</h1>
-  <p class="sub">معادلات الحرق بتختلف بين الرجالة والستات</p>
+  <h1>{{ t('النوع؟','Sex?') }}</h1>
+  <p class="sub">{{ t('معادلات الحرق بتختلف بين الرجالة والستات','Metabolic equations differ between men and women') }}</p>
   <div class="cards grid2">
-    <div class="opt center" data-field="gender" data-value="ذكر"><span class="oemoji">👨</span><span class="otitle">ذكر</span></div>
-    <div class="opt center" data-field="gender" data-value="أنثى"><span class="oemoji">👩</span><span class="otitle">أنثى</span></div>
+    <div class="opt center" data-field="gender" data-value="ذكر"><span class="oemoji">👨</span><span class="otitle">{{ t('ذكر','Male') }}</span></div>
+    <div class="opt center" data-field="gender" data-value="أنثى"><span class="oemoji">👩</span><span class="otitle">{{ t('أنثى','Female') }}</span></div>
   </div>
 </div>
 
 <!-- ═══ 3: الطول ═══ -->
 <div class="step" data-step="3">
   <div class="step-emoji">📏</div>
-  <h1>طولك كام؟</h1>
-  <p class="sub">بالسنتيمتر</p>
-  <div class="bignum"><input type="number" id="inHeight" min="100" max="230" placeholder="170"><span class="unit">سم</span></div>
+  <h1>{{ t('طولك كام؟','How tall are you?') }}</h1>
+  <p class="sub">{{ t('بالسنتيمتر','In centimetres') }}</p>
+  <div class="bignum"><input type="number" id="inHeight" min="100" max="230" placeholder="170"><span class="unit">{{ t('سم','cm') }}</span></div>
 </div>
 
 <!-- ═══ 4: الوزن ═══ -->
 <div class="step" data-step="4">
   <div class="step-emoji">⚖️</div>
-  <h1>وزنك الحالي؟</h1>
-  <p class="sub">بالكيلوجرام — وهنتابعه معاك أسبوعياً</p>
-  <div class="bignum"><input type="number" id="inWeight" min="30" max="300" step="0.5" placeholder="80"><span class="unit">كجم</span></div>
+  <h1>{{ t('وزنك الحالي؟','Your current weight?') }}</h1>
+  <p class="sub">{{ t('بالكيلوجرام — وهنتابعه معاك أسبوعياً','In kilograms — we will track it with you weekly') }}</p>
+  <div class="bignum"><input type="number" id="inWeight" min="30" max="300" step="0.5" placeholder="80"><span class="unit">{{ t('كجم','kg') }}</span></div>
 </div>
 
 <!-- ═══ 5: الهدف ═══ -->
 <div class="step" data-step="5">
   <div class="step-emoji">🎯</div>
-  <h1>هدفك إيه؟</h1>
-  <p class="sub">اختار الأقرب ليك — وهنبني كل حاجة عليه</p>
+  <h1>{{ t('هدفك إيه؟',"What's your goal?") }}</h1>
+  <p class="sub">{{ t('اختار الأقرب ليك — وهنبني كل حاجة عليه','Pick the closest one — we build everything around it') }}</p>
   <div class="cards">
-    <div class="opt" data-field="goal" data-value="weight_loss"><span class="oemoji">🥗</span><div><div class="otitle">تخسيس</div><div class="odesc">نزول وزن صحي ومستدام</div></div></div>
-    <div class="opt" data-field="goal" data-value="cutting"><span class="oemoji">🔥</span><div><div class="otitle">تنشيف دهون</div><div class="odesc">حرق الدهون مع الحفاظ على العضل — لأهل الجيم</div></div></div>
-    <div class="opt" data-field="goal" data-value="muscle_gain"><span class="oemoji">💪</span><div><div class="otitle">زيادة عضل</div><div class="odesc">بناء عضل صافي بأقل دهون ممكنة</div></div></div>
-    <div class="opt" data-field="goal" data-value="bulking"><span class="oemoji">🏋️</span><div><div class="otitle">تضخيم</div><div class="odesc">زيادة وزن وكتلة بشكل عام</div></div></div>
-    <div class="opt" data-field="goal" data-value="maintain"><span class="oemoji">⚖️</span><div><div class="otitle">تثبيت</div><div class="odesc">محافظة على وزنك الحالي بأكل صحي</div></div></div>
+    {% for val, icon, ar_t, en_t, ar_d, en_d in [
+      ('weight_loss','🥗','تخسيس','Weight Loss','نزول وزن صحي ومستدام','Healthy, sustainable weight loss'),
+      ('cutting','🔥','تنشيف دهون','Cutting','حرق الدهون مع الحفاظ على العضل — لأهل الجيم','Burn fat while holding on to muscle — for gym-goers'),
+      ('muscle_gain','💪','زيادة عضل','Lean Muscle Gain','بناء عضل صافي بأقل دهون ممكنة','Build lean muscle with as little fat as possible'),
+      ('bulking','🏋️','تضخيم','Bulking','زيادة وزن وكتلة بشكل عام','Gain overall weight and mass'),
+      ('maintain','⚖️','تثبيت','Maintenance','محافظة على وزنك الحالي بأكل صحي','Hold your current weight with healthy eating')] %}
+    <div class="opt" data-field="goal" data-value="{{ val }}"><span class="oemoji">{{ icon }}</span><div><div class="otitle">{{ ar_t if is_ar else en_t }}</div><div class="odesc">{{ ar_d if is_ar else en_d }}</div></div></div>
+    {% endfor %}
   </div>
 </div>
 
 <!-- ═══ 6: النشاط ═══ -->
 <div class="step" data-step="6">
   <div class="step-emoji">🏃</div>
-  <h1>مستوى نشاطك؟</h1>
-  <p class="sub">بصدق — ده بيفرق كتير في حساب سعراتك</p>
+  <h1>{{ t('مستوى نشاطك؟','Your activity level?') }}</h1>
+  <p class="sub">{{ t('بصدق — ده بيفرق كتير في حساب سعراتك','Be honest — this changes your calorie numbers a lot') }}</p>
   <div class="cards">
-    <div class="opt" data-field="activity" data-value="1.2"><span class="oemoji">🪑</span><div><div class="otitle">قليل الحركة</div><div class="odesc">شغل مكتبي ومفيش رياضة</div></div></div>
-    <div class="opt" data-field="activity" data-value="1.375"><span class="oemoji">🚶</span><div><div class="otitle">نشاط خفيف</div><div class="odesc">مشي أو رياضة خفيفة 1-3 أيام</div></div></div>
-    <div class="opt" data-field="activity" data-value="1.55"><span class="oemoji">🏃</span><div><div class="otitle">نشاط متوسط</div><div class="odesc">تمرين 3-5 أيام في الأسبوع</div></div></div>
-    <div class="opt" data-field="activity" data-value="1.725"><span class="oemoji">🏋️</span><div><div class="otitle">نشاط عالي</div><div class="odesc">تمرين قوي 6-7 أيام</div></div></div>
+    {% for val, icon, ar_t, en_t, ar_d, en_d in [
+      ('1.2','🪑','قليل الحركة','Sedentary','شغل مكتبي ومفيش رياضة','Desk job and no exercise'),
+      ('1.375','🚶','نشاط خفيف','Lightly active','مشي أو رياضة خفيفة 1-3 أيام','Walking or light exercise 1-3 days'),
+      ('1.55','🏃','نشاط متوسط','Moderately active','تمرين 3-5 أيام في الأسبوع','Training 3-5 days a week'),
+      ('1.725','🏋️','نشاط عالي','Very active','تمرين قوي 6-7 أيام','Hard training 6-7 days')] %}
+    <div class="opt" data-field="activity" data-value="{{ val }}"><span class="oemoji">{{ icon }}</span><div><div class="otitle">{{ ar_t if is_ar else en_t }}</div><div class="odesc">{{ ar_d if is_ar else en_d }}</div></div></div>
+    {% endfor %}
   </div>
 </div>
 
 <!-- ═══ 7: الحالات الصحية ═══ -->
 <div class="step" data-step="7">
   <div class="step-emoji">🩺</div>
-  <h1>عندك أي حالة صحية؟</h1>
-  <p class="sub">اختار كل اللي ينطبق — ودي أهم خطوة عشان خطتك تبقى آمنة ليك</p>
+  <h1>{{ t('عندك أي حالة صحية؟','Do you have any health conditions?') }}</h1>
+  <p class="sub">{{ t('اختار كل اللي ينطبق — ودي أهم خطوة عشان خطتك تبقى آمنة ليك','Select everything that applies — this is the most important step for keeping your plan safe') }}</p>
+  {# data-v is the stored value and must stay Arabic: filter_by_conditions matches on it #}
   <div class="chips" id="condChips">
-    <span class="chip" data-v="سكري">🩸 سكري</span>
-    <span class="chip" data-v="ضغط الدم">❤️ ضغط</span>
-    <span class="chip" data-v="قولون عصبي">🌀 قولون عصبي</span>
-    <span class="chip" data-v="أمراض القلب">❤️‍🩹 قلب</span>
-    <span class="chip" data-v="كلى">🫘 كلى</span>
-    <span class="chip" data-v="G6PD">🧬 فافيزم G6PD</span>
-    <span class="chip" data-v="ثلاسيميا">🩹 ثلاسيميا</span>
-    <span class="chip" data-v="حساسية اللاكتوز">🥛 حساسية لاكتوز</span>
-    <span class="chip" data-v="حمل">🤰 حمل/رضاعة</span>
-    <span class="chip" data-v="كوليسترول">🫀 كوليسترول</span>
-    <span class="chip" data-v="غدة درقية">🦋 غدة درقية</span>
+    {% for val, icon, ar, en in [
+      ('سكري','🩸','سكري','Diabetes'),
+      ('ضغط الدم','❤️','ضغط','Blood pressure'),
+      ('قولون عصبي','🌀','قولون عصبي','IBS'),
+      ('أمراض القلب','❤️‍🩹','قلب','Heart'),
+      ('كلى','🫘','كلى','Kidney'),
+      ('G6PD','🧬','فافيزم G6PD','G6PD deficiency'),
+      ('ثلاسيميا','🩹','ثلاسيميا','Thalassemia'),
+      ('حساسية اللاكتوز','🥛','حساسية لاكتوز','Lactose intolerance'),
+      ('حمل','🤰','حمل/رضاعة','Pregnancy/breastfeeding'),
+      ('كوليسترول','🫀','كوليسترول','Cholesterol'),
+      ('غدة درقية','🦋','غدة درقية','Thyroid')] %}
+    <span class="chip" data-v="{{ val }}">{{ icon }} {{ ar if is_ar else en }}</span>
+    {% endfor %}
   </div>
-  <p class="sub" style="margin-top:18px;margin-bottom:10px">وحساسية من أي أكل؟</p>
+  <p class="sub" style="margin-top:18px;margin-bottom:10px">{{ t('وحساسية من أي أكل؟','And any food allergies?') }}</p>
   <div class="chips" id="allergyChips">
-    <span class="chip" data-v="حساسية الجلوتين">🌾 جلوتين</span>
-    <span class="chip" data-v="حساسية المكسرات">🌰 مكسرات</span>
-    <span class="chip" data-v="حساسية البيض">🥚 بيض</span>
-    <span class="chip" data-v="حساسية الأسماك">🐟 أسماك</span>
-    <span class="chip" data-v="حساسية الفول السوداني">🥜 فول سوداني</span>
+    {% for val, icon, ar, en in [
+      ('حساسية الجلوتين','🌾','جلوتين','Gluten'),
+      ('حساسية المكسرات','🌰','مكسرات','Tree nuts'),
+      ('حساسية البيض','🥚','بيض','Eggs'),
+      ('حساسية الأسماك','🐟','أسماك','Fish'),
+      ('حساسية الفول السوداني','🥜','فول سوداني','Peanuts')] %}
+    <span class="chip" data-v="{{ val }}">{{ icon }} {{ ar if is_ar else en }}</span>
+    {% endfor %}
   </div>
 </div>
 
 <!-- ═══ 8: أكل بتحبه/بتكرهه ═══ -->
 <div class="step" data-step="8">
   <div class="step-emoji">😋</div>
-  <h1>آخر سؤال — ذوقك في الأكل</h1>
-  <p class="sub">اختياري، بس بيخلي خطتك ألذ والتزامك أسهل</p>
-  <b style="font-size:14px;color:#14332b">أكل بتحبه:</b>
-  <input type="text" id="inLiked" placeholder="مثلاً: فراخ مشوية، رز، موز">
-  <b style="font-size:14px;color:#14332b;display:block;margin-top:16px">أكل مش بتحبه:</b>
-  <input type="text" id="inDisliked" placeholder="مثلاً: باذنجان، سمك">
+  <h1>{{ t('آخر سؤال — ذوقك في الأكل','Last question — your taste in food') }}</h1>
+  <p class="sub">{{ t('اختياري، بس بيخلي خطتك ألذ والتزامك أسهل','Optional, but it makes your plan tastier and easier to stick to') }}</p>
+  <b style="font-size:14px;color:#14332b">{{ t('أكل بتحبه:','Food you like:') }}</b>
+  <input type="text" id="inLiked" placeholder="{{ t('مثلاً: فراخ مشوية، رز، موز','e.g. grilled chicken, rice, bananas') }}">
+  <b style="font-size:14px;color:#14332b;display:block;margin-top:16px">{{ t('أكل مش بتحبه:',"Food you don't like:") }}</b>
+  <input type="text" id="inDisliked" placeholder="{{ t('مثلاً: باذنجان، سمك','e.g. aubergine, fish') }}">
 </div>
 
 <!-- ═══ 9: النتيجة ═══ -->
 <div class="step" data-step="9">
   <div class="step-emoji">🎉</div>
-  <h1>خطتك العلمية جاهزة!</h1>
-  <p class="sub" id="resIntro">دي أرقامك المحسوبة بأحدث المعايير العلمية</p>
-  <div class="result-card"><div class="rlabel" id="calLabel">سعراتك اليومية المستهدفة</div><div class="rvalue"><span id="resCal">0</span> <small>سعرة</small></div></div>
+  <h1>{{ t('خطتك العلمية جاهزة!','Your evidence-based plan is ready!') }}</h1>
+  <p class="sub" id="resIntro">{{ t('دي أرقامك المحسوبة بأحدث المعايير العلمية','These are your numbers, calculated to the latest scientific standards') }}</p>
+  <div class="result-card"><div class="rlabel" id="calLabel">{{ t('سعراتك اليومية المستهدفة','Your daily calorie target') }}</div><div class="rvalue"><span id="resCal">0</span> <small>{{ t('سعرة','kcal') }}</small></div></div>
   <div class="result-grid">
-    <div class="result-card"><div class="rlabel">🥩 بروتين يومي</div><div class="rvalue"><span id="resProt">0</span><small> جم</small></div></div>
-    <div class="result-card"><div class="rlabel">🔥 حرقك اليومي TDEE</div><div class="rvalue"><span id="resTdee">0</span><small> سعرة</small></div></div>
+    <div class="result-card"><div class="rlabel">🥩 {{ t('بروتين يومي','Daily protein') }}</div><div class="rvalue"><span id="resProt">0</span><small> {{ t('جم','g') }}</small></div></div>
+    <div class="result-card"><div class="rlabel">🔥 {{ t('حرقك اليومي TDEE','Your daily burn (TDEE)') }}</div><div class="rvalue"><span id="resTdee">0</span><small> {{ t('سعرة','kcal') }}</small></div></div>
   </div>
   <div class="evid" id="resEvid"></div>
 </div>
 </form>
 
 <div class="navBtns">
-  <button type="button" class="btn-back" id="btnBack" style="display:none">رجوع</button>
-  <button type="button" class="btn-next" id="btnNext">يلا نبدأ 🚀</button>
+  <button type="button" class="btn-back" id="btnBack" style="display:none">{{ t('رجوع','Back') }}</button>
+  <button type="button" class="btn-next" id="btnNext">{{ t('يلا نبدأ 🚀',"Let's go 🚀") }}</button>
 </div>
 
 <script>
 const TOTAL = 10;
 let cur = 0;
+
+// Strings the script writes into the DOM at runtime, resolved server-side.
+const L = {
+  start:    {{ t('يلا نبدأ 🚀',"Let's go 🚀")|tojson }},
+  next:     {{ t('التالي','Next')|tojson }},
+  finish:   {{ t('✅ ابدأ رحلتك مع د. محمد','✅ Start your journey with Dr. Mohamed')|tojson }},
+  calTarget:     {{ t('سعراتك اليومية المستهدفة','Your daily calorie target')|tojson }},
+  labelCut:      {{ t('سعرات التنشيف (نزول 0.5-1% أسبوعياً)','Cutting calories (0.5-1% loss per week)')|tojson }},
+  labelLean:     {{ t('سعرات بناء العضل الصافي','Lean muscle-building calories')|tojson }},
+  labelBulk:     {{ t('سعرات التضخيم','Bulking calories')|tojson }},
+  labelMaintain: {{ t('سعرات المحافظة','Maintenance calories')|tojson }},
+  evidLoss: {{ t('عجز 20% آمن + بروتين 1.8 جم/كجم للحفاظ على العضل أثناء النزول (الأبحاث: أقل من 1.3 جم/كجم بيزود فقدان العضل)','A safe 20% deficit plus 1.8 g/kg protein to preserve muscle while losing weight (research: below 1.3 g/kg increases muscle loss)')|tojson }},
+  evidCut:  {{ t('وفق توصيات Helms وزملاؤه: عجز معتدل يحقق نزول 0.5-1% من الوزن أسبوعياً + بروتين 2.2 جم/كجم (المعادل لـ 2.3-3.1 جم/كجم كتلة صافية) + دهون 15-30% — أقصى حفاظ على العضل','Per Helms et al.: a moderate deficit giving 0.5-1% body-weight loss per week, 2.2 g/kg protein (equivalent to 2.3-3.1 g/kg lean mass) and 15-30% fat — maximum muscle retention')|tojson }},
+  evidLean: {{ t('فائض معتدل 10% (الأبحاث الحديثة: الفائض الكبير بيتحول دهون مش عضل) + بروتين 2.0 جم/كجم وفق توصيات ISSN للمتمرنين','A moderate 10% surplus (recent research: a large surplus becomes fat, not muscle) plus 2.0 g/kg protein per ISSN recommendations for trained lifters')|tojson }},
+  evidBulk: {{ t('فائض 18% للزيادة الأسرع + بروتين 1.8 جم/كجم — ومراجعة كل 4 أسابيع مع الدكتور','An 18% surplus for faster gains plus 1.8 g/kg protein — with a review every 4 weeks with the doctor')|tojson }},
+  evidMaintain: {{ t('سعرات = حرقك اليومي + بروتين 1.2 جم/كجم للحفاظ على الكتلة العضلية','Calories equal to your daily burn, plus 1.2 g/kg protein to hold on to muscle mass')|tojson }}
+};
+
 const answers = {};
 const steps = document.querySelectorAll('.step');
 const pbar = document.getElementById('pbar');
@@ -216,7 +248,7 @@ const btnBack = document.getElementById('btnBack');
 
 // تعبئة تاريخ الميلاد
 const dSel=document.getElementById('bDay'), mSel=document.getElementById('bMonth'), ySel=document.getElementById('bYear');
-const months=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const months = {{ (['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'] if is_ar else ['January','February','March','April','May','June','July','August','September','October','November','December'])|tojson }};
 for(let i=1;i<=31;i++) dSel.innerHTML+=`<option value="${i}">${i}</option>`;
 months.forEach((m,i)=>mSel.innerHTML+=`<option value="${i}">${m}</option>`);
 const nowY=new Date().getFullYear();
@@ -269,22 +301,22 @@ function computePlan(){
   // Mifflin-St Jeor
   const bmr = 10*w + 6.25*h - 5*age + (male?5:-161);
   const tdee = Math.round(bmr*act);
-  let cal, prot, evid, label='سعراتك اليومية المستهدفة';
+  let cal, prot, evid, label=L.calTarget;
   if(goal==='weight_loss'){
     cal=Math.max(Math.round(tdee*0.8), male?1500:1200); prot=Math.round(w*1.8);
-    evid='عجز 20% آمن + بروتين 1.8 جم/كجم للحفاظ على العضل أثناء النزول (الأبحاث: أقل من 1.3 جم/كجم بيزود فقدان العضل)';
+    evid=L.evidLoss;
   } else if(goal==='cutting'){
-    cal=Math.round(tdee*0.825); prot=Math.round(w*2.2); label='سعرات التنشيف (نزول 0.5-1% أسبوعياً)';
-    evid='وفق توصيات Helms وزملاؤه: عجز معتدل يحقق نزول 0.5-1% من الوزن أسبوعياً + بروتين 2.2 جم/كجم (المعادل لـ 2.3-3.1 جم/كجم كتلة صافية) + دهون 15-30% — أقصى حفاظ على العضل';
+    cal=Math.round(tdee*0.825); prot=Math.round(w*2.2); label=L.labelCut;
+    evid=L.evidCut;
   } else if(goal==='muscle_gain'){
-    cal=Math.round(tdee*1.10); prot=Math.round(w*2.0); label='سعرات بناء العضل الصافي';
-    evid='فائض معتدل 10% (الأبحاث الحديثة: الفائض الكبير بيتحول دهون مش عضل) + بروتين 2.0 جم/كجم وفق توصيات ISSN للمتمرنين';
+    cal=Math.round(tdee*1.10); prot=Math.round(w*2.0); label=L.labelLean;
+    evid=L.evidLean;
   } else if(goal==='bulking'){
-    cal=Math.round(tdee*1.18); prot=Math.round(w*1.8); label='سعرات التضخيم';
-    evid='فائض 18% للزيادة الأسرع + بروتين 1.8 جم/كجم — ومراجعة كل 4 أسابيع مع الدكتور';
+    cal=Math.round(tdee*1.18); prot=Math.round(w*1.8); label=L.labelBulk;
+    evid=L.evidBulk;
   } else {
-    cal=tdee; prot=Math.round(w*1.2); label='سعرات المحافظة';
-    evid='سعرات = حرقك اليومي + بروتين 1.2 جم/كجم للحفاظ على الكتلة العضلية';
+    cal=tdee; prot=Math.round(w*1.2); label=L.labelMaintain;
+    evid=L.evidMaintain;
   }
   document.getElementById('resCal').textContent=cal;
   document.getElementById('resProt').textContent=prot;
@@ -298,7 +330,7 @@ function show(i){
   steps[i].classList.add('active');
   pbar.style.width=((i+1)/TOTAL*100)+'%';
   btnBack.style.display=i>0?'block':'none';
-  btnNext.textContent = i===0?'يلا نبدأ 🚀' : (i===TOTAL-1?'✅ ابدأ رحلتك مع د. محمد':'التالي');
+  btnNext.textContent = i===0?L.start : (i===TOTAL-1?L.finish:L.next);
   window.scrollTo(0,0);
   validate();
   if(i===TOTAL-1) computePlan();

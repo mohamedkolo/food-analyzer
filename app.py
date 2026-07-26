@@ -3981,10 +3981,12 @@ def onboarding():
             conditions = request.form.get("conditions", "[]")
             allergies = request.form.get("allergies", "[]")
 
+            _lang = session.get("lang", "ar")
             if not (age and gender and height and weight):
                 return render_template("onboarding.html",
-                                       user=user, lang=session.get("lang", "ar"),
-                                       error="من فضلك املأ كل الحقول المطلوبة")
+                                       user=user, lang=_lang,
+                                       error="من فضلك املأ كل الحقول المطلوبة" if _lang == "ar"
+                                       else "Please fill in all required fields")
 
             db_run("""UPDATE users SET 
                       age=?, gender=?, height=?, weight=?, goal=?, activity=?,
@@ -4006,9 +4008,11 @@ def onboarding():
             return redirect("/dashboard?welcome=1")
         except Exception as e:
             import traceback; traceback.print_exc()
+            _lang = session.get("lang", "ar")
             return render_template("onboarding.html",
-                                   user=user, lang=session.get("lang", "ar"),
-                                   error=f"خطأ في الحفظ: {str(e)}")
+                                   user=user, lang=_lang,
+                                   error=(f"خطأ في الحفظ: {e}" if _lang == "ar"
+                                          else f"Could not save: {e}"))
 
     return render_template("onboarding.html",
                            user=user, lang=session.get("lang", "ar"))
