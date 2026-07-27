@@ -73,6 +73,57 @@ def speed_headers(resp):
         print(f"speed headers error: {_e}")
     return resp
 
+
+# ═══════════════════════════════════════════════
+# SECURITY HEADERS
+# ═══════════════════════════════════════════════
+# The allowlist below is derived from what the templates actually load. If you
+# add a CDN, a font host or an image source, add it here or the browser will
+# block it.
+#
+# 'unsafe-inline' is present for script-src because the pages are built around
+# inline <script> blocks and onclick handlers; removing it means refactoring
+# every template first. It is still worth shipping: the other directives close
+# off framing, plugin embedding, base-tag hijacking and form exfiltration, and
+# they narrow which hosts can serve script at all.
+CSP = "; ".join([
+    "default-src 'self'",
+    # cdnjs -> Font Awesome, jsdelivr -> Chart.js
+    "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
+    "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:",
+    # unsplash -> knowledge-hub article images
+    "img-src 'self' data: blob: https://images.unsplash.com",
+    # openfoodfacts -> the analyzer's barcode lookup
+    "connect-src 'self' https://world.openfoodfacts.org",
+    "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
+    "frame-ancestors 'none'",       # nobody may frame us -- clickjacking
+    "base-uri 'self'",              # no injected <base> to hijack relative URLs
+    "form-action 'self'",           # forms cannot post to another origin
+    "object-src 'none'",            # no plugins
+])
+
+
+@app.after_request
+def security_headers(resp):
+    try:
+        resp.headers.setdefault("Content-Security-Policy", CSP)
+        resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+        resp.headers.setdefault("X-Frame-Options", "DENY")
+        resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        resp.headers.setdefault(
+            "Permissions-Policy",
+            "geolocation=(), microphone=(), camera=(), payment=()")
+        # only meaningful over TLS, and Render terminates TLS for us
+        if request.is_secure or request.headers.get("X-Forwarded-Proto") == "https":
+            resp.headers.setdefault(
+                "Strict-Transport-Security",
+                "max-age=31536000; includeSubDomains")
+    except Exception as _e:
+        print(f"security headers error: {_e}")
+    return resp
+
+
 from meal_database import (
     get_meal_pool, get_snacks_for_goal, filter_by_conditions,
     get_diet_plan_info, DIET_PLAN_TYPES,
@@ -1277,6 +1328,34 @@ def my_plan():
                            today_tip=today_tip, weight=weight, tracking=tracking,
                            streak=streak)
 
+def _plan_input_error(age, height, weight, lang="ar"):
+    """None when age/height/weight are usable, otherwise a message to show.
+
+    Ranges match the form's min/max so client and server agree.
+    """
+    checks = (
+        (age, 10, 100, "العمر", "Age"),
+        (height, 100, 230, "الطول", "Height"),
+        (weight, 30, 300, "الوزن", "Weight"),
+    )
+    missing_ar, missing_en = [], []
+    for raw, lo, hi, ar, en in checks:
+        try:
+            val = float(str(raw).strip())
+        except (TypeError, ValueError):
+            missing_ar.append(ar)
+            missing_en.append(en)
+            continue
+        if not (lo <= val <= hi):
+            missing_ar.append(f"{ar} ({lo}-{hi})")
+            missing_en.append(f"{en} ({lo}-{hi})")
+    if not missing_ar:
+        return None
+    if lang == "ar":
+        return "محتاجين البيانات دي صح عشان نبني الخطة: " + "، ".join(missing_ar)
+    return "We need these to build the plan: " + ", ".join(missing_en)
+
+
 @app.route("/request-plan", methods=["GET","POST"])
 @login_required
 def request_plan():
@@ -1294,11 +1373,27 @@ def request_plan():
             return redirect("/my-plan")
         symptoms = request.form.getlist("symptoms")
         allergies = request.form.getlist("allergies")
+
+        # `request.form.get(k, default)` returns "" when the field is present but
+        # blank, so the profile fallback never fired and empty requests were
+        # stored with no age/height/weight. Use `or` so blanks fall through.
+        _lang = session.get("lang", "ar")
+        _height = request.form.get("height") or u.get("height") or ""
+        _weight = request.form.get("weight") or u.get("weight") or ""
+        _age = request.form.get("age") or u.get("age") or ""
+
+        # the plan cannot be built without these, and the client-side `required`
+        # is trivially bypassed, so check here too
+        _bad = _plan_input_error(_age, _height, _weight, _lang)
+        if _bad:
+            return render_template("request_plan.html", user=u, lang=_lang,
+                                   diet_plans=DIET_PLAN_TYPES, error=_bad)
+
         request_data = {
-            "height": request.form.get("height", u.get("height", "")),
-            "weight": request.form.get("weight", u.get("weight", "")),
-            "age": request.form.get("age", u.get("age", "")),
-            "gender": request.form.get("gender", u.get("gender", "ذكر")),
+            "height": _height,
+            "weight": _weight,
+            "age": _age,
+            "gender": request.form.get("gender") or u.get("gender") or "ذكر",
             "fat_pct": request.form.get("fat_pct", ""),
             "bmi": request.form.get("bmi", ""),
             "tdee": request.form.get("tdee", ""),
@@ -1318,7 +1413,12 @@ def request_plan():
             if symptoms:
                 db_run("UPDATE users SET conditions=? WHERE id=?", (json.dumps(symptoms), session["uid"]))
         except Exception as e:
-            return f"خطأ: {e}", 500
+            print(f"request_plan insert error: {e}")
+            return render_template(
+                "request_plan.html", user=u, lang=_lang,
+                diet_plans=DIET_PLAN_TYPES,
+                error=("حصلت مشكلة وإحنا بنسجل الطلب — حاول تاني." if _lang == "ar"
+                       else "Something went wrong saving your request -- please try again.")), 500
 
         # ── إشعار للأدمن: طلب خطة جديد ──
         try:
