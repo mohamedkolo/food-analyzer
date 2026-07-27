@@ -1026,43 +1026,58 @@ MAINTENANCE = {
 DIET_PLAN_TYPES = {
     "standard": {
         "name": "نظام تقليدي (3 وجبات + سناك)",
+        "name_en": "Standard (3 meals + snack)",
         "meals": ["breakfast", "lunch", "dinner", "snack"],
         "meal_labels": {"breakfast": "الفطار", "lunch": "الغداء", "dinner": "العشاء", "snack": "سناك"},
         "meal_emojis": {"breakfast": "🌅", "lunch": "☀️", "dinner": "🌙", "snack": "🍎"},
         "meal_hours": {"breakfast": 8, "lunch": 14, "dinner": 20, "snack": 17},
-        "description": "3 وجبات رئيسية + سناك"
+        "description": "3 وجبات رئيسية + سناك",
+        "description_en": "3 main meals plus a snack",
+        "meal_labels_en": {"breakfast": "Breakfast", "lunch": "Lunch", "dinner": "Dinner", "snack": "Snack"}
     },
     "five_meals": {
         "name": "5 وجبات + 2 سناك",
+        "name_en": "5 meals + 2 snacks",
         "meals": ["breakfast", "snack1", "lunch", "snack2", "dinner"],
         "meal_labels": {"breakfast": "الفطار", "snack1": "سناك صباحي", "lunch": "الغداء", "snack2": "سناك عصر", "dinner": "العشاء"},
         "meal_emojis": {"breakfast": "🌅", "snack1": "☕", "lunch": "☀️", "snack2": "🍎", "dinner": "🌙"},
         "meal_hours": {"breakfast": 8, "snack1": 10, "lunch": 14, "snack2": 17, "dinner": 20},
-        "description": "تقسيم السعرات على 5 وجبات صغيرة"
+        "description": "تقسيم السعرات على 5 وجبات صغيرة",
+        "description_en": "Calories split across 5 smaller meals",
+        "meal_labels_en": {"breakfast": "Breakfast", "snack1": "Morning snack", "lunch": "Lunch", "snack2": "Afternoon snack", "dinner": "Dinner"}
     },
     "intermittent_16_8": {
         "name": "صيام متقطع 16/8",
+        "name_en": "Intermittent fasting 16/8",
         "meals": ["meal1", "snack", "meal2"],
         "meal_labels": {"meal1": "الفطار (12ظ)", "snack": "سناك (4ع)", "meal2": "الوجبة الرئيسية (7م)"},
         "meal_emojis": {"meal1": "🌅", "snack": "🍎", "meal2": "🍽️"},
         "meal_hours": {"meal1": 12, "snack": 16, "meal2": 19},
-        "description": "صيام 16 ساعة + أكل في 8 ساعات (فطار + سناك + وجبة رئيسية)"
+        "description": "صيام 16 ساعة + أكل في 8 ساعات (فطار + سناك + وجبة رئيسية)",
+        "description_en": "16 hours fasting, eating within 8 hours (first meal + snack + main meal)",
+        "meal_labels_en": {"meal1": "First meal (12pm)", "snack": "Snack (4pm)", "meal2": "Main meal (7pm)"}
     },
     "intermittent_18_6": {
         "name": "صيام متقطع 18/6",
+        "name_en": "Intermittent fasting 18/6",
         "meals": ["meal1", "meal2"],
         "meal_labels": {"meal1": "الوجبة الأولى (2ع)", "meal2": "الوجبة الثانية (7م)"},
         "meal_emojis": {"meal1": "🕑", "meal2": "🕖"},
         "meal_hours": {"meal1": 14, "meal2": 19},
-        "description": "صيام 18 ساعة + أكل في 6 ساعات"
+        "description": "صيام 18 ساعة + أكل في 6 ساعات",
+        "description_en": "18 hours fasting, eating within 6 hours",
+        "meal_labels_en": {"meal1": "First meal (2pm)", "meal2": "Second meal (7pm)"}
     },
     "ramadan": {
         "name": "رمضان (فطار + سحور)",
+        "name_en": "Ramadan (iftar + suhoor)",
         "meals": ["iftar", "snack", "suhoor"],
         "meal_labels": {"iftar": "الفطار", "snack": "سناك", "suhoor": "السحور"},
         "meal_emojis": {"iftar": "🌙", "snack": "🍎", "suhoor": "🌄"},
         "meal_hours": {"iftar": 18, "snack": 22, "suhoor": 4},
-        "description": "نظام رمضاني متوازن"
+        "description": "نظام رمضاني متوازن",
+        "description_en": "A balanced Ramadan pattern",
+        "meal_labels_en": {"iftar": "Iftar", "snack": "Snack", "suhoor": "Suhoor"}
     },
     "workout": {
         "name": "Pre/Post Workout",
@@ -1070,7 +1085,9 @@ DIET_PLAN_TYPES = {
         "meal_labels": {"pre_workout": "قبل التمرين", "breakfast": "الفطار", "post_workout": "بعد التمرين", "lunch": "الغداء", "dinner": "العشاء"},
         "meal_emojis": {"pre_workout": "💪", "breakfast": "🌅", "post_workout": "🏋️", "lunch": "☀️", "dinner": "🌙"},
         "meal_hours": {"pre_workout": 6, "breakfast": 8, "post_workout": 9, "lunch": 14, "dinner": 20},
-        "description": "للرياضيين - وجبات حول التمرين"
+        "description": "للرياضيين - وجبات حول التمرين",
+        "description_en": "For athletes -- meals timed around training",
+        "meal_labels_en": {"pre_workout": "Pre-workout", "breakfast": "Breakfast", "post_workout": "Post-workout", "lunch": "Lunch", "dinner": "Dinner"}
     }
 }
 

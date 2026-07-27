@@ -207,7 +207,7 @@
       <span>📅 {{ created_date }}</span>
       <span>🍽️ {{ culture_names.get(plan_data.get('culture'), plan_data.get('culture') or t('مصري','Egyptian')) }}</span>
       <span>🔥 {{ plan_data.get('goal_cal') or '-' }} kcal</span>
-      <span>📊 {{ plan_info.get('name') or t('نظام تقليدي','Standard pattern') }}</span>
+      <span>📊 {{ (plan_info.get('name') if is_ar else (plan_info.get('name_en') or plan_info.get('name'))) or t('نظام تقليدي','Standard pattern') }}</span>
     </div>
 
     <div class="header-actions">
@@ -290,14 +290,14 @@
       {% for day in plan_days %}
       <div class="day-card">
         <div class="day-head">
-          <span class="day-name">{{ day.day or t('يوم','Day') }}</span>
+          <span class="day-name">{{ (day.day | day_en) or t('يوم','Day') }}</span>
           {% if day.total_cal %}
           <span class="day-cals">🔥 {{ day.total_cal }} kcal</span>
           {% endif %}
         </div>
 
         {% set meal_keys = plan_info.get('meals') or ['breakfast', 'lunch', 'dinner', 'snack'] %}
-        {% set meal_labels = plan_info.get('meal_labels') or {'breakfast':t('الفطار','Breakfast'), 'lunch':t('الغداء','Lunch'), 'dinner':t('العشاء','Dinner'), 'snack':t('سناك','Snack')} %}
+        {% set meal_labels = (plan_info.get('meal_labels') if is_ar else (plan_info.get('meal_labels_en') or plan_info.get('meal_labels'))) or {'breakfast':t('الفطار','Breakfast'), 'lunch':t('الغداء','Lunch'), 'dinner':t('العشاء','Dinner'), 'snack':t('سناك','Snack')} %}
         {% set meal_emojis = plan_info.get('meal_emojis') or {'breakfast':'🌅', 'lunch':'☀️', 'dinner':'🌙', 'snack':'🍎'} %}
 
         {% for mk in meal_keys %}
@@ -307,7 +307,7 @@
             <span>{{ meal_emojis.get(mk, '🍽️') }}</span>
             {{ meal_labels.get(mk, mk) }}
           </div>
-          <div class="meal-text">{{ day.get(mk) }}</div>
+          <div class="meal-text">{{ day.get(mk) | meal_en }}</div>
         </div>
         {% endif %}
         {% endfor %}

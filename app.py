@@ -79,6 +79,7 @@ from meal_database import (
     WEIGHT_LOSS, MUSCLE_GAIN, BULKING, MAINTENANCE,
     get_nutrient_boost_notes
 )
+from meal_i18n import translate_meal, translate_guidance
 
 # دمج الوجبات الإضافية (ملف meal_extra) لو موجود — بيزوّد التنوّع من غير ما يلمس meal_database
 try:
@@ -241,6 +242,50 @@ def t(ar, en):
         return ar if session.get("lang", "ar") == "ar" else en
     except Exception:
         return ar
+
+ENGLISH_DAYS = {
+    "الاحد": "Sunday", "الأحد": "Sunday", "الاثنين": "Monday",
+    "الثلاثاء": "Tuesday", "الاربعاء": "Wednesday", "الأربعاء": "Wednesday",
+    "الخميس": "Thursday", "الجمعة": "Friday", "السبت": "Saturday",
+}
+# stored values are Arabic; these render them in English where needed
+_CULTURE_EN = {
+    "مصري": "Egyptian", "خليجي": "Gulf", "شامي": "Levantine",
+    "مغربي": "Moroccan", "عالمي": "International",
+}
+_GENDER_EN = {
+    "ذكر": "Male", "أنثى": "Female", "انثى": "Female",
+    "male": "Male", "female": "Female",
+}
+
+
+@app.template_filter('meal_en')
+def meal_en(text):
+    """Render a stored meal string in the session language.
+
+    Meals are stored in Arabic on purpose -- filter_by_conditions matches
+    Arabic substrings against UNSAFE_FOODS, so the stored text has to stay
+    Arabic for the safety filtering to work. Translation happens here, on the
+    way to the page.
+    """
+    try:
+        if session.get("lang", "ar") == "ar":
+            return text
+        return translate_meal(text)
+    except Exception:
+        return text
+
+
+@app.template_filter('day_en')
+def day_en(name):
+    """Weekday names come out of the generator in Arabic."""
+    try:
+        if session.get("lang", "ar") == "ar":
+            return name
+        return ENGLISH_DAYS.get((name or "").strip(), name)
+    except Exception:
+        return name
+
 
 @app.template_filter('from_json')
 def from_json_filter(s):
@@ -2757,6 +2802,18 @@ def build_pdf(data, plan=None):
     from weasyprint import HTML
     import datetime as dt
     if plan is None: plan = generate_weekly_plan(data)
+
+    # The PDF is the artefact the client keeps, so it follows the language the
+    # plan was produced in. Meal text is stored in Arabic (the condition filters
+    # match on it) and translated on the way into the document.
+    _pdf_ar = session.get("lang", "ar") == "ar"
+
+    def _L(ar, en):
+        return ar if _pdf_ar else en
+
+    def _meal(txt):
+        return txt if _pdf_ar else translate_meal(txt)
+
     symptoms = data.get("symptoms", [])
     goal = data.get("goal_type", "weight_loss")
     diet_type = data.get("diet_plan_type", "standard")
@@ -2770,54 +2827,84 @@ def build_pdf(data, plan=None):
     notes_parts = []
     if symptoms: notes_parts.append(" - ".join(symptoms))
     allergies_data = data.get("allergies", [])
-    if allergies_data: notes_parts.append("حساسية: " + " - ".join(allergies_data))
-    if data.get("disliked_foods"): notes_parts.append("لا يأكل: " + data.get("disliked_foods"))
+    if allergies_data: notes_parts.append(_L("حساسية: ", "Allergies: ") + " - ".join(allergies_data))
+    if data.get("disliked_foods"): notes_parts.append(_L("لا يأكل: ", "Does not eat: ") + data.get("disliked_foods"))
     if data.get("notes"): notes_parts.append(data.get("notes"))
-    clinical_notes = " | ".join(notes_parts) if notes_parts else "لا توجد ملاحظات"
+    clinical_notes = " | ".join(notes_parts) if notes_parts else _L("لا توجد ملاحظات", "No notes")
     uid = session.get("uid", 0)
     file_num = f"NX-{dt.datetime.now().year}-{uid:03d}"
-    goal_labels = {"weight_loss":"خطة تخسيس","muscle_gain":"خطة زيادة عضل","bulking":"خطة تضخيم","cutting":"خطة تنشيف","maintenance":"خطة مكتنز"}
-    plan_title = goal_labels.get(goal, "خطة غذائية")
+    goal_labels = ({"weight_loss":"خطة تخسيس","muscle_gain":"خطة زيادة عضل","bulking":"خطة تضخيم","cutting":"خطة تنشيف","maintenance":"خطة مكتنز"}
+                   if _pdf_ar else
+                   {"weight_loss":"Weight Loss Plan","muscle_gain":"Muscle Gain Plan","bulking":"Bulking Plan","cutting":"Cutting Plan","maintenance":"Maintenance Plan"})
+    plan_title = goal_labels.get(goal, _L("خطة غذائية", "Meal Plan"))
     pdf_days = []
     for d in plan:
         meals_html = []
         for meal_key in plan_info["meals"]:
-            label = plan_info["meal_labels"].get(meal_key, meal_key)
+            _labels = plan_info["meal_labels"] if _pdf_ar else (plan_info.get("meal_labels_en") or plan_info["meal_labels"])
+            label = _labels.get(meal_key, meal_key)
             emoji = plan_info["meal_emojis"].get(meal_key, "-")
             meal_text = d.get(meal_key, "")
             if meal_text:
-                meals_html.append({"label": label, "emoji": emoji, "text": meal_text})
-        pdf_days.append({"name": d["day"], "total_kcal": d["total_cal"], "total_p": d.get("total_p", 0),
+                meals_html.append({"label": label, "emoji": emoji, "text": _meal(meal_text)})
+        pdf_days.append({"name": d["day"] if _pdf_ar else ENGLISH_DAYS.get(d["day"], d["day"]),
+                         "total_kcal": d["total_cal"], "total_p": d.get("total_p", 0),
                          "meals": meals_html,
-                         "breakfast": d.get("breakfast",""), "lunch": d.get("lunch",""),
-                         "dinner": d.get("dinner",""), "snack": d.get("snack","")})
+                         "breakfast": _meal(d.get("breakfast","")), "lunch": _meal(d.get("lunch","")),
+                         "dinner": _meal(d.get("dinner","")), "snack": _meal(d.get("snack",""))})
     template_data = {
         'file_number': file_num, 'date': dt.date.today().strftime('%d/%m/%Y'),
-        'plan_title': plan_title, 'diet_plan_name': plan_info["name"],
-        'culture': data.get("culture","مصري"),
+        'plan_title': plan_title,
+        'diet_plan_name': plan_info["name"] if _pdf_ar else (plan_info.get("name_en") or plan_info["name"]),
+        'culture': _CULTURE_EN.get(data.get("culture"), data.get("culture", "-")) if not _pdf_ar else data.get("culture","مصري"),
         'client': {'name': data.get('name','-'), 'age': data.get('age','-'),
             'gender': data.get('gender','-'), 'height': data.get('height','-'),
             'weight': data.get('weight','-'), 'bmi': data.get('bmi','-'),
             'body_fat': data.get('fat_pct','-'), 'tdee': data.get('tdee','-'),
             'target_kcal': data.get('goal_cal','-'), 'deficit': deficit},
-        'conditions': symptoms if symptoms else ["لا توجد حالات مسجلة"],
+        'conditions': symptoms if symptoms else [_L("لا توجد حالات مسجلة", "No conditions recorded")],
         'clinical_notes': clinical_notes,
         'allowed': allowed, 'forbidden': forbidden, 'days': pdf_days,
         'tips': {
             'water': ['كوب ماء دافئ + نصف ليمونة فور الاستيقاظ','8 أكواب ماء يومياً',
-                      'كوب ماء قبل كل وجبة بـ 30 دقيقة','تجنب الماء البارد جداً'],
+                      'كوب ماء قبل كل وجبة بـ 30 دقيقة','تجنب الماء البارد جداً']
+                     if _pdf_ar else
+                     ['A glass of warm water with half a lemon on waking',
+                      '8 glasses of water a day',
+                      'A glass of water 30 minutes before each meal',
+                      'Avoid very cold water'],
             'habits': ['مضغ بطيء - الشبع بعد 20 دقيقة','لا تأكل أمام الشاشة',
-                       'نوم 7-8 ساعات','تعرض للشمس يومياً'],
-            'metabolism': (['بروتين في كل وجبة','توابل آمنة: كركم + قرفة + زنجبيل',
-                            'مشي 30 دقيقة بعد الغداء','قم وتحرك 5 دقائق كل ساعة']
-                           if goal in ["weight_loss","maintenance"] else
-                           ['بروتين في كل وجبة (1.6-2.2 جم/كجم)','كارب حول التمرين',
-                            'تدريب مقاومة 4-5 مرات أسبوعياً','نوم 7-9 ساعات']),
+                       'نوم 7-8 ساعات','تعرض للشمس يومياً']
+                      if _pdf_ar else
+                      ['Chew slowly -- fullness registers after 20 minutes',
+                       'Do not eat in front of a screen',
+                       'Sleep 7-8 hours', 'Get daily sun exposure'],
+            'metabolism': ((['بروتين في كل وجبة','توابل آمنة: كركم + قرفة + زنجبيل',
+                             'مشي 30 دقيقة بعد الغداء','قم وتحرك 5 دقائق كل ساعة']
+                            if goal in ["weight_loss","maintenance"] else
+                            ['بروتين في كل وجبة (1.6-2.2 جم/كجم)','كارب حول التمرين',
+                             'تدريب مقاومة 4-5 مرات أسبوعياً','نوم 7-9 ساعات'])
+                           if _pdf_ar else
+                           (['Protein at every meal',
+                             'Safe spices: turmeric, cinnamon, ginger',
+                             'A 30-minute walk after lunch',
+                             'Stand and move for 5 minutes every hour']
+                            if goal in ["weight_loss","maintenance"] else
+                            ['Protein at every meal (1.6-2.2 g/kg)',
+                             'Carbs around training',
+                             'Resistance training 4-5 times a week',
+                             'Sleep 7-9 hours'])),
             'warnings': ['لا تخفض السعرات أكثر من المحدد','لو جعت: ماء أولاً ثم فاكهة',
-                         'راجع مع أخصائي التغذية كل 4 أسابيع','أي أعراض غير عادية - راجع طبيبك'],
+                         'راجع مع أخصائي التغذية كل 4 أسابيع','أي أعراض غير عادية - راجع طبيبك']
+                        if _pdf_ar else
+                        ['Do not cut calories below the target',
+                         'If hungry: water first, then fruit',
+                         'Review with your dietitian every 4 weeks',
+                         'Any unusual symptoms -- see your doctor'],
         },
         'clinic_name': 'NutraX Clinical Nutrition',
-        'author': 'إعداد د. محمد - أخصائي التغذية الإكلينيكية',
+        'author': _L('إعداد د. محمد - أخصائي التغذية الإكلينيكية',
+                     'Prepared by Dr. Mohamed - Clinical Dietitian'),
         'review_weeks': 4,
     }
     # ═══════ توليد PDF: صفحة واحدة، الأيام صفوف والوجبات أعمدة ═══════
@@ -2831,7 +2918,9 @@ def build_pdf(data, plan=None):
         out = []
         for p in parts:
             p = _esc(p)
-            p = re.sub(r'(\d+[\.\d]*\s*(?:جم|مل|كوب|ملعقة|ملاعق|قطع|قطعة|حبات|شريحتين|ثمرة)?)',
+            # units appear in Arabic or English depending on the PDF language
+            p = re.sub(r'(\d+[\.\d]*\s*(?:جم|مل|كوب|ملعقة|ملاعق|قطع|قطعة|حبات|شريحتين|ثمرة'
+                       r'|g|ml|cup|tbsp|pcs?|slices?|piece)?)',
                        r'<b>\1</b>', p, count=1)
             out.append(f'<span class="it">{p}</span>')
         return "".join(out)
@@ -2845,10 +2934,11 @@ def build_pdf(data, plan=None):
     orientation = "landscape" if ncols >= 5 else "portrait"
 
     # رأس الجدول
-    head_cells = '<th class="dcol">اليوم</th>'
+    head_cells = f'<th class="dcol">{_L("اليوم", "Day")}</th>'
     for c in columns:
         head_cells += f'<th>{_esc(c)}</th>'
-    head_cells += '<th class="kcol">سعرات</th><th class="kcol">بروتين</th>'
+    head_cells += (f'<th class="kcol">{_L("سعرات", "kcal")}</th>'
+                   f'<th class="kcol">{_L("بروتين", "Protein")}</th>')
 
     # صفوف الأيام
     body_rows = ""
@@ -2860,7 +2950,7 @@ def build_pdf(data, plan=None):
         for c in columns:
             cells += f'<td>{_fmt_cell(by_label.get(c, "-"))}</td>'
         cells += f'<td class="kcell">{_esc(d["total_kcal"])}</td>'
-        cells += f'<td class="kcell">{_esc(d.get("total_p", 0))} جم</td>'
+        cells += f'<td class="kcell">{_esc(d.get("total_p", 0))} {_L("جم", "g")}</td>'
         body_rows += f'<tr>{cells}</tr>'
         _sum_cal += d.get("total_kcal", 0) or 0
         _sum_p += d.get("total_p", 0) or 0
@@ -2869,14 +2959,21 @@ def build_pdf(data, plan=None):
     _avg_cal = round(_sum_cal / _n)
     _avg_p = round(_sum_p / _n)
 
-    allowed_html = "".join(f"<li>{_esc(x)}</li>" for x in td['allowed'][:6])
-    forbidden_html = "".join(f"<li>{_esc(x)}</li>" for x in td['forbidden'][:6])
+    def _g(x):
+        return x if _pdf_ar else translate_guidance(x)
+
+    allowed_html = "".join(f"<li>{_esc(_g(x))}</li>" for x in td['allowed'][:6])
+    forbidden_html = "".join(f"<li>{_esc(_g(x))}</li>" for x in td['forbidden'][:6])
     water_tips = "".join(f"<li>{_esc(x)}</li>" for x in td['tips']['water'][:3])
 
     # حساب الماكروز: بروتين بالوزن، دهون % من السعرات، الكارب الباقي
     PROTEIN_FACTORS = {"sedentary": 1.0, "light": 1.3, "regular": 1.6, "athlete": 2.0}
-    ACTIVITY_LABELS = {"sedentary": "قليل الحركة", "light": "نشاط خفيف",
-                       "regular": "تمارين منتظمة / تخسيس", "athlete": "رياضي / بناء عضل"}
+    ACTIVITY_LABELS = ({"sedentary": "قليل الحركة", "light": "نشاط خفيف",
+                        "regular": "تمارين منتظمة / تخسيس", "athlete": "رياضي / بناء عضل"}
+                       if _pdf_ar else
+                       {"sedentary": "Sedentary", "light": "Lightly active",
+                        "regular": "Trains regularly / weight loss",
+                        "athlete": "Athlete / muscle building"})
     _act = (data.get("activity_level") or "regular")
     try:
         _ppk = float(data.get("protein_per_kg") or PROTEIN_FACTORS.get(_act, 1.6))
@@ -2894,7 +2991,8 @@ def build_pdf(data, plan=None):
         _kcal = float(data.get("goal_cal") or 0)
     except Exception:
         _kcal = 0
-    _act_label = ACTIVITY_LABELS.get(_act, "تمارين منتظمة / تخسيس")
+    _act_label = ACTIVITY_LABELS.get(_act, _L("تمارين منتظمة / تخسيس",
+                                              "Trains regularly / weight loss"))
     macro_meta = ""
     if _w > 0 and _kcal > 0:
         _pg = round(_w * _ppk)
@@ -2902,10 +3000,10 @@ def build_pdf(data, plan=None):
         _cc = _kcal - (_pg * 4) - (_fg * 9)
         _cg = round(max(_cc, 0) / 4)
         macro_meta = (
-            f'<span><b>مستوى النشاط:</b> {_esc(_act_label)}</span>'
-            f'<span><b>بروتين:</b> {_esc(_pg)} جم ({_ppk} جم/كجم)</span>'
-            f'<span><b>دهون:</b> {_esc(_fg)} جم ({int(_fatp)}%)</span>'
-            f'<span><b>كارب:</b> {_esc(_cg)} جم</span>'
+            f'<span><b>{_L("مستوى النشاط", "Activity level")}:</b> {_esc(_act_label)}</span>'
+            f'<span><b>{_L("بروتين", "Protein")}:</b> {_esc(_pg)} {_L("جم", "g")} ({_ppk} {_L("جم/كجم", "g/kg")})</span>'
+            f'<span><b>{_L("دهون", "Fat")}:</b> {_esc(_fg)} {_L("جم", "g")} ({int(_fatp)}%)</span>'
+            f'<span><b>{_L("كارب", "Carbs")}:</b> {_esc(_cg)} {_L("جم", "g")}</span>'
         )
         # ── سكري النوع الأول: توزيع الكارب على عدد الوجبات لعدّ الكارب، وحساب ICR/CF لو الجرعة اليومية متوفرة ──
         _is_t1d = any(("النوع الاول" in s or "النوع الأول" in s or "type 1" in s.lower()) for s in (symptoms or []))
@@ -2913,7 +3011,8 @@ def build_pdf(data, plan=None):
             _meal_count = max(len(plan_info.get("meals", []) or []), 1)
             _carb_per_meal = round(_cg / _meal_count)
             macro_meta += (
-                f'<span><b>🩸 كارب/وجبة (نوع 1):</b> ~{_esc(_carb_per_meal)} جم × {_meal_count} وجبات</span>'
+                f'<span><b>🩸 {_L("كارب/وجبة (نوع 1)", "Carbs per meal (type 1)")}:</b> '
+                f'~{_esc(_carb_per_meal)} {_L("جم", "g")} × {_meal_count} {_L("وجبات", "meals")}</span>'
             )
             try:
                 _tdd = float(data.get("insulin_tdd") or 0)
@@ -2923,28 +3022,31 @@ def build_pdf(data, plan=None):
                 _icr = round(500 / _tdd, 1)
                 _cf = round(1800 / _tdd)
                 macro_meta += (
-                    f'<span><b>نسبة الأنسولين للكارب (500 Rule):</b> 1 وحدة / {_esc(_icr)} جم كارب</span>'
-                    f'<span><b>معامل التصحيح (1800 Rule):</b> 1 وحدة تخفّض ~{_esc(_cf)} مجم/دل</span>'
-                    f'<span style="font-size:11px;color:#991b1b">⚠️ دي قواعد بداية تقديرية معيارية — لازم تأكيد وضبط من طبيب الغدد الصماء حسب استجابة المريض الفعلية</span>'
+                    f'<span><b>{_L("نسبة الأنسولين للكارب", "Insulin-to-carb ratio")} (500 Rule):</b> '
+                    f'1 {_L("وحدة", "unit")} / {_esc(_icr)} {_L("جم كارب", "g carbs")}</span>'
+                    f'<span><b>{_L("معامل التصحيح", "Correction factor")} (1800 Rule):</b> '
+                    f'1 {_L("وحدة تخفّض", "unit lowers")} ~{_esc(_cf)} {_L("مجم/دل", "mg/dL")}</span>'
+                    f'<span style="font-size:11px;color:#991b1b">⚠️ '
+                    f'{_L("دي قواعد بداية تقديرية معيارية — لازم تأكيد وضبط من طبيب الغدد الصماء حسب استجابة المريض الفعلية", "These are standard estimated starting rules -- they must be confirmed and adjusted by an endocrinologist against the patient s actual response")}</span>'
                 )
             else:
                 macro_meta += (
-                    '<span style="font-size:11px;color:#991b1b">نسبة الأنسولين للكارب ومعامل التصحيح: '
-                    'محتاجين "إجمالي جرعة الأنسولين اليومية" من الطبيب — لسه متدخلش</span>'
+                    f'<span style="font-size:11px;color:#991b1b">'
+                    f'{_L("نسبة الأنسولين للكارب ومعامل التصحيح: محتاجين إجمالي جرعة الأنسولين اليومية من الطبيب — لسه متدخلش", "Insulin-to-carb ratio and correction factor need the total daily insulin dose from the doctor -- not entered yet")}</span>'
                 )
 
     _tcal = int(_kcal) if _kcal > 0 else None
     _tp = round(_w * _ppk) if _w > 0 else None
-    summary_box = (f'<div class="summary"><span>📊 <b>المتوسط الفعلي/يوم:</b> '
-                   f'{_avg_cal} سعرة • {_avg_p} جم بروتين</span>'
-                   f'<span><b>الهدف:</b> {_tcal if _tcal else "-"} سعرة • '
-                   f'{_tp if _tp else "-"} جم بروتين</span></div>')
+    summary_box = (f'<div class="summary"><span>📊 <b>{_L("المتوسط الفعلي/يوم", "Actual average per day")}:</b> '
+                   f'{_avg_cal} {_L("سعرة", "kcal")} • {_avg_p} {_L("جم بروتين", "g protein")}</span>'
+                   f'<span><b>{_L("الهدف", "Target")}:</b> {_tcal if _tcal else "-"} {_L("سعرة", "kcal")} • '
+                   f'{_tp if _tp else "-"} {_L("جم بروتين", "g protein")}</span></div>')
 
-    html_string = f"""<!DOCTYPE html><html lang="ar"><head><meta charset="utf-8">
+    html_string = f"""<!DOCTYPE html><html lang="{_L("ar", "en")}"><head><meta charset="utf-8">
 <style>
 @page {{ size: A4 {orientation}; margin: 8mm; }}
 * {{ box-sizing: border-box; }}
-body {{ font-family: 'Cairo','Amiri','DejaVu Sans',sans-serif; direction: rtl; color:#1b2d24; margin:0; }}
+body {{ font-family: 'Cairo','Amiri','DejaVu Sans',sans-serif; direction: {_L('rtl', 'ltr')}; color:#1b2d24; margin:0; }}
 .hdr {{ display:flex; justify-content:space-between; align-items:center;
         border-bottom:3px solid #14332b; padding-bottom:6px; margin-bottom:8px; }}
 .hdr .t {{ font-size:18px; font-weight:800; color:#14332b; }}
@@ -2955,7 +3057,7 @@ body {{ font-family: 'Cairo','Amiri','DejaVu Sans',sans-serif; direction: rtl; c
 .meta b {{ color:#14332b; }}
 table {{ width:100%; border-collapse:collapse; table-layout:fixed; }}
 th,td {{ border:1px solid #2d5a44; padding:6px 6px; font-size:9.5px;
-         vertical-align:top; word-wrap:break-word; line-height:1.5; text-align:right; }}
+         vertical-align:top; word-wrap:break-word; line-height:1.5; text-align:start; }}
 td .it {{ display:block; padding:2px 0; border-bottom:1px dashed #dcebe4; }}
 td .it:last-child {{ border-bottom:none; }}
 td b {{ color:#14332b; font-weight:700; }}
@@ -2968,10 +3070,10 @@ tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
 .foot {{ display:flex; gap:10px; margin-top:9px; font-size:9.5px; }}
 .fbox {{ flex:1; border:1px solid #cfe3d9; border-radius:6px; padding:6px 9px; }}
 .fbox h4 {{ margin:0 0 3px; font-size:11px; }}
-.fbox ul {{ margin:0; padding-right:15px; }}
+.fbox ul {{ margin:0; padding-inline-start:15px; }}
 .fbox li {{ margin-bottom:1px; }}
 .ok h4 {{ color:#2d7d46; }} .no h4 {{ color:#c0392b; }} .wt h4 {{ color:#1d6fa5; }}
-.sig {{ margin-top:8px; text-align:left; font-size:10px; color:#52796f; }}
+.sig {{ margin-top:8px; text-align:end; font-size:10px; color:#52796f; }}
 .summary {{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
             background:#eef4f1; border:1px solid #cfe3d9; border-radius:6px;
             padding:7px 12px; margin-top:8px; font-size:11px; }}
@@ -2980,27 +3082,27 @@ tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
 <div class="hdr">
   <div><div class="t">{_esc(td['plan_title'])} — {_esc(td['diet_plan_name'])}</div>
   <div class="s">{_esc(td['clinic_name'])} • {_esc(td['author'])}</div></div>
-  <div class="s">ملف: {_esc(td['file_number'])}<br>{_esc(td['date'])}</div>
+  <div class="s">{_L("ملف", "File")}: {_esc(td['file_number'])}<br>{_esc(td['date'])}</div>
 </div>
 <div class="meta">
-  <span><b>الاسم:</b> {_esc(cl['name'])}</span>
-  <span><b>النوع:</b> {_esc(cl['gender'])}</span>
-  <span><b>العمر:</b> {_esc(cl['age'])}</span>
-  <span><b>الوزن:</b> {_esc(cl['weight'])} كجم</span>
-  <span><b>الطول:</b> {_esc(cl['height'])} سم</span>
+  <span><b>{_L("الاسم", "Name")}:</b> {_esc(cl['name'])}</span>
+  <span><b>{_L("النوع", "Sex")}:</b> {_esc(_GENDER_EN.get(cl['gender'], cl['gender']) if not _pdf_ar else cl['gender'])}</span>
+  <span><b>{_L("العمر", "Age")}:</b> {_esc(cl['age'])}</span>
+  <span><b>{_L("الوزن", "Weight")}:</b> {_esc(cl['weight'])} {_L("كجم", "kg")}</span>
+  <span><b>{_L("الطول", "Height")}:</b> {_esc(cl['height'])} {_L("سم", "cm")}</span>
   <span><b>BMI:</b> {_esc(cl['bmi'])}</span>
-  <span><b>السعرات المستهدفة:</b> {_esc(cl['target_kcal'])} kcal</span>
-  <span><b>المطبخ:</b> {_esc(td['culture'])}</span>
+  <span><b>{_L("السعرات المستهدفة", "Target calories")}:</b> {_esc(cl['target_kcal'])} kcal</span>
+  <span><b>{_L("المطبخ", "Cuisine")}:</b> {_esc(td['culture'])}</span>
   {macro_meta}
 </div>
 <table><thead><tr>{head_cells}</tr></thead><tbody>{body_rows}</tbody></table>
 {summary_box}
 <div class="foot">
-  <div class="fbox ok"><h4>✅ مسموح</h4><ul>{allowed_html}</ul></div>
-  <div class="fbox no"><h4>🚫 ممنوع</h4><ul>{forbidden_html}</ul></div>
-  <div class="fbox wt"><h4>💧 الماء</h4><ul>{water_tips}</ul></div>
+  <div class="fbox ok"><h4>✅ {_L("مسموح", "Allowed")}</h4><ul>{allowed_html}</ul></div>
+  <div class="fbox no"><h4>🚫 {_L("ممنوع", "Avoid")}</h4><ul>{forbidden_html}</ul></div>
+  <div class="fbox wt"><h4>💧 {_L("الماء", "Water")}</h4><ul>{water_tips}</ul></div>
 </div>
-<div class="sig">المراجعة بعد {_esc(td['review_weeks'])} أسابيع — {_esc(td['author'])}</div>
+<div class="sig">{_L("المراجعة بعد", "Review in")} {_esc(td['review_weeks'])} {_L("أسابيع", "weeks")} — {_esc(td['author'])}</div>
 </body></html>"""
 
     pdf_bytes = HTML(string=html_string).write_pdf()

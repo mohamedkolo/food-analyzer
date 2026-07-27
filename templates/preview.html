@@ -133,7 +133,7 @@
   <div class="card" style="padding:16px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--gray-2)">
       <div style="font-size:17px;font-weight:800;color:var(--blue-dark)">
-        <i class="fa-solid fa-calendar-day"></i> {{ day.day }}
+        <i class="fa-solid fa-calendar-day"></i> {{ day.day | day_en }}
       </div>
       <div style="background:#d8e2dc;color:#14332b;padding:4px 12px;border-radius:100px;font-weight:700;font-size:13px">
         {{ day.total_cal }} kcal
@@ -162,7 +162,7 @@
           <div style="font-size:20px">{{ emoji }}</div>
           <div style="flex:1">
             <div style="font-size:11px;color:#bc6c25;font-weight:700;letter-spacing:0.5px">{{ label }}</div>
-            <div class="meal-text editable" data-day="{{ day_idx }}" data-type="{{ key }}" style="font-size:13px;font-weight:600;cursor:text">{{ day[key] }}</div>
+            <div class="meal-text editable" data-day="{{ day_idx }}" data-type="{{ key }}" style="font-size:13px;font-weight:600;cursor:text">{{ day[key] | meal_en }}</div>
           </div>
           {% if key not in ['snack','snack1','snack2','pre_workout','post_workout'] %}
           <div style="display:flex;gap:4px">
