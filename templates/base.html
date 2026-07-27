@@ -133,6 +133,36 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
   .nx-footer{margin-right:0;padding:30px 16px 20px}
   .nx-footer-grid{gap:24px;margin-bottom:20px}
 }
+
+/* ── Collapsible form sections ─────────────────────────────────────────────
+   Long forms collapse into one row per section; tapping a row opens it.
+   Built on <details>, so the toggle needs no JS and fields inside a closed
+   section still submit normally. */
+.acc{background:var(--white);border:1.5px solid var(--gray-2);border-radius:16px;
+     box-shadow:0 2px 10px rgba(0,0,0,.04);margin-bottom:10px;overflow:hidden}
+.acc>summary{list-style:none;cursor:pointer;padding:15px 18px;display:flex;
+     align-items:center;gap:10px;font-size:15px;font-weight:800;color:var(--blue);
+     user-select:none;transition:background .15s}
+.acc>summary::-webkit-details-marker{display:none}
+.acc>summary:hover{background:var(--gray)}
+.acc>summary i{font-size:16px}
+.acc>summary .acc-sum{margin-inline-start:auto;font-size:12px;font-weight:600;
+     color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+     max-width:45%;text-align:end}
+.acc>summary::after{content:'\f078';font-family:'Font Awesome 6 Free';font-weight:900;
+     font-size:11px;color:var(--muted);margin-inline-start:10px;transition:transform .2s;
+     flex-shrink:0}
+.acc[open]>summary::after{transform:rotate(180deg)}
+.acc[open]>summary{border-bottom:1.5px solid var(--gray-2);background:var(--gray)}
+.acc-body{padding:16px 18px 18px}
+.acc.acc-req>summary{color:#8b0000}
+/* a section holding a field that failed validation */
+.acc.acc-invalid{border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+@media (max-width:560px){
+  .acc>summary{padding:14px;font-size:14px}
+  .acc>summary .acc-sum{display:none}
+  .acc-body{padding:14px}
+}
 </style>
 {% block extra_style %}{% endblock %}
 </head>
@@ -476,6 +506,75 @@ async function nxEnablePush(){
 {% endif %}
 
 {% block extra_script %}{% endblock %}
+
+<script>
+/* ── Collapsible form sections (.acc) ───────────────────────────────────────
+   Two jobs the markup cannot do on its own:
+   1. A required field inside a closed <details> is not focusable, so the
+      browser blocks submit with no visible reason. Open the section instead.
+   2. Show what is currently chosen on the collapsed row, so the form can be
+      scanned without opening every section. */
+(function () {
+  var accs = document.querySelectorAll('.acc');
+  if (!accs.length) return;
+
+  function summarise(acc) {
+    var out = document.querySelector('#' + acc.id + ' .acc-sum') ||
+              acc.querySelector('.acc-sum');
+    if (!out) return;
+    var bits = [];
+
+    acc.querySelectorAll('input[type=radio]:checked').forEach(function (r) {
+      var lbl = r.closest('label');
+      var txt = lbl ? lbl.innerText.trim().split('\n')[0] : '';
+      if (txt) bits.push(txt);
+    });
+    var boxes = acc.querySelectorAll('input[type=checkbox]:checked');
+    if (boxes.length) {
+      bits.push(boxes.length + (document.documentElement.lang === 'ar' ? ' محدد' : ' selected'));
+    }
+    acc.querySelectorAll('select').forEach(function (s) {
+      if (s.value && s.selectedIndex >= 0) {
+        var t = s.options[s.selectedIndex].text.trim();
+        if (t) bits.push(t);
+      }
+    });
+    var filled = 0;
+    acc.querySelectorAll('input[type=text],input[type=number],input[type=tel],textarea')
+       .forEach(function (i) { if (i.value.trim()) filled++; });
+    if (filled) {
+      bits.push(filled + (document.documentElement.lang === 'ar' ? ' مُدخل' : ' filled'));
+    }
+    out.textContent = bits.slice(0, 3).join(' · ');
+  }
+
+  accs.forEach(function (acc, i) {
+    if (!acc.id) acc.id = 'acc' + i;
+    summarise(acc);
+    acc.addEventListener('change', function () { summarise(acc); });
+    acc.addEventListener('input', function () { summarise(acc); });
+  });
+
+  // an invalid field in a collapsed section: open it, mark it, scroll to it
+  document.addEventListener('invalid', function (e) {
+    var acc = e.target.closest ? e.target.closest('.acc') : null;
+    if (!acc) return;
+    acc.open = true;
+    acc.classList.add('acc-invalid');
+    if (!document.querySelector('.acc-invalid-scrolled')) {
+      acc.classList.add('acc-invalid-scrolled');
+      acc.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, true);
+
+  document.addEventListener('input', function (e) {
+    var acc = e.target.closest ? e.target.closest('.acc-invalid') : null;
+    if (acc && e.target.checkValidity && e.target.checkValidity()) {
+      acc.classList.remove('acc-invalid', 'acc-invalid-scrolled');
+    }
+  }, true);
+})();
+</script>
 
 <!-- ═══ زرار المحادثة العائم (للعملاء) ═══ -->
 {% if user is defined and user and not is_staff and not request.path.startswith('/messages') %}

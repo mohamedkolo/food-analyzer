@@ -15,11 +15,9 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
   <!-- ═══════════ 1. الهدف ═══════════ -->
-  <div class="card">
-    <div class="card-title">
-      <i class="fa-solid fa-bullseye"></i> {{ t('الخطوة 1: ما هو هدفك؟','Step 1: What is your goal?') }}
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+  <details class="acc" open>
+    <summary><i class="fa-solid fa-bullseye"></i> {{ t('الخطوة 1: ما هو هدفك؟','Step 1: What is your goal?') }}<span class="acc-sum"></span></summary>
+    <div class="acc-body">    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
       {% for goal in [
         ('weight_loss','🥗',t('تخسيس','Weight Loss')),
         ('maintenance','🍽️',t('الحفاظ على الوزن','Maintain Weight')),
@@ -35,12 +33,15 @@
       </label>
       {% endfor %}
     </div>
-  </div>
+  
+    </div>
+  </details>
+
 
   <!-- ═══════════ 2. المطبخ ═══════════ -->
-  <div class="card">
-    <div class="card-title"><i class="fa-solid fa-utensils"></i> {{ t('الخطوة 2: المطبخ المفضل','Step 2: Preferred Cuisine') }}</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
+  <details class="acc" open>
+    <summary><i class="fa-solid fa-utensils"></i> {{ t('الخطوة 2: المطبخ المفضل','Step 2: Preferred Cuisine') }}<span class="acc-sum"></span></summary>
+    <div class="acc-body">    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
       {% for cul in [('مصري','🇪🇬',t('مصري','Egyptian')),('خليجي','🇸🇦',t('خليجي','Gulf')),('شامي','🇱🇧',t('شامي','Levantine')),('مغربي','🇲🇦',t('مغربي','Moroccan')),('عالمي','🌍',t('عالمي','International'))] %}
       <label style="cursor:pointer">
         <input type="radio" name="culture" value="{{ cul[0] }}" {% if loop.first %}checked{% endif %} style="display:none">
@@ -51,12 +52,15 @@
       </label>
       {% endfor %}
     </div>
-  </div>
+  
+    </div>
+  </details>
+
 
   <!-- ═══════════ 3. نظام التغذية ═══════════ -->
-  <div class="card">
-    <div class="card-title"><i class="fa-solid fa-clock"></i> {{ t('الخطوة 3: نظام الأكل','Step 3: Eating Pattern') }}</div>
-    <div style="display:grid;gap:8px">
+  <details class="acc">
+    <summary><i class="fa-solid fa-clock"></i> {{ t('الخطوة 3: نظام الأكل','Step 3: Eating Pattern') }}<span class="acc-sum"></span></summary>
+    <div class="acc-body">    <div style="display:grid;gap:8px">
       {% for key, info in diet_plans.items() %}
       <label style="cursor:pointer">
         <input type="radio" name="diet_plan_type" value="{{ key }}" {% if loop.first %}checked{% endif %} style="display:none">
@@ -70,12 +74,15 @@
       </label>
       {% endfor %}
     </div>
-  </div>
+  
+    </div>
+  </details>
+
 
   <!-- ═══════════ 4. البيانات الشخصية ═══════════ -->
-  <div class="card">
-    <div class="card-title"><i class="fa-solid fa-user"></i> {{ t('الخطوة 4: بياناتك الشخصية','Step 4: Your Personal Details') }}</div>
-    <div class="grid-2">
+  <details class="acc">
+    <summary><i class="fa-solid fa-user"></i> {{ t('الخطوة 4: بياناتك الشخصية','Step 4: Your Personal Details') }}<span class="acc-sum"></span></summary>
+    <div class="acc-body">    <div class="grid-2">
       <div class="form-group">
         <label class="form-label">{{ t('الجنس','Gender') }}</label>
         <select class="form-select" name="gender">
@@ -108,12 +115,15 @@
         <input class="form-input" type="number" name="bmi" step="0.1" id="bmiField" readonly>
       </div>
     </div>
-  </div>
+  
+    </div>
+  </details>
+
 
   <!-- ═══════════ 5. الأمراض والحالات ═══════════ -->
-  <div class="card">
-    <div class="card-title"><i class="fa-solid fa-stethoscope"></i> {{ t('الخطوة 5: أمراضك أو حالاتك (اختر كل اللي ينطبق عليك)','Step 5: Your conditions (select all that apply)') }}</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px">
+  <details class="acc">
+    <summary><i class="fa-solid fa-stethoscope"></i> {{ t('الخطوة 5: أمراضك أو حالاتك (اختر كل اللي ينطبق عليك)','Step 5: Your conditions (select all that apply)') }}<span class="acc-sum"></span></summary>
+    <div class="acc-body">    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px">
       {% for cond, cond_en in [
         ('قولون عصبي','IBS'),('سكري النوع الثاني','Type 2 Diabetes'),('ضغط الدم المرتفع','Hypertension'),('امراض القلب','Heart Disease'),
         ('الفشل الكلوي المزمن','Chronic Kidney Disease'),('الحمل','Pregnancy'),('الرضاعة الطبيعية','Breastfeeding'),('G6PD','G6PD'),('ثلاسيميا','Thalassemia'),
@@ -125,12 +135,15 @@
       </label>
       {% endfor %}
     </div>
-  </div>
+  
+    </div>
+  </details>
+
 
   <!-- ═══════════ 6. الحساسية ═══════════ -->
-  <div class="card">
-    <div class="card-title"><i class="fa-solid fa-triangle-exclamation"></i> {{ t('الخطوة 6: الحساسية الغذائية','Step 6: Food Allergies') }}</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">{{ t('اختر أي حساسية عندك (أكلات هتتشال نهائياً من خطتك):','Select any allergy you have (those foods are removed from your plan entirely):') }}</p>
+  <details class="acc">
+    <summary><i class="fa-solid fa-triangle-exclamation"></i> {{ t('الخطوة 6: الحساسية الغذائية','Step 6: Food Allergies') }}<span class="acc-sum"></span></summary>
+    <div class="acc-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">{{ t('اختر أي حساسية عندك (أكلات هتتشال نهائياً من خطتك):','Select any allergy you have (those foods are removed from your plan entirely):') }}</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
       {% for allergy, allergy_en in [('اللاكتوز','Lactose'),('الجلوتين','Gluten'),('المكسرات','Tree nuts'),('البيض','Eggs'),('الأسماك','Fish'),('الفول السوداني','Peanuts'),('الصويا','Soy'),('المحار','Shellfish'),('السمسم','Sesame')] %}
       <label style="display:flex;align-items:center;gap:8px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:10px;cursor:pointer">
@@ -139,34 +152,46 @@
       </label>
       {% endfor %}
     </div>
-  </div>
+  
+    </div>
+  </details>
+
 
   <!-- ═══════════ 7. الأكلات المفضلة ═══════════ -->
-  <div class="card">
-    <div class="card-title"><i class="fa-solid fa-heart" style="color:#16a34a"></i> {{ t('الخطوة 7: الأكلات اللي بتحبها','Step 7: Foods You Like') }}</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ t('اكتب الأكلات اللي بتحبها مفصولة بفواصل (هنحاول نضعها في خطتك):','List foods you like, separated by commas (we will try to include them):') }}</p>
+  <details class="acc">
+    <summary><i class="fa-solid fa-heart" style="color:#16a34a"></i> {{ t('الخطوة 7: الأكلات اللي بتحبها','Step 7: Foods You Like') }}<span class="acc-sum"></span></summary>
+    <div class="acc-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ t('اكتب الأكلات اللي بتحبها مفصولة بفواصل (هنحاول نضعها في خطتك):','List foods you like, separated by commas (we will try to include them):') }}</p>
     <textarea class="form-input" name="liked_foods" rows="2" 
       placeholder="{{ t('مثلاً: شوفان، سلمون، افوكادو، دجاج مشوي، تفاح','e.g. oats, salmon, avocado, grilled chicken, apple') }}" 
       style="resize:vertical"></textarea>
-  </div>
+  
+    </div>
+  </details>
+
 
   <!-- ═══════════ 8. الأكلات اللي مش بتحبها ═══════════ -->
-  <div class="card">
-    <div class="card-title"><i class="fa-solid fa-ban" style="color:#dc2626"></i> {{ t('الخطوة 8: الأكلات اللي مش بتحبها','Step 8: Foods You Dislike') }}</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ t('اكتب الأكلات اللي مش بتحبها أو مش بتاكلها مفصولة بفواصل (هتتشال من خطتك):','List foods you dislike or do not eat, separated by commas (they are removed from your plan):') }}</p>
+  <details class="acc">
+    <summary><i class="fa-solid fa-ban" style="color:#dc2626"></i> {{ t('الخطوة 8: الأكلات اللي مش بتحبها','Step 8: Foods You Dislike') }}<span class="acc-sum"></span></summary>
+    <div class="acc-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ t('اكتب الأكلات اللي مش بتحبها أو مش بتاكلها مفصولة بفواصل (هتتشال من خطتك):','List foods you dislike or do not eat, separated by commas (they are removed from your plan):') }}</p>
     <textarea class="form-input" name="disliked_foods" rows="2" 
       placeholder="{{ t('مثلاً: كبدة، باذنجان، بصل، فلفل حار، كوسة','e.g. liver, eggplant, onion, chili, zucchini') }}" 
       style="resize:vertical"></textarea>
-  </div>
+  
+    </div>
+  </details>
+
 
   <!-- ═══════════ 9. ملاحظات إضافية ═══════════ -->
-  <div class="card">
-    <div class="card-title"><i class="fa-solid fa-note-sticky"></i> {{ t('الخطوة 9: ملاحظات إضافية للدكتور','Step 9: Extra Notes for the Doctor') }}</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ t('أي تفاصيل تانية: أدوية، عادات، مواعيد التمرين، ميزانية الأكل، تفضيلات...','Anything else: medications, habits, training times, food budget, preferences...') }}</p>
+  <details class="acc">
+    <summary><i class="fa-solid fa-note-sticky"></i> {{ t('الخطوة 9: ملاحظات إضافية للدكتور','Step 9: Extra Notes for the Doctor') }}<span class="acc-sum"></span></summary>
+    <div class="acc-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ t('أي تفاصيل تانية: أدوية، عادات، مواعيد التمرين، ميزانية الأكل، تفضيلات...','Anything else: medications, habits, training times, food budget, preferences...') }}</p>
     <textarea class="form-input" name="notes" rows="3" 
       placeholder="{{ t('مثلاً: بتمرن المغرب، باكل في الشغل، بتاخد دواء معين...','e.g. I train in the evening, I eat at work, I take a certain medication...') }}" 
       style="resize:vertical"></textarea>
-  </div>
+  
+    </div>
+  </details>
+
 
   <button type="submit" class="btn btn-success btn-full" style="font-size:16px;padding:16px">
     <i class="fa-solid fa-paper-plane"></i> {{ t('إرسال الطلب للدكتور','Send Request to the Doctor') }}
