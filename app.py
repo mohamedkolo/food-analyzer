@@ -294,6 +294,14 @@ def t(ar, en):
     except Exception:
         return ar
 
+def cur_lang():
+    """The session language, or Arabic outside a request (background threads)."""
+    try:
+        return session.get("lang", "ar")
+    except Exception:
+        return "ar"
+
+
 ENGLISH_DAYS = {
     "الاحد": "Sunday", "الأحد": "Sunday", "الاثنين": "Monday",
     "الثلاثاء": "Tuesday", "الاربعاء": "Wednesday", "الأربعاء": "Wednesday",
@@ -1018,7 +1026,7 @@ def get_meal_tracking(user_id):
         labels = day.get("meal_labels") or {}
         emojis = day.get("meal_emojis") or {}
         # the plan stores Arabic labels/meals; swap them out for display in EN
-        if session.get("lang", "ar") != "ar":
+        if cur_lang() != "ar":
             _info = get_diet_plan_info(day.get("diet_type")
                                        or (pd.get("data") or {}).get("diet_plan_type", "standard"))
             labels = _info.get("meal_labels_en") or labels
@@ -1034,7 +1042,7 @@ def get_meal_tracking(user_id):
                                        "text": day.get(k, ""), "checked": bool(checks.get(k))})
         out["has_plan"] = True
         out["day_name"] = day.get("day", "")
-        if session.get("lang", "ar") != "ar":
+        if cur_lang() != "ar":
             out["day_name"] = ENGLISH_DAYS.get(out["day_name"], out["day_name"])
         out["today_total"] = len(meal_keys)
         out["today_done"] = sum(1 for m in out["today_meals"] if m["checked"])
@@ -2111,7 +2119,7 @@ def _filtered_meals(data, pool_key, culture=None):
 
 def _meal_display(text):
     """The meal as the current user should read it -- stored Arabic, or English."""
-    if session.get("lang", "ar") == "ar":
+    if cur_lang() == "ar":
         return text
     return translate_meal(text)
 
