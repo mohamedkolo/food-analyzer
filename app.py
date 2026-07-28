@@ -1017,6 +1017,11 @@ def get_meal_tracking(user_id):
         day = plan[idx]
         labels = day.get("meal_labels") or {}
         emojis = day.get("meal_emojis") or {}
+        # the plan stores Arabic labels/meals; swap them out for display in EN
+        if session.get("lang", "ar") != "ar":
+            _info = get_diet_plan_info(day.get("diet_type")
+                                       or (pd.get("data") or {}).get("diet_plan_type", "standard"))
+            labels = _info.get("meal_labels_en") or labels
         meal_keys = [k for k in ["breakfast","snack1","meal1","pre_workout","lunch","post_workout","iftar","snack","snack2","suhoor","meal2","dinner"] if day.get(k)]
         checks = {}
         try:
@@ -1029,6 +1034,8 @@ def get_meal_tracking(user_id):
                                        "text": day.get(k, ""), "checked": bool(checks.get(k))})
         out["has_plan"] = True
         out["day_name"] = day.get("day", "")
+        if session.get("lang", "ar") != "ar":
+            out["day_name"] = ENGLISH_DAYS.get(out["day_name"], out["day_name"])
         out["today_total"] = len(meal_keys)
         out["today_done"] = sum(1 for m in out["today_meals"] if m["checked"])
         # التزام آخر 7 أيام
@@ -2102,6 +2109,13 @@ def _filtered_meals(data, pool_key, culture=None):
         meals = filter_carbs(meals, False) or meals
     return meals
 
+def _meal_display(text):
+    """The meal as the current user should read it -- stored Arabic, or English."""
+    if session.get("lang", "ar") == "ar":
+        return text
+    return translate_meal(text)
+
+
 @app.route("/swap_meal", methods=["POST"])
 @staff_required
 def swap_meal():
@@ -2125,7 +2139,8 @@ def swap_meal():
             new_meal = random.choice(options)
             plan[day_idx][meal_type] = new_meal["meal"]
             session["current_plan"] = plan
-            return jsonify({"ok": True, "new_meal": new_meal["meal"]})
+            return jsonify({"ok": True, "new_meal": new_meal["meal"],
+                            "display": _meal_display(new_meal["meal"])})
     return jsonify({"ok": False}), 400
 
 @app.route("/get_meal_options", methods=["POST"])
@@ -2145,14 +2160,16 @@ def get_meal_options():
         elif meal_type == "post_workout": pool_key = "lunch"
     all_options = []
     for m in _filtered_meals(data, pool_key):
-        all_options.append({"meal": m["meal"], "cal": m.get("cal", 0), "p": m.get("p", 0), "source": culture})
+        all_options.append({"meal": m["meal"], "display": _meal_display(m["meal"]),
+                            "cal": m.get("cal", 0), "p": m.get("p", 0), "source": culture})
     # مطابخ تانية (مفلترة برضو) - مش للكيتو/لو-كارب عشان النشويات
     if diet_type not in ("keto", "low_carb"):
         for oc in ["مصري", "خليجي", "شامي", "مغربي", "عالمي"]:
             if oc == culture:
                 continue
             for m in _filtered_meals(data, pool_key, culture=oc)[:5]:
-                all_options.append({"meal": m["meal"], "cal": m.get("cal", 0), "p": m.get("p", 0), "source": oc})
+                all_options.append({"meal": m["meal"], "display": _meal_display(m["meal"]),
+                                    "cal": m.get("cal", 0), "p": m.get("p", 0), "source": oc})
     return jsonify({"ok": True, "options": all_options})
 
 @app.route("/replace_meal", methods=["POST"])
@@ -2168,7 +2185,8 @@ def replace_meal():
         if day_idx < 0 or day_idx >= len(plan): return jsonify({"ok": False, "error": "invalid day"}), 400
         plan[day_idx][meal_type] = new_meal
         session["current_plan"] = plan
-        return jsonify({"ok": True, "new_meal": new_meal})
+        return jsonify({"ok": True, "new_meal": new_meal,
+                        "display": _meal_display(new_meal)})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

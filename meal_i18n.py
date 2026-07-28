@@ -48,6 +48,25 @@ PHRASES = {
     "بدون ملح": "no salt",
     "زيت زيتون": "olive oil",
     "زيت الزيتون": "olive oil",
+    "بزيت الزيتون": "with olive oil",
+    "بزيت زيتون": "with olive oil",
+    "قليل الزيت": "with little oil",
+    "كامل الدسم": "full-fat",
+    "كاملة الدسم": "full-fat",
+    "جبن دسم": "full-fat cheese",
+    "جبن كامل الدسم": "full-fat cheese",
+    "جبنة كاملة الدسم": "full-fat cheese",
+    "جبن قريش دسم": "full-fat cottage cheese",
+    "زبادي كامل الدسم": "full-fat yogurt",
+    "زبادي يوناني كامل الدسم": "full-fat Greek yogurt",
+    "كفتة لحم دسمة": "rich meat kofta",
+    "لحم دسم": "fatty meat",
+    "فخذ دجاج بالجلد مشوي": "grilled chicken thigh with skin",
+    "فخذ دجاج بالجلد": "chicken thigh with skin",
+    "أفوكادو محشي بيض": "egg-stuffed avocado",
+    "افوكادو محشي بيض": "egg-stuffed avocado",
+    "خبز تورتيلا قمح كامل": "whole-wheat tortilla",
+    "تورتيلا قمح كامل": "whole-wheat tortilla",
     "جوز الهند": "coconut",
     "جوز هند": "coconut",
     "لسان عصفور": "orzo",
@@ -339,7 +358,7 @@ _ADJECTIVES = {
     "grilled", "boiled", "fried", "cooked", "minced", "grated", "smoked",
     "sautéed", "stewed", "tray-baked", "oven-baked", "stuffed", "fresh",
     "raw", "baked",
-    "whole-wheat", "whole", "brown", "white", "green", "black", "sweet",
+    "whole-wheat", "whole", "full-fat", "brown", "white", "green", "black", "sweet",
     "plain", "simple", "low", "low-fat", "lean", "fat-free", "low-salt",
     "large", "small", "light", "aged", "leafy", "colourful", "assorted",
     "mixed", "multi", "multigrain", "extra", "skinless", "baladi",
@@ -431,7 +450,7 @@ if __name__ == "__main__":
             meals.append(cur)
 
     for pool in ("WEIGHT_LOSS", "MUSCLE_GAIN", "BULKING", "MAINTENANCE",
-                 "SAFE_ALTERNATIVES"):
+                 "SAFE_ALTERNATIVES", "KETO_MEALS", "KETO_SNACKS"):
         for mod in (md, mx):
             walk(getattr(mod, pool, None))
     for goal in ("weight_loss", "muscle_gain", "bulking", "maintenance"):

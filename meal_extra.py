@@ -649,17 +649,23 @@ EXTRA2 = {
 NEW_SYSTEMS = {
     "low_carb": {
         "name": "لو-كارب (تقليل النشويات)",
+        "name_en": "Low-carb (fewer starches)",
         "meals": ["breakfast", "lunch", "dinner", "snack"],
         "meal_labels": {"breakfast": "الفطار", "lunch": "الغداء", "dinner": "العشاء", "snack": "سناك"},
+        "meal_labels_en": {"breakfast": "Breakfast", "lunch": "Lunch", "dinner": "Dinner", "snack": "Snack"},
         "meal_emojis": {"breakfast": "🌅", "lunch": "☀️", "dinner": "🌙", "snack": "🥜"},
-        "description": "نفس 3 وجبات بس بأقل نشويات (يقلّل الأرز والخبز)"
+        "description": "نفس 3 وجبات بس بأقل نشويات (يقلّل الأرز والخبز)",
+        "description_en": "The same 3 meals with fewer starches (less rice and bread)"
     },
     "keto": {
         "name": "كيتو (نشويات قليلة جداً + دهون صحية)",
+        "name_en": "Keto (very low carb + healthy fats)",
         "meals": ["breakfast", "lunch", "dinner", "snack"],
         "meal_labels": {"breakfast": "الفطار", "lunch": "الغداء", "dinner": "العشاء", "snack": "سناك"},
+        "meal_labels_en": {"breakfast": "Breakfast", "lunch": "Lunch", "dinner": "Dinner", "snack": "Snack"},
         "meal_emojis": {"breakfast": "🥑", "lunch": "🥩", "dinner": "🍳", "snack": "🧀"},
-        "description": "نشويات قليلة جداً + بروتين ودهون (بدون أرز/خبز/فاكهة كتير)"
+        "description": "نشويات قليلة جداً + بروتين ودهون (بدون أرز/خبز/فاكهة كتير)",
+        "description_en": "Very few carbs, plus protein and fat (no rice, bread or much fruit)"
     },
 }
 

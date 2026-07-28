@@ -152,7 +152,7 @@
         <div class="track-box" style="width:24px;height:24px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;background:{% if m.checked %}#1e4a3d{% else %}#e7e0d0{% endif %};margin-top:2px;">{% if m.checked %}✓{% endif %}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:800;font-size:13px;color:#14332b;">{{ m.emoji }} {{ m.label }}</div>
-          <div style="font-size:12px;color:#64748b;line-height:1.6;{% if m.checked %}text-decoration:line-through;opacity:.6;{% endif %}">{{ m.text }}</div>
+          <div style="font-size:12px;color:#64748b;line-height:1.6;{% if m.checked %}text-decoration:line-through;opacity:.6;{% endif %}">{{ m.text | meal_en }}</div>
         </div>
       </div>
       {% endfor %}

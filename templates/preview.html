@@ -317,7 +317,7 @@ document.querySelectorAll('.swap-btn').forEach(btn => {
         const textEl = document.querySelector(`.meal-text[data-day="${day}"][data-type="${type}"]`);
         if (textEl) {
           textEl.style.opacity = '0';
-          setTimeout(() => { textEl.textContent = data.new_meal; textEl.style.opacity = '1'; }, 150);
+          setTimeout(() => { textEl.textContent = data.display || data.new_meal; textEl.style.opacity = '1'; }, 150);
         }
         showSaveIndicator();
       }
@@ -340,6 +340,11 @@ const PV = {
   saveFail: {{ t('فشل الحفظ','Save failed')|tojson }},
   cultures: {{ culture_names|tojson }}
 };
+
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+                  .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 document.querySelectorAll('.pick-btn').forEach(btn => {
   btn.addEventListener('click', async function() {
@@ -376,7 +381,7 @@ document.querySelectorAll('.pick-btn').forEach(btn => {
           const emoji = cultureEmojis[opt.source] || '🍽️';
           const source = PV.cultures[opt.source] || opt.source;
           return `
-            <div class="option-card" onclick="selectMeal(this, \`${opt.meal.replace(/`/g, "\\`")}\`)">
+            <div class="option-card" data-meal="${esc(opt.meal)}" data-display="${esc(opt.display || opt.meal)}">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
                 <div style="font-size:11px;color:var(--muted);font-weight:700">
                   ${emoji} ${source}
@@ -386,13 +391,16 @@ document.querySelectorAll('.pick-btn').forEach(btn => {
                 </div>
               </div>
               <div style="font-size:13px;color:var(--text);font-weight:500;line-height:1.6">
-                ${opt.meal}
+                ${esc(opt.display || opt.meal)}
               </div>
             </div>
           `;
         }).join('');
 
         document.getElementById('pickerOptions').innerHTML = html;
+        document.querySelectorAll('#pickerOptions .option-card').forEach(c => {
+          c.addEventListener('click', () => selectMeal(c, c.dataset.meal, c.dataset.display));
+        });
       } else {
         document.getElementById('pickerOptions').innerHTML = `
           <div style="text-align:center;padding:30px;color:var(--muted)">
@@ -418,7 +426,7 @@ function closePicker() {
   currentPickType = null;
 }
 
-async function selectMeal(card, mealText) {
+async function selectMeal(card, mealText, displayText) {
   document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
   card.classList.add('selected');
 
@@ -434,7 +442,7 @@ async function selectMeal(card, mealText) {
       const textEl = document.querySelector(`.meal-text[data-day="${currentPickDay}"][data-type="${currentPickType}"]`);
       if (textEl) {
         textEl.style.opacity = '0';
-        setTimeout(() => { textEl.textContent = mealText; textEl.style.opacity = '1'; }, 150);
+        setTimeout(() => { textEl.textContent = displayText || mealText; textEl.style.opacity = '1'; }, 150);
       }
       showSaveIndicator();
       setTimeout(closePicker, 500);
