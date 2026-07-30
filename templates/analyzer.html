@@ -870,7 +870,7 @@ function makeCard(food) {
   return `
     <div class="food-card">
       <div class="food-head">
-        <h3 class="food-name">${IS_AR ? food.n : (food.en || food.n)}${(IS_AR ? food.en : food.n) ? `<span style="display:block;font-size:11px;color:#94a3b8;font-weight:500;direction:${IS_AR ? 'ltr' : 'rtl'};text-align:start;">${IS_AR ? food.en : food.n}</span>` : ''}</h3>
+        <h3 class="food-name">${IS_AR ? food.n : (food.en || food.n)}${(IS_AR ? food.en : food.n) ? `<span style="display:block;font-size:11px;color:#94a3b8;font-weight:600;direction:${IS_AR ? 'ltr' : 'rtl'};text-align:start;">${IS_AR ? food.en : food.n}</span>` : ''}</h3>
         <div class="food-cal">${food.cal} <small>kcal/100g</small></div>
       </div>
       <div class="macros">
