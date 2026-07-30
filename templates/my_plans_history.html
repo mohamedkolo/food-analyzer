@@ -380,7 +380,7 @@
         </div>
         <div class="meta-row">
           <span>{{ t('المطبخ:','Cuisine:') }}</span>
-          <strong>{{ plan.culture or t('مصري','Egyptian') }}</strong>
+          <strong>{{ (plan.culture | culture_en) or t('مصري','Egyptian') }}</strong>
         </div>
         {% if plan.conditions_count %}
         <div class="meta-row">

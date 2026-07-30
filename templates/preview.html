@@ -79,7 +79,7 @@
   </div>
   <div style="display:flex;gap:6px;flex-wrap:wrap">
     {% for s in data.symptoms %}
-    <span style="background:white;color:#991b1b;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;border:1px solid #fca5a5">{{ s }}</span>
+    <span style="background:white;color:#991b1b;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;border:1px solid #fca5a5">{{ s | cond_en }}</span>
     {% endfor %}
   </div>
 </div>

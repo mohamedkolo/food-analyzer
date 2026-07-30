@@ -606,8 +606,16 @@ def has_active_access(user_id, db_row):
     return False
 
 
-def get_user_access_info(user_id, db_row):
-    """Get details about user's current access"""
+def get_user_access_info(user_id, db_row, lang="ar"):
+    """Get details about user's current access.
+
+    lang picks the language of plan_name; everything else here is data.
+    """
+    def _name(plan, fallback_ar, fallback_en):
+        if lang != "ar":
+            return plan.get("name_en") or plan.get("name") or fallback_en
+        return plan.get("name", fallback_ar)
+
     info = {
         "has_access": False,
         "type": None,
@@ -633,7 +641,7 @@ def get_user_access_info(user_id, db_row):
             plan = PRICING.get(sub["plan_key"], {})
             info["has_access"] = True
             info["type"] = "subscription"
-            info["plan_name"] = plan.get("name", "اشتراك")
+            info["plan_name"] = _name(plan, "اشتراك", "Subscription")
             info["is_trial"] = sub["status"] == "trialing"
             end_date = sub["current_period_end"]
             if isinstance(end_date, str):
@@ -658,7 +666,7 @@ def get_user_access_info(user_id, db_row):
             plan = PRICING.get(pay["plan_key"], {})
             info["has_access"] = True
             info["type"] = "one_time"
-            info["plan_name"] = plan.get("name", "خطة")
+            info["plan_name"] = _name(plan, "خطة", "Plan")
             end_date = pay["expires_at"]
             if isinstance(end_date, str):
                 try:

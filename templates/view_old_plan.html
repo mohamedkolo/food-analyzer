@@ -257,7 +257,7 @@
       <strong style="color: #475569; font-size: 14px;">⚕️ {{ t('حالات طبية وقتها:','Medical conditions then:') }}</strong>
       <div class="tags">
         {% for s in plan_data.get('symptoms', []) %}
-        <span class="tag tag-medical">{{ s }}</span>
+        <span class="tag tag-medical">{{ s | cond_en }}</span>
         {% endfor %}
       </div>
     </div>

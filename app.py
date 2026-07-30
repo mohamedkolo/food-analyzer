@@ -302,6 +302,54 @@ def cur_lang():
         return "ar"
 
 
+# The medical conditions the plan forms offer. The Arabic side is what gets
+# stored (and what UNSAFE_FOODS / filter_by_conditions match against), so these
+# are display-only translations.
+ENGLISH_CONDITIONS = {
+    "قولون عصبي": "IBS",
+    "سكري النوع الثاني": "Type 2 Diabetes",
+    "سكري النوع الاول": "Type 1 Diabetes",
+    "سكري": "Diabetes",
+    "ضغط الدم المرتفع": "High Blood Pressure",
+    "ضغط": "High Blood Pressure",
+    "امراض القلب": "Heart Disease",
+    "الفشل الكلوي المزمن": "Chronic Kidney Failure",
+    "الحمل": "Pregnancy",
+    "الرضاعة الطبيعية": "Breastfeeding",
+    "السمنة": "Obesity",
+    "G6PD": "G6PD",
+    "ثلاسيميا": "Thalassemia",
+    "نقص الحديد": "Iron Deficiency",
+    "نقص فيتامين D3": "Vitamin D3 Deficiency",
+    "حرق بطيء": "Slow Metabolism",
+    "امساك مزمن": "Chronic Constipation",
+    "حساسية اللاكتوز": "Lactose Intolerance",
+    "الداء الزلاقي": "Celiac Disease",
+    "الكبد الدهني": "Fatty Liver",
+    "حصوات المرارة": "Gallstones",
+    "التهاب الأمعاء": "IBD (Crohn's/Colitis)",
+    "اضطراب في الأكل": "Eating Disorder",
+    "هشاشة العظام": "Osteoporosis",
+    "الوقاية من السرطان": "Cancer Risk Reduction",
+}
+
+
+@app.template_filter('cond_en')
+def cond_en_filter(name):
+    """A stored condition name, in the reader's language."""
+    if cur_lang() == "ar":
+        return name
+    return ENGLISH_CONDITIONS.get((name or "").strip(), name)
+
+
+@app.template_filter('culture_en')
+def culture_en_filter(name):
+    """A stored cuisine name, in the reader's language."""
+    if cur_lang() == "ar":
+        return name
+    return _CULTURE_EN.get((name or "").strip(), name)
+
+
 ENGLISH_DAYS = {
     "الاحد": "Sunday", "الأحد": "Sunday", "الاثنين": "Monday",
     "الثلاثاء": "Tuesday", "الاربعاء": "Wednesday", "الأربعاء": "Wednesday",
@@ -593,62 +641,117 @@ def can_request_new_plan(client_id):
 # DAILY TIPS BASED ON CONDITIONS
 # ═══════════════════════════════════════════════
 DAILY_TIPS_GENERAL = [
-    {"icon": "💧", "title": "اشرب المياه", "tip": "اشرب كوب ماء فاتر مع نصف ليمونة على الريق - يحفز الهضم"},
-    {"icon": "🚶", "title": "تمشى شوية", "tip": "30 دقيقة مشي بعد الغداء ينظم السكر ويساعد على الهضم"},
-    {"icon": "😴", "title": "نام كويس", "tip": "النوم 7-8 ساعات مهم زي الأكل والتمرين للوزن الصحي"},
-    {"icon": "🍎", "title": "فاكهة بدل الحلويات", "tip": "لو حسيت برغبة في حاجة حلوة، خد فاكهة بدل البسكويت"},
-    {"icon": "🥗", "title": "خضار في كل وجبة", "tip": "حط نصف الطبق خضار - شبع أكتر وسعرات أقل"},
-    {"icon": "⏰", "title": "متاكلش بسرعة", "tip": "مضغ الأكل ببطء يخليك تشبع أسرع وتاكل أقل"},
-    {"icon": "🧂", "title": "قلل الملح", "tip": "الأكل الجاهز فيه ملح كتير - حضر أكلك في البيت"},
+    {"icon": "💧", "title": "اشرب المياه", "tip": "اشرب كوب ماء فاتر مع نصف ليمونة على الريق - يحفز الهضم",
+     "title_en": "Drink water", "tip_en": "A cup of warm water with half a lemon on an empty stomach gets digestion going"},
+    {"icon": "🚶", "title": "تمشى شوية", "tip": "30 دقيقة مشي بعد الغداء ينظم السكر ويساعد على الهضم",
+     "title_en": "Take a walk", "tip_en": "A 30-minute walk after lunch steadies your blood sugar and helps digestion"},
+    {"icon": "😴", "title": "نام كويس", "tip": "النوم 7-8 ساعات مهم زي الأكل والتمرين للوزن الصحي",
+     "title_en": "Sleep well", "tip_en": "7-8 hours of sleep matters as much as food and training for a healthy weight"},
+    {"icon": "🍎", "title": "فاكهة بدل الحلويات", "tip": "لو حسيت برغبة في حاجة حلوة، خد فاكهة بدل البسكويت",
+     "title_en": "Fruit instead of sweets", "tip_en": "When you crave something sweet, reach for fruit instead of biscuits"},
+    {"icon": "🥗", "title": "خضار في كل وجبة", "tip": "حط نصف الطبق خضار - شبع أكتر وسعرات أقل",
+     "title_en": "Vegetables at every meal", "tip_en": "Fill half the plate with vegetables - fuller for fewer calories"},
+    {"icon": "⏰", "title": "متاكلش بسرعة", "tip": "مضغ الأكل ببطء يخليك تشبع أسرع وتاكل أقل",
+     "title_en": "Do not rush your food", "tip_en": "Chewing slowly makes you feel full sooner, so you eat less"},
+    {"icon": "🧂", "title": "قلل الملح", "tip": "الأكل الجاهز فيه ملح كتير - حضر أكلك في البيت",
+     "title_en": "Cut back on salt", "tip_en": "Ready-made food is heavy on salt - cook at home"},
 ]
 
 CONDITION_TIPS = {
     "قولون": [
-        {"icon": "⚠️", "title": "خلي بالك من القولون", "tip": "تجنب الفول والحمص والكرنب والبروكلي - بتعمل غازات"},
-        {"icon": "🌶️", "title": "بعيداً عن الحار", "tip": "تجنب الفلفل الحار والبهارات الحارة - بتهيج القولون"},
-        {"icon": "☕", "title": "قلل الكافيين", "tip": "القهوة والشاي بكميات كبيرة بتزود اضطراب القولون"},
+        {"icon": "⚠️", "title": "خلي بالك من القولون", "tip": "تجنب الفول والحمص والكرنب والبروكلي - بتعمل غازات",
+     "title_en": "Mind your gut", "tip_en": "Skip fava beans, chickpeas, cabbage and broccoli - they cause gas"},
+        {"icon": "🌶️", "title": "بعيداً عن الحار", "tip": "تجنب الفلفل الحار والبهارات الحارة - بتهيج القولون",
+     "title_en": "Stay off the spice", "tip_en": "Avoid chilli and hot spices - they irritate the gut"},
+        {"icon": "☕", "title": "قلل الكافيين", "tip": "القهوة والشاي بكميات كبيرة بتزود اضطراب القولون",
+     "title_en": "Less caffeine", "tip_en": "Large amounts of coffee and tea make gut trouble worse"},
     ],
     "سكري": [
-        {"icon": "🍞", "title": "خد بالك من الكارب", "tip": "ابعد عن الأرز الأبيض والخبز الأبيض - الأسمر أفضل"},
-        {"icon": "🍯", "title": "السكر عدو", "tip": "تجنب السكر المضاف، العسل، والعصائر المحلاة"},
-        {"icon": "📊", "title": "اقيس السكر", "tip": "قيس السكر قبل الفطار وبعد الأكل بساعتين"},
+        {"icon": "🍞", "title": "خد بالك من الكارب", "tip": "ابعد عن الأرز الأبيض والخبز الأبيض - الأسمر أفضل",
+     "title_en": "Watch the carbs", "tip_en": "Stay away from white rice and white bread - wholemeal is better"},
+        {"icon": "🍯", "title": "السكر عدو", "tip": "تجنب السكر المضاف، العسل، والعصائر المحلاة",
+     "title_en": "Sugar is the enemy", "tip_en": "Avoid added sugar, honey and sweetened juice"},
+        {"icon": "📊", "title": "اقيس السكر", "tip": "قيس السكر قبل الفطار وبعد الأكل بساعتين",
+     "title_en": "Check your blood sugar", "tip_en": "Measure before breakfast and 2 hours after eating"},
     ],
     "ضغط": [
-        {"icon": "🧂", "title": "ملح أقل", "tip": "تجنب المخللات والصوصات الجاهزة والشاورما"},
-        {"icon": "🥬", "title": "خضار ورقية", "tip": "السبانخ والجرجير والبقدونس بيخفضوا الضغط"},
-        {"icon": "🚫", "title": "ابعد عن المعلبات", "tip": "الأكل المعلب فيه ملح كتير جداً"},
+        {"icon": "🧂", "title": "ملح أقل", "tip": "تجنب المخللات والصوصات الجاهزة والشاورما",
+     "title_en": "Less salt", "tip_en": "Avoid pickles, ready-made sauces and shawarma"},
+        {"icon": "🥬", "title": "خضار ورقية", "tip": "السبانخ والجرجير والبقدونس بيخفضوا الضغط",
+     "title_en": "Leafy greens", "tip_en": "Spinach, rocket and parsley help bring blood pressure down"},
+        {"icon": "🚫", "title": "ابعد عن المعلبات", "tip": "الأكل المعلب فيه ملح كتير جداً",
+     "title_en": "Skip tinned food", "tip_en": "Tinned food carries a great deal of salt"},
     ],
     "كلوي": [
-        {"icon": "💧", "title": "اشرب باعتدال", "tip": "اتبع تعليمات الدكتور بخصوص كمية المياه"},
-        {"icon": "🍌", "title": "احذر البوتاسيوم", "tip": "قلل من الموز والطماطم والبطاطا والمكسرات"},
-        {"icon": "🥩", "title": "بروتين معتدل", "tip": "كميات قليلة من البروتين الحيواني"},
+        {"icon": "💧", "title": "اشرب باعتدال", "tip": "اتبع تعليمات الدكتور بخصوص كمية المياه",
+     "title_en": "Drink in moderation", "tip_en": "Follow your doctor's instructions on how much water to drink"},
+        {"icon": "🍌", "title": "احذر البوتاسيوم", "tip": "قلل من الموز والطماطم والبطاطا والمكسرات",
+     "title_en": "Careful with potassium", "tip_en": "Go easy on banana, tomato, potato and nuts"},
+        {"icon": "🥩", "title": "بروتين معتدل", "tip": "كميات قليلة من البروتين الحيواني",
+     "title_en": "Moderate protein", "tip_en": "Small amounts of animal protein"},
     ],
     "قلب": [
-        {"icon": "🐟", "title": "أوميجا 3", "tip": "السمك مرتين في الأسبوع - السلمون والسردين أفضل"},
-        {"icon": "🥑", "title": "دهون صحية", "tip": "زيت الزيتون والأفوكادو بدل السمن والزبدة"},
-        {"icon": "🚭", "title": "قلل الملح", "tip": "الملح يرفع الضغط ويهد القلب"},
+        {"icon": "🐟", "title": "أوميجا 3", "tip": "السمك مرتين في الأسبوع - السلمون والسردين أفضل",
+     "title_en": "Omega 3", "tip_en": "Fish twice a week - salmon and sardines are best"},
+        {"icon": "🥑", "title": "دهون صحية", "tip": "زيت الزيتون والأفوكادو بدل السمن والزبدة",
+     "title_en": "Healthy fats", "tip_en": "Olive oil and avocado instead of ghee and butter"},
+        {"icon": "🚭", "title": "قلل الملح", "tip": "الملح يرفع الضغط ويهد القلب",
+     "title_en": "Cut back on salt", "tip_en": "Salt raises blood pressure and strains the heart"},
     ],
     "حامل": [
-        {"icon": "🤰", "title": "حمض الفوليك", "tip": "السبانخ والبروكلي والعدس مهمين جداً للحمل"},
-        {"icon": "🥛", "title": "كالسيوم يومياً", "tip": "اللبن والزبادي والجبن لعظام الجنين"},
-        {"icon": "🚫", "title": "تجنبي", "tip": "الكبدة، السمك النيء، والكافيين الكتير"},
+        {"icon": "🤰", "title": "حمض الفوليك", "tip": "السبانخ والبروكلي والعدس مهمين جداً للحمل",
+     "title_en": "Folic acid", "tip_en": "Spinach, broccoli and lentils matter a great deal in pregnancy"},
+        {"icon": "🥛", "title": "كالسيوم يومياً", "tip": "اللبن والزبادي والجبن لعظام الجنين",
+     "title_en": "Calcium every day", "tip_en": "Milk, yogurt and cheese for the baby's bones"},
+        {"icon": "🚫", "title": "تجنبي", "tip": "الكبدة، السمك النيء، والكافيين الكتير",
+     "title_en": "Things to avoid", "tip_en": "Liver, raw fish and too much caffeine"},
     ],
     "g6pd": [
-        {"icon": "🚫", "title": "ابعد عن الفول", "tip": "تجنب الفول، الحمص، اللوبيا والبقوليات الحمراء"},
-        {"icon": "💊", "title": "احذر الأدوية", "tip": "بعض الأدوية ممنوعة - استشر الدكتور قبل أي علاج"},
-        {"icon": "🌿", "title": "أعشاب آمنة", "tip": "تجنب الحناء والكافور وبعض الأعشاب"},
+        {"icon": "🚫", "title": "ابعد عن الفول", "tip": "تجنب الفول، الحمص، اللوبيا والبقوليات الحمراء",
+     "title_en": "Avoid fava beans", "tip_en": "Skip fava beans, chickpeas, black-eyed peas and red legumes"},
+        {"icon": "💊", "title": "احذر الأدوية", "tip": "بعض الأدوية ممنوعة - استشر الدكتور قبل أي علاج",
+     "title_en": "Careful with medicines", "tip_en": "Some medicines are off limits - ask your doctor before any treatment"},
+        {"icon": "🌿", "title": "أعشاب آمنة", "tip": "تجنب الحناء والكافور وبعض الأعشاب",
+     "title_en": "Safe herbs", "tip_en": "Avoid henna, camphor and certain herbs"},
     ],
     "ثلاسيميا": [
-        {"icon": "🚫", "title": "قلل الحديد", "tip": "ابعد عن الكبدة واللحوم الحمراء بكميات كبيرة"},
-        {"icon": "☕", "title": "شاي مع الأكل", "tip": "الشاي يقلل امتصاص الحديد - اشربه مع الأكل"},
-        {"icon": "🥬", "title": "خضار آمنة", "tip": "البروكلي والكرنب والجزر مفيدين"},
+        {"icon": "🚫", "title": "قلل الحديد", "tip": "ابعد عن الكبدة واللحوم الحمراء بكميات كبيرة",
+     "title_en": "Less iron", "tip_en": "Go easy on liver and large amounts of red meat"},
+        {"icon": "☕", "title": "شاي مع الأكل", "tip": "الشاي يقلل امتصاص الحديد - اشربه مع الأكل",
+     "title_en": "Tea with meals", "tip_en": "Tea lowers iron absorption - drink it with your food"},
+        {"icon": "🥬", "title": "خضار آمنة", "tip": "البروكلي والكرنب والجزر مفيدين",
+     "title_en": "Safe vegetables", "tip_en": "Broccoli, cabbage and carrots are good for you"},
     ],
     "لاكتوز": [
-        {"icon": "🥛", "title": "ابعد عن الألبان", "tip": "تجنب الحليب والزبادي والجبن الطازج"},
-        {"icon": "🌱", "title": "بدائل نباتية", "tip": "حليب اللوز والصويا وجوز الهند بدائل ممتازة"},
-        {"icon": "💊", "title": "أنزيم اللاكتيز", "tip": "ممكن تاخده قبل الأكل لو مضطر تاكل لبن"},
+        {"icon": "🥛", "title": "ابعد عن الألبان", "tip": "تجنب الحليب والزبادي والجبن الطازج",
+     "title_en": "Avoid dairy", "tip_en": "Skip milk, yogurt and fresh cheese"},
+        {"icon": "🌱", "title": "بدائل نباتية", "tip": "حليب اللوز والصويا وجوز الهند بدائل ممتازة",
+     "title_en": "Plant-based alternatives", "tip_en": "Almond, soy and coconut milk are excellent substitutes"},
+        {"icon": "💊", "title": "أنزيم اللاكتيز", "tip": "ممكن تاخده قبل الأكل لو مضطر تاكل لبن",
+     "title_en": "Lactase enzyme", "tip_en": "You can take it before eating if you have to have dairy"},
     ],
 }
+
+def _plan_name(plan_info, fallback=None):
+    """The pricing plan's name in the reader's language."""
+    if cur_lang() != "ar":
+        en = (plan_info or {}).get("name_en")
+        if en:
+            return en
+    return (plan_info or {}).get("name", fallback)
+
+
+def _localize_tips(tips):
+    """Swap in the English title/text when the session is in English.
+
+    Returns copies: the module-level tip dicts are shared across requests and
+    must not be mutated.
+    """
+    if cur_lang() == "ar":
+        return tips
+    return [dict(t, title=t.get("title_en") or t["title"],
+                 tip=t.get("tip_en") or t["tip"]) for t in tips]
+
 
 def get_tips_for_user(user):
     """Get personalized tips based on user's conditions"""
@@ -675,7 +778,7 @@ def get_tips_for_user(user):
         except:
             pass
 
-    return tips
+    return _localize_tips(tips)
 
 
 def is_email_blocked(email):
@@ -735,7 +838,7 @@ def inject_globals():
                 except: pass
             # Get active access info for all users
             try:
-                ctx["active_access"] = get_user_access_info(session["uid"], db_row)
+                ctx["active_access"] = get_user_access_info(session["uid"], db_row, cur_lang())
             except: pass
         except: pass
     return ctx
@@ -3320,7 +3423,7 @@ def pricing():
         if user:
             user_currency = detect_currency(user.get("country"))
             try:
-                active_access = get_user_access_info(session["uid"], db_row)
+                active_access = get_user_access_info(session["uid"], db_row, cur_lang())
             except: pass
     return render_template("pricing.html",
                            user=user,
@@ -3398,7 +3501,7 @@ def payment_success():
             metadata = cs.get("metadata", {}) or {}
             plan_key = metadata.get("plan_key", "")
             if plan_key in PRICING:
-                plan_name = PRICING[plan_key]["name"]
+                plan_name = _plan_name(PRICING[plan_key], plan_key)
             currency = metadata.get("currency", "USD")
             amt = cs.get("amount_total", 0)
             if amt:
@@ -3416,7 +3519,7 @@ def payment_success():
 
     if not plan_name:
         try:
-            access = get_user_access_info(session["uid"], db_row)
+            access = get_user_access_info(session["uid"], db_row, cur_lang())
             if access and access.get("has_access"):
                 plan_name = access.get("plan_name")
                 is_trial = access.get("is_trial", False)
@@ -3583,7 +3686,7 @@ def admin_payments_view():
 @login_required
 def check_access_endpoint():
     """API endpoint للتحقق من حالة الاشتراك"""
-    info = get_user_access_info(session["uid"], db_row)
+    info = get_user_access_info(session["uid"], db_row, cur_lang())
     if info.get("expires_at") and hasattr(info["expires_at"], "isoformat"):
         info["expires_at"] = info["expires_at"].isoformat()
     return jsonify(info)
@@ -3653,7 +3756,7 @@ def admin_user_profile(uid):
         if sub:
             active_sub = dict(sub)
             plan_info = PRICING.get(sub.get("plan_key"), {})
-            active_sub["plan_name"] = plan_info.get("name", sub.get("plan_key"))
+            active_sub["plan_name"] = _plan_name(plan_info, sub.get("plan_key"))
             for k in ("current_period_start", "current_period_end", "trial_end"):
                 v = active_sub.get(k)
                 if v:
@@ -3674,7 +3777,7 @@ def admin_user_profile(uid):
         if pay:
             active_payment = dict(pay)
             plan_info = PRICING.get(pay.get("plan_key"), {})
-            active_payment["plan_name"] = plan_info.get("name", pay.get("plan_key"))
+            active_payment["plan_name"] = _plan_name(plan_info, pay.get("plan_key"))
             v = active_payment.get("expires_at")
             if v:
                 active_payment["expires"] = v.strftime("%Y-%m-%d") if hasattr(v, "strftime") else str(v)[:10]
