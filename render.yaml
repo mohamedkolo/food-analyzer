@@ -1,0 +1,74 @@
+# Staging environment for NutraX — a throwaway copy for TestSprite to hammer.
+#
+# IMPORTANT: this blueprint describes the STAGING service only. It does not
+# describe, touch, or reconfigure the production service, which was created by
+# hand in the Render dashboard. Applying this blueprint adds a new service and a
+# new database next to production; it never edits production.
+#
+# The staging service gets its OWN Postgres. It never connects to the production
+# database, so nothing TestSprite does can reach a real client.
+#
+# To deploy: Render dashboard -> New -> Blueprint -> pick this repo.
+# Full walkthrough in docs/staging.md.
+
+services:
+  - type: web
+    name: nutrax-staging
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: frankfurt
+    branch: main
+    # --workers 1 is deliberate, not a leftover: the login brute-force
+    # throttle in app.py keeps its counters in process memory, so a second
+    # worker would give each its own copy and halve the protection.
+    # --timeout 120 matches production; PDF generation can take a while.
+    dockerCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nutrax-staging-db
+          property: connectionString
+
+      # generated once by Render, never shared with production
+      - key: SECRET_KEY
+        generateValue: true
+
+      # you type this in the dashboard on first deploy; it creates the
+      # admin@nutrax.com bootstrap account on this staging database only
+      - key: ADMIN_PASSWORD
+        sync: false
+
+      # lets tools/seed_staging.py run. The script has its own guards on top
+      # of this and refuses to touch a database that holds real clients.
+      - key: ALLOW_SEED
+        value: "1"
+
+      # Payments stay inert on staging: with no Stripe keys the checkout
+      # routes fail closed rather than charging anyone. Leave these unset
+      # unless you deliberately want to test against Stripe's test mode.
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLIC_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+      # No outbound email or push from staging — an AI test agent clicking
+      # around should not be able to message a real client.
+      - key: SMTP_HOST
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+
+      - key: DOMAIN
+        sync: false
+
+databases:
+  - name: nutrax-staging-db
+    plan: free
+    databaseName: nutrax_staging
+    user: nutrax
