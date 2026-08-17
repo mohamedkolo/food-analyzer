@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}{{ t('جدول السعرات والقيم الغذائية لأكثر من 500 صنف','Calories & Nutrition for 500+ Foods') }}{% endblock %}
+{% block meta_description %}{{ t(
+  'جدول السعرات الحرارية والبروتين والكارب والدهون لكل 100 جرام لأكثر من 500 صنف أكل — دواجن، لحوم، أسماك، ألبان، حبوب، خضار وفواكه.',
+  'Calories, protein, carbs and fat per 100g for over 500 foods — poultry, meat, fish, dairy, grains, vegetables and fruit.') }}{% endblock %}
+
+{% block chrome %}{% include "_public_header.html" %}{% endblock %}
+
+{% block extra_style %}
+<style>
+  .pf-wrap { max-width: 1080px; margin: 0 auto; padding: 32px 20px 60px;
+             font-family: 'Cairo','Tajawal',system-ui,sans-serif; }
+  .pf-head h1 { font-size: 30px; font-weight: 900; color: #0f172a; margin: 0 0 10px; }
+  .pf-head p { color: #64748b; font-size: 15px; line-height: 1.9; margin: 0 0 6px; max-width: 720px; }
+  .pf-note { background: #faf8f3; border: 1px solid #d9cfb4; border-radius: 12px;
+             padding: 14px 18px; margin: 22px 0 8px; font-size: 14px; color: #14332b; line-height: 1.8; }
+  .pf-cats { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 8px; }
+  .pf-cat { background: #fff; border: 1.5px solid #e7e0d0; border-radius: 999px;
+            padding: 8px 16px; font-size: 13.5px; font-weight: 700; color: #14332b;
+            text-decoration: none; transition: all .18s; }
+  .pf-cat:hover { border-color: #1e4a3d; }
+  .pf-cat.on { background: #1e4a3d; color: #fff; border-color: #1e4a3d; }
+  .pf-group { margin-top: 34px; }
+  .pf-group h2 { font-size: 20px; font-weight: 900; color: #0f172a;
+                 margin: 0 0 14px; padding-bottom: 8px; border-bottom: 2px solid #e7e0d0; }
+  .pf-tablewrap { overflow-x: auto; }
+  table.pf { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
+  table.pf th, table.pf td { padding: 10px 12px; text-align: start;
+                             border-bottom: 1px solid #f0ead9; }
+  table.pf th { background: #faf8f3; font-weight: 800; color: #475569;
+                font-size: 12.5px; white-space: nowrap; }
+  table.pf tr:hover td { background: #faf8f3; }
+  table.pf a { color: #1e4a3d; font-weight: 700; text-decoration: none; }
+  table.pf a:hover { text-decoration: underline; }
+  .pf-sub { color: #94a3b8; font-size: 12px; display: block; }
+  .pf-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pf-cta { background: linear-gradient(135deg,#1e4a3d,#14332b); color: #fff;
+            border-radius: 16px; padding: 28px; margin-top: 40px; text-align: center; }
+  .pf-cta h3 { margin: 0 0 8px; font-size: 20px; font-weight: 900; }
+  .pf-cta p { margin: 0 0 18px; opacity: .92; font-size: 14.5px; line-height: 1.8; }
+  .pf-cta a { background: #c9a961; color: #14332b; padding: 12px 26px;
+              border-radius: 11px; font-weight: 800; text-decoration: none;
+              display: inline-block; font-size: 14.5px; }
+  @media (max-width: 640px) { .pf-head h1 { font-size: 23px; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pf-wrap">
+  <div class="pf-head">
+    <h1>{{ t('جدول السعرات والقيم الغذائية','Calories & nutrition table') }}</h1>
+    <p>{{ t('السعرات والبروتين والكارب والدهون لكل 100 جرام، لـ',
+            'Calories, protein, carbs and fat per 100 grams, for') }}
+       <strong>{{ total }}</strong>
+       {{ t('صنف أكل. دوس على أي صنف لتفاصيله.','foods. Tap any food for its details.') }}</p>
+  </div>
+
+  <div class="pf-cats">
+    <a href="/foods" class="pf-cat {% if not active_cat %}on{% endif %}">
+      {{ t('الكل','All') }}
+    </a>
+    {% for key, pair in categories.items() %}
+    <a href="/foods?cat={{ key }}" class="pf-cat {% if active_cat == key %}on{% endif %}">
+      {{ pair[0] if is_ar else pair[1] }}
+    </a>
+    {% endfor %}
+  </div>
+
+  {% for key, rows in grouped %}
+  <div class="pf-group">
+    <h2>{{ categories[key][0] if is_ar else categories[key][1] }}
+      <span style="font-weight:600;color:#94a3b8;font-size:14px">({{ rows|length }})</span></h2>
+    <div class="pf-tablewrap">
+      <table class="pf">
+        <thead>
+          <tr>
+            <th>{{ t('الصنف','Food') }}</th>
+            <th class="pf-num">{{ t('سعرات','Calories') }}</th>
+            <th class="pf-num">{{ t('بروتين','Protein') }}</th>
+            <th class="pf-num">{{ t('كارب','Carbs') }}</th>
+            <th class="pf-num">{{ t('دهون','Fat') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in rows %}
+          <tr>
+            <td>
+              <a href="/foods/{{ f.slug }}">{{ f.n if is_ar else f.en }}</a>
+              <span class="pf-sub">{{ f.en if is_ar else f.n }}</span>
+            </td>
+            <td class="pf-num">{{ f.cal }}</td>
+            <td class="pf-num">{{ f.p }} {{ t('جم','g') }}</td>
+            <td class="pf-num">{{ f.c }} {{ t('جم','g') }}</td>
+            <td class="pf-num">{{ f.f }} {{ t('جم','g') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+
+  <div class="pf-cta">
+    <h3>{{ t('عايز خطة مبنية على حالتك؟','Want a plan built on your condition?') }}</h3>
+    <p>{{ t('الجدول ده للمعلومات بس. خطة نوتراكس بتتبني على حالتك الصحية وتحاليلك ومطبخك، بمتابعة أسبوعية مع د. محمد.',
+            'This table is reference only. A NutraX plan is built around your health condition, your labs and your kitchen, with weekly follow-up from Dr. Mohamed.') }}</p>
+    <a href="/login?tab=register">{{ t('ابدأ خطتك','Start your plan') }}</a>
+  </div>
+</div>
+{% endblock %}

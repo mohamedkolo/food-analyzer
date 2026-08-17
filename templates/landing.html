@@ -5,21 +5,7 @@
   'NutraX — meal plans built around your health condition with Dr. Mohamed. Diabetes, blood pressure, IBS, kidney disease, pregnancy and 20+ conditions. Weekly follow-up and a food analyzer covering 500+ items.') }}{% endblock %}
 
 {# the app sidebar is for signed-in users; visitors get a plain public header #}
-{% block chrome %}
-<header class="header">
-  <div style="display:flex;align-items:center;gap:12px">
-    <div class="header-logo"><i class="fa-solid fa-leaf" style="color:#c9a961"></i> NutraX</div>
-  </div>
-  <div style="display:flex;align-items:center;gap:10px">
-    <a href="/lang/{{ 'en' if is_ar else 'ar' }}" style="color:#475569;text-decoration:none;font-size:13px;font-weight:700">
-      <i class="fa-solid fa-globe"></i> {{ 'English' if is_ar else 'عربي' }}
-    </a>
-    <a href="/login" class="lp-btn lp-btn-ghost" style="padding:8px 16px;font-size:13px">
-      {{ t('تسجيل الدخول','Sign in') }}
-    </a>
-  </div>
-</header>
-{% endblock %}
+{% block chrome %}{% include "_public_header.html" %}{% endblock %}
 
 {% block extra_style %}
 <style>
@@ -135,6 +121,9 @@
     <div class="lp-hero-cta">
       <a href="/login?tab=register" class="lp-btn lp-btn-primary">
         <i class="fa-solid fa-clipboard-list"></i> {{ t('ابدأ خطتك','Start your plan') }}
+      </a>
+      <a href="/foods" class="lp-btn lp-btn-light">
+        <i class="fa-solid fa-magnifying-glass"></i> {{ t('جدول السعرات','Calorie table') }}
       </a>
       <a href="/pricing" class="lp-btn lp-btn-light">
         <i class="fa-solid fa-tag"></i> {{ t('شوف الأسعار','See pricing') }}

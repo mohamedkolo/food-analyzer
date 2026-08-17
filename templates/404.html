@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ t('الصفحة غير موجودة','Page not found') }}{% endblock %}
+{% block extra_head %}<meta name="robots" content="noindex">{% endblock %}
+{% block chrome %}{% include "_public_header.html" %}{% endblock %}
+{% block content %}
+<div style="max-width:620px;margin:0 auto;padding:70px 20px;text-align:center;
+            font-family:'Cairo','Tajawal',system-ui,sans-serif">
+  <div style="font-size:64px;margin-bottom:14px">🔍</div>
+  <h1 style="font-size:26px;font-weight:900;color:#0f172a;margin:0 0 10px">
+    {{ t('مالقيناش الصفحة دي','We could not find that page') }}
+  </h1>
+  <p style="color:#64748b;font-size:15px;line-height:1.9;margin:0 0 26px">
+    {{ t('يمكن اللينك قديم أو فيه غلطة في الكتابة.','The link may be out of date, or have a typo in it.') }}
+  </p>
+  <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+    <a href="/" style="background:#1e4a3d;color:#fff;padding:12px 24px;border-radius:11px;
+       text-decoration:none;font-weight:800;font-size:14px">{{ t('الرئيسية','Home') }}</a>
+    <a href="/foods" style="background:#fff;color:#1e4a3d;border:2px solid #1e4a3d;
+       padding:12px 24px;border-radius:11px;text-decoration:none;font-weight:800;font-size:14px">
+      {{ t('جدول السعرات','Calorie table') }}</a>
+  </div>
+</div>
+{% endblock %}

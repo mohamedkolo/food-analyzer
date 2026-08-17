@@ -131,6 +131,7 @@ from meal_database import (
     get_nutrient_boost_notes
 )
 from meal_i18n import translate_meal, translate_guidance
+import food_data
 
 # دمج الوجبات الإضافية (ملف meal_extra) لو موجود — بيزوّد التنوّع من غير ما يلمس meal_database
 try:
@@ -918,8 +919,60 @@ def sitemap_xml():
                 f"    <lastmod>{today}</lastmod>",
                 f"    <changefreq>{freq}</changefreq>",
                 f"    <priority>{prio}</priority></url>"]
+    # one entry per food, plus the category listings
+    for key in food_data.CATEGORIES:
+        out += [f"  <url><loc>{origin}/foods?cat={key}</loc>",
+                f"    <changefreq>monthly</changefreq>",
+                f"    <priority>0.5</priority></url>"]
+    for f in food_data.FOODS:
+        out += [f"  <url><loc>{origin}/foods/{f['slug']}</loc>",
+                f"    <changefreq>yearly</changefreq>",
+                f"    <priority>0.6</priority></url>"]
     out.append("</urlset>")
     return Response("\n".join(out), mimetype="application/xml")
+
+
+# ── public, crawlable food pages (no login: this is the SEO surface) ──
+_SAFE_LABELS = {
+    "dm":    ("مناسب للسكري", "Diabetes-friendly"),
+    "htn":   ("مناسب لضغط الدم", "Blood-pressure friendly"),
+    "ckd":   ("مناسب لمرضى الكلى", "Kidney-friendly"),
+    "ibs":   ("لطيف على القولون", "Gut-gentle"),
+    "heart": ("مناسب للقلب", "Heart-friendly"),
+    "keto":  ("مناسب للكيتو", "Keto-friendly"),
+}
+
+
+@app.route("/foods")
+def public_foods():
+    lang = session.get("lang", "ar")
+    cat = (request.args.get("cat") or "").strip() or None
+    if cat and cat not in food_data.CATEGORIES:
+        cat = None
+    rows = food_data.foods_in(cat)
+    keys = [cat] if cat else list(food_data.CATEGORIES)
+    grouped = [(k, [f for f in rows if f["cat"] == k]) for k in keys]
+    grouped = [(k, v) for k, v in grouped if v]
+    return render_template("public_foods.html", lang=lang,
+                           categories=food_data.CATEGORIES, grouped=grouped,
+                           active_cat=cat, total=len(food_data.FOODS),
+                           canonical_url=site_origin() + "/foods"
+                           + (f"?cat={cat}" if cat else ""))
+
+
+@app.route("/foods/<slug>")
+def public_food(slug):
+    lang = session.get("lang", "ar")
+    food = food_data.get_food(slug)
+    if not food:
+        return render_template("404.html", lang=lang), 404
+    related = [f for f in food_data.foods_in(food["cat"]) if f["slug"] != slug][:12]
+    labels = [_SAFE_LABELS[k][0 if lang == "ar" else 1]
+              for k in food.get("safe", []) if k in _SAFE_LABELS]
+    return render_template("public_food.html", lang=lang, food=food,
+                           cat_label=food_data.category_name(food["cat"], lang),
+                           related=related, safe_labels=labels,
+                           canonical_url=f"{site_origin()}/foods/{slug}")
 
 
 @app.route("/")
@@ -1952,7 +2005,9 @@ def terms():
 @app.route("/analyzer")
 @subscription_required
 def analyzer():
-    return render_template("analyzer.html", user=get_user_by_id(session["uid"]), lang=session.get("lang","ar"))
+    return render_template("analyzer.html", user=get_user_by_id(session["uid"]),
+                           lang=session.get("lang", "ar"),
+                           foods_json=json.dumps(food_data.FOODS, ensure_ascii=False))
 
 def _lookup_barcode(code):
     """يجيب بيانات منتج معلّب بالباركود من Open Food Facts. بيرجّع (payload_dict, status_code)."""

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{# is_ar is set inside base.html's body, so it is not in scope out here #}
+{% set fname = food.n if (lang or 'ar') == 'ar' else food.en %}
+{% block title %}{{ t('سعرات ' ~ food.n ~ ' والقيم الغذائية', fname ~ ' — Calories & Nutrition') }}{% endblock %}
+{% block meta_description %}{{ t(
+  food.n ~ ' (' ~ food.en ~ ') — ' ~ food.cal ~ ' سعرة لكل 100 جرام، بروتين ' ~ food.p ~ ' جم، كارب ' ~ food.c ~ ' جم، دهون ' ~ food.f ~ ' جم. ' ~ food.note,
+  food.en ~ ' — ' ~ food.cal ~ ' calories per 100g, ' ~ food.p ~ 'g protein, ' ~ food.c ~ 'g carbs, ' ~ food.f ~ 'g fat. ' ~ (food.note_en or '')) }}{% endblock %}
+
+{% block chrome %}{% include "_public_header.html" %}{% endblock %}
+
+{% block extra_style %}
+<style>
+  .fd-wrap { max-width: 780px; margin: 0 auto; padding: 28px 20px 60px;
+             font-family: 'Cairo','Tajawal',system-ui,sans-serif; }
+  .fd-crumb { font-size: 13px; color: #94a3b8; margin-bottom: 18px; }
+  .fd-crumb a { color: #64748b; text-decoration: none; }
+  .fd-crumb a:hover { color: #1e4a3d; text-decoration: underline; }
+  .fd-title { font-size: 30px; font-weight: 900; color: #0f172a; margin: 0 0 4px; }
+  .fd-alt { color: #94a3b8; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .fd-cat { display: inline-block; background: #f0ead9; color: #14332b;
+            border-radius: 999px; padding: 5px 14px; font-size: 12.5px;
+            font-weight: 700; margin-top: 10px; text-decoration: none; }
+  .fd-macros { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr));
+               gap: 12px; margin: 26px 0; }
+  .fd-m { background: #fff; border: 1px solid #e7e0d0; border-radius: 14px;
+          padding: 18px; text-align: center; }
+  .fd-m .v { font-size: 26px; font-weight: 900; color: #0f172a; line-height: 1.1; }
+  .fd-m .l { font-size: 12.5px; color: #64748b; font-weight: 700; margin-top: 5px; }
+  .fd-basis { text-align: center; color: #94a3b8; font-size: 13px; margin-top: -12px; }
+  .fd-box { background: #faf8f3; border: 1px solid #d9cfb4; border-radius: 14px;
+            padding: 18px 20px; margin-bottom: 14px; }
+  .fd-box strong { display: block; color: #14332b; font-size: 14px; margin-bottom: 6px; }
+  .fd-box p { margin: 0; color: #0f172a; font-size: 14.5px; line-height: 1.9; }
+  .fd-safe { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .fd-tag { background: #ede7d8; color: #14332b; border-radius: 999px;
+            padding: 6px 14px; font-size: 12.5px; font-weight: 700; }
+  .fd-rel { margin-top: 34px; }
+  .fd-rel h2 { font-size: 18px; font-weight: 900; color: #0f172a;
+               margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid #e7e0d0; }
+  .fd-rel-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap: 8px; }
+  .fd-rel-list a { background: #fff; border: 1px solid #e7e0d0; border-radius: 11px;
+                   padding: 11px 14px; text-decoration: none; color: #14332b;
+                   font-size: 13.5px; font-weight: 700; display: flex;
+                   justify-content: space-between; gap: 8px; }
+  .fd-rel-list a:hover { border-color: #1e4a3d; }
+  .fd-rel-list span { color: #94a3b8; font-weight: 600; }
+  .fd-cta { background: linear-gradient(135deg,#1e4a3d,#14332b); color: #fff;
+            border-radius: 16px; padding: 26px; margin-top: 36px; text-align: center; }
+  .fd-cta h3 { margin: 0 0 8px; font-size: 19px; font-weight: 900; }
+  .fd-cta p { margin: 0 0 18px; opacity: .92; font-size: 14px; line-height: 1.8; }
+  .fd-cta a { background: #c9a961; color: #14332b; padding: 12px 26px; border-radius: 11px;
+              font-weight: 800; text-decoration: none; display: inline-block; font-size: 14px; }
+  @media (max-width: 640px) { .fd-title { font-size: 24px; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fd-wrap">
+
+  <nav class="fd-crumb">
+    <a href="/">{{ t('الرئيسية','Home') }}</a> ›
+    <a href="/foods">{{ t('جدول السعرات','Calorie table') }}</a> ›
+    <a href="/foods?cat={{ food.cat }}">{{ cat_label }}</a> ›
+    {{ fname }}
+  </nav>
+
+  <h1 class="fd-title">{{ fname }}</h1>
+  <div class="fd-alt">{{ food.en if is_ar else food.n }}</div>
+  <a href="/foods?cat={{ food.cat }}" class="fd-cat">{{ cat_label }}</a>
+
+  <div class="fd-macros">
+    <div class="fd-m"><div class="v">{{ food.cal }}</div><div class="l">{{ t('سعرة حرارية','Calories') }}</div></div>
+    <div class="fd-m"><div class="v">{{ food.p }}{{ t('جم','g') }}</div><div class="l">{{ t('بروتين','Protein') }}</div></div>
+    <div class="fd-m"><div class="v">{{ food.c }}{{ t('جم','g') }}</div><div class="l">{{ t('كارب','Carbs') }}</div></div>
+    <div class="fd-m"><div class="v">{{ food.f }}{{ t('جم','g') }}</div><div class="l">{{ t('دهون','Fat') }}</div></div>
+  </div>
+  <p class="fd-basis">{{ t('القيم لكل 100 جرام','Values per 100 grams') }}</p>
+
+  {% set note = food.note if is_ar else (food.note_en or food.note) %}
+  {% if note %}
+  <div class="fd-box">
+    <strong>{{ t('معلومة','About') }}</strong>
+    <p>{{ note }}</p>
+  </div>
+  {% endif %}
+
+  {% set tip = food.tip if is_ar else (food.tip_en or food.tip) %}
+  {% if tip %}
+  <div class="fd-box">
+    <strong>{{ t('نصيحة','Tip') }}</strong>
+    <p>{{ tip }}</p>
+  </div>
+  {% endif %}
+
+  {% if safe_labels %}
+  <div class="fd-box">
+    <strong>{{ t('مناسب لـ','Suitable for') }}</strong>
+    <div class="fd-safe">
+      {% for lbl in safe_labels %}<span class="fd-tag">{{ lbl }}</span>{% endfor %}
+    </div>
+    <p style="margin-top:10px;font-size:13px;color:#64748b">{{ t(
+      'ده إرشاد عام لكل 100 جرام، مش بديل عن استشارة. الكمية المناسبة لك بتعتمد على حالتك وتحاليلك.',
+      'This is general guidance per 100g, not a substitute for advice. The right amount for you depends on your condition and your labs.') }}</p>
+  </div>
+  {% endif %}
+
+  {% if related %}
+  <div class="fd-rel">
+    <h2>{{ t('أصناف من نفس الفئة','More in this category') }}</h2>
+    <div class="fd-rel-list">
+      {% for r in related %}
+      <a href="/foods/{{ r.slug }}">
+        {{ r.n if is_ar else r.en }} <span>{{ r.cal }} kcal</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="fd-cta">
+    <h3>{{ t('عايز جدول أكل كامل على حالتك؟','Want a full meal plan for your condition?') }}</h3>
+    <p>{{ t('د. محمد يبنيلك جدول 7 أيام بالكميات، مفلتر على حالتك الصحية ومن مطبخك.',
+            'Dr. Mohamed builds you a 7-day table with quantities, filtered for your health condition and drawn from your own cuisine.') }}</p>
+    <a href="/login?tab=register">{{ t('ابدأ خطتك','Start your plan') }}</a>
+  </div>
+</div>
+
+<script type="application/ld+json">
+{{ {
+  "@context": "https://schema.org",
+  "@type": "NutritionInformation",
+  "name": fname,
+  "calories": (food.cal|string) + " kcal",
+  "proteinContent": (food.p|string) + " g",
+  "carbohydrateContent": (food.c|string) + " g",
+  "fatContent": (food.f|string) + " g",
+  "servingSize": "100 g"
+}|tojson }}
+</script>
+{% endblock %}
