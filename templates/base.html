@@ -2,6 +2,26 @@
 <html lang="{{ lang or 'ar' }}" dir="{{ 'rtl' if (lang or 'ar') == 'ar' else 'ltr' }}">
 <head>
 <meta charset="UTF-8">
+
+{# ── what search engines and link previews read ──
+   Any page can override these:  {% block meta_description %}...{% endblock %}  #}
+<meta name="description" content="{% block meta_description %}{{ t(
+  'نوتراكس — تغذية علاجية مع د. محمد. خطط غذائية مبنية على حالتك الصحية، متابعة أسبوعية، ومحلل طعام لأكثر من 500 صنف.',
+  'NutraX — clinical nutrition with Dr. Mohamed. Meal plans built around your health condition, weekly follow-up, and a food analyzer covering 500+ items.') }}{% endblock %}">
+<link rel="canonical" href="{{ canonical_url or (site_origin() + request.path) }}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="NutraX">
+<meta property="og:locale" content="{{ 'ar_EG' if (lang or 'ar') == 'ar' else 'en_US' }}">
+<meta property="og:title" content="{% block og_title %}{{ self.title() or 'NutraX' }}{% endblock %}">
+<meta property="og:description" content="{{ self.meta_description() }}">
+<meta property="og:url" content="{{ canonical_url or (site_origin() + request.path) }}">
+<meta property="og:image" content="{{ site_origin() }}/static/icon-512.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ self.og_title() }}">
+<meta name="twitter:description" content="{{ self.meta_description() }}">
+<meta name="twitter:image" content="{{ site_origin() }}/static/icon-512.png">
+{% block extra_head %}{% endblock %}
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -172,6 +192,7 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 {% set is_staff = user_role in ['admin', 'nutritionist'] %}
 {% set is_admin = user_role == 'admin' %}
 
+{% block chrome %}
 <header class="header">
   <div style="display:flex;align-items:center;gap:12px">
     <button class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
@@ -301,6 +322,7 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
     <i class="fa-solid fa-right-from-bracket"></i> {{ 'خروج' if is_ar else 'Logout' }}
   </a>
 </nav>
+{% endblock %}
 
 <main class="main">
   {% block content %}{% endblock %}

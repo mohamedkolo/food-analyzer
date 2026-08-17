@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, send_file, jsonify
+from flask import Flask, render_template, request, redirect, session, send_file, jsonify, Response
 import hashlib, os, json, io, random, re, threading
 from datetime import timedelta, datetime
 
@@ -531,7 +531,7 @@ def login_required(f):
     from functools import wraps
     @wraps(f)
     def decorated(*args, **kwargs):
-        if "uid" not in session: return redirect("/")
+        if "uid" not in session: return redirect("/login")
         return f(*args, **kwargs)
     return decorated
 
@@ -539,7 +539,7 @@ def admin_required(f):
     from functools import wraps
     @wraps(f)
     def decorated(*args, **kwargs):
-        if "uid" not in session: return redirect("/")
+        if "uid" not in session: return redirect("/login")
         u = get_user_by_id(session["uid"])
         if not u or (u.get("role") != "admin" and not u.get("is_admin")):
             return redirect("/dashboard")
@@ -550,7 +550,7 @@ def staff_required(f):
     from functools import wraps
     @wraps(f)
     def decorated(*args, **kwargs):
-        if "uid" not in session: return redirect("/")
+        if "uid" not in session: return redirect("/login")
         u = get_user_by_id(session["uid"])
         if not u or (u.get("role") not in ["admin", "nutritionist"] and not u.get("is_admin")):
             return redirect("/my-plan")
@@ -568,7 +568,7 @@ def subscription_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if "uid" not in session:
-            return redirect("/")
+            return redirect("/login")
         u = get_user_by_id(session["uid"])
         # Admin/Nutritionist always allowed
         if u and (u.get("is_admin") or u.get("role") in ["admin", "nutritionist"]):
@@ -869,7 +869,72 @@ def _login_msg(key, lang):
     return ar if (lang or "ar") == "ar" else en
 
 
-@app.route("/", methods=["GET","POST"])
+# ═══════════════════════════════════════════════
+# SEO: robots.txt + sitemap.xml
+# ═══════════════════════════════════════════════
+# Set DOMAIN in the environment to the canonical origin (no trailing slash).
+# Everything indexable is listed here in one place; PUBLIC_PAGES feeds both the
+# sitemap and the canonical tags.
+@app.template_global('site_origin')
+def site_origin():
+    from api_platform import DOMAIN as _D
+    return (_D or "").rstrip("/")
+
+
+# path -> how often it changes, priority
+PUBLIC_PAGES = [
+    ("/", "weekly", "1.0"),
+    ("/pricing", "monthly", "0.8"),
+    ("/foods", "weekly", "0.7"),
+    ("/terms", "yearly", "0.3"),
+    ("/privacy", "yearly", "0.3"),
+]
+
+# everything behind the login wall -- crawling these only ever yields a redirect
+_CRAWL_BLOCKED = ["/dashboard", "/my-plan", "/my-plans-history", "/generate",
+                  "/preview", "/planner", "/patients", "/saved", "/analyzer",
+                  "/knowledge", "/clinical", "/daily-tips", "/messages",
+                  "/settings", "/change-password", "/history", "/onboarding",
+                  "/subscription-required", "/admin", "/api", "/webhook",
+                  "/push", "/track", "/login", "/logout", "/lang"]
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    lines = ["User-agent: *"]
+    lines += [f"Disallow: {p}" for p in _CRAWL_BLOCKED]
+    lines += ["Allow: /", f"Sitemap: {site_origin()}/sitemap.xml", ""]
+    return Response("\n".join(lines), mimetype="text/plain")
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    origin = site_origin()
+    today = datetime.now().strftime("%Y-%m-%d")
+    out = ['<?xml version="1.0" encoding="UTF-8"?>',
+           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for path, freq, prio in PUBLIC_PAGES:
+        out += [f"  <url><loc>{origin}{path}</loc>",
+                f"    <lastmod>{today}</lastmod>",
+                f"    <changefreq>{freq}</changefreq>",
+                f"    <priority>{prio}</priority></url>"]
+    out.append("</urlset>")
+    return Response("\n".join(out), mimetype="application/xml")
+
+
+@app.route("/")
+def landing():
+    """The public front door. Signed-in visitors go straight to their own page."""
+    if "uid" in session:
+        return redirect("/dashboard")
+    return render_template("landing.html", lang=session.get("lang", "ar"),
+                           pricing=PRICING)
+
+
+# "/" still answers POST: the login form used to live at the root, so old
+# bookmarks and any cached PWA shell keep working.
+@app.route("/login", methods=["GET", "POST"])
+@app.route("/", methods=["POST"])
 def login():
     if "uid" in session: return redirect("/dashboard")
     lang = session.get("lang", "ar")

@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% block title %}{{ t('تغذية علاجية وخطط غذائية مع د. محمد','Clinical Nutrition & Meal Plans with Dr. Mohamed') }}{% endblock %}
+{% block meta_description %}{{ t(
+  'نوتراكس — خطط غذائية مبنية على حالتك الصحية مع د. محمد. السكري، الضغط، القولون، الكلى، الحمل وأكثر من 20 حالة. متابعة أسبوعية ومحلل طعام لأكثر من 500 صنف.',
+  'NutraX — meal plans built around your health condition with Dr. Mohamed. Diabetes, blood pressure, IBS, kidney disease, pregnancy and 20+ conditions. Weekly follow-up and a food analyzer covering 500+ items.') }}{% endblock %}
+
+{# the app sidebar is for signed-in users; visitors get a plain public header #}
+{% block chrome %}
+<header class="header">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="header-logo"><i class="fa-solid fa-leaf" style="color:#c9a961"></i> NutraX</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="/lang/{{ 'en' if is_ar else 'ar' }}" style="color:#475569;text-decoration:none;font-size:13px;font-weight:700">
+      <i class="fa-solid fa-globe"></i> {{ 'English' if is_ar else 'عربي' }}
+    </a>
+    <a href="/login" class="lp-btn lp-btn-ghost" style="padding:8px 16px;font-size:13px">
+      {{ t('تسجيل الدخول','Sign in') }}
+    </a>
+  </div>
+</header>
+{% endblock %}
+
+{% block extra_style %}
+<style>
+  .main { padding: 0 !important; }
+  .lp { font-family: 'Cairo', 'Tajawal', system-ui, sans-serif; }
+  .lp-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 28px; border-radius: 12px; text-decoration: none;
+    font-weight: 800; font-size: 15px; transition: all .2s; border: 2px solid transparent;
+    cursor: pointer; font-family: inherit;
+  }
+  .lp-btn-primary { background: #c9a961; color: #14332b; }
+  .lp-btn-primary:hover { background: #d9bd7d; transform: translateY(-2px); }
+  .lp-btn-ghost { background: transparent; color: #1e4a3d; border-color: #1e4a3d; }
+  .lp-btn-ghost:hover { background: #1e4a3d; color: #fff; }
+  .lp-btn-light { background: rgba(255,255,255,.15); color: #fff; border-color: rgba(255,255,255,.4); }
+  .lp-btn-light:hover { background: rgba(255,255,255,.28); }
+
+  /* hero */
+  .lp-hero {
+    background: linear-gradient(135deg, #14332b 0%, #2c5a4a 100%);
+    color: #fff; padding: 72px 20px 80px; text-align: center;
+  }
+  .lp-hero h1 {
+    margin: 0 auto 18px; font-size: 40px; font-weight: 900;
+    line-height: 1.3; max-width: 820px;
+  }
+  .lp-hero p.sub {
+    margin: 0 auto 32px; font-size: 18px; line-height: 1.8;
+    opacity: .93; max-width: 680px;
+  }
+  .lp-hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .lp-trust {
+    margin-top: 40px; display: flex; gap: 32px; justify-content: center;
+    flex-wrap: wrap; font-size: 14px; opacity: .9;
+  }
+  .lp-trust b { display: block; font-size: 26px; font-weight: 900; color: #c9a961; }
+
+  /* sections */
+  .lp-sec { max-width: 1080px; margin: 0 auto; padding: 68px 20px; }
+  .lp-sec h2 {
+    font-size: 30px; font-weight: 900; color: #0f172a;
+    margin: 0 0 12px; text-align: center;
+  }
+  .lp-sec .lead {
+    text-align: center; color: #64748b; font-size: 16px;
+    max-width: 640px; margin: 0 auto 40px; line-height: 1.8;
+  }
+  .lp-grid {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+  .lp-card {
+    background: #fff; border: 1px solid #e7e0d0; border-radius: 16px;
+    padding: 26px; transition: all .25s;
+  }
+  .lp-card:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(20,51,43,.10); }
+  .lp-card .ic { font-size: 34px; margin-bottom: 12px; }
+  .lp-card h3 { margin: 0 0 8px; font-size: 17px; font-weight: 800; color: #0f172a; }
+  .lp-card p { margin: 0; color: #64748b; font-size: 14px; line-height: 1.8; }
+
+  /* conditions */
+  .lp-conds { background: #faf8f3; }
+  .lp-chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .lp-chip {
+    background: #fff; border: 1px solid #d9cfb4; border-radius: 999px;
+    padding: 9px 18px; font-size: 14px; font-weight: 700; color: #14332b;
+  }
+
+  /* steps */
+  .lp-steps { counter-reset: s; display: grid; gap: 18px;
+              grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .lp-step { position: relative; padding-top: 52px; }
+  .lp-step::before {
+    counter-increment: s; content: counter(s);
+    position: absolute; top: 0; inset-inline-start: 0;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: #1e4a3d; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 17px;
+  }
+  .lp-step h3 { margin: 0 0 6px; font-size: 16px; font-weight: 800; color: #0f172a; }
+  .lp-step p { margin: 0; color: #64748b; font-size: 14px; line-height: 1.8; }
+
+  /* closing call to action */
+  .lp-cta {
+    background: linear-gradient(135deg, #1e4a3d, #14332b);
+    color: #fff; text-align: center; padding: 64px 20px;
+  }
+  .lp-cta h2 { color: #fff; font-size: 30px; font-weight: 900; margin: 0 0 12px; }
+  .lp-cta p { opacity: .92; font-size: 16px; margin: 0 0 28px; line-height: 1.8; }
+
+  @media (max-width: 640px) {
+    .lp-hero { padding: 52px 18px 60px; }
+    .lp-hero h1 { font-size: 29px; }
+    .lp-hero p.sub { font-size: 16px; }
+    .lp-sec { padding: 48px 18px; }
+    .lp-sec h2, .lp-cta h2 { font-size: 24px; }
+    .lp-trust { gap: 22px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="lp">
+
+  <section class="lp-hero">
+    <h1>{{ t('خطة غذائية مبنية على حالتك الصحية، مش على كتالوج جاهز',
+             'A meal plan built around your health condition, not a template') }}</h1>
+    <p class="sub">{{ t(
+      'نوتراكس عيادة تغذية علاجية أونلاين مع د. محمد. بنبني خطتك على تحاليلك وحالتك المرضية وأكلك اللي بتحبه، وبنتابع معاك أسبوعياً ونعدّل الخطة على حسب النتيجة.',
+      'NutraX is an online clinical nutrition practice with Dr. Mohamed. Your plan is built around your labs, your medical condition and the food you actually eat, with weekly follow-up and adjustments based on how you respond.') }}</p>
+    <div class="lp-hero-cta">
+      <a href="/login?tab=register" class="lp-btn lp-btn-primary">
+        <i class="fa-solid fa-clipboard-list"></i> {{ t('ابدأ خطتك','Start your plan') }}
+      </a>
+      <a href="/pricing" class="lp-btn lp-btn-light">
+        <i class="fa-solid fa-tag"></i> {{ t('شوف الأسعار','See pricing') }}
+      </a>
+    </div>
+    <div class="lp-trust">
+      <div><b>+20</b>{{ t('حالة مرضية','medical conditions') }}</div>
+      <div><b>+500</b>{{ t('صنف في محلل الطعام','foods in the analyzer') }}</div>
+      <div><b>5</b>{{ t('مطابخ عربية','Arab cuisines') }}</div>
+      <div><b>7</b>{{ t('أيام متابعة أسبوعياً','days of weekly follow-up') }}</div>
+    </div>
+  </section>
+
+  <section class="lp-sec">
+    <h2>{{ t('إيه اللي بيميّز الخطة','What makes the plan different') }}</h2>
+    <p class="lead">{{ t(
+      'الخطة مش مجرد سعرات. كل صنف في جدولك بيتفلتر على حالتك الصحية قبل ما يوصلك.',
+      'The plan is not just a calorie count. Every item in your table is filtered against your health condition before it reaches you.') }}</p>
+    <div class="lp-grid">
+      <div class="lp-card">
+        <div class="ic">🩺</div>
+        <h3>{{ t('مبنية على حالتك','Built on your condition') }}</h3>
+        <p>{{ t('عندك سكري أو ضغط أو قولون أو مشكلة في الكلى؟ الأكل الممنوع على حالتك بيتشال من الجدول أوتوماتيك، مش بيتسيب لك تفتكر.',
+                'Diabetes, blood pressure, IBS or a kidney problem? Food that is unsafe for your condition is removed from the table automatically, rather than left for you to remember.') }}</p>
+      </div>
+      <div class="lp-card">
+        <div class="ic">🍽️</div>
+        <h3>{{ t('أكل بتعرفه','Food you recognise') }}</h3>
+        <p>{{ t('مصري، خليجي، شامي، مغربي أو عالمي. أكل من مطبخك انت، بالكميات بالجرام، مش وصفات غريبة مش هتعملها.',
+                'Egyptian, Gulf, Levantine, Moroccan or international. Food from your own kitchen, with quantities in grams, not recipes you will never cook.') }}</p>
+      </div>
+      <div class="lp-card">
+        <div class="ic">📊</div>
+        <h3>{{ t('أنظمة على مزاجك','Patterns that fit you') }}</h3>
+        <p>{{ t('3 وجبات، 5 وجبات، صيام متقطع 16/8 أو 18/6، رمضان، كيتو، لو-كارب، أو حسب مواعيد تمرينك.',
+                '3 meals, 5 meals, 16/8 or 18/6 intermittent fasting, Ramadan, keto, low-carb, or timed around your training.') }}</p>
+      </div>
+      <div class="lp-card">
+        <div class="ic">💬</div>
+        <h3>{{ t('متابعة مش تسليم وخلاص','Follow-up, not a hand-off') }}</h3>
+        <p>{{ t('شات مباشر مع د. محمد، تتبع للوزن والالتزام، وتعديل الخطة لو النتيجة مش زي المتوقع.',
+                'Direct chat with Dr. Mohamed, weight and adherence tracking, and plan adjustments when the results are not what we expected.') }}</p>
+      </div>
+      <div class="lp-card">
+        <div class="ic">🔍</div>
+        <h3>{{ t('محلل طعام','Food analyzer') }}</h3>
+        <p>{{ t('أكتر من 500 صنف بالسعرات والبروتين والكارب والدهون، وبفلترة على حالتك، وبمقارنة بين صنفين.',
+                'Over 500 items with calories, protein, carbs and fat, filtered by your condition, with side-by-side comparison.') }}</p>
+      </div>
+      <div class="lp-card">
+        <div class="ic">📄</div>
+        <h3>{{ t('PDF تطبعه','A PDF you can print') }}</h3>
+        <p>{{ t('جدولك الأسبوعي كامل في ملف مرتب تنزّله وتطبعه أو تحتفظ به على موبايلك.',
+                'Your full weekly table in a clean file you can download, print, or keep on your phone.') }}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-conds">
+    <div class="lp-sec">
+      <h2>{{ t('حالات بنتعامل معاها','Conditions we work with') }}</h2>
+      <p class="lead">{{ t(
+        'لكل حالة قواعدها: أكل مسموح، أكل ممنوع، ونصائح. الخطة بتتبني عليها من الأول مش بتتعدل بعدين.',
+        'Each condition has its own rules: what is allowed, what is not, and what to watch. The plan is built on them from the start.') }}</p>
+      <div class="lp-chips">
+        {% for c in [
+          ('السكري النوع الأول والثاني','Type 1 & Type 2 Diabetes'),
+          ('ضغط الدم المرتفع','High Blood Pressure'),
+          ('أمراض القلب','Heart Disease'),
+          ('القولون العصبي','IBS'),
+          ('الفشل الكلوي المزمن','Chronic Kidney Disease'),
+          ('الكبد الدهني','Fatty Liver'),
+          ('الداء الزلاقي','Celiac Disease'),
+          ('حساسية اللاكتوز','Lactose Intolerance'),
+          ('نقص إنزيم G6PD','G6PD Deficiency'),
+          ('الثلاسيميا','Thalassemia'),
+          ('فقر الدم ونقص الحديد','Anemia & Iron Deficiency'),
+          ('هشاشة العظام','Osteoporosis'),
+          ('الحمل والرضاعة','Pregnancy & Breastfeeding'),
+          ('السمنة وزيادة الوزن','Obesity & Overweight'),
+          ('حصوات المرارة','Gallstones'),
+          ('التهاب الأمعاء','IBD'),
+          ('حرقة المعدة والارتجاع','GERD'),
+          ('نقص فيتامين D','Vitamin D Deficiency'),
+          ('الإمساك المزمن','Chronic Constipation'),
+          ('اضطرابات الأكل','Eating Disorders') ] %}
+        <span class="lp-chip">{{ c[0] if is_ar else c[1] }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-sec">
+    <h2>{{ t('بتحصل إزاي','How it works') }}</h2>
+    <p class="lead">{{ t('أربع خطوات، وأول خطة بتوصلك في يوم أو يومين.',
+                        'Four steps, and your first plan arrives within a day or two.') }}</p>
+    <div class="lp-steps">
+      <div class="lp-step">
+        <h3>{{ t('تعمل حساب','Create an account') }}</h3>
+        <p>{{ t('بياناتك الأساسية: الطول، الوزن، السن، والهدف.',
+                'Your basics: height, weight, age and goal.') }}</p>
+      </div>
+      <div class="lp-step">
+        <h3>{{ t('تقولنا على حالتك','Tell us your condition') }}</h3>
+        <p>{{ t('حالاتك الطبية، الحساسية، والأكل اللي مش بتحبه أو مش بتاكله.',
+                'Your medical conditions, allergies, and food you dislike or avoid.') }}</p>
+      </div>
+      <div class="lp-step">
+        <h3>{{ t('د. محمد يبني خطتك','Dr. Mohamed builds the plan') }}</h3>
+        <p>{{ t('جدول 7 أيام بالكميات، مفلتر على حالتك ومن مطبخك.',
+                'A 7-day table with quantities, filtered for your condition and drawn from your cuisine.') }}</p>
+      </div>
+      <div class="lp-step">
+        <h3>{{ t('تتابع وتعدّل','Follow up and adjust') }}</h3>
+        <p>{{ t('تسجّل وجباتك ووزنك، وتكلمه في الشات، والخطة تتعدّل.',
+                'Log your meals and weight, message him in the chat, and the plan gets adjusted.') }}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-cta">
+    <h2>{{ t('جاهز تبدأ؟','Ready to start?') }}</h2>
+    <p>{{ t('اعمل حسابك وقولنا على حالتك، والباقي علينا.',
+            'Create your account and tell us about your condition. We will take it from there.') }}</p>
+    <div class="lp-hero-cta">
+      <a href="/login?tab=register" class="lp-btn lp-btn-primary">
+        <i class="fa-solid fa-arrow-right"></i> {{ t('ابدأ خطتك','Start your plan') }}
+      </a>
+      <a href="/login" class="lp-btn lp-btn-light">{{ t('عندي حساب','I have an account') }}</a>
+    </div>
+  </section>
+
+</div>
+
+{# tells Google this is a real clinic with a real practitioner #}
+<script type="application/ld+json">
+{{ {
+  "@context": "https://schema.org",
+  "@type": "MedicalBusiness",
+  "name": "NutraX",
+  "url": site_origin(),
+  "description": self.meta_description()|trim,
+  "medicalSpecialty": "Nutrition",
+  "priceRange": "$$",
+  "image": site_origin() + "/static/icon-512.png",
+  "availableLanguage": ["ar", "en"]
+}|tojson }}
+</script>
+{% endblock %}
