@@ -1,5 +1,12 @@
 # Staging environment for NutraX — a throwaway copy for TestSprite to hammer.
 #
+# THIS FILE IS DELIBERATELY NOT AT THE REPO ROOT AND IS NOT NAMED render.yaml.
+# Render auto-detects a root render.yaml, and if this repo is ever linked as a
+# Blueprint that detection could re-apply settings to the live service. Keeping
+# it here means Render cannot touch production on its own. To use it: copy it to
+# render.yaml on a branch of its own, create the Blueprint from that branch, and
+# leave main alone.
+#
 # IMPORTANT: this blueprint describes the STAGING service only. It does not
 # describe, touch, or reconfigure the production service, which was created by
 # hand in the Render dashboard. Applying this blueprint adds a new service and a

@@ -11,7 +11,7 @@ TestSprite بيفتح متصفح وبيدوس في كل حتة. لو خلّيت�
 
 ## اللي في الريبو
 
-- **`render.yaml`** — blueprint بيعرّف سيرفس `nutrax-staging` + داتابيز
+- **`docs/render-staging.yaml`** (مش في الجذر عن قصد — Render بيلقط أي render.yaml في الجذر) — blueprint بيعرّف سيرفس `nutrax-staging` + داتابيز
   Postgres خاصة بيه. **مش بيلمس البرودكشن** — البرودكشن معمول بإيدك من الـ
   dashboard، والـ blueprint ده بيضيف سيرفس جديد جانبه ومش بيعدّل عليه.
 - **`tools/seed_staging.py`** — بيعمل الحسابات اللي التست محتاجها.
