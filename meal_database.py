@@ -1163,12 +1163,38 @@ def get_snacks_for_goal(goal):
         ]
 
 
+# Arabic spells the same word several ways -- ارز / أرز / إرز, ة / ه, ي / ى --
+# and the ban lists are matched as plain substrings. Without folding those
+# apart, "ارز ابيض" is caught for a diabetic while "أرز أبيض" sails through.
+_AR_FOLD = str.maketrans({
+    "أ": "ا", "إ": "ا", "آ": "ا", "ٱ": "ا",
+    "ة": "ه", "ى": "ي", "ؤ": "و", "ئ": "ي",
+    "\u064b": "", "\u064c": "", "\u064d": "", "\u064e": "",
+    "\u064f": "", "\u0650": "", "\u0651": "", "\u0652": "", "\u0640": "",
+})
+
+
+def normalize_ar(text):
+    """Fold the spellings that should never change whether a food is banned."""
+    return (text or "").translate(_AR_FOLD)
+
+
 def _contains_unsafe(meal_text, condition_key):
-    unsafe_list = UNSAFE_FOODS.get(condition_key, [])
-    for unsafe in unsafe_list:
-        if unsafe in meal_text:
+    haystack = normalize_ar(meal_text)
+    for unsafe in UNSAFE_FOODS.get(condition_key, []):
+        if normalize_ar(unsafe) in haystack:
             return True
     return False
+
+
+def _meal_text(item):
+    return item.get("meal", "") if isinstance(item, dict) else (item or "")
+
+
+def safe_for_all(item, condition_keys):
+    """True when this meal breaks none of the patient's conditions."""
+    text = _meal_text(item)
+    return not any(_contains_unsafe(text, k) for k in condition_keys)
 
 
 def filter_by_conditions(meals, conditions):
@@ -1202,19 +1228,31 @@ def filter_by_conditions(meals, conditions):
         return meals
     result = []
     for meal in meals:
-        meal_text = meal.get("meal", "")
+        # some pools hold plain strings rather than dicts; reading .meal on those
+        # raised, and every caller catches the error and falls back to the
+        # UNFILTERED list -- silently serving the food the ban exists to stop
+        meal_text = _meal_text(meal)
         unsafe_for = None
         for cond_key in active_conditions:
             if _contains_unsafe(meal_text, cond_key):
                 unsafe_for = cond_key
                 break
         if unsafe_for:
-            alternatives = SAFE_ALTERNATIVES.get(active_conditions[0], [])
-            if alternatives:
-                alt_idx = len(result) % len(alternatives)
-                result.append(alternatives[alt_idx])
-            else:
-                result.append(meal)
+            # Look in the blocking condition's own alternatives first, then the
+            # other conditions'. Whatever gets picked has to be safe for ALL of
+            # this patient's conditions -- swapping a diabetic's white rice for
+            # something with gluten just moves the problem.
+            pools = [unsafe_for] + [c for c in active_conditions if c != unsafe_for]
+            candidates = []
+            for cond_key in pools:
+                for alt in SAFE_ALTERNATIVES.get(cond_key, []):
+                    if safe_for_all(alt, active_conditions) and alt not in candidates:
+                        candidates.append(alt)
+            if candidates:
+                result.append(candidates[len(result) % len(candidates)])
+            # Nothing clears every condition, so the meal is dropped rather than
+            # served: keeping it would hand the patient the exact food the ban
+            # exists to prevent.
         else:
             result.append(meal)
     return result
