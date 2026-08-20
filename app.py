@@ -16,6 +16,23 @@ if not os.environ.get("SECRET_KEY"):
     print("WARNING: SECRET_KEY env var not set — using a random key. Sessions will reset on every restart. Set SECRET_KEY in Render environment settings.")
 app.permanent_session_lifetime = timedelta(days=30)
 
+# ═══ هل ده سيرفر بيخدم ناس حقيقيين؟ ═══
+# Render بيحط RENDER=true في كل السيرفسات، وممكن كمان تحط ENV=production بنفسك.
+# محلياً الاتنين مش موجودين، فالإعدادات الصارمة مابتتفعّلش وبتقدر تشتغل على http.
+IS_PRODUCTION = (os.environ.get("ENV", "").lower() == "production"
+                 or os.environ.get("RENDER", "").lower() == "true")
+
+# ═══ كوكي الجلسة ═══
+# الجلسة عايشة 30 يوم على أجهزة فيها بيانات صحية، فلازم تتقفل:
+#   Secure   — ماتتبعتش أبداً على http عادي (على البرودكشن بس، عشان التطوير المحلي)
+#   SameSite — الكوكي ماتتبعتش مع طلبات جاية من مواقع تانية
+#   HttpOnly — جافاسكريبت مش بتشوفها (متفعّلة أصلاً بشكل افتراضي في Flask)
+app.config.update(
+    SESSION_COOKIE_SECURE=IS_PRODUCTION,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_HTTPONLY=True,
+)
+
 # ═══ تسريع الموقع ═══
 import gzip as _gzip
 
