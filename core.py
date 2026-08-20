@@ -946,19 +946,27 @@ def google_verification():
     return GOOGLE_SITE_VERIFICATION
 
 
-@app.route("/<path:filename>.html")
-def google_verify_file(filename):
-    """Serve the googleXXXX.html file Search Console looks for.
+@app.route("/<regex_google_file>")
+def google_verify_file(regex_google_file):
+    """Serve the googleXXXX.html file Search Console fetches.
 
-    Only answers for the exact filename set in GOOGLE_VERIFY_FILE, so this is
-    not an open door to serving arbitrary paths.
+    The file itself is committed under static/, so verification needs no
+    configuration at all -- deploy and it is there. Only a name matching
+    google*.html that actually exists in static/ is served; anything else is a
+    404, so this cannot be used to reach other paths.
     """
-    from flask import abort
-    name = f"{filename}.html"
-    if not GOOGLE_VERIFY_FILE or name != GOOGLE_VERIFY_FILE:
+    from flask import abort, send_from_directory
+    name = regex_google_file
+    if not (name.startswith("google") and name.endswith(".html")) or "/" in name:
         abort(404)
-    token = name[len("google"):-len(".html")]
-    return Response(f"google-site-verification: {name}\n", mimetype="text/html")
+    path = os.path.join(app.root_path, "static", name)
+    if not os.path.isfile(path):
+        # fall back to the env-var form, for a token not committed to the repo
+        if GOOGLE_VERIFY_FILE and name == GOOGLE_VERIFY_FILE:
+            return Response(f"google-site-verification: {name}\n", mimetype="text/html")
+        abort(404)
+    return send_from_directory(os.path.join(app.root_path, "static"), name,
+                               mimetype="text/html")
 
 
 @app.template_global('site_origin')
