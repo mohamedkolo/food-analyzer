@@ -1,0 +1,397 @@
+<title>تشخيص نوتراكس</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --ground:  #F6F8F7;
+    --surface: #FFFFFF;
+    --sunk:    #EEF2F0;
+    --ink:     #14231F;
+    --muted:   #5A6B64;
+    --line:    #DCE4E0;
+    --brand:   #1E4A3D;
+    --gold:    #A98A3E;
+    --crit:    #A6303A;
+    --warn:    #8A6210;
+    --ok:      #2F6B54;
+    --crit-bg: #FBEDEE;
+    --warn-bg: #FBF4E4;
+    --ok-bg:   #EAF3EF;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:  #0D1513;
+      --surface: #15201C;
+      --sunk:    #1B2723;
+      --ink:     #E7EEEA;
+      --muted:   #91A69D;
+      --line:    #26332E;
+      --brand:   #74C2A3;
+      --gold:    #D3B876;
+      --crit:    #EC8992;
+      --warn:    #DCA845;
+      --ok:      #74C2A3;
+      --crit-bg: #2A1618;
+      --warn-bg: #261E10;
+      --ok-bg:   #13241D;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:  #0D1513;
+    --surface: #15201C;
+    --sunk:    #1B2723;
+    --ink:     #E7EEEA;
+    --muted:   #91A69D;
+    --line:    #26332E;
+    --brand:   #74C2A3;
+    --gold:    #D3B876;
+    --crit:    #EC8992;
+    --warn:    #DCA845;
+    --ok:      #74C2A3;
+    --crit-bg: #2A1618;
+    --warn-bg: #261E10;
+    --ok-bg:   #13241D;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.85;
+    margin: 0;
+  }
+  .doc { direction: rtl; max-width: 62rem; margin: 0 auto; padding: 4rem 1.5rem 6rem; }
+
+  /* ── masthead ───────────────────────────────── */
+  .mast { border-bottom: 2px solid var(--ink); padding-bottom: 1.75rem; margin-bottom: 2.5rem; }
+  .eyebrow {
+    font-size: .72rem; font-weight: 600; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--gold); margin: 0 0 .9rem;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .mast h1 {
+    font-family: 'Amiri', Georgia, serif; font-weight: 700;
+    font-size: clamp(2.4rem, 6vw, 3.6rem); line-height: 1.15;
+    margin: 0 0 .75rem; text-wrap: balance;
+  }
+  .mast .standfirst {
+    font-size: 1.08rem; color: var(--muted); max-width: 46ch;
+    margin: 0; font-weight: 300;
+  }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 1.5rem;
+    font-family: 'IBM Plex Mono', monospace; font-size: .76rem; color: var(--muted);
+  }
+  .meta b { color: var(--ink); font-weight: 500; }
+
+  /* ── tally ──────────────────────────────────── */
+  .tally { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: 1px;
+           background: var(--line); border: 1px solid var(--line); margin-bottom: 3.5rem; }
+  .tally div { background: var(--surface); padding: 1.15rem 1.25rem; }
+  .tally .n { font-family: 'IBM Plex Mono', monospace; font-size: 2rem; font-weight: 500;
+              line-height: 1; font-variant-numeric: tabular-nums; }
+  .tally .k { font-size: .78rem; color: var(--muted); margin-top: .4rem; }
+  .n.crit { color: var(--crit); } .n.warn { color: var(--warn); } .n.ok { color: var(--ok); }
+
+  h2 {
+    font-family: 'Amiri', Georgia, serif; font-weight: 700;
+    font-size: 1.9rem; margin: 0 0 .4rem; text-wrap: balance;
+  }
+  .sect { margin-bottom: 4rem; }
+  .sect > .lede { color: var(--muted); margin: 0 0 2rem; max-width: 58ch; font-weight: 300; }
+
+  /* ── strengths ──────────────────────────────── */
+  .strengths { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1.5rem; }
+  .st { border-top: 2px solid var(--ok); padding-top: .9rem; }
+  .st h3 { font-size: .98rem; font-weight: 600; margin: 0 0 .4rem; }
+  .st p { margin: 0; font-size: .89rem; color: var(--muted); line-height: 1.75; }
+  .st .fig { font-family: 'IBM Plex Mono', monospace; color: var(--ok); font-weight: 500; }
+
+  /* ── findings ───────────────────────────────── */
+  .find { background: var(--surface); border: 1px solid var(--line);
+          border-inline-start: 4px solid var(--line); margin-bottom: 1.5rem; }
+  .find.c { border-inline-start-color: var(--crit); }
+  .find.w { border-inline-start-color: var(--warn); }
+  .find.m { border-inline-start-color: var(--muted); }
+  .find > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: .75rem;
+                   padding: 1.15rem 1.4rem .5rem; }
+  .code { font-family: 'IBM Plex Mono', monospace; font-size: .74rem; font-weight: 500;
+          color: var(--muted); letter-spacing: .04em; }
+  .find h3 { font-size: 1.06rem; font-weight: 600; margin: 0; flex: 1 1 16rem; }
+  .sev { font-size: .68rem; font-weight: 600; letter-spacing: .09em; padding: .22rem .6rem;
+         border-radius: 2px; white-space: nowrap; }
+  .sev.c { background: var(--crit-bg); color: var(--crit); }
+  .sev.w { background: var(--warn-bg); color: var(--warn); }
+  .sev.m { background: var(--sunk); color: var(--muted); }
+  .find > .body { padding: 0 1.4rem 1.4rem; }
+  .find p { margin: .55rem 0; font-size: .93rem; }
+  .find p.impact { color: var(--muted); }
+  .find .why { font-size: .86rem; color: var(--muted); border-top: 1px dashed var(--line);
+               padding-top: .8rem; margin-top: 1rem; }
+  .find .why b { color: var(--ink); font-weight: 600; }
+
+  pre { background: var(--sunk); border: 1px solid var(--line); margin: .9rem 0 0;
+        padding: .9rem 1rem; overflow-x: auto; direction: ltr; text-align: left;
+        font-family: 'IBM Plex Mono', monospace; font-size: .78rem; line-height: 1.65; }
+  pre .rm { color: var(--crit); }
+  pre .add { color: var(--ok); }
+  pre .cm { color: var(--muted); }
+  code { font-family: 'IBM Plex Mono', monospace; font-size: .86em;
+         background: var(--sunk); padding: .1em .35em; border-radius: 2px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .87rem; margin-top: .9rem; }
+  th, td { text-align: start; padding: .55rem .7rem; border-bottom: 1px solid var(--line); }
+  th { font-size: .74rem; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+  td.num { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  .scroll { overflow-x: auto; }
+
+  .verdict { border: 2px solid var(--ink); padding: 2rem 1.75rem; margin-top: 1rem; }
+  .verdict h2 { margin-bottom: .8rem; }
+  .verdict p { margin: 0 0 .9rem; }
+  .verdict p:last-child { margin-bottom: 0; }
+
+  ol.next { padding-inline-start: 1.3rem; margin: 0; }
+  ol.next li { margin-bottom: .7rem; font-size: .95rem; }
+  ol.next li::marker { font-family: 'IBM Plex Mono', monospace; color: var(--gold); font-weight: 500; }
+
+  @media (max-width: 640px) {
+    .doc { padding: 2.5rem 1.1rem 4rem; }
+    .find > header { padding: 1rem 1.1rem .4rem; }
+    .find > .body { padding: 0 1.1rem 1.1rem; }
+  }
+</style>
+
+<div class="doc">
+
+  <header class="mast">
+    <p class="eyebrow">تقرير فحص · NutraX</p>
+    <h1>تشخيص الموقع</h1>
+    <p class="standfirst">فحص للكود والمنتج: إيه اللي مبني صح، وإيه اللي محتاج شغل — كل ملاحظة متأكَّد منها بتشغيل الكود، مش بقراءته.</p>
+    <div class="meta">
+      <span>الإصدار <b>815fc4d</b></span>
+      <span>كود <b>11,195</b> سطر</span>
+      <span>قوالب <b>44</b></span>
+      <span>الطريقة <b>تشغيل فعلي + اختبار متصفح</b></span>
+    </div>
+  </header>
+
+  <div class="tally">
+    <div><div class="n crit">1</div><div class="k">خطر — يمس سلامة العميل</div></div>
+    <div><div class="n warn">4</div><div class="k">مهم</div></div>
+    <div><div class="n">5</div><div class="k">متوسط</div></div>
+    <div><div class="n ok">6</div><div class="k">نقاط قوة حقيقية</div></div>
+  </div>
+
+  <section class="sect">
+    <h2>الإيجابيات</h2>
+    <p class="lede">دي مش مجاملات — كل واحدة فيهم فحصتها بنفسي.</p>
+    <div class="strengths">
+      <div class="st">
+        <h3>الأساسيات الأمنية معمولة صح</h3>
+        <p>حماية CSRF شغالة على الموقع كله باستثناءين مقصودين بس (الـ API بمفتاحه، وويبهوك Stripe بيتحقق من التوقيع). الباسوردات متشفّرة، وفيه حماية من تخمين الباسورد <span class="fig">5 محاولات / 15 دقيقة</span>.</p>
+      </div>
+      <div class="st">
+        <h3>مفيش أسرار في الكود</h3>
+        <p>مشّطت الريبو على مفاتيح Stripe وAWS وشهادات وباسوردات مكتوبة — <span class="fig">صفر</span>. كل حاجة من متغيرات البيئة.</p>
+      </div>
+      <div class="st">
+        <h3>الاستعلامات محصّنة</h3>
+        <p>كل استعلامات قاعدة البيانات بمعاملات. لقيت استعلامين متبنيين بنص، والاتنين آمنين (أسماء أعمدة من قائمة ثابتة، ورقم متحوّل بـ <code>int()</code>). مفيش ثغرة حقن.</p>
+      </div>
+      <div class="st">
+        <h3>عمق المنتج</h3>
+        <p><span class="fig">789</span> وجبة فريدة، <span class="fig">522</span> صنف بقيم غذائية، 5 مطابخ، 12 حالة مرضية بقوائم ممنوعات وبدائل، 8 أنظمة أكل. ده مجهود سنين مش أسابيع.</p>
+      </div>
+      <div class="st">
+        <h3>ترجمة كاملة فعلاً</h3>
+        <p>فحصت <span class="fig">68</span> صفحة في اللغتين للدورين: صفر كلمة عربية سايبة في الوضع الإنجليزي، غير زرار "عربي" نفسه.</p>
+      </div>
+      <div class="st">
+        <h3>في مراجعة بشرية</h3>
+        <p>الخطة بتعدي على د. محمد يعتمدها قبل ما العميل يشوفها. ده أهم صمام أمان في المنتج كله — وهو اللي بيخفف خطورة أول ملاحظة تحت.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sect">
+    <h2>السلبيات</h2>
+    <p class="lede">مرتّبة بالخطورة الحقيقية على العميل، مش بصعوبة الإصلاح.</p>
+
+    <article class="find c">
+      <header>
+        <span class="code">MED-1</span>
+        <h3>مريض بحالتين ممكن ياخد أكل ممنوع على حالته التانية</h3>
+        <span class="sev c">خطر</span>
+      </header>
+      <div class="body">
+        <p>لما الفلترة تلاقي أكلة ممنوعة، بتستبدلها ببديل آمن — كويس. المشكلة إنها بتجيب البديل من <b>أول حالة في القائمة</b>، مش من الحالة اللي منعت الأكلة أصلاً.</p>
+        <pre><span class="cm"># meal_database.py — جوه filter_by_conditions</span>
+<span class="rm">alternatives = SAFE_ALTERNATIVES.get(active_conditions[0], [])</span>
+<span class="add">alternatives = SAFE_ALTERNATIVES.get(unsafe_for, [])</span>   <span class="cm"># الحالة اللي منعتها فعلاً</span></pre>
+        <p>جرّبت كل تركيبات الحالتين الممكنة: <b>42 تركيبة بتنتج بديل ممنوع على الحالة التانية.</b></p>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>المريض عنده</th><th>البديل اللي بيتحط</th><th>المشكلة</th></tr></thead>
+            <tbody>
+              <tr><td>الداء الزلاقي + سكري</td><td>بيض + خبز اسمر</td><td>خبز قمح لمريض زلاقي</td></tr>
+              <tr><td>فشل كلوي + سكري</td><td>دجاج + أرز أبيض</td><td>أرز أبيض لمريض سكري</td></tr>
+              <tr><td>قولون + فشل كلوي</td><td>شوفان + موز</td><td>موز = بوتاسيوم عالي</td></tr>
+              <tr><td>سكري + حساسية لاكتوز</td><td>أومليت + جبن قريش</td><td>ألبان لمريض لاكتوز</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="impact">وده بالظبط عكس اللي الصفحة الرئيسية بتوعد بيه: «الأكل الممنوع على حالتك بيتشال أوتوماتيك».</p>
+        <p class="why"><b>بيهون إزاي:</b> د. محمد بيراجع كل خطة قبل الاعتماد، فالغلط ده بيتمسك بالعين قبل ما يوصل العميل. بس الاعتماد على إن حد ياخد باله مش حماية — الإصلاح سطر واحد، وبعده لازم فحص إن البديل آمن لـ<b>كل</b> حالات المريض مش واحدة.</p>
+      </div>
+    </article>
+
+    <article class="find w">
+      <header>
+        <span class="code">MED-2</span>
+        <h3>الفلترة بتفرّق بين «ارز» و«أرز»</h3>
+        <span class="sev w">مهم</span>
+      </header>
+      <div class="body">
+        <p>المطابقة بتتم على النص العربي حرفياً، فالهمزة بتفرق:</p>
+        <pre>"🍚 ارز ابيض 150جم"  →  اتشال ✓
+"🍚 أرز أبيض 150جم"  →  <span class="rm">فضل ✗</span>
+"🍚 رز ابيض 150جم"   →  <span class="rm">فضل ✗</span></pre>
+        <p><b>مش بيأذي حد دلوقتي</b> — عدّيت الـ 789 وجبة الموجودة، مفيش ولا وجبة مكتوبة بالإملاء اللي بيهرب. بس أول ما حد يضيف وجبة ويكتب «أرز أبيض» بهمزة، هتعدي على مريض السكري من غير أي تحذير.</p>
+        <p class="why"><b>العلاج:</b> توحيد الهمزات والألف قبل المقارنة (تطبيع نص) — دالة صغيرة تتنادى في <code>_contains_unsafe</code> وعلى قائمة الممنوعات مع بعض.</p>
+      </div>
+    </article>
+
+    <article class="find w">
+      <header>
+        <span class="code">MED-3</span>
+        <h3>8 حالات من 23 في الفورم مالهاش أي فلترة</h3>
+        <span class="sev w">مهم</span>
+      </header>
+      <div class="body">
+        <p>العميل بيعلّم عليها، والنظام بيسجلها، وبعدين مفيش أي أثر ليها على الخطة: السمنة، نقص الحديد، نقص فيتامين D3، حرق بطيء، إمساك مزمن، اضطراب في الأكل، هشاشة العظام، الوقاية من السرطان.</p>
+        <p class="impact">جزء منها فعلاً مالوش ممنوعات صارمة — بس واجهة زي دي بتوحي إنها اتحطت في الحسبان.</p>
+        <p class="why"><b>القرار مش تقني:</b> يا إما تتحط لكل واحدة قاعدة (ولو نصايح بس بدل منع)، يا إما تتشال من قائمة «الحالات» وتتنقل لخانة ملاحظات. الوضع الحالي بيوعد بحاجة مش بتحصل.</p>
+      </div>
+    </article>
+
+    <article class="find w">
+      <header>
+        <span class="code">SEC-1</span>
+        <h3>كوكي الجلسة من غير حماية HTTPS ولا SameSite</h3>
+        <span class="sev w">مهم</span>
+      </header>
+      <div class="body">
+        <pre>SESSION_COOKIE_SECURE   = False      <span class="cm"># ممكن يتبعت على http عادي</span>
+SESSION_COOKIE_SAMESITE = None       <span class="cm"># مفيش دفاع ضد الطلبات من مواقع تانية</span>
+PERMANENT_SESSION_LIFETIME = 30 يوم</pre>
+        <p>الجلسة عايشة 30 يوم على أجهزة عملاء فيها بياناتهم الصحية. الإصلاح 3 أسطر في إعدادات التطبيق.</p>
+        <pre><span class="add">app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+)</span></pre>
+      </div>
+    </article>
+
+    <article class="find w">
+      <header>
+        <span class="code">OPS-1</span>
+        <h3>لو رابط قاعدة البيانات غاب، البيانات بتضيع في صمت</h3>
+        <span class="sev w">مهم</span>
+      </header>
+      <div class="body">
+        <p>لو <code>DATABASE_URL</code> مش موجود لأي سبب، التطبيق بيشتغل عادي وبيستخدم SQLite في <code>/tmp/nutrax.db</code>. على Render، <code>/tmp</code> بيتمسح مع كل إعادة تشغيل.</p>
+        <p class="impact">يعني الموقع هيفضل «شغال» وبيقبل عملاء جدد، وكل حاجة تتكتب تروح مع أول restart — من غير أي رسالة خطأ.</p>
+        <p class="why"><b>العلاج:</b> يقف بصوت عالي بدل ما يكمل. لو فيه متغير زي <code>ENV=production</code> وقاعدة البيانات ناقصة، يرفض يقوم من الأساس — فشل واضح أحسن من ضياع صامت.</p>
+      </div>
+    </article>
+
+    <article class="find m">
+      <header>
+        <span class="code">OPS-2</span>
+        <h3>مفيش أي اختبارات في الريبو</h3>
+        <span class="sev m">متوسط</span>
+      </header>
+      <div class="body">
+        <p>كل اللي اختبرته معاك في الشغل ده كان سكربتات مؤقتة بتموت مع الجلسة. أول تعديل جاي مش هيلاقي حاجة تمسكه.</p>
+        <p class="why">أهم 3 اختبارات تستاهل تتكتب وتتحفظ: <b>الفلترة الطبية</b> (خصوصاً MED-1)، <b>الدخول والصلاحيات</b> (مين بيوصل لإيه)، و<b>الترجمة</b> (صفر عربي في الوضع الإنجليزي).</p>
+      </div>
+    </article>
+
+    <article class="find m">
+      <header>
+        <span class="code">CODE-1</span>
+        <h3>161 مَصيدة خطأ في ملف واحد بتخفي الأعطال</h3>
+        <span class="sev m">متوسط</span>
+      </header>
+      <div class="body">
+        <p><code>app.py</code> فيه 161 <code>except</code>، كتير منها بيبلع الخطأ ويكمل. النتيجة إن العطل مابيظهرش، يفضل شغال غلط في الخفا.</p>
+        <p class="impact">ده بالظبط اللي خلّى مشاكل زي صفحة الطلبات المعطلة وخانة الطول الفاضية تعيش من غير ما حد ياخد باله.</p>
+      </div>
+    </article>
+
+    <article class="find m">
+      <header>
+        <span class="code">CODE-2</span>
+        <h3>ملف واحد بـ 4,670 سطر</h3>
+        <span class="sev m">متوسط</span>
+      </header>
+      <div class="body">
+        <p><code>app.py</code> ماسك المسارات والصلاحيات وقاعدة البيانات وتوليد الـ PDF ومنطق الخطط والإشعارات مع بعض — <span class="code">42%</span> من الكود كله في ملف واحد.</p>
+        <p class="why">مش أولوية دلوقتي، بس كل ميزة جديدة هتاخد وقت أطول من اللي قبلها. أول قطعة تستاهل تتفصل: توليد الـ PDF.</p>
+      </div>
+    </article>
+
+    <article class="find m">
+      <header>
+        <span class="code">CODE-3</span>
+        <h3>7 ملفات ميتة في جذر الريبو</h3>
+        <span class="sev m">متوسط</span>
+      </header>
+      <div class="body">
+        <p><code>generate.html</code>، <code>request_plan.html</code>، <code>onboarding.html</code>، <code>patients (1).html</code> وغيرهم. Flask بيقرا من <code>templates/</code>، فالنسخ دي مالهاش أي أثر — بس بتخلي أي حد (أو أي أداة) يعدّل في النسخة الغلط.</p>
+        <p class="impact">وفيه <code>book_routes.py</code> بلوبرنت كامل <b>مش متسجّل</b> في التطبيق أصلاً — كود ميت بالكامل.</p>
+      </div>
+    </article>
+
+    <article class="find m">
+      <header>
+        <span class="code">PERF-1</span>
+        <h3>70 كيلوبايت أيقونات على كل صفحة</h3>
+        <span class="sev m">متوسط</span>
+      </header>
+      <div class="body">
+        <p>ملف Font Awesome بيتحمّل كامل من CDN خارجي وبيوقف رسم الصفحة، عشان عدد محدود من الأيقونات.</p>
+      </div>
+    </article>
+
+    <article class="find m">
+      <header>
+        <span class="code">OPS-3</span>
+        <h3>الاستضافة المجانية سقفها قريب</h3>
+        <span class="sev m">متوسط</span>
+      </header>
+      <div class="body">
+        <p>السيرفر بينام بعد ~15 دقيقة سكون، وقاعدة بيانات Postgres المجانية على Render ليها تاريخ انتهاء وبتحتاج تتعمل من الأول (راجع المدة الحالية من لوحة Render — بتتغير). وأهم من ده: <b>مفيش أي آلية نسخ احتياطي في المشروع</b> — دوّرت في الكود كله على أي نسخ احتياطي أو <code>pg_dump</code>، مفيش.</p>
+        <p class="why">أول عميل بيدفع، دي بتبقى تكلفة تشغيل عادية مش رفاهية. النسخ الاحتياطي تحديداً مش حاجة تتأجل.</p>
+      </div>
+    </article>
+  </section>
+
+  <section class="sect">
+    <h2>الخلاصة</h2>
+    <div class="verdict">
+      <p>المنتج <b>أقوى من بنيته التحتية</b>. المحتوى الطبي والغذائي فيه عمق حقيقي — 789 وجبة و522 صنف و12 حالة بقواعدها — وده الجزء اللي مش بيتعمل في شهر ومحدش يقدر ينسخه بسهولة. والأساسيات الأمنية اللي بيقع فيها معظم المشاريع الصغيرة (حقن SQL، أسرار مكشوفة، باسوردات غير مشفّرة) معمولة صح هنا.</p>
+      <p>اللي ناقص مش مميزات، ده <b>شبكة أمان</b>: مفيش اختبارات تمسك الغلط، والأعطال بتتبلع في صمت، والفلترة الطبية — أهم وعد في المنتج — فيها فجوة حقيقية بتتكشف مع أي مريض عنده أكتر من حالة، ودلوقتي عين د. محمد هي اللي ماسكاها.</p>
+      <p>الترتيب اللي أنصح بيه:</p>
+      <ol class="next">
+        <li><b>MED-1</b> — سطر واحد، وبيقفل أخطر فجوة في المنتج.</li>
+        <li><b>OPS-1 + نسخ احتياطي</b> — عشان ما تصحاش يوم تلاقي بيانات العملاء راحت.</li>
+        <li><b>SEC-1</b> — 3 أسطر.</li>
+        <li><b>MED-2 و MED-3</b> — تطبيع النص، وقرار واضح في الـ 8 حالات.</li>
+        <li><b>اختبارات</b> للفلترة والصلاحيات، عشان اللي فوق ما يرجعش تاني.</li>
+      </ol>
+    </div>
+  </section>
+
+</div>
