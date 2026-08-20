@@ -933,3 +933,85 @@ def _login_msg(key, lang):
 def site_origin():
     from api_platform import DOMAIN as _D
     return (_D or "").rstrip("/")
+
+
+# ═══════════════════════════════════════════════
+# Shared by the client's own pages and the staff view of them
+# ═══════════════════════════════════════════════
+COUNTRY_DIAL_CODES = {
+    "مصر": "20", "السعودية": "966", "الإمارات": "971", "الكويت": "965",
+    "قطر": "974", "البحرين": "973", "عمان": "968", "الأردن": "962",
+    "لبنان": "961", "المغرب": "212", "الجزائر": "213", "تونس": "216",
+}
+
+
+def build_whatsapp_link(phone, country=None):
+    """يحوّل رقم العميل المحلي لرابط واتساب صحيح بكود الدولة."""
+    if not phone:
+        return None
+    digits = re.sub(r"\D", "", str(phone))
+    if not digits:
+        return None
+    if digits.startswith("00"):
+        digits = digits[2:]
+    code = COUNTRY_DIAL_CODES.get((country or "").strip())
+    if code:
+        if digits.startswith(code):
+            pass  # الرقم أصلاً بكود الدولة
+        elif digits.startswith("0"):
+            digits = code + digits[1:]
+        else:
+            digits = code + digits
+    return f"https://wa.me/{digits}"
+
+def get_meal_tracking(user_id):
+    """بيرجّع وجبات النهارده من خطة العميل المعتمدة + حالة التعليم + نسبة التزام الأسبوع"""
+    out = {"has_plan": False, "today_meals": [], "today_date": datetime.now().strftime("%Y-%m-%d"),
+           "day_name": "", "week_pct": None, "today_done": 0, "today_total": 0}
+    try:
+        latest = db_row("SELECT plan_data FROM plan_requests WHERE client_id=? AND status='approved' ORDER BY updated_at DESC LIMIT 1", (user_id,))
+        if not latest or not latest.get("plan_data"):
+            return out
+        pd = json.loads(latest["plan_data"])
+        plan = pd.get("plan") or []
+        if not plan:
+            return out
+        # اليوم الحالي: الخطة بتبدأ بالأحد — Python: Monday=0..Sunday=6
+        idx = (datetime.now().weekday() + 1) % 7
+        idx = min(idx, len(plan) - 1)
+        day = plan[idx]
+        labels = day.get("meal_labels") or {}
+        emojis = day.get("meal_emojis") or {}
+        # the plan stores Arabic labels/meals; swap them out for display in EN
+        if cur_lang() != "ar":
+            _info = get_diet_plan_info(day.get("diet_type")
+                                       or (pd.get("data") or {}).get("diet_plan_type", "standard"))
+            labels = _info.get("meal_labels_en") or labels
+        meal_keys = [k for k in ["breakfast","snack1","meal1","pre_workout","lunch","post_workout","iftar","snack","snack2","suhoor","meal2","dinner"] if day.get(k)]
+        checks = {}
+        try:
+            rows = db_rows("SELECT meal_key FROM meal_checks WHERE user_id=? AND check_date=?", (user_id, out["today_date"]))
+            checks = {r["meal_key"]: 1 for r in (rows or [])}
+        except Exception:
+            pass
+        for k in meal_keys:
+            out["today_meals"].append({"key": k, "label": labels.get(k, k), "emoji": emojis.get(k, "🍽️"),
+                                       "text": day.get(k, ""), "checked": bool(checks.get(k))})
+        out["has_plan"] = True
+        out["day_name"] = day.get("day", "")
+        if cur_lang() != "ar":
+            out["day_name"] = ENGLISH_DAYS.get(out["day_name"], out["day_name"])
+        out["today_total"] = len(meal_keys)
+        out["today_done"] = sum(1 for m in out["today_meals"] if m["checked"])
+        # التزام آخر 7 أيام
+        try:
+            week_ago = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d")
+            r = db_row("SELECT COUNT(*) as c FROM meal_checks WHERE user_id=? AND check_date>=?", (user_id, week_ago))
+            done = (r or {}).get("c", 0)
+            expected = max(len(meal_keys) * 7, 1)
+            out["week_pct"] = min(round(done / expected * 100), 100)
+        except Exception:
+            pass
+    except Exception as _e:
+        print(f"meal tracking error: {_e}")
+    return out

@@ -163,6 +163,30 @@ def test_login_accepts_the_right_password():
     assert c.get("/dashboard").status_code == 200
 
 
+
+def test_every_admin_page_renders():
+    """Reaching a page is not the same as it working. A refactor can leave a
+    helper behind and only the render shows it -- this is how the client
+    profile page was caught 500ing after build_whatsapp_link moved without its
+    lookup table."""
+    c = client_as(ADMIN, "admin")
+    broken = []
+    for p in ADMIN_ONLY + [f"/admin/users/{CLIENT}", f"/admin/users/{CLIENT}/payments",
+                           "/admin/requests", "/admin/notifications",
+                           "/admin/notifications/count", "/admin/users/export"]:
+        r = c.get(p)
+        if r.status_code not in (200, 302):
+            broken.append((p, r.status_code))
+    assert not broken, f"admin pages returning an error: {broken}"
+
+
+def test_staff_pages_render_for_a_nutritionist():
+    c = client_as(NUTRI, "nutritionist")
+    broken = [(p, c.get(p).status_code) for p in STAFF_ONLY
+              if c.get(p).status_code not in (200, 302)]
+    assert not broken, f"staff pages returning an error: {broken}"
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):
