@@ -128,7 +128,7 @@ from meal_database import (
     get_meal_pool, get_snacks_for_goal, filter_by_conditions,
     get_diet_plan_info, DIET_PLAN_TYPES,
     WEIGHT_LOSS, MUSCLE_GAIN, BULKING, MAINTENANCE,
-    get_nutrient_boost_notes
+    get_nutrient_boost_notes, translate_boost_note
 )
 from meal_i18n import translate_meal, translate_guidance
 import food_data
@@ -3178,7 +3178,13 @@ def build_pdf(data, plan=None):
     allergies_data = data.get("allergies", [])
     if allergies_data: notes_parts.append(_L("حساسية: ", "Allergies: ") + " - ".join(allergies_data))
     if data.get("disliked_foods"): notes_parts.append(_L("لا يأكل: ", "Does not eat: ") + data.get("disliked_foods"))
-    if data.get("notes"): notes_parts.append(data.get("notes"))
+    if data.get("notes"):
+        # guidance notes are stored in Arabic; render them in the reader's language
+        _n = data.get("notes")
+        if not _pdf_ar:
+            _n = " | ".join(translate_boost_note(part.strip())
+                            for part in _n.split("|"))
+        notes_parts.append(_n)
     clinical_notes = " | ".join(notes_parts) if notes_parts else _L("لا توجد ملاحظات", "No notes")
     uid = session.get("uid", 0)
     file_num = f"NX-{dt.datetime.now().year}-{uid:03d}"

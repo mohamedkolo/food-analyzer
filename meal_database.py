@@ -102,14 +102,59 @@ SAFE_ALTERNATIVES = {
 # ═══════════════════════════════════════════════
 
 NUTRIENT_BOOST_NOTES = {
-    "هشاشة العظام": "🦴 هشاشة العظام: أكد على مصادر الكالسيوم (ألبان، سمك بعظمه كالسردين، خضار ورقية داكنة) وفيتامين D يومياً، وشجّع تمارين تحمل وزن، وقلل الصوديوم الزائد والكافيين الزائد.",
-    "نقص الحديد": "🩸 نقص الحديد: أكد على مصادر الحديد (لحوم حمراء، كبدة، عدس، سبانخ) مع فيتامين C بنفس الوجبة لتحسين الامتصاص، وابعد الشاي/القهوة وقت الأكل مباشرة.",
-    "الوقاية من السرطان": "🎗️ الوقاية من السرطان: أكد على 5 حصص أو أكتر خضار وفاكهة يومياً، حبوب كاملة بدل المكررة، وقلل اللحوم المصنعة والمملحة والمشوية على نار مباشرة بكثرة.",
+    "هشاشة العظام": (
+        "🦴 هشاشة العظام: أكد على مصادر الكالسيوم (ألبان، سمك بعظمه كالسردين، خضار ورقية داكنة) وفيتامين D يومياً، وشجّع تمارين تحمل وزن، وقلل الصوديوم الزائد والكافيين الزائد.",
+        "🦴 Osteoporosis: emphasise calcium (dairy, bone-in fish such as sardines, dark leafy greens) and daily vitamin D, encourage weight-bearing exercise, and cut back on excess sodium and caffeine."),
+    "نقص الحديد": (
+        "🩸 نقص الحديد: أكد على مصادر الحديد (لحوم حمراء، كبدة، عدس، سبانخ) مع فيتامين C بنفس الوجبة لتحسين الامتصاص، وابعد الشاي/القهوة وقت الأكل مباشرة.",
+        "🩸 Iron deficiency: emphasise iron sources (red meat, liver, lentils, spinach) with vitamin C in the same meal to aid absorption, and keep tea and coffee away from mealtimes."),
+    "الوقاية من السرطان": (
+        "🎗️ الوقاية من السرطان: أكد على 5 حصص أو أكتر خضار وفاكهة يومياً، حبوب كاملة بدل المكررة، وقلل اللحوم المصنعة والمملحة والمشوية على نار مباشرة بكثرة.",
+        "🎗️ Cancer risk reduction: aim for 5+ servings of vegetables and fruit a day and wholegrains over refined, and cut back on processed, heavily salted and flame-grilled meat."),
+    "السمنة": (
+        "⚖️ السمنة: عجز سعري معتدل ومستمر أفضل من الحرمان، مع بروتين كافي في كل وجبة للحفاظ على الكتلة العضلية، وألياف وخضار لزيادة الشبع، ونشاط يومي حتى لو مشي.",
+        "⚖️ Obesity: a moderate, sustainable calorie deficit beats severe restriction. Keep protein adequate at every meal to protect muscle, use fibre and vegetables for satiety, and stay active daily even if only walking."),
+    "نقص فيتامين D3": (
+        "☀️ نقص فيتامين D: أكد على الأسماك الدهنية (سلمون، سردين، ماكريل)، صفار البيض والمنتجات المدعّمة، مع تعرض معتدل للشمس. النقص الشديد غالباً يحتاج مكمل بجرعة من الطبيب.",
+        "☀️ Vitamin D deficiency: emphasise oily fish (salmon, sardines, mackerel), egg yolk and fortified products, alongside moderate sun exposure. Marked deficiency usually needs a supplement dosed by a doctor."),
+    "حرق بطيء": (
+        "🔥 الحرق البطيء: راجع الغدة الدرقية مع الطبيب أولاً. غذائياً: بروتين كافي (أثره الحراري أعلى)، مقاومة بالأوزان للحفاظ على العضلات، ونوم كافي — العجز السعري المبالغ فيه بيبطّئ الحرق أكتر.",
+        "🔥 Slow metabolism: have thyroid function checked first. Nutritionally: adequate protein (it has the highest thermic effect), resistance training to protect muscle, and enough sleep — an excessive deficit slows metabolism further."),
+    "امساك مزمن": (
+        "🌾 الإمساك المزمن: زوّد الألياف بالتدريج (خضار، فاكهة بقشرها، شوفان، بقوليات) مع مياه كافية — الألياف من غير مياه بتزوّد المشكلة. حركة يومية وانتظام مواعيد الأكل بيساعدوا.",
+        "🌾 Chronic constipation: increase fibre gradually (vegetables, fruit with the skin on, oats, legumes) alongside enough water — fibre without fluid makes it worse. Daily movement and regular mealtimes both help."),
+    "اضطراب في الأكل": (
+        "💛 اضطراب الأكل: الحالة دي محتاجة فريق علاجي (طبيب نفسي + أخصائي تغذية إكلينيكي) والخطة لازم تتبني معاهم. تجنّب أهداف السعرات الصارمة، الوزن المتكرر، ولغة «ممنوع/مسموح» — التركيز على انتظام الوجبات والتعافي مش على التقييد.",
+        "💛 Eating disorder: this needs a treating team (psychiatrist and clinical dietitian) and the plan should be built with them. Avoid strict calorie targets, frequent weigh-ins, and 'allowed/forbidden' framing — the focus is regular meals and recovery, not restriction."),
 }
 
-def get_nutrient_boost_notes(symptoms):
-    """بيرجّع قايمة ملاحظات تغذوية إضافية للحالات اللي مالهاش أكل ممنوع محدد (زي هشاشة العظام ونقص الحديد)."""
-    return [NUTRIENT_BOOST_NOTES[s] for s in (symptoms or []) if s in NUTRIENT_BOOST_NOTES]
+
+def translate_boost_note(note_ar):
+    """The English of a stored guidance note, or the Arabic if it is not one.
+
+    The notes are written into the plan in Arabic at generation time, when the
+    reader's language is not yet known, so display has to map back.
+    """
+    for pair in NUTRIENT_BOOST_NOTES.values():
+        if isinstance(pair, tuple) and pair[0] == note_ar:
+            return pair[1]
+    return note_ar
+
+
+def get_nutrient_boost_notes(symptoms, lang="ar"):
+    """Guidance for the conditions that have no outright food bans.
+
+    These conditions are offered in the plan forms, so ticking one has to
+    change something the patient can see. They do not filter meals -- they
+    ride along with the plan as notes.
+    """
+    idx = 0 if lang == "ar" else 1
+    out = []
+    for s in (symptoms or []):
+        note = NUTRIENT_BOOST_NOTES.get(s)
+        if note:
+            out.append(note[idx] if isinstance(note, tuple) else note)
+    return out
 
 # ═══════════════════════════════════════════════
 # 🥗 تخسيس (Weight Loss) - 5 مطابخ

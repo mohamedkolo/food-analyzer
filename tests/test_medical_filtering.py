@@ -3,12 +3,12 @@
 
 Run with:  python3 -m pytest tests/ -q      (or just: python3 tests/test_medical_filtering.py)
 
-These lock in two fixes:
+These lock in three fixes:
 
 MED-1  A meal blocked by one condition used to be swapped for an alternative
        taken from the patient's FIRST condition, not the one that blocked it,
        and nothing checked the replacement against the patient's other
-       conditions. 42 two-condition combinations produced a replacement that
+       conditions. 32 of the 102 two-condition combinations produced a replacement that
        was unsafe -- a celiac patient handed wheat bread, a diabetic handed
        white rice.
 
@@ -16,6 +16,9 @@ MED-2  Bans are matched as Arabic substrings, so "ارز ابيض" was caught an
        "أرز أبيض" was not. No meal in the database was spelled the escaping
        way, so nothing was harmed yet -- but the next meal someone typed with
        a hamza would have walked past a diabetic's ban silently.
+
+MED-3  Eight of the 23 conditions the plan forms offer changed nothing at
+       all -- no filtering, no guidance. Ticking them was decorative.
 """
 
 import itertools
@@ -146,6 +149,40 @@ def test_safe_food_is_not_banned_by_normalisation():
     """Folding must not make unrelated foods collide."""
     assert not md._contains_unsafe("🥗 سلطة خضراء + 🥒 خيار", "سكري")
     assert not md._contains_unsafe("🍗 صدر دجاج مشوي 150جم", "سكري")
+
+
+# ── MED-3 ────────────────────────────────────────────────────────────────────
+# Every condition the plan forms offer has to change something the patient can
+# see. Eight of them filtered nothing and carried no guidance, so ticking them
+# was purely decorative.
+
+FORM_CONDITIONS_ALL = FORM_CONDITIONS + [
+    "السمنة", "نقص الحديد", "نقص فيتامين D3", "حرق بطيء", "امساك مزمن",
+    "اضطراب في الأكل", "هشاشة العظام", "الوقاية من السرطان",
+]
+
+
+def test_every_offered_condition_does_something():
+    """Either it filters meals, or it contributes a guidance note."""
+    silent = []
+    for c in FORM_CONDITIONS_ALL:
+        filters = c in CONDITION_KEYS
+        guides = bool(md.get_nutrient_boost_notes([c]))
+        if not filters and not guides:
+            silent.append(c)
+    assert not silent, f"these conditions change nothing at all: {silent}"
+
+
+def test_guidance_notes_are_bilingual():
+    for c, pair in md.NUTRIENT_BOOST_NOTES.items():
+        assert isinstance(pair, tuple) and len(pair) == 2, f"{c} is not bilingual"
+        ar, en = pair
+        assert ar.strip() and en.strip(), f"{c} has an empty side"
+        assert md.translate_boost_note(ar) == en, f"{c} does not map back to English"
+
+
+def test_free_text_notes_pass_through_untouched():
+    assert md.translate_boost_note("ملاحظة من الدكتور") == "ملاحظة من الدكتور"
 
 
 if __name__ == "__main__":
