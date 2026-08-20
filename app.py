@@ -324,6 +324,19 @@ def t(ar, en):
     except Exception:
         return ar
 
+def log_error(where, exc, critical=False):
+    """Record a caught exception instead of losing it.
+
+    app.py catches a lot, and most of those handlers are correct fallbacks.
+    The dangerous ones are where a failure changes what a patient is served or
+    whether their data is saved -- those go through here so the failure shows
+    up in the Render logs instead of running wrong in silence. Grep for
+    NUTRAX-ERROR (or NUTRAX-CRITICAL) to find them.
+    """
+    tag = "NUTRAX-CRITICAL" if critical else "NUTRAX-ERROR"
+    print(f"[{tag}] {where}: {type(exc).__name__}: {exc}", flush=True)
+
+
 def cur_lang():
     """The session language, or Arabic outside a request (background threads)."""
     try:
@@ -2360,8 +2373,11 @@ def _filtered_meals(data, pool_key, culture=None):
             pass
     try:
         meals = filter_by_conditions(meals, symptoms) or meals
-    except Exception:
-        pass
+    except Exception as e:
+        # Falling through here hands a patient with medical conditions the
+        # unfiltered list -- exactly the food the ban exists to prevent. It
+        # must never pass unnoticed.
+        log_error(f"safety filtering failed for symptoms={symptoms!r}", e, critical=True)
     meals = filter_meals_by_exclusions(meals, exclusions) or meals
     if diet_type == "keto":
         meals = filter_carbs(meals, True) or meals
@@ -2684,8 +2700,12 @@ def admin_block_user(uid):
 
     try:
         db_run("INSERT INTO blocked_users (email, reason) VALUES (?,?)", (user["email"].lower(), reason))
-    except:
-        pass
+    except Exception as e:
+        # Blocking the same email twice lands here and is harmless. Anything
+        # else means the account gets deactivated below without making it onto
+        # the block list, so the person could sign up again with that email --
+        # worth seeing in the logs rather than losing.
+        log_error(f"blocked_users insert for {user['email'].lower()!r}", e)
 
     db_run("UPDATE users SET active=0 WHERE id=?", (uid,))
     return redirect("/admin/users")
