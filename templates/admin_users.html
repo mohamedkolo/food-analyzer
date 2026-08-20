@@ -30,7 +30,7 @@
   }
 
   .add-btn {
-    background: linear-gradient(135deg, #1e4a3d, #1e4a3d);
+    background: linear-gradient(135deg, #1B6E80, #1B6E80);
     color: #fff;
     padding: 10px 20px;
     border-radius: 10px;
@@ -54,7 +54,7 @@
     border-radius: 14px;
     padding: 16px 18px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border: 1px solid #f5f1e8;
+    border: 1px solid #E9F2F6;
     position: relative;
     overflow: hidden;
   }
@@ -73,7 +73,7 @@
   }
   .filter-input {
     padding: 10px 14px;
-    border: 1px solid #e7e0d0;
+    border: 1px solid #D3E3EA;
     border-radius: 10px;
     font-family: inherit;
     font-size: 14px;
@@ -83,12 +83,12 @@
   }
   .filter-input:focus {
     outline: none;
-    border-color: #1e4a3d;
+    border-color: #1B6E80;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   }
   .filter-select {
     padding: 10px 14px;
-    border: 1px solid #e7e0d0;
+    border: 1px solid #D3E3EA;
     border-radius: 10px;
     font-family: inherit;
     font-size: 14px;
@@ -102,27 +102,27 @@
     border-radius: 16px;
     overflow-x: auto;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-    border: 1px solid #f5f1e8;
+    border: 1px solid #E9F2F6;
   }
 
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  thead { background: #faf8f3; }
+  thead { background: #F4F9FB; }
   th {
     text-align: right;
     padding: 14px 12px;
     font-weight: 700;
     color: #475569;
     font-size: 13px;
-    border-bottom: 2px solid #e7e0d0;
+    border-bottom: 2px solid #D3E3EA;
     white-space: nowrap;
   }
   td {
     padding: 12px;
-    border-bottom: 1px solid #f5f1e8;
+    border-bottom: 1px solid #E9F2F6;
     color: #0f172a;
     white-space: nowrap;
   }
-  tbody tr:hover { background: #faf8f3; }
+  tbody tr:hover { background: #F4F9FB; }
 
   /* User cell */
   .user-cell {
@@ -134,7 +134,7 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #1e4a3d, #1e4a3d);
+    background: linear-gradient(135deg, #1B6E80, #1B6E80);
     color: #fff;
     display: flex;
     align-items: center;
@@ -149,16 +149,16 @@
     font-weight: 700;
     transition: color 0.2s;
   }
-  .user-name-link:hover { color: #1e4a3d; }
+  .user-name-link:hover { color: #1B6E80; }
   .user-email-sm { font-size: 12px; color: #94a3b8; }
 
   /* Badges */
   .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
-  .b-success { background: #ede7d8; color: #14332b; }
-  .b-info { background: #f0ead9; color: #14332b; }
+  .b-success { background: #DDEBF1; color: #0F2A43; }
+  .b-info { background: #E4F0F4; color: #0F2A43; }
   .b-warn { background: #fef3c7; color: #92400e; }
   .b-danger { background: #fee2e2; color: #991b1b; }
-  .b-gray { background: #f5f1e8; color: #475569; }
+  .b-gray { background: #E9F2F6; color: #475569; }
   .b-purple { background: #ede9fe; color: #5b21b6; }
 
   /* Actions */
@@ -172,7 +172,7 @@
     height: 32px;
     border-radius: 8px;
     border: 0;
-    background: #f5f1e8;
+    background: #E9F2F6;
     color: #475569;
     cursor: pointer;
     font-size: 14px;
@@ -182,9 +182,9 @@
     text-decoration: none;
     transition: all 0.2s;
   }
-  .act-icon-btn:hover { background: #e7e0d0; transform: translateY(-1px); }
-  .act-view { background: #ede7d8; color: #14332b; }
-  .act-view:hover { background: #d9cfb4; }
+  .act-icon-btn:hover { background: #D3E3EA; transform: translateY(-1px); }
+  .act-view { background: #DDEBF1; color: #0F2A43; }
+  .act-view:hover { background: #B4D0DA; }
   .act-toggle { background: #fef3c7; color: #92400e; }
   .act-block { background: #fee2e2; color: #991b1b; }
   .act-delete { background: #fee2e2; color: #991b1b; }
@@ -212,12 +212,12 @@
 
   <!-- Quick Stats -->
   <div class="quick-stats">
-    <div class="qstat" style="--c: #1e4a3d">
+    <div class="qstat" style="--c: #1B6E80">
       <div class="qstat-icon">👥</div>
       <div class="qstat-val">{{ users|length }}</div>
       <div class="qstat-lbl">{{ t('إجمالي المستخدمين','Total Users') }}</div>
     </div>
-    <div class="qstat" style="--c: #2c5a4a">
+    <div class="qstat" style="--c: #2E8F9E">
       <div class="qstat-icon">✅</div>
       <div class="qstat-val">{{ users|selectattr('active', 'eq', 1)|list|length }}</div>
       <div class="qstat-lbl">{{ t('حسابات نشطة','Active Accounts') }}</div>
@@ -249,7 +249,7 @@
       <option value="blocked">{{ t('محظور','Blocked') }}</option>
     </select>
     <a href="/admin/users/export"
-       style="display:inline-flex;align-items:center;gap:6px;background:#14332b;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;white-space:nowrap;">
+       style="display:inline-flex;align-items:center;gap:6px;background:#0F2A43;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;white-space:nowrap;">
       📥 {{ t('تصدير Excel','Export Excel') }}
     </a>
   </div>
@@ -326,7 +326,7 @@
 
               <!-- Change role dropdown via select -->
               <select onchange="if(this.value){window.location.href='/admin/users/{{ u.id }}/role/'+this.value}"
-                      style="padding: 5px 8px; border-radius: 7px; border: 1px solid #e7e0d0; font-size: 12px; background: #fff;">
+                      style="padding: 5px 8px; border-radius: 7px; border: 1px solid #D3E3EA; font-size: 12px; background: #fff;">
                 <option value="">📝 {{ t('دور','Role') }}</option>
                 <option value="client">{{ t('عميل','Client') }}</option>
                 <option value="nutritionist">{{ t('أخصائي','Nutritionist') }}</option>

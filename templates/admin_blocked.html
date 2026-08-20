@@ -42,7 +42,7 @@
     </div>
     <form method="POST" action="/admin/blocked/{{ b.id }}/remove" onsubmit="return confirm('{{ 'فك الحظر عن هذا الإيميل؟' if is_ar else 'Unblock this email?' }}');" style="margin:0">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit" class="btn" style="background:#1e4a3d;color:white;font-size:12px;padding:7px 14px">
+      <button type="submit" class="btn" style="background:#1B6E80;color:white;font-size:12px;padding:7px 14px">
         <i class="fa-solid fa-unlock"></i> {{ 'فك الحظر' if is_ar else 'Unblock' }}
       </button>
     </form>

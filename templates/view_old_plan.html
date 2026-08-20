@@ -23,11 +23,11 @@
     gap: 6px;
     transition: color 0.2s;
   }
-  .back-link:hover { color: #1e4a3d; }
+  .back-link:hover { color: #1B6E80; }
 
   /* Header card */
   .plan-header {
-    background: linear-gradient(135deg, #1e4a3d, #1e4a3d);
+    background: linear-gradient(135deg, #1B6E80, #1B6E80);
     color: #fff;
     border-radius: 20px;
     padding: 28px 24px;
@@ -68,8 +68,8 @@
     cursor: pointer;
   }
   .h-btn:hover { background: rgba(255, 255, 255, 0.3); }
-  .h-btn-primary { background: #fff; color: #1e4a3d; border-color: #fff; }
-  .h-btn-primary:hover { background: #faf8f3; }
+  .h-btn-primary { background: #fff; color: #1B6E80; border-color: #fff; }
+  .h-btn-primary:hover { background: #F4F9FB; }
 
   /* Snapshot section */
   .snapshot {
@@ -78,7 +78,7 @@
     padding: 20px;
     margin-bottom: 16px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border: 1px solid #f5f1e8;
+    border: 1px solid #E9F2F6;
   }
   .snapshot-title {
     font-size: 17px;
@@ -97,7 +97,7 @@
   }
   .snap-item {
     padding: 12px;
-    background: #faf8f3;
+    background: #F4F9FB;
     border-radius: 10px;
     text-align: center;
   }
@@ -107,7 +107,7 @@
   .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .tag {
     padding: 5px 12px;
-    background: #f5f1e8;
+    background: #E9F2F6;
     color: #475569;
     border-radius: 999px;
     font-size: 13px;
@@ -122,15 +122,15 @@
     border-radius: 16px;
     padding: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border: 1px solid #f5f1e8;
+    border: 1px solid #E9F2F6;
   }
 
   .day-card {
-    background: #faf8f3;
+    background: #F4F9FB;
     border-radius: 14px;
     padding: 18px;
     margin-bottom: 12px;
-    border: 1px solid #e7e0d0;
+    border: 1px solid #D3E3EA;
   }
 
   .day-head {
@@ -139,7 +139,7 @@
     align-items: center;
     margin-bottom: 14px;
     padding-bottom: 10px;
-    border-bottom: 2px solid #e7e0d0;
+    border-bottom: 2px solid #D3E3EA;
   }
   .day-name {
     font-size: 18px;
@@ -147,8 +147,8 @@
     color: #0f172a;
   }
   .day-cals {
-    background: #ede7d8;
-    color: #14332b;
+    background: #DDEBF1;
+    color: #0F2A43;
     padding: 6px 14px;
     border-radius: 999px;
     font-size: 13px;
@@ -161,7 +161,7 @@
     gap: 12px;
     padding: 10px 0;
     align-items: center;
-    border-bottom: 1px dashed #e7e0d0;
+    border-bottom: 1px dashed #D3E3EA;
   }
   .meal-row:last-child { border-bottom: 0; }
   .meal-label {
@@ -275,8 +275,8 @@
     {% endif %}
 
     {% if plan_data.get('notes') %}
-    <div style="margin-top: 12px; padding: 12px; background: #faf8f3; border-radius: 10px; border-right: 4px solid #1e4a3d;">
-      <strong style="color: #14332b; font-size: 13px;">📝 {{ t('ملاحظات:','Notes:') }}</strong>
+    <div style="margin-top: 12px; padding: 12px; background: #F4F9FB; border-radius: 10px; border-right: 4px solid #1B6E80;">
+      <strong style="color: #0F2A43; font-size: 13px;">📝 {{ t('ملاحظات:','Notes:') }}</strong>
       <p style="margin: 6px 0 0; color: #0f172a; font-size: 14px;">{{ plan_data.get('notes') }}</p>
     </div>
     {% endif %}

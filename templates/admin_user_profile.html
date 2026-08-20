@@ -35,11 +35,11 @@ const MSG = {
     gap: 6px;
     transition: color 0.2s;
   }
-  .back-link:hover { color: #1e4a3d; }
+  .back-link:hover { color: #1B6E80; }
 
   /* User header */
   .user-head {
-    background: linear-gradient(135deg, #1e4a3d, #1e4a3d);
+    background: linear-gradient(135deg, #1B6E80, #1B6E80);
     color: #fff;
     border-radius: 20px;
     padding: 28px 24px;
@@ -99,7 +99,7 @@ const MSG = {
     padding: 16px;
     text-align: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border: 1px solid #f5f1e8;
+    border: 1px solid #E9F2F6;
   }
   .qstat-icon { font-size: 24px; margin-bottom: 6px; }
   .qstat-val { font-size: 22px; font-weight: 800; color: #0f172a; line-height: 1; }
@@ -112,7 +112,7 @@ const MSG = {
     padding: 22px;
     margin-bottom: 16px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border: 1px solid #f5f1e8;
+    border: 1px solid #E9F2F6;
   }
   .section-title {
     font-size: 18px;
@@ -123,7 +123,7 @@ const MSG = {
     align-items: center;
     gap: 8px;
     padding-bottom: 12px;
-    border-bottom: 2px solid #f5f1e8;
+    border-bottom: 2px solid #E9F2F6;
   }
 
   .info-grid {
@@ -133,7 +133,7 @@ const MSG = {
   }
   .info-item {
     padding: 10px 12px;
-    background: #faf8f3;
+    background: #F4F9FB;
     border-radius: 10px;
   }
   .info-lbl { font-size: 12px; color: #94a3b8; font-weight: 600; margin-bottom: 2px; }
@@ -143,7 +143,7 @@ const MSG = {
   .tags { display: flex; flex-wrap: wrap; gap: 6px; }
   .tag {
     padding: 5px 12px;
-    background: #f5f1e8;
+    background: #E9F2F6;
     color: #475569;
     border-radius: 999px;
     font-size: 13px;
@@ -151,7 +151,7 @@ const MSG = {
   }
   .tag-medical { background: #fee2e2; color: #991b1b; }
   .tag-allergy { background: #fef3c7; color: #92400e; }
-  .tag-liked { background: #ede7d8; color: #14332b; }
+  .tag-liked { background: #DDEBF1; color: #0F2A43; }
   .tag-disliked { background: #e0e7ff; color: #3730a3; }
 
   /* Subscription card */
@@ -160,25 +160,25 @@ const MSG = {
     padding: 18px;
     margin-bottom: 12px;
   }
-  .sub-active { background: linear-gradient(135deg, #ede7d8, #faf8f3); border: 2px solid #1e4a3d; }
-  .sub-trial { background: linear-gradient(135deg, #f0ead9, #faf8f3); border: 2px solid #2c5a4a; }
+  .sub-active { background: linear-gradient(135deg, #DDEBF1, #F4F9FB); border: 2px solid #1B6E80; }
+  .sub-trial { background: linear-gradient(135deg, #E4F0F4, #F4F9FB); border: 2px solid #2E8F9E; }
   .sub-none { background: #fef3c7; border: 2px solid #f59e0b; }
   .sub-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
   .sub-row strong { color: #0f172a; font-weight: 700; }
 
   /* Tables */
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th { text-align: start; padding: 10px 12px; background: #faf8f3; font-weight: 700; color: #475569; font-size: 13px; border-bottom: 1px solid #e7e0d0; }
-  td { padding: 10px 12px; border-bottom: 1px solid #f5f1e8; color: #0f172a; }
-  tbody tr:hover { background: #faf8f3; }
+  th { text-align: start; padding: 10px 12px; background: #F4F9FB; font-weight: 700; color: #475569; font-size: 13px; border-bottom: 1px solid #D3E3EA; }
+  td { padding: 10px 12px; border-bottom: 1px solid #E9F2F6; color: #0f172a; }
+  tbody tr:hover { background: #F4F9FB; }
 
   /* Badges */
   .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
-  .b-success { background: #ede7d8; color: #14332b; }
-  .b-info { background: #f0ead9; color: #14332b; }
+  .b-success { background: #DDEBF1; color: #0F2A43; }
+  .b-info { background: #E4F0F4; color: #0F2A43; }
   .b-warn { background: #fef3c7; color: #92400e; }
   .b-danger { background: #fee2e2; color: #991b1b; }
-  .b-gray { background: #f5f1e8; color: #475569; }
+  .b-gray { background: #E9F2F6; color: #475569; }
 
   /* Action buttons */
   .actions-grid {
@@ -199,20 +199,20 @@ const MSG = {
     text-align: center;
     transition: all 0.2s;
   }
-  .act-primary { background: #1e4a3d; color: #fff; }
-  .act-primary:hover { background: #1e4a3d; }
+  .act-primary { background: #1B6E80; color: #fff; }
+  .act-primary:hover { background: #1B6E80; }
   .act-warning { background: #f59e0b; color: #fff; }
   .act-warning:hover { background: #d97706; }
   .act-danger { background: #ef4444; color: #fff; }
   .act-danger:hover { background: #dc2626; }
-  .act-secondary { background: #f5f1e8; color: #475569; }
-  .act-secondary:hover { background: #e7e0d0; }
+  .act-secondary { background: #E9F2F6; color: #475569; }
+  .act-secondary:hover { background: #D3E3EA; }
 
   /* Forms */
   .inline-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .inline-form input, .inline-form select, .inline-form textarea {
     padding: 8px 12px;
-    border: 1px solid #e7e0d0;
+    border: 1px solid #D3E3EA;
     border-radius: 8px;
     font-family: inherit;
     font-size: 14px;
@@ -221,7 +221,7 @@ const MSG = {
   }
   .inline-form input:focus, .inline-form select:focus, .inline-form textarea:focus {
     outline: none;
-    border-color: #1e4a3d;
+    border-color: #1B6E80;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   }
 
@@ -232,13 +232,13 @@ const MSG = {
     gap: 10px;
   }
   .plan-mini {
-    background: #faf8f3;
+    background: #F4F9FB;
     border-radius: 12px;
     padding: 14px;
-    border: 1px solid #e7e0d0;
+    border: 1px solid #D3E3EA;
     transition: all 0.2s;
   }
-  .plan-mini:hover { border-color: #1e4a3d; }
+  .plan-mini:hover { border-color: #1B6E80; }
   .plan-mini-head { display: flex; justify-content: space-between; margin-bottom: 8px; }
   .plan-mini-title { font-weight: 700; color: #0f172a; font-size: 14px; }
   .plan-mini-date { color: #94a3b8; font-size: 12px; margin-bottom: 8px; }
@@ -365,10 +365,10 @@ const MSG = {
     </div>
 
     <!-- ═══════════ Manual Activation Form ═══════════ -->
-    <div id="manualActivateBox" style="display:none; margin-top: 16px; padding: 20px; background: linear-gradient(135deg, #faf8f3, #faf8f3); border: 2px solid #1e4a3d; border-radius: 14px;">
-      <h3 style="margin: 0 0 12px; color: #14332b; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+    <div id="manualActivateBox" style="display:none; margin-top: 16px; padding: 20px; background: linear-gradient(135deg, #F4F9FB, #F4F9FB); border: 2px solid #1B6E80; border-radius: 14px;">
+      <h3 style="margin: 0 0 12px; color: #0F2A43; font-weight: 800; display: flex; align-items: center; gap: 8px;">
         💰 {{ t('تفعيل اشتراك مدفوع للعميل','Activate a paid subscription for this client') }}
-        <span style="font-size: 12px; font-weight: 600; background: #ede7d8; padding: 3px 10px; border-radius: 999px;">{{ t('بعد ما العميل يدفع','after the client has paid') }}</span>
+        <span style="font-size: 12px; font-weight: 600; background: #DDEBF1; padding: 3px 10px; border-radius: 999px;">{{ t('بعد ما العميل يدفع','after the client has paid') }}</span>
       </h3>
 
       <form method="POST" action="/admin/users/{{ user.id }}/manual-activate">
@@ -378,7 +378,7 @@ const MSG = {
           <div class="info-item">
             <div class="info-lbl">{{ t('نوع الخطة','Plan type') }} <span style="color:#dc2626">*</span></div>
             <select name="plan_key" required
-                    style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
+                    style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
               <option value="">{{ t('اختار','Select') }}</option>
               <option value="consultation">💬 {{ t('استشارة فردية (24 ساعة)','Single consultation (24 hours)') }}</option>
               <option value="single_plan">📋 {{ t('خطة واحدة (7 أيام متابعة)','Single plan (7 days follow-up)') }}</option>
@@ -390,13 +390,13 @@ const MSG = {
             <div class="info-lbl">{{ t('المبلغ المدفوع','Amount paid') }} <span style="color:#dc2626">*</span></div>
             <input type="number" name="amount" step="0.01" min="0" required
                    placeholder="{{ t('مثال: 599','e.g. 1000') }}"
-                   style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
+                   style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
 
           <div class="info-item">
             <div class="info-lbl">{{ t('العملة','Currency') }}</div>
             <select name="currency"
-                    style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px;">
+                    style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px;">
               <option value="EGP" selected>🇪🇬 EGP</option>
               <option value="AED">🇦🇪 AED</option>
               <option value="SAR">🇸🇦 SAR</option>
@@ -407,7 +407,7 @@ const MSG = {
           <div class="info-item">
             <div class="info-lbl">{{ t('طريقة الدفع','Payment method') }}</div>
             <select name="payment_method"
-                    style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px;">
+                    style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px;">
               <option value="vodafone_cash">📱 {{ t('فودافون كاش','Vodafone Cash') }}</option>
               <option value="instapay">⚡ InstaPay</option>
               <option value="bank_transfer_eg">🏦 {{ t('تحويل بنكي مصري','Egyptian bank transfer') }}</option>
@@ -422,7 +422,7 @@ const MSG = {
           <div class="info-lbl">{{ t('ملاحظات (اختياري)','Notes (optional)') }}</div>
           <input type="text" name="notes"
                  placeholder="{{ t('مثال: رقم العملية في فودافون كاش، تاريخ التحويل، إلخ...','e.g. Vodafone Cash transaction number, transfer date, etc.') }}"
-                 style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
+                 style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
         </div>
 
         <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 13px; color: #9a3412;">
@@ -498,38 +498,38 @@ const MSG = {
 
       <!-- 👤 {{ t('معلومات شخصية','Personal information') }} -->
       <div style="margin-bottom: 22px;">
-        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #1e4a3d;">
+        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #1B6E80;">
           👤 {{ t('معلومات شخصية','Personal information') }}
         </h3>
         <div class="info-grid">
           <div class="info-item">
             <div class="info-lbl">{{ t('الاسم','Name') }}</div>
             <input type="text" name="name" value="{{ user.name or '' }}" required
-                   style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
+                   style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('الإيميل','Email') }}</div>
             <input type="email" name="email" value="{{ user.email or '' }}" required
-                   style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
+                   style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('التليفون','Phone') }}</div>
             <input type="text" name="phone" value="{{ user.phone or '' }}"
-                   style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
+                   style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('البلد','Country') }}</div>
             <input type="text" name="country" value="{{ user.country or '' }}"
-                   style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
+                   style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('العمر','Age') }}</div>
             <input type="number" name="age" value="{{ user.age or '' }}" min="10" max="100"
-                   style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
+                   style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('الجنس','Gender') }}</div>
-            <select name="gender" style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px; font-family:inherit;">
+            <select name="gender" style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
               <option value="">-</option>
               <option value="ذكر" {% if user.gender == 'ذكر' %}selected{% endif %}>{{ t('ذكر','Male') }}</option>
               <option value="أنثى" {% if user.gender == 'أنثى' %}selected{% endif %}>{{ t('أنثى','Female') }}</option>
@@ -540,23 +540,23 @@ const MSG = {
 
       <!-- 📏 {{ t('القياسات والهدف','Measurements and goal') }} -->
       <div style="margin-bottom: 22px;">
-        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #2c5a4a;">
+        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #2E8F9E;">
           📏 {{ t('القياسات والهدف','Measurements and goal') }}
         </h3>
         <div class="info-grid">
           <div class="info-item">
             <div class="info-lbl">{{ t('الوزن','Weight') }} (kg)</div>
             <input type="number" step="0.1" name="weight" value="{{ user.weight or '' }}"
-                   style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px;">
+                   style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px;">
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('الطول','Height') }} (cm)</div>
             <input type="number" step="0.5" name="height" value="{{ user.height or '' }}"
-                   style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px;">
+                   style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px;">
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('الهدف','Goal') }}</div>
-            <select name="goal" style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px;">
+            <select name="goal" style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px;">
               <option value="weight_loss" {% if user.goal == 'weight_loss' %}selected{% endif %}>{{ t('تخسيس','Weight Loss') }}</option>
               <option value="muscle_gain" {% if user.goal == 'muscle_gain' %}selected{% endif %}>{{ t('زيادة عضل','Muscle Gain') }}</option>
               <option value="bulking" {% if user.goal == 'bulking' %}selected{% endif %}>{{ t('تضخيم','Bulking') }}</option>
@@ -565,7 +565,7 @@ const MSG = {
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('مستوى النشاط','Activity level') }}</div>
-            <select name="activity" style="width:100%; padding:8px 12px; border:1px solid #e7e0d0; border-radius:8px; margin-top:4px;">
+            <select name="activity" style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px;">
               <option value="1.2" {% if user.activity == 1.2 %}selected{% endif %}>{{ t('قليل','Sedentary') }}</option>
               <option value="1.375" {% if user.activity == 1.375 %}selected{% endif %}>{{ t('خفيف','Light') }}</option>
               <option value="1.55" {% if user.activity == 1.55 %}selected{% endif %}>{{ t('متوسط','Moderate') }}</option>
@@ -615,13 +615,13 @@ const MSG = {
         <div class="info-item" style="margin-bottom: 10px;">
           <div class="info-lbl" style="margin-bottom: 6px;">😋 {{ t('أكلات بيحبها (افصل بفاصلة)','Foods they like (comma separated)') }}</div>
           <textarea name="liked_foods_text" placeholder="{{ t('مثال: دجاج، لحمة، بيض، شوفان...','e.g. chicken, red meat, eggs, oats…') }}"
-                    style="width:100%; padding:10px 12px; border:1px solid #e7e0d0; border-radius:8px; font-family:inherit; min-height:60px;">{{ liked_foods|join('، ' if is_ar else ', ') }}</textarea>
+                    style="width:100%; padding:10px 12px; border:1px solid #D3E3EA; border-radius:8px; font-family:inherit; min-height:60px;">{{ liked_foods|join('، ' if is_ar else ', ') }}</textarea>
         </div>
 
         <div class="info-item">
           <div class="info-lbl" style="margin-bottom: 6px;">🚫 {{ t('أكلات مش بيحبها (افصل بفاصلة)','Foods they dislike (comma separated)') }}</div>
           <textarea name="disliked_foods_text" placeholder="{{ t('مثال: كبدة، ملوخية، باميا...','e.g. liver, molokhia, okra…') }}"
-                    style="width:100%; padding:10px 12px; border:1px solid #e7e0d0; border-radius:8px; font-family:inherit; min-height:60px;">{{ disliked_foods|join('، ' if is_ar else ', ') }}</textarea>
+                    style="width:100%; padding:10px 12px; border:1px solid #D3E3EA; border-radius:8px; font-family:inherit; min-height:60px;">{{ disliked_foods|join('، ' if is_ar else ', ') }}</textarea>
         </div>
       </div>
 
@@ -635,7 +635,7 @@ const MSG = {
     .chips-edit { display: flex; flex-wrap: wrap; gap: 6px; }
     .chip-e {
       padding: 6px 14px;
-      background: #f5f1e8;
+      background: #E9F2F6;
       color: #475569;
       border-radius: 999px;
       cursor: pointer;
@@ -645,11 +645,11 @@ const MSG = {
       border: 2px solid transparent;
       user-select: none;
     }
-    .chip-e:hover { background: #e7e0d0; }
+    .chip-e:hover { background: #D3E3EA; }
     .chip-e.selected {
-      background: #ede7d8;
-      color: #14332b;
-      border-color: #1e4a3d;
+      background: #DDEBF1;
+      color: #0F2A43;
+      border-color: #1B6E80;
     }
   </style>
 
@@ -760,7 +760,7 @@ const MSG = {
 
     {% if weight_logs and weight_logs|length > 0 %}
       <!-- Chart -->
-      <div style="background: #faf8f3; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+      <div style="background: #F4F9FB; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
         <canvas id="weightChart" height="80"></canvas>
       </div>
 
@@ -782,7 +782,7 @@ const MSG = {
               <td>
                 {% if w.diff is defined and w.diff is not none %}
                   {% if w.diff > 0 %}<span style="color:#dc2626">▲ +{{ "%.1f"|format(w.diff) }}</span>
-                  {% elif w.diff < 0 %}<span style="color:#1e4a3d">▼ {{ "%.1f"|format(w.diff) }}</span>
+                  {% elif w.diff < 0 %}<span style="color:#1B6E80">▼ {{ "%.1f"|format(w.diff) }}</span>
                   {% else %}<span style="color:#94a3b8">— 0</span>{% endif %}
                 {% else %}<span style="color:#94a3b8">—</span>{% endif %}
               </td>
@@ -818,14 +818,14 @@ const MSG = {
   <div class="section">
     <h2 class="section-title">✅ {{ t('التزام العميل بالخطة','Client adherence to the plan') }}</h2>
     <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:140px;background:#faf8f3;border:1px solid #d9cfb4;border-radius:12px;padding:14px;text-align:center;">
+      <div style="flex:1;min-width:140px;background:#F4F9FB;border:1px solid #B4D0DA;border-radius:12px;padding:14px;text-align:center;">
         <div style="font-size:11.5px;font-weight:700;color:#64748b;">{{ t('النهارده','Today') }} ({{ tracking.day_name }})</div>
-        <div style="font-size:26px;font-weight:900;color:#14332b;">{{ tracking.today_done }}/{{ tracking.today_total }}</div>
+        <div style="font-size:26px;font-weight:900;color:#0F2A43;">{{ tracking.today_done }}/{{ tracking.today_total }}</div>
         <div style="font-size:11px;color:#94a3b8;">{{ t('وجبات متعلّم عليها','meals ticked off') }}</div>
       </div>
-      <div style="flex:1;min-width:140px;background:{% if tracking.week_pct and tracking.week_pct >= 70 %}#faf8f3;border:1px solid #d9cfb4{% elif tracking.week_pct and tracking.week_pct >= 40 %}#fffbeb;border:1px solid #fcd34d{% else %}#fef2f2;border:1px solid #fecaca{% endif %};border-radius:12px;padding:14px;text-align:center;">
+      <div style="flex:1;min-width:140px;background:{% if tracking.week_pct and tracking.week_pct >= 70 %}#F4F9FB;border:1px solid #B4D0DA{% elif tracking.week_pct and tracking.week_pct >= 40 %}#fffbeb;border:1px solid #fcd34d{% else %}#fef2f2;border:1px solid #fecaca{% endif %};border-radius:12px;padding:14px;text-align:center;">
         <div style="font-size:11.5px;font-weight:700;color:#64748b;">{{ t('التزام آخر 7 أيام','Adherence, last 7 days') }}</div>
-        <div style="font-size:26px;font-weight:900;color:#14332b;">{{ tracking.week_pct if tracking.week_pct is not none else '—' }}{% if tracking.week_pct is not none %}%{% endif %}</div>
+        <div style="font-size:26px;font-weight:900;color:#0F2A43;">{{ tracking.week_pct if tracking.week_pct is not none else '—' }}{% if tracking.week_pct is not none %}%{% endif %}</div>
         <div style="font-size:11px;color:#94a3b8;">{% if tracking.week_pct and tracking.week_pct >= 70 %}{{ t('ملتزم ممتاز','Excellent adherence') }} 👏{% elif tracking.week_pct and tracking.week_pct >= 40 %}{{ t('محتاج تشجيع','Needs encouragement') }}{% else %}{{ t('اتواصل معاه','Reach out to them') }}{% endif %}</div>
       </div>
     </div>
@@ -836,7 +836,7 @@ const MSG = {
   <div class="section">
     <h2 class="section-title">🔑 {{ t('إعادة تعيين كلمة السر','Reset password') }}</h2>
     {% if request.args.get('pwreset') == 'ok' %}
-    <div style="background:#f0ead9;color:#14332b;border:1px solid #d9cfb4;padding:10px 14px;border-radius:8px;margin-bottom:10px;">✅ {{ t('تم تغيير كلمة سر العميل بنجاح — بلّغه بيها على واتساب أو الشات.',"The client's password was changed — send it to them on WhatsApp or in the chat.") }}</div>
+    <div style="background:#E4F0F4;color:#0F2A43;border:1px solid #B4D0DA;padding:10px 14px;border-radius:8px;margin-bottom:10px;">✅ {{ t('تم تغيير كلمة سر العميل بنجاح — بلّغه بيها على واتساب أو الشات.',"The client's password was changed — send it to them on WhatsApp or in the chat.") }}</div>
     {% elif request.args.get('pwreset') == 'short' %}
     <div style="background:#fee;color:#8b0000;border:1px solid #fca5a5;padding:10px 14px;border-radius:8px;margin-bottom:10px;">⚠️ {{ t('كلمة السر لازم 6 أحرف على الأقل.','The password must be at least 6 characters.') }}</div>
     {% elif request.args.get('pwreset') == 'err' %}
@@ -846,7 +846,7 @@ const MSG = {
     <form method="POST" action="/admin/users/{{ user.id }}/reset-password" style="display:flex;gap:8px;flex-wrap:wrap;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="text" name="new_password" minlength="6" required placeholder="{{ t('كلمة السر الجديدة (6+ أحرف)','New password (6+ characters)') }}"
-             style="flex:1;min-width:200px;padding:10px 12px;border:1px solid #e7e0d0;border-radius:10px;font-family:inherit;font-size:14px;">
+             style="flex:1;min-width:200px;padding:10px 12px;border:1px solid #D3E3EA;border-radius:10px;font-family:inherit;font-size:14px;">
       <button type="submit" class="act-btn act-primary"
               onclick="return confirm(MSG.resetPw)">🔑 {{ t('تعيين','Set') }}</button>
     </form>
@@ -858,7 +858,7 @@ const MSG = {
     <form method="POST" action="/admin/users/{{ user.id }}/notes">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <textarea name="notes" placeholder="{{ t('اكتب ملاحظاتك عن العميل (ممنوع للعميل يشوفها)...','Write your notes about this client (never shown to them)…') }}"
-                style="width:100%; padding:12px; border:1px solid #e7e0d0; border-radius:10px; font-family:inherit; font-size: 14px;">{{ doctor_notes or '' }}</textarea>
+                style="width:100%; padding:12px; border:1px solid #D3E3EA; border-radius:10px; font-family:inherit; font-size: 14px;">{{ doctor_notes or '' }}</textarea>
       <button type="submit" class="act-btn act-primary" style="margin-top: 10px;">💾 {{ t('حفظ الملاحظات','Save notes') }}</button>
     </form>
   </div>
@@ -882,12 +882,12 @@ const MSG = {
       datasets: [{
         label: {{ t('الوزن (kg)','Weight (kg)')|tojson }},
         data: data.reverse(),
-        borderColor: '#1e4a3d',
+        borderColor: '#1B6E80',
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
         borderWidth: 3,
         tension: 0.3,
         pointRadius: 5,
-        pointBackgroundColor: '#1e4a3d',
+        pointBackgroundColor: '#1B6E80',
         pointBorderColor: '#fff',
         pointBorderWidth: 2,
         fill: true
@@ -907,7 +907,7 @@ const MSG = {
       scales: {
         y: {
           beginAtZero: false,
-          grid: { color: '#f5f1e8' },
+          grid: { color: '#E9F2F6' },
           ticks: { font: { family: 'Cairo, sans-serif' } }
         },
         x: {

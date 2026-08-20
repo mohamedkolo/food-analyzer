@@ -84,24 +84,24 @@
   {% endfor %}
 
   {% if not pending_reqs %}
-  <div class="card" style="text-align:center;padding:30px;background:#faf8f3;border:2px dashed #d9cfb4">
-    <i class="fa-solid fa-check-circle" style="font-size:40px;color:#1e4a3d;margin-bottom:10px"></i>
-    <h3 style="color:#14332b;font-weight:800">{{ t('مفيش طلبات جديدة','No new requests') }}</h3>
+  <div class="card" style="text-align:center;padding:30px;background:#F4F9FB;border:2px dashed #B4D0DA">
+    <i class="fa-solid fa-check-circle" style="font-size:40px;color:#1B6E80;margin-bottom:10px"></i>
+    <h3 style="color:#0F2A43;font-weight:800">{{ t('مفيش طلبات جديدة','No new requests') }}</h3>
   </div>
   {% endif %}
 </div>
 
 {% if approved_reqs %}
 <div style="margin-top:20px">
-  <button onclick="toggleDone()" id="doneToggle" style="width:100%;padding:14px 18px;background:linear-gradient(135deg,#faf8f3,#f0ead9);border:2px solid #d9cfb4;border-radius:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-family:'Cairo',sans-serif">
+  <button onclick="toggleDone()" id="doneToggle" style="width:100%;padding:14px 18px;background:linear-gradient(135deg,#F4F9FB,#E4F0F4);border:2px solid #B4D0DA;border-radius:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-family:'Cairo',sans-serif">
     <div style="display:flex;align-items:center;gap:10px">
       <div style="font-size:22px">✅</div>
       <div style="text-align:{{ 'right' if is_ar else 'left' }}">
-        <div style="font-weight:800;font-size:15px;color:#14332b">{{ t('الطلبات المكتملة','Completed Requests') }}</div>
+        <div style="font-weight:800;font-size:15px;color:#0F2A43">{{ t('الطلبات المكتملة','Completed Requests') }}</div>
         <div style="font-size:12px;color:#166534;margin-top:2px">{{ t('اضغط للعرض','Tap to view') }}</div>
       </div>
     </div>
-    <i id="doneIcon" class="fa-solid fa-chevron-down" style="font-size:18px;color:#1e4a3d"></i>
+    <i id="doneIcon" class="fa-solid fa-chevron-down" style="font-size:18px;color:#1B6E80"></i>
   </button>
 
   <div id="doneList" style="display:none;margin-top:12px">
@@ -118,7 +118,7 @@
             </div>
           </div>
           <div>
-            <span style="background:#f0ead9;color:#14332b;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">{{ t('مكتمل','Done') }}</span>
+            <span style="background:#E4F0F4;color:#0F2A43;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">{{ t('مكتمل','Done') }}</span>
           </div>
         </div>
 
@@ -166,7 +166,7 @@
   </div>
 </div>
 
-<div id="toast" style="display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1e4a3d;color:white;padding:14px 24px;border-radius:100px;font-weight:700;z-index:2000">
+<div id="toast" style="display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1B6E80;color:white;padding:14px 24px;border-radius:100px;font-weight:700;z-index:2000">
   <i class="fa-solid fa-check-circle"></i> <span id="toastMsg">{{ t('تم','Done') }}</span>
 </div>
 

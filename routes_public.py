@@ -8,6 +8,7 @@ their time on redirects.
 """
 
 from flask import Blueprint, Response, render_template, request, session, redirect
+import json
 from datetime import datetime
 
 import food_data
@@ -86,17 +87,42 @@ _SAFE_LABELS = {
 
 @bp.route("/foods")
 def public_foods():
+    """The food index.
+
+    Landing on 522 rows at once was a wall of numbers nobody reads. Without a
+    category the page is now a search box over the whole set plus the fourteen
+    categories to browse; pick one and you get that category's table on its
+    own. Every food still has its own page and they are all in the sitemap, so
+    narrowing the index costs nothing in search.
+    """
     lang = session.get("lang", "ar")
     cat = (request.args.get("cat") or "").strip() or None
     if cat and cat not in food_data.CATEGORIES:
         cat = None
-    rows = food_data.foods_in(cat)
-    keys = [cat] if cat else list(food_data.CATEGORIES)
-    grouped = [(k, [f for f in rows if f["cat"] == k]) for k in keys]
-    grouped = [(k, v) for k, v in grouped if v]
+
+    counts = {k: len(food_data.foods_in(k)) for k in food_data.CATEGORIES}
+    rows = food_data.foods_in(cat) if cat else []
+
+    # a few worth surfacing, so the index says something instead of nothing
+    every = food_data.FOODS
+    highlights = [
+        ("protein", sorted(every, key=lambda f: -f["p"])[:8]),
+        ("light", sorted([f for f in every if f["cal"] > 0],
+                         key=lambda f: f["cal"])[:8]),
+        ("lowcarb", sorted([f for f in every if f["p"] >= 8],
+                           key=lambda f: (f["c"], -f["p"]))[:8]),
+    ]
+
+    # the whole set, small, for the client-side search box
+    index = [{"s": f["slug"], "n": f["n"], "e": f["en"],
+              "c": f["cal"], "p": f["p"], "k": f["cat"]} for f in every]
+
     return render_template("public_foods.html", lang=lang,
-                           categories=food_data.CATEGORIES, grouped=grouped,
-                           active_cat=cat, total=len(food_data.FOODS),
+                           categories=food_data.CATEGORIES, counts=counts,
+                           rows=rows, active_cat=cat,
+                           cat_label=food_data.category_name(cat, lang) if cat else None,
+                           highlights=highlights, total=len(every),
+                           search_index=json.dumps(index, ensure_ascii=False),
                            canonical_url=site_origin() + "/foods"
                            + (f"?cat={cat}" if cat else ""))
 

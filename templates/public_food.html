@@ -14,41 +14,41 @@
              font-family: 'Cairo','Tajawal',system-ui,sans-serif; }
   .fd-crumb { font-size: 13px; color: #94a3b8; margin-bottom: 18px; }
   .fd-crumb a { color: #64748b; text-decoration: none; }
-  .fd-crumb a:hover { color: #1e4a3d; text-decoration: underline; }
+  .fd-crumb a:hover { color: #1B6E80; text-decoration: underline; }
   .fd-title { font-size: 30px; font-weight: 900; color: #0f172a; margin: 0 0 4px; }
   .fd-alt { color: #94a3b8; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-  .fd-cat { display: inline-block; background: #f0ead9; color: #14332b;
+  .fd-cat { display: inline-block; background: #E4F0F4; color: #0F2A43;
             border-radius: 999px; padding: 5px 14px; font-size: 12.5px;
             font-weight: 700; margin-top: 10px; text-decoration: none; }
   .fd-macros { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr));
                gap: 12px; margin: 26px 0; }
-  .fd-m { background: #fff; border: 1px solid #e7e0d0; border-radius: 14px;
+  .fd-m { background: #fff; border: 1px solid #D3E3EA; border-radius: 14px;
           padding: 18px; text-align: center; }
   .fd-m .v { font-size: 26px; font-weight: 900; color: #0f172a; line-height: 1.1; }
   .fd-m .l { font-size: 12.5px; color: #64748b; font-weight: 700; margin-top: 5px; }
   .fd-basis { text-align: center; color: #94a3b8; font-size: 13px; margin-top: -12px; }
-  .fd-box { background: #faf8f3; border: 1px solid #d9cfb4; border-radius: 14px;
+  .fd-box { background: #F4F9FB; border: 1px solid #B4D0DA; border-radius: 14px;
             padding: 18px 20px; margin-bottom: 14px; }
-  .fd-box strong { display: block; color: #14332b; font-size: 14px; margin-bottom: 6px; }
+  .fd-box strong { display: block; color: #0F2A43; font-size: 14px; margin-bottom: 6px; }
   .fd-box p { margin: 0; color: #0f172a; font-size: 14.5px; line-height: 1.9; }
   .fd-safe { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-  .fd-tag { background: #ede7d8; color: #14332b; border-radius: 999px;
+  .fd-tag { background: #DDEBF1; color: #0F2A43; border-radius: 999px;
             padding: 6px 14px; font-size: 12.5px; font-weight: 700; }
   .fd-rel { margin-top: 34px; }
   .fd-rel h2 { font-size: 18px; font-weight: 900; color: #0f172a;
-               margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid #e7e0d0; }
+               margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid #D3E3EA; }
   .fd-rel-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap: 8px; }
-  .fd-rel-list a { background: #fff; border: 1px solid #e7e0d0; border-radius: 11px;
-                   padding: 11px 14px; text-decoration: none; color: #14332b;
+  .fd-rel-list a { background: #fff; border: 1px solid #D3E3EA; border-radius: 11px;
+                   padding: 11px 14px; text-decoration: none; color: #0F2A43;
                    font-size: 13.5px; font-weight: 700; display: flex;
                    justify-content: space-between; gap: 8px; }
-  .fd-rel-list a:hover { border-color: #1e4a3d; }
+  .fd-rel-list a:hover { border-color: #1B6E80; }
   .fd-rel-list span { color: #94a3b8; font-weight: 600; }
-  .fd-cta { background: linear-gradient(135deg,#1e4a3d,#14332b); color: #fff;
+  .fd-cta { background: linear-gradient(135deg,#1B6E80,#0F2A43); color: #fff;
             border-radius: 16px; padding: 26px; margin-top: 36px; text-align: center; }
   .fd-cta h3 { margin: 0 0 8px; font-size: 19px; font-weight: 900; }
   .fd-cta p { margin: 0 0 18px; opacity: .92; font-size: 14px; line-height: 1.8; }
-  .fd-cta a { background: #c9a961; color: #14332b; padding: 12px 26px; border-radius: 11px;
+  .fd-cta a { background: #FF7A59; color: #0F2A43; padding: 12px 26px; border-radius: 11px;
               font-weight: 800; text-decoration: none; display: inline-block; font-size: 14px; }
   @media (max-width: 640px) { .fd-title { font-size: 24px; } }
 </style>
@@ -128,13 +128,30 @@
 <script type="application/ld+json">
 {{ {
   "@context": "https://schema.org",
-  "@type": "NutritionInformation",
-  "name": fname,
-  "calories": (food.cal|string) + " kcal",
-  "proteinContent": (food.p|string) + " g",
-  "carbohydrateContent": (food.c|string) + " g",
-  "fatContent": (food.f|string) + " g",
-  "servingSize": "100 g"
+  "@graph": [
+    {
+      "@type": "NutritionInformation",
+      "name": fname,
+      "calories": (food.cal|string) + " kcal",
+      "proteinContent": (food.p|string) + " g",
+      "carbohydrateContent": (food.c|string) + " g",
+      "fatContent": (food.f|string) + " g",
+      "servingSize": "100 g"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": t('الرئيسية','Home'),
+         "item": site_origin() + "/"},
+        {"@type": "ListItem", "position": 2, "name": t('جدول السعرات','Calorie table'),
+         "item": site_origin() + "/foods"},
+        {"@type": "ListItem", "position": 3, "name": cat_label,
+         "item": site_origin() + "/foods?cat=" + food.cat},
+        {"@type": "ListItem", "position": 4, "name": fname,
+         "item": site_origin() + "/foods/" + food.slug}
+      ]
+    }
+  ]
 }|tojson }}
 </script>
 {% endblock %}

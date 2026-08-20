@@ -42,7 +42,7 @@
 {% set first = logs[-1] %}
 
 <!-- Current Weight Card -->
-<div class="card" style="background:linear-gradient(135deg,#14332b 0%,#1e4a3d 100%);color:white;text-align:center;padding:30px 20px">
+<div class="card" style="background:linear-gradient(135deg,#0F2A43 0%,#1B6E80 100%);color:white;text-align:center;padding:30px 20px">
   <div style="font-size:14px;opacity:0.85;margin-bottom:8px">
     {{ 'وزنك الحالي' if is_ar else 'Current Weight' }}
   </div>
@@ -65,7 +65,7 @@
       <i class="fa-solid fa-arrow-trend-down"></i>
       {{ 'من آخر قياس' if is_ar else 'From last' }}
     </div>
-    <div style="font-size:26px;font-weight:900;color:{% if diff_last < 0 %}#1e4a3d{% elif diff_last > 0 %}#dc2626{% else %}#64748b{% endif %}">
+    <div style="font-size:26px;font-weight:900;color:{% if diff_last < 0 %}#1B6E80{% elif diff_last > 0 %}#dc2626{% else %}#64748b{% endif %}">
       {% if diff_last > 0 %}+{% endif %}{{ "%.1f"|format(diff_last) }}
       <span style="font-size:13px;opacity:0.7">{{ 'كجم' if is_ar else 'kg' }}</span>
     </div>
@@ -79,7 +79,7 @@
       <i class="fa-solid fa-flag-checkered"></i>
       {{ 'من البداية' if is_ar else 'Total change' }}
     </div>
-    <div style="font-size:26px;font-weight:900;color:{% if diff_total < 0 %}#1e4a3d{% elif diff_total > 0 %}#dc2626{% else %}#64748b{% endif %}">
+    <div style="font-size:26px;font-weight:900;color:{% if diff_total < 0 %}#1B6E80{% elif diff_total > 0 %}#dc2626{% else %}#64748b{% endif %}">
       {% if diff_total > 0 %}+{% endif %}{{ "%.1f"|format(diff_total) }}
       <span style="font-size:13px;opacity:0.7">{{ 'كجم' if is_ar else 'kg' }}</span>
     </div>
@@ -153,12 +153,12 @@
     {% for log in logs[:10] %}
     {% set next_log = logs[loop.index0 + 1] if loop.index0 + 1 < logs|length else None %}
     {% set change = (log.weight - next_log.weight) if next_log else None %}
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:{% if loop.first %}linear-gradient(90deg,#f0ead9,#fff){% else %}var(--gray){% endif %};border-radius:10px;border-right:3px solid {% if loop.first %}#1e4a3d{% else %}#e7e0d0{% endif %}">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:{% if loop.first %}linear-gradient(90deg,#E4F0F4,#fff){% else %}var(--gray){% endif %};border-radius:10px;border-right:3px solid {% if loop.first %}#1B6E80{% else %}#D3E3EA{% endif %}">
       <div>
         <div style="font-weight:700;font-size:15px;color:var(--text)">
           {{ "%.1f"|format(log.weight) }} <span style="font-size:11px;color:var(--muted)">{{ 'كجم' if is_ar else 'kg' }}</span>
           {% if loop.first %}
-          <span style="background:#1e4a3d;color:white;font-size:9px;padding:2px 8px;border-radius:10px;margin-right:6px">
+          <span style="background:#1B6E80;color:white;font-size:9px;padding:2px 8px;border-radius:10px;margin-right:6px">
             {{ 'الحالي' if is_ar else 'Current' }}
           </span>
           {% endif %}
@@ -168,7 +168,7 @@
         </div>
       </div>
       {% if change is not none %}
-      <div style="font-size:14px;font-weight:700;color:{% if change < 0 %}#1e4a3d{% elif change > 0 %}#dc2626{% else %}#64748b{% endif %}">
+      <div style="font-size:14px;font-weight:700;color:{% if change < 0 %}#1B6E80{% elif change > 0 %}#dc2626{% else %}#64748b{% endif %}">
         {% if change > 0 %}+{% endif %}{{ "%.1f"|format(change) }}
       </div>
       {% endif %}
@@ -198,10 +198,10 @@ new Chart(ctx, {
     datasets: [{
       label: labelText,
       data: weightData.map(function(d) { return d.weight; }),
-      borderColor: '#14332b',
+      borderColor: '#0F2A43',
       backgroundColor: 'rgba(27, 67, 50, 0.1)',
       borderWidth: 3,
-      pointBackgroundColor: '#14332b',
+      pointBackgroundColor: '#0F2A43',
       pointBorderColor: '#fff',
       pointBorderWidth: 2,
       pointRadius: 6,
@@ -216,7 +216,7 @@ new Chart(ctx, {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#14332b',
+        backgroundColor: '#0F2A43',
         titleColor: '#fff',
         bodyColor: '#fff',
         bodyFont: { family: 'Cairo', size: 13 },

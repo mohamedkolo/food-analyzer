@@ -14,7 +14,7 @@
     border-radius: 18px;
     padding: 18px 20px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-    border: 2px solid #e7e0d0;
+    border: 2px solid #D3E3EA;
     margin-bottom: 16px;
   }
   .search-input {
@@ -40,7 +40,7 @@
     flex-shrink: 0;
     padding: 8px 14px;
     background: #fff;
-    border: 1.5px solid #e7e0d0;
+    border: 1.5px solid #D3E3EA;
     border-radius: 999px;
     font-size: 13px;
     font-weight: 600;
@@ -49,11 +49,11 @@
     transition: all 0.2s;
     white-space: nowrap;
   }
-  .cat-chip:hover { border-color: #1e4a3d; }
+  .cat-chip:hover { border-color: #1B6E80; }
   .cat-chip.active {
-    background: #1e4a3d;
+    background: #1B6E80;
     color: #fff;
-    border-color: #1e4a3d;
+    border-color: #1B6E80;
   }
 
   .results-count {
@@ -78,18 +78,18 @@
     padding: 20px;
     margin-bottom: 14px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-    border: 1px solid #f5f1e8;
+    border: 1px solid #E9F2F6;
     transition: all 0.2s;
   }
   .food-card:hover {
     box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-    border-color: #1e4a3d;
+    border-color: #1B6E80;
   }
 
   .food-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
   .food-name { font-size: 19px; font-weight: 800; color: #0f172a; margin: 0; }
   .food-cal {
-    background: linear-gradient(135deg, #1e4a3d, #1e4a3d);
+    background: linear-gradient(135deg, #1B6E80, #1B6E80);
     color: #fff;
     padding: 8px 14px;
     border-radius: 12px;
@@ -110,12 +110,12 @@
     align-items: center;
     gap: 4px;
   }
-  .m-prot { background: #ede7d8; color: #14332b; }
+  .m-prot { background: #DDEBF1; color: #0F2A43; }
   .m-carb { background: #fef3c7; color: #92400e; }
   .m-fat { background: #fee2e2; color: #991b1b; }
 
   .qty-section {
-    background: #faf8f3;
+    background: #F4F9FB;
     border-radius: 12px;
     padding: 14px;
     display: grid;
@@ -127,14 +127,14 @@
   .qty-input {
     width: 90px;
     padding: 8px 12px;
-    border: 1.5px solid #e7e0d0;
+    border: 1.5px solid #D3E3EA;
     border-radius: 8px;
     font-size: 15px;
     font-family: inherit;
     font-weight: 600;
     text-align: center;
   }
-  .qty-input:focus { outline: 0; border-color: #1e4a3d; }
+  .qty-input:focus { outline: 0; border-color: #1B6E80; }
 
   .qty-result {
     display: grid;
@@ -160,35 +160,35 @@
   .food-tip {
     margin-top: 8px;
     padding: 10px 14px;
-    background: #f0ead9;
-    border-right: 3px solid #2c5a4a;
+    background: #E4F0F4;
+    border-right: 3px solid #2E8F9E;
     border-radius: 8px;
     font-size: 13px;
-    color: #14332b;
+    color: #0F2A43;
     line-height: 1.6;
   }
 
   /* ── مقارنة أكلتين ── */
   .cmp-btn {
     margin-top: 10px;
-    background: #faf8f3;
-    border: 1.5px solid #e7e0d0;
+    background: #F4F9FB;
+    border: 1.5px solid #D3E3EA;
     border-radius: 10px;
     padding: 8px 14px;
     font-family: inherit;
     font-size: 12.5px;
     font-weight: 700;
-    color: #1e4a3d;
+    color: #1B6E80;
     cursor: pointer;
     transition: all 0.15s;
   }
-  .cmp-btn:hover { border-color: #1e4a3d; }
-  .cmp-btn.active { background: #1e4a3d; color: #fff; border-color: #1e4a3d; }
+  .cmp-btn:hover { border-color: #1B6E80; }
+  .cmp-btn.active { background: #1B6E80; color: #fff; border-color: #1B6E80; }
 
   .cmp-bar {
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    background: #14332b;
+    background: #0F2A43;
     color: #fff;
     padding: 12px 16px;
     display: none;
@@ -208,19 +208,19 @@
     border: 0; border-radius: 8px; padding: 8px 16px;
     font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
   }
-  .cmp-go { background: #c9a961; color: #14332b; }
+  .cmp-go { background: #FF7A59; color: #0F2A43; }
   .cmp-go:disabled { opacity: 0.45; cursor: not-allowed; }
-  .cmp-clear { background: transparent; color: #d9cfb4; border: 1.5px solid #2c5a4a !important; }
+  .cmp-clear { background: transparent; color: #B4D0DA; border: 1.5px solid #2E8F9E !important; }
 
   .cmp-table-wrap {
-    background: #fff; border: 2px solid #1e4a3d; border-radius: 16px;
+    background: #fff; border: 2px solid #1B6E80; border-radius: 16px;
     padding: 18px; margin-bottom: 16px; overflow-x: auto;
   }
   .cmp-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  .cmp-table th, .cmp-table td { padding: 10px 12px; text-align: center; border-bottom: 1px solid #f5f1e8; }
-  .cmp-table th { background: #faf8f3; font-weight: 800; color: #14332b; font-size: 13px; }
+  .cmp-table th, .cmp-table td { padding: 10px 12px; text-align: center; border-bottom: 1px solid #E9F2F6; }
+  .cmp-table th { background: #F4F9FB; font-weight: 800; color: #0F2A43; font-size: 13px; }
   .cmp-table td:first-child, .cmp-table th:first-child { text-align: right; font-weight: 700; color: #475569; }
-  .cmp-win { background: #f0ead9; font-weight: 800; color: #14332b; border-radius: 6px; }
+  .cmp-win { background: #E4F0F4; font-weight: 800; color: #0F2A43; border-radius: 6px; }
   .cmp-legend { font-size: 11.5px; color: #64748b; margin-top: 10px; line-height: 1.7; }
 
   @media (max-width: 600px) {
@@ -247,9 +247,9 @@
   <div class="search-box" style="display:flex;gap:8px;align-items:center;padding:14px 16px;">
     <input type="text" inputmode="numeric" id="barcodeInput"
            placeholder="{{ t('📦 أو اكتب باركود منتج معلّب (الرقم اللي تحت الخطوط)','📦 Or enter a packaged product barcode (the number under the lines)') }}"
-           style="flex:1;border:1.5px solid #e7e0d0;border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;">
+           style="flex:1;border:1.5px solid #D3E3EA;border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;">
     <button id="barcodeBtn" type="button"
-            style="background:#1e4a3d;color:#fff;border:0;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;">
+            style="background:#1B6E80;color:#fff;border:0;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;">
       {{ t('بحث','Search') }}
     </button>
   </div>
@@ -359,7 +359,7 @@ function makeCard(food) {
         <div>
           <div class="qty-label">${AZ.qtyLabel}</div>
           <input type="number" class="qty-input" value="100" min="0.5" max="2000" step="0.5" data-food='${JSON.stringify(food)}' style="width:70px;">
-          ${food.units && food.units.length ? `<select class="unit-select" style="padding:6px 8px;border:1.5px solid #e7e0d0;border-radius:8px;font-family:inherit;font-size:12px;background:#fff;max-width:130px;">
+          ${food.units && food.units.length ? `<select class="unit-select" style="padding:6px 8px;border:1.5px solid #D3E3EA;border-radius:8px;font-family:inherit;font-size:12px;background:#fff;max-width:130px;">
             <option value="1" selected>${AZ.gramUnit}</option>
             ${food.units.map(u => `<option value="${u[1]}">${UNIT_NAMES[u[0]] || u[0]} (${u[1]}${AZ.grams})</option>`).join('')}
           </select>` : ''}
@@ -371,7 +371,7 @@ function makeCard(food) {
           <div><strong class="r-f">${food.f}</strong><span>${AZ.fats} g</span></div>
         </div>
       </div>
-      ${food.safe && food.safe.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">${food.safe.map(s => `<span style="font-size:10px;background:#faf8f3;color:#14332b;border:1px solid #d9cfb4;padding:2px 8px;border-radius:999px;font-weight:700;">✓ ${MED_NAMES[s]}</span>`).join('')}</div>` : ''}
+      ${food.safe && food.safe.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">${food.safe.map(s => `<span style="font-size:10px;background:#F4F9FB;color:#0F2A43;border:1px solid #B4D0DA;padding:2px 8px;border-radius:999px;font-weight:700;">✓ ${MED_NAMES[s]}</span>`).join('')}</div>` : ''}
       ${noteOf(food) ? `<div class="food-note">ℹ️ ${noteOf(food)}</div>` : ''}
       ${tipOf(food) ? `<div class="food-tip">${tipOf(food)}</div>` : ''}
       <button type="button" class="cmp-btn">${AZ.addCmp}</button>
@@ -541,7 +541,7 @@ function showComparison() {
   const [a, b] = cmpList;
   cmpResult.innerHTML = `
     <div class="cmp-table-wrap">
-      <div style="font-weight:900;font-size:16px;color:#14332b;margin-bottom:12px;">${AZ.cmpTitle}</div>
+      <div style="font-weight:900;font-size:16px;color:#0F2A43;margin-bottom:12px;">${AZ.cmpTitle}</div>
       <table class="cmp-table">
         <thead><tr><th></th><th>${IS_AR ? a.n : (a.en || a.n)}</th><th>${IS_AR ? b.n : (b.en || b.n)}</th><th>${AZ.diffCol}</th></tr></thead>
         <tbody>

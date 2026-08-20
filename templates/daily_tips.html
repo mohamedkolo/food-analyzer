@@ -24,12 +24,12 @@
 {% endif %}
 
 <!-- Notification Permission -->
-<div class="card" id="notifBanner" style="display:none;background:linear-gradient(135deg,#f0ead9,#ede7d8);border:2px solid #2c5a4a">
+<div class="card" id="notifBanner" style="display:none;background:linear-gradient(135deg,#E4F0F4,#DDEBF1);border:2px solid #2E8F9E">
   <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
     <div style="font-size:38px">🔔</div>
     <div style="flex:1;min-width:200px">
-      <div style="font-weight:800;color:#14332b;margin-bottom:4px">{{ t('شغل الإشعارات اليومية','Turn on daily notifications') }}</div>
-      <div style="font-size:12px;color:#14332b">{{ t('هنبعتلك نصيحة كل يوم على وقت الفطار','We will send you a tip every day at breakfast time') }}</div>
+      <div style="font-weight:800;color:#0F2A43;margin-bottom:4px">{{ t('شغل الإشعارات اليومية','Turn on daily notifications') }}</div>
+      <div style="font-size:12px;color:#0F2A43">{{ t('هنبعتلك نصيحة كل يوم على وقت الفطار','We will send you a tip every day at breakfast time') }}</div>
     </div>
     <button onclick="enableNotifications()" class="btn btn-primary">
       <i class="fa-solid fa-bell"></i> {{ t('تشغيل','Enable') }}
@@ -131,7 +131,7 @@
   cursor: pointer;
   transition: background 0.2s;
 }
-.reminder-row:hover { background: #e7e0d0; }
+.reminder-row:hover { background: #D3E3EA; }
 .reminder-row input[type="checkbox"] {
   width: 20px;
   height: 20px;
@@ -156,7 +156,7 @@ function checkNotificationStatus() {
   }
 
   if (Notification.permission === 'granted') {
-    document.getElementById('notifStatus').innerHTML = '<span style="color:#1e4a3d;background:#f0ead9;padding:6px 14px;border-radius:8px">✅ الإشعارات شغالة</span>';
+    document.getElementById('notifStatus').innerHTML = '<span style="color:#1B6E80;background:#E4F0F4;padding:6px 14px;border-radius:8px">✅ الإشعارات شغالة</span>';
     document.getElementById('notifBanner').style.display = 'none';
     scheduleNotifications();
   } else if (Notification.permission === 'denied') {
