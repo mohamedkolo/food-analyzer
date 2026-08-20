@@ -929,6 +929,38 @@ def _login_msg(key, lang):
 # The canonical origin, used by canonical tags and the sitemap.
 # Set DOMAIN in the environment to move it to a custom domain.
 # ═══════════════════════════════════════════════
+# ═══════════════════════════════════════════════
+# إثبات ملكية الموقع لجوجل (Search Console)
+# ═══════════════════════════════════════════════
+# النطاق الفرعي على onrender.com مش ملكك، فطريقة سجل TXT في الـ DNS مستحيلة
+# تنجح معاه — لازم "بادئة عنوان URL" مع meta tag أو ملف HTML. الاتنين مدعومين
+# هنا: حط الرمز في متغير البيئة وانشر.
+GOOGLE_SITE_VERIFICATION = os.environ.get("GOOGLE_SITE_VERIFICATION", "").strip()
+# الطريقة التانية: جوجل بيديك ملف اسمه googleXXXX.html — حط اسمه هنا
+GOOGLE_VERIFY_FILE = os.environ.get("GOOGLE_VERIFY_FILE", "").strip()
+
+
+@app.template_global('google_verification')
+def google_verification():
+    """The token Search Console asks you to put on the page, if one is set."""
+    return GOOGLE_SITE_VERIFICATION
+
+
+@app.route("/<path:filename>.html")
+def google_verify_file(filename):
+    """Serve the googleXXXX.html file Search Console looks for.
+
+    Only answers for the exact filename set in GOOGLE_VERIFY_FILE, so this is
+    not an open door to serving arbitrary paths.
+    """
+    from flask import abort
+    name = f"{filename}.html"
+    if not GOOGLE_VERIFY_FILE or name != GOOGLE_VERIFY_FILE:
+        abort(404)
+    token = name[len("google"):-len(".html")]
+    return Response(f"google-site-verification: {name}\n", mimetype="text/html")
+
+
 @app.template_global('site_origin')
 def site_origin():
     from api_platform import DOMAIN as _D

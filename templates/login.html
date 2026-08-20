@@ -2,6 +2,7 @@
 <html lang="{{ lang or 'ar' }}" dir="{{ 'rtl' if (lang or 'ar') == 'ar' else 'ltr' }}">
 <head>
 <meta charset="UTF-8">
+{% if google_verification() %}<meta name="google-site-verification" content="{{ google_verification() }}">{% endif %}
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NutraX - {{ 'تسجيل الدخول' if (lang or 'ar')=='ar' else 'Login' }}</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
