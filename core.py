@@ -925,3 +925,11 @@ def _login_msg(key, lang):
     ar, en = _LOGIN_MSGS[key]
     return ar if (lang or "ar") == "ar" else en
 
+# ═══════════════════════════════════════════════
+# The canonical origin, used by canonical tags and the sitemap.
+# Set DOMAIN in the environment to move it to a custom domain.
+# ═══════════════════════════════════════════════
+@app.template_global('site_origin')
+def site_origin():
+    from api_platform import DOMAIN as _D
+    return (_D or "").rstrip("/")
