@@ -221,6 +221,18 @@ def add_notification(db_run, type_, title, message, link=None, related_user_id=N
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
+# ═══ من غير DATABASE_URL بنقع على SQLite في /tmp ═══
+# على Render، /tmp بيتمسح مع كل restart. يعني الموقع يفضل "شغال"، يقبل عملاء
+# جدد وخطط جديدة، وكل ده يروح مع أول إعادة تشغيل من غير ولا رسالة خطأ.
+# فشل واضح وصريح أحسن ألف مرة من ضياع صامت للبيانات.
+if IS_PRODUCTION and not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL is not set while running in production. Refusing to start: "
+        "the app would fall back to SQLite in /tmp, which Render wipes on every "
+        "restart, and every client and plan written would be lost without a trace. "
+        "Set DATABASE_URL in the service's environment settings and redeploy."
+    )
+
 if DATABASE_URL:
     import psycopg2, psycopg2.extras, psycopg2.pool
     # ═══ مخزن اتصالات: بنفتح الاتصال مرة ونعيد استخدامه بدل اتصال جديد لكل استعلام ═══
