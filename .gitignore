@@ -26,3 +26,8 @@ instance/
 .DS_Store
 .vscode/
 .idea/
+
+# database backups — client health data, never commit these
+backups/
+*.sql
+nutrax-*.json
