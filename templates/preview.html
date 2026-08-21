@@ -126,6 +126,93 @@
   </div>
 </div>
 
+{% set fu = data.followup %}
+{% if fu %}
+{% set VS = {
+  'on_track':      ('#1B6E80', '#E4F0F4', '✅'), 'gain_on_track': ('#1B6E80', '#E4F0F4', '✅'),
+  'too_fast':      ('#92400e', '#fffbeb', '⚠️'), 'gain_too_fast': ('#92400e', '#fffbeb', '⚠️'),
+  'too_slow':      ('#92400e', '#fffbeb', '🐢'), 'plateau':       ('#92400e', '#fffbeb', '⏸️'),
+  'gain_stalled':  ('#92400e', '#fffbeb', '⏸️'), 'regained':      ('#991b1b', '#fef2f2', '📈'),
+  'lost_on_gain':  ('#991b1b', '#fef2f2', '📉'), 'too_soon':      ('#64748b', '#f8fafc', '⏳'),
+} %}
+{% set col, bg, icon = VS.get(fu.verdict, ('#64748b', '#f8fafc', '•')) %}
+<!-- المتابعة -->
+<div style="background:#fff;border:2px solid {{ col }};border-radius:12px;padding:16px 18px;margin-bottom:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div style="font-weight:800;color:#0F2A43;font-size:15px">
+      <i class="fa-solid fa-clock-rotate-left" style="color:{{ col }}"></i>
+      {{ t('متابعة رقم','Follow-up visit') }} {{ data.visit_no }}
+    </div>
+    <a href="/followups/{{ data.client_key|urlencode }}"
+       style="font-size:12.5px;color:#1B6E80;font-weight:700;text-decoration:none">
+      {{ t('كل الزيارات','All visits') }} ›</a>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:14px">
+    <div>
+      <div style="font-size:11.5px;color:#64748b;font-weight:700">{{ t('الوزن','Weight') }}</div>
+      <div style="font-size:19px;font-weight:900;color:#0F2A43">
+        {{ fu.old_weight }} → {{ fu.new_weight }}<span style="font-size:12px">{{ t('كجم','kg') }}</span>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11.5px;color:#64748b;font-weight:700">{{ t('التغيّر','Change') }}</div>
+      <div style="font-size:19px;font-weight:900;color:{{ col }}">
+        {{ '+' if fu.delta > 0 }}{{ fu.delta }}<span style="font-size:12px">{{ t('كجم','kg') }}</span>
+        <span style="font-size:12px;color:#64748b">/ {{ fu.days }} {{ t('يوم','d') }}</span>
+      </div>
+    </div>
+    {% if fu.rate %}
+    <div>
+      <div style="font-size:11.5px;color:#64748b;font-weight:700">{{ t('المعدل','Rate') }}</div>
+      <div style="font-size:19px;font-weight:900;color:#0F2A43">
+        {{ '+' if fu.rate > 0 }}{{ fu.rate }}<span style="font-size:12px">{{ t(' كجم/أسبوع',' kg/wk') }}</span>
+      </div>
+    </div>
+    {% endif %}
+    {% if fu.new_tdee %}
+    <div>
+      <div style="font-size:11.5px;color:#64748b;font-weight:700">{{ t('TDEE على الوزن الجديد','TDEE on the new weight') }}</div>
+      <div style="font-size:19px;font-weight:900;color:#0F2A43">{{ fu.new_tdee }}<span style="font-size:12px"> kcal</span></div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div style="background:{{ bg }};border-radius:10px;padding:11px 14px;margin-top:14px;
+              font-size:13px;color:#0f172a;line-height:1.9">
+    {{ icon }} {{ fu.note_ar if is_ar else fu.note_en }}
+  </div>
+
+  {% if fu.tdee_drop and fu.tdee_drop > 0 %}
+  <div style="font-size:12.5px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;
+              border-radius:9px;padding:10px 13px;margin-top:9px;line-height:1.8">
+    {{ t('الـTDEE نزل','TDEE dropped') }} <b>{{ fu.tdee_drop }} kcal</b>
+    {{ t('مع الوزن. يعني هدف الزيارة اللي فاتت','with the weight. That means last visit’s target of') }}
+    <b>{{ fu.old_goal_cal }}</b> {{ t('بقى عجزه أصغر بالمقدار ده — ده السبب الأشهر لثبات الوزن.',
+                                      'now carries that much less deficit — the most common reason weight stalls.') }}
+  </div>
+  {% endif %}
+
+  {% if fu.suggested_goal_cal and data.goal_cal and fu.suggested_goal_cal|int != data.goal_cal|int %}
+  <div style="font-size:12.5px;color:#0F2A43;background:#E4F0F4;border-radius:9px;
+              padding:10px 13px;margin-top:9px;line-height:1.8">
+    💡 {{ t('المقترح للزيارة دي','Suggested for this visit') }}: <b>{{ fu.suggested_goal_cal }} kcal</b>
+    {{ t('— انت مولّد الخطة على','— you generated this plan on') }} <b>{{ data.goal_cal }}</b> kcal.
+    {{ t('لو عايز تجرّب المقترح، ارجع لصفحة التوليد وغيّر الهدف.',
+         'To try the suggestion, go back to the generate page and change the target.') }}
+  </div>
+  {% endif %}
+
+  {% if data.avoid_meals %}
+  <div style="font-size:12px;color:#64748b;margin-top:10px">
+    {{ t('الخطة دي اتبنت وهي بتتفادى','This plan was built avoiding') }}
+    <b>{{ data.avoid_meals|length }}</b>
+    {{ t('وجبة من خطة الزيارة اللي فاتت.','meals from last visit’s plan.') }}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
 {% set zz = data.zigzag %}
 {% if zz %}
 <!-- تدوير السعرات -->

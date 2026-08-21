@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}{{ client_name }} — {{ t('المتابعة','Follow-up') }}{% endblock %}
+{% block content %}
+
+{% set VERDICT_STYLE = {
+  'on_track':      ('#1B6E80', '#E4F0F4', '✅'),
+  'gain_on_track': ('#1B6E80', '#E4F0F4', '✅'),
+  'too_fast':      ('#92400e', '#fffbeb', '⚠️'),
+  'gain_too_fast': ('#92400e', '#fffbeb', '⚠️'),
+  'too_slow':      ('#92400e', '#fffbeb', '🐢'),
+  'plateau':       ('#92400e', '#fffbeb', '⏸️'),
+  'gain_stalled':  ('#92400e', '#fffbeb', '⏸️'),
+  'regained':      ('#991b1b', '#fef2f2', '📈'),
+  'lost_on_gain':  ('#991b1b', '#fef2f2', '📉'),
+  'too_soon':      ('#64748b', '#f8fafc', '⏳'),
+} %}
+
+<a href="/followups" style="color:var(--muted);text-decoration:none;font-size:13.5px;font-weight:700">
+  ‹ {{ t('كل المتابعات','All follow-ups') }}</a>
+
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin:10px 0 18px">
+  <div class="page-title" style="margin:0">
+    <i class="fa-solid fa-user-check"></i> {{ client_name }}
+  </div>
+  <a href="/generate" class="btn btn-primary" style="text-decoration:none">
+    <i class="fa-solid fa-plus"></i> {{ t('زيارة جديدة','New visit') }}
+  </a>
+</div>
+
+{% if summary %}
+<div class="card" style="padding:18px 20px;margin-bottom:16px">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px">
+    <div>
+      <div style="font-size:12px;color:var(--muted);font-weight:700">{{ t('الزيارات','Visits') }}</div>
+      <div style="font-size:24px;font-weight:900;color:var(--blue-dark)">{{ summary.visits }}</div>
+    </div>
+    <div>
+      <div style="font-size:12px;color:var(--muted);font-weight:700">{{ t('أول وزن','Starting weight') }}</div>
+      <div style="font-size:24px;font-weight:900;color:var(--blue-dark)">{{ summary.first_weight }}<span style="font-size:14px">{{ t('كجم','kg') }}</span></div>
+    </div>
+    <div>
+      <div style="font-size:12px;color:var(--muted);font-weight:700">{{ t('الوزن الحالي','Current weight') }}</div>
+      <div style="font-size:24px;font-weight:900;color:var(--blue-dark)">{{ summary.current_weight }}<span style="font-size:14px">{{ t('كجم','kg') }}</span></div>
+    </div>
+    <div>
+      <div style="font-size:12px;color:var(--muted);font-weight:700">{{ t('الإجمالي','Total change') }}</div>
+      <div style="font-size:24px;font-weight:900;color:{{ '#1B6E80' if summary.total_change < 0 else '#FF7A59' }}">
+        {{ '+' if summary.total_change > 0 }}{{ summary.total_change }}<span style="font-size:14px">{{ t('كجم','kg') }}</span>
+      </div>
+    </div>
+    {% if summary.rate %}
+    <div>
+      <div style="font-size:12px;color:var(--muted);font-weight:700">{{ t('المعدل','Rate') }}</div>
+      <div style="font-size:24px;font-weight:900;color:var(--blue-dark)">
+        {{ '+' if summary.rate > 0 }}{{ summary.rate }}<span style="font-size:13px">{{ t(' كجم/أسبوع',' kg/wk') }}</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {# رسم بسيط لخط الوزن: أعمدة بارتفاع نسبي بين أقل وأعلى وزن #}
+  {% set weights = steps | map(attribute='visit') | map(attribute='weight') | select | list %}
+  {% if weights | length > 1 %}
+  {% set lo = weights | min %}{% set hi = weights | max %}
+  {% set span = (hi - lo) if (hi - lo) > 0 else 1 %}
+  <div style="display:flex;align-items:flex-end;gap:6px;margin-top:20px;padding-top:16px;
+              border-top:1px solid #EDF4F7;overflow-x:auto">
+    {% for s in steps | reverse %}
+    {% if s.visit.weight %}
+    <div style="text-align:center;min-width:52px;flex:1">
+      <div style="font-size:11.5px;font-weight:800;color:var(--blue-dark);margin-bottom:4px">
+        {{ s.visit.weight }}</div>
+      <div style="height:70px;display:flex;align-items:flex-end;justify-content:center">
+        <div style="width:100%;border-radius:5px 5px 0 0;background:#1B6E80;
+                    height:{{ (18 + (s.visit.weight - lo) / span * 52) | round | int }}px"></div>
+      </div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:4px">#{{ s.visit.visit_no }}</div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% for s in steps %}
+{% set v = s.visit %}{% set p = s.progress %}
+<div class="card" style="padding:16px 18px;margin-bottom:12px">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div style="font-weight:800;color:var(--blue-dark);font-size:15px">
+      {{ t('زيارة','Visit') }} #{{ v.visit_no }}
+      <span style="color:var(--muted);font-weight:600;font-size:13px">· {{ v.created_at|string|truncate(16, True, '') }}</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);font-weight:700">
+      {{ v.weight }} {{ t('كجم','kg') }}
+      {%- if v.tdee %} · TDEE {{ v.tdee }}{% endif %}
+      {%- if v.goal_cal %} · {{ t('الهدف','target') }} {{ v.goal_cal }} kcal{% endif %}
+    </div>
+  </div>
+
+  {% if p %}
+  {% set col, bg, icon = VERDICT_STYLE.get(p.verdict, ('#64748b', '#f8fafc', '•')) %}
+  <div style="background:{{ bg }};border:1px solid {{ col }}33;border-radius:10px;
+              padding:11px 14px;margin-top:11px">
+    <div style="font-weight:800;color:{{ col }};font-size:13.5px">
+      {{ icon }}
+      {% if p.delta < 0 %}{{ t('نزل','Down') }} {{ -p.delta }}{% elif p.delta > 0 %}{{ t('زاد','Up') }} {{ p.delta }}{% else %}{{ t('ثابت','No change') }}{% endif %}
+      {%- if p.delta %} {{ t('كجم','kg') }}{% endif %}
+      {{ t('في','over') }} {{ p.days }} {{ t('يوم','days') }}
+      {%- if p.rate %} · {{ p.rate }} {{ t('كجم/أسبوع','kg/wk') }}{% endif %}
+      {%- if p.fat_delta %} · {{ t('دهون','fat') }} {{ '+' if p.fat_delta > 0 }}{{ p.fat_delta }}%{% endif %}
+    </div>
+    <div style="font-size:12.5px;color:#0f172a;margin-top:6px;line-height:1.8">
+      {{ p.note_ar if is_ar else p.note_en }}
+    </div>
+    {% if p.tdee_drop and p.tdee_drop > 0 %}
+    <div style="font-size:12px;color:{{ col }};margin-top:6px;font-weight:700">
+      {{ t('الـTDEE نزل','TDEE dropped') }} {{ p.tdee_drop }} kcal
+      {{ t('مع الوزن — العجز القديم بقى أصغر بالمقدار ده.','with the weight — the old deficit shrank by that much.') }}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if v.visit_notes %}
+  <div style="font-size:12.5px;color:var(--muted);margin-top:10px">
+    <i class="fa-solid fa-note-sticky"></i> {{ v.visit_notes }}
+  </div>
+  {% endif %}
+
+  {% if v.saved_plan_id %}
+  <div style="margin-top:10px">
+    <a href="/saved/{{ v.saved_plan_id }}/open" style="color:#1B6E80;font-weight:700;font-size:13px;text-decoration:none">
+      {{ t('شوف جدول الزيارة دي','Open this visit’s plan') }} ›</a>
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% endblock %}

@@ -139,6 +139,19 @@ def _rank_by_condition(meals, cond_keys):
             neutral.append(m)
     return good + neutral + bad
 
+def _defer_repeats(meals, avoid):
+    """يحط الوجبات اللي العميل أكلها المرة اللي فاتت في آخر اللستة.
+
+    الترتيب هو اللي بيحدد إيه اللي هيتاخد (الاختيار بـ i % len)، فتأخيرها
+    معناه إنها مش هتتشاف غير لو الجديد خلص."""
+    if not avoid:
+        return meals
+    fresh, repeats = [], []
+    for m in meals:
+        (repeats if _meal_text(m).strip() in avoid else fresh).append(m)
+    return fresh + repeats
+
+
 def _apply_clinical_safety_caps(data):
     """يظبط هدف السعرات تلقائياً لحالات حساسة (حصوات المرارة، اضطرابات الأكل)، ويضيف ملاحظات تغذوية
     للحالات اللي محتاجة تأكيد على عناصر معيّنة (هشاشة العظام، نقص الحديد...)، قبل توليد الخطة."""
@@ -217,6 +230,16 @@ def generate_weekly_plan(data):
     lunches = filter_meals_by_exclusions(lunches, user_exclusions)
     dinners = filter_meals_by_exclusions(dinners, user_exclusions)
 
+    # متابعة: الوجبات اللي كانت في خطة الزيارة اللي فاتت تتأخّر لآخر الطابور،
+    # عشان العميل الراجع بعد شهر ياخد أسبوع جديد مش نفس الأكل تاني. تأخير مش
+    # حذف -- لو الفلترة الطبية سابت وجبات قليلة، الأفضل يتكرر أكل على إن
+    # الخطة تطلع ناقصة.
+    avoid = set(data.get("avoid_meals") or [])
+    if avoid:
+        breakfasts = _defer_repeats(breakfasts, avoid)
+        lunches = _defer_repeats(lunches, avoid)
+        dinners = _defer_repeats(dinners, avoid)
+
     # كيتو: وجبات كيتو حقيقية | لو-كارب: تقليل النشويات
     if diet_type == "keto":
         try:
@@ -248,6 +271,8 @@ def generate_weekly_plan(data):
     while len(snacks) < 7: snacks.append("فاكهة + مكسرات (120 kcal)")
 
     snacks = [s for s in snacks if not any(ex in (s if isinstance(s, str) else s.get("meal","")) for ex in user_exclusions)] or snacks
+    if avoid:
+        snacks = _defer_repeats(snacks, avoid)
 
     if diet_type == "keto":
         try:
@@ -638,6 +663,27 @@ def build_pdf(data, plan=None):
     _avg_cal = round(_sum_cal / _n)
     _avg_p = round(_sum_p / _n)
 
+    # ── سطر المتابعة ── الأرقام اللي تقول للعميل إن حاجة اتغيّرت من آخر زيارة
+    _fu = data.get("followup") or None
+    if _fu:
+        _dir = _L("نزل", "down") if _fu["delta"] < 0 else (
+            _L("زاد", "up") if _fu["delta"] > 0 else _L("ثابت", "unchanged"))
+        _amount = f" {abs(_fu['delta'])} {_L('كجم', 'kg')}" if _fu["delta"] else ""
+        _rate = (f" ({_fu['rate']} {_L('كجم/أسبوع', 'kg/wk')})") if _fu["rate"] else ""
+        _fu_line = (
+            f'<div class="meta" style="background:#eef4f1">'
+            f'<span><b>{_L("متابعة رقم", "Follow-up visit")}:</b> {_esc(data.get("visit_no", 2))}</span>'
+            f'<span><b>{_L("الوزن", "Weight")}:</b> {_fu["old_weight"]} &rarr; {_fu["new_weight"]} '
+            f'{_L("كجم", "kg")}</span>'
+            f'<span><b>{_esc(_dir)}{_esc(_amount)}</b> {_L("في", "over")} {_fu["days"]} '
+            f'{_L("يوم", "days")}{_esc(_rate)}</span>'
+            + (f'<span><b>{_L("TDEE الجديد", "New TDEE")}:</b> {_fu["new_tdee"]} kcal</span>'
+               if _fu.get("new_tdee") else "")
+            + f'</div>'
+            f'<div class="fu-note">{_esc(_fu["note_ar"] if _pdf_ar else _fu["note_en"])}</div>')
+    else:
+        _fu_line = ""
+
     # سطر التدوير جنب السعرات المستهدفة، ومعاه المدى عشان القارئ يفهم إن اليوم بيتغيّر
     if _zz:
         _zz_meta = (f" — {_L('تدوير', 'cycled')} "
@@ -765,6 +811,7 @@ tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
             background:#eef4f1; border:1px solid #cfe3d9; border-radius:6px;
             padding:7px 12px; margin-top:8px; font-size:11px; }}
 .summary b {{ color:#14332b; }}
+.fu-note {{ font-size:10.5px; color:#2d4a3e; margin-top:3px; padding:0 3px; }}
 </style></head><body>
 <div class="hdr">
   <div><div class="t">{_esc(td['plan_title'])} — {_esc(td['diet_plan_name'])}</div>
@@ -782,6 +829,7 @@ tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
   <span><b>{_L("المطبخ", "Cuisine")}:</b> {_esc(td['culture'])}</span>
   {macro_meta}
 </div>
+{_fu_line}
 <table><thead><tr>{head_cells}</tr></thead><tbody>{body_rows}</tbody></table>
 {summary_box}
 <div class="foot">

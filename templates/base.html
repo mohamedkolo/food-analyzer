@@ -247,8 +247,11 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
       <i class="fa-solid fa-users" style="color:#1B6E80"></i> {{ 'العملاء' if is_ar else 'Clients' }}
     </a>
     {% endif %}
-    <a href="/generate" class="nav-item {% if request.endpoint in ['generate','preview'] %}active{% endif %}">
+    <a href="/generate" class="nav-item {% if request.endpoint in ['plans.generate','plans.preview','generate','preview'] %}active{% endif %}">
       <i class="fa-solid fa-file-medical" style="color:var(--green-light)"></i> {{ 'توليد جدول' if is_ar else 'Generate' }}
+    </a>
+    <a href="/followups" class="nav-item {% if request.endpoint in ['plans.followups','plans.followup_detail'] %}active{% endif %}">
+      <i class="fa-solid fa-clock-rotate-left" style="color:#2E8F9E"></i> {{ 'المتابعات' if is_ar else 'Follow-ups' }}
     </a>
     <details class="nav-more" {% if request.endpoint in ['admin_notifications','analyzer','saved','clinical','admin_blocked_list'] %}open{% endif %}>
       <summary class="nav-item"><i class="fa-solid fa-ellipsis"></i> {{ 'أدوات وإدارة' if is_ar else 'More' }}

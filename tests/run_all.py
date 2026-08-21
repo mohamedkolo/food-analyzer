@@ -18,6 +18,7 @@ SUITES = [
     "test_translation.py",
     "test_zigzag.py",
     "test_food_data.py",
+    "test_followup.py",
 ]
 
 

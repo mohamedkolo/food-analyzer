@@ -86,20 +86,42 @@
     <div class="acc-body">    <div class="grid-2">
       <div class="form-group">
         <label class="form-label">{{ 'الاسم' if is_ar else 'Name' }}</label>
-        <input class="form-input" type="text" name="name" required placeholder="{{ 'محمد احمد' if is_ar else 'John Smith' }}">
+        <input class="form-input" type="text" name="name" id="nameField" required
+               autocomplete="off" placeholder="{{ 'محمد احمد' if is_ar else 'John Smith' }}">
       </div>
       <div class="form-group">
         <label class="form-label">{{ 'الجنس' if is_ar else 'Gender' }}</label>
-        <select class="form-select" name="gender">
+        <select class="form-select" name="gender" id="genderField">
           <option value="ذكر">{{ 'ذكر' if is_ar else 'Male' }}</option>
           <option value="انثى">{{ 'انثى' if is_ar else 'Female' }}</option>
         </select>
       </div>
     </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">
+          {{ 'الموبايل' if is_ar else 'Phone' }}
+          <span style="font-weight:600;color:var(--muted);font-size:11px">
+            {{ '— اختياري، بيفرّق بين المتشابهين في الاسم' if is_ar else '— optional, separates clients with the same name' }}
+          </span>
+        </label>
+        <input class="form-input" type="tel" name="phone" id="phoneField" autocomplete="off"
+               placeholder="01xxxxxxxxx">
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ 'ملاحظة الزيارة' if is_ar else 'Visit note' }}</label>
+        <input class="form-input" type="text" name="visit_notes"
+               placeholder="{{ 'التزم كويس، بيتمرن 3 أيام' if is_ar else 'Adhering well, training 3 days' }}">
+      </div>
+    </div>
+
+    <!-- ═══════════ بانر المتابعة ═══════════ -->
+    <div id="fuBox" style="display:none"></div>
     <div class="grid-3">
       <div class="form-group">
         <label class="form-label">{{ 'العمر' if is_ar else 'Age' }}</label>
-        <input class="form-input" type="number" name="age" placeholder="30">
+        <input class="form-input" type="number" name="age" id="ageField" placeholder="30">
       </div>
       <div class="form-group">
         <label class="form-label">{{ 'الطول (سم)' if is_ar else 'Height (cm)' }}</label>
@@ -123,6 +145,22 @@
         <label class="form-label">TDEE (kcal)</label>
         <input class="form-input" type="number" name="tdee" id="tdeeField">
       </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">
+        {{ 'معامل النشاط (لحساب TDEE)' if is_ar else 'Activity factor (for TDEE)' }}
+      </label>
+      <select class="form-select" name="activity_mult" id="actMult">
+        <option value="1.2">{{ 'قليل الحركة (عمل مكتبي) — 1.2' if is_ar else 'Sedentary (desk job) — 1.2' }}</option>
+        <option value="1.375">{{ 'نشاط خفيف (1-3 أيام) — 1.375' if is_ar else 'Light (1-3 days) — 1.375' }}</option>
+        <option value="1.55" selected>{{ 'متوسط (3-5 أيام) — 1.55' if is_ar else 'Moderate (3-5 days) — 1.55' }}</option>
+        <option value="1.725">{{ 'عالي (6-7 أيام) — 1.725' if is_ar else 'High (6-7 days) — 1.725' }}</option>
+        <option value="1.9">{{ 'عالي جداً (تمرين + شغل بدني) — 1.9' if is_ar else 'Very high (training + physical job) — 1.9' }}</option>
+      </select>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin:-4px 0 4px">
+      {{ 'الـTDEE بيتحسب تلقائياً (Mifflin-St Jeor × معامل النشاط) وتقدر تعدّله بإيدك.'
+         if is_ar else 'TDEE is calculated automatically (Mifflin-St Jeor × activity factor) and stays editable.' }}
     </div>
     <div class="grid-2">
       <div class="form-group">
@@ -361,13 +399,123 @@ document.querySelectorAll('input[name="goal_type"]').forEach(r=>r.addEventListen
 tdee.addEventListener('input',()=>setTimeout(calcCarb,0));
 setProteinFromAct(); setFatFromDiet(); calcCarb();
 
+// ===== المتابعة: هل الشخص ده جه قبل كده؟ =====
+const genderSel=document.querySelector('select[name="gender"]');
+const nameField=document.getElementById('nameField');
+const phoneField=document.getElementById('phoneField');
+const fuBox=document.getElementById('fuBox');
+const ageField=document.getElementById('ageField');
+const actMult=document.getElementById('actMult');
+const IS_AR={{ 'true' if is_ar else 'false' }};
+const T=(a,e)=>IS_AR?a:e;
+let fuTimer=null, fuLastKey='';
+
+function fuFmt(n,d){ return (n===null||n===undefined||n==='')?'—':(+n).toFixed(d||0); }
+
+function renderFollowup(d){
+  if(!d.found){ fuBox.style.display='none'; fuBox.innerHTML=''; return; }
+  const L=d.last, s=d.summary;
+  const rows=d.history.map(h=>
+    `<span style="display:inline-block;background:#fff;border:1px solid #B4D0DA;border-radius:8px;
+       padding:5px 10px;margin:3px 3px 0 0;font-size:12px;white-space:nowrap">
+       <b>#${h.no}</b> ${h.date} · <b>${fuFmt(h.weight,1)}</b>${T('كجم','kg')}</span>`).join('');
+  const totalTxt = s && s.total_change!==null
+    ? `${s.total_change>0?'+':''}${s.total_change} ${T('كجم من أول زيارة','kg since the first visit')}` : '';
+
+  fuBox.innerHTML=`
+  <div style="background:#F4F9FB;border:2px solid #1B6E80;border-radius:12px;padding:14px 16px;margin:4px 0 14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div style="font-weight:800;color:#0F2A43;font-size:15px">
+        <i class="fa-solid fa-clock-rotate-left" style="color:#1B6E80"></i>
+        ${T('متابعة رقم','Follow-up visit')} ${d.next_visit_no} — ${d.name||''}
+      </div>
+      <div style="font-size:12.5px;color:#64748b;font-weight:700">
+        ${T('آخر زيارة من','Last visit')} <b style="color:#0F2A43">${d.days_since}</b> ${T('يوم','days ago')}
+        ${totalTxt?' · '+totalTxt:''}
+      </div>
+    </div>
+    <div style="font-size:12.5px;color:#0F2A43;margin-top:8px">
+      ${T('آخر مرة','Last time')}: <b>${fuFmt(L.weight,1)}</b> ${T('كجم','kg')} ·
+      TDEE <b>${fuFmt(L.tdee)}</b> · ${T('الهدف','target')} <b>${fuFmt(L.goal_cal)}</b> kcal
+    </div>
+    <div style="margin-top:8px">${rows}</div>
+    <div style="margin-top:11px;display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" id="fuFill"
+        style="background:#1B6E80;color:#fff;border:0;border-radius:9px;padding:8px 15px;
+               font-family:inherit;font-weight:800;font-size:12.5px;cursor:pointer">
+        ${T('املا البيانات الثابتة','Fill in what does not change')}
+      </button>
+      <button type="button" id="fuSkip"
+        style="background:#fff;color:#64748b;border:1px solid #D3E3EA;border-radius:9px;
+               padding:8px 15px;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer">
+        ${T('ده شخص تاني','This is a different person')}
+      </button>
+      <a href="/followups/${encodeURIComponent(d.key||'')}"
+        style="color:#1B6E80;font-weight:700;font-size:12.5px;align-self:center;text-decoration:none">
+        ${T('كل الزيارات','All visits')} ›</a>
+    </div>
+    <div style="font-size:11.5px;color:#52796f;margin-top:9px">
+      ${T('اكتب الوزن الجديد وهنحسب التقدّم والـTDEE على الوزن ده، والخطة هتتفادى أكل الأسبوع اللي فات.',
+          'Enter the new weight — progress and TDEE are calculated on it, and the plan will avoid last visit’s meals.')}
+    </div>
+  </div>`;
+  fuBox.style.display='block';
+
+  document.getElementById('fuFill').onclick=()=>{
+    // الثابت بس: الطول والسن والنوع والنشاط. الوزن لأ -- ده اللي جاي يتقاس.
+    if(L.height&&h) h.value=L.height;
+    if(L.age&&ageField) ageField.value=L.age;
+    if(L.gender&&genderSel) genderSel.value=L.gender;
+    if(L.activity&&actMult) actMult.value=L.activity;
+    if(L.goal_type){ const r=document.querySelector(`input[name="goal_type"][value="${L.goal_type}"]`); if(r) r.checked=true; }
+    if(L.diet_plan_type){ const r=document.querySelector(`input[name="diet_plan_type"][value="${L.diet_plan_type}"]`); if(r) r.checked=true; }
+    (d.conditions||[]).forEach(c=>{
+      const cb=document.querySelector(`input[name="symptoms"][value="${c}"]`); if(cb) cb.checked=true;
+    });
+    calc(); recomputeTdee(); updateMacros();
+    document.getElementById('fuFill').textContent=T('اتملت ✓','Filled ✓');
+  };
+  document.getElementById('fuSkip').onclick=()=>{
+    fuBox.style.display='none';
+    fuLastKey='__skipped__'+(nameField.value||'');
+  };
+}
+
+function fuLookup(){
+  const n=(nameField?.value||'').trim(), p=(phoneField?.value||'').trim();
+  const k=n+'|'+p;
+  if(k===fuLastKey) return;
+  fuLastKey=k;
+  if(n.length<3){ fuBox.style.display='none'; return; }
+  fetch(`/api/followup/lookup?name=${encodeURIComponent(n)}&phone=${encodeURIComponent(p)}`)
+    .then(r=>r.json())
+    .then(renderFollowup)
+    .catch(()=>{});
+}
+[nameField,phoneField].forEach(el=>el&&el.addEventListener('input',()=>{
+  clearTimeout(fuTimer); fuTimer=setTimeout(fuLookup,450);
+}));
+
+// ===== حساب TDEE من Mifflin-St Jeor × معامل النشاط =====
+function recomputeTdee(){
+  const wv=parseFloat(w.value), hv=parseFloat(h.value);
+  const av=parseFloat(ageField?.value), mult=parseFloat(actMult?.value);
+  if(!(wv&&hv&&av&&mult)) return;
+  const male=(genderSel?.value||'ذكر')==='ذكر';
+  const bmr=10*wv+6.25*hv-5*av+(male?5:-161);
+  tdee.value=Math.round(bmr*mult);
+  calcGoal(); calcCarb();
+}
+[w,h,ageField,actMult,genderSel].forEach(el=>el&&el.addEventListener('input',recomputeTdee));
+if(actMult) actMult.addEventListener('change',recomputeTdee);
+if(genderSel) genderSel.addEventListener('change',recomputeTdee);
+
 // ===== معاينة تدوير السعرات =====
 const ZZ = {{ zigzag_json|safe }};
 const zzMode=document.getElementById('zzMode');
 const zzBars=document.getElementById('zzBars');
 const zzDesc=document.getElementById('zzDesc');
 const zzAvg=document.getElementById('zzAvg');
-const genderSel=document.querySelector('select[name="gender"]');
 const DAY_LBL={{ ('["ح","ن","ث","ر","خ","ج","س"]' if is_ar else '["Su","Mo","Tu","We","Th","Fr","Sa"]')|safe }};
 
 function zzFloor(){

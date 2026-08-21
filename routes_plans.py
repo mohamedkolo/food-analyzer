@@ -23,8 +23,10 @@ from flask import (Blueprint, jsonify, redirect, render_template, request,
 import meal_extra
 from core import (
     DIET_PLAN_TYPES, cur_lang, db_row, db_rows, db_run, filter_by_conditions,
-    get_meal_pool, get_user_by_id, log_error, staff_required, translate_meal,
+    get_meal_pool, get_user_by_id, last_visit, log_error, record_visit,
+    recent_clients, staff_required, translate_meal, visits_for,
 )
+import followup
 from plan_engine import (
     build_pdf, filter_carbs, filter_meals_by_exclusions,
     generate_weekly_plan, parse_user_exclusions,
@@ -32,6 +34,8 @@ from plan_engine import (
 from zigzag import ZIGZAG_MODES
 
 bp = Blueprint("plans", __name__)
+
+_L_VISIT_AR = "متابعة"
 
 @bp.route("/saved")
 @staff_required
@@ -119,22 +123,127 @@ def generate():
             "notes": request.form.get("notes",""),
             "insulin_tdd": request.form.get("insulin_tdd",""),
             "zigzag_mode": request.form.get("zigzag_mode","off"),
+            "phone": request.form.get("phone",""),
+            "visit_notes": request.form.get("visit_notes",""),
+            "activity": request.form.get("activity_mult","1.55"),
         }
+
+        # ── المتابعة ── لو الشخص ده جه قبل كده، الزيارة دي مبنية على اللي فات
+        data["client_key"] = followup.client_key(data["name"], data["phone"])
+        prev = last_visit(session["uid"], data["client_key"])
+        progress = followup.assess(prev, data, cur_lang()) if prev else None
+        if progress:
+            data["followup"] = progress
+            data["visit_no"] = int(prev.get("visit_no") or 1) + 1
+            # الوجبات اللي أكلها الأسبوع اللي فات ما تتكررش
+            try:
+                data["avoid_meals"] = followup.meals_in_plan(
+                    json.loads(prev.get("plan_json") or "[]"))
+            except (ValueError, TypeError):
+                data["avoid_meals"] = []
+
         session["pdf_data"] = data
         plan = generate_weekly_plan(data)
         session["current_plan"] = plan
         # ── حفظ تلقائي للخطة عشان الدكتور يلاقيها في "جداولي المحفوظة" ──
+        saved_id = None
         try:
-            nm = (data.get("name") or "خطة") + " - " + datetime.now().strftime("%Y-%m-%d %H:%M")
+            label = (f" - {_L_VISIT_AR if cur_lang() == 'ar' else 'visit'} "
+                     f"{data['visit_no']}") if data.get("visit_no") else ""
+            nm = ((data.get("name") or "خطة") + label + " - "
+                  + datetime.now().strftime("%Y-%m-%d %H:%M"))
             db_run("INSERT INTO saved_plans (user_id,name,plan_data,plan_type) VALUES (?,?,?,?)",
                    (session["uid"], nm, json.dumps({"plan": plan, "data": data}, ensure_ascii=False),
                     data.get("diet_plan_type", "standard")))
+            row = db_row("SELECT id FROM saved_plans WHERE user_id=? ORDER BY id DESC LIMIT 1",
+                         (session["uid"],))
+            saved_id = row["id"] if row else None
         except Exception as _e:
-            print(f"auto save plan error: {_e}")
+            log_error("auto save plan", _e)
+
+        record_visit(session["uid"], data, plan, saved_id)
         return redirect("/preview")
     return render_template("generate.html", user=u, lang=session.get("lang","ar"),
                            diet_plans=DIET_PLAN_TYPES, zigzag_modes=ZIGZAG_MODES,
                            zigzag_json=json.dumps(ZIGZAG_MODES, ensure_ascii=False))
+
+@bp.route("/api/followup/lookup")
+@staff_required
+def followup_lookup():
+    """الفورم بينادي دي وانت بتكتب الاسم: هو ده عميل جه قبل كده؟
+
+    بترجّع بيانات آخر زيارة عشان الفورم يملّي اللي مش بيتغيّر (الطول، السن،
+    الحالات، الحساسية) ويعرض القراءة، من غير ما يقفل على الدكتور أي قرار."""
+    name = (request.args.get("name") or "").strip()
+    phone = (request.args.get("phone") or "").strip()
+    key = followup.client_key(name, phone)
+    if not key or len(followup.fold_name(name)) < 3:
+        return jsonify({"found": False})
+
+    rows = visits_for(session["uid"], key, limit=12)
+    if not rows:
+        return jsonify({"found": False})
+
+    prev = dict(rows[0])
+    history = [{
+        "no": r["visit_no"], "weight": r["weight"], "fat_pct": r["fat_pct"],
+        "goal_cal": r["goal_cal"],
+        "date": str(r["created_at"])[:10],
+    } for r in reversed([dict(x) for x in rows])]
+
+    try:
+        conditions = json.loads(prev.get("conditions") or "[]")
+    except (ValueError, TypeError):
+        conditions = []
+
+    return jsonify({
+        "found": True,
+        "key": key,
+        "name": prev.get("client_name"),
+        "next_visit_no": int(prev.get("visit_no") or 1) + 1,
+        "days_since": followup._days_between(prev.get("created_at")),
+        "last": {
+            "weight": prev.get("weight"), "height": prev.get("height"),
+            "age": prev.get("age"), "gender": prev.get("gender"),
+            "fat_pct": prev.get("fat_pct"), "tdee": prev.get("tdee"),
+            "goal_cal": prev.get("goal_cal"), "activity": prev.get("activity"),
+            "goal_type": prev.get("goal_type"),
+            "diet_plan_type": prev.get("diet_plan_type"),
+            "date": str(prev.get("created_at"))[:10],
+        },
+        "conditions": conditions,
+        "history": history,
+        "summary": followup.summarise_history([dict(r) for r in rows]),
+    })
+
+
+@bp.route("/followups")
+@staff_required
+def followups():
+    """كل العملاء اللي ليهم ملف متابعة."""
+    u = get_user_by_id(session["uid"])
+    return render_template("followups.html", user=u, lang=session.get("lang", "ar"),
+                           clients=recent_clients(session["uid"]))
+
+
+@bp.route("/followups/<path:key>")
+@staff_required
+def followup_detail(key):
+    u = get_user_by_id(session["uid"])
+    rows = [dict(r) for r in visits_for(session["uid"], key, limit=50)]
+    if not rows:
+        return redirect("/followups")
+
+    # كل زيارة مقارنة باللي قبلها، عشان الجدول يعرض التغيّر مش الأرقام بس
+    steps = []
+    for i, v in enumerate(rows):
+        prev = rows[i + 1] if i + 1 < len(rows) else None
+        steps.append({"visit": v, "progress": followup.assess(prev, v, cur_lang())})
+
+    return render_template("followup_detail.html", user=u, lang=session.get("lang", "ar"),
+                           client_name=rows[0].get("client_name"), client_key=key,
+                           steps=steps, summary=followup.summarise_history(rows))
+
 
 @bp.route("/preview")
 @staff_required

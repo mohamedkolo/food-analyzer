@@ -482,6 +482,7 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS saved_plans (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS patients (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS plan_requests (id SERIAL PRIMARY KEY, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS plan_visits (id SERIAL PRIMARY KEY, user_id INTEGER, client_key TEXT, client_name TEXT, phone TEXT, visit_no INTEGER DEFAULT 1, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, activity REAL, tdee INTEGER, goal_cal INTEGER, goal_type TEXT, diet_plan_type TEXT, conditions TEXT, visit_notes TEXT, plan_json TEXT, saved_plan_id INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS messages (id SERIAL PRIMARY KEY, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS blocked_users (id SERIAL PRIMARY KEY, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""",
             """CREATE TABLE IF NOT EXISTS subscriptions (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, stripe_customer_id TEXT, stripe_subscription_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, current_period_start TIMESTAMP, current_period_end TIMESTAMP, trial_end TIMESTAMP, cancel_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
@@ -500,6 +501,7 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS saved_plans (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS patients (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS plan_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS plan_visits (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, client_key TEXT, client_name TEXT, phone TEXT, visit_no INTEGER DEFAULT 1, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, activity REAL, tdee INTEGER, goal_cal INTEGER, goal_type TEXT, diet_plan_type TEXT, conditions TEXT, visit_notes TEXT, plan_json TEXT, saved_plan_id INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS blocked_users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""",
             """CREATE TABLE IF NOT EXISTS subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, stripe_customer_id TEXT, stripe_subscription_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, current_period_start TIMESTAMP, current_period_end TIMESTAMP, trial_end TIMESTAMP, cancel_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
@@ -585,6 +587,88 @@ def get_user(email, pw):
             print(f"hash upgrade error: {_e}")
     return u
 def get_user_by_id(uid): return db_row("SELECT * FROM users WHERE id=?", (uid,))
+
+# ── المتابعة: زيارات العميل عبر الوقت ──────────────────────────────────
+# الخطط بتتحفظ تحت user_id بتاع الدكتور مش العميل، فمفيش هوية بتربط زيارة
+# بالزيارة اللي قبلها. جدول plan_visits هو الرابط ده: مفتاح مبني على الاسم
+# (والموبايل لو موجود) بيجمع زيارات نفس الشخص في خط واحد.
+
+def visits_for(doctor_uid, key, limit=20):
+    """زيارات عميل واحد، الأحدث الأول."""
+    if not key:
+        return []
+    try:
+        return db_rows("""SELECT * FROM plan_visits WHERE user_id=? AND client_key=?
+                          ORDER BY created_at DESC, id DESC LIMIT ?""",
+                       (doctor_uid, key, limit)) or []
+    except Exception as e:
+        log_error("visits_for", e)
+        return []
+
+
+def last_visit(doctor_uid, key):
+    rows = visits_for(doctor_uid, key, limit=1)
+    return dict(rows[0]) if rows else None
+
+
+def record_visit(doctor_uid, data, plan, saved_plan_id=None):
+    """يسجّل الزيارة الحالية. بيرجّع رقم الزيارة، أو None لو مقدرش."""
+    from followup import client_key
+    key = client_key(data.get("name"), data.get("phone"))
+    if not key:
+        return None
+    try:
+        prev = visits_for(doctor_uid, key, limit=1)
+        visit_no = (int(prev[0]["visit_no"]) + 1) if prev else 1
+        db_run("""INSERT INTO plan_visits
+                  (user_id, client_key, client_name, phone, visit_no, age, gender,
+                   height, weight, fat_pct, bmi, activity, tdee, goal_cal, goal_type,
+                   diet_plan_type, conditions, visit_notes, plan_json, saved_plan_id)
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               (doctor_uid, key, (data.get("name") or "").strip(),
+                (data.get("phone") or "").strip(), visit_no,
+                _as_int(data.get("age")), data.get("gender"),
+                _as_float(data.get("height")), _as_float(data.get("weight")),
+                _as_float(data.get("fat_pct")), _as_float(data.get("bmi")),
+                _as_float(data.get("activity")) or _as_float(data.get("activity_mult")),
+                _as_int(data.get("tdee")), _as_int(data.get("goal_cal")),
+                data.get("goal_type"), data.get("diet_plan_type"),
+                json.dumps(data.get("symptoms") or [], ensure_ascii=False),
+                (data.get("visit_notes") or "").strip(),
+                json.dumps(plan or [], ensure_ascii=False), saved_plan_id))
+        return visit_no
+    except Exception as e:
+        log_error("record_visit", e)
+        return None
+
+
+def recent_clients(doctor_uid, limit=60):
+    """آخر عميل في كل ملف متابعة، مع عدد زياراته."""
+    try:
+        rows = db_rows("""SELECT client_key, MAX(client_name) AS client_name,
+                                 COUNT(*) AS visits, MAX(visit_no) AS last_no,
+                                 MAX(created_at) AS last_at
+                          FROM plan_visits WHERE user_id=?
+                          GROUP BY client_key ORDER BY MAX(created_at) DESC LIMIT ?""",
+                       (doctor_uid, limit)) or []
+        return [dict(r) for r in rows]
+    except Exception as e:
+        log_error("recent_clients", e)
+        return []
+
+
+def _as_float(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _as_int(v):
+    try:
+        return int(float(v))
+    except (TypeError, ValueError):
+        return None
 
 def register(name, email, pw, country, age=None, phone=None):
     try:
