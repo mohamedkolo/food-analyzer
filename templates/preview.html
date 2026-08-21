@@ -126,6 +126,64 @@
   </div>
 </div>
 
+{% set zz = data.zigzag %}
+{% if zz %}
+<!-- تدوير السعرات -->
+<div style="background:#fff;border:2px solid #B4D0DA;border-radius:12px;padding:16px 18px;margin-bottom:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:4px">
+    <div style="font-weight:800;color:#0F2A43;font-size:15px">
+      <i class="fa-solid fa-arrow-down-up-across-line" style="color:#1B6E80"></i>
+      {{ t('تدوير السعرات','Calorie cycling') }} — {{ zz.mode_ar if is_ar else zz.mode_en }}
+    </div>
+    <div style="font-size:12.5px;color:#64748b;font-weight:700">
+      {{ t('المتوسط','Average') }} <b style="color:#0F2A43">{{ zz.avg }}</b> kcal ·
+      {{ zz.low }}–{{ zz.high }} kcal
+    </div>
+  </div>
+  <div style="font-size:12px;color:#64748b;margin-bottom:12px">{{ zz.desc_ar if is_ar else zz.desc_en }}</div>
+
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">
+    {% for d in zz.days %}
+    {% set col = '#1B6E80' if d.level == 'high' else ('#FF7A59' if d.level == 'low' else '#94a3b8') %}
+    <div style="text-align:center">
+      <div style="height:52px;display:flex;align-items:flex-end;justify-content:center">
+        <div style="width:100%;height:{{ (d.kcal / zz.high * 52) | round | int }}px;background:{{ col }};border-radius:4px 4px 0 0"></div>
+      </div>
+      <div style="font-size:11px;font-weight:800;color:#0F2A43;margin-top:4px">{{ d.kcal }}</div>
+      <div style="font-size:10px;color:#64748b">{{ (d.day_ar if is_ar else d.day_en)[:3] }}{% if d.pct %} {{ '+' if d.pct > 0 }}{{ d.pct }}%{% endif %}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if zz.days[0].protein_g %}
+  <div style="font-size:12px;color:#64748b;margin-top:12px;padding-top:10px;border-top:1px solid #E4F0F4">
+    {{ t('البروتين ثابت','Protein is constant at') }} <b style="color:#0F2A43">{{ zz.days[0].protein_g }} {{ t('جم','g') }}</b>
+    {{ t('كل يوم — الفرق في السعرات بيتحمّله الكارب.','every day — carbs carry the calorie swing.') }}
+    {{ t('الكارب بيتراوح','Carbs range') }}
+    <b style="color:#0F2A43">{{ zz.days|map(attribute='carb_g')|min }}–{{ zz.days|map(attribute='carb_g')|max }} {{ t('جم','g') }}</b>.
+  </div>
+  {% endif %}
+  {% if zz.floor_disabled %}
+  <div style="font-size:12px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:9px 12px;margin-top:10px">
+    ⚠️ {{ t('السعرات المستهدفة عند الحد الآمن الأدنى، فمفيش مجال ننزّل أي يوم تحته — الأيام اتسابت متساوية.',
+            'The target is already at the safe floor, so no day can go below it — the days were left equal.') }}
+  </div>
+  {% endif %}
+  {% if zz.fat_floor_applied %}
+  <div style="font-size:12px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:9px 12px;margin-top:10px">
+    ⚠️ {{ t('نسبة الدهون اللي اتكتبت أقل من الحد الصحي، فاترفعت لـ','The fat percentage entered was below the healthy minimum, so it was raised to') }}
+    <b>{{ zz.min_fat_g }} {{ t('جم','g') }}</b> ({{ '%.1f'|format(0.6) }} {{ t('جم/كجم','g/kg') }}).
+  </div>
+  {% endif %}
+  {% if zz.macro_conflict %}
+  <div style="font-size:12px;color:#991b1b;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:9px 12px;margin-top:10px">
+    🚫 {{ t('البروتين المطلوب + أقل دهون آمنة أكبر من سعرات اليوم — الوصفة دي مش قابلة للتنفيذ. قلّل البروتين جم/كجم أو زوّد السعرات.',
+            'The requested protein plus the minimum safe fat exceeds the day\'s calories — this prescription cannot be met. Lower the protein g/kg or raise the calories.') }}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
 <!-- Days -->
 <div style="display:grid;gap:12px">
   {% for day in plan %}
@@ -135,8 +193,30 @@
       <div style="font-size:17px;font-weight:800;color:var(--blue-dark)">
         <i class="fa-solid fa-calendar-day"></i> {{ day.day | day_en }}
       </div>
-      <div style="background:#d8e2dc;color:#0F2A43;padding:4px 12px;border-radius:100px;font-weight:700;font-size:13px">
-        {{ day.total_cal }} kcal
+      <div style="display:flex;align-items:center;gap:6px">
+        {% if day.target_cal %}
+        {% set lv = day.zigzag_level %}
+        <div style="background:{{ '#1B6E80' if lv == 'high' else ('#FF7A59' if lv == 'low' else '#94a3b8') }};
+                    color:#fff;padding:4px 12px;border-radius:100px;font-weight:800;font-size:13px"
+             title="{{ t('السعرات المستهدفة لليوم ده','Target calories for this day') }}">
+          {{ t('الهدف','Target') }} {{ day.target_cal }} kcal
+          {%- if day.zigzag_pct %} ({{ '+' if day.zigzag_pct > 0 }}{{ day.zigzag_pct }}%){% endif %}
+        </div>
+        {% endif %}
+        <div style="background:#d8e2dc;color:#0F2A43;padding:4px 12px;border-radius:100px;font-weight:700;font-size:13px"
+             title="{{ t('مجموع سعرات الوجبات المكتوبة','Total of the meals listed') }}">
+          {{ day.total_cal }} kcal
+        </div>
+        {% if day.target_cal %}
+        {% set gap = day.target_cal - day.total_cal %}
+        {% if gap > 150 or gap < -150 %}
+        <div style="background:#fffbeb;border:1px solid #fcd34d;color:#92400e;padding:4px 10px;
+                    border-radius:100px;font-weight:700;font-size:12px"
+             title="{{ t('الفرق بين هدف اليوم ومجموع الوجبات — ظبّط الكميات','The gap between the day target and the meals listed — adjust the quantities') }}">
+          {{ '+' if gap > 0 }}{{ gap }} kcal
+        </div>
+        {% endif %}
+        {% endif %}
       </div>
     </div>
 

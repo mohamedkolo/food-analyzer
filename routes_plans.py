@@ -29,6 +29,7 @@ from plan_engine import (
     build_pdf, filter_carbs, filter_meals_by_exclusions,
     generate_weekly_plan, parse_user_exclusions,
 )
+from zigzag import ZIGZAG_MODES
 
 bp = Blueprint("plans", __name__)
 
@@ -117,6 +118,7 @@ def generate():
             "disliked_foods": request.form.get("disliked_foods",""),
             "notes": request.form.get("notes",""),
             "insulin_tdd": request.form.get("insulin_tdd",""),
+            "zigzag_mode": request.form.get("zigzag_mode","off"),
         }
         session["pdf_data"] = data
         plan = generate_weekly_plan(data)
@@ -130,7 +132,9 @@ def generate():
         except Exception as _e:
             print(f"auto save plan error: {_e}")
         return redirect("/preview")
-    return render_template("generate.html", user=u, lang=session.get("lang","ar"), diet_plans=DIET_PLAN_TYPES)
+    return render_template("generate.html", user=u, lang=session.get("lang","ar"),
+                           diet_plans=DIET_PLAN_TYPES, zigzag_modes=ZIGZAG_MODES,
+                           zigzag_json=json.dumps(ZIGZAG_MODES, ensure_ascii=False))
 
 @bp.route("/preview")
 @staff_required

@@ -174,6 +174,16 @@ def _apply_clinical_safety_caps(data):
 
 def generate_weekly_plan(data):
     _apply_clinical_safety_caps(data)
+
+    # تدوير السعرات — لازم يتحسب بعد الـ safety caps لأنها ممكن تكون غيّرت goal_cal
+    try:
+        from zigzag import zigzag_from_data
+        data["zigzag"] = zigzag_from_data(data)
+    except Exception as _e:
+        print(f"zigzag error: {_e}")
+        data["zigzag"] = None
+    zz_days = (data.get("zigzag") or {}).get("days") or []
+
     symptoms = data.get("symptoms", [])
     goal = data.get("goal_type", "weight_loss")
     is_cutting = (goal == "cutting")
@@ -339,6 +349,14 @@ def generate_weekly_plan(data):
             total_p = b.get("p",20) + l.get("p",30) + d.get("p",20) + 33
         day_plan["total_cal"] = total_cal
         day_plan["total_p"] = total_p
+        if i < len(zz_days):
+            zd = zz_days[i]
+            day_plan["target_cal"] = zd["kcal"]
+            day_plan["zigzag_pct"] = zd["pct"]
+            day_plan["zigzag_level"] = zd["level"]
+            day_plan["target_p"] = zd["protein_g"]
+            day_plan["target_c"] = zd["carb_g"]
+            day_plan["target_f"] = zd["fat_g"]
         plan.append(day_plan)
     return plan
 
@@ -497,6 +515,7 @@ def build_pdf(data, plan=None):
                 meals_html.append({"label": label, "emoji": emoji, "text": _meal(meal_text)})
         pdf_days.append({"name": d["day"] if _pdf_ar else ENGLISH_DAYS.get(d["day"], d["day"]),
                          "total_kcal": d["total_cal"], "total_p": d.get("total_p", 0),
+                         "target_kcal": d.get("target_cal"), "zigzag_pct": d.get("zigzag_pct"),
                          "meals": meals_html,
                          "breakfast": _meal(d.get("breakfast","")), "lunch": _meal(d.get("lunch","")),
                          "dinner": _meal(d.get("dinner","")), "snack": _meal(d.get("snack",""))})
@@ -580,11 +599,16 @@ def build_pdf(data, plan=None):
     columns = [m['label'] for m in pdays[0]['meals']] if pdays else []
     ncols = len(columns)
     orientation = "landscape" if ncols >= 5 else "portrait"
+    if (data.get("zigzag") or None) and ncols >= 4:
+        orientation = "landscape"  # عمود "هدف اليوم" الزيادة محتاج عرض
 
     # رأس الجدول
+    _zz = data.get("zigzag") or None
     head_cells = f'<th class="dcol">{_L("اليوم", "Day")}</th>'
     for c in columns:
         head_cells += f'<th>{_esc(c)}</th>'
+    if _zz:
+        head_cells += f'<th class="kcol">{_L("هدف اليوم", "Day target")}</th>'
     head_cells += (f'<th class="kcol">{_L("سعرات", "kcal")}</th>'
                    f'<th class="kcol">{_L("بروتين", "Protein")}</th>')
 
@@ -597,6 +621,13 @@ def build_pdf(data, plan=None):
         by_label = {m['label']: m['text'] for m in d['meals']}
         for c in columns:
             cells += f'<td>{_fmt_cell(by_label.get(c, "-"))}</td>'
+        if _zz:
+            _tk = d.get("target_kcal")
+            _tp = d.get("zigzag_pct") or 0
+            # النسبة في سطر لوحدها وبـ nowrap، عشان الـ "%" ما ينزلش لسطر تالت في عمود ضيّق
+            _sfx = (f'<br><span style="white-space:nowrap;font-size:9px">'
+                    f'{"+" if _tp > 0 else ""}{_tp}%</span>') if _tp else ""
+            cells += f'<td class="kcell">{_esc(_tk) if _tk else "-"}{_sfx}</td>'
         cells += f'<td class="kcell">{_esc(d["total_kcal"])}</td>'
         cells += f'<td class="kcell">{_esc(d.get("total_p", 0))} {_L("جم", "g")}</td>'
         body_rows += f'<tr>{cells}</tr>'
@@ -606,6 +637,14 @@ def build_pdf(data, plan=None):
     _n = max(len(pdays), 1)
     _avg_cal = round(_sum_cal / _n)
     _avg_p = round(_sum_p / _n)
+
+    # سطر التدوير جنب السعرات المستهدفة، ومعاه المدى عشان القارئ يفهم إن اليوم بيتغيّر
+    if _zz:
+        _zz_meta = (f" — {_L('تدوير', 'cycled')} "
+                    f"{_esc(_zz['mode_ar'] if _pdf_ar else _zz['mode_en'])} "
+                    f"({_zz['low']}–{_zz['high']} kcal)")
+    else:
+        _zz_meta = ""
 
     def _g(x):
         return x if _pdf_ar else translate_guidance(x)
@@ -739,7 +778,7 @@ tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
   <span><b>{_L("الوزن", "Weight")}:</b> {_esc(cl['weight'])} {_L("كجم", "kg")}</span>
   <span><b>{_L("الطول", "Height")}:</b> {_esc(cl['height'])} {_L("سم", "cm")}</span>
   <span><b>BMI:</b> {_esc(cl['bmi'])}</span>
-  <span><b>{_L("السعرات المستهدفة", "Target calories")}:</b> {_esc(cl['target_kcal'])} kcal</span>
+  <span><b>{_L("السعرات المستهدفة", "Target calories")}:</b> {_esc(cl['target_kcal'])} kcal{_zz_meta}</span>
   <span><b>{_L("المطبخ", "Cuisine")}:</b> {_esc(td['culture'])}</span>
   {macro_meta}
 </div>

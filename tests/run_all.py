@@ -16,6 +16,7 @@ SUITES = [
     "test_medical_filtering.py",
     "test_access_control.py",
     "test_translation.py",
+    "test_zigzag.py",
 ]
 
 
