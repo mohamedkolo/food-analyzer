@@ -3,8 +3,8 @@
 {% set fname = food.n if (lang or 'ar') == 'ar' else food.en %}
 {% block title %}{{ t('سعرات ' ~ food.n ~ ' والقيم الغذائية', fname ~ ' — Calories & Nutrition') }}{% endblock %}
 {% block meta_description %}{{ t(
-  food.n ~ ' (' ~ food.en ~ ') — ' ~ food.cal ~ ' سعرة لكل 100 جرام، بروتين ' ~ food.p ~ ' جم، كارب ' ~ food.c ~ ' جم، دهون ' ~ food.f ~ ' جم. ' ~ food.note,
-  food.en ~ ' — ' ~ food.cal ~ ' calories per 100g, ' ~ food.p ~ 'g protein, ' ~ food.c ~ 'g carbs, ' ~ food.f ~ 'g fat. ' ~ (food.note_en or '')) }}{% endblock %}
+  food.n ~ ' (' ~ food.en ~ ') — ' ~ (food.cal|num) ~ ' سعرة لكل 100 جرام، بروتين ' ~ (food.p|num) ~ ' جم، كارب ' ~ (food.c|num) ~ ' جم، دهون ' ~ (food.f|num) ~ ' جم. ' ~ food.note,
+  food.en ~ ' — ' ~ (food.cal|num) ~ ' calories per 100g, ' ~ (food.p|num) ~ 'g protein, ' ~ (food.c|num) ~ 'g carbs, ' ~ (food.f|num) ~ 'g fat. ' ~ (food.note_en or '')) }}{% endblock %}
 
 {% block chrome %}{% include "_public_header.html" %}{% endblock %}
 
@@ -27,6 +27,12 @@
   .fd-m .v { font-size: 26px; font-weight: 900; color: #0f172a; line-height: 1.1; }
   .fd-m .l { font-size: 12.5px; color: #64748b; font-weight: 700; margin-top: 5px; }
   .fd-basis { text-align: center; color: #94a3b8; font-size: 13px; margin-top: -12px; }
+  .fd-portion { background: #0F2A43; color: #fff; border-radius: 14px;
+                padding: 16px 20px; margin: 18px 0 20px; }
+  .fd-portion strong { display: block; font-size: 14.5px; font-weight: 800; margin-bottom: 10px; }
+  .fd-pnote { font-weight: 600; opacity: .75; font-size: 13px; }
+  .fd-prow { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13.5px; opacity: .95; }
+  .fd-prow b { font-size: 17px; font-weight: 900; }
   .fd-box { background: #F4F9FB; border: 1px solid #B4D0DA; border-radius: 14px;
             padding: 18px 20px; margin-bottom: 14px; }
   .fd-box strong { display: block; color: #0F2A43; font-size: 14px; margin-bottom: 6px; }
@@ -69,12 +75,30 @@
   <a href="/foods?cat={{ food.cat }}" class="fd-cat">{{ cat_label }}</a>
 
   <div class="fd-macros">
-    <div class="fd-m"><div class="v">{{ food.cal }}</div><div class="l">{{ t('سعرة حرارية','Calories') }}</div></div>
-    <div class="fd-m"><div class="v">{{ food.p }}{{ t('جم','g') }}</div><div class="l">{{ t('بروتين','Protein') }}</div></div>
-    <div class="fd-m"><div class="v">{{ food.c }}{{ t('جم','g') }}</div><div class="l">{{ t('كارب','Carbs') }}</div></div>
-    <div class="fd-m"><div class="v">{{ food.f }}{{ t('جم','g') }}</div><div class="l">{{ t('دهون','Fat') }}</div></div>
+    <div class="fd-m"><div class="v">{{ food.cal|num }}</div><div class="l">{{ t('سعرة حرارية','Calories') }}</div></div>
+    <div class="fd-m"><div class="v">{{ food.p|num }}{{ t('جم','g') }}</div><div class="l">{{ t('بروتين','Protein') }}</div></div>
+    <div class="fd-m"><div class="v">{{ food.c|num }}{{ t('جم','g') }}</div><div class="l">{{ t('كارب','Carbs') }}</div></div>
+    <div class="fd-m"><div class="v">{{ food.f|num }}{{ t('جم','g') }}</div><div class="l">{{ t('دهون','Fat') }}</div></div>
   </div>
   <p class="fd-basis">{{ t('القيم لكل 100 جرام','Values per 100 grams') }}</p>
+
+  {% if food.portion_g %}
+  {# الكمية اللي بتتوصف فعلاً في العيادة -- الناس بتاكل حصة، مش 100 جرام #}
+  {% set k = food.portion_g / 100.0 %}
+  <div class="fd-portion">
+    <strong>
+      {{ t('الحصة المعتادة','A typical serving') }}:
+      {{ food.portion_g | num }} {{ t('جم','g') }}{% if food.portion_note %}
+      <span class="fd-pnote">({{ food.portion_note }})</span>{% endif %}
+    </strong>
+    <div class="fd-prow">
+      <span><b>{{ (food.cal * k) | round | int }}</b> {{ t('سعرة','kcal') }}</span>
+      <span><b>{{ (food.p * k) | num }}</b> {{ t('جم بروتين','g protein') }}</span>
+      <span><b>{{ (food.c * k) | num }}</b> {{ t('جم كارب','g carbs') }}</span>
+      <span><b>{{ (food.f * k) | num }}</b> {{ t('جم دهون','g fat') }}</span>
+    </div>
+  </div>
+  {% endif %}
 
   {% set note = food.note if is_ar else (food.note_en or food.note) %}
   {% if note %}
@@ -110,7 +134,7 @@
     <div class="fd-rel-list">
       {% for r in related %}
       <a href="/foods/{{ r.slug }}">
-        {{ r.n if is_ar else r.en }} <span>{{ r.cal }} kcal</span>
+        {{ r.n if is_ar else r.en }} <span>{{ r.cal|num }} kcal</span>
       </a>
       {% endfor %}
     </div>
@@ -132,10 +156,10 @@
     {
       "@type": "NutritionInformation",
       "name": fname,
-      "calories": (food.cal|string) + " kcal",
-      "proteinContent": (food.p|string) + " g",
-      "carbohydrateContent": (food.c|string) + " g",
-      "fatContent": (food.f|string) + " g",
+      "calories": (food.cal|num|string) + " kcal",
+      "proteinContent": (food.p|num|string) + " g",
+      "carbohydrateContent": (food.c|num|string) + " g",
+      "fatContent": (food.f|num|string) + " g",
       "servingSize": "100 g"
     },
     {

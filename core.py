@@ -456,6 +456,16 @@ def from_json_filter(s):
     if not s: return {}
     try: return json.loads(s)
     except: return {}
+@app.template_filter('num')
+def num_filter(v, places=1):
+    """يشيل الأصفار الزايدة: 110.0 -> 110، و 7.60 -> 7.6.
+
+    قيم الأصناف مخزّنة float، فمن غيره الجدول بيبان "110.0 سعرة"."""
+    try:
+        f = round(float(v), places)
+    except (TypeError, ValueError):
+        return v
+    return int(f) if f == int(f) else f
 @app.template_filter('measures')
 def measures_filter(s):
     try:

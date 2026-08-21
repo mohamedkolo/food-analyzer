@@ -4,8 +4,8 @@
 {% block meta_description %}{% if active_cat %}{{ t(
   'سعرات وبروتين وكارب ودهون ' ~ cat_label ~ ' لكل 100 جرام، مع تفاصيل كل صنف.',
   'Calories, protein, carbs and fat for ' ~ cat_label ~ ' per 100g, with details for every item.') }}{% else %}{{ t(
-  'ابحث عن أي صنف أكل واعرف سعراته وبروتينه وكاربه ودهونه لكل 100 جرام — أكتر من 500 صنف في 14 فئة.',
-  'Search any food and see its calories, protein, carbs and fat per 100g — over 500 items across 14 categories.') }}{% endif %}{% endblock %}
+  'ابحث عن أي صنف أكل واعرف سعراته وبروتينه وكاربه ودهونه لكل 100 جرام — ' ~ total ~ ' صنف في 14 فئة، بالكميات اللي بتتاكل فعلاً.',
+  'Search any food and see its calories, protein, carbs and fat per 100g — ' ~ total ~ ' items across 14 categories, with real serving sizes.') }}{% endif %}{% endblock %}
 
 {% block chrome %}{% include "_public_header.html" %}{% endblock %}
 
@@ -154,10 +154,10 @@
             <tr>
               <td><a href="/foods/{{ f.slug }}">{{ f.n if _ar else f.en }}</a>
                   <span class="fx-alt">{{ f.en if _ar else f.n }}</span></td>
-              <td class="fx-n">{{ f.cal }}</td>
-              <td class="fx-n">{{ f.p }}{{ t('جم','g') }}</td>
-              <td class="fx-n">{{ f.c }}{{ t('جم','g') }}</td>
-              <td class="fx-n">{{ f.f }}{{ t('جم','g') }}</td>
+              <td class="fx-n">{{ f.cal|num }}</td>
+              <td class="fx-n">{{ f.p|num }}{{ t('جم','g') }}</td>
+              <td class="fx-n">{{ f.c|num }}{{ t('جم','g') }}</td>
+              <td class="fx-n">{{ f.f|num }}{{ t('جم','g') }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -188,7 +188,7 @@
           {% for f in items %}
           <a class="fx-chip" href="/foods/{{ f.slug }}">
             {{ f.n if _ar else f.en }}
-            <b>{% if key == 'protein' %}{{ f.p }}{{ t('جم','g') }}{% elif key == 'light' %}{{ f.cal }}{% else %}{{ f.c }}{{ t('جم','g') }}{% endif %}</b>
+            <b>{% if key == 'protein' %}{{ f.p|num }}{{ t('جم','g') }}{% elif key == 'light' %}{{ f.cal|num }}{% else %}{{ f.c|num }}{{ t('جم','g') }}{% endif %}</b>
           </a>
           {% endfor %}
         </div>

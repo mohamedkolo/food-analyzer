@@ -89,7 +89,7 @@ _SAFE_LABELS = {
 def public_foods():
     """The food index.
 
-    Landing on 522 rows at once was a wall of numbers nobody reads. Without a
+    Landing on the whole table at once was a wall of numbers nobody reads. Without a
     category the page is now a search box over the whole set plus the fourteen
     categories to browse; pick one and you get that category's table on its
     own. Every food still has its own page and they are all in the sitemap, so
