@@ -28,6 +28,11 @@
       </button>
     </form>
     {% endif %}
+    {% set pdf_name = 'NutraX_' ~ (data.name or 'plan')|replace(' ','_') ~ '.pdf' %}
+    <button type="button" class="btn btn-success" data-share-pdf style="display:none"
+            data-pdf-url="/download_pdf" data-pdf-name="{{ pdf_name }}">
+      <i class="fa-solid fa-share-nodes"></i> {{ t('إرسال الجدول','Send plan') }}
+    </button>
     <a href="/download_pdf" class="btn btn-success">
       <i class="fa-solid fa-download"></i> {{ t('تحميل PDF','Download PDF') }}
     </a>
@@ -349,8 +354,16 @@
   {% endfor %}
 </div>
 
-<div style="position:sticky;bottom:10px;margin-top:20px">
-  <a href="/download_pdf" class="btn btn-success btn-full" style="font-size:17px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.2)">
+<div style="position:sticky;bottom:10px;margin-top:20px;display:grid;gap:8px">
+  {# على الموبايل ده الزرار الرئيسي: بيفتح شير شيت النظام والملف متعلّق فيه،
+     فالجدول بيروح لواتساب في ضغطة. على الديسكتوب مخفي والتحميل هو الأساس. #}
+  <button type="button" class="btn btn-success btn-full" data-share-pdf style="display:none;
+          font-size:17px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.2)"
+          data-pdf-url="/download_pdf" data-pdf-name="{{ pdf_name }}">
+    <i class="fa-solid fa-share-nodes"></i> {{ t('إرسال الجدول للعميل','Send the plan to the client') }}
+  </button>
+  <a href="/download_pdf" class="btn btn-success btn-full" data-share-alt
+     style="font-size:17px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.2)">
     <i class="fa-solid fa-file-pdf"></i> {{ t('تحميل الخطة كـ PDF','Download plan as PDF') }}
   </a>
 </div>

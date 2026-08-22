@@ -665,5 +665,67 @@ async function nxEnablePush(){
   });
 })();
 </script>
+
+<!-- ═══ مشاركة الـPDF من الموبايل ═══
+     تحميل الملف على التليفون بيحطه في مجلد التنزيلات، والدكتور بعد كده لازم
+     يدوّر عليه ويفتح واتساب ويرفعه. الشير شيت بتاع النظام بيوصّل الملف
+     لواتساب في ضغطة واحدة، فلما المتصفح بيدعمه بنستخدمه، ولو مش بيدعمه
+     بيرجع للتحميل العادي زي ما هو. -->
+<script>
+window.canSharePdf = (function(){
+  try {
+    return !!(navigator.canShare && navigator.canShare({
+      files: [new File([new Blob([''], {type:'application/pdf'})], 't.pdf', {type:'application/pdf'})]
+    }));
+  } catch(e) { return false; }
+})();
+
+window.sharePdf = async function(url, filename, btn){
+  const original = btn ? btn.innerHTML : '';
+  const say = (html) => { if(btn) btn.innerHTML = html; };
+  try {
+    if(btn){ btn.disabled = true; say('<i class="fa-solid fa-spinner fa-spin"></i> {{ t("بيحضّر الملف…","Preparing…") }}'); }
+    const res = await fetch(url, { credentials: 'same-origin' });
+    if(!res.ok) throw new Error('http ' + res.status);
+    const blob = await res.blob();
+    const file = new File([blob], filename || 'plan.pdf', { type: 'application/pdf' });
+    if(!(navigator.canShare && navigator.canShare({ files: [file] }))) throw new Error('unsupported');
+    say(original);
+    if(btn) btn.disabled = false;
+    await navigator.share({ files: [file], title: filename });
+  } catch(err) {
+    if(btn){ btn.disabled = false; say(original); }
+    // AbortError = المستخدم قفل الشير شيت بنفسه، مش غلط
+    if(err && err.name === 'AbortError') return;
+    window.location.href = url;   // آخر حل: نزّله زي الأول
+  }
+};
+
+// الرابط والاسم بيتقروا من data-* بدل onclick.
+// اسم الملف عربي، و tojson بيطلّعه بعلامات تنصيص مزدوجة، فحطه جوه onclick="..."
+// كان بينهي الـattribute في نصه ويكسر الجافاسكريبت: Unexpected end of input.
+// وكمان الصفحة عليها CSP، والـinline handlers أول حاجة بتقع معاها.
+document.addEventListener('click', function(ev){
+  const btn = ev.target.closest && ev.target.closest('[data-share-pdf]');
+  if(!btn) return;
+  ev.preventDefault();
+  window.sharePdf(btn.getAttribute('data-pdf-url'),
+                  btn.getAttribute('data-pdf-name') || 'plan.pdf', btn);
+});
+document.addEventListener('DOMContentLoaded', function(){
+  if(!window.canSharePdf) return;
+  document.querySelectorAll('[data-share-pdf]').forEach(el => el.style.display = '');
+  // لما الإرسال متاح، هو اللي المفروض ياخد المساحة. زرارين كبار فوق بعض في
+  // شريط ثابت بياكلوا سُبع شاشة التليفون، فالتحميل بيتحوّل لخيار تاني صغير.
+  document.querySelectorAll('[data-share-alt]').forEach(el => {
+    el.style.fontSize = '13px';
+    el.style.padding = '9px';
+    el.style.boxShadow = 'none';
+    el.style.background = 'transparent';
+    el.style.color = '#1B6E80';
+    el.style.border = '1px solid #B4D0DA';
+  });
+});
+</script>
 </body>
 </html>

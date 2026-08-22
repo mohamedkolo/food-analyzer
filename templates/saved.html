@@ -60,6 +60,11 @@
       <a href="/saved/{{ plan.id }}/open" class="btn btn-primary" style="padding:9px 16px;font-size:13px">
         <i class="fa-solid fa-eye"></i> {{ 'افتح وعدّل' if is_ar else 'Open & Edit' }}
       </a>
+      <button type="button" class="btn btn-success" data-share-pdf style="display:none;padding:9px 16px;font-size:13px"
+              data-pdf-url="/saved/{{ plan.id }}/pdf"
+              data-pdf-name="NutraX_{{ (plan.name or 'plan')|replace(' ','_') }}.pdf">
+        <i class="fa-solid fa-share-nodes"></i> {{ 'إرسال' if is_ar else 'Send' }}
+      </button>
       <a href="/saved/{{ plan.id }}/pdf" class="btn btn-success" style="padding:9px 16px;font-size:13px">
         <i class="fa-solid fa-file-pdf"></i> {{ 'تحميل PDF' if is_ar else 'Download PDF' }}
       </a>

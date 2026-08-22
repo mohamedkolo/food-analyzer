@@ -285,6 +285,8 @@
         </p>
         <div class="plan-actions">
           <a href="/my-plans-history/{{ latest_plan.id }}" class="plan-act pa-primary">👁️ {{ t('عرض الخطة كاملة','View full plan') }}</a>
+          <button type="button" class="plan-act pa-secondary" data-share-pdf style="display:none;border:0;font-family:inherit;cursor:pointer"
+                  data-pdf-url="/my-plans-history/{{ latest_plan.id }}/pdf" data-pdf-name="NutraX_plan.pdf">📤 {{ t('إرسال الخطة','Send plan') }}</button>
           <a href="/my-plans-history/{{ latest_plan.id }}/pdf" class="plan-act pa-secondary">📄 {{ t('تحميل PDF','Download PDF') }}</a>
         </div>
       </div>
