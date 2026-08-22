@@ -58,26 +58,49 @@
     {% endif %}
   </div>
 
-  {# رسم بسيط لخط الوزن: أعمدة بارتفاع نسبي بين أقل وأعلى وزن #}
-  {% set weights = steps | map(attribute='visit') | map(attribute='weight') | select | list %}
-  {% if weights | length > 1 %}
-  {% set lo = weights | min %}{% set hi = weights | max %}
-  {% set span = (hi - lo) if (hi - lo) > 0 else 1 %}
-  <div style="display:flex;align-items:flex-end;gap:6px;margin-top:20px;padding-top:16px;
-              border-top:1px solid #EDF4F7;overflow-x:auto">
-    {% for s in steps | reverse %}
-    {% if s.visit.weight %}
-    <div style="text-align:center;min-width:52px;flex:1">
-      <div style="font-size:11.5px;font-weight:800;color:var(--blue-dark);margin-bottom:4px">
-        {{ s.visit.weight }}</div>
-      <div style="height:70px;display:flex;align-items:flex-end;justify-content:center">
-        <div style="width:100%;border-radius:5px 5px 0 0;background:#1B6E80;
-                    height:{{ (18 + (s.visit.weight - lo) / span * 52) | round | int }}px"></div>
+  {# خط الوزن.
+     أعمدة كانت غلط هنا: العمود بيبدأ من صفر ضمنياً، فرحلة من ٩٥ لـ ٨٣ كجم
+     (١٢٪ من الوزن) كانت بتبان كأن العميل فقد معظم وزنه. النقط الموصولة
+     بتوضّح الاتجاه من غير ما تدّعي نسبة، والمحور مكتوب عليه المدى الحقيقي
+     عشان القارئ يعرف إن ده تكبير مش مقياس من الصفر. #}
+  {% set pts = steps | map(attribute='visit') | selectattr('weight') | list | reverse | list %}
+  {% if pts | length > 1 %}
+  {% set ws = pts | map(attribute='weight') | list %}
+  {% set lo = ws | min %}{% set hi = ws | max %}
+  {% set pad = ((hi - lo) / 4) if (hi - lo) > 0 else 1 %}
+  {% set y0 = lo - pad %}{% set span = (hi + pad) - y0 %}
+  {% set W = 100 %}{% set H = 34 %}
+  <div style="margin-top:20px;padding-top:16px;border-top:1px solid #EDF4F7">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-size:12px;color:var(--muted);font-weight:700">{{ t('خط الوزن','Weight over time') }}</div>
+      <div style="font-size:11.5px;color:var(--muted)">
+        {{ t('المحور','Axis') }}: {{ (y0) | round(1) }}–{{ (hi + pad) | round(1) }} {{ t('كجم','kg') }}
       </div>
-      <div style="font-size:10.5px;color:var(--muted);margin-top:4px">#{{ s.visit.visit_no }}</div>
     </div>
-    {% endif %}
-    {% endfor %}
+    {# SVG بيرسم بإحداثيات مطلقة فمش بيتأثر بـ RTL، لكن صف الأرقام تحته flex
+       فبيتقلب. من غير direction:ltr هنا، الخط والأرقام بيمشوا في اتجاهين
+       متعاكسين وأقل وزن بيتكتب تحت أعلى نقطة. الوقت بيمشي شمال ← يمين. #}
+    <div style="position:relative;direction:ltr">
+      <svg viewBox="0 0 {{ W }} {{ H }}" preserveAspectRatio="none"
+           style="width:100%;height:110px;display:block;overflow:visible">
+        <polyline fill="none" stroke="#1B6E80" stroke-width="0.7"
+                  stroke-linejoin="round" stroke-linecap="round"
+                  points="{% for p in pts %}{{ (loop.index0 / (pts|length - 1) * W) | round(2) }},{{ (H - (p.weight - y0) / span * H) | round(2) }} {% endfor %}" />
+        {% for p in pts %}
+        <circle cx="{{ (loop.index0 / (pts|length - 1) * W) | round(2) }}"
+                cy="{{ (H - (p.weight - y0) / span * H) | round(2) }}"
+                r="1.1" fill="#fff" stroke="#1B6E80" stroke-width="0.7" />
+        {% endfor %}
+      </svg>
+      <div style="display:flex;justify-content:space-between;margin-top:4px">
+        {% for p in pts %}
+        <div style="text-align:center;font-size:11px">
+          <div style="font-weight:800;color:var(--blue-dark)">{{ p.weight }}</div>
+          <div style="color:var(--muted);font-size:10.5px">#{{ p.visit_no }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
   </div>
   {% endif %}
 </div>
