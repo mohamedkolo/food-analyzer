@@ -7,8 +7,8 @@
 {# ── what search engines and link previews read ──
    Any page can override these:  {% block meta_description %}...{% endblock %}  #}
 <meta name="description" content="{% block meta_description %}{{ t(
-  'نوتراكس — تغذية علاجية مع د. محمد. خطط غذائية مبنية على حالتك الصحية، متابعة أسبوعية، ومحلل طعام لأكثر من 500 صنف.',
-  'NutraX — clinical nutrition with Dr. Mohamed. Meal plans built around your health condition, weekly follow-up, and a food analyzer covering 500+ items.') }}{% endblock %}">
+  'نوتراكس — تغذية علاجية مع د. محمد. خطط غذائية مبنية على حالتك الصحية، متابعة أسبوعية، ومحلل طعام لأكثر من ' ~ food_count() ~ ' صنف.',
+  'NutraX — clinical nutrition with Dr. Mohamed. Meal plans built around your health condition, weekly follow-up, and a food analyzer covering ' ~ food_count() ~ '+ items.') }}{% endblock %}">
 <link rel="canonical" href="{{ canonical_url or (site_origin() + request.path) }}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="NutraX">

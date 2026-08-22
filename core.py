@@ -1069,6 +1069,19 @@ def site_origin():
     return (_D or "").rstrip("/")
 
 
+@app.template_global('food_count')
+def food_count():
+    """عدد الأصناف، متقرّب لأقرب ٥٠ للعرض ("+900" بدل "938").
+
+    كان مكتوب "+500" بإيد في ٤ أماكن، وفضل ٥٠٠ بعد ما القاعدة بقت ٩٣٨.
+    الرقم دلوقتي بييجي من الداتا نفسها فمش هيبوظ تاني."""
+    try:
+        from food_data import FOODS
+        return (len(FOODS) // 50) * 50
+    except Exception:
+        return 500
+
+
 # ═══════════════════════════════════════════════
 # Shared by the client's own pages and the staff view of them
 # ═══════════════════════════════════════════════

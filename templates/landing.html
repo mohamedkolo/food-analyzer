@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ t('تغذية علاجية وخطط غذائية مع د. محمد','Clinical Nutrition & Meal Plans with Dr. Mohamed') }}{% endblock %}
 {% block meta_description %}{{ t(
-  'نوتراكس — خطط غذائية مبنية على حالتك الصحية مع د. محمد. السكري، الضغط، القولون، الكلى، الحمل وأكثر من 20 حالة. متابعة أسبوعية ومحلل طعام لأكثر من 500 صنف.',
-  'NutraX — meal plans built around your health condition with Dr. Mohamed. Diabetes, blood pressure, IBS, kidney disease, pregnancy and 20+ conditions. Weekly follow-up and a food analyzer covering 500+ items.') }}{% endblock %}
+  'نوتراكس — خطط غذائية مبنية على حالتك الصحية مع د. محمد. السكري، الضغط، القولون، الكلى، الحمل وأكثر من 20 حالة. متابعة أسبوعية ومحلل طعام لأكثر من ' ~ food_count() ~ ' صنف بالكميات اللي بتتاكل فعلاً.',
+  'NutraX — meal plans built around your health condition with Dr. Mohamed. Diabetes, blood pressure, IBS, kidney disease, pregnancy and 20+ conditions. Weekly follow-up and a food analyzer covering ' ~ food_count() ~ '+ items with real serving sizes.') }}{% endblock %}
 
 {# the app sidebar is for signed-in users; visitors get a plain public header #}
 {% block chrome %}{% include "_public_header.html" %}{% endblock %}
@@ -171,7 +171,7 @@
     </div>
     <div class="lp-trust">
       <div><b>+20</b>{{ t('حالة مرضية','medical conditions') }}</div>
-      <div><b>+500</b>{{ t('صنف في محلل الطعام','foods in the analyzer') }}</div>
+      <div><b>+{{ food_count() }}</b>{{ t('صنف في محلل الطعام','foods in the analyzer') }}</div>
       <div><b>5</b>{{ t('مطابخ عربية','Arab cuisines') }}</div>
       <div><b>7</b>{{ t('أيام متابعة أسبوعياً','days of weekly follow-up') }}</div>
     </div>
@@ -210,8 +210,8 @@
       <div class="lp-card">
         <div class="ic">🔍</div>
         <h3>{{ t('محلل طعام','Food analyzer') }}</h3>
-        <p>{{ t('أكتر من 500 صنف بالسعرات والبروتين والكارب والدهون، وبفلترة على حالتك، وبمقارنة بين صنفين.',
-                'Over 500 items with calories, protein, carbs and fat, filtered by your condition, with side-by-side comparison.') }}</p>
+        <p>{{ t('أكتر من ' ~ food_count() ~ ' صنف بالسعرات والبروتين والكارب والدهون، وبالكمية اللي بتتاكل فعلاً، ومفلترة على حالتك.',
+                'Over ' ~ food_count() ~ ' items with calories, protein, carbs and fat, with real serving sizes, filtered by your condition.') }}</p>
       </div>
       <div class="lp-card">
         <div class="ic">📄</div>
