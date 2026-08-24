@@ -715,7 +715,18 @@ window.sharePdf = async function(url, filename, btn){
 
   const file = new File([blob], name, { type: 'application/pdf' });
   try {
-    if(!(navigator.canShare && navigator.canShare({ files: [file] }))) throw new Error('unsupported');
+    if(!(navigator.canShare && navigator.canShare({ files: [file] }))){
+      // المتصفح ده مش بيعرف يبعت ملفات. بدل ما نفتح الـPDF من غير كلمة
+      // ونسيبه يتخانق مع القارئ، نقوله المشكلة فين وياخد الملف على جهازه.
+      say('<i class="fa-solid fa-circle-info"></i> '
+          + '{{ t("المتصفح ده مش بيبعت ملفات — الملف بينزل عندك","This browser cannot send files — downloading instead") }}');
+      setTimeout(() => say(original), 5000);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+      return;
+    }
     await navigator.share({ files: [file], title: name });
   } catch(err) {
     if(err && err.name === 'AbortError') return;   // قفل الشير شيت بنفسه
@@ -742,8 +753,15 @@ document.addEventListener('click', function(ev){
                   btn.getAttribute('data-pdf-name') || 'plan.pdf', btn);
 });
 document.addEventListener('DOMContentLoaded', function(){
-  if(!window.canSharePdf) return;
+  // بيبان على أي جهاز شاشته صغيرة، مش بس لما المتصفح يقول إنه بيدعم مشاركة
+  // الملفات. الفحص ده بيرجع false في حالات كتير (تطبيق مثبّت على آيفون،
+  // متصفح جوه تطبيق تاني)، وساعتها الزرار كان بيختفي خالص والدكتور يفضل
+  // يدوّر على حاجة مش موجودة. لو الإرسال المباشر مش متاح بيقول كده بصريح
+  // العبارة بدل ما يسيبه يخمّن.
+  const phone = window.matchMedia && window.matchMedia('(max-width: 820px)').matches;
+  if(!window.canSharePdf && !phone) return;
   document.querySelectorAll('[data-share-pdf]').forEach(el => el.style.display = '');
+  if(!window.canSharePdf) return;   // بان، بس مفيش تحضير مسبق ليه لازمة
 
   // نبدأ نجهّز الملف من أول لمسة على الصفحة، وكمان أول ما الصوابع تقرب من
   // الزرار. بكده لما الضغطة تحصل الملف يكون خلص، والشير شيت بيفتح فوراً.
