@@ -575,8 +575,23 @@ def _renewal_reminders_loop():
 
 threading.Thread(target=_renewal_reminders_loop, daemon=True).start()
 
+def normalize_email(email):
+    """صيغة واحدة للإيميل: من غير مسافات وبحروف صغيرة.
+
+    كيبورد الموبايل بيحط مسافة بعد الاقتراح، والدخول كان بيقارن الإيميل
+    من غير ما يشيلها، فالدكتور كان بيكتب إيميله صح ويترفض -- وبعد ٥ محاولات
+    الحساب كان بيتقفل ١٥ دقيقة على كل الأجهزة مش الموبايل بس."""
+    return (email or "").strip().strip("‏‎ ").lower()
+
+
 def get_user(email, pw):
+    email = normalize_email(email)
+    if not email:
+        return None
     u = db_row("SELECT * FROM users WHERE email=?", (email,))
+    if not u:
+        # حسابات قديمة ممكن تكون اتخزنت بمسافة أو بحروف كبيرة
+        u = db_row("SELECT * FROM users WHERE LOWER(TRIM(email))=?", (email,))
     if not u or not verify_password(u.get("password"), pw):
         return None
     # ترقية تلقائية: لو الحساب لسه بالهاش القديم، نحدثه للطريقة الآمنة
@@ -671,6 +686,8 @@ def _as_int(v):
         return None
 
 def register(name, email, pw, country, age=None, phone=None):
+    # نفس التطبيع المستخدم في الدخول، عشان الحساب يتخزن بالصيغة اللي هيتدوّر بيها
+    email = normalize_email(email)
     try:
         db_run("""INSERT INTO users (name,email,password,country,age,phone,role,active) VALUES (?,?,?,?,?,?,'client',1)""",
                (name, email, hp(pw), country, age, phone))

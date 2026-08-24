@@ -45,7 +45,7 @@ def login():
     is_success = False
     tab = request.args.get("tab", "login")
     if request.method == "POST":
-        check_email = request.form.get("email", "").lower().strip()
+        check_email = normalize_email(request.form.get("email", ""))
         if is_email_blocked(check_email):
             error = _login_msg("blocked", lang)
             return render_template("login.html", error=error, tab="login", lang=lang, is_success=False)
@@ -54,7 +54,7 @@ def login():
             if _is_login_rate_limited(check_email):
                 error = _login_msg("rate_limited", lang)
                 return render_template("login.html", error=error, tab="login", lang=lang, is_success=False)
-            u = get_user(request.form.get("email","").lower(), request.form.get("password",""))
+            u = get_user(check_email, request.form.get("password",""))
             if u:
                 if not u.get("active", 1):
                     error = _login_msg("inactive", lang)
@@ -71,7 +71,7 @@ def login():
         elif action == "register":
             tab = "register"
             name = request.form.get("name","").strip()
-            email = request.form.get("reg_email","").lower().strip()
+            email = normalize_email(request.form.get("reg_email",""))
             pw = request.form.get("reg_password","")
             country = request.form.get("country","")
             age = request.form.get("age","")
@@ -1249,7 +1249,7 @@ def register_wizard():
     if request.method == "POST":
         try:
             name = request.form.get("name", "").strip()
-            email = request.form.get("email", "").lower().strip()
+            email = normalize_email(request.form.get("email", ""))
             password = request.form.get("password", "")
             phone = request.form.get("phone", "").strip()
 

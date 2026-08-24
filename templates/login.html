@@ -27,6 +27,16 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(
 .form-input.with-icon{padding-right:40px}
 .input-wrap{position:relative}
 .input-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:14px;pointer-events:none}
+/* زرار إظهار كلمة المرور -- على الجهة المقابلة للأيقونة */
+.form-input.has-eye{padding-left:44px}
+.pw-eye{position:absolute;left:6px;top:50%;transform:translateY(-50%);background:none;border:0;
+        color:#94a3b8;font-size:15px;cursor:pointer;padding:8px 10px;line-height:1;border-radius:8px}
+.pw-eye:hover{color:#1B6E80}
+.pw-eye:focus-visible{outline:2px solid #1B6E80;outline-offset:1px}
+.pw-eye.on{color:#1B6E80}
+/* الباسورد لاتيني دايماً. من غير كده الصفحة RTL بتقلبه، وأول ما تدوس العين
+   بيبان "!Test12345" بدل "Test12345!" -- وده بيلغي فايدة الإظهار أصلاً. */
+input[type="password"], input.has-eye{direction:ltr;text-align:left}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btn{width:100%;padding:13px;border:none;border-radius:10px;font-family:'Cairo',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:10px;background:linear-gradient(135deg,#0F2A43,#2E8F9E);color:#fff;transition:all .2s}
 .btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(37,99,235,.3)}
@@ -77,7 +87,10 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(
         <label class="form-label">{{ 'البريد الإلكتروني' if is_ar else 'Email' }}</label>
         <div class="input-wrap">
           <i class="fa-solid fa-envelope input-icon"></i>
-          <input class="form-input with-icon" type="email" name="email" required placeholder="you@example.com" style="text-align:left;direction:ltr">
+          <input class="form-input with-icon" type="email" name="email" required
+                 placeholder="you@example.com" style="text-align:left;direction:ltr"
+                 autocomplete="username" inputmode="email"
+                 autocapitalize="off" autocorrect="off" spellcheck="false">
         </div>
       </div>
 
@@ -85,7 +98,11 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(
         <label class="form-label">{{ 'كلمة المرور' if is_ar else 'Password' }}</label>
         <div class="input-wrap">
           <i class="fa-solid fa-lock input-icon"></i>
-          <input class="form-input with-icon" type="password" name="password" required>
+          <input class="form-input with-icon has-eye" type="password" name="password" required
+                 autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false">
+          <button type="button" class="pw-eye" data-pw-toggle
+                  aria-label="{{ 'إظهار كلمة المرور' if is_ar else 'Show password' }}">
+            <i class="fa-solid fa-eye"></i></button>
         </div>
       </div>
 
@@ -169,7 +186,10 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(
         <label class="form-label">{{ 'البريد الإلكتروني' if is_ar else 'Email' }} <span class="req">*</span></label>
         <div class="input-wrap">
           <i class="fa-solid fa-envelope input-icon"></i>
-          <input class="form-input with-icon" type="email" name="reg_email" required placeholder="you@example.com" style="text-align:left;direction:ltr">
+          <input class="form-input with-icon" type="email" name="reg_email" required
+                 placeholder="you@example.com" style="text-align:left;direction:ltr"
+                 autocomplete="email" inputmode="email"
+                 autocapitalize="off" autocorrect="off" spellcheck="false">
         </div>
       </div>
 
@@ -177,7 +197,12 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(
         <label class="form-label">{{ 'كلمة المرور' if is_ar else 'Password' }} <span class="req">*</span></label>
         <div class="input-wrap">
           <i class="fa-solid fa-lock input-icon"></i>
-          <input class="form-input with-icon" type="password" name="reg_password" required minlength="6" placeholder="{{ '6 أحرف على الأقل' if is_ar else 'At least 6 characters' }}">
+          <input class="form-input with-icon has-eye" type="password" name="reg_password" required minlength="6"
+                 placeholder="{{ '6 أحرف على الأقل' if is_ar else 'At least 6 characters' }}"
+                 autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false">
+          <button type="button" class="pw-eye" data-pw-toggle
+                  aria-label="{{ 'إظهار كلمة المرور' if is_ar else 'Show password' }}">
+            <i class="fa-solid fa-eye"></i></button>
         </div>
       </div>
 
@@ -219,6 +244,27 @@ function switchTab(which) {
     tabLogin.classList.remove('active');
   }
 }
+</script>
+
+<script>
+// إظهار/إخفاء كلمة المرور. مفيد على الموبايل تحديداً: كيبورد التليفون بيغلط
+// كتير والباسورد مخفي، فالدكتور كان بيعيد الكتابة من غير ما يعرف غلط في إيه.
+document.addEventListener('click', function(ev){
+  const btn = ev.target.closest && ev.target.closest('[data-pw-toggle]');
+  if(!btn) return;
+  ev.preventDefault();
+  const wrap = btn.closest('.input-wrap');
+  const input = wrap && wrap.querySelector('input[type="password"], input[type="text"].has-eye');
+  if(!input) return;
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.classList.toggle('on', show);
+  btn.innerHTML = show ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
+  btn.setAttribute('aria-label', show
+    ? '{{ 'إخفاء كلمة المرور' if is_ar else 'Hide password' }}'
+    : '{{ 'إظهار كلمة المرور' if is_ar else 'Show password' }}');
+  input.focus();
+});
 </script>
 </body>
 </html>

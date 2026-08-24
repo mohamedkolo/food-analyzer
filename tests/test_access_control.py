@@ -164,6 +164,47 @@ def test_login_accepts_the_right_password():
 
 
 
+def test_login_survives_what_a_phone_keyboard_does_to_an_email():
+    """The doctor could not sign in from his phone with the right password.
+
+    The lookup lowercased the email but never trimmed it, so the space a
+    mobile keyboard appends after an autocomplete suggestion made the address
+    miss by one character. Five of those and the account was rate-limited for
+    fifteen minutes -- on every device, not just the phone, because the
+    throttle is keyed by email."""
+    for typed in ("admin@t.test", "admin@t.test ", " admin@t.test",
+                  "Admin@T.Test", "  ADMIN@T.TEST  ", "admin@t.test‏"):
+        c = A.app.test_client()
+        tok = re.search(r'name="csrf_token"[^>]*value="([^"]*)"',
+                        c.get("/login").get_data(as_text=True)).group(1)
+        r = c.post("/login", data={"action": "login", "email": typed,
+                                   "password": "pw123456", "csrf_token": tok})
+        assert r.status_code == 302, f"{typed!r} was rejected with the right password"
+        assert c.get("/dashboard").status_code == 200, f"{typed!r} did not get a session"
+
+
+def test_normalising_the_email_does_not_let_anyone_else_in():
+    from core import get_user  # noqa: E402
+    assert get_user("admin@t.test", "wrong-password") is None
+    assert get_user("nobody@nowhere.test", "pw123456") is None
+    assert get_user("", "pw123456") is None
+    assert get_user(None, "pw123456") is None
+    assert get_user("   ", "pw123456") is None
+    # a space inside the address is a different address, not the same one
+    assert get_user("admin@t .test", "pw123456") is None
+    # and the password itself is never trimmed -- spaces there are real
+    assert get_user("admin@t.test", " pw123456") is None
+    assert get_user("admin@t.test", "pw123456 ") is None
+
+
+def test_the_login_page_offers_a_password_reveal():
+    body = A.app.test_client().get("/login").get_data(as_text=True)
+    assert body.count("data-pw-toggle") >= 2, "the eye button is missing from a password field"
+    # the phone keyboard must not capitalise or autocorrect an email address
+    assert 'autocapitalize="off"' in body and 'autocorrect="off"' in body
+    assert 'inputmode="email"' in body
+
+
 def test_every_admin_page_renders():
     """Reaching a page is not the same as it working. A refactor can leave a
     helper behind and only the render shows it -- this is how the client
