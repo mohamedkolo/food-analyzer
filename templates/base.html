@@ -680,24 +680,53 @@ window.canSharePdf = (function(){
   } catch(e) { return false; }
 })();
 
+// ── تحضير الملف قبل الضغطة ──
+// المتصفح مابيسمحش بفتح شير شيت غير وهو لسه شايف إن المستخدم دوس دلوقتي
+// ("user activation"). توليد الـPDF بياخد ثانية أو اتنين، فلما كنا بنعمل
+// fetch الأول وبعدين share، الصلاحية بتكون خلصت والمتصفح بيرفض -- وده اللي
+// كان بيخلي الزرار يفتح الصفحة بدل ما يشارك.
+// الحل: الملف يبقى جاهز في الإيد قبل ما الدكتور يدوس.
+const _pdfCache = new Map();
+function _fetchPdf(url){
+  if(!_pdfCache.has(url)){
+    _pdfCache.set(url, fetch(url, { credentials: 'same-origin' })
+      .then(r => { if(!r.ok) throw new Error('http ' + r.status); return r.blob(); })
+      .catch(e => { _pdfCache.delete(url); throw e; }));
+  }
+  return _pdfCache.get(url);
+}
+window.preparePdf = _fetchPdf;
+
 window.sharePdf = async function(url, filename, btn){
   const original = btn ? btn.innerHTML : '';
   const say = (html) => { if(btn) btn.innerHTML = html; };
+  const name = filename || 'plan.pdf';
+  let blob;
   try {
-    if(btn){ btn.disabled = true; say('<i class="fa-solid fa-spinner fa-spin"></i> {{ t("بيحضّر الملف…","Preparing…") }}'); }
-    const res = await fetch(url, { credentials: 'same-origin' });
-    if(!res.ok) throw new Error('http ' + res.status);
-    const blob = await res.blob();
-    const file = new File([blob], filename || 'plan.pdf', { type: 'application/pdf' });
-    if(!(navigator.canShare && navigator.canShare({ files: [file] }))) throw new Error('unsupported');
+    const pending = _fetchPdf(url);
+    if(btn){ say('<i class="fa-solid fa-spinner fa-spin"></i> {{ t("بيحضّر الملف…","Preparing…") }}'); }
+    blob = await pending;
     say(original);
-    if(btn) btn.disabled = false;
-    await navigator.share({ files: [file], title: filename });
   } catch(err) {
-    if(btn){ btn.disabled = false; say(original); }
-    // AbortError = المستخدم قفل الشير شيت بنفسه، مش غلط
-    if(err && err.name === 'AbortError') return;
-    window.location.href = url;   // آخر حل: نزّله زي الأول
+    say(original);
+    window.open(url, '_blank') || (window.location.href = url);
+    return;
+  }
+
+  const file = new File([blob], name, { type: 'application/pdf' });
+  try {
+    if(!(navigator.canShare && navigator.canShare({ files: [file] }))) throw new Error('unsupported');
+    await navigator.share({ files: [file], title: name });
+  } catch(err) {
+    if(err && err.name === 'AbortError') return;   // قفل الشير شيت بنفسه
+    if(err && err.name === 'NotAllowedError'){
+      // الصلاحية خلصت وإحنا بنجهّز. الملف اتخزن دلوقتي، فالضغطة الجاية
+      // هتفتح الشير شيت على طول من غير أي انتظار.
+      say('<i class="fa-solid fa-share-nodes"></i> {{ t("الملف جاهز — دوس تاني","Ready — tap again") }}');
+      setTimeout(() => say(original), 4000);
+      return;
+    }
+    window.open(url, '_blank') || (window.location.href = url);
   }
 };
 
@@ -715,6 +744,27 @@ document.addEventListener('click', function(ev){
 document.addEventListener('DOMContentLoaded', function(){
   if(!window.canSharePdf) return;
   document.querySelectorAll('[data-share-pdf]').forEach(el => el.style.display = '');
+
+  // نبدأ نجهّز الملف من أول لمسة على الصفحة، وكمان أول ما الصوابع تقرب من
+  // الزرار. بكده لما الضغطة تحصل الملف يكون خلص، والشير شيت بيفتح فوراً.
+  // مابنجهّزش عند فتح الصفحة عشان اللي بيتفرج ويمشي ما يشغّلش السيرفر ببلاش.
+  const warm = () => document.querySelectorAll('[data-share-pdf]').forEach(el => {
+    const u = el.getAttribute('data-pdf-url');
+    if(u) window.preparePdf(u).catch(() => {});
+  });
+  ['pointerdown','touchstart','scroll'].forEach(ev =>
+    window.addEventListener(ev, warm, { once: true, passive: true }));
+  // ولو ماحصلش أي تفاعل، نجهّزه بعد ما الصفحة تهدى. الصفحات دي للطاقم بعد ما
+  // يولّدوا الجدول، يعني الإرسال شبه مؤكد -- مستنيّين التفاعل كان بيسيب الملف
+  // مش جاهز والزرار يفضل واقف على "بيحضّر الملف".
+  setTimeout(warm, 1200);
+  document.querySelectorAll('[data-share-pdf]').forEach(el => {
+    ['pointerenter','pointerdown','touchstart'].forEach(ev =>
+      el.addEventListener(ev, () => {
+        const u = el.getAttribute('data-pdf-url');
+        if(u) window.preparePdf(u).catch(() => {});
+      }, { passive: true }));
+  });
   // لما الإرسال متاح، هو اللي المفروض ياخد المساحة. زرارين كبار فوق بعض في
   // شريط ثابت بياكلوا سُبع شاشة التليفون، فالتحميل بيتحوّل لخيار تاني صغير.
   document.querySelectorAll('[data-share-alt]').forEach(el => {
