@@ -33,10 +33,20 @@
             data-pdf-url="/download_pdf" data-pdf-name="{{ pdf_name }}">
       <i class="fa-solid fa-share-nodes"></i> {{ t('إرسال الجدول','Send plan') }}
     </button>
+    <button type="button" id="savePlanBtn" class="btn btn-outline"
+            style="background:#E4F0F4;border-color:#B4D0DA;color:#0F2A43">
+      <i class="fa-regular fa-floppy-disk"></i> {{ t('حفظ','Save') }}
+    </button>
     <a href="/download_pdf" class="btn btn-success">
       <i class="fa-solid fa-download"></i> {{ t('تحميل PDF','Download PDF') }}
     </a>
   </div>
+</div>
+
+<div style="background:#F4F9FB;border:1px solid #B4D0DA;border-radius:10px;
+            padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:#0F2A43">
+  💾 {{ t('الجدول ده لسه مش محفوظ. بيتحفظ لما تدوس حفظ، أو تعمل لينك، أو تحمّل الـPDF — عشان تقدر تظبّط وترجع من غير ما يتسجّل كل مرة.',
+          'This plan is not saved yet. It is saved when you press Save, create a link, or download the PDF — so you can adjust and go back without it being recorded every time.') }}
 </div>
 
 
@@ -338,6 +348,11 @@
           </div>
           {% if key not in ['snack','snack1','snack2','pre_workout','post_workout'] %}
           <div style="display:flex;gap:4px">
+            <button class="move-btn" data-day="{{ day_idx }}" data-type="{{ key }}" data-dir="up"
+                    title="{{ t('بدّلها باللي فوقها','Swap with the one above') }}"
+                    style="background:#F4F9FB;color:#0F2A43;border-color:#B4D0DA">
+              <i class="fa-solid fa-arrow-up"></i>
+            </button>
             <button class="swap-btn" data-day="{{ day_idx }}" data-type="{{ key }}" title="{{ t('استبدال عشوائي','Random swap') }}">
               <i class="fa-solid fa-shuffle"></i>
             </button>
@@ -430,6 +445,69 @@
 </style>
 
 <script>
+// ═══ زرار الحفظ ═══
+(function(){
+  const b = document.getElementById('savePlanBtn');
+  if(!b) return;
+  const original = b.innerHTML;
+  b.addEventListener('click', async () => {
+    b.disabled = true;
+    b.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> {{ t("بيحفظ…","Saving…") }}';
+    try{
+      const r = await fetch('/api/save-plan', { method:'POST', credentials:'same-origin' });
+      const j = await r.json();
+      b.innerHTML = j.ok
+        ? '<i class="fa-solid fa-check"></i> {{ t("اتحفظ","Saved") }}'
+        : '<i class="fa-solid fa-triangle-exclamation"></i> {{ t("مانفعش","Failed") }}';
+    }catch(e){
+      b.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> {{ t("مانفعش","Failed") }}';
+    }
+    b.disabled = false;
+    setTimeout(() => b.innerHTML = original, 3000);
+  });
+})();
+
+// ═══ تبديل وجبة باللي فوقها ═══
+// بيدوّر على أقرب وجبة رئيسية فوقها في نفس اليوم ويبدّل النصين.
+document.addEventListener('click', async function(ev){
+  const btn = ev.target.closest && ev.target.closest('.move-btn');
+  if(!btn) return;
+  ev.preventDefault();
+
+  const row  = btn.closest('.meal-row');
+  const rows = [...row.parentNode.querySelectorAll('.meal-row')];
+  const here = rows.indexOf(row);
+  // بندوّر على وجبة فوقها ليها زرار تبديل (يعني رئيسية مش سناك)
+  let target = null;
+  for(let i = here - 1; i >= 0; i--){
+    if(rows[i].querySelector('.move-btn')){ target = rows[i]; break; }
+  }
+  if(!target){
+    btn.animate([{transform:'translateX(0)'},{transform:'translateX(-4px)'},{transform:'translateX(0)'}],
+                {duration:220});
+    return;
+  }
+
+  const mine  = row.querySelector('.meal-text');
+  const other = target.querySelector('.meal-text');
+  try{
+    btn.disabled = true;
+    const fd = new FormData();
+    fd.append('day_idx', mine.dataset.day);
+    fd.append('meal_type', mine.dataset.type);
+    fd.append('other_type', other.dataset.type);
+    const r = await fetch('/move_meal', { method:'POST', body: fd });
+    const j = await r.json();
+    if(j.ok){
+      const tmp = mine.textContent;
+      mine.textContent = other.textContent;
+      other.textContent = tmp;
+      if(typeof showSaveIndicator === 'function') showSaveIndicator();
+    }
+  }catch(e){}
+  btn.disabled = false;
+});
+
 // ═══ لينك الجدول ═══
 // بيتعمل مرة واحدة وبيتخزن، فالضغطة التانية بتبعت نفس اللينك مش لينك جديد.
 (function(){

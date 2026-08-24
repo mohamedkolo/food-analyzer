@@ -327,6 +327,15 @@ def generate_weekly_plan(data):
             day_plan["snack"] = snacks[i % len(snacks)]
             total_cal = b.get("cal",300) + l.get("cal",400) + d.get("cal",300) + 150
             total_p = b.get("p",20) + l.get("p",30) + d.get("p",20) + SNK_P
+        elif diet_type == "two_meals":
+            # وجبتين بس: الفطار والغداء، والسعرات كلها بينهم. مفيش عشاء،
+            # فالحصة الواحدة أكبر من نظام التلات وجبات.
+            b = breakfasts[i % len(breakfasts)]
+            l = lunches[i % len(lunches)]
+            day_plan["breakfast"] = b["meal"]
+            day_plan["lunch"] = l["meal"]
+            total_cal = b.get("cal", 450) + l.get("cal", 550)
+            total_p = b.get("p", 25) + l.get("p", 35)
         elif diet_type == "five_meals":
             b = breakfasts[i % len(breakfasts)]
             l = lunches[i % len(lunches)]

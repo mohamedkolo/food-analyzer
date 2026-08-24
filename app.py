@@ -1098,6 +1098,13 @@ def download_pdf():
                 plan = pd.get("plan")
         except: pass
     if not data: return redirect("/dashboard")
+    # تحميل الـPDF معناه إن الدكتور خلص الجدول -- ده وقت الحفظ
+    if role != "client":
+        try:
+            from routes_plans import commit_plan
+            commit_plan(data, plan)
+        except Exception as _e:
+            log_error("commit on download", _e)
     try:
         pdf_bytes = build_pdf(data, plan)
         buf = io.BytesIO(pdf_bytes); buf.seek(0)

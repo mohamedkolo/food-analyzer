@@ -24,8 +24,9 @@ import meal_extra
 from core import (
     DIET_PLAN_TYPES, bump_plan_link, create_plan_link, cur_lang, db_row,
     db_rows, db_run, filter_by_conditions, get_meal_pool, get_plan_link,
-    get_user_by_id, last_visit, log_error, record_visit, recent_clients,
-    site_origin, staff_required, translate_meal, visits_for,
+    get_user_by_id, last_visit, last_visit_id, log_error, record_visit,
+    recent_clients, site_origin, staff_required, translate_meal, update_visit,
+    visits_for,
 )
 import followup
 from plan_engine import (
@@ -146,27 +147,75 @@ def generate():
         session["pdf_data"] = data
         plan = generate_weekly_plan(data)
         session["current_plan"] = plan
-        # ── حفظ تلقائي للخطة عشان الدكتور يلاقيها في "جداولي المحفوظة" ──
-        saved_id = None
-        try:
-            label = (f" - {_L_VISIT_AR if cur_lang() == 'ar' else 'visit'} "
-                     f"{data['visit_no']}") if data.get("visit_no") else ""
-            nm = ((data.get("name") or "خطة") + label + " - "
-                  + datetime.now().strftime("%Y-%m-%d %H:%M"))
+        # مفيش حفظ هنا. الدكتور بيولّد ويرجع يظبط ويولّد تاني، والحفظ التلقائي
+        # كان بيعمل خطة محفوظة وزيارة متابعة في كل مرة -- تلات تظبيطات كانوا
+        # بيبانوا تلات زيارات في نفس اليوم ويبوّظوا حساب التقدّم.
+        # الحفظ بيحصل لما يطلبه: زرار حفظ، أو لينك، أو تحميل PDF.
+        return redirect("/preview")
+
+    # الرجوع من المعاينة لازم يلاقي الفورم مليان زي ما ساب — مش فاضي
+    return render_template("generate.html", user=u, lang=session.get("lang","ar"),
+                           diet_plans=DIET_PLAN_TYPES, zigzag_modes=ZIGZAG_MODES,
+                           zigzag_json=json.dumps(ZIGZAG_MODES, ensure_ascii=False),
+                           prev=session.get("pdf_data") or {})
+
+def commit_plan(data=None, plan=None):
+    """يحفظ الجدول ويسجّل الزيارة — مرة واحدة لكل جدول، مش كل ضغطة.
+
+    بيتنادى من زرار الحفظ، ومن عمل اللينك، ومن تحميل الـPDF: التلاتة دول
+    معناهم "خلصت". لو اتنادى تاني على نفس العميل، بيحدّث نفس السطر بدل ما
+    يعمل خطة وزيارة جديدة.
+
+    بيرجّع رقم الخطة المحفوظة، أو None."""
+    data = data or session.get("pdf_data")
+    plan = plan or session.get("current_plan")
+    if not data or not plan:
+        return None
+
+    key = data.get("client_key") or followup.client_key(data.get("name"), data.get("phone"))
+    same_client = session.get("committed_key") == key and key
+    saved_id = session.get("committed_plan_id") if same_client else None
+    visit_id = session.get("committed_visit_id") if same_client else None
+
+    label = (f" - {_L_VISIT_AR if cur_lang() == 'ar' else 'visit'} "
+             f"{data['visit_no']}") if data.get("visit_no") else ""
+    nm = ((data.get("name") or "خطة") + label + " - "
+          + datetime.now().strftime("%Y-%m-%d %H:%M"))
+    payload = json.dumps({"plan": plan, "data": data}, ensure_ascii=False)
+
+    try:
+        if saved_id:
+            db_run("UPDATE saved_plans SET name=?, plan_data=?, plan_type=? WHERE id=? AND user_id=?",
+                   (nm, payload, data.get("diet_plan_type", "standard"), saved_id, session["uid"]))
+        else:
             db_run("INSERT INTO saved_plans (user_id,name,plan_data,plan_type) VALUES (?,?,?,?)",
-                   (session["uid"], nm, json.dumps({"plan": plan, "data": data}, ensure_ascii=False),
-                    data.get("diet_plan_type", "standard")))
+                   (session["uid"], nm, payload, data.get("diet_plan_type", "standard")))
             row = db_row("SELECT id FROM saved_plans WHERE user_id=? ORDER BY id DESC LIMIT 1",
                          (session["uid"],))
             saved_id = row["id"] if row else None
-        except Exception as _e:
-            log_error("auto save plan", _e)
+    except Exception as e:
+        log_error("commit_plan save", e)
 
+    if visit_id:
+        update_visit(visit_id, data, plan, saved_id)
+    else:
         record_visit(session["uid"], data, plan, saved_id)
-        return redirect("/preview")
-    return render_template("generate.html", user=u, lang=session.get("lang","ar"),
-                           diet_plans=DIET_PLAN_TYPES, zigzag_modes=ZIGZAG_MODES,
-                           zigzag_json=json.dumps(ZIGZAG_MODES, ensure_ascii=False))
+        visit_id = last_visit_id(session["uid"], key)
+
+    session["committed_key"] = key
+    session["committed_plan_id"] = saved_id
+    session["committed_visit_id"] = visit_id
+    return saved_id
+
+
+@bp.route("/api/save-plan", methods=["POST"])
+@staff_required
+def save_current_plan():
+    saved_id = commit_plan()
+    if not saved_id:
+        return jsonify({"ok": False}), 400
+    return jsonify({"ok": True, "id": saved_id})
+
 
 @bp.route("/api/plan-link", methods=["POST"])
 @staff_required
@@ -176,6 +225,7 @@ def make_plan_link():
     plan = session.get("current_plan")
     if not data or not plan:
         return jsonify({"ok": False}), 400
+    commit_plan(data, plan)          # عمل لينك معناه إن الجدول خلص
     token = create_plan_link(session["uid"], data, plan)
     if not token:
         return jsonify({"ok": False}), 500
@@ -426,6 +476,36 @@ def replace_meal():
                         "display": _meal_display(new_meal)})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+@bp.route("/move_meal", methods=["POST"])
+@staff_required
+def move_meal():
+    """يبدّل وجبة باللي فوقها أو تحتها في نفس اليوم.
+
+    مش كل الناس بتاكل بنفس الترتيب: فيه اللي بياكل الغدا بدري والفطار متأخر.
+    ده بيسيب الدكتور يرتّب اليوم زي ما العميل فعلاً بيأكل، من غير ما يعيد
+    كتابة الوجبتين بإيده."""
+    plan = session.get("current_plan")
+    if not plan:
+        return jsonify({"ok": False, "error": "no plan"}), 400
+    try:
+        day_idx = int(request.form.get("day_idx", 0))
+        a = request.form.get("meal_type", "")
+        b = request.form.get("other_type", "")
+        if not a or not b:
+            return jsonify({"ok": False, "error": "missing data"}), 400
+        if day_idx < 0 or day_idx >= len(plan):
+            return jsonify({"ok": False, "error": "invalid day"}), 400
+        day = plan[day_idx]
+        if a not in day or b not in day:
+            return jsonify({"ok": False, "error": "unknown meal"}), 400
+        day[a], day[b] = day[b], day[a]
+        session["current_plan"] = plan
+        return jsonify({"ok": True, "a": day[a], "b": day[b]})
+    except Exception as e:
+        log_error("move_meal", e)
+        return jsonify({"ok": False, "error": "failed"}), 500
+
 
 @bp.route("/edit_meal", methods=["POST"])
 @staff_required

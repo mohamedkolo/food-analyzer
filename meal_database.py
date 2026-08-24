@@ -1080,6 +1080,17 @@ DIET_PLAN_TYPES = {
         "description_en": "3 main meals plus a snack",
         "meal_labels_en": {"breakfast": "Breakfast", "lunch": "Lunch", "dinner": "Dinner", "snack": "Snack"}
     },
+    "two_meals": {
+        "name": "وجبتين (فطار + غداء)",
+        "name_en": "Two meals (breakfast + lunch)",
+        "meals": ["breakfast", "lunch"],
+        "meal_labels": {"breakfast": "الفطار", "lunch": "الغداء"},
+        "meal_emojis": {"breakfast": "🌅", "lunch": "☀️"},
+        "meal_hours": {"breakfast": 9, "lunch": 15},
+        "description": "يبدأ بالفطار ويقفل على الغداء — من غير عشاء",
+        "description_en": "Starts at breakfast and closes at lunch — no dinner",
+        "meal_labels_en": {"breakfast": "Breakfast", "lunch": "Lunch"}
+    },
     "five_meals": {
         "name": "5 وجبات + 2 سناك",
         "name_en": "5 meals + 2 snacks",

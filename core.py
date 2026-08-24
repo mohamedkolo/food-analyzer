@@ -752,6 +752,41 @@ def bump_plan_link(token):
         log_error("bump_plan_link", e)
 
 
+def update_visit(visit_id, data, plan, saved_plan_id=None):
+    """يحدّث زيارة موجودة بدل ما يعمل واحدة جديدة.
+
+    الدكتور بيولّد الجدول، يرجع يظبط الوزن، يولّد تاني. ده نفس الزيارة
+    بعد تصحيح -- مش زيارتين. من غير ده، تظبيط الجدول تلات مرات كان بيسجّل
+    تلات زيارات في نفس اليوم ويبوّظ حساب التقدّم كله."""
+    if not visit_id:
+        return False
+    try:
+        db_run("""UPDATE plan_visits SET client_name=?, phone=?, age=?, gender=?,
+                         height=?, weight=?, fat_pct=?, bmi=?, activity=?, tdee=?,
+                         goal_cal=?, goal_type=?, diet_plan_type=?, conditions=?,
+                         visit_notes=?, plan_json=?, saved_plan_id=?
+                  WHERE id=?""",
+               ((data.get("name") or "").strip(), (data.get("phone") or "").strip(),
+                _as_int(data.get("age")), data.get("gender"),
+                _as_float(data.get("height")), _as_float(data.get("weight")),
+                _as_float(data.get("fat_pct")), _as_float(data.get("bmi")),
+                _as_float(data.get("activity")), _as_int(data.get("tdee")),
+                _as_int(data.get("goal_cal")), data.get("goal_type"),
+                data.get("diet_plan_type"),
+                json.dumps(data.get("symptoms") or [], ensure_ascii=False),
+                (data.get("visit_notes") or "").strip(),
+                json.dumps(plan or [], ensure_ascii=False), saved_plan_id, visit_id))
+        return True
+    except Exception as e:
+        log_error("update_visit", e)
+        return False
+
+
+def last_visit_id(doctor_uid, key):
+    rows = visits_for(doctor_uid, key, limit=1)
+    return rows[0]["id"] if rows else None
+
+
 def recent_clients(doctor_uid, limit=60):
     """آخر عميل في كل ملف متابعة، مع عدد زياراته."""
     try:
