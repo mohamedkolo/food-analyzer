@@ -205,6 +205,46 @@ def test_the_login_page_offers_a_password_reveal():
     assert 'inputmode="email"' in body
 
 
+def test_the_admin_password_can_be_reset_but_only_on_purpose():
+    """Passwords are one-way hashes, so a forgotten admin password cannot be
+    recovered by anyone -- including whoever runs the server. The only way
+    back in is an explicit reset, and it has to be explicit: ADMIN_PASSWORD
+    alone must never silently overwrite a password that is already working,
+    or a stale value left in the environment would clobber it on every
+    restart."""
+    import subprocess
+    import tempfile
+
+    db = os.path.join(tempfile.mkdtemp(), "reset.db")
+
+    def run(env_extra, checks):
+        code = ("import app\nfrom core import get_user\n"
+                + "\n".join(f"print({k!r}, bool(get_user('admin@nutrax.com', {v!r})))"
+                            for k, v in checks))
+        env = dict(os.environ, SECRET_KEY="test-key", NUTRAX_DB=db, **env_extra)
+        out = subprocess.run([sys.executable, "-c", code], capture_output=True,
+                             text=True, env=env,
+                             cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        return dict(line.split(" ", 1) for line in out.stdout.splitlines()
+                    if line.split(" ", 1)[0] in dict(checks))
+
+    first, second = "FirstPass1!", "SecondPass2!"
+
+    got = run({"ADMIN_PASSWORD": first}, [("first", first)])
+    assert got.get("first") == "True", "the admin account was not created"
+
+    # a different ADMIN_PASSWORD with no reset flag must change nothing
+    got = run({"ADMIN_PASSWORD": second}, [("first", first), ("second", second)])
+    assert got.get("first") == "True", "the working password was silently overwritten"
+    assert got.get("second") == "False", "a password nobody asked for was accepted"
+
+    # with the flag, and only with the flag, it changes
+    got = run({"ADMIN_PASSWORD": second, "ADMIN_PASSWORD_RESET": "1"},
+              [("first", first), ("second", second)])
+    assert got.get("second") == "True", "the reset flag did not take effect"
+    assert got.get("first") == "False", "the old password still works after a reset"
+
+
 def test_every_admin_page_renders():
     """Reaching a page is not the same as it working. A refactor can leave a
     helper behind and only the render shows it -- this is how the client

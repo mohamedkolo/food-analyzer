@@ -292,7 +292,9 @@ if DATABASE_URL:
         _pool_exec(sql.replace("?", "%s"), params, None)
 else:
     import sqlite3
-    DB = "/tmp/nutrax.db"
+    # قابل للتغيير عشان التستات تشتغل كل واحدة على قاعدة لوحدها بدل ما
+    # يدوسوا على بعض. البرودكشن بيرفض يشتغل على sqlite أصلاً (شوف فوق).
+    DB = os.environ.get("NUTRAX_DB", "/tmp/nutrax.db")
     def _dict_factory(cursor, row):
         return {col[0]: row[i] for i, col in enumerate(cursor.description)}
     def get_db():
@@ -541,12 +543,28 @@ def init_db():
         else:
             print("WARNING: no admin account exists. Set ADMIN_PASSWORD env var and restart to create one.")
     elif _admin_pw:
-        # ترحيل لمرة واحدة: لو الأدمن لسه باسورده هو الباسورد القديم المكشوف على GitHub (بأي صيغة تشفير)، نستبدله.
-        # أول ما يتغير، الشرط مبيتحققش تاني ومفيش أي لمس للباسورد بعدها.
-        _cur = db_row("SELECT password FROM users WHERE email='admin@nutrax.com'")
-        if _cur and verify_password(_cur.get("password"), "nutrax2025"):
-            db_run("UPDATE users SET password=? WHERE email='admin@nutrax.com'", (hp(_admin_pw),))
-            print("admin password migrated away from compromised default.")
+        # ── تصفير الباسورد عند الطلب ──
+        # الباسوردات متخزنة hash باتجاه واحد، فلو صاحب الموقع نسي باسورد
+        # الأدمن مفيش طريقة يسترجعه بيها -- ومفيش حد تاني يقدر يعمله حساب.
+        # الطريقة دي بتحلها من غير ما تفتح أي باب على النت: التصفير بيتطلب
+        # الدخول على إعدادات السيرفس نفسها، واللي بيقدر يعمل كده هو المالك.
+        # الاستخدام: حط ADMIN_PASSWORD بالجديد + ADMIN_PASSWORD_RESET=1،
+        # استنى النشر، سجّل دخول، وبعدين امسح ADMIN_PASSWORD_RESET.
+        if os.environ.get("ADMIN_PASSWORD_RESET", "").strip().lower() in ("1", "true", "yes"):
+            db_run("UPDATE users SET password=?, active=1 WHERE email='admin@nutrax.com'",
+                   (hp(_admin_pw),))
+            print("=" * 70)
+            print("ADMIN PASSWORD RESET from ADMIN_PASSWORD_RESET.")
+            print("Sign in now, then DELETE the ADMIN_PASSWORD_RESET variable —")
+            print("while it is set, every restart rewrites the password.")
+            print("=" * 70)
+        else:
+            # ترحيل لمرة واحدة: لو الأدمن لسه باسورده هو الباسورد القديم المكشوف على GitHub (بأي صيغة تشفير)، نستبدله.
+            # أول ما يتغير، الشرط مبيتحققش تاني ومفيش أي لمس للباسورد بعدها.
+            _cur = db_row("SELECT password FROM users WHERE email='admin@nutrax.com'")
+            if _cur and verify_password(_cur.get("password"), "nutrax2025"):
+                db_run("UPDATE users SET password=? WHERE email='admin@nutrax.com'", (hp(_admin_pw),))
+                print("admin password migrated away from compromised default.")
 
 init_db()
 
