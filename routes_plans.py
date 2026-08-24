@@ -22,9 +22,10 @@ from flask import (Blueprint, jsonify, redirect, render_template, request,
 
 import meal_extra
 from core import (
-    DIET_PLAN_TYPES, cur_lang, db_row, db_rows, db_run, filter_by_conditions,
-    get_meal_pool, get_user_by_id, last_visit, log_error, record_visit,
-    recent_clients, staff_required, translate_meal, visits_for,
+    DIET_PLAN_TYPES, bump_plan_link, create_plan_link, cur_lang, db_row,
+    db_rows, db_run, filter_by_conditions, get_meal_pool, get_plan_link,
+    get_user_by_id, last_visit, log_error, record_visit, recent_clients,
+    site_origin, staff_required, translate_meal, visits_for,
 )
 import followup
 from plan_engine import (
@@ -166,6 +167,61 @@ def generate():
     return render_template("generate.html", user=u, lang=session.get("lang","ar"),
                            diet_plans=DIET_PLAN_TYPES, zigzag_modes=ZIGZAG_MODES,
                            zigzag_json=json.dumps(ZIGZAG_MODES, ensure_ascii=False))
+
+@bp.route("/api/plan-link", methods=["POST"])
+@staff_required
+def make_plan_link():
+    """يعمل رابط للخطة اللي في المعاينة دلوقتي."""
+    data = session.get("pdf_data")
+    plan = session.get("current_plan")
+    if not data or not plan:
+        return jsonify({"ok": False}), 400
+    token = create_plan_link(session["uid"], data, plan)
+    if not token:
+        return jsonify({"ok": False}), 500
+    return jsonify({"ok": True, "url": f"{site_origin()}/p/{token}",
+                    "name": (data.get("name") or "").strip()})
+
+
+@bp.route("/p/<token>")
+def public_plan(token):
+    """الجدول للعميل: من غير حساب، من غير تسجيل دخول، من غير تطبيق.
+
+    ده أضمن طريق لتوصيل الجدول: مشاركة رابط شغالة على كل متصفح، على عكس
+    مشاركة الملفات اللي بتختفي على أجهزة كتير."""
+    row = get_plan_link(token)
+    if not row:
+        return render_template("plan_link_gone.html",
+                               lang=session.get("lang", "ar")), 404
+    bump_plan_link(token)
+    try:
+        plan = json.loads(row.get("plan_json") or "[]")
+        data = json.loads(row.get("data_json") or "{}")
+    except (ValueError, TypeError):
+        return render_template("plan_link_gone.html",
+                               lang=session.get("lang", "ar")), 404
+    return render_template("public_plan.html", lang=session.get("lang", "ar"),
+                           plan=plan, data=data, token=token,
+                           client_name=row.get("client_name"))
+
+
+@bp.route("/p/<token>/pdf")
+def public_plan_pdf(token):
+    row = get_plan_link(token)
+    if not row:
+        return redirect(f"/p/{token}")
+    try:
+        plan = json.loads(row.get("plan_json") or "[]")
+        data = json.loads(row.get("data_json") or "{}")
+        buf = io.BytesIO(build_pdf(data, plan)); buf.seek(0)
+        name = (data.get("name", "plan") or "plan").replace(" ", "_")
+        return send_file(buf, as_attachment=True,
+                         download_name=f"NutraX_{name}.pdf",
+                         mimetype="application/pdf")
+    except Exception as e:
+        log_error("public_plan_pdf", e)
+        return redirect(f"/p/{token}")
+
 
 @bp.route("/api/followup/lookup")
 @staff_required

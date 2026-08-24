@@ -34,7 +34,8 @@ PUBLIC_PAGES = [
 ]
 
 # everything behind the login wall -- crawling these only ever yields a redirect
-_CRAWL_BLOCKED = ["/dashboard", "/my-plan", "/my-plans-history", "/generate",
+# /p/ = جداول العملاء بالاسم والوزن والحالات المرضية. مش للفهرسة أبداً.
+_CRAWL_BLOCKED = ["/p/", "/followups", "/dashboard", "/my-plan", "/my-plans-history", "/generate",
                   "/preview", "/planner", "/patients", "/saved", "/analyzer",
                   "/knowledge", "/clinical", "/daily-tips", "/messages",
                   "/settings", "/change-password", "/history", "/onboarding",

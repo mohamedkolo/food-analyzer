@@ -357,10 +357,15 @@
 <div style="position:sticky;bottom:10px;margin-top:20px;display:grid;gap:8px">
   {# على الموبايل ده الزرار الرئيسي: بيفتح شير شيت النظام والملف متعلّق فيه،
      فالجدول بيروح لواتساب في ضغطة. على الديسكتوب مخفي والتحميل هو الأساس. #}
+  {# لينك بدل ملف: مشاركة رابط شغالة على كل متصفح، ومشاركة الملفات لأ. #}
+  <button type="button" id="planLinkBtn" class="btn btn-success btn-full"
+          style="font-size:17px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.2)">
+    <i class="fa-solid fa-link"></i> {{ t('إرسال لينك الجدول','Send the plan link') }}
+  </button>
   <button type="button" class="btn btn-success btn-full" data-share-pdf style="display:none;
           font-size:17px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.2)"
           data-pdf-url="/download_pdf" data-pdf-name="{{ pdf_name }}">
-    <i class="fa-solid fa-share-nodes"></i> {{ t('إرسال الجدول للعميل','Send the plan to the client') }}
+    <i class="fa-solid fa-share-nodes"></i> {{ t('إرسال الجدول كملف','Send the plan as a file') }}
   </button>
   <a href="/download_pdf" class="btn btn-success btn-full" data-share-alt
      style="font-size:17px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.2)">
@@ -423,6 +428,52 @@
   }
   .option-card.selected { background:#E4F0F4;border-color:#1B6E80 }
 </style>
+
+<script>
+// ═══ لينك الجدول ═══
+// بيتعمل مرة واحدة وبيتخزن، فالضغطة التانية بتبعت نفس اللينك مش لينك جديد.
+(function(){
+  const btn = document.getElementById('planLinkBtn');
+  if(!btn) return;
+  let url = null;
+  const original = btn.innerHTML;
+  const say = (h) => btn.innerHTML = h;
+
+  btn.addEventListener('click', async () => {
+    try{
+      if(!url){
+        btn.disabled = true;
+        say('<i class="fa-solid fa-spinner fa-spin"></i> {{ t("بيعمل اللينك…","Creating the link…") }}');
+        const r = await fetch('/api/plan-link', { method:'POST', credentials:'same-origin' });
+        const j = await r.json();
+        if(!j.ok) throw new Error('failed');
+        url = j.url;
+        btn.disabled = false;
+        say(original);
+      }
+      const text = '{{ t("جدولك الغذائي من د. محمد:","Your meal plan from Dr. Mohamed:") }} ' + url;
+      if(navigator.share){
+        await navigator.share({ title: '{{ t("جدولك الغذائي","Your meal plan") }}', text: text });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      say('<i class="fa-solid fa-check"></i> {{ t("اتنسخ — الزقه في واتساب","Copied — paste it into WhatsApp") }}');
+      setTimeout(() => say(original), 4000);
+    }catch(e){
+      btn.disabled = false;
+      if(e && e.name === 'AbortError'){ say(original); return; }
+      if(url){
+        // المشاركة والنسخ الاتنين مش متاحين: نوريه اللينك يختاره بإيده
+        say(original);
+        window.prompt('{{ t("انسخ اللينك ده","Copy this link") }}', url);
+        return;
+      }
+      say('<i class="fa-solid fa-triangle-exclamation"></i> {{ t("مانفعش — جرّب تاني","Did not work — try again") }}');
+      setTimeout(() => say(original), 4000);
+    }
+  });
+})();
+</script>
 
 <script>
 function showSaveIndicator() {

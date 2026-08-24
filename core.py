@@ -485,6 +485,7 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS patients (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS plan_requests (id SERIAL PRIMARY KEY, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS plan_visits (id SERIAL PRIMARY KEY, user_id INTEGER, client_key TEXT, client_name TEXT, phone TEXT, visit_no INTEGER DEFAULT 1, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, activity REAL, tdee INTEGER, goal_cal INTEGER, goal_type TEXT, diet_plan_type TEXT, conditions TEXT, visit_notes TEXT, plan_json TEXT, saved_plan_id INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS plan_links (id SERIAL PRIMARY KEY, token TEXT UNIQUE, user_id INTEGER, client_name TEXT, plan_json TEXT, data_json TEXT, views INTEGER DEFAULT 0, revoked INTEGER DEFAULT 0, expires_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS messages (id SERIAL PRIMARY KEY, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS blocked_users (id SERIAL PRIMARY KEY, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""",
             """CREATE TABLE IF NOT EXISTS subscriptions (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, stripe_customer_id TEXT, stripe_subscription_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, current_period_start TIMESTAMP, current_period_end TIMESTAMP, trial_end TIMESTAMP, cancel_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
@@ -504,6 +505,7 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS patients (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS plan_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER, client_name TEXT, status TEXT DEFAULT 'pending', request_data TEXT, plan_data TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS plan_visits (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, client_key TEXT, client_name TEXT, phone TEXT, visit_no INTEGER DEFAULT 1, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, activity REAL, tdee INTEGER, goal_cal INTEGER, goal_type TEXT, diet_plan_type TEXT, conditions TEXT, visit_notes TEXT, plan_json TEXT, saved_plan_id INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS plan_links (id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT UNIQUE, user_id INTEGER, client_name TEXT, plan_json TEXT, data_json TEXT, views INTEGER DEFAULT 0, revoked INTEGER DEFAULT 0, expires_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, sender_id INTEGER, receiver_id INTEGER, message TEXT, is_read INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS blocked_users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, reason TEXT)""",
             """CREATE TABLE IF NOT EXISTS subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, stripe_customer_id TEXT, stripe_subscription_id TEXT, plan_key TEXT, status TEXT DEFAULT 'pending', currency TEXT DEFAULT 'USD', amount INTEGER DEFAULT 0, current_period_start TIMESTAMP, current_period_end TIMESTAMP, trial_end TIMESTAMP, cancel_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
@@ -673,6 +675,81 @@ def record_visit(doctor_uid, data, plan, saved_plan_id=None):
     except Exception as e:
         log_error("record_visit", e)
         return None
+
+
+# ── لينك الجدول ── رابط للعميل من غير حساب ولا تسجيل دخول
+#
+# اللينك ده بيفتح خطة فيها بيانات صحية (وزن، حالات مرضية)، فالأمان فيه هو
+# إن الرمز نفسه مستحيل يتخمّن. ١٢ حرف من ٥٧ احتمال = حوالي ٧٠ بت، يعني
+# التخمين مش وارد -- ومع ذلك اللينك يفضل قصير.
+#
+# شيلنا الحروف اللي بتتلخبط على بعضها (0/O/o و 1/l/I) عشان لو حد اضطر
+# يكتب اللينك بإيده أو يقراه من ورقة.
+_LINK_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"
+_LINK_LEN = 12
+LINK_DAYS = 120
+
+
+def _new_token():
+    import secrets
+    return "".join(secrets.choice(_LINK_ALPHABET) for _ in range(_LINK_LEN))
+
+
+def create_plan_link(doctor_uid, data, plan, days=LINK_DAYS):
+    """يعمل رابط عام للخطة ويرجّع الرمز، أو None لو فشل."""
+    import datetime as _dt
+    expires = _dt.datetime.now() + _dt.timedelta(days=days)
+    for _ in range(5):                      # لو الرمز اتكرر بالصدفة، نجرب تاني
+        token = _new_token()
+        try:
+            db_run("""INSERT INTO plan_links (token, user_id, client_name, plan_json,
+                                              data_json, expires_at)
+                      VALUES (?,?,?,?,?,?)""",
+                   (token, doctor_uid, (data.get("name") or "").strip(),
+                    json.dumps(plan or [], ensure_ascii=False),
+                    json.dumps(_link_safe(data), ensure_ascii=False), expires))
+            return token
+        except Exception as e:
+            if "unique" not in str(e).lower() and "duplicate" not in str(e).lower():
+                log_error("create_plan_link", e)
+                return None
+    return None
+
+
+def _link_safe(data):
+    """نسخة من بيانات الخطة من غير الحاجات اللي مالهاش لازمة على صفحة عامة.
+
+    اللينك بيتبعت على واتساب وممكن يتنقل، فأي حاجة مش هتتعرض متتخزنش فيه
+    أصلاً -- الموبايل ومفتاح ملف المتابعة وملاحظات الزيارة الداخلية."""
+    drop = {"phone", "client_key", "visit_notes", "avoid_meals", "user_id"}
+    return {k: v for k, v in (data or {}).items() if k not in drop}
+
+
+def get_plan_link(token):
+    """بيرجّع صف اللينك لو شغال، أو None لو مش موجود/ملغي/منتهي."""
+    if not token or len(token) > 64:
+        return None
+    row = db_row("SELECT * FROM plan_links WHERE token=?", (token,))
+    if not row or row.get("revoked"):
+        return None
+    exp = row.get("expires_at")
+    if exp:
+        try:
+            import datetime as _dt
+            if isinstance(exp, str):
+                exp = _dt.datetime.strptime(exp[:19], "%Y-%m-%d %H:%M:%S")
+            if exp < _dt.datetime.now():
+                return None
+        except Exception:
+            pass
+    return dict(row)
+
+
+def bump_plan_link(token):
+    try:
+        db_run("UPDATE plan_links SET views = COALESCE(views,0) + 1 WHERE token=?", (token,))
+    except Exception as e:
+        log_error("bump_plan_link", e)
 
 
 def recent_clients(doctor_uid, limit=60):

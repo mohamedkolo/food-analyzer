@@ -1,0 +1,140 @@
+{% set _ar = (lang or 'ar') == 'ar' %}
+<!DOCTYPE html>
+<html lang="{{ 'ar' if _ar else 'en' }}" dir="{{ 'rtl' if _ar else 'ltr' }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{# جدول عميل بالاسم والوزن والحالات المرضية. ما ينفعش يتفهرس أبداً. #}
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<meta name="referrer" content="no-referrer">
+<title>{{ (client_name or (_ar and 'جدولك الغذائي' or 'Your meal plan')) }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Cairo',system-ui,sans-serif;background:#F4F9FB;color:#0f172a;
+       line-height:1.7;padding-bottom:40px}
+  .top{background:linear-gradient(135deg,#0F2A43,#1B6E80);color:#fff;padding:26px 20px 30px}
+  .top-in{max-width:760px;margin:0 auto}
+  .brand{font-size:13px;opacity:.75;font-weight:700;letter-spacing:.5px}
+  .who{font-size:25px;font-weight:900;margin:6px 0 2px}
+  .sub{font-size:13.5px;opacity:.9}
+  .facts{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+  .fact{background:rgba(255,255,255,.13);border-radius:11px;padding:9px 15px}
+  .fact b{display:block;font-size:18px;font-weight:900;line-height:1.2}
+  .fact span{font-size:11.5px;opacity:.85}
+  .wrap{max-width:760px;margin:0 auto;padding:20px}
+  .day{background:#fff;border:1px solid #D3E3EA;border-radius:15px;
+       padding:15px 17px;margin-bottom:12px}
+  .day-h{display:flex;justify-content:space-between;align-items:center;
+         padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #EDF4F7}
+  .day-h b{font-size:16px;font-weight:900;color:#0F2A43}
+  .kcal{background:#E4F0F4;color:#0F2A43;border-radius:99px;
+        padding:4px 12px;font-size:12.5px;font-weight:800;white-space:nowrap}
+  .meal{display:flex;gap:11px;padding:9px 0;border-bottom:1px dashed #EDF4F7}
+  .meal:last-child{border-bottom:0}
+  .meal .em{font-size:19px;flex-shrink:0;line-height:1.5}
+  .meal .lbl{font-size:11px;color:#FF7A59;font-weight:800;letter-spacing:.4px}
+  .meal .txt{font-size:14.5px;font-weight:600;line-height:1.85}
+  .box{background:#fff;border:1px solid #D3E3EA;border-radius:15px;
+       padding:16px 18px;margin-bottom:12px}
+  .box h2{font-size:15px;font-weight:900;color:#0F2A43;margin-bottom:9px}
+  .box ul{padding-inline-start:19px;font-size:14px;line-height:2}
+  .cta{position:sticky;bottom:12px;margin-top:18px}
+  .cta a{display:block;background:#1B6E80;color:#fff;text-align:center;
+         padding:15px;border-radius:13px;text-decoration:none;font-weight:800;
+         font-size:16px;box-shadow:0 6px 22px rgba(15,42,67,.25)}
+  .note{background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;
+        padding:13px 16px;font-size:13px;color:#92400e;line-height:1.9;margin-bottom:12px}
+  .foot{text-align:center;color:#64748b;font-size:12px;margin-top:22px;line-height:2}
+  .foot a{color:#1B6E80;font-weight:700;text-decoration:none}
+  @media print{
+    body{background:#fff}.cta,.foot{display:none}
+    .top{background:#0F2A43 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand">NutraX · {{ 'د. محمد — أخصائي التغذية الإكلينيكية' if _ar else 'Dr. Mohamed — Clinical Nutrition' }}</div>
+    <div class="who">{{ client_name or ('جدولك الغذائي' if _ar else 'Your meal plan') }}</div>
+    <div class="sub">{{ 'جدول 7 أيام مبني على حالتك' if _ar else 'A 7-day plan built around your condition' }}</div>
+    <div class="facts">
+      {% if data.goal_cal %}
+      <div class="fact"><b>{{ data.goal_cal }}</b><span>{{ 'سعرة يومياً' if _ar else 'kcal a day' }}</span></div>
+      {% endif %}
+      {% if data.culture %}
+      <div class="fact"><b>{{ data.culture }}</b><span>{{ 'المطبخ' if _ar else 'Cuisine' }}</span></div>
+      {% endif %}
+      <div class="fact"><b>{{ plan|length }}</b><span>{{ 'أيام' if _ar else 'days' }}</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  {% if data.symptoms %}
+  <div class="box">
+    <h2>{{ 'الجدول ده مفلتر على' if _ar else 'This plan is filtered for' }}</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:7px">
+      {% for s in data.symptoms %}
+      <span style="background:#E4F0F4;color:#0F2A43;border-radius:99px;
+                   padding:5px 13px;font-size:12.5px;font-weight:700">{{ s }}</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% set LABELS = {
+    'breakfast': ('🌅', 'الفطار', 'Breakfast'), 'lunch': ('☀️', 'الغداء', 'Lunch'),
+    'dinner': ('🌙', 'العشاء', 'Dinner'), 'snack': ('🍎', 'سناك', 'Snack'),
+    'snack1': ('☕', 'سناك صباحي', 'Morning snack'), 'snack2': ('🍎', 'سناك عصر', 'Afternoon snack'),
+    'meal1': ('🕛', 'الوجبة الأولى', 'First meal'), 'meal2': ('🕖', 'الوجبة الثانية', 'Second meal'),
+    'iftar': ('🌙', 'الفطار', 'Iftar'), 'suhoor': ('🌄', 'السحور', 'Suhoor'),
+    'pre_workout': ('💪', 'قبل التمرين', 'Pre-workout'),
+    'post_workout': ('🏋️', 'بعد التمرين', 'Post-workout'),
+  } %}
+
+  {% for day in plan %}
+  <div class="day">
+    <div class="day-h">
+      <b>{{ day.day }}</b>
+      {% if day.target_cal %}
+        <span class="kcal">{{ day.target_cal }} kcal</span>
+      {% elif day.total_cal %}
+        <span class="kcal">{{ day.total_cal }} kcal</span>
+      {% endif %}
+    </div>
+    {% for key, meta in LABELS.items() %}
+      {% if day[key] %}
+      <div class="meal">
+        <div class="em">{{ meta[0] }}</div>
+        <div>
+          <div class="lbl">{{ meta[1] if _ar else meta[2] }}</div>
+          <div class="txt">{{ day[key] }}</div>
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+  <div class="note">
+    ⚠️ {{ 'الجدول ده متعمل لك إنت بالذات على حالتك وتحاليلك. متبعتوش لحد تاني — اللي مناسب ليك ممكن ما يناسبش غيرك.'
+          if _ar else
+          'This plan was built for you, from your own condition and labs. Do not pass it on — what suits you may not suit someone else.' }}
+  </div>
+
+  <div class="cta">
+    <a href="/p/{{ token }}/pdf">⬇️ {{ 'حمّل الجدول PDF' if _ar else 'Download the plan as PDF' }}</a>
+  </div>
+
+  <div class="foot">
+    {{ 'أي سؤال؟ كلّم د. محمد.' if _ar else 'Questions? Talk to Dr. Mohamed.' }}<br>
+    <a href="/">NutraX</a>
+  </div>
+</div>
+
+</body>
+</html>
