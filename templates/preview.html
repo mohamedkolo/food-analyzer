@@ -377,6 +377,32 @@
           style="font-size:17px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.2)">
     <i class="fa-solid fa-link"></i> {{ t('إرسال لينك الجدول','Send the plan link') }}
   </button>
+
+  {# اللينك بيتعرض هنا بعد ما يتعمل.
+     قايمة المشاركة بتاعة النظام مش بتشتغل جوه تطبيق مثبّت على الشاشة
+     الرئيسية، فلازم يبقى فيه طريق مايعتمدش عليها خالص: زرار واتساب
+     (مجرد رابط، بيشتغل في أي مكان) واللينك نفسه ظاهر عشان ينسخه بإيده. #}
+  <div id="planLinkBox" style="display:none;background:#fff;border:2px solid #1B6E80;
+       border-radius:13px;padding:14px;box-shadow:0 4px 20px rgba(0,0,0,.12)">
+    <div style="font-size:12.5px;color:#64748b;font-weight:700;margin-bottom:7px">
+      {{ t('لينك الجدول — ابعته للعميل','The plan link — send it to the client') }}
+    </div>
+    <input id="planLinkUrl" readonly onclick="this.select()"
+           style="width:100%;padding:11px;border:1px solid #D3E3EA;border-radius:9px;
+                  font-size:13px;font-family:inherit;direction:ltr;text-align:left;
+                  background:#F4F9FB;color:#0F2A43;font-weight:600">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px">
+      <a id="planLinkWa" href="#" target="_blank" rel="noopener"
+         style="background:#25D366;color:#fff;text-align:center;padding:12px;
+                border-radius:10px;text-decoration:none;font-weight:800;font-size:14.5px">
+        <i class="fa-brands fa-whatsapp"></i> {{ t('واتساب','WhatsApp') }}
+      </a>
+      <button type="button" id="planLinkCopy" class="btn btn-outline"
+              style="padding:12px;font-size:14.5px;font-weight:800">
+        <i class="fa-regular fa-copy"></i> {{ t('نسخ اللينك','Copy link') }}
+      </button>
+    </div>
+  </div>
   <button type="button" class="btn btn-success btn-full" data-share-pdf style="display:none;
           font-size:17px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.2)"
           data-pdf-url="/download_pdf" data-pdf-name="{{ pdf_name }}">
@@ -509,45 +535,59 @@ document.addEventListener('click', async function(ev){
 });
 
 // ═══ لينك الجدول ═══
-// بيتعمل مرة واحدة وبيتخزن، فالضغطة التانية بتبعت نفس اللينك مش لينك جديد.
+// بيتعمل مرة واحدة وبيتخزن، فالضغطة التانية بتعرض نفس اللينك مش لينك جديد.
+//
+// مفيش اعتماد على قايمة المشاركة بتاعة النظام: جوه تطبيق مثبّت على الشاشة
+// الرئيسية هي غالباً مابتفتحش خالص. زرار واتساب مجرد رابط wa.me، وده بيشتغل
+// في أي متصفح وفي أي تطبيق مثبّت، واللينك نفسه معروض عشان ينفع ينتسخ بالإيد.
 (function(){
-  const btn = document.getElementById('planLinkBtn');
-  if(!btn) return;
-  let url = null;
+  const btn  = document.getElementById('planLinkBtn');
+  const box  = document.getElementById('planLinkBox');
+  const inp  = document.getElementById('planLinkUrl');
+  const wa   = document.getElementById('planLinkWa');
+  const copy = document.getElementById('planLinkCopy');
+  if(!btn || !box) return;
+
   const original = btn.innerHTML;
   const say = (h) => btn.innerHTML = h;
+  const MSG = '{{ t("جدولك الغذائي من د. محمد:","Your meal plan from Dr. Mohamed:") }}';
+  let url = null;
 
   btn.addEventListener('click', async () => {
+    if(url){ box.scrollIntoView({block:'nearest', behavior:'smooth'}); inp.select(); return; }
+    btn.disabled = true;
+    say('<i class="fa-solid fa-spinner fa-spin"></i> {{ t("بيعمل اللينك…","Creating the link…") }}');
     try{
-      if(!url){
-        btn.disabled = true;
-        say('<i class="fa-solid fa-spinner fa-spin"></i> {{ t("بيعمل اللينك…","Creating the link…") }}');
-        const r = await fetch('/api/plan-link', { method:'POST', credentials:'same-origin' });
-        const j = await r.json();
-        if(!j.ok) throw new Error('failed');
-        url = j.url;
-        btn.disabled = false;
-        say(original);
-      }
-      const text = '{{ t("جدولك الغذائي من د. محمد:","Your meal plan from Dr. Mohamed:") }} ' + url;
-      if(navigator.share){
-        await navigator.share({ title: '{{ t("جدولك الغذائي","Your meal plan") }}', text: text });
-        return;
-      }
-      await navigator.clipboard.writeText(url);
-      say('<i class="fa-solid fa-check"></i> {{ t("اتنسخ — الزقه في واتساب","Copied — paste it into WhatsApp") }}');
-      setTimeout(() => say(original), 4000);
+      const r = await fetch('/api/plan-link', { method:'POST', credentials:'same-origin' });
+      const j = await r.json();
+      if(!j.ok) throw new Error('failed');
+      url = j.url;
+      inp.value = url;
+      wa.href = 'https://wa.me/?text=' + encodeURIComponent(MSG + ' ' + url);
+      box.style.display = 'block';
+      say('<i class="fa-solid fa-link"></i> {{ t("اللينك جاهز","Link ready") }}');
+      box.scrollIntoView({block:'nearest', behavior:'smooth'});
     }catch(e){
-      btn.disabled = false;
-      if(e && e.name === 'AbortError'){ say(original); return; }
-      if(url){
-        // المشاركة والنسخ الاتنين مش متاحين: نوريه اللينك يختاره بإيده
-        say(original);
-        window.prompt('{{ t("انسخ اللينك ده","Copy this link") }}', url);
-        return;
-      }
       say('<i class="fa-solid fa-triangle-exclamation"></i> {{ t("مانفعش — جرّب تاني","Did not work — try again") }}');
       setTimeout(() => say(original), 4000);
+    }
+    btn.disabled = false;
+  });
+
+  copy.addEventListener('click', async () => {
+    const done = () => {
+      copy.innerHTML = '<i class="fa-solid fa-check"></i> {{ t("اتنسخ","Copied") }}';
+      setTimeout(() => copy.innerHTML =
+        '<i class="fa-regular fa-copy"></i> {{ t("نسخ اللينك","Copy link") }}', 2500);
+    };
+    try{
+      await navigator.clipboard.writeText(url);
+      done();
+    }catch(e){
+      // النسخ من جافاسكريبت ممنوع في سياقات كتير -- نختار النص للدكتور ويعمل نسخ بنفسه
+      inp.focus(); inp.select(); inp.setSelectionRange(0, 99999);
+      try{ document.execCommand('copy'); done(); }
+      catch(_){ copy.innerHTML = '{{ t("اختاره وانسخه","Select it and copy") }}'; }
     }
   });
 })();

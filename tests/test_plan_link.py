@@ -148,6 +148,31 @@ def test_only_staff_can_mint_a_link():
     assert after == before, "an anonymous request created a plan link"
 
 
+def test_sending_the_link_never_depends_on_a_share_sheet():
+    """The doctor works from the app installed on his home screen, where the
+    system share sheet often does not open at all and the clipboard API is
+    unavailable. So the preview has to offer a path that needs neither: a
+    wa.me link, which is just a URL, plus the link itself on screen to copy
+    by hand."""
+    c = A.app.test_client()
+    tok = re.search(r'name="csrf_token"[^>]*value="([^"]*)"',
+                    c.get("/login").get_data(as_text=True)).group(1)
+    c.post("/login", data={"action": "login", "email": "admin@nutrax.com",
+                           "password": "pw123456", "csrf_token": tok})
+    A.app.config["WTF_CSRF_ENABLED"] = False
+    c.post("/generate", data={
+        "action": "generate", "name": "أحمد على", "age": "32", "gender": "ذكر",
+        "height": "176", "weight": "95", "tdee": "2350", "goal_cal": "1750",
+        "goal_type": "weight_loss", "culture": "مصري",
+        "diet_plan_type": "standard", "activity_mult": "1.55"})
+
+    body = c.get("/preview").get_data(as_text=True)
+    assert 'id="planLinkBox"' in body, "there is no panel to show the link in"
+    assert 'id="planLinkUrl"' in body, "the link is never shown for copying by hand"
+    assert 'id="planLinkWa"' in body and "wa.me" in body, "no direct WhatsApp path"
+    assert 'id="planLinkCopy"' in body
+
+
 def test_views_are_counted_so_the_doctor_knows_it_arrived():
     token = _link()
     c = A.app.test_client()
