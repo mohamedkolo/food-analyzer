@@ -360,7 +360,8 @@ def preview():
     if not data or not plan: return redirect("/generate")
     current_request_id = session.get("current_request_id")
     return render_template("preview.html", user=u, lang=session.get("lang","ar"),
-                           data=data, plan=plan, current_request_id=current_request_id)
+                           data=data, plan=plan, current_request_id=current_request_id,
+                           diet_plans=DIET_PLAN_TYPES)
 
 def _filtered_meals(data, pool_key, culture=None):
     """بيرجّع وجبات pool_key بعد تطبيق: الحالة المرضية + الحساسية + المرفوض + الكيتو/لو-كارب."""

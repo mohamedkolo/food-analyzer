@@ -244,6 +244,47 @@ def test_the_option_renders_in_the_eating_system_section():
                 f"{template}/{lang}: the option renders without {expected!r}")
 
 
+def test_the_preview_names_the_eating_system():
+    # "نوع الخطة" on that card is the goal, not the system, so nothing said
+    # which system built the plan -- and with a fixed six-day cycle that matters
+    os.environ.setdefault("SECRET_KEY", "test-key")
+    from core import app  # noqa: E402
+    from flask import render_template, session  # noqa: E402
+    from meal_database import DIET_PLAN_TYPES  # noqa: E402
+    from plan_engine import generate_weekly_plan  # noqa: E402
+
+    def _render(lang, keep_type=True):
+        data = {
+            "name": "tst", "age": "30", "gender": "أنثى", "height": "165",
+            "weight": "79.3", "tdee": "2369", "goal_cal": "1769",
+            "goal_type": "weight_loss", "culture": "خليجي",
+            "diet_plan_type": "chemical", "symptoms": [], "allergies": [],
+            "notes": "", "disliked_foods": "", "user_id": 1,
+        }
+        with app.test_request_context("/"):
+            session["lang"] = lang
+            plan = generate_weekly_plan(data)
+            if not keep_type:
+                data.pop("diet_plan_type")
+            return render_template(
+                "preview.html", user={"name": "tst", "role": "admin"}, lang=lang,
+                data=data, plan=plan, current_request_id=None,
+                diet_plans=DIET_PLAN_TYPES)
+
+    entry = DIET_PLAN_TYPES["chemical"]
+    for lang, label, name in (("ar", "نظام الأكل", entry["name"]),
+                              ("en", "Eating system", entry["name_en"])):
+        html = _render(lang)
+        assert label in html, f"{lang}: the field is missing from the summary card"
+        assert name in html, f"{lang}: the card does not name the system"
+
+    # a plan saved before the system was recorded must hide the field, not
+    # render it empty
+    assert "نظام الأكل" not in _render("ar", keep_type=False), (
+        "the field rendered for a plan with no system stored"
+    )
+
+
 def test_every_day_name_has_an_english_rendering():
     os.environ.setdefault("SECRET_KEY", "test-key")
     from core import ENGLISH_DAYS  # noqa: E402

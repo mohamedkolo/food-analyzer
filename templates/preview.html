@@ -122,6 +122,19 @@
         <div style="font-size:22px;font-weight:800">{{ culture_names.get(data.culture, data.culture) }}</div>
         <div style="font-size:11px;opacity:0.8">{{ t('المطبخ','Cuisine') }}</div>
       </div>
+      {# "نوع الخطة" فوق هو الهدف (تخسيس/تضخيم) مش النظام، فمكانش فيه حاجة
+         في الصفحة بتقول الجدول ده اتعمل بأنهي نظام. الأسماء بتتقرا من
+         DIET_PLAN_TYPES مش مكتوبة هنا، عشان أي نظام جديد يبان لوحده.
+         خط أصغر من الباقي لأن الأسماء دي جمل مش كلمة. #}
+      {% set _sys = (diet_plans or {}).get(data.diet_plan_type) %}
+      {% if _sys %}
+      <div style="text-align:center;max-width:190px">
+        <div style="font-size:15px;font-weight:800;line-height:1.3">
+          {{ _sys.name if is_ar else (_sys.name_en or _sys.name) }}
+        </div>
+        <div style="font-size:11px;opacity:0.8;margin-top:4px">{{ t('نظام الأكل','Eating system') }}</div>
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>
