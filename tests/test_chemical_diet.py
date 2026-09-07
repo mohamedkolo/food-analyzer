@@ -218,6 +218,32 @@ def test_the_day_rules_carry_english_that_is_actually_english():
         assert d.get("note_en") and d.get("forbidden_en") is not None
 
 
+def test_the_option_renders_in_the_eating_system_section():
+    # not just present in DIET_PLAN_TYPES -- actually drawn as a choice, in
+    # both forms and both languages
+    os.environ.setdefault("SECRET_KEY", "test-key")
+    import json  # noqa: E402
+    from core import app  # noqa: E402
+    from flask import render_template, session  # noqa: E402
+    from meal_database import DIET_PLAN_TYPES  # noqa: E402
+    from zigzag import ZIGZAG_MODES  # noqa: E402
+
+    entry = DIET_PLAN_TYPES["chemical"]
+    for template in ("generate.html", "request_plan.html"):
+        for lang, expected in (("ar", entry["name"]), ("en", entry["name_en"])):
+            with app.test_request_context("/"):
+                session["lang"] = lang
+                html = render_template(
+                    template, user={"name": "tst", "role": "admin"}, lang=lang,
+                    diet_plans=DIET_PLAN_TYPES, zigzag_modes=ZIGZAG_MODES,
+                    zigzag_json=json.dumps(ZIGZAG_MODES, ensure_ascii=False),
+                    prev={})
+            assert 'value="chemical"' in html, (
+                f"{template}/{lang}: the option is not in the form")
+            assert expected in html, (
+                f"{template}/{lang}: the option renders without {expected!r}")
+
+
 def test_every_day_name_has_an_english_rendering():
     os.environ.setdefault("SECRET_KEY", "test-key")
     from core import ENGLISH_DAYS  # noqa: E402
