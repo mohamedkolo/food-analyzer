@@ -22,7 +22,13 @@ caller shows it to the dietitian rather than quietly serving it.
 
 Known collisions with UNSAFE_FOODS, all handled by that filtering:
     كلوي   سبانخ (day 1), برتقال and كيوي (days 2 and 6)
-    سكري   the fruit days -- fruit "بأي كمية" is the protocol's own wording
+
+Diabetes is a different shape of problem and gets a different answer. Whole
+fruit is not on the سكري list and must not be added to it -- that list is
+global, so banning fruit there would strip it from every plan on the site. But
+the fruit days are open-ended by the protocol's own wording ("بأي كمية"), which
+is worth a second look for a diabetic. So those days carry a `cautions` entry:
+the day is still built, and the dietitian is told to review it.
 
 Filtering deliberately does NOT go through filter_by_conditions or
 filter_meals_by_exclusions. Both are built for a pool of hundreds: the first
@@ -87,6 +93,19 @@ CHEMICAL_DAYS = [
         "note_en": "Fresh fruit in any amount whenever hungry.",
         "forbidden": ["موز", "مانجو", "تمر", "عنب"],
         "forbidden_en": ["banana", "mango", "dates", "grapes"],
+        # اليوم ده كميته مفتوحة بنص البروتوكول نفسه ("بأي كمية")، وده اللي
+        # بيخلّيه محتاج وقفة مع السكري. الفاكهة الكاملة مش على قايمة
+        # UNSAFE_FOODS بتاعة السكري -- وما ينفعش تتحط، لأن ده هيمنعها من كل
+        # خطة في الموقع. فبدل ما نمنع، بنقول للأخصائي يراجع.
+        "cautions": {
+            "سكري": {
+                "ar": "يوم فاكهة مفتوح الكمية مع حالة سكري — راجع الكمية "
+                      "وتوزيعها على اليوم ومتابعة سكر الدم قبل ما تبعت الخطة.",
+                "en": "An open-ended fruit day with diabetes — review the amount, "
+                      "how it is spread across the day, and blood-sugar monitoring "
+                      "before sending the plan.",
+            },
+        },
         "meals": {
             "breakfast": [
                 {"meal": "🍎 تفاح 2 ثمرة", "cal": 190, "p": 1},
@@ -213,6 +232,19 @@ CHEMICAL_DAYS = [
         "note_en": "One kind of fruit only, through the day, whenever hungry.",
         "forbidden": ["موز", "مانجو", "تمر", "عنب"],
         "forbidden_en": ["banana", "mango", "dates", "grapes"],
+        # اليوم ده كميته مفتوحة بنص البروتوكول نفسه ("بأي كمية")، وده اللي
+        # بيخلّيه محتاج وقفة مع السكري. الفاكهة الكاملة مش على قايمة
+        # UNSAFE_FOODS بتاعة السكري -- وما ينفعش تتحط، لأن ده هيمنعها من كل
+        # خطة في الموقع. فبدل ما نمنع، بنقول للأخصائي يراجع.
+        "cautions": {
+            "سكري": {
+                "ar": "يوم فاكهة مفتوح الكمية مع حالة سكري — راجع الكمية "
+                      "وتوزيعها على اليوم ومتابعة سكر الدم قبل ما تبعت الخطة.",
+                "en": "An open-ended fruit day with diabetes — review the amount, "
+                      "how it is spread across the day, and blood-sugar monitoring "
+                      "before sending the plan.",
+            },
+        },
         # اليوم ده صنف واحد بس، فالخانات كلها بتتملي من نفس الفاكهة.
         "single_fruit": True,
         "fruits": [
@@ -314,6 +346,7 @@ def build_chemical_plan(symptoms=None, exclusions=None):
             fruit = _single_fruit_day(day, cond_keys, exclusions)
             if fruit is None:
                 warnings.append({
+                    "kind": "unfillable",
                     "day": day["name"], "day_en": day["name_en"], "slot": None,
                     "reason": "مفيش فاكهة مسموحة تناسب حالة المريض في يوم الصنف الواحد.",
                     "reason_en": ("No permitted fruit fits this client's conditions "
@@ -332,6 +365,7 @@ def build_chemical_plan(symptoms=None, exclusions=None):
                     label = CHEMICAL_SYSTEM["meal_labels"][slot]
                     label_en = CHEMICAL_SYSTEM["meal_labels_en"][slot].lower()
                     warnings.append({
+                        "kind": "unfillable",
                         "day": day["name"], "day_en": day["name_en"], "slot": slot,
                         "reason": f"مفيش اختيار آمن لـ{label} في {day['name']} "
                                   f"مع حالة المريض.",
@@ -344,6 +378,20 @@ def build_chemical_plan(symptoms=None, exclusions=None):
                 entry[slot] = chosen["meal"]
                 total_cal += chosen.get("cal", 0)
                 total_p += chosen.get("p", 0)
+
+        # تنبيهات اليوم للحالات اللي البروتوكول نفسه بيستدعي مراجعتها.
+        # دي مش منع -- اليوم اتبنى عادي -- فبتترحّل على اليوم عشان تبان في
+        # مكانها، وعلى الملاحظات عشان متتفوتش.
+        day_cautions = []
+        for cond_key, text in (day.get("cautions") or {}).items():
+            if cond_key in cond_keys:
+                day_cautions.append(text)
+                warnings.append({
+                    "kind": "caution",
+                    "day": day["name"], "day_en": day["name_en"], "slot": None,
+                    "reason": text["ar"], "reason_en": text["en"],
+                })
+        entry["cautions"] = day_cautions
 
         entry["total_cal"] = total_cal
         entry["total_p"] = total_p

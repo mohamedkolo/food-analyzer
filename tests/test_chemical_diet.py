@@ -118,6 +118,47 @@ def test_an_unfillable_slot_is_reported_rather_than_filled():
         f"the emptied slot was not reported: {warnings}")
 
 
+def test_a_diabetic_is_cautioned_on_both_fruit_days():
+    # whole fruit is not on the سكري list and must not be put there -- that
+    # list is global. The open-ended fruit days get a caution instead.
+    for condition in ("سكري النوع الثاني", "سكري النوع الاول"):
+        days, warnings = cd.build_chemical_plan([condition])
+        cautions = [w for w in warnings if w["kind"] == "caution"]
+        cautioned = {w["day"] for w in cautions}
+        fruit_days = {d["day"] for d in days
+                      if d["cycle_key"] in ("fruit", "single_fruit")}
+        assert cautioned == fruit_days, (
+            f"{condition}: cautioned {cautioned}, expected {fruit_days}")
+        # and the day carries it too, so it shows where it applies
+        for day in days:
+            expected = 1 if day["cycle_key"] in ("fruit", "single_fruit") else 0
+            assert len(day["cautions"]) == expected, (
+                f"{condition}: {day['day']} carries {day['cautions']}")
+
+
+def test_a_caution_is_not_a_ban():
+    # the day still gets built -- a caution must not empty it
+    days, _ = cd.build_chemical_plan(["سكري النوع الثاني"])
+    for day in days:
+        assert _meals_of(day), f"{day['day']} came back empty"
+
+
+def test_no_caution_fires_for_an_unrelated_condition():
+    _, warnings = cd.build_chemical_plan(KIDNEY)
+    assert [w for w in warnings if w["kind"] == "caution"] == [], (
+        "the kidney condition raised a diabetes caution")
+
+
+def test_every_caution_reads_in_both_languages():
+    for day in cd.CHEMICAL_DAYS:
+        for cond_key, text in (day.get("cautions") or {}).items():
+            assert cond_key in UNSAFE_FOODS, (
+                f"{day['key']} cautions on {cond_key!r}, which is not a condition key")
+            assert text.get("ar") and text.get("en"), f"{day['key']}/{cond_key} is half-written"
+            assert not ARABIC.search(text["en"]), (
+                f"{day['key']}/{cond_key} English still contains Arabic")
+
+
 def test_a_clean_plan_reports_nothing():
     _, warnings = cd.build_chemical_plan()
     assert warnings == [], f"an unrestricted plan raised warnings: {warnings}"
@@ -132,13 +173,15 @@ def test_the_generator_returns_the_cycle_and_surfaces_its_warnings():
         "name": "تست", "age": "30", "gender": "ذكر", "height": "175", "weight": "85",
         "tdee": "2400", "goal_cal": "1900", "goal_type": "weight_loss",
         "culture": "مصري", "diet_plan_type": "chemical",
-        "symptoms": [], "allergies": [], "notes": "", "user_id": 1,
+        "symptoms": ["سكري النوع الثاني"], "allergies": [], "notes": "", "user_id": 1,
         "disliked_foods": "سموذي, عصير",
     }
     with app.test_request_context("/"):
         plan = generate_weekly_plan(data)
 
     assert len(plan) == 6, f"the generator returned {len(plan)} days, not 6"
+    kinds = {w["kind"] for w in data["chemical_warnings"]}
+    assert kinds == {"unfillable", "caution"}, f"only {kinds} reached the caller"
     assert data["chemical_warnings"], "the unfillable slot never reached the caller"
     # the dietitian has to see it before sending the plan
     assert "⚠️" in data["notes"], f"the warning is not on the notes: {data['notes']!r}"

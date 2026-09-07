@@ -336,6 +336,11 @@
         {{ (day.forbidden if is_ar else (day.forbidden_en or day.forbidden)) | join('، ' if is_ar else ', ') }}
       </div>
       {% endif %}
+      {% for c in day.cautions or [] %}
+      <div style="margin-top:6px;padding-top:6px;border-top:1px dashed #cbd5e1;color:#92400e;font-weight:600">
+        ⚠️ {{ c.ar if is_ar else (c.en or c.ar) }}
+      </div>
+      {% endfor %}
     </div>
     {% endif %}
 
