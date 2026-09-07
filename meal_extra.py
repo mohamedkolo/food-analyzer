@@ -465,6 +465,15 @@ def apply():
     except Exception as e:
         print(f"meal_extra: systems error {e}")
 
+    # النظام الكيميائي — مدخله متعرّف في chemical_diet عشان يبقى مصدر واحد
+    # للأيام والمدخل مع بعض. try مستقل عشان فشله ما يوقّعش حقن الأنظمة اللي فوق.
+    try:
+        from meal_database import DIET_PLAN_TYPES
+        from chemical_diet import CHEMICAL_SYSTEM
+        DIET_PLAN_TYPES.setdefault("chemical", CHEMICAL_SYSTEM)
+    except Exception as e:
+        print(f"meal_extra: chemical system error {e}")
+
     print(f"meal_extra: added {added} extra meals")
     return added
 

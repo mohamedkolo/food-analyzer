@@ -1253,33 +1253,45 @@ def safe_for_all(item, condition_keys):
     return not any(_contains_unsafe(text, k) for k in condition_keys)
 
 
+# Which UNSAFE_FOODS list each condition the form offers maps onto. Module
+# level so anything needing the patient's safety keys reads the same mapping
+# rather than keeping its own copy -- a second copy is one that drifts, and
+# what drifts here is which foods a patient is protected from.
+CONDITION_MAP = {
+    "قولون عصبي": "قولون",
+    "سكري النوع الثاني": "سكري",
+    "سكري النوع الاول": "سكري",
+    "ضغط الدم المرتفع": "ضغط",
+    "امراض القلب": "قلب",
+    "الفشل الكلوي المزمن": "كلوي",
+    "الحمل": "حامل",
+    "الرضاعة الطبيعية": "حامل",
+    "G6PD": "g6pd",
+    "نقص G6PD": "g6pd",
+    "ثلاسيميا": "ثلاسيميا",
+    "حساسية اللاكتوز": "لاكتوز",
+    "lactose intolerance": "لاكتوز",
+    "الداء الزلاقي": "جلوتين", "حساسية الجلوتين": "جلوتين", "celiac": "جلوتين",
+    "الكبد الدهني": "دهني", "fatty liver": "دهني",
+    "حصوات المرارة": "مرارة", "gallstones": "مرارة",
+    "التهاب الأمعاء": "قولون", "كرون": "قولون", "قولون تقرحي": "قولون",
+}
+
+
+def unsafe_keys_for(conditions):
+    """The UNSAFE_FOODS keys active for this patient, in the order given."""
+    active = []
+    for c in conditions or []:
+        key = CONDITION_MAP.get(c)
+        if key and key not in active:
+            active.append(key)
+    return active
+
+
 def filter_by_conditions(meals, conditions):
     if not conditions:
         return meals
-    condition_map = {
-        "قولون عصبي": "قولون",
-        "سكري النوع الثاني": "سكري",
-        "سكري النوع الاول": "سكري",
-        "ضغط الدم المرتفع": "ضغط",
-        "امراض القلب": "قلب",
-        "الفشل الكلوي المزمن": "كلوي",
-        "الحمل": "حامل",
-        "الرضاعة الطبيعية": "حامل",
-        "G6PD": "g6pd",
-        "نقص G6PD": "g6pd",
-        "ثلاسيميا": "ثلاسيميا",
-        "حساسية اللاكتوز": "لاكتوز",
-        "lactose intolerance": "لاكتوز",
-        "الداء الزلاقي": "جلوتين", "حساسية الجلوتين": "جلوتين", "celiac": "جلوتين",
-        "الكبد الدهني": "دهني", "fatty liver": "دهني",
-        "حصوات المرارة": "مرارة", "gallstones": "مرارة",
-        "التهاب الأمعاء": "قولون", "كرون": "قولون", "قولون تقرحي": "قولون",
-    }
-    active_conditions = []
-    for c in conditions:
-        key = condition_map.get(c)
-        if key and key not in active_conditions:
-            active_conditions.append(key)
+    active_conditions = unsafe_keys_for(conditions)
     if not active_conditions:
         return meals
     result = []

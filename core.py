@@ -414,6 +414,15 @@ ENGLISH_DAYS = {
     "الثلاثاء": "Tuesday", "الاربعاء": "Wednesday", "الأربعاء": "Wednesday",
     "الخميس": "Thursday", "الجمعة": "Friday", "السبت": "Saturday",
 }
+# أيام النظام الكيميائي مسمّاة بتصنيفها ("يوم الفاكهة") مش بأسماء الأسبوع،
+# والفلتر ده جدول بحث بيرجع العربي لو ملقاش الاسم -- فلو مش مسجّلة هنا كانت
+# هتظهر عربي في الوضع الإنجليزي. متولّدة من CHEMICAL_DAYS عشان الأسماء
+# ما تتكتبش في مكانين.
+try:
+    from chemical_diet import CHEMICAL_DAYS as _CHEMICAL_DAYS
+    ENGLISH_DAYS.update({d["name"]: d["name_en"] for d in _CHEMICAL_DAYS})
+except Exception as _e:
+    print(f"chemical day names error: {_e}")
 # stored values are Arabic; these render them in English where needed
 _CULTURE_EN = {
     "مصري": "Egyptian", "خليجي": "Gulf", "شامي": "Levantine",

@@ -21,6 +21,7 @@ SUITES = [
     "test_followup.py",
     "test_plan_link.py",
     "test_plan_editing.py",
+    "test_chemical_diet.py",
 ]
 
 

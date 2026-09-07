@@ -26,6 +26,11 @@ import re
 
 # ── multi-word terms, checked before single words ──────────────────────────
 PHRASES = {
+    # النظام الكيميائي
+    "تونة مصفاة": "drained tuna",
+    "بالبخار": "steamed",
+    "بالخيار": "with cucumber",
+    "بالكرفس": "with celery",
     "صدر دجاج": "chicken breast",
     "صدر فرخة": "chicken breast",
     "بصدر دجاج": "with chicken breast",
@@ -254,6 +259,10 @@ WORDS = {
     # fruit
     "موز": "banana", "تفاح": "apple", "تمر": "dates", "توت": "berries",
     "فراولة": "strawberries", "ليمون": "lemon", "فواكه": "fruit",
+    # النظام الكيميائي
+    "بطيخ": "watermelon", "برتقال": "orange", "ثمرات": "pieces",
+    "جرجير": "rocket", "سموذي": "smoothie", "زنجبيل": "ginger",
+    "مطهية": "cooked", "مشروب": "drink",
     "افوكادو": "avocado", "أفوكادو": "avocado", "برقوق": "prunes",
     "دبس": "molasses",
     # fats / condiments
@@ -449,9 +458,12 @@ if __name__ == "__main__":
         elif isinstance(cur, str) and _HAS_AR.search(cur):
             meals.append(cur)
 
+    import chemical_diet as cd
+
     for pool in ("WEIGHT_LOSS", "MUSCLE_GAIN", "BULKING", "MAINTENANCE",
-                 "SAFE_ALTERNATIVES", "KETO_MEALS", "KETO_SNACKS"):
-        for mod in (md, mx):
+                 "SAFE_ALTERNATIVES", "KETO_MEALS", "KETO_SNACKS",
+                 "CHEMICAL_MEALS"):
+        for mod in (md, mx, cd):
             walk(getattr(mod, pool, None))
     for goal in ("weight_loss", "muscle_gain", "bulking", "maintenance"):
         walk(md.get_snacks_for_goal(goal))

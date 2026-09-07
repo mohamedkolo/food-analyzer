@@ -215,6 +215,22 @@ def generate_weekly_plan(data):
     allergies = data.get("allergies", []) if isinstance(data.get("allergies"), list) else []
     user_exclusions = parse_user_exclusions(notes, disliked, allergies)
 
+    # النظام الكيميائي دورة ثابتة 6 أيام: اليوم نفسه هو المحتوى (خضار، فاكهة،
+    # سمك...) مش خانات بتتملي من مجموعة وجبات، والترتيب جزء من البروتوكول.
+    # فبيتبني في وحدته وبيرجع من غير ما يعدي على منطق الأسبوع -- ولا على
+    # تدوير السعرات، لأن سعراته هي الأكل نفسه مش رقم مستهدف.
+    if diet_type == "chemical":
+        from chemical_diet import build_chemical_plan
+        chem_days, chem_warnings = build_chemical_plan(symptoms, user_exclusions)
+        # نفس مسار عرض الملاحظات الطبية اللي فوق -- الأخصائي لازم يشوف
+        # اليوم اللي مقدرناش نأمّنه قبل ما يبعت الخطة.
+        if chem_warnings:
+            existing = data.get("notes", "") or ""
+            lines = ["⚠️ " + w["reason"] for w in chem_warnings]
+            data["notes"] = " | ".join(lines) + (" | " + existing if existing else "")
+        data["chemical_warnings"] = chem_warnings
+        return chem_days
+
     pool = get_meal_pool(goal, culture)
     breakfasts = list(pool.get("breakfast", []))
     lunches = list(pool.get("lunch", []))
