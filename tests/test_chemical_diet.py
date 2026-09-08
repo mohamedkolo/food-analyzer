@@ -129,10 +129,12 @@ def test_a_diabetic_is_cautioned_on_both_fruit_days():
                       if d["cycle_key"] in ("fruit", "single_fruit")}
         assert cautioned == fruit_days, (
             f"{condition}: cautioned {cautioned}, expected {fruit_days}")
-        # and the day carries it too, so it shows where it applies
+        # and the day carries it too, so it shows where it applies. Counted by
+        # content, not length -- every day also carries a calorie-floor note.
         for day in days:
+            got = len([c for c in day["cautions"] if "سكري" in c["ar"]])
             expected = 1 if day["cycle_key"] in ("fruit", "single_fruit") else 0
-            assert len(day["cautions"]) == expected, (
+            assert got == expected, (
                 f"{condition}: {day['day']} carries {day['cautions']}")
 
 
@@ -159,9 +161,67 @@ def test_every_caution_reads_in_both_languages():
                 f"{day['key']}/{cond_key} English still contains Arabic")
 
 
-def test_a_clean_plan_reports_nothing():
+def test_every_day_is_flagged_against_the_apps_own_calorie_floor():
+    # the cycle runs far under the floor the app itself enforces -- the drinks
+    # day is about a fifth of it -- and the preview's gap badge cannot catch it
+    # because these days carry no target_cal to compare against
+    from zigzag import _floor_for  # noqa: E402
+
+    for gender in ("أنثى", "ذكر", None):
+        floor = _floor_for(gender)
+        days, warnings = cd.build_chemical_plan(gender=gender)
+        hits = [w for w in warnings if w["kind"] == "below_floor"]
+        assert len(hits) == len(days), (
+            f"gender={gender}: {len(hits)} of {len(days)} days flagged")
+        for w in hits:
+            assert w["floor"] == floor, f"{w['day']} compared against {w['floor']}"
+            assert w["kcal"] < floor, f"{w['day']} was flagged but is not under"
+        # and it reaches the day, so the preview shows it where it applies
+        for day in days:
+            assert any(str(day["total_cal"]) in c["ar"] for c in day["cautions"]), (
+                f"{day['day']} carries no floor note")
+
+
+def test_an_unknown_gender_uses_the_stricter_floor():
+    from zigzag import MIN_KCAL_MALE  # noqa: E402
+
+    _, warnings = cd.build_chemical_plan(gender=None)
+    floors = {w["floor"] for w in warnings if w["kind"] == "below_floor"}
+    assert floors == {MIN_KCAL_MALE}, f"an unknown gender used {floors}"
+
+
+def test_the_floor_notes_collapse_to_one_line_in_the_notes():
+    os.environ.setdefault("SECRET_KEY", "test-key")
+    from core import app  # noqa: E402
+    from plan_engine import generate_weekly_plan  # noqa: E402
+
+    data = {
+        "name": "tst", "gender": "أنثى", "diet_plan_type": "chemical",
+        "goal_type": "weight_loss", "culture": "خليجي",
+        "symptoms": ["سكري النوع الثاني"], "allergies": [],
+        "notes": "ملاحظة من العميل", "disliked_foods": "",
+        "tdee": "2369", "goal_cal": "1769", "user_id": 1,
+    }
+    with app.test_request_context("/"):
+        generate_weekly_plan(data)
+
+    lines = data["notes"].split(" | ")
+    floor_lines = [l for l in lines if "الحد الآمن" in l]
+    assert len(floor_lines) == 1, f"six days produced {len(floor_lines)} lines"
+    assert "6 من 6" in floor_lines[0] and "250 kcal" in floor_lines[0], (
+        f"the summary lost the count or the lowest day: {floor_lines[0]}")
+    # the diabetes caution fires on two days but reads once
+    assert len([l for l in lines if "سكري" in l]) == 1, "the caution repeated"
+    # and the client's own note survived
+    assert "ملاحظة من العميل" in lines[-1]
+
+
+def test_a_clean_plan_raises_nothing_beyond_the_floor():
+    # the floor notes are inherent to the cycle, so they always fire; nothing
+    # condition-driven should
     _, warnings = cd.build_chemical_plan()
-    assert warnings == [], f"an unrestricted plan raised warnings: {warnings}"
+    other = [w for w in warnings if w["kind"] != "below_floor"]
+    assert other == [], f"an unrestricted plan raised {other}"
 
 
 def test_the_generator_returns_the_cycle_and_surfaces_its_warnings():
@@ -181,7 +241,7 @@ def test_the_generator_returns_the_cycle_and_surfaces_its_warnings():
 
     assert len(plan) == 6, f"the generator returned {len(plan)} days, not 6"
     kinds = {w["kind"] for w in data["chemical_warnings"]}
-    assert kinds == {"unfillable", "caution"}, f"only {kinds} reached the caller"
+    assert {"unfillable", "caution"} <= kinds, f"only {kinds} reached the caller"
     assert data["chemical_warnings"], "the unfillable slot never reached the caller"
     # the dietitian has to see it before sending the plan
     assert "⚠️" in data["notes"], f"the warning is not on the notes: {data['notes']!r}"

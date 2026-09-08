@@ -45,6 +45,9 @@ Public API:
 """
 
 from meal_database import safe_for_all, unsafe_keys_for
+# الحد الأدنى الآمن للسعرات متعرّف في zigzag ومستخدم في حساب التدوير. بيتستورد
+# من هناك مش متكتوب هنا تاني -- رقم أمان بيتكرر في مكانين هو رقم بيختلف بينهم.
+from zigzag import _floor_for
 
 CYCLE_LENGTH = 6
 
@@ -316,14 +319,18 @@ def _single_fruit_day(day, cond_keys, exclusions):
     return None
 
 
-def build_chemical_plan(symptoms=None, exclusions=None):
+def build_chemical_plan(symptoms=None, exclusions=None, gender=None):
     """الدورة الست أيام، مفلترة على حالة المريض.
 
-    بترجع (days, warnings). اليوم اللي خانة فيه فضيت بيتسجّل في warnings
-    والخانة بتتسات -- مفيش استبدال من برّه تصنيف اليوم، ومفيش رجوع لقايمة
-    غير مفلترة.
+    بترجع (days, warnings) وكل تحذير له kind:
+        unfillable    خانة مقدرناش نأمّنها، واتسابت فاضية
+        caution       اليوم اتبنى بس محتاج مراجعة للحالة دي
+        below_floor   مجموع اليوم تحت الحد الآمن بتاع الموقع
+
+    مفيش نوع فيهم بيمنع حاجة. الأيام بتتبني كلها والقرار للأخصائي.
     """
     exclusions = list(exclusions or [])
+    floor = _floor_for(gender)
     cond_keys = unsafe_keys_for(symptoms or [])
     days, warnings = [], []
 
@@ -391,6 +398,27 @@ def build_chemical_plan(symptoms=None, exclusions=None):
                     "day": day["name"], "day_en": day["name_en"], "slot": None,
                     "reason": text["ar"], "reason_en": text["en"],
                 })
+        # الدورة دي أيامها تحت الحد الآمن بطبيعتها -- يوم المشروبات حوالي
+        # ربع الحد. البادج بتاع الفرق في المعاينة مش بيشتغل عليها لأن أيامها
+        # مالهاش target_cal (النظام ده مش بيعدي على تدوير السعرات)، فالرقم كان
+        # بيتعرض عادي من غير أي إشارة إنه تحت الحد.
+        if total_cal < floor:
+            day_cautions.append({
+                "ar": f"مجموع اليوم {total_cal} kcal — تحت الحد الآمن "
+                      f"({floor} kcal). الدورة قصيرة بطبيعتها، بس ده محتاج "
+                      f"إشراف ومدة محدودة.",
+                "en": f"This day totals {total_cal} kcal, under the "
+                      f"{floor} kcal floor. The cycle is short by design, but "
+                      f"this needs supervision and a limited duration.",
+            })
+            warnings.append({
+                "kind": "below_floor",
+                "day": day["name"], "day_en": day["name_en"], "slot": None,
+                "kcal": total_cal, "floor": floor,
+                "reason": day_cautions[-1]["ar"],
+                "reason_en": day_cautions[-1]["en"],
+            })
+
         entry["cautions"] = day_cautions
 
         entry["total_cal"] = total_cal

@@ -221,12 +221,30 @@ def generate_weekly_plan(data):
     # تدوير السعرات، لأن سعراته هي الأكل نفسه مش رقم مستهدف.
     if diet_type == "chemical":
         from chemical_diet import build_chemical_plan
-        chem_days, chem_warnings = build_chemical_plan(symptoms, user_exclusions)
+        chem_days, chem_warnings = build_chemical_plan(
+            symptoms, user_exclusions, data.get("gender"))
         # نفس مسار عرض الملاحظات الطبية اللي فوق -- الأخصائي لازم يشوف
         # اليوم اللي مقدرناش نأمّنه قبل ما يبعت الخطة.
         if chem_warnings:
             existing = data.get("notes", "") or ""
-            lines = ["⚠️ " + w["reason"] for w in chem_warnings]
+            floor_hits = [w for w in chem_warnings if w["kind"] == "below_floor"]
+            # نفس التنبيه بيتكرر على أكتر من يوم (تنبيه السكري على يومي
+            # الفاكهة مثلاً)، وتكراره حرفياً في الملاحظات مش بيضيف حاجة.
+            # بيتشال هنا بس، وبيفضل على كل يوم في المعاينة.
+            lines = list(dict.fromkeys(
+                "⚠️ " + w["reason"]
+                for w in chem_warnings if w["kind"] != "below_floor"))
+            # أيام الدورة كلها تحت الحد، فستة أسطر شبه بعضها كانت هتغرق
+            # الملاحظات وتخفي اللي بيحتاج قراية فعلاً. سطر واحد بالعدد وأقل
+            # يوم هنا، والتفصيل على كل يوم في المعاينة.
+            if floor_hits:
+                lowest = min(floor_hits, key=lambda w: w["kcal"])
+                lines.append(
+                    f"⚠️ {len(floor_hits)} من {len(chem_days)} أيام تحت الحد الآمن "
+                    f"({lowest['floor']} kcal) — أقلها {lowest['kcal']} kcal في "
+                    f"{lowest['day']}. الدورة قصيرة بطبيعتها، بس ده محتاج إشراف "
+                    f"ومدة محدودة."
+                )
             data["notes"] = " | ".join(lines) + (" | " + existing if existing else "")
         data["chemical_warnings"] = chem_warnings
         return chem_days
