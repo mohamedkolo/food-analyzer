@@ -231,21 +231,33 @@ def generate_weekly_plan(data):
             # نفس التنبيه بيتكرر على أكتر من يوم (تنبيه السكري على يومي
             # الفاكهة مثلاً)، وتكراره حرفياً في الملاحظات مش بيضيف حاجة.
             # بيتشال هنا بس، وبيفضل على كل يوم في المعاينة.
-            lines = list(dict.fromkeys(
-                "⚠️ " + w["reason"]
+            # الأسطر بتتبنى أزواج (عربي، إنجليزي). الـ PDF بيترجم الملاحظات
+            # من خريطة ثابتة، وهي مش بتعرف تترجم النصوص دي لأن فيها أرقام
+            # وأسماء أيام متغيرة -- فمن غير الإنجليزي جنبها كانت بتطلع عربي
+            # على PDF إنجليزي.
+            pairs = list(dict.fromkeys(
+                ("⚠️ " + w["reason"], "⚠️ " + w["reason_en"])
                 for w in chem_warnings if w["kind"] != "below_floor"))
             # أيام الدورة كلها تحت الحد، فستة أسطر شبه بعضها كانت هتغرق
             # الملاحظات وتخفي اللي بيحتاج قراية فعلاً. سطر واحد بالعدد وأقل
             # يوم هنا، والتفصيل على كل يوم في المعاينة.
             if floor_hits:
                 lowest = min(floor_hits, key=lambda w: w["kcal"])
-                lines.append(
+                pairs.append((
                     f"⚠️ {len(floor_hits)} من {len(chem_days)} أيام تحت الحد الآمن "
                     f"({lowest['floor']} kcal) — أقلها {lowest['kcal']} kcal في "
-                    f"{lowest['day']}. الدورة قصيرة بطبيعتها، بس ده محتاج إشراف "
-                    f"ومدة محدودة."
-                )
-            data["notes"] = " | ".join(lines) + (" | " + existing if existing else "")
+                    f"{lowest['day']}. الدورة قصيرة بطبيعتها، والالتزام بيها محتاج "
+                    f"إشراف ومدة محدودة.",
+                    f"⚠️ {len(floor_hits)} of {len(chem_days)} days fall under the "
+                    f"{lowest['floor']} kcal floor — the lowest is "
+                    f"{lowest['kcal']} kcal on {lowest['day_en']}. The cycle is "
+                    f"short by design, but following it needs supervision and a "
+                    f"limited duration.",
+                ))
+            # الأزواج بتتخزّن عشان build_pdf يلاقي الإنجليزي لكل سطر
+            data["chemical_note_pairs"] = pairs
+            data["notes"] = (" | ".join(ar for ar, _ in pairs)
+                             + (" | " + existing if existing else ""))
         data["chemical_warnings"] = chem_warnings
         return chem_days
 
@@ -561,9 +573,18 @@ def build_pdf(data, plan=None):
         # guidance notes are stored in Arabic; render them in the reader's language
         _n = data.get("notes")
         if not _pdf_ar:
-            _n = " | ".join(translate_boost_note(part.strip())
-                            for part in _n.split("|"))
+            # translate_boost_note works off a fixed map, so it cannot touch a
+            # line carrying live numbers or a day name. The chemical-diet lines
+            # ship their own English, keyed by the exact Arabic that went into
+            # the notes.
+            _own_en = {ar: en for ar, en in (data.get("chemical_note_pairs") or [])}
+            _n = " | ".join(
+                _own_en.get(part.strip()) or translate_boost_note(part.strip())
+                for part in _n.split("|"))
         notes_parts.append(_n)
+        notes_rendered = _n
+    else:
+        notes_rendered = ""
     clinical_notes = " | ".join(notes_parts) if notes_parts else _L("لا توجد ملاحظات", "No notes")
     uid = session.get("uid", 0)
     file_num = f"NX-{dt.datetime.now().year}-{uid:03d}"
@@ -738,6 +759,19 @@ def build_pdf(data, plan=None):
     def _g(x):
         return x if _pdf_ar else translate_guidance(x)
 
+    # clinical_notes كانت بتتحسب وتتبعت للقالب وماحدش بيعرضها، فالتحذيرات
+    # (الأيام تحت الحد الآمن، تنبيهات الحالات، حساسية العميل) كانت توصل
+    # للأخصائي في المعاينة وبس، والعميل ياخد الجدول من غيرها. صف كامل مش
+    # عمود جوه .foot لأن النصوص دي جُمل مش عناصر قصيرة.
+    _notes_items = [n.strip() for n in notes_rendered.split("|") if n.strip()]
+    if _notes_items:
+        notes_html = ('<div class="notes"><h4>📋 '
+                      + _L("ملاحظات طبية", "Clinical notes") + "</h4><ul>"
+                      + "".join(f"<li>{_esc(n)}</li>" for n in _notes_items)
+                      + "</ul></div>")
+    else:
+        notes_html = ""
+
     allowed_html = "".join(f"<li>{_esc(_g(x))}</li>" for x in td['allowed'][:6])
     forbidden_html = "".join(f"<li>{_esc(_g(x))}</li>" for x in td['forbidden'][:6])
     water_tips = "".join(f"<li>{_esc(x)}</li>" for x in td['tips']['water'][:3])
@@ -849,6 +883,11 @@ tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
 .fbox ul {{ margin:0; padding-inline-start:15px; }}
 .fbox li {{ margin-bottom:1px; }}
 .ok h4 {{ color:#2d7d46; }} .no h4 {{ color:#c0392b; }} .wt h4 {{ color:#1d6fa5; }}
+.notes {{ margin-top:9px; border:1px solid #fcd34d; background:#fffbeb;
+          border-radius:6px; padding:6px 9px; font-size:9.5px; }}
+.notes h4 {{ margin:0 0 3px; font-size:11px; color:#92400e; }}
+.notes ul {{ margin:0; padding-inline-start:15px; }}
+.notes li {{ margin-bottom:1px; }}
 .sig {{ margin-top:8px; text-align:end; font-size:10px; color:#52796f; }}
 .summary {{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
             background:#eef4f1; border:1px solid #cfe3d9; border-radius:6px;
@@ -880,6 +919,7 @@ tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
   <div class="fbox no"><h4>🚫 {_L("ممنوع", "Avoid")}</h4><ul>{forbidden_html}</ul></div>
   <div class="fbox wt"><h4>💧 {_L("الماء", "Water")}</h4><ul>{water_tips}</ul></div>
 </div>
+{notes_html}
 <div class="sig">{_L("المراجعة بعد", "Review in")} {_esc(td['review_weeks'])} {_L("أسابيع", "weeks")} — {_esc(td['author'])}</div>
 </body></html>"""
 

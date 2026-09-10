@@ -102,11 +102,14 @@ CHEMICAL_DAYS = [
         # خطة في الموقع. فبدل ما نمنع، بنقول للأخصائي يراجع.
         "cautions": {
             "سكري": {
-                "ar": "يوم فاكهة مفتوح الكمية مع حالة سكري — راجع الكمية "
-                      "وتوزيعها على اليوم ومتابعة سكر الدم قبل ما تبعت الخطة.",
-                "en": "An open-ended fruit day with diabetes — review the amount, "
-                      "how it is spread across the day, and blood-sugar monitoring "
-                      "before sending the plan.",
+                # النص ده بيروح للـ PDF بتاع العميل كمان، فمكتوب بصيغة
+                # محايدة -- "راجع ... قبل ما تبعت الخطة" كانت موجّهة
+                # للأخصائي وحده وبتقرا غلط على مستند العميل.
+                "ar": "يوم فاكهة مفتوح الكمية مع حالة سكري — الكمية "
+                      "وتوزيعها على اليوم ومتابعة سكر الدم محتاجة مراجعة.",
+                "en": "An open-ended fruit day with diabetes — the amount, how it "
+                      "is spread across the day, and blood-sugar monitoring all "
+                      "need review.",
             },
         },
         "meals": {
@@ -241,11 +244,14 @@ CHEMICAL_DAYS = [
         # خطة في الموقع. فبدل ما نمنع، بنقول للأخصائي يراجع.
         "cautions": {
             "سكري": {
-                "ar": "يوم فاكهة مفتوح الكمية مع حالة سكري — راجع الكمية "
-                      "وتوزيعها على اليوم ومتابعة سكر الدم قبل ما تبعت الخطة.",
-                "en": "An open-ended fruit day with diabetes — review the amount, "
-                      "how it is spread across the day, and blood-sugar monitoring "
-                      "before sending the plan.",
+                # النص ده بيروح للـ PDF بتاع العميل كمان، فمكتوب بصيغة
+                # محايدة -- "راجع ... قبل ما تبعت الخطة" كانت موجّهة
+                # للأخصائي وحده وبتقرا غلط على مستند العميل.
+                "ar": "يوم فاكهة مفتوح الكمية مع حالة سكري — الكمية "
+                      "وتوزيعها على اليوم ومتابعة سكر الدم محتاجة مراجعة.",
+                "en": "An open-ended fruit day with diabetes — the amount, how it "
+                      "is spread across the day, and blood-sugar monitoring all "
+                      "need review.",
             },
         },
         # اليوم ده صنف واحد بس، فالخانات كلها بتتملي من نفس الفاكهة.
@@ -405,8 +411,8 @@ def build_chemical_plan(symptoms=None, exclusions=None, gender=None):
         if total_cal < floor:
             day_cautions.append({
                 "ar": f"مجموع اليوم {total_cal} kcal — تحت الحد الآمن "
-                      f"({floor} kcal). الدورة قصيرة بطبيعتها، بس ده محتاج "
-                      f"إشراف ومدة محدودة.",
+                      f"({floor} kcal). الدورة قصيرة بطبيعتها، والالتزام بيها "
+                      f"محتاج إشراف ومدة محدودة.",
                 "en": f"This day totals {total_cal} kcal, under the "
                       f"{floor} kcal floor. The cycle is short by design, but "
                       f"this needs supervision and a limited duration.",

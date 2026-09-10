@@ -216,6 +216,83 @@ def test_the_floor_notes_collapse_to_one_line_in_the_notes():
     assert "ملاحظة من العميل" in lines[-1]
 
 
+def test_every_note_line_carries_its_own_english():
+    # the PDF is the artefact the client keeps, and it translates notes from a
+    # fixed map -- which cannot touch a line holding live numbers or a day
+    # name. Without the English alongside, an English PDF printed these in
+    # Arabic.
+    os.environ.setdefault("SECRET_KEY", "test-key")
+    from core import app  # noqa: E402
+    from plan_engine import generate_weekly_plan  # noqa: E402
+
+    data = {
+        "name": "tst", "gender": "أنثى", "diet_plan_type": "chemical",
+        "goal_type": "weight_loss", "culture": "خليجي",
+        "symptoms": ["سكري النوع الثاني"], "allergies": [], "notes": "",
+        "disliked_foods": "", "tdee": "2369", "goal_cal": "1769", "user_id": 1,
+    }
+    with app.test_request_context("/"):
+        generate_weekly_plan(data)
+
+    pairs = data.get("chemical_note_pairs")
+    assert pairs, "no note pairs were stored for the PDF to translate from"
+    # every line that went into the notes has to be in the map, keyed exactly
+    note_lines = [l.strip() for l in data["notes"].split("|") if l.strip()]
+    keyed = {ar for ar, _ in pairs}
+    for line in note_lines:
+        assert line in keyed, f"no English stored for {line!r}"
+    for ar, en in pairs:
+        assert en.strip(), f"{ar!r} has an empty English side"
+        assert not ARABIC.search(en), f"the English for {ar!r} still has Arabic: {en!r}"
+
+
+def test_the_client_pdf_carries_the_warnings():
+    # clinical_notes was computed and handed to the template, which never used
+    # it, so none of this reached the client's copy
+    os.environ.setdefault("SECRET_KEY", "test-key")
+    from core import app  # noqa: E402
+    from flask import session  # noqa: E402
+    from plan_engine import build_pdf  # noqa: E402
+    from zigzag import MIN_KCAL_FEMALE  # noqa: E402
+
+    for lang in ("ar", "en"):
+        data = {
+            "name": "tst", "age": "30", "gender": "أنثى", "height": "165",
+            "weight": "79.3", "tdee": "2369", "goal_cal": "1769",
+            "goal_type": "weight_loss", "culture": "خليجي",
+            "diet_plan_type": "chemical", "symptoms": [], "allergies": [],
+            "notes": "", "disliked_foods": "", "user_id": 1,
+            "bmi": "29", "fat_pct": "34",
+        }
+        with app.test_request_context("/"):
+            session["lang"] = lang
+            session["uid"] = 1
+            pdf = build_pdf(data)
+        assert pdf[:4] == b"%PDF", f"{lang}: build_pdf did not return a PDF"
+
+        # Reading the text back needs a PDF parser, and tests/README promises
+        # the suite runs on plain python. So the deep check runs only where one
+        # happens to be installed, and everywhere else this stays a smoke test
+        # plus the note-pairs check above.
+        try:
+            import io
+            from pypdf import PdfReader
+        except ImportError:
+            continue
+        text = " ".join((page.extract_text() or "")
+                        for page in PdfReader(io.BytesIO(pdf)).pages)
+        # the floor figure appears nowhere else in the document, so finding it
+        # means the notes box rendered
+        assert str(MIN_KCAL_FEMALE) in text, (
+            f"{lang}: the floor warning is not in the PDF")
+        if lang == "en":
+            assert "kcal floor" in text, "the English PDF lost the warning wording"
+            i = text.find("Clinical notes")
+            assert i > -1, "the English PDF has no clinical-notes box"
+            assert not ARABIC.search(" ".join(text[i:i + 400].split())), (
+                "Arabic leaked into the English PDF's notes box")
+
+
 def test_a_clean_plan_raises_nothing_beyond_the_floor():
     # the floor notes are inherent to the cycle, so they always fire; nothing
     # condition-driven should
