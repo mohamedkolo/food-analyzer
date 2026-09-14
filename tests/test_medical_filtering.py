@@ -36,13 +36,9 @@ FORM_CONDITIONS = [
     "ثلاسيميا", "حساسية اللاكتوز", "الداء الزلاقي", "الكبد الدهني",
     "حصوات المرارة", "التهاب الأمعاء",
 ]
-CONDITION_KEYS = {
-    "قولون عصبي": "قولون", "سكري النوع الثاني": "سكري", "سكري النوع الاول": "سكري",
-    "ضغط الدم المرتفع": "ضغط", "امراض القلب": "قلب", "الفشل الكلوي المزمن": "كلوي",
-    "الحمل": "حامل", "الرضاعة الطبيعية": "حامل", "G6PD": "g6pd",
-    "ثلاسيميا": "ثلاسيميا", "حساسية اللاكتوز": "لاكتوز", "الداء الزلاقي": "جلوتين",
-    "الكبد الدهني": "دهني", "حصوات المرارة": "مرارة", "التهاب الأمعاء": "قولون",
-}
+# Read from the source rather than kept as a second copy here -- a copy is
+# what lets a condition be offered in the form while quietly filtering nothing.
+CONDITION_KEYS = md.CONDITION_MAP
 
 
 def keys_for(conditions):
@@ -159,7 +155,34 @@ def test_safe_food_is_not_banned_by_normalisation():
 FORM_CONDITIONS_ALL = FORM_CONDITIONS + [
     "السمنة", "نقص الحديد", "نقص فيتامين D3", "حرق بطيء", "امساك مزمن",
     "اضطراب في الأكل", "هشاشة العظام", "الوقاية من السرطان",
+    "حرقة المعدة (GERD)",
 ]
+
+
+def _conditions_in_the_form():
+    """The condition labels generate.html actually renders checkboxes for."""
+    import os
+    import re
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    html = open(os.path.join(here, "templates", "generate.html"),
+                encoding="utf-8").read()
+    start = html.index("<i class=\"fa-solid fa-stethoscope\"></i>")
+    block = html[start:html.index("{% endfor %}", start)]
+    # only the Arabic side is matched: an English label can carry an escaped
+    # quote ("IBD (Crohn\'s/Colitis)"), which a pattern for both sides trips on
+    found = re.findall(r"\('([^']+)'\s*,", block)
+    assert found, "could not read the condition list out of generate.html"
+    return found
+
+
+def test_the_form_and_this_file_list_the_same_conditions():
+    # FORM_CONDITIONS_ALL is maintained by hand, so it can drift from the form
+    # -- and a condition missing from it is a condition nothing below checks
+    in_form = set(_conditions_in_the_form())
+    listed = set(FORM_CONDITIONS_ALL)
+    assert in_form == listed, (
+        f"in the form but not checked here: {sorted(in_form - listed)}; "
+        f"checked here but not in the form: {sorted(listed - in_form)}")
 
 
 def test_every_offered_condition_does_something():
@@ -171,6 +194,47 @@ def test_every_offered_condition_does_something():
         if not filters and not guides:
             silent.append(c)
     assert not silent, f"these conditions change nothing at all: {silent}"
+
+
+def test_reflux_removes_every_trigger_the_document_lists():
+    # reflux is the first condition that both filters and advises, and the
+    # trigger list is long enough to strip a pool bare if it were careless --
+    # an emptied pool makes filter_by_conditions hand back the UNFILTERED list
+    GERD = "حرقة المعدة (GERD)"
+    triggers = md.UNSAFE_FOODS["ارتجاع"]
+    combos = [[GERD], [GERD, "الفشل الكلوي المزمن"], [GERD, "قولون عصبي"],
+              [GERD, "سكري النوع الثاني", "ضغط الدم المرتفع"]]
+    for culture in ("مصري", "خليجي", "شامي"):
+        pool = md.get_meal_pool("weight_loss", culture)
+        for symptoms in combos:
+            for slot in ("breakfast", "lunch", "dinner"):
+                before = list(pool.get(slot, []))
+                after = md.filter_by_conditions(before, symptoms)
+                assert after, f"{culture}/{slot}/{symptoms}: the pool came back empty"
+                assert len(after) == len(before), (
+                    f"{culture}/{slot}: {len(before)} meals became {len(after)}")
+                for meal in after:
+                    text = md.normalize_ar(
+                        meal["meal"] if isinstance(meal, dict) else meal)
+                    hit = [t for t in triggers if md.normalize_ar(t) in text]
+                    assert not hit, f"{culture}/{slot}: {text[:50]!r} still has {hit}"
+
+
+def test_reflux_both_filters_and_advises():
+    # the bans cannot say "smaller meals" or "do not lie down after eating"
+    GERD = "حرقة المعدة (GERD)"
+    assert md.unsafe_keys_for([GERD]) == ["ارتجاع"], "reflux does not resolve to a ban list"
+    assert md.get_nutrient_boost_notes([GERD]), "reflux contributes no guidance note"
+
+
+def test_what_reflux_swaps_in_is_itself_reflux_safe():
+    triggers = md.UNSAFE_FOODS["ارتجاع"]
+    alts = md.SAFE_ALTERNATIVES.get("ارتجاع")
+    assert alts, "reflux has nothing to swap in"
+    for alt in alts:
+        text = md.normalize_ar(alt["meal"])
+        hit = [t for t in triggers if md.normalize_ar(t) in text]
+        assert not hit, f"the replacement {alt['meal']!r} carries {hit}"
 
 
 def test_guidance_notes_are_bilingual():

@@ -27,9 +27,23 @@ UNSAFE_FOODS = {
     "جلوتين": ["خبز", "توست", "مكرونة", "معكرونة", "برغل", "فريك", "كشري", "بسكويت", "بانكيك", "جرانولا", "شعير", "بيتزا", "كيك"],
     "دهني": ["مقلي", "سمن", "زبدة كتير", "مايونيز", "كريمة", "مشروبات غازية", "عصير معلب", "شوكولاتة", "حلويات"],
     "مرارة": ["مقلي", "سمن", "زبدة", "مايونيز", "كريمة", "لحم مفروم دهني"],
+    # الارتجاع: محفّزات الأعراض. مقيسة على الداتابيز قبل ما تتحط -- بتشيل
+    # أقل من 7% من الوجبات، فالقوايم مش بتفضى (والفضي بيرجّع القايمة غير
+    # المفلترة). أكتر واحدة تكلفة هي الطماطم (39 وجبة) وهي في نص التوصيات.
+    "ارتجاع": ["مقلي", "مقلية", "شطة", "فلفل حار", "بهارات حارة", "كاري",
+               "شوكولاتة", "قهوة", "شاي", "نسكافيه", "كاكاو", "نعناع",
+               "مشروبات غازية", "مخلل", "طماطم", "برتقال", "ليمون",
+               "جريب فروت"],
 }
 
 SAFE_ALTERNATIVES = {
+    # من قائمة "الأطعمة الموصى بها" للارتجاع: خضار غير حمضية، موز وتفاح،
+    # حبوب كاملة، بروتين قليل الدهن، زبادي.
+    "ارتجاع": [
+        {"meal":"🥚 بيض مسلوق 2 + 🍞 خبز اسمر 60جم + 🥒 خيار 100جم","cal":330,"p":22},
+        {"meal":"🥣 شوفان مطبوخ 40جم + 🍌 موز + 🥛 زبادي قليل الدسم 200جم","cal":400,"p":18},
+        {"meal":"🍗 صدر دجاج مشوي 150جم + 🍚 ارز بني 120جم + 🥦 بروكلي 150جم","cal":470,"p":45},
+    ],
     "قولون": [
         {"meal":"🥚 بيض مسلوق 2 + 🧀 جبن قريش 50جم + 🍞 خبز اسمر + 🥒 خيار 100جم","cal":340,"p":24},
         {"meal":"🥣 شوفان مطبوخ 40جم + 🍌 موز + قرفة","cal":350,"p":14},
@@ -123,6 +137,17 @@ NUTRIENT_BOOST_NOTES = {
     "امساك مزمن": (
         "🌾 الإمساك المزمن: زوّد الألياف بالتدريج (خضار، فاكهة بقشرها، شوفان، بقوليات) مع مياه كافية — الألياف من غير مياه بتزوّد المشكلة. حركة يومية وانتظام مواعيد الأكل بيساعدوا.",
         "🌾 Chronic constipation: increase fibre gradually (vegetables, fruit with the skin on, oats, legumes) alongside enough water — fibre without fluid makes it worse. Daily movement and regular mealtimes both help."),
+    "حرقة المعدة (GERD)": (
+        "🔥 الارتجاع (GERD): وجبات صغيرة متقاربة بدل الوجبات الكبيرة، وما تنامش "
+        "قبل ساعتين لتلاتة من الأكل، وارفع ناحية الراس في السرير. نزول الوزن "
+        "والإقلاع عن التدخين بيقلّلوا الأعراض. المحفّزات الغذائية (الحار، "
+        "المقليات، الحمضيات، الشوكولاتة، الكافيين، النعناع، الغازيات) بتتشال من "
+        "الخطة تلقائياً.",
+        "🔥 Reflux (GERD): smaller, more frequent meals rather than large ones; "
+        "do not lie down for two to three hours after eating, and raise the head "
+        "of the bed. Losing weight and stopping smoking both reduce symptoms. The "
+        "dietary triggers (spicy food, fried food, citrus, chocolate, caffeine, "
+        "mint, fizzy drinks) are filtered out of the plan automatically."),
     "اضطراب في الأكل": (
         "💛 اضطراب الأكل: الحالة دي محتاجة فريق علاجي (طبيب نفسي + أخصائي تغذية إكلينيكي) والخطة لازم تتبني معاهم. تجنّب أهداف السعرات الصارمة، الوزن المتكرر، ولغة «ممنوع/مسموح» — التركيز على انتظام الوجبات والتعافي مش على التقييد.",
         "💛 Eating disorder: this needs a treating team (psychiatrist and clinical dietitian) and the plan should be built with them. Avoid strict calorie targets, frequent weigh-ins, and 'allowed/forbidden' framing — the focus is regular meals and recovery, not restriction."),
@@ -142,11 +167,13 @@ def translate_boost_note(note_ar):
 
 
 def get_nutrient_boost_notes(symptoms, lang="ar"):
-    """Guidance for the conditions that have no outright food bans.
+    """Guidance that the food bans cannot express on their own.
 
     These conditions are offered in the plan forms, so ticking one has to
-    change something the patient can see. They do not filter meals -- they
-    ride along with the plan as notes.
+    change something the patient can see. Most of them do not filter meals at
+    all and ride along with the plan as notes. A condition may do both: reflux
+    filters its trigger foods through UNSAFE_FOODS and still needs a note for
+    the parts no ban can carry -- meal size, and not lying down after eating.
     """
     idx = 0 if lang == "ar" else 1
     out = []
@@ -1275,6 +1302,7 @@ CONDITION_MAP = {
     "الكبد الدهني": "دهني", "fatty liver": "دهني",
     "حصوات المرارة": "مرارة", "gallstones": "مرارة",
     "التهاب الأمعاء": "قولون", "كرون": "قولون", "قولون تقرحي": "قولون",
+    "حرقة المعدة (GERD)": "ارتجاع", "الارتجاع المريئي": "ارتجاع", "GERD": "ارتجاع",
 }
 
 

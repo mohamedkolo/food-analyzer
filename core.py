@@ -387,6 +387,7 @@ ENGLISH_CONDITIONS = {
     "الكبد الدهني": "Fatty Liver",
     "حصوات المرارة": "Gallstones",
     "التهاب الأمعاء": "IBD (Crohn's/Colitis)",
+    "حرقة المعدة (GERD)": "Acid Reflux (GERD)",
     "اضطراب في الأكل": "Eating Disorder",
     "هشاشة العظام": "Osteoporosis",
     "الوقاية من السرطان": "Cancer Risk Reduction",
