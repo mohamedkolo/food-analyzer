@@ -158,6 +158,8 @@ FORM_CONDITIONS_ALL = FORM_CONDITIONS + [
     "حرقة المعدة (GERD)", "تكيس المبايض (PCOS/PMOS)",
     "مضادات تخثر الدم (وارفارين)", "جرثومة المعدة (H. pylori)",
     "فرط نمو بكتيريا الأمعاء (SIBO)", "الإسهال",
+    "الصدفية", "الذئبة الحمراء", "التهاب المفاصل الروماتويدي",
+    "بعد استئصال المرارة",
 ]
 
 
@@ -515,6 +517,75 @@ def test_anticoagulants_beat_a_condition_that_promotes_greens():
         assert with_warfarin <= 2, (
             f"{other} + warfarin still served {with_warfarin} of 21 meals high "
             f"in vitamin K")
+
+
+AUTOIMMUNE = {
+    "الصدفية": ("صدفية", "psoriasis"),
+    "الذئبة الحمراء": ("ذئبة", "lupus"),
+    "التهاب المفاصل الروماتويدي": ("روماتويد", "ra"),
+    "بعد استئصال المرارة": ("بعد المرارة", "postchole"),
+}
+
+
+def test_the_autoimmune_batch_filters_and_prefers_without_emptying():
+    from meal_extra import CONDITION_FOODS, conditions_to_keys  # noqa: E402
+
+    for label, (unsafe_key, rank_key) in AUTOIMMUNE.items():
+        assert md.unsafe_keys_for([label]) == [unsafe_key], f"{label} does not resolve"
+        assert conditions_to_keys([label]) == [rank_key], f"{label} does not rank"
+        assert md.get_nutrient_boost_notes([label]), f"{label} has no note"
+        assert md.SAFE_ALTERNATIVES.get(unsafe_key), f"{label} has nothing to swap in"
+        triggers = md.UNSAFE_FOODS[unsafe_key]
+        entry = CONDITION_FOODS[rank_key]
+        assert entry["good"] and entry["bad"], f"{rank_key} is missing a side"
+        # nothing may be helpful and banned at once
+        for food in entry["good"]:
+            assert not any(md.normalize_ar(b) in md.normalize_ar(food)
+                           for b in triggers), (
+                f"{rank_key} calls {food!r} helpful while banning it")
+        # replacements must be safe for the condition they replace for
+        for alt in md.SAFE_ALTERNATIVES[unsafe_key]:
+            hit = [t for t in triggers
+                   if md.normalize_ar(t) in md.normalize_ar(alt["meal"])]
+            assert not hit, f"{label}: the replacement {alt['meal']!r} carries {hit}"
+        for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
+            for goal in ("weight_loss", "muscle_gain", "bulking", "maintenance"):
+                pool = md.get_meal_pool(goal, culture)
+                for slot in ("breakfast", "lunch", "dinner"):
+                    before = list(pool.get(slot, []))
+                    if not before:
+                        continue
+                    survivors = [
+                        m for m in before
+                        if not any(md.normalize_ar(t) in md.normalize_ar(
+                            m["meal"] if isinstance(m, dict) else m)
+                            for t in triggers)]
+                    assert len(survivors) >= 3, (
+                        f"{label} leaves {len(survivors)} meals in "
+                        f"{culture}/{goal}/{slot}")
+
+
+def test_lupus_bans_the_two_immune_stimulants():
+    # alfalfa and royal jelly are specific to lupus: they stimulate the immune
+    # system, which is exactly what is attacking the patient
+    banned = md.UNSAFE_FOODS["ذئبة"]
+    for food in ("برسيم", "الفلفا", "غذاء ملكات النحل"):
+        assert food in banned, f"lupus still allows {food}"
+
+
+def test_rheumatoid_does_not_ban_the_sweet_potato_it_recommends():
+    # the sheet lists nightshades to avoid AND recommends sweet potato for
+    # carotenoids -- banning it would contradict the same page
+    from meal_extra import CONDITION_FOODS  # noqa: E402
+
+    banned = md.UNSAFE_FOODS["روماتويد"]
+    assert "باذنجان" in banned, "aubergine is the one nightshade the sheet is firm on"
+    for hedged in ("طماطم", "بطاطا"):
+        assert hedged not in banned, f"{hedged} is hedged in the sheet, not banned"
+    assert "بطاطا حلوة" in CONDITION_FOODS["ra"]["good"], (
+        "sweet potato is recommended by the sheet and is not preferred")
+    assert "طماطم" in CONDITION_FOODS["ra"]["bad"], (
+        "tomato is neither banned nor ranked down")
 
 
 def test_guidance_notes_are_bilingual():
