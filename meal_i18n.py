@@ -263,6 +263,9 @@ WORDS = {
     "بطيخ": "watermelon", "برتقال": "orange", "ثمرات": "pieces",
     "جرجير": "rocket", "سموذي": "smoothie", "زنجبيل": "ginger",
     "مطهية": "cooked", "مشروب": "drink", "مهروسة": "mashed",
+    # أسماك دهنية -- بتترشّح في أوراق المناعة والتصلب اللويحي وشوغرن
+    "سردين": "sardines", "ماكريل": "mackerel", "رنجة": "herring",
+    "اسقمري": "mackerel", "كتان": "flaxseed",
     "افوكادو": "avocado", "أفوكادو": "avocado", "برقوق": "prunes",
     "دبس": "molasses",
     # fats / condiments

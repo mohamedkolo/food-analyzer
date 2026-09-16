@@ -402,6 +402,8 @@ ENGLISH_CONDITIONS = {
     "انقطاع النفس النومي": "Sleep apnoea",
     "الربو": "Asthma",
     "الوذمة الشحمية": "Lipoedema",
+    "التصلب اللويحي المتعدد": "Multiple sclerosis",
+    "متلازمة شوغرن": "Sjogren's syndrome",
     "اضطراب في الأكل": "Eating Disorder",
     "هشاشة العظام": "Osteoporosis",
     "الوقاية من السرطان": "Cancer Risk Reduction",
