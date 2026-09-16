@@ -291,6 +291,61 @@ def test_what_pcos_swaps_in_is_itself_pcos_safe():
         assert not hit, f"the replacement {alt['meal']!r} carries {hit}"
 
 
+def test_a_growing_client_gets_the_age_guidance():
+    # not a condition anyone ticks -- it fires off the client's own age, so the
+    # boundaries are the whole behaviour
+    from plan_engine import _apply_clinical_safety_caps  # noqa: E402
+
+    MARK = "سن النمو"
+    for age, expected in ((3, False), (4, True), (12, True), (18, True),
+                          (19, False), (40, False)):
+        data = {"age": str(age), "symptoms": [], "notes": ""}
+        _apply_clinical_safety_caps(data)
+        fired = MARK in data.get("notes", "")
+        assert fired is expected, f"age {age}: guidance fired={fired}"
+
+    # junk in the age field must not raise or fire
+    for junk in ("", None, "abc", "-5"):
+        data = {"age": junk, "symptoms": [], "notes": ""}
+        _apply_clinical_safety_caps(data)
+        assert MARK not in data.get("notes", ""), f"age {junk!r} fired the guidance"
+
+    # and it rides along with a real condition rather than replacing it
+    data = {"age": "12", "symptoms": ["نقص الحديد"], "notes": ""}
+    _apply_clinical_safety_caps(data)
+    assert MARK in data["notes"] and "الحديد" in data["notes"], (
+        f"the two notes did not coexist: {data['notes']}")
+
+
+def test_the_age_guidance_is_not_offered_as_a_condition():
+    # it must not appear as a checkbox -- age already drives it
+    assert "عمر 4-18" not in _conditions_in_the_form()
+    assert "عمر 4-18" in md.NUTRIENT_BOOST_NOTES, "the note is gone"
+
+
+def test_fatty_liver_bans_the_added_sugars_the_sheet_names():
+    # honey rode along in plans for a condition whose whole point is cutting
+    # fructose
+    banned = md.UNSAFE_FOODS["دهني"]
+    for food in ("عسل", "مربى", "كيك", "مرتديلا", "سجق"):
+        assert food in banned, f"fatty liver still allows {food}"
+    # and it still leaves a week's worth of variety everywhere
+    for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
+        for goal in ("weight_loss", "muscle_gain", "bulking", "maintenance"):
+            pool = md.get_meal_pool(goal, culture)
+            for slot in ("breakfast", "lunch", "dinner"):
+                before = list(pool.get(slot, []))
+                if not before:
+                    continue
+                survivors = [
+                    m for m in before
+                    if not any(md.normalize_ar(t) in md.normalize_ar(
+                        m["meal"] if isinstance(m, dict) else m) for t in banned)]
+                assert len(survivors) >= 3, (
+                    f"{culture}/{goal}/{slot}: only {len(survivors)} of "
+                    f"{len(before)} survive fatty-liver filtering")
+
+
 def test_guidance_notes_are_bilingual():
     for c, pair in md.NUTRIENT_BOOST_NOTES.items():
         assert isinstance(pair, tuple) and len(pair) == 2, f"{c} is not bilingual"

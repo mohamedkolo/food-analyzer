@@ -158,6 +158,15 @@ def _apply_clinical_safety_caps(data):
     symptoms = data.get("symptoms", []) or []
     flags = get_nutrient_boost_notes(symptoms)
 
+    # سن النمو مش حالة مرضية تتعلّم، فبتتطلق من العمر نفسه. الحد الأدنى 4 لأن
+    # دي بداية الفئة في التوصيات؛ أقل من كده تغذية أطفال وليها قواعد تانية.
+    try:
+        _age = int(float(data.get("age") or 0))
+    except (TypeError, ValueError):
+        _age = 0
+    if 4 <= _age <= 18:
+        flags += get_nutrient_boost_notes(["عمر 4-18"])
+
     try:
         tdee_val = float(data.get("tdee", 0) or 0)
         goal_cal_val = float(data.get("goal_cal", 0) or 0)
@@ -525,7 +534,9 @@ def get_allowed_forbidden(symptoms, goal="weight_loss"):
         allowed = ["مياه كثيرة (2-3 لتر)","ألبان قليلة الدسم","كرز + فيتامين C","بروتين نباتي معتدل"] + allowed
     if has_fatty_liver:
         forbidden = ["السكر والفركتوز والعصائر","المقليات والدهون المشبعة","الأكل المصنّع","الكحول"] + forbidden
-        allowed = ["نزول وزن تدريجي","ألياف + خضار + بروتين قليل الدهن","أوميجا 3","قهوة بدون سكر باعتدال"] + allowed
+        allowed = ["نزول 10% من الوزن","ألياف 25جم يومياً على الأقل","دهون أقل من 25% من السعرات",
+                   "خضار ورقية + بروكلي + كرنب","حبوب كاملة: أرز بني وشوفان وكينوا","بروتين قليل الدهن + أوميجا 3",
+                   "رياضة 30 دقيقة يومياً"] + allowed
     if has_chol:
         forbidden = ["الدهون المشبعة والمتحولة","المقليات + السمن + المعجنات","صفار البيض بكثرة"] + forbidden
         allowed = ["ألياف ذائبة: شوفان + بقوليات","أوميجا 3: سمك دهني","زيت زيتون + مكسرات + أفوكادو"] + allowed
