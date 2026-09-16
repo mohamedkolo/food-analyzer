@@ -262,7 +262,7 @@ WORDS = {
     # النظام الكيميائي
     "بطيخ": "watermelon", "برتقال": "orange", "ثمرات": "pieces",
     "جرجير": "rocket", "سموذي": "smoothie", "زنجبيل": "ginger",
-    "مطهية": "cooked", "مشروب": "drink",
+    "مطهية": "cooked", "مشروب": "drink", "مهروسة": "mashed",
     "افوكادو": "avocado", "أفوكادو": "avocado", "برقوق": "prunes",
     "دبس": "molasses",
     # fats / condiments

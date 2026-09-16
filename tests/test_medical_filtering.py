@@ -156,6 +156,8 @@ FORM_CONDITIONS_ALL = FORM_CONDITIONS + [
     "السمنة", "نقص الحديد", "نقص فيتامين D3", "حرق بطيء", "امساك مزمن",
     "اضطراب في الأكل", "هشاشة العظام", "الوقاية من السرطان",
     "حرقة المعدة (GERD)", "تكيس المبايض (PCOS/PMOS)",
+    "مضادات تخثر الدم (وارفارين)", "جرثومة المعدة (H. pylori)",
+    "فرط نمو بكتيريا الأمعاء (SIBO)", "الإسهال",
 ]
 
 
@@ -411,6 +413,108 @@ def test_the_new_conditions_have_both_sides():
             assert not any(md.normalize_ar(b) in md.normalize_ar(food)
                            for b in md.UNSAFE_FOODS[unsafe_key]), (
                 f"{key} calls {food!r} helpful while banning it")
+
+
+GUT_CONDITIONS = {
+    "جرثومة المعدة (H. pylori)": ("جرثومة", "hpylori"),
+    "فرط نمو بكتيريا الأمعاء (SIBO)": ("سيبو", "sibo"),
+    "الإسهال": ("اسهال", "diarrhea"),
+}
+
+
+def test_the_gut_conditions_filter_without_emptying_a_slot():
+    # SIBO's dairy ban alone drops a slot to one meal and empties five when
+    # combined, so it is deliberately not in UNSAFE_FOODS. These lists are the
+    # measured half, and they have to stay measured as meals are added.
+    from meal_extra import conditions_to_keys  # noqa: E402
+
+    for label, (unsafe_key, rank_key) in GUT_CONDITIONS.items():
+        triggers = md.UNSAFE_FOODS[unsafe_key]
+        assert md.unsafe_keys_for([label]) == [unsafe_key], f"{label} does not resolve"
+        assert conditions_to_keys([label]) == [rank_key], f"{label} does not rank"
+        for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
+            for goal in ("weight_loss", "muscle_gain", "bulking", "maintenance"):
+                pool = md.get_meal_pool(goal, culture)
+                for slot in ("breakfast", "lunch", "dinner"):
+                    before = list(pool.get(slot, []))
+                    if not before:
+                        continue
+                    survivors = [
+                        m for m in before
+                        if not any(md.normalize_ar(t) in md.normalize_ar(
+                            m["meal"] if isinstance(m, dict) else m)
+                            for t in triggers)]
+                    assert survivors, (
+                        f"{label} empties {culture}/{goal}/{slot} -- filtering would "
+                        f"fall back to the unfiltered list")
+                    after = md.filter_by_conditions(before, [label])
+                    for meal in after:
+                        text = md.normalize_ar(
+                            meal["meal"] if isinstance(meal, dict) else meal)
+                        hit = [t for t in triggers if md.normalize_ar(t) in text]
+                        assert not hit, f"{label}: {text[:44]!r} kept {hit}"
+
+
+def test_h_pylori_keeps_avoid_and_with_care_apart():
+    # the sheet bans spicy and fried but only cautions against coffee, tea,
+    # chocolate and citrus -- banning those would overreach
+    from meal_extra import CONDITION_FOODS  # noqa: E402
+
+    banned = md.UNSAFE_FOODS["جرثومة"]
+    ranked_bad = CONDITION_FOODS["hpylori"]["bad"]
+    for careful in ("قهوة", "شاي", "شوكولاتة", "برتقال", "كيوي"):
+        assert careful not in banned, f"{careful} is 'with care', not banned"
+        assert careful in ranked_bad, f"{careful} is neither banned nor ranked down"
+    for avoid in ("حار", "مقلي", "مرتديلا", "مشروبات غازية"):
+        assert avoid in banned, f"the sheet says avoid {avoid}"
+
+
+def test_anticoagulants_rank_rather_than_ban():
+    # the sheet asks for one portion of vitamin K food daily, not none, so an
+    # outright ban would be wrong -- and would empty slots besides
+    from meal_extra import CONDITION_FOODS, conditions_to_keys  # noqa: E402
+
+    W = "مضادات تخثر الدم (وارفارين)"
+    assert md.unsafe_keys_for([W]) == [], (
+        "anticoagulants became an outright ban")
+    assert conditions_to_keys([W]) == ["anticoag"], "anticoagulants do not rank"
+    assert md.get_nutrient_boost_notes([W]), "no guidance for anticoagulants"
+    bad = CONDITION_FOODS["anticoag"]["bad"]
+    for food in ("سبانخ", "بروكلي", "ملفوف", "جرجير", "ثوم", "توت", "كبدة"):
+        assert food in bad, f"{food} is high in vitamin K and is not ranked down"
+
+
+def test_anticoagulants_beat_a_condition_that_promotes_greens():
+    # fatty liver, PCOS and reflux all promote leafy greens. For a client on
+    # warfarin that promotion must lose.
+    import os
+    os.environ.setdefault("SECRET_KEY", "test-key")
+    from core import app  # noqa: E402
+    from flask import session  # noqa: E402
+    from meal_extra import tag_meal  # noqa: E402
+    from plan_engine import generate_weekly_plan  # noqa: E402
+
+    W = "مضادات تخثر الدم (وارفارين)"
+
+    def _vitamin_k_meals(symptoms):
+        data = {
+            "name": "tst", "age": "50", "gender": "ذكر", "height": "175",
+            "weight": "90", "tdee": "2400", "goal_cal": "1900",
+            "goal_type": "weight_loss", "culture": "مصري",
+            "diet_plan_type": "standard", "symptoms": symptoms,
+            "allergies": [], "notes": "", "disliked_foods": "", "user_id": 1,
+        }
+        with app.test_request_context("/"):
+            session["uid"] = 1
+            plan = generate_weekly_plan(data)
+        return sum(1 for day in plan for slot in ("breakfast", "lunch", "dinner")
+                   if tag_meal(day.get(slot, "")).get("anticoag") == "bad")
+
+    for other in ("الكبد الدهني", "تكيس المبايض (PCOS/PMOS)", "حرقة المعدة (GERD)"):
+        with_warfarin = _vitamin_k_meals([other, W])
+        assert with_warfarin <= 2, (
+            f"{other} + warfarin still served {with_warfarin} of 21 meals high "
+            f"in vitamin K")
 
 
 def test_guidance_notes_are_bilingual():
