@@ -346,6 +346,73 @@ def test_fatty_liver_bans_the_added_sugars_the_sheet_names():
                     f"{len(before)} survive fatty-liver filtering")
 
 
+def test_ticking_a_condition_promotes_its_helpful_foods():
+    """Filtering is only half of it -- the plan should also lean helpful.
+
+    The ranking machinery (_rank_by_condition over CONDITION_FOODS) already
+    existed, but a condition with no entry there filtered and preferred
+    nothing: the plan simply avoided the bad and picked at random from the
+    rest. These three now carry a "good" side taken from their own sheets.
+    """
+    import os
+    os.environ.setdefault("SECRET_KEY", "test-key")
+    from core import app  # noqa: E402
+    from flask import session  # noqa: E402
+    from meal_extra import conditions_to_keys, tag_meal  # noqa: E402
+    from plan_engine import generate_weekly_plan  # noqa: E402
+
+    SLOTS = ("breakfast", "lunch", "dinner")
+
+    def _counts(symptoms):
+        data = {
+            "name": "tst", "age": "30", "gender": "أنثى", "height": "165",
+            "weight": "80", "tdee": "2200", "goal_cal": "1700",
+            "goal_type": "weight_loss", "culture": "مصري",
+            "diet_plan_type": "standard", "symptoms": symptoms,
+            "allergies": [], "notes": "", "disliked_foods": "", "user_id": 1,
+        }
+        with app.test_request_context("/"):
+            session["uid"] = 1
+            plan = generate_weekly_plan(data)
+        keys = conditions_to_keys(symptoms)
+        assert keys, f"{symptoms} resolves to no ranking key"
+        good = bad = 0
+        for day in plan:
+            for slot in SLOTS:
+                statuses = [v for k, v in tag_meal(day.get(slot, "")).items()
+                            if k in keys]
+                if "bad" in statuses:
+                    bad += 1
+                elif "good" in statuses:
+                    good += 1
+        return good, bad, len(plan) * len(SLOTS)
+
+    for label in ("حرقة المعدة (GERD)", "تكيس المبايض (PCOS/PMOS)",
+                  "الكبد الدهني"):
+        good, bad, total = _counts([label])
+        assert bad == 0, f"{label}: {bad} of {total} meals are bad for it"
+        assert good >= total * 2 // 3, (
+            f"{label}: only {good} of {total} meals are helpful -- the "
+            f"condition is filtering but not preferring")
+
+
+def test_the_new_conditions_have_both_sides():
+    from meal_extra import CONDITION_FOODS, conditions_to_keys  # noqa: E402
+
+    for label, key in (("حرقة المعدة (GERD)", "reflux"),
+                       ("تكيس المبايض (PCOS/PMOS)", "pcos")):
+        assert conditions_to_keys([label]) == [key], (
+            f"{label} does not resolve to {key}")
+        entry = CONDITION_FOODS[key]
+        assert entry["good"] and entry["bad"], f"{key} is missing a side"
+        # the bans and the ranking must not contradict each other
+        unsafe_key = md.CONDITION_MAP[label]
+        for food in entry["good"]:
+            assert not any(md.normalize_ar(b) in md.normalize_ar(food)
+                           for b in md.UNSAFE_FOODS[unsafe_key]), (
+                f"{key} calls {food!r} helpful while banning it")
+
+
 def test_guidance_notes_are_bilingual():
     for c, pair in md.NUTRIENT_BOOST_NOTES.items():
         assert isinstance(pair, tuple) and len(pair) == 2, f"{c} is not bilingual"
