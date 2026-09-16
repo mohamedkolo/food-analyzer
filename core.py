@@ -388,6 +388,7 @@ ENGLISH_CONDITIONS = {
     "حصوات المرارة": "Gallstones",
     "التهاب الأمعاء": "IBD (Crohn's/Colitis)",
     "حرقة المعدة (GERD)": "Acid Reflux (GERD)",
+    "تكيس المبايض (PCOS/PMOS)": "PCOS / PMOS",
     "اضطراب في الأكل": "Eating Disorder",
     "هشاشة العظام": "Osteoporosis",
     "الوقاية من السرطان": "Cancer Risk Reduction",

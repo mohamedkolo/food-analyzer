@@ -155,7 +155,7 @@ def test_safe_food_is_not_banned_by_normalisation():
 FORM_CONDITIONS_ALL = FORM_CONDITIONS + [
     "السمنة", "نقص الحديد", "نقص فيتامين D3", "حرق بطيء", "امساك مزمن",
     "اضطراب في الأكل", "هشاشة العظام", "الوقاية من السرطان",
-    "حرقة المعدة (GERD)",
+    "حرقة المعدة (GERD)", "تكيس المبايض (PCOS/PMOS)",
 ]
 
 
@@ -231,6 +231,60 @@ def test_what_reflux_swaps_in_is_itself_reflux_safe():
     triggers = md.UNSAFE_FOODS["ارتجاع"]
     alts = md.SAFE_ALTERNATIVES.get("ارتجاع")
     assert alts, "reflux has nothing to swap in"
+    for alt in alts:
+        text = md.normalize_ar(alt["meal"])
+        hit = [t for t in triggers if md.normalize_ar(t) in text]
+        assert not hit, f"the replacement {alt['meal']!r} carries {hit}"
+
+
+def test_pcos_never_empties_a_slot_in_any_cuisine():
+    # the document's full list -- dairy-free AND gluten-free on top of these --
+    # strips 69% of the database and empties five slots outright, and an
+    # emptied slot makes filter_by_conditions hand back the UNFILTERED list.
+    # So only the affordable half is banned here, and that has to stay true as
+    # meals are added.
+    PCOS = "تكيس المبايض (PCOS/PMOS)"
+    triggers = md.UNSAFE_FOODS["تكيس"]
+    for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
+        for goal in ("weight_loss", "muscle_gain", "bulking", "maintenance"):
+            pool = md.get_meal_pool(goal, culture)
+            for slot in ("breakfast", "lunch", "dinner"):
+                before = list(pool.get(slot, []))
+                if not before:
+                    continue
+                survivors = [
+                    m for m in before
+                    if not any(md.normalize_ar(t) in md.normalize_ar(
+                        m["meal"] if isinstance(m, dict) else m)
+                        for t in triggers)]
+                assert len(survivors) >= 3, (
+                    f"{culture}/{goal}/{slot}: only {len(survivors)} of "
+                    f"{len(before)} meals survive -- the week would repeat")
+                after = md.filter_by_conditions(before, [PCOS])
+                assert after, f"{culture}/{goal}/{slot}: the pool came back empty"
+                for meal in after:
+                    text = md.normalize_ar(
+                        meal["meal"] if isinstance(meal, dict) else meal)
+                    hit = [t for t in triggers if md.normalize_ar(t) in text]
+                    assert not hit, f"{culture}/{slot}: {text[:46]!r} kept {hit}"
+
+
+def test_pcos_points_at_the_conditions_that_carry_the_rest():
+    # the dairy-free and gluten-free halves are real, they just cannot be
+    # applied automatically -- the note has to say how to get them
+    note_ar, note_en = md.NUTRIENT_BOOST_NOTES["تكيس المبايض (PCOS/PMOS)"]
+    assert "حساسية اللاكتوز" in note_ar and "الداء الزلاقي" in note_ar, (
+        "the note does not name the conditions that apply the rest of the protocol")
+    for name in ("حساسية اللاكتوز", "الداء الزلاقي"):
+        assert name in md.CONDITION_MAP, f"the note points at {name}, which is not a condition"
+    assert "lactose" in note_en.lower() and "celiac" in note_en.lower(), (
+        "the English note does not name them")
+
+
+def test_what_pcos_swaps_in_is_itself_pcos_safe():
+    triggers = md.UNSAFE_FOODS["تكيس"]
+    alts = md.SAFE_ALTERNATIVES.get("تكيس")
+    assert alts, "PCOS has nothing to swap in"
     for alt in alts:
         text = md.normalize_ar(alt["meal"])
         hit = [t for t in triggers if md.normalize_ar(t) in text]
