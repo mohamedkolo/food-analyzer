@@ -162,6 +162,8 @@ FORM_CONDITIONS_ALL = FORM_CONDITIONS + [
     "بعد استئصال المرارة", "بعد عمليات التكميم",
     "بطانة الرحم المهاجرة", "انقطاع النفس النومي", "الربو",
     "الوذمة الشحمية", "التصلب اللويحي المتعدد", "متلازمة شوغرن",
+    "النقرس", "قصور الغدة الدرقية", "نشاط الغدة الدرقية",
+    "ارتفاع الكوليسترول", "القولون التقرحي وكرون",
 ]
 
 
@@ -716,6 +718,70 @@ def test_iron_deficiency_and_thalassaemia_pull_opposite_ways():
     statuses = [tags.get(k) for k in keys if k in tags]
     assert "bad" in statuses, (
         "with both conditions ticked, liver is not flagged as harmful")
+
+
+FIVE_UNLOCKED = {
+    "قصور الغدة الدرقية": ("غدة خمول", "hypothyroid"),
+    "نشاط الغدة الدرقية": ("غدة نشاط", "hyperthyroid"),
+    "النقرس": ("نقرس", "gout"),
+    "ارتفاع الكوليسترول": ("كوليسترول", "chol"),
+    "القولون التقرحي وكرون": ("تقرحي", "uc"),
+}
+
+
+def test_the_five_engine_ready_conditions_are_now_reachable():
+    """These were built and unreachable.
+
+    Each already had a good/bad food list in CONDITION_FOODS and allowed and
+    forbidden guidance in get_allowed_forbidden -- and no checkbox anywhere, so
+    nobody could tick them. This is the state that the form-versus-test drift
+    check was written to catch.
+    """
+    from meal_extra import CONDITION_FOODS, conditions_to_keys  # noqa: E402
+    from plan_engine import get_allowed_forbidden  # noqa: E402
+
+    in_form = set(_conditions_in_the_form())
+    for label, (unsafe_key, rank_key) in FIVE_UNLOCKED.items():
+        assert label in in_form, f"{label} is still not offered"
+        assert md.unsafe_keys_for([label]) == [unsafe_key], f"{label} does not filter"
+        assert conditions_to_keys([label]) == [rank_key], f"{label} does not rank"
+        assert md.SAFE_ALTERNATIVES.get(unsafe_key), f"{label} has nothing to swap in"
+        # the guidance that was already written must actually reach a plan now
+        allowed, forbidden = get_allowed_forbidden([label])
+        assert allowed and forbidden, f"{label} produces no allowed/forbidden text"
+        # bans came out of the ranking list, so they must not contradict it
+        triggers = md.UNSAFE_FOODS[unsafe_key]
+        for food in CONDITION_FOODS[rank_key]["good"]:
+            assert not any(md.normalize_ar(b) in md.normalize_ar(food)
+                           for b in triggers), (
+                f"{rank_key} calls {food!r} helpful while banning it")
+        for alt in md.SAFE_ALTERNATIVES[unsafe_key]:
+            hit = [t for t in triggers
+                   if md.normalize_ar(t) in md.normalize_ar(alt["meal"])]
+            assert not hit, f"{label}: replacement {alt['meal']!r} carries {hit}"
+        for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
+            for goal in ("weight_loss", "muscle_gain", "bulking", "maintenance"):
+                pool = md.get_meal_pool(goal, culture)
+                for slot in ("breakfast", "lunch", "dinner"):
+                    before = list(pool.get(slot, []))
+                    if not before:
+                        continue
+                    survivors = [
+                        m for m in before
+                        if not any(md.normalize_ar(t) in md.normalize_ar(
+                            m["meal"] if isinstance(m, dict) else m)
+                            for t in triggers)]
+                    assert len(survivors) >= 3, (
+                        f"{label} leaves {len(survivors)} in {culture}/{goal}/{slot}")
+
+
+def test_ulcerative_colitis_is_no_longer_answered_by_the_ibs_list():
+    # "التهاب الأمعاء" in the form maps to the IBS ban list, so the uc entry
+    # -- written for colitis and Crohn's specifically -- was never used
+    assert md.CONDITION_MAP["التهاب الأمعاء"] == "قولون"
+    assert md.CONDITION_MAP["القولون التقرحي وكرون"] == "تقرحي"
+    assert md.UNSAFE_FOODS["تقرحي"] != md.UNSAFE_FOODS["قولون"], (
+        "colitis and IBS now share a list, which defeats having both")
 
 
 def test_guidance_notes_are_bilingual():
