@@ -159,7 +159,9 @@ FORM_CONDITIONS_ALL = FORM_CONDITIONS + [
     "مضادات تخثر الدم (وارفارين)", "جرثومة المعدة (H. pylori)",
     "فرط نمو بكتيريا الأمعاء (SIBO)", "الإسهال",
     "الصدفية", "الذئبة الحمراء", "التهاب المفاصل الروماتويدي",
-    "بعد استئصال المرارة",
+    "بعد استئصال المرارة", "بعد عمليات التكميم",
+    "بطانة الرحم المهاجرة", "انقطاع النفس النومي", "الربو",
+    "الوذمة الشحمية",
 ]
 
 
@@ -586,6 +588,74 @@ def test_rheumatoid_does_not_ban_the_sweet_potato_it_recommends():
         "sweet potato is recommended by the sheet and is not preferred")
     assert "طماطم" in CONDITION_FOODS["ra"]["bad"], (
         "tomato is neither banned nor ranked down")
+
+
+BATCH_THREE = {
+    "بطانة الرحم المهاجرة": ("بطانة الرحم", "endo"),
+    "انقطاع النفس النومي": ("نفس نومي", "apnea"),
+    "الربو": ("ربو", "asthma"),
+    "الوذمة الشحمية": ("وذمة", "lipoedema"),
+    "بعد عمليات التكميم": ("بعد التكميم", "sleeve"),
+}
+
+
+def test_the_third_batch_filters_prefers_and_never_empties():
+    from meal_extra import CONDITION_FOODS, conditions_to_keys  # noqa: E402
+
+    for label, (unsafe_key, rank_key) in BATCH_THREE.items():
+        assert md.unsafe_keys_for([label]) == [unsafe_key], f"{label} does not resolve"
+        assert conditions_to_keys([label]) == [rank_key], f"{label} does not rank"
+        assert md.get_nutrient_boost_notes([label]), f"{label} has no note"
+        triggers = md.UNSAFE_FOODS[unsafe_key]
+        entry = CONDITION_FOODS[rank_key]
+        assert entry["good"] and entry["bad"], f"{rank_key} is missing a side"
+        for food in entry["good"]:
+            assert not any(md.normalize_ar(b) in md.normalize_ar(food)
+                           for b in triggers), (
+                f"{rank_key} calls {food!r} helpful while banning it")
+        for alt in md.SAFE_ALTERNATIVES[unsafe_key]:
+            hit = [t for t in triggers
+                   if md.normalize_ar(t) in md.normalize_ar(alt["meal"])]
+            assert not hit, f"{label}: the replacement {alt['meal']!r} carries {hit}"
+        for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
+            for goal in ("weight_loss", "muscle_gain", "bulking", "maintenance"):
+                pool = md.get_meal_pool(goal, culture)
+                for slot in ("breakfast", "lunch", "dinner"):
+                    before = list(pool.get(slot, []))
+                    if not before:
+                        continue
+                    survivors = [
+                        m for m in before
+                        if not any(md.normalize_ar(t) in md.normalize_ar(
+                            m["meal"] if isinstance(m, dict) else m)
+                            for t in triggers)]
+                    assert len(survivors) >= 3, (
+                        f"{label} leaves {len(survivors)} in {culture}/{goal}/{slot}")
+
+
+def test_asthma_does_not_ban_the_fish_and_nuts_it_recommends():
+    # the sheet names milk, nuts and fish as allergy triggers and recommends
+    # nuts and fish on the same page -- an individual allergy, not a rule. The
+    # allergies field is where a real one gets removed.
+    from meal_extra import CONDITION_FOODS  # noqa: E402
+
+    banned = md.UNSAFE_FOODS["ربو"]
+    for food in ("سمك", "مكسرات", "حليب"):
+        assert food not in banned, (
+            f"asthma banned {food}, which the same sheet recommends or hedges")
+    good = CONDITION_FOODS["asthma"]["good"]
+    assert "سمك" in good and "مكسرات" in good, (
+        "the sheet recommends fish and nuts and they are not preferred")
+
+
+def test_sleeve_note_carries_the_phases_and_the_numbers():
+    # the protocol is weeks and portion caps, none of which a food filter can
+    # express -- so the note has to hold them
+    note_ar, note_en = md.NUTRIENT_BOOST_NOTES["بعد عمليات التكميم"]
+    for fact in ("230", "65-75", "50-60"):
+        assert fact in note_ar, f"the note lost {fact}"
+        assert fact in note_en, f"the English note lost {fact}"
+    assert "نص ساعة" in note_ar, "the fluid-timing rule is missing"
 
 
 def test_guidance_notes_are_bilingual():
