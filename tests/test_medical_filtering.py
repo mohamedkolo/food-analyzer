@@ -658,6 +658,66 @@ def test_sleeve_note_carries_the_phases_and_the_numbers():
     assert "نص ساعة" in note_ar, "the fluid-timing rule is missing"
 
 
+def test_g6pd_never_serves_fava_beans_in_any_form():
+    """The one that actually mattered.
+
+    Fava beans trigger acute haemolysis in G6PD deficiency. The ban list was
+    five words and caught "فول" -- so ful passed, but ta'meya and falafel,
+    which are made of fava beans, did not match at all: 11 meals in the
+    database contain them and 5 came through the filter. Lentils, beans and
+    nuts were getting through too.
+    """
+    banned = md.UNSAFE_FOODS["g6pd"]
+    for food in ("فول", "طعمية", "فلافل", "عدس", "حمص", "فاصوليا", "لوبيا",
+                 "ترمس", "فول سوداني", "صويا", "مكسرات", "لوز", "جوز",
+                 "كاجو", "باذنجان", "توت بري", "خل", "مخلل", "جمبري"):
+        assert food in banned, f"G6PD still allows {food}"
+
+    # and nothing carrying them survives the filter, in any cuisine
+    for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
+        for goal in ("weight_loss", "muscle_gain", "bulking", "maintenance"):
+            pool = md.get_meal_pool(goal, culture)
+            for slot in ("breakfast", "lunch", "dinner"):
+                before = list(pool.get(slot, []))
+                if not before:
+                    continue
+                survivors = [
+                    m for m in before
+                    if not any(md.normalize_ar(t) in md.normalize_ar(
+                        m["meal"] if isinstance(m, dict) else m)
+                        for t in banned)]
+                assert survivors, f"G6PD empties {culture}/{goal}/{slot}"
+                for meal in md.filter_by_conditions(before, ["G6PD"]):
+                    text = md.normalize_ar(
+                        meal["meal"] if isinstance(meal, dict) else meal)
+                    hit = [t for t in banned if md.normalize_ar(t) in text]
+                    assert not hit, f"G6PD was served {text[:44]!r} carrying {hit}"
+
+
+def test_iron_deficiency_and_thalassaemia_pull_opposite_ways():
+    # one needs iron, the other accumulates it -- and the same sheet warns the
+    # two get confused, because thalassaemia can look like iron deficiency
+    from meal_extra import CONDITION_FOODS, conditions_to_keys  # noqa: E402
+
+    assert conditions_to_keys(["نقص الحديد"]) == ["iron_def"]
+    assert conditions_to_keys(["ثلاسيميا"]) == ["thal"]
+    iron, thal = CONDITION_FOODS["iron_def"], CONDITION_FOODS["thal"]
+    # liver is the clearest case: the richest iron source there is
+    assert "كبدة" in iron["good"], "iron deficiency does not prefer liver"
+    assert "كبدة" in thal["bad"], "thalassaemia does not rank liver down"
+    # and tea, which blocks absorption, is read the opposite way by each
+    assert "شاي" in iron["bad"], "tea blocks iron absorption and is not ranked down"
+    assert "شاي" in thal["good"], "tea blocks iron absorption, which helps here"
+    # ticking both must not serve the contested food: bad beats good
+    both = ["نقص الحديد", "ثلاسيميا"]
+    from meal_extra import tag_meal  # noqa: E402
+    keys = conditions_to_keys(both)
+    tags = tag_meal("🍖 كبدة مشوية 120جم")
+    statuses = [tags.get(k) for k in keys if k in tags]
+    assert "bad" in statuses, (
+        "with both conditions ticked, liver is not flagged as harmful")
+
+
 def test_guidance_notes_are_bilingual():
     for c, pair in md.NUTRIENT_BOOST_NOTES.items():
         assert isinstance(pair, tuple) and len(pair) == 2, f"{c} is not bilingual"
