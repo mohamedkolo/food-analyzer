@@ -784,6 +784,40 @@ def test_ulcerative_colitis_is_no_longer_answered_by_the_ibs_list():
         "colitis and IBS now share a list, which defeats having both")
 
 
+def test_colitis_inverts_the_whole_grain_rule():
+    # low residue: refined grains are preferred here and whole grains removed,
+    # the opposite of every other condition in this file. Easy to "fix" by
+    # mistake later, so it is pinned.
+    banned = md.UNSAFE_FOODS["تقرحي"]
+    for whole in ("نخالة", "شوفان", "ارز بني", "خبز اسمر", "كينوا", "برغل"):
+        assert whole in banned, f"colitis should exclude {whole} during a flare"
+    # while other conditions prefer exactly those
+    from meal_extra import CONDITION_FOODS  # noqa: E402
+    assert "شوفان" in CONDITION_FOODS["chol"]["good"], (
+        "cholesterol no longer prefers oats -- check this is deliberate")
+    note_ar, _ = md.NUTRIENT_BOOST_NOTES["القولون التقرحي وكرون"]
+    assert "النوبة" in note_ar, "the note must say this is flare-time advice"
+
+
+def test_ibs_and_asthma_notes_point_at_the_fields_that_can_act():
+    # both sheets describe triggers that vary by person. The plan cannot guess
+    # them, but the form has fields that remove them -- the notes have to say so
+    ibs_ar, ibs_en = md.NUTRIENT_BOOST_NOTES["قولون عصبي"]
+    assert "الأطعمة المرفوضة" in ibs_ar, "the IBS note does not name the field"
+    assert "disliked-foods" in ibs_en, "the English IBS note does not name it"
+    asthma_ar, asthma_en = md.NUTRIENT_BOOST_NOTES["الربو"]
+    assert "الحساسية" in asthma_ar and "allergies" in asthma_en
+
+
+def test_thalassaemia_note_states_what_the_centre_accepts():
+    # the sheet says the centre takes carriers, not transfusion-dependent
+    # patients -- a dietitian should not learn that from the filing cabinet
+    note_ar, note_en = md.NUTRIENT_BOOST_NOTES["ثلاسيميا"]
+    assert "حامل" in note_ar, "the note drops the carriers-only limit"
+    assert "carrier" in note_en.lower()
+    assert "مكملات الحديد ممنوعة" in note_ar, "the iron-supplement ban is missing"
+
+
 def test_guidance_notes_are_bilingual():
     for c, pair in md.NUTRIENT_BOOST_NOTES.items():
         assert isinstance(pair, tuple) and len(pair) == 2, f"{c} is not bilingual"

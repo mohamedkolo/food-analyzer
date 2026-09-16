@@ -32,7 +32,10 @@ UNSAFE_FOODS = {
              "مكسرات", "لوز", "جوز", "كاجو", "بندق", "فستق",
              "باذنجان", "توت بري", "خل", "مخلل", "جمبري",
              "مشمش مجفف", "تين مجفف"],
-    "ثلاسيميا": ["كبدة", "كبد", "لحم احمر كتير", "طحال", "سبانخ كتير"],
+    # زيادة من الورقة: الأطعمة المدعّمة بالحديد. فيتامين C مش هنا -- الورقة
+    # بتقول يتباعد عن الوجبة بساعتين مش يتمنع، فمكانه الترتيب.
+    "ثلاسيميا": ["كبدة", "كبد", "لحم احمر كتير", "طحال", "سبانخ كتير",
+                 "مدعم بالحديد", "حبوب مدعمة"],
     "لاكتوز": ["حليب", "لبن", "زبادي", "جبن", "قشدة", "كريمة", "لبنة", "حلوم", "فيتا", "موزاريلا", "بارميزان", "جبنة", "ايس كريم", "بوظة", "كاكاو بحليب"],
     "جلوتين": ["خبز", "توست", "مكرونة", "معكرونة", "برغل", "فريك", "كشري", "بسكويت", "بانكيك", "جرانولا", "شعير", "بيتزا", "كيك"],
     # عسل ومربى وكيك زيادة على القايمة الأصلية: ورقة الكبد الدهني بتنص على
@@ -60,8 +63,14 @@ UNSAFE_FOODS = {
              "روبيان", "محار", "انشوجة"],
     "كوليسترول": ["مقلي", "سمن", "زبدة", "لحم احمر", "كبدة", "معجنات",
                   "جبن دسم", "قشطة"],
+    # الحبوب الكاملة هنا ممنوعة، وده عكس كل حالة تانية في الملف: نظام
+    # LOW RESIDUE بيفضّل المكرر (خبز أبيض، أرز أبيض، معكرونة) على النخالة
+    # والشوفان والأرز البني، عشان يقلّل حجم الإخراج والحركة الدودية.
+    # والغازات كمان (فاصوليا، ملفوف، بروكلي، غازيات). مقيسة: أنحف خانة 4.
     "تقرحي": ["حار", "شطة", "بهارات", "مقلي", "مكسرات", "بذور", "قشر",
-              "نخالة", "بقوليات"],
+              "نخالة", "بقوليات", "شوفان", "ارز بني", "خبز اسمر",
+              "قمح كامل", "كينوا", "برغل", "ملفوف", "بروكلي", "فاصوليا",
+              "مشروبات غازية"],
     # التصلب اللويحي: ورقة الحالة دي بترشّح الألبان والزبدة واللحوم الحمراء
     # صريح -- عكس باقي أوراق المناعة الذاتية هنا (الصدفية بتمنع الحليب،
     # شوغرن بيقول قلّل اللحوم والألبان). كل ورقة بتتنفّذ بنصها، ولو حالة
@@ -334,8 +343,25 @@ NUTRIENT_BOOST_NOTES = {
         "🦴 هشاشة العظام: أكد على مصادر الكالسيوم (ألبان، سمك بعظمه كالسردين، خضار ورقية داكنة) وفيتامين D يومياً، وشجّع تمارين تحمل وزن، وقلل الصوديوم الزائد والكافيين الزائد.",
         "🦴 Osteoporosis: emphasise calcium (dairy, bone-in fish such as sardines, dark leafy greens) and daily vitamin D, encourage weight-bearing exercise, and cut back on excess sodium and caffeine."),
     "نقص الحديد": (
-        "🩸 نقص الحديد: أكد على مصادر الحديد (لحوم حمراء، كبدة، عدس، سبانخ) مع فيتامين C بنفس الوجبة لتحسين الامتصاص، وابعد الشاي/القهوة وقت الأكل مباشرة.",
-        "🩸 Iron deficiency: emphasise iron sources (red meat, liver, lentils, spinach) with vitamin C in the same meal to aid absorption, and keep tea and coffee away from mealtimes."),
+        "🩸 نقص الحديد: أكد على مصادر الحديد (لحوم حمراء، كبدة، عدس، سبانخ) "
+        "مع فيتامين C بنفس الوجبة لتحسين الامتصاص، وابعد الشاي/القهوة وقت "
+        "الأكل مباشرة. الحديد الهيمي (اللحوم والدواجن والأسماك والكبدة) أعلى "
+        "امتصاصاً من النباتي. واللي بيعيق الامتصاص كله مسألة توقيت مش منع: "
+        "التانين (شاي وقهوة)، الكالسيوم (الألبان ومكملاته)، الفيتات (بقوليات "
+        "وحبوب كاملة — بيقل بالنقع والطهي)، وحمض الأوكساليك (سبانخ بكميات "
+        "كبيرة، شوكولاتة) — كلها تتباعد عن وجبة الحديد بساعتين. ومكمل الحديد "
+        "على معدة فارغة مع فيتامين C، ولو ضايق المعدة يبقى مع أكل قليل.",
+        "🩸 Iron deficiency: emphasise iron sources (red meat, liver, lentils, "
+        "spinach) with vitamin C in the same meal to aid absorption, and keep "
+        "tea and coffee away from mealtimes. Haem iron (meat, poultry, fish, "
+        "liver) absorbs far better than plant iron. Everything that blocks "
+        "absorption is a question of timing rather than exclusion: tannins "
+        "(tea and coffee), calcium (dairy and its supplements), phytates "
+        "(legumes and whole grains — reduced by soaking and cooking), and "
+        "oxalic acid (large amounts of spinach, chocolate) — keep each two "
+        "hours away from the iron meal. An iron supplement goes on an empty "
+        "stomach with vitamin C, or with a little food if it upsets the "
+        "stomach."),
     "الوقاية من السرطان": (
         "🎗️ الوقاية من السرطان: أكد على 5 حصص أو أكتر خضار وفاكهة يومياً، حبوب كاملة بدل المكررة، وقلل اللحوم المصنعة والمملحة والمشوية على نار مباشرة بكثرة.",
         "🎗️ Cancer risk reduction: aim for 5+ servings of vegetables and fruit a day and wholegrains over refined, and cut back on processed, heavily salted and flame-grilled meat."),
@@ -368,6 +394,68 @@ NUTRIENT_BOOST_NOTES = {
         "portion of legumes and nuts, fish regularly and not fried, and 2-3 "
         "cups of dairy a day. Sixty minutes of activity daily, and water at "
         "33 ml per kilo of body weight."),
+    "القولون التقرحي وكرون": (
+        "🌀 القولون التقرحي وكرون: نظام قليل البقايا (LOW RESIDUE) — وده "
+        "بيقلب قاعدة الحبوب الكاملة رأساً على عقب: هنا المكرر أفضل (خبز "
+        "أبيض، أرز أبيض، معكرونة) لأنه بيقلّل حجم الإخراج والحركة الدودية، "
+        "والنخالة والشوفان والأرز البني بتتشال. بروتين قليل الدهن جيد الطهي، "
+        "وفاكهة وخضار **مقشّرة ومطبوخة** بكميات صغيرة، وزبدة المكسرات "
+        "الناعمة بتتحمّل أحسن من البذور الكاملة. الغازات بتتشال (فاصوليا، "
+        "ملفوف، بروكلي، غازيات) والحار كذلك. الألبان تتقلّل — بدائل نباتية "
+        "(جوز الهند، لوز، صويا) لو فيه لاكتوز. ملاحظة: الكلام ده عن **وقت "
+        "النوبة**؛ في فترات الهدوء الألياف بترجع بالتدريج.",
+        "🌀 Ulcerative colitis and Crohn's: a low-residue diet — which inverts "
+        "the whole-grain rule everywhere else here. Refined is better in this "
+        "case (white bread, white rice, pasta) because it reduces stool bulk "
+        "and bowel motility, so bran, oats and brown rice are filtered out. "
+        "Lean, well-cooked protein, small amounts of peeled and cooked fruit "
+        "and vegetables, and smooth nut butters, which are tolerated better "
+        "than whole seeds. Gas-forming food is out (beans, cabbage, broccoli, "
+        "fizzy drinks) and so is spice. Dairy is reduced — plant milks "
+        "(coconut, almond, soy) if lactose is an issue. Note: this is for a "
+        "flare; fibre comes back gradually during remission."),
+    "قولون عصبي": (
+        "🌀 القولون العصبي: المحفّزات هنا **مش ثابتة** — الورقة بتقول بالنص "
+        "إنها تختلف من شخص لشخص وإن الأفضل تسأل العميل مباشرة عن اللي بيهيّجه. "
+        "اللي بيتشال من الخطة هو المحفّزات الشائعة (بقوليات، حار وتوابل، "
+        "كرنبيات، بصل وثوم نيء). أما الألبان والدهنيات والكافيين والسكريات "
+        "البسيطة فبتزعج بعض المرضى ومش بتزعج غيرهم — لو العميل بيتأثر بحاجة "
+        "منهم، اكتبها في خانة «الأطعمة المرفوضة» وساعتها بتتشال فعلاً. "
+        "ونهج LOW FODMAP بيتعمل على 3 مراحل: إقصاء 2-6 أسابيع، ثم إعادة "
+        "تقديم تدريجية، ثم تخصيص حسب اللي طلع مؤثر.",
+        "🌀 IBS: the triggers here are NOT fixed — the sheet says outright that "
+        "they differ from person to person and that the best approach is to ask "
+        "the client directly what sets them off. What the plan filters is the "
+        "common triggers (legumes, spice, brassicas, raw onion and garlic). "
+        "Dairy, fatty food, caffeine and simple sugars bother some patients and "
+        "not others — if this client reacts to one of them, put it in the "
+        "disliked-foods field and it will actually be removed. The low-FODMAP "
+        "approach runs in three stages: elimination for two to six weeks, then "
+        "gradual reintroduction, then a personalised list of what actually "
+        "mattered."),
+    "ثلاسيميا": (
+        "🩸 الثلاسيميا: الهدف عكس نقص الحديد تماماً — الحديد بيتراكم من نقل "
+        "الدم وتكسّر الكريات، فالتحكم فيه هو الأساس. قلّل اللحوم الحمراء "
+        "والكبدة والأعضاء الداخلية، وتجنّب الأطعمة المدعّمة بالحديد (بعض "
+        "حبوب الإفطار والخبز المدعّم). مكملات الحديد ممنوعة إطلاقاً، "
+        "وفيتامين C بجرعات عالية كذلك لأنه بيعزّز الامتصاص — لو محتاجه يبقى "
+        "بعد الوجبة بساعتين لتلاتة. المطلوب بدالهم: مضادات أكسدة (رمان، توت، "
+        "كرز، ورقيات) لحماية الخلايا، وكالسيوم وفيتامين D لأن هشاشة العظام "
+        "شائعة في الحالة، وزنك (دجاج، بقوليات)، وحمض الفوليك لبناء الكريات. "
+        "وملاحظة من الورقة نفسها: المركز بيستقبل حامل الثلاسيميا (شخص طبيعي) "
+        "— مش المريض اللي بينقل دم.",
+        "🩸 Thalassaemia: the aim is the exact opposite of iron deficiency — "
+        "iron accumulates from transfusions and red-cell breakdown, so "
+        "controlling it is the whole point. Reduce red meat, liver and organ "
+        "meats, and avoid iron-fortified foods (some breakfast cereals and "
+        "fortified bread). Iron supplements are absolutely out, and so are "
+        "high doses of vitamin C, which drive absorption — if it is needed, "
+        "two to three hours after a meal. What is wanted instead: antioxidants "
+        "(pomegranate, berries, cherries, leafy greens) to protect the cells, "
+        "calcium and vitamin D because bone thinning is common here, zinc "
+        "(chicken, legumes), and folic acid for red-cell production. One note "
+        "from the sheet itself: the centre takes thalassaemia carriers — not "
+        "transfusion-dependent patients."),
     "التفول (G6PD)": (
         "🫘 التفول: الفول بكل أشكاله ممنوع — وده يشمل **الطعمية والفلافل**، "
         "وباقي البقوليات (عدس، حمص، فاصوليا، لوبيا، ترمس، فول سوداني، "
