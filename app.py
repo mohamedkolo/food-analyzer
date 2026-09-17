@@ -1633,6 +1633,15 @@ def my_plans_history_edit(plan_id):
     return redirect("/request-plan?edit=" + str(plan_id))
 
 
+# ── صفحة "مالقيناش الصفحة دي" ──────────────────────────────────────────────
+# ‏404.html موجودة من الأول، بس مكانش فيه errorhandler مسجّل — يعني Flask
+# مكانش بيستخدمها أبداً إلا لما راوت يرندرها بإيده (صفحة الصنف بتعمل كده).
+# فأي زائر بيغلط في اللينك كان بيشوف صفحة Werkzeug الإنجليزي الفاضية.
+@app.errorhandler(404)
+def page_not_found(_e):
+    return render_template("404.html", lang=session.get("lang", "ar")), 404
+
+
 if __name__ == "__main__":
     app.run(debug=os.environ.get("FLASK_DEBUG") == "1")
 

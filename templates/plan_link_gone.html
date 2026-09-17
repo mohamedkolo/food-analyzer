@@ -11,7 +11,7 @@
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Cairo',system-ui,sans-serif;background:#F4F9FB;color:#0f172a;
        min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-  .card{background:#fff;border:1px solid #D3E3EA;border-radius:18px;padding:34px 28px;
+  .card{display:block;background:#fff;border:1px solid #D3E3EA;border-radius:18px;padding:34px 28px;
         max-width:430px;text-align:center;box-shadow:0 10px 34px rgba(15,42,67,.09)}
   .ic{font-size:44px;margin-bottom:14px}
   h1{font-size:20px;font-weight:900;color:#0F2A43;margin-bottom:10px}
@@ -21,13 +21,13 @@
 </style>
 </head>
 <body>
-  <div class="card">
+  <main class="card">
     <div class="ic">🔗</div>
     <h1>{{ 'اللينك ده مش شغال' if _ar else 'This link is not available' }}</h1>
     <p>{{ 'يمكن يكون انتهت مدته أو اتلغى. كلّم د. محمد وهيبعتلك لينك جديد.'
           if _ar else
           'It may have expired or been revoked. Ask Dr. Mohamed for a fresh link.' }}</p>
     <a href="/">{{ 'الصفحة الرئيسية' if _ar else 'Home' }}</a>
-  </div>
+  </main>
 </body>
 </html>

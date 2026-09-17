@@ -191,6 +191,39 @@ def test_the_youtube_embeds_are_titled():
         assert "title=" in tag, "‏iframe من غير title بيتقرا 'إطار' وبس: " + tag[:80]
 
 
+def test_no_template_calls_a_jinja_filter_that_does_not_exist():
+    """‏ده مش عن الوصولية، ده عن صفحة بتقع.
+
+    صفحة المريض كانت بترمي 500 لأي مريض له حالة مرضية مسجّلة، لأنها بتنادي
+    فلتر اسمه split وJinja مافيهاش فلتر بالاسم ده. والغلط مابيظهرش إلا وقت
+    التشغيل، ولما الشرط يتحقق بالظبط — يعني ماينفعش نستناه يبان لوحده.
+
+    فبنـparse كل تمبليت ونمشي على شجرة الـAST بتاعها، وناخد اسم كل فلتر
+    مستخدم، ونتأكد إنه مسجّل فعلاً. ده بيمسك النوع كله مرة واحدة.
+    """
+    os.environ.setdefault("SECRET_KEY", "test-only")
+    from jinja2 import nodes  # noqa: E402
+    import core  # noqa: E402
+    import app as _app  # noqa: F401,E402  بيسجّل الفلاتر والراوتس
+
+    env = core.app.jinja_env
+    known = set(env.filters)
+    offenders = []
+    for path in _templates():
+        try:
+            ast = env.parse(_read(path), filename=os.path.basename(path))
+        except Exception as exc:                    # ‏تمبليت مش بيـparse أصلاً
+            offenders.append("%s -> لا يـparse: %s" % (os.path.basename(path), exc))
+            continue
+        for node in ast.find_all(nodes.Filter):
+            if node.name not in known:
+                offenders.append("%s -> | %s" % (os.path.basename(path), node.name))
+    assert not offenders, (
+        "‏فلتر Jinja مش موجود — الصفحة هترمي 500 لما توصل للسطر ده:\n  "
+        + "\n  ".join(sorted(set(offenders)))
+    )
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):

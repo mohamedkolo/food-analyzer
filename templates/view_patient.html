@@ -43,12 +43,12 @@
   </div>
   <div class="card">
     <div class="card-title"><i class="fa-solid fa-fire"></i> {{ 'الأهداف الغذائية' if is_ar else 'Nutrition Goals' }}</div>
-    <div class="metric" style="margin-bottom:12px"><div class="metric-label">TDEE</div><div class="metric-value" style="color:var(--blue-light)">{{ patient.tdee }}</div><div class="metric-unit">kcal</div></div>
+    <div class="metric" style="margin-bottom:12px"><div class="metric-label">TDEE</div><div class="metric-value" style="color:var(--green)">{{ patient.tdee }}</div><div class="metric-unit">kcal</div></div>
     <div class="metric"><div class="metric-label">{{ 'الهدف اليومي' if is_ar else 'Daily Target' }}</div><div class="metric-value" style="color:var(--green-light)">{{ patient.goal_cal }}</div><div class="metric-unit">kcal</div></div>
     {% if patient.conditions and patient.conditions != '[]' %}
     <div style="margin-top:12px">
       <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:8px"><i class="fa-solid fa-stethoscope"></i> {{ 'الحالات المرضية' if is_ar else 'Conditions' }}</div>
-      {% for c in patient.conditions | replace('[','') | replace(']','') | replace('"','') | split(',') %}
+      {% for c in (patient.conditions | replace('[','') | replace(']','') | replace('"','')).split(',') %}
       {% if c.strip() %}
       <span style="background:var(--red-pale);color:var(--red);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-block;margin:2px">{{ c.strip() }}</span>
       {% endif %}
