@@ -18,10 +18,10 @@
 {% block content %}
 {% set is_ar = (lang or 'ar') == 'ar' %}
 
-<div class="page-title">
+<h1 class="page-title">
   <i class="fa-solid fa-book-medical"></i>
   {{ 'المرجع الكلينيكي التغذوي' if is_ar else 'Clinical Nutrition Reference' }}
-</div>
+</h1>
 
 <div class="alert alert-info">
   <i class="fa-solid fa-circle-info"></i>
@@ -341,7 +341,7 @@ const CONDITIONS = [
     ref: 'Highlight 25 — Food Allergies, pp.806-808'
   },
   {
-    icon: 'fa-bone', color: '#64748b',
+    icon: 'fa-bone', color: '#55647a',
     name_ar: 'هشاشة العظام', name_en: 'Osteoporosis',
     overview_ar: 'ضعف وتخلخل في العظام بيزود خطر الكسور، خصوصاً في الورك والعمود الفقري والمعصم. أكتر انتشاراً في السيدات فوق الخمسين بعد سن اليأس (فقدان هرمون الاستروجين). أهم فترة للوقاية: بناء كثافة العظام في العقود التلاتة الأولى من العمر.',
     overview_en: 'Weakened, porous bones with increased fracture risk, especially hip, spine, and wrist. Most common in women over 50 post-menopause (estrogen loss). The most critical prevention window is building bone density in the first three decades of life.',

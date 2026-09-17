@@ -4,9 +4,9 @@
 
 {% set is_ar = (lang or 'ar') == 'ar' %}
 
-<div class="page-title">
+<h1 class="page-title">
   <i class="fa-solid fa-ban" style="color:#7f1d1d"></i> {{ 'الحسابات المحظورة' if is_ar else 'Blocked Accounts' }}
-</div>
+</h1>
 
 <div class="alert alert-warn" style="margin-bottom:16px">
   <i class="fa-solid fa-circle-info"></i>
@@ -16,7 +16,7 @@
 {% if blocked|length == 0 %}
 <div class="card" style="text-align:center;padding:40px">
   <div style="font-size:64px;margin-bottom:14px">✅</div>
-  <h3 style="color:var(--text);margin-bottom:6px">{{ 'مفيش حسابات محظورة' if is_ar else 'No blocked accounts' }}</h3>
+  <h2 style="color:var(--text);margin-bottom:6px">{{ 'مفيش حسابات محظورة' if is_ar else 'No blocked accounts' }}</h2>
   <p style="color:var(--muted);font-size:14px">{{ 'القائمة فاضية - كله تمام' if is_ar else 'List is empty - all good' }}</p>
 </div>
 {% else %}

@@ -46,7 +46,7 @@
   };
 })();
 </script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}{% endblock %}{% if self.title()|trim %} · {% endif %}NutraX</title>
 <link rel="manifest" href="/static/manifest.json">
 <meta name="theme-color" content="#0F2A43">
@@ -65,7 +65,7 @@
 </noscript>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--blue:#0F2A43;--blue-light:#2E8F9E;--blue-pale:#DDEBF1;--green:#1B6E80;--green-light:#1B6E80;--green-pale:#E4F0F4;--red:#8b0000;--red-pale:#fef2f2;--orange:#b34700;--gray:#f4f6fa;--gray-2:#D3E3EA;--text:#0f172a;--text-2:#374151;--muted:#64748b;--muted-2:#94a3b8;--white:#ffffff;--sidebar-w:240px;--header-h:60px}
+:root{--blue:#0F2A43;--blue-light:#2E8F9E;--blue-pale:#DDEBF1;--green:#1B6E80;--green-light:#1B6E80;--green-pale:#E4F0F4;--red:#8b0000;--red-pale:#fef2f2;--orange:#b34700;--gray:#f4f6fa;--gray-2:#D3E3EA;--text:#0f172a;--text-2:#374151;--muted:#55647a;--muted-2:#55647a;--white:#ffffff;--sidebar-w:240px;--header-h:60px}
 body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min-height:100vh;-webkit-tap-highlight-color:transparent}
 .header{position:fixed;top:0;right:0;left:0;height:var(--header-h);background:var(--blue);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.15)}
 .header-logo{color:#fff;font-size:18px;font-weight:900;display:flex;align-items:center;gap:10px}
@@ -105,7 +105,7 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .main{margin-top:var(--header-h);margin-right:var(--sidebar-w);padding:24px 20px;min-height:calc(100vh - var(--header-h))}
 .card{background:var(--white);border:1.5px solid var(--gray-2);border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.04);margin-bottom:16px;position:relative;overflow:hidden}
 .card-title{font-size:15px;font-weight:800;color:var(--blue);margin-bottom:14px;padding-bottom:10px;border-bottom:1.5px solid var(--gray-2);display:flex;align-items:center;gap:8px}
-.page-title{font-size:20px;font-weight:900;color:var(--text);margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.page-title{font-size:20px;font-weight:900;color:var(--text);margin:0 0 20px;display:flex;align-items:center;gap:10px}
 .page-title i{font-size:22px;color:var(--blue)}
 .metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px}
 .metric{background:var(--white);border:1.5px solid var(--gray-2);border-radius:14px;padding:16px;text-align:center}
@@ -135,8 +135,8 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .nx-footer{background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#D3E3EA;padding:40px 24px 24px;margin-right:var(--sidebar-w);margin-top:60px;font-family:'Cairo',sans-serif}
 .nx-footer-inner{max-width:1100px;margin:0 auto}
 .nx-footer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:32px;margin-bottom:28px}
-.nx-footer-col h4{font-size:15px;font-weight:800;color:#fff;margin:0 0 14px;padding-bottom:8px;border-bottom:2px solid #1B6E80;display:inline-flex;align-items:center;gap:8px}
-.nx-footer-col h4 i{color:#1B6E80}
+.nx-footer-col h2{font-size:15px;font-weight:800;color:#fff;margin:0 0 14px;padding-bottom:8px;border-bottom:2px solid #1B6E80;display:inline-flex;align-items:center;gap:8px}
+.nx-footer-col h2 i{color:#1B6E80}
 .nx-footer-col p{font-size:13px;line-height:1.7;color:#94a3b8;margin:0 0 12px}
 .nx-footer-col ul{list-style:none;padding:0;margin:0}
 .nx-footer-col ul li{margin-bottom:8px}
@@ -148,12 +148,16 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .nx-footer-contact a i{font-size:14px;color:#FF7A59}
 .nx-footer-contact a:hover{background:rgba(74,222,128,.15);color:#FF7A59;transform:translateX(-4px)}
 .nx-disclaimer{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:10px;padding:10px 14px;font-size:11px;color:#fcd34d;margin-top:12px;line-height:1.6}
-.nx-footer-bottom{padding-top:20px;border-top:1px solid rgba(255,255,255,.1);text-align:center;color:#64748b;font-size:12px;line-height:1.7}
+.nx-footer-bottom{padding-top:20px;border-top:1px solid rgba(255,255,255,.1);text-align:center;color:#a8b4c6;font-size:12px;line-height:1.7}
 .nx-footer-bottom strong{color:#FF7A59}
 .nx-footer-bottom .small{font-size:11px;color:#475569;margin-top:4px}
 
 @media(max-width:768px){
   .menu-toggle{display:flex}
+  /* ‏على الموبايل الهيدر كان بيفيض وزرار الخروج بيطلع بره الشاشة خالص
+     (x=-62px عند عرض 412). اسم المستخدم موجود في السايدبار أصلاً. */
+  .header{padding:0 12px;gap:8px}
+  .user-badge{display:none}
   .sidebar{transform:translateX(100%);width:85%}
   .sidebar.open{transform:translateX(0)}
   .main{margin-right:0;padding:16px 14px 80px}
@@ -348,13 +352,13 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 
       <!-- عن الموقع -->
       <div class="nx-footer-col">
-        <h4><i class="fa-solid fa-leaf"></i> {{ 'عن NutraX' if is_ar else 'About NutraX' }}</h4>
+        <h2><i class="fa-solid fa-leaf"></i> {{ 'عن NutraX' if is_ar else 'About NutraX' }}</h2>
         <p>{{ 'منصة متخصصة في التغذية العلاجية والإكلينيكية، بنقدم خطط غذائية مخصصة ومتابعة شخصية مع د. محمد كولو، أخصائي تغذية إكلينيكية.' if is_ar else 'A specialized platform for clinical nutrition, offering personalized diet plans and follow-up with Dr. Mohamed Kolo.' }}</p>
       </div>
 
       <!-- روابط مهمة -->
       <div class="nx-footer-col">
-        <h4><i class="fa-solid fa-link"></i> {{ 'روابط مهمة' if is_ar else 'Quick Links' }}</h4>
+        <h2><i class="fa-solid fa-link"></i> {{ 'روابط مهمة' if is_ar else 'Quick Links' }}</h2>
         <ul>
           <li><a href="/"><i class="fa-solid fa-house"></i> {{ 'الرئيسية' if is_ar else 'Home' }}</a></li>
           <li><a href="/pricing"><i class="fa-solid fa-gem"></i> {{ 'الأسعار' if is_ar else 'Pricing' }}</a></li>
@@ -366,7 +370,7 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 
       <!-- قانونية -->
       <div class="nx-footer-col">
-        <h4><i class="fa-solid fa-scale-balanced"></i> {{ 'قانونية' if is_ar else 'Legal' }}</h4>
+        <h2><i class="fa-solid fa-scale-balanced"></i> {{ 'قانونية' if is_ar else 'Legal' }}</h2>
         <ul>
           <li><a href="/privacy"><i class="fa-solid fa-lock"></i> {{ 'سياسة الخصوصية' if is_ar else 'Privacy Policy' }}</a></li>
           <li><a href="/terms"><i class="fa-solid fa-file-contract"></i> {{ 'شروط الاستخدام' if is_ar else 'Terms of Use' }}</a></li>
@@ -379,7 +383,7 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 
       <!-- تواصل -->
       <div class="nx-footer-col">
-        <h4><i class="fa-solid fa-headset"></i> {{ 'تواصل معنا' if is_ar else 'Contact Us' }}</h4>
+        <h2><i class="fa-solid fa-headset"></i> {{ 'تواصل معنا' if is_ar else 'Contact Us' }}</h2>
         <div class="nx-footer-contact">
           <a href="https://wa.me/201004294521" target="_blank" rel="noopener">
             <svg class="wa-icon" viewBox="0 0 448 512" width="1em" height="1em" fill="currentColor" aria-hidden="true" focusable="false"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-34.5-17-39.8-18.9-5.3-1.9-9.2-2.9-13.1 2.9-3.9 5.8-15.1 18.9-18.5 22.8-3.4 3.9-6.8 4.4-12.3 1.5-5.5-2.9-23.3-8.6-44.4-27.4-16.4-14.6-27.5-32.7-30.9-38.5-3.4-5.8-.4-9 2.4-11.8 2.5-2.5 5.5-6.5 8.2-9.8 2.7-3.3 3.6-5.6 5.5-9.4 1.9-3.9 1-7.2-.5-10.1-1.5-2.9-13.5-32.5-18.5-44.4-4.9-11.7-9.9-10.1-13.6-10.3-3.5-.2-7.5-.2-11.4-.2-3.9 0-10.2 1.5-15.5 7.3-5.3 5.8-20.3 19.9-20.3 48.5s20.8 56.2 23.7 60.1c2.9 3.9 40.9 62.4 99 87.5 13.8 6 24.6 9.6 33 12.3 11.4 3.6 21.8 3.1 30-1.9 9.2-5.6 15.4-17.3 17.6-24.7 2.2-7.4 2.2-13.8 1.5-15.1-.7-1.3-2.5-2.2-5.3-3.6z"/></svg> {{ '🇪🇬 مصر: 01004294521' if is_ar else '🇪🇬 Egypt: +20 100 4294521' }}

@@ -12,16 +12,16 @@
   'gain_stalled':  ('#92400e', '#fffbeb', '⏸️'),
   'regained':      ('#991b1b', '#fef2f2', '📈'),
   'lost_on_gain':  ('#991b1b', '#fef2f2', '📉'),
-  'too_soon':      ('#64748b', '#f8fafc', '⏳'),
+  'too_soon':      ('#55647a', '#f8fafc', '⏳'),
 } %}
 
 <a href="/followups" style="color:var(--muted);text-decoration:none;font-size:13.5px;font-weight:700">
   ‹ {{ t('كل المتابعات','All follow-ups') }}</a>
 
 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin:10px 0 18px">
-  <div class="page-title" style="margin:0">
+  <h1 class="page-title" style="margin:0">
     <i class="fa-solid fa-user-check"></i> {{ client_name }}
-  </div>
+  </h1>
   <a href="/generate" class="btn btn-primary" style="text-decoration:none">
     <i class="fa-solid fa-plus"></i> {{ t('زيارة جديدة','New visit') }}
   </a>
@@ -122,7 +122,7 @@
   </div>
 
   {% if p %}
-  {% set col, bg, icon = VERDICT_STYLE.get(p.verdict, ('#64748b', '#f8fafc', '•')) %}
+  {% set col, bg, icon = VERDICT_STYLE.get(p.verdict, ('#55647a', '#f8fafc', '•')) %}
   <div style="background:{{ bg }};border:1px solid {{ col }}33;border-radius:10px;
               padding:11px 14px;margin-top:11px">
     <div style="font-weight:800;color:{{ col }};font-size:13.5px">

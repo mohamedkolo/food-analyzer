@@ -3,12 +3,12 @@
 {% block content %}
 {% set is_ar = (lang or 'ar') == 'ar' %}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
-  <div class="page-title" style="margin:0">
+  <h1 class="page-title" style="margin:0">
     <i class="fa-solid fa-user"></i> {{ patient.name }}
     <span class="bmi-badge {% if patient.status=='published' %}bmi-normal{% else %}bmi-over{% endif %}" style="margin-right:10px;font-size:13px">
       {{ 'منشور' if patient.status=='published' else 'مسودة' }}
     </span>
-  </div>
+  </h1>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <a href="/patients" class="btn btn-outline"><i class="fa-solid fa-arrow-right"></i> {{ 'رجوع' if is_ar else 'Back' }}</a>
     <a href="/patients/{{ patient.id }}/generate" class="btn btn-primary"><i class="fa-solid fa-file-pdf"></i> {{ 'توليد PDF' if is_ar else 'Generate PDF' }}</a>

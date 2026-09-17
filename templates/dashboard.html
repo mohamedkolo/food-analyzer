@@ -8,7 +8,7 @@
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
     <div>
       <div style="font-size:14px;opacity:0.85;margin-bottom:4px">{{ 'أهلا' if is_ar else 'Welcome' }}</div>
-      <div style="font-size:24px;font-weight:900">{{ 'د.' if is_ar else 'Dr.' }} {{ user.name if user else '' }}</div>
+      <h1 style="font-size:24px;font-weight:900;margin:0">{{ 'د.' if is_ar else 'Dr.' }} {{ user.name if user else '' }}</h1>
       <div style="font-size:13px;opacity:0.85;margin-top:6px">
         {% if role == 'admin' %}{{ 'مدير النظام' if is_ar else 'System Administrator' }}
         {% elif role == 'nutritionist' %}{{ 'أخصائي تغذية' if is_ar else 'Nutritionist' }}

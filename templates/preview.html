@@ -7,9 +7,9 @@
 {% set culture_names = {'مصري':t('مصري','Egyptian'),'خليجي':t('خليجي','Gulf'),'شامي':t('شامي','Levantine'),'مغربي':t('مغربي','Moroccan'),'عالمي':t('عالمي','International')} %}
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
-  <div class="page-title" style="margin:0">
+  <h1 class="page-title" style="margin:0">
     <i class="fa-solid fa-eye"></i> {{ t('معاينة الخطة','Plan Preview') }}
-  </div>
+  </h1>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <a href="/generate" class="btn btn-outline">
       <i class="fa-solid {{ 'fa-arrow-right' if is_ar else 'fa-arrow-left' }}"></i> {{ t('تعديل البيانات','Edit details') }}
@@ -161,9 +161,9 @@
   'too_fast':      ('#92400e', '#fffbeb', '⚠️'), 'gain_too_fast': ('#92400e', '#fffbeb', '⚠️'),
   'too_slow':      ('#92400e', '#fffbeb', '🐢'), 'plateau':       ('#92400e', '#fffbeb', '⏸️'),
   'gain_stalled':  ('#92400e', '#fffbeb', '⏸️'), 'regained':      ('#991b1b', '#fef2f2', '📈'),
-  'lost_on_gain':  ('#991b1b', '#fef2f2', '📉'), 'too_soon':      ('#64748b', '#f8fafc', '⏳'),
+  'lost_on_gain':  ('#991b1b', '#fef2f2', '📉'), 'too_soon':      ('#55647a', '#f8fafc', '⏳'),
 } %}
-{% set col, bg, icon = VS.get(fu.verdict, ('#64748b', '#f8fafc', '•')) %}
+{% set col, bg, icon = VS.get(fu.verdict, ('#55647a', '#f8fafc', '•')) %}
 <!-- المتابعة -->
 <div style="background:#fff;border:2px solid {{ col }};border-radius:12px;padding:16px 18px;margin-bottom:16px">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -178,21 +178,21 @@
 
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:14px">
     <div>
-      <div style="font-size:11.5px;color:#64748b;font-weight:700">{{ t('الوزن','Weight') }}</div>
+      <div style="font-size:11.5px;color:#55647a;font-weight:700">{{ t('الوزن','Weight') }}</div>
       <div style="font-size:19px;font-weight:900;color:#0F2A43">
         {{ fu.old_weight }} → {{ fu.new_weight }}<span style="font-size:12px">{{ t('كجم','kg') }}</span>
       </div>
     </div>
     <div>
-      <div style="font-size:11.5px;color:#64748b;font-weight:700">{{ t('التغيّر','Change') }}</div>
+      <div style="font-size:11.5px;color:#55647a;font-weight:700">{{ t('التغيّر','Change') }}</div>
       <div style="font-size:19px;font-weight:900;color:{{ col }}">
         {{ '+' if fu.delta > 0 }}{{ fu.delta }}<span style="font-size:12px">{{ t('كجم','kg') }}</span>
-        <span style="font-size:12px;color:#64748b">/ {{ fu.days }} {{ t('يوم','d') }}</span>
+        <span style="font-size:12px;color:#55647a">/ {{ fu.days }} {{ t('يوم','d') }}</span>
       </div>
     </div>
     {% if fu.rate %}
     <div>
-      <div style="font-size:11.5px;color:#64748b;font-weight:700">{{ t('المعدل','Rate') }}</div>
+      <div style="font-size:11.5px;color:#55647a;font-weight:700">{{ t('المعدل','Rate') }}</div>
       <div style="font-size:19px;font-weight:900;color:#0F2A43">
         {{ '+' if fu.rate > 0 }}{{ fu.rate }}<span style="font-size:12px">{{ t(' كجم/أسبوع',' kg/wk') }}</span>
       </div>
@@ -200,7 +200,7 @@
     {% endif %}
     {% if fu.new_tdee %}
     <div>
-      <div style="font-size:11.5px;color:#64748b;font-weight:700">{{ t('TDEE على الوزن الجديد','TDEE on the new weight') }}</div>
+      <div style="font-size:11.5px;color:#55647a;font-weight:700">{{ t('TDEE على الوزن الجديد','TDEE on the new weight') }}</div>
       <div style="font-size:19px;font-weight:900;color:#0F2A43">{{ fu.new_tdee }}<span style="font-size:12px"> kcal</span></div>
     </div>
     {% endif %}
@@ -232,7 +232,7 @@
   {% endif %}
 
   {% if data.avoid_meals %}
-  <div style="font-size:12px;color:#64748b;margin-top:10px">
+  <div style="font-size:12px;color:#55647a;margin-top:10px">
     {{ t('الخطة دي اتبنت وهي بتتفادى','This plan was built avoiding') }}
     <b>{{ data.avoid_meals|length }}</b>
     {{ t('وجبة من خطة الزيارة اللي فاتت.','meals from last visit’s plan.') }}
@@ -250,28 +250,28 @@
       <i class="fa-solid fa-arrow-down-up-across-line" style="color:#1B6E80"></i>
       {{ t('تدوير السعرات','Calorie cycling') }} — {{ zz.mode_ar if is_ar else zz.mode_en }}
     </div>
-    <div style="font-size:12.5px;color:#64748b;font-weight:700">
+    <div style="font-size:12.5px;color:#55647a;font-weight:700">
       {{ t('المتوسط','Average') }} <b style="color:#0F2A43">{{ zz.avg }}</b> kcal ·
       {{ zz.low }}–{{ zz.high }} kcal
     </div>
   </div>
-  <div style="font-size:12px;color:#64748b;margin-bottom:12px">{{ zz.desc_ar if is_ar else zz.desc_en }}</div>
+  <div style="font-size:12px;color:#55647a;margin-bottom:12px">{{ zz.desc_ar if is_ar else zz.desc_en }}</div>
 
   <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">
     {% for d in zz.days %}
-    {% set col = '#1B6E80' if d.level == 'high' else ('#FF7A59' if d.level == 'low' else '#94a3b8') %}
+    {% set col = '#1B6E80' if d.level == 'high' else ('#FF7A59' if d.level == 'low' else '#55647a') %}
     <div style="text-align:center">
       <div style="height:52px;display:flex;align-items:flex-end;justify-content:center">
         <div style="width:100%;height:{{ (d.kcal / zz.high * 52) | round | int }}px;background:{{ col }};border-radius:4px 4px 0 0"></div>
       </div>
       <div style="font-size:11px;font-weight:800;color:#0F2A43;margin-top:4px">{{ d.kcal }}</div>
-      <div style="font-size:10px;color:#64748b">{{ (d.day_ar if is_ar else d.day_en)[:3] }}{% if d.pct %} {{ '+' if d.pct > 0 }}{{ d.pct }}%{% endif %}</div>
+      <div style="font-size:10px;color:#55647a">{{ (d.day_ar if is_ar else d.day_en)[:3] }}{% if d.pct %} {{ '+' if d.pct > 0 }}{{ d.pct }}%{% endif %}</div>
     </div>
     {% endfor %}
   </div>
 
   {% if zz.days[0].protein_g %}
-  <div style="font-size:12px;color:#64748b;margin-top:12px;padding-top:10px;border-top:1px solid #E4F0F4">
+  <div style="font-size:12px;color:#55647a;margin-top:12px;padding-top:10px;border-top:1px solid #E4F0F4">
     {{ t('البروتين ثابت','Protein is constant at') }} <b style="color:#0F2A43">{{ zz.days[0].protein_g }} {{ t('جم','g') }}</b>
     {{ t('كل يوم — الفرق في السعرات بيتحمّله الكارب.','every day — carbs carry the calorie swing.') }}
     {{ t('الكارب بيتراوح','Carbs range') }}
@@ -311,7 +311,7 @@
       <div style="display:flex;align-items:center;gap:6px">
         {% if day.target_cal %}
         {% set lv = day.zigzag_level %}
-        <div style="background:{{ '#1B6E80' if lv == 'high' else ('#FF7A59' if lv == 'low' else '#94a3b8') }};
+        <div style="background:{{ '#1B6E80' if lv == 'high' else ('#FF7A59' if lv == 'low' else '#55647a') }};
                     color:#fff;padding:4px 12px;border-radius:100px;font-weight:800;font-size:13px"
              title="{{ t('السعرات المستهدفة لليوم ده','Target calories for this day') }}">
           {{ t('الهدف','Target') }} {{ day.target_cal }} kcal
@@ -419,16 +419,16 @@
      (مجرد رابط، بيشتغل في أي مكان) واللينك نفسه ظاهر عشان ينسخه بإيده. #}
   <div id="planLinkBox" style="display:none;background:#fff;border:2px solid #1B6E80;
        border-radius:13px;padding:14px;box-shadow:0 4px 20px rgba(0,0,0,.12)">
-    <div style="font-size:12.5px;color:#64748b;font-weight:700;margin-bottom:7px">
+    <div style="font-size:12.5px;color:#55647a;font-weight:700;margin-bottom:7px">
       {{ t('لينك الجدول — ابعته للعميل','The plan link — send it to the client') }}
     </div>
-    <input id="planLinkUrl" readonly onclick="this.select()"
+    <input id="planLinkUrl" aria-label="{{ t('لينك الجدول','Plan link') }}" readonly onclick="this.select()"
            style="width:100%;padding:11px;border:1px solid #D3E3EA;border-radius:9px;
                   font-size:13px;font-family:inherit;direction:ltr;text-align:left;
                   background:#F4F9FB;color:#0F2A43;font-weight:600">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px">
       <a id="planLinkWa" href="#" target="_blank" rel="noopener"
-         style="background:#25D366;color:#fff;text-align:center;padding:12px;
+         style="background:#0B8043;color:#fff;text-align:center;padding:12px;
                 border-radius:10px;text-decoration:none;font-weight:800;font-size:14.5px">
         <svg class="wa-icon" viewBox="0 0 448 512" width="1em" height="1em" fill="currentColor" aria-hidden="true" focusable="false"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-34.5-17-39.8-18.9-5.3-1.9-9.2-2.9-13.1 2.9-3.9 5.8-15.1 18.9-18.5 22.8-3.4 3.9-6.8 4.4-12.3 1.5-5.5-2.9-23.3-8.6-44.4-27.4-16.4-14.6-27.5-32.7-30.9-38.5-3.4-5.8-.4-9 2.4-11.8 2.5-2.5 5.5-6.5 8.2-9.8 2.7-3.3 3.6-5.6 5.5-9.4 1.9-3.9 1-7.2-.5-10.1-1.5-2.9-13.5-32.5-18.5-44.4-4.9-11.7-9.9-10.1-13.6-10.3-3.5-.2-7.5-.2-11.4-.2-3.9 0-10.2 1.5-15.5 7.3-5.3 5.8-20.3 19.9-20.3 48.5s20.8 56.2 23.7 60.1c2.9 3.9 40.9 62.4 99 87.5 13.8 6 24.6 9.6 33 12.3 11.4 3.6 21.8 3.1 30-1.9 9.2-5.6 15.4-17.3 17.6-24.7 2.2-7.4 2.2-13.8 1.5-15.1-.7-1.3-2.5-2.2-5.3-3.6z"/></svg> {{ t('واتساب','WhatsApp') }}
       </a>

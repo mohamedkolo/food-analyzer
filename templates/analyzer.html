@@ -6,7 +6,7 @@
   .anlz-wrap { max-width: 900px; margin: 0 auto; padding: 20px 16px 60px; font-family: 'Cairo', 'Tajawal', system-ui, sans-serif; }
   .anlz-hero { text-align: center; padding: 20px 0 24px; }
   .anlz-hero h1 { font-size: 28px; font-weight: 800; color: #0f172a; margin: 0 0 8px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-  .anlz-hero p { color: #64748b; font-size: 15px; margin: 0; }
+  .anlz-hero p { color: #55647a; font-size: 15px; margin: 0; }
 
   .search-box {
     position: relative;
@@ -27,7 +27,7 @@
     padding: 4px 0;
     color: #0f172a;
   }
-  .search-input::placeholder { color: #94a3b8; }
+  .search-input::placeholder { color: #55647a; }
 
   .cat-strip {
     display: flex;
@@ -58,7 +58,7 @@
 
   .results-count {
     text-align: center;
-    color: #64748b;
+    color: #55647a;
     font-size: 13px;
     margin: 8px 0 16px;
   }
@@ -66,10 +66,10 @@
   .empty-state {
     text-align: center;
     padding: 60px 20px;
-    color: #94a3b8;
+    color: #55647a;
   }
   .empty-state .emoji { font-size: 60px; margin-bottom: 12px; }
-  .empty-state h3 { font-size: 18px; color: #475569; margin: 0 0 6px; font-weight: 700; }
+  .empty-state h2 { font-size: 18px; color: #475569; margin: 0 0 6px; font-weight: 700; }
   .empty-state p { margin: 0; font-size: 14px; }
 
   .food-card {
@@ -145,7 +145,7 @@
   }
   .qty-result > div { padding: 4px; }
   .qty-result strong { display: block; font-size: 15px; color: #0f172a; }
-  .qty-result span { color: #64748b; font-size: 10px; }
+  .qty-result span { color: #55647a; font-size: 10px; }
 
   .food-note {
     margin-top: 12px;
@@ -221,7 +221,7 @@
   .cmp-table th { background: #F4F9FB; font-weight: 800; color: #0F2A43; font-size: 13px; }
   .cmp-table td:first-child, .cmp-table th:first-child { text-align: right; font-weight: 700; color: #475569; }
   .cmp-win { background: #E4F0F4; font-weight: 800; color: #0F2A43; border-radius: 6px; }
-  .cmp-legend { font-size: 11.5px; color: #64748b; margin-top: 10px; line-height: 1.7; }
+  .cmp-legend { font-size: 11.5px; color: #55647a; margin-top: 10px; line-height: 1.7; }
 
   @media (max-width: 600px) {
     .qty-section { grid-template-columns: 1fr; }
@@ -255,15 +255,15 @@
   </div>
   <div id="barcodeResult"></div>
 
-  <div class="cat-strip" id="catStrip">
+  <div class="cat-strip" id="catStrip" tabindex="0" role="group" aria-label="{{ t('فئات الأطعمة','Food categories') }}">
     {# data-cat is the lookup key and never changes; only the label is localized #}
     {% for key, icon, ar, en in [('','📋','كل الفئات','All categories'), ('poultry','🍗','دواجن','Poultry'), ('meat','🥩','لحوم','Meat'), ('fish','🐟','أسماك وبحريات','Fish & seafood'), ('dairy','🥛','ألبان وبيض','Dairy & eggs'), ('grain','🌾','نشويات','Grains & starches'), ('legume','🫘','بقوليات','Legumes'), ('veg','🥗','خضار','Vegetables'), ('fruit','🍎','فاكهة','Fruit'), ('nut','🌰','مكسرات وزيوت','Nuts & oils'), ('spice','🧂','توابل وصوصات','Spices & sauces'), ('drink','☕','مشروبات','Drinks'), ('sweet','🍬','حلويات','Sweets'), ('fast','🍔','أكل جاهز','Fast food'), ('supplement','💪','مكملات','Supplements')] %}
     <span class="cat-chip" data-cat="{{ key }}">{{ icon }} {{ ar if is_ar else en }}</span>
     {% endfor %}
   </div>
 
-  <div style="font-size:12px;font-weight:700;color:#64748b;padding:2px 4px;">🩺 {{ t('فلترة حسب الحالة الصحية:','Filter by health condition:') }}</div>
-  <div class="cat-strip" id="medStrip" style="padding-top:4px;">
+  <div style="font-size:12px;font-weight:700;color:#55647a;padding:2px 4px;">🩺 {{ t('فلترة حسب الحالة الصحية:','Filter by health condition:') }}</div>
+  <div class="cat-strip" id="medStrip" tabindex="0" role="group" aria-label="{{ t('فلترة حسب الحالة','Filter by condition') }}" style="padding-top:4px;">
     <span class="med-chip cat-chip active" data-med="">{{ t('الكل','All') }}</span>
     {% for key, icon, ar, en in [('dm','🩸','آمن للسكري','Diabetes-safe'), ('htn','❤️','آمن للضغط','Blood-pressure-safe'), ('ckd','🫘','آمن للكلى','Kidney-safe'), ('ibs','🌀','لطيف على القولون','Gut-gentle'), ('heart','❤️‍🩹','صديق للقلب','Heart-friendly'), ('keto','🥑','كيتو','Keto')] %}
     <span class="med-chip cat-chip" data-med="{{ key }}">{{ icon }} {{ ar if is_ar else en }}</span>
@@ -277,7 +277,7 @@
   <div id="resultsContainer">
     <div class="empty-state" id="emptyState">
       <div class="emoji">🔍</div>
-      <h3>{{ t('ابدأ بكتابة اسم الطعام','Start by typing a food name') }}</h3>
+      <h2>{{ t('ابدأ بكتابة اسم الطعام','Start by typing a food name') }}</h2>
       <p>{{ t('أو اختار فئة من فوق لتظهر الأطعمة','Or pick a category above to list foods') }}</p>
     </div>
   </div>
@@ -347,7 +347,7 @@ function makeCard(food) {
   return `
     <div class="food-card">
       <div class="food-head">
-        <h3 class="food-name">${IS_AR ? food.n : (food.en || food.n)}${(IS_AR ? food.en : food.n) ? `<span style="display:block;font-size:11px;color:#94a3b8;font-weight:600;direction:${IS_AR ? 'ltr' : 'rtl'};text-align:start;">${IS_AR ? food.en : food.n}</span>` : ''}</h3>
+        <h3 class="food-name">${IS_AR ? food.n : (food.en || food.n)}${(IS_AR ? food.en : food.n) ? `<span style="display:block;font-size:11px;color:#55647a;font-weight:600;direction:${IS_AR ? 'ltr' : 'rtl'};text-align:start;">${IS_AR ? food.en : food.n}</span>` : ''}</h3>
         <div class="food-cal">${food.cal} <small>kcal/100g</small></div>
       </div>
       <div class="macros">
@@ -358,8 +358,8 @@ function makeCard(food) {
       <div class="qty-section">
         <div>
           <div class="qty-label">${AZ.qtyLabel}</div>
-          <input type="number" class="qty-input" value="100" min="0.5" max="2000" step="0.5" data-food='${JSON.stringify(food)}' style="width:70px;">
-          ${food.units && food.units.length ? `<select class="unit-select" style="padding:6px 8px;border:1.5px solid #D3E3EA;border-radius:8px;font-family:inherit;font-size:12px;background:#fff;max-width:130px;">
+          <input type="number" class="qty-input" aria-label="${IS_AR ? 'الكمية' : 'Quantity'}" value="100" min="0.5" max="2000" step="0.5" data-food='${JSON.stringify(food)}' style="width:70px;">
+          ${food.units && food.units.length ? `<select class="unit-select" aria-label="${IS_AR ? 'الوحدة' : 'Unit'}" style="padding:6px 8px;border:1.5px solid #D3E3EA;border-radius:8px;font-family:inherit;font-size:12px;background:#fff;max-width:130px;">
             <option value="1" selected>${AZ.gramUnit}</option>
             ${food.units.map(u => `<option value="${u[1]}">${UNIT_NAMES[u[0]] || u[0]} (${u[1]}${AZ.grams})</option>`).join('')}
           </select>` : ''}
@@ -394,7 +394,7 @@ function render() {
     resultsContainer.innerHTML = `
       <div class="empty-state">
         <div class="emoji">🔍</div>
-        <h3>{{ t('ابدأ بكتابة اسم الطعام','Start by typing a food name') }}</h3>
+        <h2>{{ t('ابدأ بكتابة اسم الطعام','Start by typing a food name') }}</h2>
         <p>{{ t('أو اختار فئة من فوق لتظهر الأطعمة','Or pick a category above to list foods') }}</p>
       </div>`;
     resultsCount.style.display = 'none';
@@ -532,7 +532,7 @@ function cmpRow(label, a, b, unit, lowerIsHighlighted) {
     <td>${label}</td>
     <td class="${aCls}">${a}${unit}</td>
     <td class="${bCls}">${b}${unit}</td>
-    <td style="color:#64748b;font-size:12px;">${diff === '0' ? AZ.equal : AZ.diffPrefix + ' ' + diff + unit}</td>
+    <td style="color:#55647a;font-size:12px;">${diff === '0' ? AZ.equal : AZ.diffPrefix + ' ' + diff + unit}</td>
   </tr>`;
 }
 

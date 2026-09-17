@@ -5,7 +5,7 @@
 <style>
   .reg-wrap { max-width: 720px; margin: 24px auto; padding: 16px; font-family: 'Cairo', 'Tajawal', system-ui, sans-serif; }
   .prog-section { margin-bottom: 28px; }
-  .prog-info { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; color: #64748b; font-weight: 600; }
+  .prog-info { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; color: #55647a; font-weight: 600; }
   .prog-num { color: #1B6E80; font-weight: 800; }
   .prog-bar { height: 8px; background: #D3E3EA; border-radius: 999px; overflow: hidden; }
   .prog-fill { height: 100%; background: linear-gradient(90deg, #1B6E80, #FF7A59); border-radius: 999px; transition: width 0.5s ease; width: 16.6%; }
@@ -14,12 +14,12 @@
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   .step-icon { font-size: 44px; text-align: center; margin-bottom: 6px; }
   .step-title { font-size: 22px; font-weight: 800; color: #0f172a; text-align: center; margin: 0 0 6px; }
-  .step-sub { color: #64748b; text-align: center; margin: 0 0 24px; font-size: 14px; line-height: 1.6; }
+  .step-sub { color: #55647a; text-align: center; margin: 0 0 24px; font-size: 14px; line-height: 1.6; }
   .opt-tag { display: inline-block; background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-right: 6px; }
   .field { margin-bottom: 16px; }
   .field-label { display: block; font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
   .field-label .req { color: #ef4444; }
-  .field-hint { font-size: 11px; color: #94a3b8; margin-top: 3px; }
+  .field-hint { font-size: 11px; color: #55647a; margin-top: 3px; }
   input, select, textarea { width: 100%; padding: 11px 14px; border: 2px solid #D3E3EA; border-radius: 10px; font-family: inherit; font-size: 15px; color: #0f172a; background: #fff; transition: all 0.2s; box-sizing: border-box; }
   input:focus, select:focus, textarea:focus { outline: none; border-color: #1B6E80; box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
   textarea { min-height: 70px; resize: vertical; }
@@ -52,7 +52,7 @@
   .btn-next { background: linear-gradient(135deg, #1B6E80, #1B6E80); color: #fff; box-shadow: 0 4px 14px rgba(16,185,129,0.3); flex: 2; }
   .btn-next:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(16,185,129,0.4); }
   .btn-submit { background: linear-gradient(135deg, #1B6E80, #0F2A43); color: #fff; flex: 2; box-shadow: 0 4px 14px rgba(16,185,129,0.4); }
-  .login-link { text-align: center; margin-top: 16px; color: #64748b; font-size: 13px; }
+  .login-link { text-align: center; margin-top: 16px; color: #55647a; font-size: 13px; }
   .login-link a { color: #1B6E80; font-weight: 700; text-decoration: none; }
   .login-link a:hover { text-decoration: underline; }
   .error-msg { background: #fee2e2; color: #991b1b; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; font-size: 13px; font-weight: 600; border: 1px solid #fca5a5; }
@@ -93,8 +93,8 @@
       <h2 class="step-title">{{ t('بياناتك الشخصية','Your personal details') }}</h2>
       <p class="step-sub">{{ t('مهمة عشان نحسب احتياجاتك من السعرات','We need these to calculate your calorie needs') }}</p>
       <div class="row-2">
-        <div class="field"><label class="field-label">{{ t('البلد','Country') }} <span class="req">*</span></label>
-          <select name="country" required>
+        <div class="field"><label class="field-label" for="rg_country">{{ t('البلد','Country') }} <span class="req">*</span></label>
+          <select id="rg_country" name="country" required>
             <option value="">{{ t('اختار','Select') }}</option>
             {# option values are stored as-is; only the labels are localized #}
             {% for code, flag, en in [('مصر','🇪🇬','Egypt'),('السعودية','🇸🇦','Saudi Arabia'),('الإمارات','🇦🇪','UAE'),('الكويت','🇰🇼','Kuwait'),('قطر','🇶🇦','Qatar'),('البحرين','🇧🇭','Bahrain'),('عمان','🇴🇲','Oman'),('الأردن','🇯🇴','Jordan'),('لبنان','🇱🇧','Lebanon'),('المغرب','🇲🇦','Morocco'),('الجزائر','🇩🇿','Algeria'),('تونس','🇹🇳','Tunisia')] %}
@@ -105,7 +105,7 @@
         </div>
         <div class="field"><label class="field-label">{{ t('العمر','Age') }} <span class="req">*</span></label><input type="number" name="age" required min="10" max="100" placeholder="{{ t('مثال: 30','e.g. 30') }}"></div>
       </div>
-      <div class="field"><label class="field-label">{{ t('الجنس','Gender') }} <span class="req">*</span></label><select name="gender" required><option value="">{{ t('اختار','Select') }}</option><option value="ذكر">{{ t('ذكر','Male') }}</option><option value="أنثى">{{ t('أنثى','Female') }}</option></select></div>
+      <div class="field"><label class="field-label" for="rg_gender">{{ t('الجنس','Gender') }} <span class="req">*</span></label><select id="rg_gender" name="gender" required><option value="">{{ t('اختار','Select') }}</option><option value="ذكر">{{ t('ذكر','Male') }}</option><option value="أنثى">{{ t('أنثى','Female') }}</option></select></div>
       <div class="row-2">
         <div class="field"><label class="field-label">{{ t('الطول','Height') }} (cm) <span class="req">*</span></label><input type="number" name="height" required step="0.5" min="50" max="250" placeholder="170"></div>
         <div class="field"><label class="field-label">{{ t('الوزن الحالي','Current weight') }} (kg) <span class="req">*</span></label><input type="number" name="weight" required step="0.1" min="20" max="300" placeholder="70.5"></div>
@@ -123,8 +123,8 @@
         <label class="goal-card" data-value="{{ val }}"><input type="radio" name="goal" value="{{ val }}"><div class="icon">{{ icon }}</div><div class="name">{{ ar if is_ar else en }}</div></label>
         {% endfor %}
       </div>
-      <div class="field" style="margin-top: 22px;"><label class="field-label">{{ t('مستوى نشاطك اليومي','Your daily activity level') }} <span class="req">*</span></label>
-        <select name="activity" required>
+      <div class="field" style="margin-top: 22px;"><label class="field-label" for="rg_activity">{{ t('مستوى نشاطك اليومي','Your daily activity level') }} <span class="req">*</span></label>
+        <select id="rg_activity" name="activity" required>
           <option value="1.2">{{ t('قليل (شغل مكتبي + مفيش رياضة)','Sedentary (desk job, no exercise)') }}</option>
           <option value="1.375">{{ t('خفيف (رياضة 1-3 مرات/أسبوع)','Light (exercise 1-3 times/week)') }}</option>
           <option value="1.55" selected>{{ t('متوسط (رياضة 3-5 مرات/أسبوع)','Moderate (exercise 3-5 times/week)') }}</option>
@@ -142,33 +142,33 @@
       <p class="step-sub">{{ t('عشان نقدر نديك نصايح أدق عن نومك ومستوى التوتر','So we can give you sharper advice on sleep and stress') }}</p>
 
       <div class="field">
-        <label class="field-label">😴 {{ t('ساعات النوم يومياً','Hours of sleep per day') }}</label>
+        <label for="f_sleep_hours" class="field-label">😴 {{ t('ساعات النوم يومياً','Hours of sleep per day') }}</label>
         <div class="slider-wrap">
-          <div class="slider-row"><span style="font-size:12px; color:#64748b;">{{ t('من 3 لـ 12 ساعة','3 to 12 hours') }}</span><span class="slider-val"><span id="sleepVal">7</span> {{ t('ساعات','hrs') }}</span></div>
-          <input type="range" name="sleep_hours" min="3" max="12" value="7" oninput="document.getElementById('sleepVal').textContent = this.value">
+          <div class="slider-row"><span style="font-size:12px; color:#55647a;">{{ t('من 3 لـ 12 ساعة','3 to 12 hours') }}</span><span class="slider-val"><span id="sleepVal">7</span> {{ t('ساعات','hrs') }}</span></div>
+          <input id="f_sleep_hours" type="range" name="sleep_hours" min="3" max="12" value="7" oninput="document.getElementById('sleepVal').textContent = this.value">
         </div>
       </div>
 
       <div class="field">
-        <label class="field-label">💧 {{ t('شرب المياه يومياً (كوب)','Water per day (cups)') }}</label>
+        <label for="f_water_cups" class="field-label">💧 {{ t('شرب المياه يومياً (كوب)','Water per day (cups)') }}</label>
         <div class="slider-wrap">
-          <div class="slider-row"><span style="font-size:12px; color:#64748b;">{{ t('من 0 لـ 15 كوب','0 to 15 cups') }}</span><span class="slider-val"><span id="waterVal">6</span> {{ t('كوب','cups') }}</span></div>
-          <input type="range" name="water_cups" min="0" max="15" value="6" oninput="document.getElementById('waterVal').textContent = this.value">
+          <div class="slider-row"><span style="font-size:12px; color:#55647a;">{{ t('من 0 لـ 15 كوب','0 to 15 cups') }}</span><span class="slider-val"><span id="waterVal">6</span> {{ t('كوب','cups') }}</span></div>
+          <input id="f_water_cups" type="range" name="water_cups" min="0" max="15" value="6" oninput="document.getElementById('waterVal').textContent = this.value">
         </div>
       </div>
 
       <div class="field">
-        <label class="field-label">😰 {{ t('مستوى التوتر (1 = هادي / 10 = توتر شديد)','Stress level (1 = calm / 10 = very stressed)') }}</label>
+        <label for="f_stress_level" class="field-label">😰 {{ t('مستوى التوتر (1 = هادي / 10 = توتر شديد)','Stress level (1 = calm / 10 = very stressed)') }}</label>
         <div class="slider-wrap">
-          <div class="slider-row"><span style="font-size:12px; color:#64748b;">{{ t('من 1 لـ 10','1 to 10') }}</span><span class="slider-val"><span id="stressVal">5</span> / 10</span></div>
-          <input type="range" name="stress_level" min="1" max="10" value="5" oninput="document.getElementById('stressVal').textContent = this.value">
+          <div class="slider-row"><span style="font-size:12px; color:#55647a;">{{ t('من 1 لـ 10','1 to 10') }}</span><span class="slider-val"><span id="stressVal">5</span> / 10</span></div>
+          <input id="f_stress_level" type="range" name="stress_level" min="1" max="10" value="5" oninput="document.getElementById('stressVal').textContent = this.value">
         </div>
       </div>
 
       <div class="row-2">
         <div class="field">
-          <label class="field-label">☕ {{ t('كافيين يومياً','Caffeine per day') }}</label>
-          <select name="caffeine">
+          <label class="field-label" for="rg_caffeine">☕ {{ t('كافيين يومياً','Caffeine per day') }}</label>
+          <select id="rg_caffeine" name="caffeine">
             <option value="none">{{ t('لا شيء','None') }}</option>
             <option value="low" selected>{{ t('قليل (1-2 كوب)','Low (1-2 cups)') }}</option>
             <option value="medium">{{ t('متوسط (3-4 كوب)','Moderate (3-4 cups)') }}</option>
@@ -176,8 +176,8 @@
           </select>
         </div>
         <div class="field">
-          <label class="field-label">🚬 {{ t('التدخين','Smoking') }}</label>
-          <select name="smoking">
+          <label class="field-label" for="rg_smoking">🚬 {{ t('التدخين','Smoking') }}</label>
+          <select id="rg_smoking" name="smoking">
             <option value="no" selected>{{ t('لا','No') }}</option>
             <option value="light">{{ t('خفيف (أقل من 10 سجائر)','Light (under 10 cigarettes)') }}</option>
             <option value="heavy">{{ t('كتير (10+ سجائر)','Heavy (10+ cigarettes)') }}</option>

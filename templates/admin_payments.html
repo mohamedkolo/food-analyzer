@@ -71,7 +71,7 @@
 
   .stat-label {
     font-size: 13px;
-    color: #94a3b8;
+    color: #55647a;
     margin-bottom: 8px;
     font-weight: 600;
   }
@@ -85,7 +85,7 @@
 
   .stat-trend {
     font-size: 12px;
-    color: #64748b;
+    color: #55647a;
     margin-top: 6px;
   }
 
@@ -206,7 +206,7 @@
   .empty-state {
     text-align: center;
     padding: 60px 20px;
-    color: #94a3b8;
+    color: #55647a;
   }
 
   .empty-state .icon {
@@ -217,11 +217,11 @@
 
   .user-cell { display: flex; flex-direction: column; gap: 2px; }
   .user-name { font-weight: 700; color: #0f172a; }
-  .user-email { font-size: 12px; color: #94a3b8; }
+  .user-email { font-size: 12px; color: #55647a; }
 
   .amount-cell { font-weight: 700; color: #1B6E80; }
 
-  .date-cell { font-size: 13px; color: #64748b; }
+  .date-cell { font-size: 13px; color: #55647a; }
 
   .hidden { display: none !important; }
 
@@ -284,12 +284,12 @@
         </rect>
       {% endfor %}
     </svg>
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-top:4px;">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:#55647a;margin-top:4px;">
       <span>{{ analytics.revenue_chart[0].label }}</span>
       <span>{{ analytics.revenue_chart[-1].label }}</span>
     </div>
     {% else %}
-    <div style="color:#94a3b8;font-size:13px;padding:20px 0;">{{ t('مفيش دفعات جنيه مصري مكتملة في الفترة دي','No completed EGP payments in this period') }}</div>
+    <div style="color:#55647a;font-size:13px;padding:20px 0;">{{ t('مفيش دفعات جنيه مصري مكتملة في الفترة دي','No completed EGP payments in this period') }}</div>
     {% endif %}
   </div>
 
@@ -302,12 +302,12 @@
         {% for r in analytics.renewals_soon %}
         <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #E9F2F6;font-size:13px;">
           <span style="font-weight:700;color:#0f172a;">{{ r.name }}{% if r.is_trial %} <span style="color:#f59e0b;">({{ t('تجربة','trial') }})</span>{% endif %}</span>
-          <span style="color:#64748b;white-space:nowrap;">{{ r.plan_name }} · {{ r.days_left }} {{ t('يوم','days') }}</span>
+          <span style="color:#55647a;white-space:nowrap;">{{ r.plan_name }} · {{ r.days_left }} {{ t('يوم','days') }}</span>
         </div>
         {% endfor %}
       </div>
       {% else %}
-      <div style="color:#94a3b8;font-size:13px;padding:16px 0;">{{ t('مفيش تجديدات قريبة','No renewals due soon') }}</div>
+      <div style="color:#55647a;font-size:13px;padding:16px 0;">{{ t('مفيش تجديدات قريبة','No renewals due soon') }}</div>
       {% endif %}
     </div>
     <div class="stat-card" style="--c:#dc2626;">
@@ -317,12 +317,12 @@
         {% for r in analytics.recently_lost %}
         <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #E9F2F6;font-size:13px;">
           <span style="font-weight:700;color:#0f172a;">{{ r.name }}</span>
-          <span style="color:#64748b;white-space:nowrap;">{{ r.plan_name }} · {{ r.reason }}</span>
+          <span style="color:#55647a;white-space:nowrap;">{{ r.plan_name }} · {{ r.reason }}</span>
         </div>
         {% endfor %}
       </div>
       {% else %}
-      <div style="color:#94a3b8;font-size:13px;padding:16px 0;">{{ t('مفيش حد فقد الوصول مؤخراً','Nobody has lost access recently') }} 🎉</div>
+      <div style="color:#55647a;font-size:13px;padding:16px 0;">{{ t('مفيش حد فقد الوصول مؤخراً','Nobody has lost access recently') }} 🎉</div>
       {% endif %}
     </div>
   </div>
@@ -336,8 +336,8 @@
 
   <!-- Filters -->
   <div class="filters">
-    <input type="text" id="searchInput" class="filter-input" placeholder="{{ t('🔍 ابحث بإسم العميل أو الإيميل...','🔍 Search by client name or email…') }}">
-    <select id="statusFilter" class="filter-input">
+    <input aria-label="{{ t('بحث','Search') }}" type="text" id="searchInput" class="filter-input" placeholder="{{ t('🔍 ابحث بإسم العميل أو الإيميل...','🔍 Search by client name or email…') }}">
+    <select aria-label="{{ t('فلترة بالحالة','Filter by status') }}" id="statusFilter" class="filter-input">
       <option value="">{{ t('كل الحالات','All statuses') }}</option>
       <option value="active">{{ t('نشط','Active') }}</option>
       <option value="trialing">{{ t('فترة تجريبية','Trialing') }}</option>
@@ -346,7 +346,7 @@
       <option value="failed">{{ t('فاشل','Failed') }}</option>
       <option value="past_due">{{ t('متأخر','Past due') }}</option>
     </select>
-    <select id="planFilter" class="filter-input">
+    <select aria-label="{{ t('فلترة بالخطة','Filter by plan') }}" id="planFilter" class="filter-input">
       <option value="">{{ t('كل الخطط','All plans') }}</option>
       <option value="consultation">{{ t('استشارة فردية','Single consultation') }}</option>
       <option value="single_plan">{{ t('خطة واحدة','Single plan') }}</option>

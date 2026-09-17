@@ -26,7 +26,7 @@ const MSG = {
 
   /* Back link */
   .back-link {
-    color: #64748b;
+    color: #55647a;
     text-decoration: none;
     font-size: 14px;
     margin-bottom: 14px;
@@ -103,7 +103,7 @@ const MSG = {
   }
   .qstat-icon { font-size: 24px; margin-bottom: 6px; }
   .qstat-val { font-size: 22px; font-weight: 800; color: #0f172a; line-height: 1; }
-  .qstat-lbl { font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 600; }
+  .qstat-lbl { font-size: 12px; color: #55647a; margin-top: 4px; font-weight: 600; }
 
   /* Section card */
   .section {
@@ -136,7 +136,7 @@ const MSG = {
     background: #F4F9FB;
     border-radius: 10px;
   }
-  .info-lbl { font-size: 12px; color: #94a3b8; font-weight: 600; margin-bottom: 2px; }
+  .info-lbl { font-size: 12px; color: #55647a; font-weight: 600; margin-bottom: 2px; }
   .info-val { font-size: 15px; color: #0f172a; font-weight: 700; }
 
   /* Tags */
@@ -241,9 +241,9 @@ const MSG = {
   .plan-mini:hover { border-color: #1B6E80; }
   .plan-mini-head { display: flex; justify-content: space-between; margin-bottom: 8px; }
   .plan-mini-title { font-weight: 700; color: #0f172a; font-size: 14px; }
-  .plan-mini-date { color: #94a3b8; font-size: 12px; margin-bottom: 8px; }
+  .plan-mini-date { color: #55647a; font-size: 12px; margin-bottom: 8px; }
 
-  .empty-mini { color: #94a3b8; text-align: center; padding: 20px; font-size: 14px; }
+  .empty-mini { color: #55647a; text-align: center; padding: 20px; font-size: 14px; }
 
   textarea { min-height: 80px; resize: vertical; }
 
@@ -377,7 +377,7 @@ const MSG = {
 
           <div class="info-item">
             <div class="info-lbl">{{ t('نوع الخطة','Plan type') }} <span style="color:#dc2626">*</span></div>
-            <select name="plan_key" required
+            <select aria-label="{{ t('نوع الخطة','Plan type') }}" name="plan_key" required
                     style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
               <option value="">{{ t('اختار','Select') }}</option>
               <option value="consultation">💬 {{ t('استشارة فردية (24 ساعة)','Single consultation (24 hours)') }}</option>
@@ -395,7 +395,7 @@ const MSG = {
 
           <div class="info-item">
             <div class="info-lbl">{{ t('العملة','Currency') }}</div>
-            <select name="currency"
+            <select aria-label="{{ t('العملة','Currency') }}" name="currency"
                     style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px;">
               <option value="EGP" selected>🇪🇬 EGP</option>
               <option value="AED">🇦🇪 AED</option>
@@ -406,7 +406,7 @@ const MSG = {
 
           <div class="info-item">
             <div class="info-lbl">{{ t('طريقة الدفع','Payment method') }}</div>
-            <select name="payment_method"
+            <select aria-label="{{ t('طريقة الدفع','Payment method') }}" name="payment_method"
                     style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px;">
               <option value="vodafone_cash">📱 {{ t('فودافون كاش','Vodafone Cash') }}</option>
               <option value="instapay">⚡ InstaPay</option>
@@ -504,32 +504,32 @@ const MSG = {
         <div class="info-grid">
           <div class="info-item">
             <div class="info-lbl">{{ t('الاسم','Name') }}</div>
-            <input type="text" name="name" value="{{ user.name or '' }}" required
+            <input aria-label="{{ t('الاسم','Name') }}" type="text" name="name" value="{{ user.name or '' }}" required
                    style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('الإيميل','Email') }}</div>
-            <input type="email" name="email" value="{{ user.email or '' }}" required
+            <input aria-label="{{ t('الإيميل','Email') }}" type="email" name="email" value="{{ user.email or '' }}" required
                    style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('التليفون','Phone') }}</div>
-            <input type="text" name="phone" value="{{ user.phone or '' }}"
+            <input aria-label="{{ t('التليفون','Phone') }}" type="text" name="phone" value="{{ user.phone or '' }}"
                    style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('البلد','Country') }}</div>
-            <input type="text" name="country" value="{{ user.country or '' }}"
+            <input aria-label="{{ t('البلد','Country') }}" type="text" name="country" value="{{ user.country or '' }}"
                    style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('العمر','Age') }}</div>
-            <input type="number" name="age" value="{{ user.age or '' }}" min="10" max="100"
+            <input aria-label="{{ t('العمر','Age') }}" type="number" name="age" value="{{ user.age or '' }}" min="10" max="100"
                    style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('الجنس','Gender') }}</div>
-            <select name="gender" style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
+            <select aria-label="{{ t('الجنس','Gender') }}" name="gender" style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px; font-family:inherit;">
               <option value="">-</option>
               <option value="ذكر" {% if user.gender == 'ذكر' %}selected{% endif %}>{{ t('ذكر','Male') }}</option>
               <option value="أنثى" {% if user.gender == 'أنثى' %}selected{% endif %}>{{ t('أنثى','Female') }}</option>
@@ -546,17 +546,17 @@ const MSG = {
         <div class="info-grid">
           <div class="info-item">
             <div class="info-lbl">{{ t('الوزن','Weight') }} (kg)</div>
-            <input type="number" step="0.1" name="weight" value="{{ user.weight or '' }}"
+            <input aria-label="{{ t('الوزن بالكيلو','Weight in kg') }}" type="number" step="0.1" name="weight" value="{{ user.weight or '' }}"
                    style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px;">
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('الطول','Height') }} (cm)</div>
-            <input type="number" step="0.5" name="height" value="{{ user.height or '' }}"
+            <input aria-label="{{ t('الطول بالسنتيمتر','Height in cm') }}" type="number" step="0.5" name="height" value="{{ user.height or '' }}"
                    style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px;">
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('الهدف','Goal') }}</div>
-            <select name="goal" style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px;">
+            <select aria-label="{{ t('الهدف','Goal') }}" name="goal" style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px;">
               <option value="weight_loss" {% if user.goal == 'weight_loss' %}selected{% endif %}>{{ t('تخسيس','Weight Loss') }}</option>
               <option value="muscle_gain" {% if user.goal == 'muscle_gain' %}selected{% endif %}>{{ t('زيادة عضل','Muscle Gain') }}</option>
               <option value="bulking" {% if user.goal == 'bulking' %}selected{% endif %}>{{ t('تضخيم','Bulking') }}</option>
@@ -565,7 +565,7 @@ const MSG = {
           </div>
           <div class="info-item">
             <div class="info-lbl">{{ t('مستوى النشاط','Activity level') }}</div>
-            <select name="activity" style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px;">
+            <select aria-label="{{ t('مستوى النشاط','Activity level') }}" name="activity" style="width:100%; padding:8px 12px; border:1px solid #D3E3EA; border-radius:8px; margin-top:4px;">
               <option value="1.2" {% if user.activity == 1.2 %}selected{% endif %}>{{ t('قليل','Sedentary') }}</option>
               <option value="1.375" {% if user.activity == 1.375 %}selected{% endif %}>{{ t('خفيف','Light') }}</option>
               <option value="1.55" {% if user.activity == 1.55 %}selected{% endif %}>{{ t('متوسط','Moderate') }}</option>
@@ -754,7 +754,7 @@ const MSG = {
     <form method="POST" action="/admin/users/{{ user.id }}/add-weight" class="inline-form" style="margin-bottom: 18px;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="number" step="0.1" name="weight" placeholder="{{ t('الوزن الجديد (kg)','New weight (kg)') }}" required>
-      <input type="date" name="logged_date" value="{{ today_date or '' }}">
+      <input aria-label="{{ t('تاريخ القياس','Date of the reading') }}" type="date" name="logged_date" value="{{ today_date or '' }}">
       <button type="submit" class="act-btn act-primary" style="padding: 8px 18px;">+ {{ t('إضافة قياس وزن','Add a weight entry') }}</button>
     </form>
 
@@ -783,8 +783,8 @@ const MSG = {
                 {% if w.diff is defined and w.diff is not none %}
                   {% if w.diff > 0 %}<span style="color:#dc2626">▲ +{{ "%.1f"|format(w.diff) }}</span>
                   {% elif w.diff < 0 %}<span style="color:#1B6E80">▼ {{ "%.1f"|format(w.diff) }}</span>
-                  {% else %}<span style="color:#94a3b8">— 0</span>{% endif %}
-                {% else %}<span style="color:#94a3b8">—</span>{% endif %}
+                  {% else %}<span style="color:#55647a">— 0</span>{% endif %}
+                {% else %}<span style="color:#55647a">—</span>{% endif %}
               </td>
             </tr>
             {% endfor %}
@@ -806,10 +806,10 @@ const MSG = {
   <div class="section">
     <h2 class="section-title">💬 {{ t('تواصل مع العميل','Contact the client') }}</h2>
     <a href="{{ client_whatsapp }}" target="_blank" rel="noopener"
-       style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;padding:11px 22px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">
+       style="display:inline-flex;align-items:center;gap:8px;background:#0B8043;color:#fff;padding:11px 22px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">
       <span style="font-size:18px;">💬</span> {{ t('فتح واتساب مع','Open WhatsApp with') }} {{ user.name or t('العميل','the client') }}
     </a>
-    <span style="font-size:12px;color:#94a3b8;margin-right:10px;">({{ user.phone }})</span>
+    <span style="font-size:12px;color:#55647a;margin-right:10px;">({{ user.phone }})</span>
   </div>
   {% endif %}
 
@@ -819,14 +819,14 @@ const MSG = {
     <h2 class="section-title">✅ {{ t('التزام العميل بالخطة','Client adherence to the plan') }}</h2>
     <div style="display:flex;gap:12px;flex-wrap:wrap;">
       <div style="flex:1;min-width:140px;background:#F4F9FB;border:1px solid #B4D0DA;border-radius:12px;padding:14px;text-align:center;">
-        <div style="font-size:11.5px;font-weight:700;color:#64748b;">{{ t('النهارده','Today') }} ({{ tracking.day_name }})</div>
+        <div style="font-size:11.5px;font-weight:700;color:#55647a;">{{ t('النهارده','Today') }} ({{ tracking.day_name }})</div>
         <div style="font-size:26px;font-weight:900;color:#0F2A43;">{{ tracking.today_done }}/{{ tracking.today_total }}</div>
-        <div style="font-size:11px;color:#94a3b8;">{{ t('وجبات متعلّم عليها','meals ticked off') }}</div>
+        <div style="font-size:11px;color:#55647a;">{{ t('وجبات متعلّم عليها','meals ticked off') }}</div>
       </div>
       <div style="flex:1;min-width:140px;background:{% if tracking.week_pct and tracking.week_pct >= 70 %}#F4F9FB;border:1px solid #B4D0DA{% elif tracking.week_pct and tracking.week_pct >= 40 %}#fffbeb;border:1px solid #fcd34d{% else %}#fef2f2;border:1px solid #fecaca{% endif %};border-radius:12px;padding:14px;text-align:center;">
-        <div style="font-size:11.5px;font-weight:700;color:#64748b;">{{ t('التزام آخر 7 أيام','Adherence, last 7 days') }}</div>
+        <div style="font-size:11.5px;font-weight:700;color:#55647a;">{{ t('التزام آخر 7 أيام','Adherence, last 7 days') }}</div>
         <div style="font-size:26px;font-weight:900;color:#0F2A43;">{{ tracking.week_pct if tracking.week_pct is not none else '—' }}{% if tracking.week_pct is not none %}%{% endif %}</div>
-        <div style="font-size:11px;color:#94a3b8;">{% if tracking.week_pct and tracking.week_pct >= 70 %}{{ t('ملتزم ممتاز','Excellent adherence') }} 👏{% elif tracking.week_pct and tracking.week_pct >= 40 %}{{ t('محتاج تشجيع','Needs encouragement') }}{% else %}{{ t('اتواصل معاه','Reach out to them') }}{% endif %}</div>
+        <div style="font-size:11px;color:#55647a;">{% if tracking.week_pct and tracking.week_pct >= 70 %}{{ t('ملتزم ممتاز','Excellent adherence') }} 👏{% elif tracking.week_pct and tracking.week_pct >= 40 %}{{ t('محتاج تشجيع','Needs encouragement') }}{% else %}{{ t('اتواصل معاه','Reach out to them') }}{% endif %}</div>
       </div>
     </div>
   </div>
@@ -842,7 +842,7 @@ const MSG = {
     {% elif request.args.get('pwreset') == 'err' %}
     <div style="background:#fee;color:#8b0000;border:1px solid #fca5a5;padding:10px 14px;border-radius:8px;margin-bottom:10px;">⚠️ {{ t('حصلت مشكلة — حاول تاني.','Something went wrong — try again.') }}</div>
     {% endif %}
-    <p style="font-size:13px;color:#64748b;margin:0 0 10px;">{{ t('لو العميل نسي كلمة سره: اكتب واحدة جديدة هنا، احفظ، وابعتهاله. يقدر يغيّرها بعدين من إعداداته.','If the client forgot their password: type a new one here, save, and send it to them. They can change it later in their settings.') }}</p>
+    <p style="font-size:13px;color:#55647a;margin:0 0 10px;">{{ t('لو العميل نسي كلمة سره: اكتب واحدة جديدة هنا، احفظ، وابعتهاله. يقدر يغيّرها بعدين من إعداداته.','If the client forgot their password: type a new one here, save, and send it to them. They can change it later in their settings.') }}</p>
     <form method="POST" action="/admin/users/{{ user.id }}/reset-password" style="display:flex;gap:8px;flex-wrap:wrap;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="text" name="new_password" minlength="6" required placeholder="{{ t('كلمة السر الجديدة (6+ أحرف)','New password (6+ characters)') }}"

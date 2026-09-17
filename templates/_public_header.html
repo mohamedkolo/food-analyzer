@@ -1,19 +1,19 @@
 {# the header a visitor sees: no app sidebar, just a way in #}
 <header class="header">
   <div style="display:flex;align-items:center;gap:12px">
-    <a href="/" class="header-logo" style="text-decoration:none;color:inherit">
+    <a href="/" class="header-logo" style="text-decoration:none;color:#fff">
       <i class="fa-solid fa-leaf" style="color:#FF7A59"></i> NutraX
     </a>
   </div>
   <div style="display:flex;align-items:center;gap:14px">
-    <a href="/foods" style="color:#475569;text-decoration:none;font-size:13px;font-weight:700">
+    <a href="/foods" style="color:#cbd5e1;text-decoration:none;font-size:13px;font-weight:700">
       {{ t('جدول السعرات','Calorie table') }}
     </a>
-    <a href="/pricing" style="color:#475569;text-decoration:none;font-size:13px;font-weight:700">
+    <a href="/pricing" style="color:#cbd5e1;text-decoration:none;font-size:13px;font-weight:700">
       {{ t('الأسعار','Pricing') }}
     </a>
     <a href="/lang/{{ 'en' if (lang or 'ar') == 'ar' else 'ar' }}"
-       style="color:#475569;text-decoration:none;font-size:13px;font-weight:700">
+       style="color:#cbd5e1;text-decoration:none;font-size:13px;font-weight:700">
       <i class="fa-solid fa-globe"></i> {{ 'English' if (lang or 'ar') == 'ar' else 'عربي' }}
     </a>
     <a href="/login" style="background:#1B6E80;color:#fff;padding:8px 16px;border-radius:9px;

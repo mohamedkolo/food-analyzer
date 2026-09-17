@@ -3,7 +3,7 @@
 <html lang="{{ 'ar' if is_ar else 'en' }}" dir="{{ 'rtl' if is_ar else 'ltr' }}">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ t('أهلاً بيك في NutraX','Welcome to NutraX') }}</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -16,7 +16,7 @@ body{background:linear-gradient(160deg,#F4F9FB 0%,#ffffff 45%,#F4F9FB 100%);min-
 @keyframes slideIn{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:translateX(0)}}
 .step-emoji{font-size:56px;text-align:center;margin-bottom:14px}
 h1{font-size:26px;font-weight:900;text-align:center;color:#0F2A43;line-height:1.5;margin-bottom:8px}
-.sub{font-size:14.5px;color:#64748b;text-align:center;line-height:1.8;margin-bottom:28px}
+.sub{font-size:14.5px;color:#55647a;text-align:center;line-height:1.8;margin-bottom:28px}
 .cards{display:flex;flex-direction:column;gap:12px}
 .cards.grid2{display:grid;grid-template-columns:1fr 1fr}
 .opt{background:#fff;border:2.5px solid #D3E3EA;border-radius:16px;padding:16px;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:14px;text-align:right}
@@ -24,11 +24,11 @@ h1{font-size:26px;font-weight:900;text-align:center;color:#0F2A43;line-height:1.
 .opt.selected{border-color:#1B6E80;background:#F4F9FB;box-shadow:0 4px 18px rgba(16,185,129,.18)}
 .opt .oemoji{font-size:30px;flex-shrink:0}
 .opt .otitle{font-weight:800;font-size:15.5px;color:#1e293b}
-.opt .odesc{font-size:12px;color:#94a3b8;margin-top:2px;line-height:1.5}
+.opt .odesc{font-size:12px;color:#55647a;margin-top:2px;line-height:1.5}
 .opt.center{flex-direction:column;text-align:center;gap:6px;padding:20px 12px}
 .bignum{display:flex;align-items:center;justify-content:center;gap:14px;margin:16px 0}
 .bignum input{width:150px;font-size:44px;font-weight:900;text-align:center;border:none;border-bottom:4px solid #1B6E80;background:transparent;color:#0F2A43;outline:none;font-family:inherit}
-.bignum .unit{font-size:18px;color:#64748b;font-weight:700}
+.bignum .unit{font-size:18px;color:#55647a;font-weight:700}
 .dateRow{display:flex;gap:10px;justify-content:center}
 .dateRow select{flex:1;max-width:130px;padding:14px 10px;font-size:16px;font-weight:700;border:2px solid #D3E3EA;border-radius:12px;background:#fff;font-family:inherit;color:#1e293b;text-align:center}
 .chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
@@ -37,19 +37,19 @@ h1{font-size:26px;font-weight:900;text-align:center;color:#0F2A43;line-height:1.
 .navBtns{position:fixed;bottom:0;left:0;right:0;padding:14px 22px 22px;background:linear-gradient(transparent,#fff 35%);display:flex;gap:10px;max-width:520px;margin:0 auto}
 .btn-next{flex:1;padding:16px;background:linear-gradient(135deg,#1B6E80,#0F2A43);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:900;cursor:pointer;font-family:inherit;box-shadow:0 6px 20px rgba(20,51,43,.35);transition:all .2s}
 .btn-next:disabled{opacity:.4;box-shadow:none}
-.btn-back{padding:16px 20px;background:#fff;color:#64748b;border:2px solid #D3E3EA;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
+.btn-back{padding:16px 20px;background:#fff;color:#55647a;border:2px solid #D3E3EA;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
 .feature{display:flex;align-items:flex-start;gap:12px;background:#fff;border:1.5px solid #DDEBF1;border-radius:14px;padding:14px;margin-bottom:10px}
 .feature .femoji{font-size:26px}
 .feature b{color:#0F2A43;font-size:14.5px}
-.feature p{font-size:12.5px;color:#64748b;line-height:1.6}
+.feature p{font-size:12.5px;color:#55647a;line-height:1.6}
 .result-card{background:#fff;border:2px solid #B4D0DA;border-radius:18px;padding:18px;margin-bottom:12px;text-align:center}
-.result-card .rlabel{font-size:12.5px;color:#64748b;font-weight:700}
+.result-card .rlabel{font-size:12.5px;color:#55647a;font-weight:700}
 .result-card .rvalue{font-size:34px;font-weight:900;color:#0F2A43}
 .result-card .rvalue small{font-size:14px;color:#1B6E80}
 .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .result-grid .result-card{margin:0;padding:14px}
 .result-grid .rvalue{font-size:24px}
-.evid{font-size:11px;color:#94a3b8;text-align:center;line-height:1.7;margin-top:10px}
+.evid{font-size:11px;color:#55647a;text-align:center;line-height:1.7;margin-top:10px}
 input[type=text]{width:100%;padding:14px;border:2px solid #D3E3EA;border-radius:12px;font-family:inherit;font-size:14px;margin-top:8px}
 .err{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;padding:12px;border-radius:12px;text-align:center;font-weight:700;font-size:13.5px;margin-bottom:14px}
 </style>
@@ -88,9 +88,9 @@ input[type=text]{width:100%;padding:14px;border:2px solid #D3E3EA;border-radius:
   <h1>{{ t('تاريخ ميلادك إيه؟',"What's your date of birth?") }}</h1>
   <p class="sub">{{ t('العمر بيدخل في حساب احتياجك اليومي من السعرات بدقة','Age feeds directly into calculating your daily calorie needs') }}</p>
   <div class="dateRow">
-    <select id="bDay"></select>
-    <select id="bMonth"></select>
-    <select id="bYear"></select>
+    <select aria-label="{{ t('اليوم','Day') }}" id="bDay"></select>
+    <select aria-label="{{ t('الشهر','Month') }}" id="bMonth"></select>
+    <select aria-label="{{ t('السنة','Year') }}" id="bYear"></select>
   </div>
 </div>
 

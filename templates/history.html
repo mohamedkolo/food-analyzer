@@ -7,9 +7,9 @@
 
 {% set is_ar = (lang or 'ar') == 'ar' %}
 
-<div class="page-title">
+<h1 class="page-title">
   <i class="fa-solid fa-chart-line"></i> {{ 'سجل الوزن' if is_ar else 'Weight Log' }}
-</div>
+</h1>
 
 {% if not logs or logs|length == 0 %}
 <!-- First time -->
@@ -65,7 +65,7 @@
       <i class="fa-solid fa-arrow-trend-down"></i>
       {{ 'من آخر قياس' if is_ar else 'From last' }}
     </div>
-    <div style="font-size:26px;font-weight:900;color:{% if diff_last < 0 %}#1B6E80{% elif diff_last > 0 %}#dc2626{% else %}#64748b{% endif %}">
+    <div style="font-size:26px;font-weight:900;color:{% if diff_last < 0 %}#1B6E80{% elif diff_last > 0 %}#dc2626{% else %}#55647a{% endif %}">
       {% if diff_last > 0 %}+{% endif %}{{ "%.1f"|format(diff_last) }}
       <span style="font-size:13px;opacity:0.7">{{ 'كجم' if is_ar else 'kg' }}</span>
     </div>
@@ -79,7 +79,7 @@
       <i class="fa-solid fa-flag-checkered"></i>
       {{ 'من البداية' if is_ar else 'Total change' }}
     </div>
-    <div style="font-size:26px;font-weight:900;color:{% if diff_total < 0 %}#1B6E80{% elif diff_total > 0 %}#dc2626{% else %}#64748b{% endif %}">
+    <div style="font-size:26px;font-weight:900;color:{% if diff_total < 0 %}#1B6E80{% elif diff_total > 0 %}#dc2626{% else %}#55647a{% endif %}">
       {% if diff_total > 0 %}+{% endif %}{{ "%.1f"|format(diff_total) }}
       <span style="font-size:13px;opacity:0.7">{{ 'كجم' if is_ar else 'kg' }}</span>
     </div>
@@ -168,7 +168,7 @@
         </div>
       </div>
       {% if change is not none %}
-      <div style="font-size:14px;font-weight:700;color:{% if change < 0 %}#1B6E80{% elif change > 0 %}#dc2626{% else %}#64748b{% endif %}">
+      <div style="font-size:14px;font-weight:700;color:{% if change < 0 %}#1B6E80{% elif change > 0 %}#dc2626{% else %}#55647a{% endif %}">
         {% if change > 0 %}+{% endif %}{{ "%.1f"|format(change) }}
       </div>
       {% endif %}

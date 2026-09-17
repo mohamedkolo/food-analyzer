@@ -16,7 +16,7 @@
   .tier-price { font-size: 22px; font-weight: 900; }
 </style>
 
-<div class="page-title"><i class="fa-solid fa-plug"></i> {{ 'واجهة API للمطورين' if is_ar else 'Developer API' }}</div>
+<h1 class="page-title"><i class="fa-solid fa-plug"></i> {{ 'واجهة API للمطورين' if is_ar else 'Developer API' }}</h1>
 
 {% if request.args.get('checkout') == 'success' %}
 <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> {{ 'تم تفعيل اشتراك الـ API بنجاح!' if is_ar else 'API subscription activated!' }}</div>

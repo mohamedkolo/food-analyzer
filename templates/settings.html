@@ -2,7 +2,7 @@
 {% block title %}{{ t('الإعدادات','Settings') }}{% endblock %}
 
 {% block content %}
-<div class="page-title"><span class="icon">⚙️</span> {{ t('الإعدادات الشخصية','Personal Settings') }}</div>
+<h1 class="page-title"><span class="icon">⚙️</span> {{ t('الإعدادات الشخصية','Personal Settings') }}</h1>
 
 {% if saved %}
 <div class="alert alert-success">✅ {{ t('تم الحفظ وحساب أهدافك!','Saved and your targets recalculated!') }}</div>
@@ -29,15 +29,15 @@
 
     <div class="grid-2">
       <div class="form-group">
-        <label class="form-label">{{ t('الجنس','Gender') }}</label>
-        <select class="form-select" name="gender">
+        <label class="form-label" for="st_gender">{{ t('الجنس','Gender') }}</label>
+        <select id="st_gender" class="form-select" name="gender">
           <option value="ذكر" {% if user.gender=='ذكر' %}selected{% endif %}>{{ t('ذكر','Male') }}</option>
           <option value="أنثى" {% if user.gender=='أنثى' %}selected{% endif %}>{{ t('أنثى','Female') }}</option>
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">🎯 {{ t('هدفك','Your Goal') }}</label>
-        <select class="form-select" name="goal">
+        <label class="form-label" for="st_goal">🎯 {{ t('هدفك','Your Goal') }}</label>
+        <select id="st_goal" class="form-select" name="goal">
           <option value="maintain" {% if user.goal=='maintain' %}selected{% endif %}>⚖️ {{ t('ثبات الوزن','Maintain weight') }}</option>
           <option value="fat_loss" {% if user.goal=='fat_loss' %}selected{% endif %}>🔥 {{ t('خسارة دهون','Fat loss') }}</option>
           <option value="muscle_gain" {% if user.goal=='muscle_gain' %}selected{% endif %}>💪 {{ t('بناء عضل','Build muscle') }}</option>
@@ -46,8 +46,8 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label">🏃 {{ t('مستوى النشاط','Activity Level') }}</label>
-      <select class="form-select" name="activity">
+      <label class="form-label" for="st_activity">🏃 {{ t('مستوى النشاط','Activity Level') }}</label>
+      <select id="st_activity" class="form-select" name="activity">
         <option value="1.2"    {% if user.activity==1.2 %}selected{% endif %}>{{ t('مستقر (عمل مكتبي)','Sedentary (desk job)') }}</option>
         <option value="1.375"  {% if user.activity==1.375 %}selected{% endif %}>{{ t('خفيف (1-3 أيام رياضة)','Light (1-3 days exercise)') }}</option>
         <option value="1.55"   {% if user.activity==1.55 or not user.activity %}selected{% endif %}>{{ t('معتدل (3-5 أيام)','Moderate (3-5 days)') }}</option>

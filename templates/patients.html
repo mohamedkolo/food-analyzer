@@ -38,10 +38,10 @@
 
 <!-- Header -->
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
-  <div class="page-title" style="margin:0">
+  <h1 class="page-title" style="margin:0">
     <i class="fa-solid fa-users"></i>
     {{ 'برامج التغذية' if is_ar else 'Nutrition Programs' }}
-  </div>
+  </h1>
   <a href="/patients/new" class="btn btn-success">
     <i class="fa-solid fa-plus"></i>
     {{ 'إضافة مريض' if is_ar else 'Add Patient' }}
@@ -69,13 +69,13 @@
   <form method="GET" action="/patients">
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
       <div style="flex:2;min-width:180px">
-        <label class="form-label">{{ 'بحث' if is_ar else 'Search' }}</label>
-        <input class="form-input" type="text" name="q" value="{{ search }}"
+        <label class="form-label" for="flt_q">{{ 'بحث' if is_ar else 'Search' }}</label>
+        <input id="flt_q" class="form-input" type="text" name="q" value="{{ search }}"
           placeholder="{{ 'اسم المريض...' if is_ar else 'Patient name...' }}" style="margin:0">
       </div>
       <div style="flex:1;min-width:140px">
-        <label class="form-label">{{ 'الحالة' if is_ar else 'Status' }}</label>
-        <select class="form-select" name="status" style="margin:0">
+        <label class="form-label" for="flt_status">{{ 'الحالة' if is_ar else 'Status' }}</label>
+        <select id="flt_status" class="form-select" name="status" style="margin:0">
           <option value="">{{ 'الكل' if is_ar else 'All' }}</option>
           <option value="draft" {{ 'selected' if status=='draft' }}>{{ 'مسودة' if is_ar else 'Draft' }}</option>
           <option value="published" {{ 'selected' if status=='published' }}>{{ 'منشور' if is_ar else 'Published' }}</option>

@@ -4,9 +4,9 @@
 
 {% set is_ar = (lang or 'ar') == 'ar' %}
 
-<div class="page-title">
+<h1 class="page-title">
   <i class="fa-solid fa-book-open"></i> {{ 'مركز المعرفة الصحية' if is_ar else 'Health Knowledge Hub' }}
-</div>
+</h1>
 
 <!-- Welcome Banner -->
 <div class="card" style="background:linear-gradient(135deg,#0F2A43 0%,#1B6E80 100%);color:white;padding:24px">
@@ -81,7 +81,7 @@
   <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-2)">
     <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700">{{ 'الفئات:' if is_ar else 'Categories:' }}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="catBtns"></div>
-    <div id="foodList" style="max-height:400px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px"></div>
+    <div id="foodList" tabindex="0" role="group" aria-label="{{ 'قائمة الأطعمة' if is_ar else 'Food list' }}" style="max-height:400px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px"></div>
     <div id="foodCount" style="text-align:center;font-size:12px;color:var(--muted);margin-top:10px"></div>
   </div>
 </div>
@@ -129,7 +129,7 @@
     <button onclick="filterByMealType('snack')" class="filter-btn" id="mf-sn">🍎 {{ 'سناك' if is_ar else 'Snack' }}</button>
   </div>
 
-  <div id="planMealsList" style="max-height:500px;overflow-y:auto;display:flex;flex-direction:column;gap:8px"></div>
+  <div id="planMealsList" tabindex="0" role="group" aria-label="{{ 'قائمة الوجبات' if is_ar else 'Meal list' }}" style="max-height:500px;overflow-y:auto;display:flex;flex-direction:column;gap:8px"></div>
   <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:10px" id="resultsCount"></div>
 </div>
 
@@ -483,27 +483,27 @@ renderPlanMeals();
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">
     <div>
-      <label class="form-label">{{ 'الجنس' if is_ar else 'Gender' }}</label>
+      <label class="form-label" for="gender">{{ 'الجنس' if is_ar else 'Gender' }}</label>
       <select id="gender" class="form-select">
         <option value="male">{{ 'ذكر' if is_ar else 'Male' }}</option>
         <option value="female">{{ 'أنثى' if is_ar else 'Female' }}</option>
       </select>
     </div>
     <div>
-      <label class="form-label">{{ 'العمر' if is_ar else 'Age' }}</label>
+      <label class="form-label" for="age">{{ 'العمر' if is_ar else 'Age' }}</label>
       <input type="number" id="age" class="form-input" placeholder="30">
     </div>
     <div>
-      <label class="form-label">{{ 'الطول (سم)' if is_ar else 'Height (cm)' }}</label>
+      <label class="form-label" for="height">{{ 'الطول (سم)' if is_ar else 'Height (cm)' }}</label>
       <input type="number" id="height" class="form-input" placeholder="170">
     </div>
     <div>
-      <label class="form-label">{{ 'الوزن (كجم)' if is_ar else 'Weight (kg)' }}</label>
+      <label class="form-label" for="weight">{{ 'الوزن (كجم)' if is_ar else 'Weight (kg)' }}</label>
       <input type="number" id="weight" class="form-input" placeholder="70">
     </div>
   </div>
   <div class="form-group">
-    <label class="form-label">{{ 'مستوى النشاط' if is_ar else 'Activity Level' }}</label>
+    <label class="form-label" for="activity">{{ 'مستوى النشاط' if is_ar else 'Activity Level' }}</label>
     <select id="activity" class="form-select">
       <option value="1.2">{{ 'خامل' if is_ar else 'Sedentary' }}</option>
       <option value="1.375">{{ 'نشاط خفيف' if is_ar else 'Light' }}</option>
@@ -1201,7 +1201,7 @@ function renderVideos() {
     var dur = IS_AR ? v.durAr : v.durEn;
     html += '<div style="background:white;border:1.5px solid var(--gray-2);border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.04)">' +
       '<div style="position:relative;padding-top:56.25%;background:#000">' +
-        '<iframe style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" src="https://www.youtube.com/embed/' + v.id + '" allowfullscreen></iframe>' +
+        '<iframe style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" title="' + title.replace(/"/g, '&quot;') + '" src="https://www.youtube.com/embed/' + v.id + '" allowfullscreen></iframe>' +
       '</div>' +
       '<div style="padding:14px">' +
         '<div style="font-weight:800;font-size:14px;color:var(--blue);margin-bottom:4px;line-height:1.5">' + title + '</div>' +
