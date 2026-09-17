@@ -408,7 +408,6 @@ ENGLISH_CONDITIONS = {
     "قصور الغدة الدرقية": "Hypothyroidism",
     "نشاط الغدة الدرقية": "Hyperthyroidism",
     "ارتفاع الكوليسترول": "High cholesterol",
-    "القولون التقرحي وكرون": "Ulcerative colitis / Crohn's",
     "اضطراب في الأكل": "Eating Disorder",
     "هشاشة العظام": "Osteoporosis",
     "الوقاية من السرطان": "Cancer Risk Reduction",

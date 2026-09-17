@@ -163,7 +163,7 @@ FORM_CONDITIONS_ALL = FORM_CONDITIONS + [
     "بطانة الرحم المهاجرة", "انقطاع النفس النومي", "الربو",
     "الوذمة الشحمية", "التصلب اللويحي المتعدد", "متلازمة شوغرن",
     "النقرس", "قصور الغدة الدرقية", "نشاط الغدة الدرقية",
-    "ارتفاع الكوليسترول", "القولون التقرحي وكرون",
+    "ارتفاع الكوليسترول",
 ]
 
 
@@ -725,7 +725,6 @@ FIVE_UNLOCKED = {
     "نشاط الغدة الدرقية": ("غدة نشاط", "hyperthyroid"),
     "النقرس": ("نقرس", "gout"),
     "ارتفاع الكوليسترول": ("كوليسترول", "chol"),
-    "القولون التقرحي وكرون": ("تقرحي", "uc"),
 }
 
 
@@ -775,13 +774,17 @@ def test_the_five_engine_ready_conditions_are_now_reachable():
                         f"{label} leaves {len(survivors)} in {culture}/{goal}/{slot}")
 
 
-def test_ulcerative_colitis_is_no_longer_answered_by_the_ibs_list():
-    # "التهاب الأمعاء" in the form maps to the IBS ban list, so the uc entry
-    # -- written for colitis and Crohn's specifically -- was never used
-    assert md.CONDITION_MAP["التهاب الأمعاء"] == "قولون"
-    assert md.CONDITION_MAP["القولون التقرحي وكرون"] == "تقرحي"
+def test_ibd_is_answered_by_its_own_list_not_the_ibs_one():
+    # "التهاب الأمعاء" is IBD and was mapped to the IBS ban list, so the uc
+    # entry -- written for colitis and Crohn's, with the inverted whole-grain
+    # rule -- was never reached. One checkbox, the right list behind it.
+    assert md.CONDITION_MAP["التهاب الأمعاء"] == "تقرحي"
+    assert md.CONDITION_MAP["كرون"] == "تقرحي"
+    assert md.CONDITION_MAP["قولون عصبي"] == "قولون"
     assert md.UNSAFE_FOODS["تقرحي"] != md.UNSAFE_FOODS["قولون"], (
-        "colitis and IBS now share a list, which defeats having both")
+        "IBD and IBS share a list, which defeats having both")
+    assert "القولون التقرحي وكرون" not in _conditions_in_the_form(), (
+        "two checkboxes for the same disease")
 
 
 def test_colitis_inverts_the_whole_grain_rule():
@@ -795,7 +798,7 @@ def test_colitis_inverts_the_whole_grain_rule():
     from meal_extra import CONDITION_FOODS  # noqa: E402
     assert "شوفان" in CONDITION_FOODS["chol"]["good"], (
         "cholesterol no longer prefers oats -- check this is deliberate")
-    note_ar, _ = md.NUTRIENT_BOOST_NOTES["القولون التقرحي وكرون"]
+    note_ar, _ = md.NUTRIENT_BOOST_NOTES["التهاب الأمعاء"]
     assert "النوبة" in note_ar, "the note must say this is flare-time advice"
 
 
@@ -816,6 +819,59 @@ def test_thalassaemia_note_states_what_the_centre_accepts():
     assert "حامل" in note_ar, "the note drops the carriers-only limit"
     assert "carrier" in note_en.lower()
     assert "مكملات الحديد ممنوعة" in note_ar, "the iron-supplement ban is missing"
+
+
+def test_every_offered_condition_changes_the_plan_not_just_the_notes():
+    """The audit that prompted this: advice alone is not an effect.
+
+    Fourteen conditions filtered without preferring anything -- the plan
+    avoided the harmful and then picked at random. Six more printed advice and
+    changed nothing at all: ticking osteoporosis produced words about calcium
+    and not one extra calcium-rich meal. Every condition the form offers now
+    has to move the plan in at least one direction.
+    """
+    from meal_extra import CONDITION_FOODS, conditions_to_keys  # noqa: E402
+
+    silent = []
+    for label in _conditions_in_the_form():
+        bans = md.unsafe_keys_for([label])
+        keys = conditions_to_keys([label])
+        # a bad-only list still moves the plan: anticoagulants has no good side
+        # on purpose, and ranking vitamin K last is the whole intervention
+        entry = CONDITION_FOODS.get(keys[0], {}) if keys else {}
+        moves = bool(entry.get("good") or entry.get("bad"))
+        if not bans and not moves:
+            silent.append(label)
+    # eating disorders are the one exception: they act by capping the calorie
+    # target rather than by touching the food
+    assert silent == ["اضطراب في الأكل"], (
+        f"these conditions still do not change a plan: {silent}")
+
+
+def test_the_conditions_that_only_advised_now_prefer_food():
+    from meal_extra import CONDITION_FOODS, conditions_to_keys  # noqa: E402
+
+    expected = {
+        "هشاشة العظام": "حليب",      # calcium
+        "امساك مزمن": "شوفان",        # fibre
+        "نقص فيتامين D3": "سلمون",    # vitamin D
+        "الوقاية من السرطان": "بروكلي",
+        "حرق بطيء": "بروتين",
+        "السمنة": "خضار",
+    }
+    for label, food in expected.items():
+        keys = conditions_to_keys([label])
+        assert keys, f"{label} still resolves to no ranking key"
+        good = CONDITION_FOODS[keys[0]]["good"]
+        assert food in good, f"{label} does not prefer {food}"
+
+
+def test_every_ban_list_has_something_to_swap_in():
+    for label in _conditions_in_the_form():
+        for key in md.unsafe_keys_for([label]):
+            assert md.SAFE_ALTERNATIVES.get(key), (
+                f"{label} bans food with no replacement, so filtering just "
+                f"shrinks the pool")
 
 
 def test_guidance_notes_are_bilingual():
