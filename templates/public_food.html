@@ -6,6 +6,7 @@
   food.n ~ ' (' ~ food.en ~ ') — ' ~ (food.cal|num) ~ ' سعرة لكل 100 جرام، بروتين ' ~ (food.p|num) ~ ' جم، كارب ' ~ (food.c|num) ~ ' جم، دهون ' ~ (food.f|num) ~ ' جم. ' ~ food.note,
   food.en ~ ' — ' ~ (food.cal|num) ~ ' calories per 100g, ' ~ (food.p|num) ~ 'g protein, ' ~ (food.c|num) ~ 'g carbs, ' ~ (food.f|num) ~ 'g fat. ' ~ (food.note_en or '')) }}{% endblock %}
 
+{% block body_class %}public-chrome{% endblock %}
 {% block chrome %}{% include "_public_header.html" %}{% endblock %}
 
 {% block extra_style %}

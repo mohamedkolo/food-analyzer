@@ -5,6 +5,7 @@
   'NutraX — meal plans built around your health condition with Dr. Mohamed. Diabetes, blood pressure, IBS, kidney disease, pregnancy and 20+ conditions. Weekly follow-up and a food analyzer covering ' ~ food_count() ~ '+ items with real serving sizes.') }}{% endblock %}
 
 {# the app sidebar is for signed-in users; visitors get a plain public header #}
+{% block body_class %}public-chrome{% endblock %}
 {% block chrome %}{% include "_public_header.html" %}{% endblock %}
 
 {% block extra_style %}
