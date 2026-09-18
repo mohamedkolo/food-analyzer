@@ -22,6 +22,7 @@ from flask import (Blueprint, jsonify, redirect, render_template, request,
 
 import meal_extra
 from core import (
+    visits_by_phone,
     DIET_PLAN_TYPES, bump_plan_link, create_plan_link, cur_lang, db_row,
     db_rows, db_run, filter_by_conditions, get_meal_pool, get_plan_link,
     get_user_by_id, last_visit, last_visit_id, log_error, record_visit,
@@ -284,13 +285,23 @@ def followup_lookup():
     الحالات، الحساسية) ويعرض القراءة، من غير ما يقفل على الدكتور أي قرار."""
     name = (request.args.get("name") or "").strip()
     phone = (request.args.get("phone") or "").strip()
-    key = followup.client_key(name, phone)
-    if not key or len(followup.fold_name(name)) < 3:
-        return jsonify({"found": False})
 
-    rows = visits_for(session["uid"], key, limit=12)
+    # ‏الرقم أولاً: الدكتور بيكتب الموبايل قبل الاسم عادة، وclient_key مبني
+    # على الاسم فمابيلاقيش حاجة من غيره. فبندوّر بالرقم لوحده، وبنرجع للاسم
+    # بس لو الرقم مالقاش (أو مكتوب ناقص).
+    rows = visits_by_phone(session["uid"], phone, limit=12)
+    matched_by = "phone" if rows else None
+
+    if not rows:
+        key = followup.client_key(name, phone)
+        if not key or len(followup.fold_name(name)) < 3:
+            return jsonify({"found": False})
+        rows = visits_for(session["uid"], key, limit=12)
+        matched_by = "name"
     if not rows:
         return jsonify({"found": False})
+
+    key = dict(rows[0]).get("client_key") or followup.client_key(name, phone)
 
     prev = dict(rows[0])
     history = [{
@@ -307,6 +318,7 @@ def followup_lookup():
     return jsonify({
         "found": True,
         "key": key,
+        "matched_by": matched_by,
         "name": prev.get("client_name"),
         "next_visit_no": int(prev.get("visit_no") or 1) + 1,
         "days_since": followup._days_between(prev.get("created_at")),

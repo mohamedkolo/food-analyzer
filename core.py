@@ -664,6 +664,41 @@ def get_user_by_id(uid): return db_row("SELECT * FROM users WHERE id=?", (uid,))
 # بالزيارة اللي قبلها. جدول plan_visits هو الرابط ده: مفتاح مبني على الاسم
 # (والموبايل لو موجود) بيجمع زيارات نفس الشخص في خط واحد.
 
+def visits_by_phone(doctor_uid, phone, limit=20):
+    """‏زيارات عميل بالموبايل لوحده، من غير الاسم.
+
+    client_key مبني على الاسم (اسم|آخر٦أرقام)، فالبحث بيه مستحيل من غير اسم.
+    والدكتور بيكتب الرقم الأول عادة -- فده المدخل اللي المفروض يلاقي العميل.
+
+    الموبايل بيتكتب بأشكال (+20، 0020، مسافات، شرطات)، فالمقارنة على آخر ٦
+    أرقام بعد شيل أي حاجة مش رقم. الـLIKE بيضيّق النتيجة على مستوى SQL،
+    والتأكيد النهائي في بايثون عشان أشكال الكتابة ماتفوّتش عميل.
+    """
+    digits = re.sub(r"\D", "", str(phone or ""))
+    if len(digits) < 6:
+        return []
+    tail = digits[-6:]
+    # ‏مينفعش نفلتر في SQL: الرقم متخزّن بأي شكل الدكتور كتبه ("+20 100 429
+    # 4521")، والمسافة ممكن تقع جوه آخر ٦ أرقام نفسها -- فـLIKE '%294521'
+    # مابيلاقيهاش. فبنجيب زيارات الدكتور الأخيرة ونقارن على الأرقام المجرّدة.
+    # السقف 600 كفاية لعيادة، وبيمنع إن الاستعلام يكبر مع الوقت.
+    try:
+        rows = db_rows("""SELECT * FROM plan_visits WHERE user_id=?
+                          ORDER BY created_at DESC, id DESC LIMIT 600""",
+                       (doctor_uid,)) or []
+    except Exception as e:
+        log_error("visits_by_phone", e)
+        return []
+    out = []
+    for r in rows:
+        stored = re.sub(r"\D", "", str(dict(r).get("phone") or ""))
+        if len(stored) >= 6 and stored[-6:] == tail:
+            out.append(r)
+            if len(out) >= limit:
+                break
+    return out
+
+
 def visits_for(doctor_uid, key, limit=20):
     """زيارات عميل واحد، الأحدث الأول."""
     if not key:

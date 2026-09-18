@@ -13,94 +13,19 @@
 <form method="POST" action="/generate">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-  <!-- ═══════════ الهدف ═══════════ -->
-  <details class="acc" open>
-    <summary><i class="fa-solid fa-bullseye"></i>
-      {{ 'اختر الهدف من الخطة' if is_ar else 'Choose Goal' }}<span class="acc-sum"></span></summary>
-    <div class="acc-body">    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
-      {% for goal in [
-        ('weight_loss','🥗','تخسيس','Weight Loss','1200-1500 kcal'),
-        ('maintenance','🍽️','مكتنز','Maintenance','1800-2200 kcal'),
-        ('muscle_gain','💪','زيادة عضل','Muscle Gain','2200-2600 kcal'),
-        ('bulking','🔥','تضخيم','Bulking','3000-3500 kcal')
-      ] %}
-      <label style="cursor:pointer">
-        <input type="radio" name="goal_type" value="{{ goal[0] }}" {% if prev.goal_type == goal[0] or (not prev.goal_type and loop.first) %}checked{% endif %} style="display:none" class="goal-radio">
-        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:12px;padding:16px;text-align:center;transition:all 0.2s;background:white">
-          <div style="font-size:32px;margin-bottom:8px">{{ goal[1] }}</div>
-          <div style="font-weight:700;font-size:15px;margin-bottom:4px">{{ goal[2] if is_ar else goal[3] }}</div>
-          <div style="font-size:11px;color:var(--gray-dark)">{{ goal[4] }}</div>
-        </div>
-      </label>
-      {% endfor %}
-    </div>
-  
-    </div>
-  </details>
 
+  <div class="wz-nav" id="wzNav">
+    <button type="button" class="wz-tab" data-goto="1"><span class="wz-num">1</span><span class="wz-label"><i class="fa-solid fa-user"></i> {{ 'العميل' if is_ar else 'Client' }}</span></button>
+    <button type="button" class="wz-tab" data-goto="2"><span class="wz-num">2</span><span class="wz-label"><i class="fa-solid fa-bullseye"></i> {{ 'الهدف والنظام' if is_ar else 'Goal & system' }}</span></button>
+    <button type="button" class="wz-tab" data-goto="3"><span class="wz-num">3</span><span class="wz-label"><i class="fa-solid fa-stethoscope"></i> {{ 'الحالات والأدوية' if is_ar else 'Conditions & medications' }}</span></button>
+    <button type="button" class="wz-tab" data-goto="4"><span class="wz-num">4</span><span class="wz-label"><i class="fa-solid fa-heart"></i> {{ 'تفضيلات العميل' if is_ar else 'Preferences' }}</span></button>
+  </div>
 
-  <!-- ═══════════ المطبخ ═══════════ -->
-  <details class="acc" open>
-    <summary><i class="fa-solid fa-utensils"></i>
-      {{ 'اختر المطبخ المفضل' if is_ar else 'Preferred Cuisine' }}<span class="acc-sum"></span></summary>
-    <div class="acc-body">    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
-      {% for cul in [('مصري','🇪🇬','Egyptian'),('خليجي','🇸🇦','Gulf'),('شامي','🇱🇧','Levantine'),('مغربي','🇲🇦','Moroccan'),('عالمي','🌍','International')] %}
-      <label style="cursor:pointer">
-        <input type="radio" name="culture" value="{{ cul[0] }}" {% if prev.culture == cul[0] or (not prev.culture and loop.first) %}checked{% endif %} style="display:none" class="culture-radio">
-        <div class="culture-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:14px;text-align:center;transition:all 0.2s;background:white">
-          <div style="font-size:28px">{{ cul[1] }}</div>
-          <div style="font-weight:700;font-size:14px;margin-top:4px">{{ cul[0] if is_ar else cul[2] }}</div>
-        </div>
-      </label>
-      {% endfor %}
-    </div>
-  
-    </div>
-  </details>
-
-
-  <!-- ═══════════ نظام التغذية ═══════════ -->
-  {% if diet_plans %}
-  <details class="acc">
-    <summary><i class="fa-solid fa-clock"></i> {{ 'نظام الأكل' if is_ar else 'Eating System' }}<span class="acc-sum"></span></summary>
-    <div class="acc-body">    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
-      {% for key, info in diet_plans.items() %}
-      <label style="cursor:pointer">
-        <input type="radio" name="diet_plan_type" value="{{ key }}" {% if prev.diet_plan_type == key or (not prev.diet_plan_type and loop.first) %}checked{% endif %} style="display:none">
-        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:12px;background:white;transition:all .2s">
-          <div style="font-weight:700;font-size:13px">{{ info.name if is_ar else (info.name_en or info.name) }}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">{{ info.description if is_ar else (info.description_en or info.description) }}</div>
-        </div>
-      </label>
-      {% endfor %}
-    </div>
-
-    {# ‏بروتوكول التكميم مالوش معنى من غير الرقم ده: المرحلة بتتحدد بعدد
-       الأسابيع، ومن غيره الملف بيعرض البروتوكول كله بدل خطة أسبوع فعلي.
-       الخانة بتظهر بس لما النظام ده يتختار. #}
-    <div id="sleeveWeeksBox" style="display:none;background:#e6f1f5;border:1.5px solid #B4D0DA;border-radius:10px;padding:12px;margin-top:10px">
-      <label class="form-label" for="sleeveWeeks">
-        <i class="fa-solid fa-calendar-day" style="color:#1B6E80"></i>
-        {{ 'عدّ الأسابيع اللي فاتت على العملية' if is_ar else 'Weeks elapsed since surgery' }}
-      </label>
-      <input class="form-input" type="number" step="1" min="1" max="520"
-             name="sleeve_weeks" id="sleeveWeeks"
-             value="{{ prev.sleeve_weeks or '' }}"
-             placeholder="{{ 'مثلاً: 3' if is_ar else 'e.g. 3' }}">
-      <div style="font-size:11px;color:#0F2A43;margin-top:6px">
-        {{ 'من غير الرقم ده هيطلع البروتوكول كله بمراحله بدل خطة أسبوع — لأن مريض الأسبوع الأول مايقدرش يبلع مهروس، ومريض الشهر السادس السوائل الصافية بتجوّعه.' if is_ar else "Without this number the full protocol is shown instead of a week's plan — a week-1 patient cannot swallow pureed food, and clear liquids would starve a six-month patient." }}
-      </div>
-    </div>
-  
-    </div>
-  </details>
-
-  {% endif %}
-
+  <div class="wz-step" data-step="1">
   <!-- ═══════════ بيانات العميل ═══════════ -->
-  <details class="acc">
-    <summary><i class="fa-solid fa-user"></i> {{ 'بيانات العميل' if is_ar else 'Client Data' }}<span class="acc-sum"></span></summary>
-    <div class="acc-body">    <div class="grid-2">
+  <section class="wz-card">
+    <h2 class="wz-card-title"><i class="fa-solid fa-user"></i> {{ 'بيانات العميل' if is_ar else 'Client Data' }}</h2>
+    <div class="wz-card-body">    <div class="grid-2">
       <div class="form-group">
         <label class="form-label">{{ 'الاسم' if is_ar else 'Name' }}</label>
         <input class="form-input" type="text" name="name" id="nameField" required value="{{ prev.name or '' }}"
@@ -250,13 +175,109 @@
     </div>
 
     </div>
-  </details>
+  </section>
 
 
+
+  </div>
+
+
+  <div class="wz-step" data-step="2">
+  <!-- ═══════════ الهدف ═══════════ -->
+  <section class="wz-card">
+    <h2 class="wz-card-title"><i class="fa-solid fa-bullseye"></i>
+      {{ 'اختر الهدف من الخطة' if is_ar else 'Choose Goal' }}</h2>
+    <div class="wz-card-body">    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+      {% for goal in [
+        ('weight_loss','🥗','تخسيس','Weight Loss','1200-1500 kcal'),
+        ('maintenance','🍽️','مكتنز','Maintenance','1800-2200 kcal'),
+        ('muscle_gain','💪','زيادة عضل','Muscle Gain','2200-2600 kcal'),
+        ('bulking','🔥','تضخيم','Bulking','3000-3500 kcal')
+      ] %}
+      <label style="cursor:pointer">
+        <input type="radio" name="goal_type" value="{{ goal[0] }}" {% if prev.goal_type == goal[0] or (not prev.goal_type and loop.first) %}checked{% endif %} style="display:none" class="goal-radio">
+        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:12px;padding:16px;text-align:center;transition:all 0.2s;background:white">
+          <div style="font-size:32px;margin-bottom:8px">{{ goal[1] }}</div>
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">{{ goal[2] if is_ar else goal[3] }}</div>
+          <div style="font-size:11px;color:var(--gray-dark)">{{ goal[4] }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  
+    </div>
+  </section>
+
+
+
+  <!-- ═══════════ المطبخ ═══════════ -->
+  <section class="wz-card">
+    <h2 class="wz-card-title"><i class="fa-solid fa-utensils"></i>
+      {{ 'اختر المطبخ المفضل' if is_ar else 'Preferred Cuisine' }}</h2>
+    <div class="wz-card-body">    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
+      {% for cul in [('مصري','🇪🇬','Egyptian'),('خليجي','🇸🇦','Gulf'),('شامي','🇱🇧','Levantine'),('مغربي','🇲🇦','Moroccan'),('عالمي','🌍','International')] %}
+      <label style="cursor:pointer">
+        <input type="radio" name="culture" value="{{ cul[0] }}" {% if prev.culture == cul[0] or (not prev.culture and loop.first) %}checked{% endif %} style="display:none" class="culture-radio">
+        <div class="culture-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:14px;text-align:center;transition:all 0.2s;background:white">
+          <div style="font-size:28px">{{ cul[1] }}</div>
+          <div style="font-weight:700;font-size:14px;margin-top:4px">{{ cul[0] if is_ar else cul[2] }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  
+    </div>
+  </section>
+
+
+
+  <!-- ═══════════ نظام التغذية ═══════════ -->
+  {% if diet_plans %}
+  <section class="wz-card">
+    <h2 class="wz-card-title"><i class="fa-solid fa-clock"></i> {{ 'نظام الأكل' if is_ar else 'Eating System' }}</h2>
+    <div class="wz-card-body">    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
+      {% for key, info in diet_plans.items() %}
+      <label style="cursor:pointer">
+        <input type="radio" name="diet_plan_type" value="{{ key }}" {% if prev.diet_plan_type == key or (not prev.diet_plan_type and loop.first) %}checked{% endif %} style="display:none">
+        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:12px;background:white;transition:all .2s">
+          <div style="font-weight:700;font-size:13px">{{ info.name if is_ar else (info.name_en or info.name) }}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">{{ info.description if is_ar else (info.description_en or info.description) }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+
+    {# ‏بروتوكول التكميم مالوش معنى من غير الرقم ده: المرحلة بتتحدد بعدد
+       الأسابيع، ومن غيره الملف بيعرض البروتوكول كله بدل خطة أسبوع فعلي.
+       الخانة بتظهر بس لما النظام ده يتختار. #}
+    <div id="sleeveWeeksBox" style="display:none;background:#e6f1f5;border:1.5px solid #B4D0DA;border-radius:10px;padding:12px;margin-top:10px">
+      <label class="form-label" for="sleeveWeeks">
+        <i class="fa-solid fa-calendar-day" style="color:#1B6E80"></i>
+        {{ 'عدّ الأسابيع اللي فاتت على العملية' if is_ar else 'Weeks elapsed since surgery' }}
+      </label>
+      <input class="form-input" type="number" step="1" min="1" max="520"
+             name="sleeve_weeks" id="sleeveWeeks"
+             value="{{ prev.sleeve_weeks or '' }}"
+             placeholder="{{ 'مثلاً: 3' if is_ar else 'e.g. 3' }}">
+      <div style="font-size:11px;color:#0F2A43;margin-top:6px">
+        {{ 'من غير الرقم ده هيطلع البروتوكول كله بمراحله بدل خطة أسبوع — لأن مريض الأسبوع الأول مايقدرش يبلع مهروس، ومريض الشهر السادس السوائل الصافية بتجوّعه.' if is_ar else "Without this number the full protocol is shown instead of a week's plan — a week-1 patient cannot swallow pureed food, and clear liquids would starve a six-month patient." }}
+      </div>
+    </div>
+  
+    </div>
+  </section>
+
+  {% endif %}
+
+
+  </div>
+
+
+  <div class="wz-step" data-step="3">
   <!-- ═══════════ الأمراض ═══════════ -->
-  <details class="acc">
-    <summary><i class="fa-solid fa-stethoscope"></i> {{ 'الحالات المرضية' if is_ar else 'Medical Conditions' }}<span class="acc-sum"></span></summary>
-    <div class="acc-body">    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
+  <section class="wz-card">
+    <h2 class="wz-card-title"><i class="fa-solid fa-stethoscope"></i> {{ 'الحالات المرضية' if is_ar else 'Medical Conditions' }}</h2>
+    <div class="wz-card-body">    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
       {% for cond in [
         ('قولون عصبي','IBS'),('سكري النوع الثاني','Type 2 Diabetes'),
         ('سكري النوع الاول','Type 1 Diabetes'),
@@ -313,7 +334,8 @@
     </div>
   
     </div>
-  </details>
+  </section>
+
 
 
   <!-- ═══════════ الأدوية ═══════════ -->
@@ -321,9 +343,9 @@
      بتبطّء تفريغ المعدة فحجم الوجبة وعددها يتغيروا، والنزول السريع بياخد عضل
      فالبروتين يتقدّم. بتبعت على نفس اسم symptoms عشان المحرك يشوفها من غير
      توصيل جديد. #}
-  <details class="acc">
-    <summary><i class="fa-solid fa-syringe" style="color:#1B6E80"></i> {{ 'أدوية العميل' if is_ar else "Patient's medications" }}<span class="acc-sum"></span></summary>
-    <div class="acc-body">
+  <section class="wz-card">
+    <h2 class="wz-card-title"><i class="fa-solid fa-syringe" style="color:#1B6E80"></i> {{ 'أدوية العميل' if is_ar else "Patient's medications" }}</h2>
+    <div class="wz-card-body">
     <p style="font-size:12px;color:var(--muted);margin-bottom:10px">
       {{ 'لو العميل على إبر تخسيس، اختارها — الخطة هتتظبط على حجم وجبة أصغر وبروتين أعلى، وهتطلع تحذيرات الغثيان وفقدان العضل وعلامات الخطر في الـPDF:' if is_ar else "If the patient is on a weight-loss injection, select it — the plan shifts to smaller meals and higher protein, and the nausea, muscle-loss and red-flag warnings are printed on the PDF:" }}
     </p>
@@ -340,13 +362,14 @@
       {% endfor %}
     </div>
     </div>
-  </details>
+  </section>
+
 
 
   <!-- ═══════════ الحساسية الغذائية ═══════════ -->
-  <details class="acc">
-    <summary><i class="fa-solid fa-triangle-exclamation" style="color:#dc2626"></i> {{ 'الحساسية الغذائية' if is_ar else 'Food Allergies' }}<span class="acc-sum"></span></summary>
-    <div class="acc-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">{{ 'اختر أي حساسية عند العميل (الأكلات هتتشال من الخطة):' if is_ar else 'Select any allergy (those foods will be removed from the plan):' }}</p>
+  <section class="wz-card">
+    <h2 class="wz-card-title"><i class="fa-solid fa-triangle-exclamation" style="color:#dc2626"></i> {{ 'الحساسية الغذائية' if is_ar else 'Food Allergies' }}</h2>
+    <div class="wz-card-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">{{ 'اختر أي حساسية عند العميل (الأكلات هتتشال من الخطة):' if is_ar else 'Select any allergy (those foods will be removed from the plan):' }}</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
       {% for allergy in [
         ('اللاكتوز','Lactose'),('الجلوتين','Gluten'),('المكسرات','Nuts'),('البيض','Eggs'),
@@ -361,52 +384,123 @@
     </div>
   
     </div>
-  </details>
+  </section>
 
 
+
+  </div>
+
+
+  <div class="wz-step" data-step="4">
   <!-- ═══════════ الأكلات المفضلة ═══════════ -->
-  <details class="acc">
-    <summary><i class="fa-solid fa-heart" style="color:#1B6E80"></i> {{ 'الأكلات المفضلة عند العميل' if is_ar else 'Favorite Foods' }}<span class="acc-sum"></span></summary>
-    <div class="acc-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'اكتب الأكلات اللي بيحبها مفصولة بفواصل:' if is_ar else 'List foods they like, separated by commas:' }}</p>
+  <section class="wz-card">
+    <h2 class="wz-card-title"><i class="fa-solid fa-heart" style="color:#1B6E80"></i> {{ 'الأكلات المفضلة عند العميل' if is_ar else 'Favorite Foods' }}</h2>
+    <div class="wz-card-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'اكتب الأكلات اللي بيحبها مفصولة بفواصل:' if is_ar else 'List foods they like, separated by commas:' }}</p>
     <textarea class="form-input" name="liked_foods" rows="2"
       placeholder="{{ 'مثلاً: شوفان، سلمون، افوكادو، دجاج مشوي، تفاح' if is_ar else 'e.g. oats, salmon, avocado, grilled chicken, apple' }}"
       style="resize:vertical"></textarea>
   
     </div>
-  </details>
+  </section>
+
 
 
   <!-- ═══════════ الأكلات اللي مش بيحبها ═══════════ -->
-  <details class="acc">
-    <summary><i class="fa-solid fa-ban" style="color:#dc2626"></i> {{ 'أكلات لازم تتشال من الخطة' if is_ar else 'Foods to Exclude' }}<span class="acc-sum"></span></summary>
-    <div class="acc-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'اكتب الأكلات اللي مش بياكلها مفصولة بفواصل (هتتشال من الخطة):' if is_ar else 'List foods to remove from the plan, separated by commas:' }}</p>
+  <section class="wz-card">
+    <h2 class="wz-card-title"><i class="fa-solid fa-ban" style="color:#dc2626"></i> {{ 'أكلات لازم تتشال من الخطة' if is_ar else 'Foods to Exclude' }}</h2>
+    <div class="wz-card-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'اكتب الأكلات اللي مش بياكلها مفصولة بفواصل (هتتشال من الخطة):' if is_ar else 'List foods to remove from the plan, separated by commas:' }}</p>
     <textarea class="form-input" name="disliked_foods" rows="2"
       placeholder="{{ 'مثلاً: كبدة، باذنجان، بصل، فلفل حار، كوسة' if is_ar else 'e.g. liver, eggplant, onion, chili, zucchini' }}"
       style="resize:vertical"></textarea>
   
     </div>
-  </details>
+  </section>
+
 
 
   <!-- ═══════════ ملاحظات ═══════════ -->
-  <details class="acc">
-    <summary><i class="fa-solid fa-note-sticky"></i> {{ 'ملاحظات إضافية' if is_ar else 'Additional Notes' }}<span class="acc-sum"></span></summary>
-    <div class="acc-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'أي ملاحظة فيها كلمة "اشيل" أو "بدون" أو "تجنب" + اسم أكل، هيتم استثناء الأكل ده تلقائياً' if is_ar else 'Any note with a food name after "remove/without/avoid" will exclude that food automatically' }}</p>
+  <section class="wz-card">
+    <h2 class="wz-card-title"><i class="fa-solid fa-note-sticky"></i> {{ 'ملاحظات إضافية' if is_ar else 'Additional Notes' }}</h2>
+    <div class="wz-card-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'أي ملاحظة فيها كلمة "اشيل" أو "بدون" أو "تجنب" + اسم أكل، هيتم استثناء الأكل ده تلقائياً' if is_ar else 'Any note with a food name after "remove/without/avoid" will exclude that food automatically' }}</p>
     <textarea class="form-input" name="notes" rows="3"
       placeholder="{{ 'مثلاً: اشيل الموز، بدون فلفل حار، تجنب الجبن...' if is_ar else 'e.g. remove banana, without chili, avoid cheese...' }}"
       style="resize:vertical"></textarea>
   
     </div>
-  </details>
+  </section>
 
 
-  <button type="submit" class="btn btn-success btn-full" style="font-size:17px;padding:16px">
-    <i class="fa-solid fa-wand-magic-sparkles"></i>
-    {{ 'ولّد الخطة الآن' if is_ar else 'Generate Plan Now' }}
-  </button>
+
+  </div>
+  <div class="wz-foot">
+    <button type="button" class="wz-btn" id="wzPrev">
+      <i class="fa-solid fa-arrow-right"></i>
+      {{ 'السابق' if is_ar else 'Back' }}
+    </button>
+    <div class="spacer"></div>
+    {# ‏زرار التوليد موجود دايماً، مش في الخطوة الأخيرة بس: لو الدكتور عارف
+       إن الباقي مش محتاج تغيير، مايستحقش يدوس "التالي" تلات مرات. #}
+    <button type="submit" class="btn btn-success" id="wzSubmit"
+            style="font-size:15.5px;padding:13px 26px">
+      <i class="fa-solid fa-wand-magic-sparkles"></i>
+      {{ 'ولّد الخطة' if is_ar else 'Generate plan' }}
+    </button>
+    <button type="button" class="wz-btn wz-btn-go" id="wzNext">
+      {{ 'التالي' if is_ar else 'Next' }}
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+  </div>
 </form>
 
 <style>
+  /* ‏الفورم بقى أربع خطوات. الخطوة المخفية بتتخفي بـdisplay:none -- والحقول
+     جواها بتفضل جوه الـ<form> فبتتبعت عادي مع الإرسال. ده مقصود: الدكتور
+     ممكن يعدّي خطوة ويرجع لها، والقيم مالهاش تضيع. */
+  .wz-nav { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap }
+  .wz-tab { flex:1 1 150px; display:flex; align-items:center; gap:9px;
+            background:var(--white); border:1.5px solid var(--gray-2);
+            border-radius:12px; padding:11px 13px; cursor:pointer;
+            font-family:'Cairo',sans-serif; text-align:start;
+            color:var(--muted); transition:all .18s }
+  .wz-tab:hover { border-color:var(--blue-light) }
+  .wz-num { flex:0 0 26px; height:26px; border-radius:50%;
+            background:var(--gray); color:var(--muted);
+            display:flex; align-items:center; justify-content:center;
+            font-size:12.5px; font-weight:800 }
+  .wz-label { font-size:13px; font-weight:700; line-height:1.35 }
+  .wz-tab.active { border-color:var(--green); background:var(--green-pale);
+                   color:var(--blue) }
+  .wz-tab.active .wz-num { background:var(--green); color:#fff }
+  /* ‏الخطوة اللي خلصت بتتعلّم بصح، عشان تعرف إنت فين من غير ما تحسب */
+  .wz-tab.done .wz-num { background:var(--blue); color:#fff }
+  .wz-tab.done .wz-num::after { content:"✓" }
+  .wz-tab.done .wz-num > span { display:none }
+
+  .wz-step { display:none }
+  .wz-step.active { display:block }
+  .wz-card { background:var(--white); border:1.5px solid var(--gray-2);
+             border-radius:16px; box-shadow:0 2px 10px rgba(0,0,0,.04);
+             margin-bottom:12px; overflow:hidden }
+  .wz-card-title { margin:0; padding:14px 18px 0; font-size:15px;
+                   font-weight:800; color:var(--blue);
+                   display:flex; align-items:center; gap:10px }
+  .wz-card-body { padding:14px 18px 18px }
+
+  .wz-foot { display:flex; gap:10px; align-items:center; margin-top:6px }
+  .wz-foot .spacer { flex:1 }
+  .wz-btn { background:var(--white); color:var(--blue); border:1.5px solid var(--gray-2);
+            border-radius:11px; padding:13px 22px; font-family:'Cairo',sans-serif;
+            font-size:14.5px; font-weight:800; cursor:pointer }
+  .wz-btn:hover { border-color:var(--green) }
+  .wz-btn-go { background:var(--green); color:#fff; border-color:var(--green) }
+
+  @media(max-width:768px){
+    .wz-tab { flex:1 1 calc(50% - 8px); padding:9px 10px }
+    .wz-label { font-size:12px }
+    .wz-card-title { padding:12px 14px 0; font-size:14px }
+    .wz-card-body { padding:12px 14px 14px }
+  }
+
   .goal-card:hover, .culture-card:hover { border-color: var(--blue-light) !important; transform: translateY(-2px); }
   input[type="radio"]:checked + .goal-card, input[type="radio"]:checked + .culture-card {
     border-color: var(--blue-dark) !important;
@@ -416,6 +510,63 @@
 </style>
 
 <script>
+// ═══ تنقّل الخطوات ═══════════════════════════════════════════════════════
+// ‏الخطوة المخفية display:none، وحقولها لسه جوه الـ<form> -- فبتتبعت مع
+// الإرسال عادي. ده اللي بيخلي "ولّد الخطة" شغال من أي خطوة.
+(function(){
+  const steps = [...document.querySelectorAll('.wz-step')];
+  const tabs  = [...document.querySelectorAll('.wz-tab')];
+  const prev  = document.getElementById('wzPrev');
+  const next  = document.getElementById('wzNext');
+  if (!steps.length) return;
+  let at = 0;
+
+  function show(i){
+    at = Math.max(0, Math.min(steps.length - 1, i));
+    steps.forEach((s, k) => s.classList.toggle('active', k === at));
+    tabs.forEach((t, k) => {
+      t.classList.toggle('active', k === at);
+      t.classList.toggle('done', k < at);
+    });
+    prev.style.visibility = at === 0 ? 'hidden' : 'visible';
+    next.style.visibility = at === steps.length - 1 ? 'hidden' : 'visible';
+    // ‏الرجوع لفوق: لو الخطوة اللي جاية أطول، الدكتور كان بيلاقي نفسه في
+    // نصها. بس بدون smooth لأنها بتحس بالبطء مع كل دوسة.
+    window.scrollTo({ top: 0 });
+  }
+
+  tabs.forEach((t, k) => t.addEventListener('click', () => show(k)));
+  prev.addEventListener('click', () => show(at - 1));
+  next.addEventListener('click', () => show(at + 1));
+
+  // ‏لو الدكتور دوس Enter في خانة، المتصفح بيبعت الفورم. في wizard ده
+  // غالباً مش اللي هو قاصده وهو لسه في خطوة 1، فبناخده للخطوة اللي بعدها.
+  document.querySelectorAll('.wz-step input').forEach(function(el){
+    if (el.type === 'checkbox' || el.type === 'radio') return;
+    el.addEventListener('keydown', function(ev){
+      if (ev.key === 'Enter' && at < steps.length - 1){
+        ev.preventDefault();
+        show(at + 1);
+      }
+    });
+  });
+
+  // ‏لو حقل مطلوب فاضي في خطوة مخفية، المتصفح بيرفض الإرسال والدكتور
+  // مايشوفش سبب. فبنمسك الرفض ونوديه للخطوة اللي فيها الحقل ونركّز عليه.
+  const form = document.querySelector('form[action="/generate"]');
+  if (form) form.addEventListener('submit', function(ev){
+    const bad = form.querySelector(':invalid');
+    if (!bad) return;
+    ev.preventDefault();
+    const owner = bad.closest('.wz-step');
+    if (owner) show(steps.indexOf(owner));
+    bad.focus();
+    if (bad.reportValidity) bad.reportValidity();
+  });
+
+  show(0);
+})();
+
 const h=document.getElementById('hField'),w=document.getElementById('wField');
 const bmi=document.getElementById('bmiField'),tdee=document.getElementById('tdeeField'),goal=document.getElementById('goalField');
 function calc(){
@@ -495,6 +646,7 @@ function renderFollowup(d){
       <div style="font-weight:800;color:#0F2A43;font-size:15px">
         <i class="fa-solid fa-clock-rotate-left" style="color:#1B6E80"></i>
         ${T('متابعة رقم','Follow-up visit')} ${d.next_visit_no} — ${d.name||''}
+        <span style="font-size:11px;font-weight:700;color:#1B6E80;background:#E4F0F4;border-radius:6px;padding:2px 7px;margin-inline-start:6px">${d.matched_by==='phone' ? T('اتعرف عليه بالرقم','matched by number') : T('اتعرف عليه بالاسم','matched by name')}</span>
       </div>
       <div style="font-size:12.5px;color:#55647a;font-weight:700">
         ${T('آخر زيارة من','Last visit')} <b style="color:#0F2A43">${d.days_since}</b> ${T('يوم','days ago')}
@@ -510,7 +662,7 @@ function renderFollowup(d){
       <button type="button" id="fuFill"
         style="background:#1B6E80;color:#fff;border:0;border-radius:9px;padding:8px 15px;
                font-family:inherit;font-weight:800;font-size:12.5px;cursor:pointer">
-        ${T('املا البيانات الثابتة','Fill in what does not change')}
+        ${T('إعادة ملء الفاضي','Re-fill what is empty')}
       </button>
       <button type="button" id="fuSkip"
         style="background:#fff;color:#55647a;border:1px solid #D3E3EA;border-radius:9px;
@@ -521,6 +673,8 @@ function renderFollowup(d){
         style="color:#1B6E80;font-weight:700;font-size:12.5px;align-self:center;text-decoration:none">
         ${T('كل الزيارات','All visits')} ›</a>
     </div>
+    <div id="fuAutoNote" style="font-size:11.5px;color:#0F2A43;margin-top:9px;
+         background:#fff;border:1px dashed #B4D0DA;border-radius:8px;padding:7px 10px"></div>
     <div style="font-size:11.5px;color:#456b61;margin-top:9px">
       ${T('اكتب الوزن الجديد وهنحسب التقدّم والـTDEE على الوزن ده، والخطة هتتفادى أكل الأسبوع اللي فات.',
           'Enter the new weight — progress and TDEE are calculated on it, and the plan will avoid last visit’s meals.')}
@@ -528,32 +682,89 @@ function renderFollowup(d){
   </div>`;
   fuBox.style.display='block';
 
-  document.getElementById('fuFill').onclick=()=>{
-    // الثابت بس: الطول والسن والنوع والنشاط. الوزن لأ -- ده اللي جاي يتقاس.
-    if(L.height&&h) h.value=L.height;
-    if(L.age&&ageField) ageField.value=L.age;
-    if(L.gender&&genderSel) genderSel.value=L.gender;
-    if(L.activity&&actMult) actMult.value=L.activity;
-    if(L.goal_type){ const r=document.querySelector(`input[name="goal_type"][value="${L.goal_type}"]`); if(r) r.checked=true; }
-    if(L.diet_plan_type){ const r=document.querySelector(`input[name="diet_plan_type"][value="${L.diet_plan_type}"]`); if(r) r.checked=true; }
+  // ‏الملء التلقائي: الفاضي بس. أي خانة الدكتور كتب فيها حاجة مابتتغيّرش --
+  // عشان الرقم بيتكتب وسط الكتابة، ولو الملء بدّل قيمة مكتوبة كان هيمسح شغل.
+  // بيرجّع أسماء اللي اتملى عشان لو قال "ده شخص تاني" نفضّيه هو بس.
+  function fuFillEmpty(){
+    const filled=[];
+    function setIfEmpty(el, val, label){
+      if(!el || val===null || val===undefined || val==='') return;
+      if(String(el.value||'').trim()!=='') return;   // ‏مكتوب: سيبه
+      el.value=val; filled.push({el:el, label:label});
+    }
+    // ‏الثابت بس: الطول والسن والنوع والنشاط. الوزن لأ -- ده اللي جاي يتقاس.
+    setIfEmpty(nameField, d.name, T('الاسم','Name'));
+    setIfEmpty(h, L.height, T('الطول','Height'));
+    setIfEmpty(ageField, L.age, T('العمر','Age'));
+    if(genderSel && L.gender && !genderSel.dataset.touched){ genderSel.value=L.gender; }
+    if(actMult && L.activity && !actMult.dataset.touched){ actMult.value=L.activity; }
+
+    // ‏الهدف والنظام: بيتحطوا بس لو الدكتور ماختارش بنفسه
+    if(L.goal_type && !document.querySelector('input[name="goal_type"]:checked[data-touched]')){
+      const r=document.querySelector(`input[name="goal_type"][value="${L.goal_type}"]`);
+      if(r && !r.checked){ r.checked=true; filled.push({label:T('الهدف','Goal')}); }
+    }
+    if(L.diet_plan_type){
+      const r=document.querySelector(`input[name="diet_plan_type"][value="${L.diet_plan_type}"]`);
+      if(r && !r.checked){
+        r.checked=true; filled.push({label:T('نظام الأكل','Eating system')});
+        r.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+    }
+
+    // ‏الحالات المرضية والأدوية: بتفضل متسجلة من آخر زيارة لحد ما الدكتور
+    // يغيّرها، والتغيير بيتسجل مع الزيارة الجديدة فالمرة الجاية بيرجع الجديد.
+    let conds=0;
     (d.conditions||[]).forEach(c=>{
-      const cb=document.querySelector(`input[name="symptoms"][value="${c}"]`); if(cb) cb.checked=true;
+      const cb=document.querySelector(`input[name="symptoms"][value="${c}"]`);
+      if(cb && !cb.checked){ cb.checked=true; conds++; fuAutoConds.push(cb); }
     });
+    if(conds) filled.push({label:T('حالات مرضية','conditions')+' ('+conds+')'});
+
     calc(); recomputeTdee(); updateMacros();
-    document.getElementById('fuFill').textContent=T('اتملت ✓','Filled ✓');
+    fuAutoFilled=filled;
+    return filled;
+  }
+
+  const btn=document.getElementById('fuFill');
+  if(btn) btn.onclick=()=>{
+    const n=fuFillEmpty();
+    btn.textContent = n.length ? T('اتملت ✓','Filled ✓')
+                               : T('مافيش خانة فاضية','Nothing left empty');
   };
+
+  // ‏هنا الملء بيحصل لوحده. الزرار فوق بقى للي عايز يعيدها بإيده.
+  const auto=fuFillEmpty();
+  const fuWhat=document.getElementById('fuAutoNote');
+  if(fuWhat){
+    fuWhat.textContent = auto.length
+      ? T('اتملى تلقائي: ','Filled automatically: ') + auto.map(x=>x.label).join('، ')
+      : T('كل الخانات مكتوبة بإيدك، فمالمستش حاجة.',
+          'Everything was already filled in by hand, so nothing was touched.');
+  }
   document.getElementById('fuSkip').onclick=()=>{
+    // ‏شخص تاني: نشيل اللي الملء التلقائي حطه، ونسيب اللي الدكتور كتبه بإيده.
+    (fuAutoFilled||[]).forEach(x=>{ if(x.el) x.el.value=''; });
+    (fuAutoConds||[]).forEach(cb=>{ cb.checked=false; });
+    fuAutoFilled=[]; fuAutoConds=[];
+    calc(); recomputeTdee(); updateMacros();
     fuBox.style.display='none';
-    fuLastKey='__skipped__'+(nameField.value||'');
+    fuLastKey='__skipped__'+(phoneField&&phoneField.value||'')+'|'+(nameField&&nameField.value||'');
   };
 }
 
+// ‏اللي الملء التلقائي حطه -- عشان "ده شخص تاني" يشيله هو بس
+let fuAutoFilled=[], fuAutoConds=[];
+
 function fuLookup(){
   const n=(nameField?.value||'').trim(), p=(phoneField?.value||'').trim();
+  const digits=(p.match(/\d/g)||[]).length;
   const k=n+'|'+p;
   if(k===fuLastKey) return;
   fuLastKey=k;
-  if(n.length<3){ fuBox.style.display='none'; return; }
+  // ‏الرقم لوحده كفاية: ٦ أرقام بيحدّدوا العميل، والدكتور بيكتب الرقم قبل
+  // الاسم عادة. والاسم لوحده لسه شغال زي الأول.
+  if(n.length<3 && digits<6){ fuBox.style.display='none'; return; }
   fetch(`/api/followup/lookup?name=${encodeURIComponent(n)}&phone=${encodeURIComponent(p)}`)
     .then(r=>r.json())
     .then(renderFollowup)
@@ -562,6 +773,17 @@ function fuLookup(){
 [nameField,phoneField].forEach(el=>el&&el.addEventListener('input',()=>{
   clearTimeout(fuTimer); fuTimer=setTimeout(fuLookup,450);
 }));
+
+// ‏القوايم مالهاش قيمة "فاضية" (بتبدأ على أول اختيار)، فمينفعش نعرف إنها
+// فاضية من قيمتها. فبنعلّم عليها أول ما الدكتور يلمسها، والملء التلقائي
+// بيحترم العلامة دي.
+['genderField','actMult','actField','zzMode'].forEach(function(id){
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('change',function(){ el.dataset.touched='1'; });
+});
+document.querySelectorAll('input[name="goal_type"]').forEach(function(r){
+  r.addEventListener('change',function(){ r.dataset.touched='1'; });
+});
 
 // ===== حساب TDEE من Mifflin-St Jeor × معامل النشاط =====
 function recomputeTdee(){

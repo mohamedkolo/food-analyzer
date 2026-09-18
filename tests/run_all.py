@@ -23,6 +23,7 @@ SUITES = [
     "test_plan_editing.py",
     "test_chemical_diet.py",
     "test_sleeve_diet.py",
+    "test_form_prefill.py",
     "test_accessibility.py",
 ]
 
