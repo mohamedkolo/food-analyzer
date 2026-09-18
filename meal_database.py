@@ -2024,11 +2024,49 @@ def normalize_ar(text):
     return (text or "").translate(_AR_FOLD)
 
 
+# ‏نفي صريح. "قليل السكر" مش هنا عن قصد: قليل مش معناه خالي، ومريض السكري
+# المنع بيفضل واقع عليه. اللي هنا بس اللي معناه صفر.
+_NEGATIONS = ("بدون", "من غير", "بلا", "خالي من", "خالية من", "منزوع",
+              "منزوعة", "خالي", "خالية")
+
+
+def _is_negated(haystack, idx):
+    """‏هل التوكن اللي عند idx مكتوب بصيغة النفي؟
+
+    المطابقة عندنا substring، فـ"سكر" بتمسك "بدون سكر" و"جلد" بتمسك
+    "(بدون جلد)". النتيجة إن مريض السكري كان ممنوع من الشاي بدون سكر، ومريض
+    المرارة ممنوع من الفراخ المشوية بدون جلد -- عكس المطلوب بالظبط.
+
+    النفي لازم يكون لازق بالتوكن: بين كلمة النفي والتوكن مسافات أو أقواس بس،
+    مش كلام تاني. عشان "بدون زيت + ليمون" مايتعدّش نفي لليمون.
+    """
+    before = haystack[:idx]
+    for neg in _NEGATIONS:
+        n = normalize_ar(neg)
+        pos = before.rfind(n)
+        if pos < 0:
+            continue
+        gap = before[pos + len(n):]
+        if gap.strip(" ()[]-—,،") == "":
+            return True
+    return False
+
+
 def _contains_unsafe(meal_text, condition_key):
     haystack = normalize_ar(meal_text)
     for unsafe in UNSAFE_FOODS.get(condition_key, []):
-        if normalize_ar(unsafe) in haystack:
-            return True
+        token = normalize_ar(unsafe)
+        if not token:
+            continue
+        start = 0
+        while True:
+            idx = haystack.find(token, start)
+            if idx < 0:
+                break
+            # ‏ظهور واحد غير منفي كفاية عشان الوجبة تتمنع
+            if not _is_negated(haystack, idx):
+                return True
+            start = idx + 1
     return False
 
 

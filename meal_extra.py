@@ -474,6 +474,12 @@ def apply():
     except Exception as e:
         print(f"meal_extra: chemical system error {e}")
 
+    try:
+        from sleeve_diet import SLEEVE_SYSTEM
+        DIET_PLAN_TYPES.setdefault("sleeve", SLEEVE_SYSTEM)
+    except Exception as e:
+        print(f"meal_extra: sleeve system error {e}")
+
     print(f"meal_extra: added {added} extra meals")
     return added
 

@@ -299,6 +299,24 @@
 </div>
 {% endif %}
 
+{# ‏قواعد ما بعد التكميم الدايمة: نفسها على السبع أيام، فتكرارها على كل يوم
+   ضوضاء بتخفي اللي بيتغير فعلاً. مرة واحدة فوق، وباقي الأنظمة مابتشوفهاش
+   لأنها بتظهر بس لو أول يوم فيه permanent_rules. #}
+{% if plan and plan[0].permanent_rules %}
+<div class="card" style="padding:16px;margin-bottom:12px;background:#f0f7f4;
+     border-inline-start:4px solid #1B6E80">
+  <div style="font-weight:800;font-size:14px;color:#0F2A43;margin-bottom:8px">
+    <i class="fa-solid fa-shield-halved" style="color:#1B6E80"></i>
+    {{ t('قواعد دايمة — في كل المراحل ومدى الحياة','Permanent rules — every phase, for life') }}
+  </div>
+  <ul style="margin:0;padding-inline-start:18px;font-size:12.5px;color:#0F2A43;line-height:1.9">
+    {% for rule in (plan[0].permanent_rules if is_ar else (plan[0].permanent_rules_en or plan[0].permanent_rules)) %}
+    <li>{{ rule }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
 <!-- Days -->
 <div style="display:grid;gap:12px">
   {% for day in plan %}

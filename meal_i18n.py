@@ -250,6 +250,16 @@ WORDS = {
     "خضار": "vegetables", "خضرا": "greens", "سلطة": "salad", "خس": "lettuce",
     "طماطم": "tomato", "الطماطم": "tomato", "بندورة": "tomato",
     "خيار": "cucumber", "جزر": "carrots", "بطاطا": "potato", "بطاطس": "potato",
+    # ‏من مراحل التكميم: قوام الأكل هو المرحلة نفسها، فالكلمات دي
+    # (مهروس/مصفاة/طري) مش وصف زيادة -- هي اللي بتفرّق بين مرحلة ومرحلة.
+    "الصويا": "soy", "بالصويا": "with soy", "اللاكتوز": "lactose",
+    "مهروس": "pureed", "مهروسة": "mashed", "ناعم": "smooth", "ناعمة": "smooth",
+    "مصفاة": "strained", "صافية": "clear", "طري": "soft", "طرية": "soft",
+    "مطهي": "cooked", "مطهية": "cooked", "مخفوق": "scrambled",
+    "مقشرة": "peeled", "سائل": "liquid", "رشفات": "sips", "مرقة": "broth",
+    "جيلي": "jelly", "بابونج": "chamomile", "اعشاب": "herbal",
+    "نصف": "half", "سكر": "sugar",
+    "على مدار اليوم": "throughout the day", "بعدها بساعة": "an hour later",
     # ‏من وجبات الكبد الجديدة: الكلمات دي ملزوقة بواو أو بصيغة جمع فمابتتمسكش
     # من المفردة اللي فوق.
     "وخيار": "and cucumber", "تمرات": "dates", "غير مملح": "unsalted",
@@ -466,11 +476,12 @@ if __name__ == "__main__":
             meals.append(cur)
 
     import chemical_diet as cd
+    import sleeve_diet as sl
 
     for pool in ("WEIGHT_LOSS", "MUSCLE_GAIN", "BULKING", "MAINTENANCE",
                  "SAFE_ALTERNATIVES", "KETO_MEALS", "KETO_SNACKS",
-                 "CHEMICAL_MEALS"):
-        for mod in (md, mx, cd):
+                 "CHEMICAL_MEALS", "SLEEVE_MEALS"):
+        for mod in (md, mx, cd, sl):
             walk(getattr(mod, pool, None))
     for goal in ("weight_loss", "muscle_gain", "bulking", "maintenance"):
         walk(md.get_snacks_for_goal(goal))

@@ -124,6 +124,8 @@ def generate():
             "disliked_foods": request.form.get("disliked_foods",""),
             "notes": request.form.get("notes",""),
             "insulin_tdd": request.form.get("insulin_tdd",""),
+            # ‏بروتوكول التكميم مالوش معنى من غير الرقم ده
+            "sleeve_weeks": request.form.get("sleeve_weeks",""),
             "zigzag_mode": request.form.get("zigzag_mode","off"),
             "phone": request.form.get("phone",""),
             "visit_notes": request.form.get("visit_notes",""),

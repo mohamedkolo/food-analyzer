@@ -270,6 +270,28 @@ def generate_weekly_plan(data):
         data["chemical_warnings"] = chem_warnings
         return chem_days
 
+    # ‏بروتوكول ما بعد التكميم: المرحلة هي المحتوى، واللي بيحددها عدد الأسابيع
+    # بعد العملية. زي الكيميائي بيرجع في وحدته من غير ما يعدي على تدوير
+    # السعرات -- سعراته هي طبيعة المرحلة مش رقم مستهدف، وأول مرحلتين أصلاً
+    # تحت أي حد وده صح.
+    if diet_type == "sleeve":
+        from sleeve_diet import build_sleeve_plan
+        weeks = data.get("sleeve_weeks")
+        sl_days, sl_warnings = build_sleeve_plan(
+            weeks, symptoms, user_exclusions, data.get("gender"))
+        if sl_warnings:
+            existing = data.get("notes", "") or ""
+            # ‏نفس معالجة الكيميائي: أزواج (عربي، إنجليزي) عشان الـPDF
+            # الإنجليزي مايطلعش عربي -- الأسطر فيها أرقام وأسماء مراحل
+            # متغيرة، والترجمة من خريطة ثابتة مش بتعرف تمسكها.
+            pairs = list(dict.fromkeys(
+                ("⚠️ " + w["reason"], "⚠️ " + w["reason_en"]) for w in sl_warnings))
+            data["chemical_note_pairs"] = pairs
+            data["notes"] = (" | ".join(ar for ar, _ in pairs)
+                             + (" | " + existing if existing else ""))
+        data["sleeve_warnings"] = sl_warnings
+        return sl_days
+
     pool = get_meal_pool(goal, culture)
     breakfasts = list(pool.get("breakfast", []))
     lunches = list(pool.get("lunch", []))

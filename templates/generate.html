@@ -74,6 +74,23 @@
       </label>
       {% endfor %}
     </div>
+
+    {# ‏بروتوكول التكميم مالوش معنى من غير الرقم ده: المرحلة بتتحدد بعدد
+       الأسابيع، ومن غيره الملف بيعرض البروتوكول كله بدل خطة أسبوع فعلي.
+       الخانة بتظهر بس لما النظام ده يتختار. #}
+    <div id="sleeveWeeksBox" style="display:none;background:#e6f1f5;border:1.5px solid #B4D0DA;border-radius:10px;padding:12px;margin-top:10px">
+      <label class="form-label" for="sleeveWeeks">
+        <i class="fa-solid fa-calendar-day" style="color:#1B6E80"></i>
+        {{ 'عدّ الأسابيع اللي فاتت على العملية' if is_ar else 'Weeks elapsed since surgery' }}
+      </label>
+      <input class="form-input" type="number" step="1" min="1" max="520"
+             name="sleeve_weeks" id="sleeveWeeks"
+             value="{{ prev.sleeve_weeks or '' }}"
+             placeholder="{{ 'مثلاً: 3' if is_ar else 'e.g. 3' }}">
+      <div style="font-size:11px;color:#0F2A43;margin-top:6px">
+        {{ 'من غير الرقم ده هيطلع البروتوكول كله بمراحله بدل خطة أسبوع — لأن مريض الأسبوع الأول مايقدرش يبلع مهروس، ومريض الشهر السادس السوائل الصافية بتجوّعه.' if is_ar else "Without this number the full protocol is shown instead of a week's plan — a week-1 patient cannot swallow pureed food, and clear liquids would starve a six-month patient." }}
+      </div>
+    </div>
   
     </div>
   </details>
@@ -624,6 +641,20 @@ tdee.addEventListener('input',()=>setTimeout(renderZigzag,0));
 renderZigzag();
 
 // ── إظهار خانة جرعة الأنسولين اليومية لما "سكري النوع الأول" يتاختار ──
+// ‏خانة أسابيع التكميم: تظهر مع النظام بتاعه بس.
+(function(){
+  const box = document.getElementById('sleeveWeeksBox');
+  if (!box) return;
+  function sync(){
+    const picked = document.querySelector('input[name="diet_plan_type"]:checked');
+    box.style.display = (picked && picked.value === 'sleeve') ? 'block' : 'none';
+  }
+  document.querySelectorAll('input[name="diet_plan_type"]').forEach(function(r){
+    r.addEventListener('change', sync);
+  });
+  sync();
+})();
+
 const t1dCheckbox = document.querySelector('input[name="symptoms"][value="سكري النوع الاول"]');
 const t1dInsulinBox = document.getElementById('t1dInsulinBox');
 if (t1dCheckbox && t1dInsulinBox) {
