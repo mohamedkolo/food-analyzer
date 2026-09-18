@@ -162,6 +162,63 @@ def test_a_required_field_in_a_hidden_step_is_surfaced():
     assert "reportValidity" in html, "‏الدكتور مش هيعرف الحقل الناقص فين"
 
 
+def test_the_conditions_list_is_searchable():
+    """‏٤٧ حالة = ٢٩٠٠ بكسل على الموبايل.
+
+    تقسيمها لخطوات أكتر مش حل -- الدكتور بيدوّر على حالة بالاسم مش بيقرا
+    القايمة. قِسناها: البحث بكلمة "كبد" بينزّل الخطوة من 2936 لـ888 بكسل.
+    """
+    html = _form()
+    assert 'id="condSearch"' in html, "‏مفيش خانة بحث في الحالات"
+    assert 'id="condGrid"' in html, "‏الشبكة مالهاش id، فالبحث مش هيلاقيها"
+    assert 'id="condNone"' in html, "‏مفيش رسالة لما البحث مايلاقيش"
+    assert 'id="condCount"' in html, "‏مفيش عدّاد للمختار"
+    js = html[html.index("// ═══ بحث الحالات المرضية"):]
+    js = js[:js.index("// ═══ تنقّل الخطوات")]
+    # ‏المختار لازم يفضل ظاهر تحت الفلتر، وإلا الدكتور بينساه
+    assert "cb.checked" in js, "‏المختار مش مستثنى من الفلتر -- هيختفي ويتنسى"
+    assert "type=\"search\"" in html, "‏نوع الخانة مش search"
+
+
+def test_the_search_box_has_a_name():
+    """‏خانة بحث من غير اسم = "مربع نص" لقارئ الشاشة."""
+    html = _form()
+    # ‏الوسم كله: من <input اللي قبل الـid لحد قفلة الوسم. القطع من غير كده
+    # بياخد نص المارك-أب اللي فوقه ويفوّت الـaria-label اللي بعد الـid.
+    i = html.index('id="condSearch"')
+    tag = html[html.rindex("<input", 0, i):html.index(">", i) + 1]
+    assert "aria-label" in tag, "‏خانة البحث مالهاش اسم: %s" % tag[:90]
+
+
+def test_running_the_tests_does_not_wipe_the_local_database():
+    """‏كانوا بيمسحوا /tmp/nutrax.db -- وهي قاعدة التشغيل المحلي نفسها.
+
+    فتشغيل الاختبارات كان بيضيّع حساب الأدمن واللي إنت مسجّله للتجربة، ولازم
+    تعيد تشغيل السيرفر بـADMIN_PASSWORD عشان يرجع.
+    """
+    for name in ("run_all.py", "test_translation.py", "test_access_control.py"):
+        src = open(os.path.join(HERE, "tests", name), encoding="utf-8").read()
+        code = "\n".join(l for l in src.split("\n") if not l.strip().startswith("#"))
+        assert 'os.remove("/tmp/nutrax.db")' not in code, (
+            "‏%s لسه بيمسح قاعدة التشغيل المحلي" % name)
+        assert '"/tmp/nutrax.db"' not in code, (
+            "‏%s لسه بيشاور على قاعدة التشغيل المحلي" % name)
+
+
+def test_health_reports_the_running_commit():
+    """‏مفيش طريقة تعرف بيها إن Render نشر الجديد غير إنك تشوف رقم الكوميت."""
+    os.environ.setdefault("SECRET_KEY", "test-only")
+    import core
+    sha = core.running_commit()
+    assert sha and sha != "unknown", "‏مش عارف يقرا الكوميت الشغال"
+    assert len(sha) == 7, "‏الطول المتوقع 7 حروف، طلع %r" % sha
+    src = open(os.path.join(HERE, "core.py"), encoding="utf-8").read()
+    block = src[src.index('@app.route("/health")'):]
+    block = block[:block.index("@app.after_request")]
+    assert "running_commit()" in block, "‏/health مش بيرجّع الكوميت"
+    assert "RENDER_GIT_COMMIT" in src, "‏مش بياخد الكوميت من بيئة Render"
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):

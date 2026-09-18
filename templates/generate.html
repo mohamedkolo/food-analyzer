@@ -276,8 +276,29 @@
   <div class="wz-step" data-step="3">
   <!-- ═══════════ الأمراض ═══════════ -->
   <section class="wz-card">
-    <h2 class="wz-card-title"><i class="fa-solid fa-stethoscope"></i> {{ 'الحالات المرضية' if is_ar else 'Medical Conditions' }}</h2>
-    <div class="wz-card-body">    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
+    <h2 class="wz-card-title"><i class="fa-solid fa-stethoscope"></i> {{ 'الحالات المرضية' if is_ar else 'Medical Conditions' }}
+      <span id="condCount" style="margin-inline-start:auto;font-size:12px;font-weight:700;
+            color:var(--green);background:var(--green-pale);border-radius:7px;padding:2px 9px"></span>
+    </h2>
+    <div class="wz-card-body">
+    {# ‏٤٧ حالة = ٢٨٠٠ بكسل على الموبايل. تقسيمها لخطوات أكتر مش حل -- الدكتور
+       بيدوّر على حالة بالاسم، مش بيقرا القايمة كلها. فالبحث هو اللي بيقصّرها:
+       تكتب "كبد" تلاقي التلاتة. والمختار بيفضل ظاهر دايماً عشان مايختفيش
+       تحت الفلتر ويتنسى. #}
+    <div style="position:relative;margin-bottom:10px">
+      <input type="search" id="condSearch" class="form-input"
+             aria-label="{{ 'دوّر على حالة' if is_ar else 'Search conditions' }}"
+             placeholder="{{ 'دوّر على حالة… (مثلاً: كبد، سكري، قولون)' if is_ar else 'Search a condition… (e.g. liver, diabetes)' }}"
+             style="margin:0">
+      <button type="button" id="condClear"
+              aria-label="{{ 'امسح البحث' if is_ar else 'Clear search' }}"
+              style="display:none;position:absolute;inset-inline-end:10px;top:50%;
+                     transform:translateY(-50%);background:none;border:0;cursor:pointer;
+                     color:var(--muted);font-size:15px;padding:4px">✕</button>
+    </div>
+    <div id="condNone" style="display:none;font-size:12.5px;color:var(--muted);
+         padding:10px 2px">{{ 'مفيش حالة بالاسم ده.' if is_ar else 'No condition by that name.' }}</div>
+    <div id="condGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
       {% for cond in [
         ('قولون عصبي','IBS'),('سكري النوع الثاني','Type 2 Diabetes'),
         ('سكري النوع الاول','Type 1 Diabetes'),
@@ -510,6 +531,47 @@
 </style>
 
 <script>
+// ═══ بحث الحالات المرضية ════════════════════════════════════════════════
+(function(){
+  const box   = document.getElementById('condSearch');
+  const grid  = document.getElementById('condGrid');
+  const clear = document.getElementById('condClear');
+  const none  = document.getElementById('condNone');
+  const count = document.getElementById('condCount');
+  if (!box || !grid) return;
+  const labels = [...grid.querySelectorAll('label')];
+  const IS_AR_UI = document.documentElement.lang === 'ar';
+
+  function refreshCount(){
+    const n = labels.filter(l => l.querySelector('input').checked).length;
+    count.textContent = n ? (IS_AR_UI ? n + ' مختارة' : n + ' selected') : '';
+  }
+
+  function apply(){
+    const q = (box.value || '').trim().toLowerCase();
+    clear.style.display = q ? 'block' : 'none';
+    let shown = 0;
+    labels.forEach(function(l){
+      const cb = l.querySelector('input');
+      // ‏المختار بيفضل ظاهر دايماً: لو اختفى تحت الفلتر الدكتور بينساه
+      const keep = !q || cb.checked || l.innerText.toLowerCase().includes(q)
+                   || (cb.value || '').toLowerCase().includes(q);
+      l.style.display = keep ? '' : 'none';
+      if (keep) shown++;
+    });
+    none.style.display = shown ? 'none' : 'block';
+  }
+
+  box.addEventListener('input', apply);
+  clear.addEventListener('click', function(){ box.value = ''; apply(); box.focus(); });
+  labels.forEach(l => l.querySelector('input').addEventListener('change', function(){
+    refreshCount(); apply();
+  }));
+  // ‏الملء التلقائي بيعلّم مربعات من غير حدث change، فبنحدّث العدّاد بعده
+  window.nxRefreshCondCount = function(){ refreshCount(); apply(); };
+  refreshCount();
+})();
+
 // ═══ تنقّل الخطوات ═══════════════════════════════════════════════════════
 // ‏الخطوة المخفية display:none، وحقولها لسه جوه الـ<form> -- فبتتبعت مع
 // الإرسال عادي. ده اللي بيخلي "ولّد الخطة" شغال من أي خطوة.
@@ -722,6 +784,7 @@ function renderFollowup(d){
     if(conds) filled.push({label:T('حالات مرضية','conditions')+' ('+conds+')'});
 
     calc(); recomputeTdee(); updateMacros();
+    if (window.nxRefreshCondCount) window.nxRefreshCondCount();
     fuAutoFilled=filled;
     return filled;
   }

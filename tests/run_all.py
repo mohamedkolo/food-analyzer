@@ -12,6 +12,8 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+# ‏قاعدة الاختبارات: منفصلة عن /tmp/nutrax.db بتاعة التشغيل المحلي
+TEST_DB = os.environ.get("NUTRAX_TEST_DB", "/tmp/nutrax_suite.db")
 SUITES = [
     "test_medical_filtering.py",
     "test_access_control.py",
@@ -33,10 +35,14 @@ def main():
     broken = []
     for suite in SUITES:
         print(f"\n{'=' * 62}\n  {suite}\n{'=' * 62}")
-        env = dict(os.environ, SECRET_KEY=os.environ.get("SECRET_KEY", "test-key"))
+        # ‏الاختبارات ليها قاعدتها. قبل كده كانت بتمسح /tmp/nutrax.db --
+        # وهي نفسها القاعدة اللي التطبيق بيستخدمها لما تشغّله محلياً، فتشغيل
+        # الاختبارات كان بيضيّع حساب الأدمن واللي إنت مسجّله للتجربة.
+        env = dict(os.environ, SECRET_KEY=os.environ.get("SECRET_KEY", "test-key"),
+                   NUTRAX_DB=TEST_DB)
         # each suite seeds from scratch
-        if os.path.exists("/tmp/nutrax.db"):
-            os.remove("/tmp/nutrax.db")
+        if os.path.exists(TEST_DB):
+            os.remove(TEST_DB)
         r = subprocess.run([sys.executable, os.path.join(HERE, suite)],
                            capture_output=True, text=True, env=env)
         for line in r.stdout.splitlines():

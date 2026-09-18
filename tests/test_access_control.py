@@ -14,7 +14,9 @@ import sys
 from datetime import datetime, timedelta
 
 os.environ.setdefault("SECRET_KEY", "test-key")
-for _p in ("/tmp/nutrax.db",):
+# ‏قاعدة خاصة بالاختبار -- مش قاعدة التشغيل المحلي.
+os.environ.setdefault("NUTRAX_DB", "/tmp/nutrax_suite.db")
+for _p in (os.environ["NUTRAX_DB"],):
     if os.path.exists(_p):
         os.remove(_p)
 

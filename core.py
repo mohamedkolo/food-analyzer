@@ -66,10 +66,39 @@ def assetlinks():
     }]), 200
 
 
+# ‏نسخة الكود اللي شغالة فعلاً. Render بيحط الكوميت في RENDER_GIT_COMMIT،
+# ولو مش موجود بنقراه من .git محلياً. السبب إن مافيش طريقة تعرف بيها إن
+# النشر خلص غير إنك تفتح صفحة وتشوف الرقم -- وده بيوفّر تخمين "هو نشر ولا لأ".
+def running_commit():
+    sha = (os.environ.get("RENDER_GIT_COMMIT")
+           or os.environ.get("GIT_COMMIT") or "").strip()
+    if not sha:
+        try:
+            head = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                ".git", "HEAD")
+            with open(head, encoding="utf-8") as fh:
+                ref = fh.read().strip()
+            if ref.startswith("ref: "):
+                with open(os.path.join(os.path.dirname(head), ref[5:]),
+                          encoding="utf-8") as fh:
+                    sha = fh.read().strip()
+            else:
+                sha = ref
+        except Exception:
+            sha = ""
+    return sha[:7] or "unknown"
+
+
 @app.route("/health")
 def health():
-    """نقطة خفيفة لخدمات الـ ping — بتمنع Render من تنييم الموقع"""
-    return "ok", 200
+    """نقطة خفيفة لخدمات الـ ping — بتمنع Render من تنييم الموقع.
+
+    بترجّع كمان أول ٧ حروف من الكوميت الشغال، عشان تقدر تتأكد إن النشر خلص
+    من غير ما تخمّن: افتح /health وقارن الرقم باللي على GitHub.
+    """
+    return jsonify({"ok": True, "commit": running_commit(),
+                    "branch": (os.environ.get("RENDER_GIT_BRANCH") or "").strip() or None,
+                    "time": datetime.now().isoformat(timespec="seconds")}), 200
 
 @app.after_request
 def speed_headers(resp):

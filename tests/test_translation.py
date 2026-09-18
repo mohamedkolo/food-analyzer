@@ -21,8 +21,11 @@ import sys
 from datetime import datetime, timedelta
 
 os.environ.setdefault("SECRET_KEY", "test-key")
-if os.path.exists("/tmp/nutrax.db"):
-    os.remove("/tmp/nutrax.db")
+# ‏قاعدة خاصة بالاختبار. كانت بتمسح /tmp/nutrax.db وهي قاعدة التشغيل
+# المحلي، فتشغيل الاختبارات كان بيضيّع حساب الأدمن.
+os.environ.setdefault("NUTRAX_DB", "/tmp/nutrax_suite.db")
+if os.path.exists(os.environ["NUTRAX_DB"]):
+    os.remove(os.environ["NUTRAX_DB"])
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
