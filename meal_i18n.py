@@ -250,6 +250,9 @@ WORDS = {
     "خضار": "vegetables", "خضرا": "greens", "سلطة": "salad", "خس": "lettuce",
     "طماطم": "tomato", "الطماطم": "tomato", "بندورة": "tomato",
     "خيار": "cucumber", "جزر": "carrots", "بطاطا": "potato", "بطاطس": "potato",
+    # ‏من وجبات الكبد الجديدة: الكلمات دي ملزوقة بواو أو بصيغة جمع فمابتتمسكش
+    # من المفردة اللي فوق.
+    "وخيار": "and cucumber", "تمرات": "dates", "غير مملح": "unsalted",
     "باذنجان": "eggplant", "كوسة": "zucchini", "زوكيني": "zucchini",
     "بروكلي": "broccoli", "قرنبيط": "cauliflower", "سبانخ": "spinach",
     "ملوخية": "molokhia", "بامية": "okra", "فطر": "mushrooms", "كرفس": "celery",

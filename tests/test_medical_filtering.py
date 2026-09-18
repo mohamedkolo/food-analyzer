@@ -35,6 +35,9 @@ FORM_CONDITIONS = [
     "امراض القلب", "الفشل الكلوي المزمن", "الحمل", "الرضاعة الطبيعية", "G6PD",
     "ثلاسيميا", "حساسية اللاكتوز", "الداء الزلاقي", "الكبد الدهني",
     "حصوات المرارة", "التهاب الأمعاء",
+    # ‏العيادة بتستقبل حالات التليف والفيروسات، فلازم يكون لها نظام -- مش
+    # تحذير تحويل. والتليف مختلف عن الكبد الدهني: محوره الصوديوم لا السكر.
+    "تليف الكبد", "فيروس الكبد بي", "فيروس الكبد سي",
 ]
 # Read from the source rather than kept as a second copy here -- a copy is
 # what lets a condition be offered in the form while quietly filtering nothing.
@@ -884,6 +887,82 @@ def test_guidance_notes_are_bilingual():
 
 def test_free_text_notes_pass_through_untouched():
     assert md.translate_boost_note("ملاحظة من الدكتور") == "ملاحظة من الدكتور"
+
+
+def test_cirrhosis_never_bans_grilled_food():
+    """‏"مش" (جبنة مش) بيمسك "مشوي" كـsubstring.
+
+    القياس قال 10 وجبات مشوية -- وهي بالظبط اللي مريض التليف المفروض ياكلها.
+    التوكن ده لازم يفضل برّه القايمة.
+    """
+    ban = md.UNSAFE_FOODS["تليف"]
+    assert "مش" not in ban, "‏التوكن ده بيمنع كل المشوي"
+    grilled = [
+        {"meal": "🍗 دجاج مشوي 150جم + 🍚 ارز + 🥗 سلطة", "cal": 420, "p": 44},
+        {"meal": "🐟 سمك مشوي + 🥗 سلطة", "cal": 380, "p": 40},
+    ]
+    for item in grilled:
+        assert md.safe_for_all(item, ["تليف"]), "‏اتمنع بالغلط: " + item["meal"]
+
+
+def test_cirrhosis_bans_no_protein_source():
+    """‏تقييد البروتين في التليف خرافة قديمة وخطرة -- بيسرّع فقدان العضل.
+
+    فلو حد ضاف مصدر بروتين لقايمة المنع، ده مش تشديد، ده ضرر.
+    """
+    protein = ["فول", "عدس", "بيض", "دجاج", "فراخ", "سمك", "زبادي", "لبن",
+               "جبن قريش", "لحم", "حمص", "فاصوليا", "تونة", "بروتين"]
+    ban = md.UNSAFE_FOODS["تليف"]
+    hits = [p for p in protein if p in ban]
+    assert not hits, "‏مصدر بروتين في قايمة منع التليف: %s" % hits
+
+
+def test_the_liver_conditions_filter_without_emptying_a_slot():
+    """‏لو خانة فضيت، filter بيرجّع القايمة غير المفلترة -- يعني بيقدّم الممنوع."""
+    for cond in ("تليف الكبد", "فيروس الكبد بي", "فيروس الكبد سي"):
+        keys = md.unsafe_keys_for([cond])
+        assert keys, "‏%s مش مربوطة بقايمة منع" % cond
+        for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
+            for goal in ("تخسيس", "مكتنز", "زيادة عضل", "تضخيم"):
+                pool = md.get_meal_pool(goal, culture)
+                for slot, items in pool.items():
+                    if not items:
+                        continue
+                    left = [i for i in items if md.safe_for_all(i, keys)]
+                    assert len(left) >= 3, (
+                        "‏%s / %s / %s / %s سابت %d وجبة بس"
+                        % (cond, culture, goal, slot, len(left)))
+
+
+def test_cirrhosis_note_carries_the_late_snack_and_the_protein_correction():
+    """‏دول التدخلين اللي الفلترة ماتقدرش تعبّر عنهم، فلازم يكونوا في الملاحظة."""
+    ar = " ".join(md.get_nutrient_boost_notes(["تليف الكبد"], "ar"))
+    en = " ".join(md.get_nutrient_boost_notes(["تليف الكبد"], "en"))
+    assert ar and en, "‏مفيش ملاحظة للتليف"
+    assert "سناك متأخر" in ar, "‏السناك الليلي أقوى تدخل في التليف ومش مكتوب"
+    assert "مش* ممنوع" in ar or "مش ممنوع" in ar, "‏تصحيح خرافة البروتين ناقص"
+    assert "NOT restricted" in en, "‏النص الإنجليزي مش بيوضّح إن البروتين مسموح"
+    assert "1.2" in ar and "1.2" in en, "‏الجرعة المطلوبة مش مذكورة"
+
+
+def test_hepatitis_c_warns_about_iron():
+    """‏اللي بيفرّق C عن B هو الحديد: زيادته بتسرّع التليّف."""
+    ar = " ".join(md.get_nutrient_boost_notes(["فيروس الكبد سي"], "ar"))
+    en = " ".join(md.get_nutrient_boost_notes(["فيروس الكبد سي"], "en"))
+    assert "حديد" in ar, "‏تحذير الحديد ناقص في C"
+    assert "iron" in en.lower(), "‏تحذير الحديد ناقص في النص الإنجليزي"
+    assert "كبدة" in md.UNSAFE_FOODS["فيروسي"], "‏الكبدة مصدر حديد مركّز ولازم تتمنع"
+
+
+def test_the_liver_conditions_prefer_and_not_only_forbid():
+    """‏زي ما طلبت: الحالة لازم تمنع الضار *وتقدّم* المفيد."""
+    import meal_extra as me
+    for cond in ("تليف الكبد", "فيروس الكبد بي", "فيروس الكبد سي"):
+        key = me.CONDITION_KEYS.get(cond)
+        assert key, "‏%s مالهاش مفتاح ترتيب" % cond
+        foods = me.CONDITION_FOODS.get(key) or {}
+        assert foods.get("good"), "‏%s مابتقدّمش أي أكل" % cond
+        assert foods.get("bad"), "‏%s مابتأخّرش أي أكل" % cond
 
 
 if __name__ == "__main__":
