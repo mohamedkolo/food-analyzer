@@ -219,6 +219,72 @@ def test_health_reports_the_running_commit():
     assert "RENDER_GIT_COMMIT" in src, "‏مش بياخد الكوميت من بيئة Render"
 
 
+def test_no_radio_is_hidden_with_display_none():
+    """‏كروت الاختيار كانت راديو بـdisplay:none -- ومعناه إن مينفعش تختار
+    الهدف ولا المطبخ ولا النظام **بالكيبورد خالص**، لأن العنصر المخفي كده
+    مش بياخد focus. بقى مخفي بصرياً بس لسه قابل للتركيز.
+    """
+    html = _form()
+    # ‏أي input جواه display:none = مستخدم الكيبورد مش قادر يوصله
+    for m in re.finditer(r"<input[^>]*>", html):
+        tag = m.group(0)
+        if 'type="radio"' in tag or 'type="checkbox"' in tag:
+            assert "display:none" not in tag.replace(" ", ""), (
+                "‏راديو/checkbox مخفي بـdisplay:none: %s" % " ".join(tag.split())[:80])
+
+
+def test_the_three_option_groups_share_one_card_style():
+    """‏كانوا تلات أشكال: الهدف إيموجي 32px ونص في النص، والمطبخ 28px،
+    ونظام الأكل نص بس. بقوا كومبوننت واحد -- ده معنى "منسقة"."""
+    html = _form()
+    body = html[html.index('<form method="POST" action="/generate">'):]
+    body = body[:body.index("</form>")]
+    for field in ('name="goal_type"', 'name="culture"', 'name="diet_plan_type"'):
+        i = body.index(field)
+        label_start = body.rindex("<label", 0, i)
+        label_tag = body[label_start:body.index(">", label_start) + 1]
+        assert 'class="nx-opt"' in label_tag, (
+            "‏%s مش مستخدم كارت الاختيار المشترك: %s" % (field, label_tag[:70]))
+    # ‏الأشكال القديمة لازم تكون اختفت
+    assert "goal-card" not in html, "‏كارت الهدف القديم لسه موجود"
+    assert "culture-card" not in html, "‏كارت المطبخ القديم لسه موجود"
+
+
+def test_the_selected_card_is_not_signalled_by_colour_alone():
+    """‏اللون لوحده مايكفيش لحد مش بيفرّق الألوان -- فيه حدود وعلامة صح كمان."""
+    html = _form()
+    css = html[html.index(".nx-opt {"):html.index(".nx-opt-in:focus-visible")]
+    assert "border-color:var(--green)" in css.replace(" ", "")         or "border-color: var(--green)" in css, "‏الحدود مش بتتغير عند الاختيار"
+    assert 'content:"✓"' in css.replace(" ", "") or 'content: "✓"' in css,         "‏مفيش علامة صح على الكارت المختار"
+    assert "focus-visible" in html, "‏مفيش حلقة تركيز للكيبورد"
+
+
+def test_the_eating_system_icons_do_not_depend_on_a_cdn():
+    """‏Font Awesome بيتحمّل من CDN. لو فشل (شبكة، مانع إعلانات، الـCDN واقع)
+    الـ11 كارت بيبانوا مربعات فاضية -- شفتها بعيني في التجربة. فإيموجي."""
+    html = _form()
+    block = html[html.index("{% set sys_icons"):]
+    block = block[:block.index("{% endfor %}")]
+    assert "fa-" not in block, "‏أيقونات النظام رجعت تعتمد على Font Awesome"
+    assert "sys_icons.get(key," in block, "‏مفيش رمز افتراضي لمفتاح جديد"
+
+
+def test_the_css_tokens_the_cards_use_are_actually_defined():
+    """‏--blue-dark و--gray-dark كانوا مستخدمين في 10 أماكن وهما مش معرّفين،
+    فالمتصفح كان بيتجاهل السطر كله: أرقام صفحات المتابعة كانت بلون النص
+    العادي بدل الكحلي."""
+    base = open(os.path.join(HERE, "templates", "base.html"), encoding="utf-8").read()
+    root = base[base.index(":root{"):base.index("}", base.index(":root{"))]
+    defined = set(re.findall(r"(--[a-z0-9-]+):", root))
+    used = set()
+    for name in ("generate.html", "base.html", "followups.html",
+                 "followup_detail.html", "preview.html"):
+        html = open(os.path.join(HERE, "templates", name), encoding="utf-8").read()
+        used |= set(re.findall(r"var\((--[a-z0-9-]+)\)", html))
+    missing = sorted(used - defined)
+    assert not missing, "‏توكنز مستخدمة ومش معرّفة: %s" % missing
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):
