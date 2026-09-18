@@ -167,6 +167,11 @@ FORM_CONDITIONS_ALL = FORM_CONDITIONS + [
     "الوذمة الشحمية", "التصلب اللويحي المتعدد", "متلازمة شوغرن",
     "النقرس", "قصور الغدة الدرقية", "نشاط الغدة الدرقية",
     "ارتفاع الكوليسترول",
+    # ‏الإبر مش أمراض، بس بتغيّر الخطة زيها -- بتبعت على نفس خانة symptoms
+    # فبتدخل في نفس كل الاختبارات اللي تحت.
+    "ويجوفي / أوزمبيك (سيماجلوتايد)",
+    "مونجارو / زيباوند (تيرزيباتايد)",
+    "ساكسيندا (ليراجلوتايد)",
 ]
 
 
@@ -177,11 +182,19 @@ def _conditions_in_the_form():
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     html = open(os.path.join(here, "templates", "generate.html"),
                 encoding="utf-8").read()
-    start = html.index("<i class=\"fa-solid fa-stethoscope\"></i>")
-    block = html[start:html.index("{% endfor %}", start)]
-    # only the Arabic side is matched: an English label can carry an escaped
-    # quote ("IBD (Crohn\'s/Colitis)"), which a pattern for both sides trips on
-    found = re.findall(r"\('([^']+)'\s*,", block)
+    # Read EVERY loop in the form that renders a name="symptoms" checkbox, not
+    # just the conditions section. The medications section is a separate block
+    # that posts to the same field -- scraping one section by its icon let the
+    # three GLP-1 entries sit in the form unchecked by anything here.
+    found = []
+    for m in re.finditer(r"{%\s*for\s+\w+\s+in\s*\[(.*?)\]\s*%}(.*?){%\s*endfor\s*%}",
+                         html, re.S):
+        items, body = m.group(1), m.group(2)
+        if 'name="symptoms"' not in body:
+            continue
+        # only the Arabic side is matched: an English label can carry an escaped
+        # quote ("IBD (Crohn\'s/Colitis)"), which a pattern for both sides trips on
+        found += re.findall(r"\('([^']+)'\s*,", items)
     assert found, "could not read the condition list out of generate.html"
     return found
 
@@ -963,6 +976,72 @@ def test_the_liver_conditions_prefer_and_not_only_forbid():
         foods = me.CONDITION_FOODS.get(key) or {}
         assert foods.get("good"), "‏%s مابتقدّمش أي أكل" % cond
         assert foods.get("bad"), "‏%s مابتأخّرش أي أكل" % cond
+
+
+GLP1 = ["ويجوفي / أوزمبيك (سيماجلوتايد)",
+        "مونجارو / زيباوند (تيرزيباتايد)",
+        "ساكسيندا (ليراجلوتايد)"]
+
+
+def test_the_injections_carry_their_intervention_in_the_note_not_the_ban():
+    """‏قايمة المنع بتمسك 3 وجبات بس من 926 -- القاعدة نضيفة أصلاً.
+
+    فلو حد جه بعدين وشال الملاحظات فاكر إن المنع هو الشغل، الإبرة بتبقى
+    مالهاش أي تأثير تقريباً. الاختبار ده بيثبّت إن الملاحظة هي الحمل.
+    """
+    for med in GLP1:
+        ar = " ".join(md.get_nutrient_boost_notes([med], "ar"))
+        en = " ".join(md.get_nutrient_boost_notes([med], "en"))
+        assert ar and en, "‏%s من غير ملاحظة" % med
+        for needed in ("وجبات صغيرة", "البروتين", "1.2-1.5", "سوائل بين الوجبات"):
+            assert needed in ar, "‏%s: ناقص '%s'" % (med, needed)
+        for needed in ("small meals", "Protein first", "1.2-1.5"):
+            assert needed in en, "‏%s: الإنجليزي ناقص '%s'" % (med, needed)
+
+
+def test_the_injections_warn_about_what_sends_a_patient_to_hospital():
+    """‏التهاب البنكرياس والحصوات مش تفاصيل -- دول اللي بيودّوا الطوارئ."""
+    for med in GLP1:
+        ar = " ".join(md.get_nutrient_boost_notes([med], "ar"))
+        en = " ".join(md.get_nutrient_boost_notes([med], "en"))
+        assert "بنكرياس" in ar, "‏%s: تحذير البنكرياس ناقص" % med
+        assert "مرارة" in ar, "‏%s: تحذير الحصوات ناقص" % med
+        assert "الحمل" in ar, "‏%s: الإبر ممنوعة في الحمل ولازم تتكتب" % med
+        assert "pancreatitis" in en.lower(), "‏%s: الإنجليزي ناقص" % med
+        assert "pregnancy" in en.lower(), "‏%s: الإنجليزي ناقص الحمل" % med
+
+
+def test_the_injections_put_protein_first_in_the_ranking():
+    """‏المريض بيشبع بعد لقمتين، فاللي جوه الحجم الصغير ده يحدد عضل ولا دهون."""
+    import meal_extra as me
+    for med in GLP1:
+        key = me.CONDITION_KEYS.get(med)
+        assert key == "glp1", "‏%s مش مربوطة بترتيب الإبر" % med
+        good = me.CONDITION_FOODS["glp1"]["good"]
+        for protein in ("دجاج", "سمك", "بيض", "زبادي", "عدس"):
+            assert protein in good, "‏%s مش في قايمة التقديم" % protein
+
+
+def test_the_injections_never_empty_a_slot():
+    for med in GLP1:
+        keys = md.unsafe_keys_for([med])
+        assert keys, "‏%s مش مربوطة بقايمة منع" % med
+        for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
+            for goal in ("تخسيس", "مكتنز", "زيادة عضل", "تضخيم"):
+                for slot, items in md.get_meal_pool(goal, culture).items():
+                    if not items:
+                        continue
+                    left = [i for i in items if md.safe_for_all(i, keys)]
+                    assert len(left) >= 3, (
+                        "‏%s / %s / %s / %s سابت %d" % (med, culture, goal, slot, len(left)))
+
+
+def test_the_stronger_injection_says_it_is_stronger():
+    """‏تيرزيباتايد أقوى فالنزول أسرع وخطر العضل أعلى -- فرق يستاهل يتكتب."""
+    tirz = " ".join(md.get_nutrient_boost_notes(["مونجارو / زيباوند (تيرزيباتايد)"], "ar"))
+    sema = " ".join(md.get_nutrient_boost_notes(["ويجوفي / أوزمبيك (سيماجلوتايد)"], "ar"))
+    assert "أقوى" in tirz, "‏فرق القوة مش مكتوب"
+    assert tirz != sema, "‏النصين متطابقين -- يعني الفرق مش مذكور"
 
 
 if __name__ == "__main__":

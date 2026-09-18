@@ -299,6 +299,33 @@
   </details>
 
 
+  <!-- ═══════════ الأدوية ═══════════ -->
+  {# ‏خانة منفصلة عن الحالات المرضية: الإبرة مش مرض، بس بتغيّر الخطة زيها --
+     بتبطّء تفريغ المعدة فحجم الوجبة وعددها يتغيروا، والنزول السريع بياخد عضل
+     فالبروتين يتقدّم. بتبعت على نفس اسم symptoms عشان المحرك يشوفها من غير
+     توصيل جديد. #}
+  <details class="acc">
+    <summary><i class="fa-solid fa-syringe" style="color:#1B6E80"></i> {{ 'أدوية العميل' if is_ar else "Patient's medications" }}<span class="acc-sum"></span></summary>
+    <div class="acc-body">
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">
+      {{ 'لو العميل على إبر تخسيس، اختارها — الخطة هتتظبط على حجم وجبة أصغر وبروتين أعلى، وهتطلع تحذيرات الغثيان وفقدان العضل وعلامات الخطر في الـPDF:' if is_ar else "If the patient is on a weight-loss injection, select it — the plan shifts to smaller meals and higher protein, and the nausea, muscle-loss and red-flag warnings are printed on the PDF:" }}
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px">
+      {% for med in [
+        ('ويجوفي / أوزمبيك (سيماجلوتايد)','Wegovy / Ozempic (semaglutide)'),
+        ('مونجارو / زيباوند (تيرزيباتايد)','Mounjaro / Zepbound (tirzepatide)'),
+        ('ساكسيندا (ليراجلوتايد)','Saxenda (liraglutide)')
+      ] %}
+      <label style="display:flex;align-items:center;gap:8px;background:var(--gray);border:1.5px solid var(--gray-2);border-radius:10px;padding:10px;cursor:pointer">
+        <input type="checkbox" name="symptoms" value="{{ med[0] }}" {% if prev.symptoms and med[0] in prev.symptoms %}checked{% endif %} style="width:18px;height:18px">
+        <span style="font-size:13px;font-weight:600">{{ med[0] if is_ar else med[1] }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    </div>
+  </details>
+
+
   <!-- ═══════════ الحساسية الغذائية ═══════════ -->
   <details class="acc">
     <summary><i class="fa-solid fa-triangle-exclamation" style="color:#dc2626"></i> {{ 'الحساسية الغذائية' if is_ar else 'Food Allergies' }}<span class="acc-sum"></span></summary>
