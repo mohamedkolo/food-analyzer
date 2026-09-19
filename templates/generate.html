@@ -170,7 +170,7 @@
           <label class="form-label" for="zzMode">{{ 'النمط' if is_ar else 'Pattern' }}</label>
           <select class="form-select" name="zigzag_mode" id="zzMode">
             {% for key, m in zigzag_modes.items() %}
-            <option value="{{ key }}">{{ m.ar if is_ar else m.en }}</option>
+            <option value="{{ key }}" {% if prev.zigzag_mode == key %}selected{% endif %}>{{ m.ar if is_ar else m.en }}</option>
             {% endfor %}
           </select>
         </div>
@@ -386,7 +386,7 @@
         <i class="fa-solid fa-syringe" style="color:#b91c1c"></i>
         {{ 'إجمالي جرعة الأنسولين اليومية (وحدة/يوم) — الرقم من الطبيب المعالج' if is_ar else 'Total Daily Insulin Dose (units/day) — from the treating physician' }}
       </label>
-      <input class="form-input" type="number" step="1" min="1" name="insulin_tdd" id="insulinTdd" placeholder="{{ 'مثلاً: 40' if is_ar else 'e.g. 40' }}">
+      <input class="form-input" type="number" step="1" min="1" name="insulin_tdd" id="insulinTdd" value="{{ prev.insulin_tdd or '' }}" placeholder="{{ 'مثلاً: 40' if is_ar else 'e.g. 40' }}">
       <div style="font-size:11px;color:#991b1b;margin-top:6px">
         {{ 'لو اترك فاضي، هيتعرض عدّ الكارب لكل وجبة بس، من غير نسبة الأنسولين للكارب.' if is_ar else 'If left empty, only carb-per-meal counting will show, without the insulin-to-carb ratio.' }}
       </div>
@@ -457,7 +457,7 @@
     <div class="wz-card-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'اكتب الأكلات اللي بيحبها مفصولة بفواصل:' if is_ar else 'List foods they like, separated by commas:' }}</p>
     <textarea class="form-input" name="liked_foods" rows="2"
       placeholder="{{ 'مثلاً: شوفان، سلمون، افوكادو، دجاج مشوي، تفاح' if is_ar else 'e.g. oats, salmon, avocado, grilled chicken, apple' }}"
-      style="resize:vertical"></textarea>
+      style="resize:vertical">{{ prev.liked_foods or '' }}</textarea>
   
     </div>
   </section>
@@ -470,7 +470,7 @@
     <div class="wz-card-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'اكتب الأكلات اللي مش بياكلها مفصولة بفواصل (هتتشال من الخطة):' if is_ar else 'List foods to remove from the plan, separated by commas:' }}</p>
     <textarea class="form-input" name="disliked_foods" rows="2"
       placeholder="{{ 'مثلاً: كبدة، باذنجان، بصل، فلفل حار، كوسة' if is_ar else 'e.g. liver, eggplant, onion, chili, zucchini' }}"
-      style="resize:vertical"></textarea>
+      style="resize:vertical">{{ prev.disliked_foods or '' }}</textarea>
   
     </div>
   </section>
@@ -483,7 +483,7 @@
     <div class="wz-card-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'أي ملاحظة فيها كلمة "اشيل" أو "بدون" أو "تجنب" + اسم أكل، هيتم استثناء الأكل ده تلقائياً' if is_ar else 'Any note with a food name after "remove/without/avoid" will exclude that food automatically' }}</p>
     <textarea class="form-input" name="notes" rows="3"
       placeholder="{{ 'مثلاً: اشيل الموز، بدون فلفل حار، تجنب الجبن...' if is_ar else 'e.g. remove banana, without chili, avoid cheese...' }}"
-      style="resize:vertical"></textarea>
+      style="resize:vertical">{{ prev.notes or '' }}</textarea>
   
     </div>
   </section>

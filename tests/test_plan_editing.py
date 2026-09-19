@@ -21,6 +21,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("SECRET_KEY", "test-key")
 os.environ.setdefault("ADMIN_PASSWORD", "pw123456")
 
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 import app as A  # noqa: E402
 import core  # noqa: E402
 
@@ -137,6 +139,68 @@ def test_going_back_to_edit_finds_the_form_filled_in():
     # and the choices too, not just the text boxes
     assert re.search(r'name="goal_type" value="weight_loss"[^>]*checked', body)
     assert re.search(r'name="culture" value="مصري"[^>]*checked', body)
+
+
+def test_every_field_the_plan_was_built_from_comes_back_on_edit():
+    """‏رجوع للتعديل لازم يلاقي كل حاجة، مش معظمها.
+
+    خانة مابترجعش = الدكتور بيرجع يعدّل الوزن، يدوس توليد، والخانة دي بترجع
+    للافتراضي في صمت. حصل فعلاً مع تدوير السعرات: النمط كان بيرجع off من غير
+    أي رسالة، فالخطة التانية تطلع مسطحة -- والدكتور فاكر التدوير شغال.
+    """
+    c = _staff_client()
+    extra = {
+        "zigzag_mode": "classic",
+        "insulin_tdd": "42",
+        "liked_foods": "شوفان، سلمون",
+        "disliked_foods": "كبدة، باذنجان",
+        "notes": "بدون فلفل حار",
+        "visit_notes": "بيشتكي من انتفاخ",
+    }
+    _generate(c, name="مريض التدوير", phone="01066667777", **extra)
+    body = c.get("/generate?edit=1").get_data(as_text=True)
+
+    # ‏نمط التدوير مختار فعلاً في الـselect بتاعه
+    sel = re.search(r'name="zigzag_mode".*?</select>', body, re.S)
+    assert sel, "‏خانة تدوير السعرات مش في الفورم"
+    chosen = re.search(r'value="([^"]+)" selected', sel.group(0))
+    assert chosen and chosen.group(1) == "classic", (
+        "‏نمط التدوير رجع %s مش classic -- التدوير بيضيع في صمت"
+        % (chosen.group(1) if chosen else "مفيش"))
+
+    for field, value in extra.items():
+        if field == "zigzag_mode":
+            continue
+        assert value in body, "‏%s ضاع لما رجعنا نعدّل" % field
+
+
+def test_the_form_has_no_field_that_silently_forgets_itself():
+    """‏كل خانة بيتبنى عليها الجدول لازم تقرا prev.
+
+    الاختبار اللي فوق بيجرّب الخانات اللي عرفناها. ده بيمسك الجديدة: أي
+    حد يضيف خانة للفورم وينسى prev بتاعتها، يفشل هنا مش عند الدكتور.
+    """
+    html = open(os.path.join(HERE, "templates", "generate.html"),
+                encoding="utf-8").read()
+    # ‏خانات محسوبة بالجافاسكريبت، مش محفوظة ومالهاش لازمة ترجع
+    DERIVED = {"carb_pct_cal"}
+    stored = set(re.findall(r'"([a-z_]+)": request\.form\.get',
+                            open(os.path.join(HERE, "routes_plans.py"),
+                                 encoding="utf-8").read()))
+    stored |= set(re.findall(r'"([a-z_]+)": request\.form\.getlist',
+                             open(os.path.join(HERE, "routes_plans.py"),
+                                  encoding="utf-8").read()))
+    missing = []
+    for name in sorted(set(re.findall(r'name="([a-z_]+)"', html))):
+        if name in DERIVED or name not in stored:
+            continue
+        i = html.index('name="%s"' % name)
+        # ‏الـselect بنبص جوه بلوكه، والباقي في نفس الوسم أو اللي بعده
+        end = html.index("</select>", i) if '<select' in html[max(0, i-200):i]               else i + 400
+        if "prev." not in html[max(0, i - 200):end]:
+            missing.append(name)
+    assert not missing, (
+        "‏الخانات دي بتضيع لما ترجع تعدّل: %s" % "، ".join(missing))
 
 
 def test_a_plain_generate_is_empty_even_right_after_a_plan():
