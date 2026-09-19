@@ -105,36 +105,33 @@
         <input class="form-input" type="number" name="tdee" id="tdeeField" value="{{ prev.tdee or '' }}">
       </div>
     </div>
+    {# ‏كانت خانتين بيسألوا نفس السؤال بمقياسين: "معامل النشاط" للـTDEE
+       و"مستوى النشاط" للبروتين. الدكتور كان لازم يجاوب مرتين، ولو جاوب
+       متناقض (مكتبي + رياضي) الأرقام تطلع متضاربة. بقت خانة واحدة، وكل
+       اختيار مكتوب جنبه المعنيين. مستوى البروتين بيتحدد من نفس الاختيار
+       في السيرفر -- مش في الجافاسكريبت، عشان مايختلفوش لو الـJS مااشتغلش. #}
     <div class="form-group">
       <label class="form-label" for="actMult">
-        {{ 'معامل النشاط (لحساب TDEE)' if is_ar else 'Activity factor (for TDEE)' }}
+        {{ 'نشاط العميل' if is_ar else "Client's activity" }}
+        <span style="font-weight:600;color:var(--muted);font-size:11px">
+          {{ '— بيحدد الـTDEE والبروتين مع بعض' if is_ar else '— sets both TDEE and protein' }}
+        </span>
       </label>
       <select class="form-select" name="activity_mult" id="actMult">
-        <option value="1.2">{{ 'قليل الحركة (عمل مكتبي) — 1.2' if is_ar else 'Sedentary (desk job) — 1.2' }}</option>
-        <option value="1.375">{{ 'نشاط خفيف (1-3 أيام) — 1.375' if is_ar else 'Light (1-3 days) — 1.375' }}</option>
-        <option value="1.55" {% if not prev.activity or prev.activity|string == '1.55' %}selected{% endif %}>{{ 'متوسط (3-5 أيام) — 1.55' if is_ar else 'Moderate (3-5 days) — 1.55' }}</option>
-        <option value="1.725">{{ 'عالي (6-7 أيام) — 1.725' if is_ar else 'High (6-7 days) — 1.725' }}</option>
-        <option value="1.9">{{ 'عالي جداً (تمرين + شغل بدني) — 1.9' if is_ar else 'Very high (training + physical job) — 1.9' }}</option>
+        <option value="1.2" {% if prev.activity|string == '1.2' %}selected{% endif %}>{{ 'قليل الحركة (عمل مكتبي) — ×1.2 · بروتين 1.0 جم/كجم' if is_ar else 'Sedentary (desk job) — ×1.2 · protein 1.0 g/kg' }}</option>
+        <option value="1.375" {% if prev.activity|string == '1.375' %}selected{% endif %}>{{ 'نشاط خفيف (1-3 أيام) — ×1.375 · بروتين 1.3 جم/كجم' if is_ar else 'Light (1-3 days) — ×1.375 · protein 1.3 g/kg' }}</option>
+        <option value="1.55" {% if not prev.activity or prev.activity|string == '1.55' %}selected{% endif %}>{{ 'متوسط (3-5 أيام) — ×1.55 · بروتين 1.6 جم/كجم' if is_ar else 'Moderate (3-5 days) — ×1.55 · protein 1.6 g/kg' }}</option>
+        <option value="1.725" {% if prev.activity|string == '1.725' %}selected{% endif %}>{{ 'عالي (6-7 أيام) — ×1.725 · بروتين 2.0 جم/كجم' if is_ar else 'High (6-7 days) — ×1.725 · protein 2.0 g/kg' }}</option>
+        <option value="1.9" {% if prev.activity|string == '1.9' %}selected{% endif %}>{{ 'عالي جداً (تمرين + شغل بدني) — ×1.9 · بروتين 2.0 جم/كجم' if is_ar else 'Very high (training + physical job) — ×1.9 · protein 2.0 g/kg' }}</option>
       </select>
     </div>
     <div style="font-size:11px;color:var(--muted);margin:-4px 0 4px">
       {{ 'الـTDEE بيتحسب تلقائياً (Mifflin-St Jeor × معامل النشاط) وتقدر تعدّله بإيدك.'
          if is_ar else 'TDEE is calculated automatically (Mifflin-St Jeor × activity factor) and stays editable.' }}
     </div>
-    <div class="grid-2">
-      <div class="form-group">
-        <label for="goalField" class="form-label">{{ 'الهدف اليومي (kcal)' if is_ar else 'Daily Target (kcal)' }}</label>
-        <input class="form-input" type="number" name="goal_cal" id="goalField" value="{{ prev.goal_cal or 1400 }}">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="actField">{{ 'مستوى النشاط' if is_ar else 'Activity Level' }}</label>
-        <select class="form-select" name="activity_level" id="actField">
-          <option value="sedentary">{{ 'قليل الحركة (مكتبي) — 1.0 جم/كجم' if is_ar else 'Sedentary — 1.0 g/kg' }}</option>
-          <option value="light">{{ 'نشاط خفيف (مشي) — 1.3 جم/كجم' if is_ar else 'Light — 1.3 g/kg' }}</option>
-          <option value="regular" selected>{{ 'تمارين منتظمة / تخسيس — 1.6 جم/كجم' if is_ar else 'Regular / Fat loss — 1.6 g/kg' }}</option>
-          <option value="athlete">{{ 'رياضي / بناء عضل — 2.0 جم/كجم' if is_ar else 'Athlete / Muscle — 2.0 g/kg' }}</option>
-        </select>
-      </div>
+    <div class="form-group">
+      <label for="goalField" class="form-label">{{ 'الهدف اليومي (kcal)' if is_ar else 'Daily Target (kcal)' }}</label>
+      <input class="form-input" type="number" name="goal_cal" id="goalField" value="{{ prev.goal_cal or 1400 }}">
     </div>
 
     <div style="background:#f0f7f4;border:1px solid #cfe3d9;border-radius:10px;padding:12px;margin-top:6px">
@@ -914,13 +911,22 @@ tdee.addEventListener('input',calcGoal);
 document.querySelectorAll('input[name="goal_type"]').forEach(r=>r.addEventListener('change',calcGoal));
 
 // ===== ضبط الماكروز تلقائياً =====
-const actSel=document.getElementById('actField');
+// ‏خانة النشاط لازم تتعرّف هنا مش تحت: setProteinFromAct بتتنادى وقت
+// التحميل، ولو التعريف بعدها الـconst بيرمي "Cannot access before
+// initialization" -- وده كان بيقتل باقي السكريبت كله، فبحث العملاء
+// والملء بالمفتاح مكانوش بيتعرّفوا أصلاً.
+const actMult=document.getElementById('actMult');
 const pPerKg=document.getElementById('proteinPerKg');
 const fatPct=document.getElementById('fatPctCal');
 const carbPct=document.getElementById('carbPctCal');
-const ACT_P={sedentary:1.0,light:1.3,regular:1.6,athlete:2.0};
+// ‏خانة النشاط بقت واحدة، فالبروتين بيتحدد من معامل الـTDEE نفسه. نفس
+// الخريطة موجودة في السيرفر (ACT_TO_LEVEL) -- ولو الـJS مااشتغل السيرفر
+// بيحسبها برضه، فمفيش احتمال إنهم يختلفوا.
+const MULT_P={'1.2':1.0,'1.375':1.3,'1.55':1.6,'1.725':2.0,'1.9':2.0};
 const DIET_FAT={keto:70,low_carb:40};
-function setProteinFromAct(){ if(actSel&&pPerKg) pPerKg.value=ACT_P[actSel.value]||1.6; }
+function setProteinFromAct(){
+  if(actMult&&pPerKg) pPerKg.value=MULT_P[String(actMult.value)]||1.6;
+}
 function setFatFromDiet(){
   const d=document.querySelector('input[name="diet_plan_type"]:checked')?.value;
   if(fatPct) fatPct.value = DIET_FAT[d] || 30;
@@ -935,7 +941,7 @@ function calcCarb(){
   }
 }
 function updateMacros(){ setFatFromDiet(); calcCarb(); }
-if(actSel) actSel.addEventListener('change',()=>{setProteinFromAct();calcCarb();});
+if(actMult) actMult.addEventListener('change',()=>{setProteinFromAct();calcCarb();});
 document.querySelectorAll('input[name="diet_plan_type"]').forEach(r=>r.addEventListener('change',updateMacros));
 [pPerKg,fatPct,w,goal].forEach(el=>el&&el.addEventListener('input',calcCarb));
 document.querySelectorAll('input[name="goal_type"]').forEach(r=>r.addEventListener('change',calcCarb));
@@ -948,7 +954,6 @@ const nameField=document.getElementById('nameField');
 const phoneField=document.getElementById('phoneField');
 const fuBox=document.getElementById('fuBox');
 const ageField=document.getElementById('ageField');
-const actMult=document.getElementById('actMult');
 const IS_AR={{ 'true' if is_ar else 'false' }};
 const T=(a,e)=>IS_AR?a:e;
 let fuTimer=null, fuLastKey='';
@@ -1009,25 +1014,46 @@ function renderFollowup(d){
   </div>`;
   fuBox.style.display='block';
 
-  // ‏الملء التلقائي: الفاضي بس. أي خانة الدكتور كتب فيها حاجة مابتتغيّرش --
-  // عشان الرقم بيتكتب وسط الكتابة، ولو الملء بدّل قيمة مكتوبة كان هيمسح شغل.
+  // ‏الملء التلقائي، وليه وضعين حسب إزاي لقينا العميل:
+  //   كتبت الرقم وهو لقاه لوحده -> الفاضي بس، عشان الرقم بيتكتب وسط
+  //   الكتابة ومايصحش يمسح شغل إنت لسه كاتبه.
+  //   دوست على عميل من القايمة -> كل حاجة، لأن الدوس قرار صريح.
+  // الوزن مالوش يتملّى في الحالتين.
   // بيرجّع أسماء اللي اتملى عشان لو قال "ده شخص تاني" نفضّيه هو بس.
-  function fuFillEmpty(){
+  function fuFillEmpty(force){
     const filled=[];
-    function setIfEmpty(el, val, label){
+    // ‏وضعين:
+    //   force=false  (كتبت الرقم وهو لقاه لوحده) -- الفاضي بس، عشان
+    //                 مايمسحش حاجة إنت لسه كاتبها.
+    //   force=true   (دوست على عميل من القايمة) -- كل حاجة، لأن الدوس
+    //                 اختيار صريح: إنت قلت "ده هو"، فالمفروض الفورم يبقى
+    //                 بياناته كلها مش نصها.
+    function setVal(el, val, label){
       if(!el || val===null || val===undefined || val==='') return;
-      if(String(el.value||'').trim()!=='') return;   // ‏مكتوب: سيبه
+      if(!force && String(el.value||'').trim()!=='') return;   // ‏مكتوب: سيبه
+      if(String(el.value||'') === String(val)) return;         // ‏هو هو أصلاً
       el.value=val; filled.push({el:el, label:label});
     }
-    // ‏الثابت بس: الطول والسن والنوع والنشاط. الوزن لأ -- ده اللي جاي يتقاس.
-    setIfEmpty(nameField, d.name, T('الاسم','Name'));
-    setIfEmpty(h, L.height, T('الطول','Height'));
-    setIfEmpty(ageField, L.age, T('العمر','Age'));
-    if(genderSel && L.gender && !genderSel.dataset.touched){ genderSel.value=L.gender; }
-    if(actMult && L.activity && !actMult.dataset.touched){ actMult.value=L.activity; }
+    // ‏الوزن مالوش يتملّى في الحالتين: ده اللي جاي يتقاس في الزيارة دي،
+    // ولو حطينا القديم فيه، أول مرة تنسى تغيّره الخطة تتحسب على وزن قديم.
+    setVal(nameField, d.name, T('الاسم','Name'));
+    setVal(h, L.height, T('الطول','Height'));
+    setVal(ageField, L.age, T('العمر','Age'));
+    if(phoneField && d.phone) setVal(phoneField, d.phone, T('الموبايل','Phone'));
+    setVal(document.getElementById('bmiField'), L.bmi, 'BMI');
+    setVal(tdee, L.tdee, 'TDEE');
+    setVal(goal, L.goal_cal, T('الهدف اليومي','Daily target'));
+    if(genderSel && L.gender && (force || !genderSel.dataset.touched)){ genderSel.value=L.gender; }
+    // ‏خانة النشاط واحدة، فالبروتين مستنتج منها. لو حطينا القيمة
+    // من غير ما نعيد الاستنتاج، الليبل بيقول "بروتين 2.0" والخانة فيها
+    // 1.6 -- واللي بيتبعت هو 1.6، فالدكتور شاف رقم والخطة اتحسبت برقم تاني.
+    if(actMult && L.activity && (force || !actMult.dataset.touched)){
+      actMult.value=L.activity;
+      setProteinFromAct();
+    }
 
-    // ‏الهدف والنظام: بيتحطوا بس لو الدكتور ماختارش بنفسه
-    if(L.goal_type && !document.querySelector('input[name="goal_type"]:checked[data-touched]')){
+    // ‏الهدف والنظام: في وضع الدوس بيتحطوا دايماً
+    if(L.goal_type && (force || !document.querySelector('input[name="goal_type"]:checked[data-touched]'))){
       const r=document.querySelector(`input[name="goal_type"][value="${L.goal_type}"]`);
       if(r && !r.checked){ r.checked=true; filled.push({label:T('الهدف','Goal')}); }
     }
@@ -1056,13 +1082,15 @@ function renderFollowup(d){
 
   const btn=document.getElementById('fuFill');
   if(btn) btn.onclick=()=>{
-    const n=fuFillEmpty();
+    const n=fuFillEmpty(d.matched_by === 'pick');
     btn.textContent = n.length ? T('اتملت ✓','Filled ✓')
                                : T('مافيش خانة فاضية','Nothing left empty');
   };
 
   // ‏هنا الملء بيحصل لوحده. الزرار فوق بقى للي عايز يعيدها بإيده.
-  const auto=fuFillEmpty();
+  // matched_by === 'pick' معناها إن الدكتور دوس على عميل من القايمة، فبنملي
+  // كل حاجة مش الفاضي بس.
+  const auto=fuFillEmpty(d.matched_by === 'pick');
   const fuWhat=document.getElementById('fuAutoNote');
   if(fuWhat){
     fuWhat.textContent = auto.length
@@ -1126,7 +1154,7 @@ window.nxLoadClient = function(key){
 // ‏القوايم مالهاش قيمة "فاضية" (بتبدأ على أول اختيار)، فمينفعش نعرف إنها
 // فاضية من قيمتها. فبنعلّم عليها أول ما الدكتور يلمسها، والملء التلقائي
 // بيحترم العلامة دي.
-['genderField','actMult','actField','zzMode'].forEach(function(id){
+['genderField','actMult','zzMode'].forEach(function(id){
   const el=document.getElementById(id);
   if(el) el.addEventListener('change',function(){ el.dataset.touched='1'; });
 });

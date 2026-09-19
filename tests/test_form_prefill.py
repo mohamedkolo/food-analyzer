@@ -106,7 +106,7 @@ def test_the_autofill_fills_the_name_because_the_field_is_required():
     html = _form()
     assert 'name="name" id="nameField" required' in html, \
         "‏شكل حقل الاسم اتغير -- الاختبار ده محتاج تحديث"
-    assert "setIfEmpty(nameField, d.name" in html, \
+    assert "setVal(nameField, d.name" in html, \
         "‏الملء التلقائي مش بيملّي الاسم، والحقل required"
 
 
@@ -114,10 +114,14 @@ def test_the_autofill_never_overwrites_what_was_typed():
     """‏الرقم بيتكتب وسط الكتابة، فالملء مايصحش يمسح شغل الدكتور."""
     html = _form()
     fn = html[html.index("function fuFillEmpty"):html.index("const btn=")]
-    assert "if(String(el.value||'').trim()!=='') return;" in fn, \
+    # ‏الحماية بقت مشروطة بـforce: الكتابة بالإيد مش بتتمسح إلا لو الدكتور
+    # دوس على عميل من القايمة بنفسه (اختيار صريح "ده هو").
+    assert "if(!force && String(el.value||'').trim()!=='') return;" in fn, \
         "‏حماية 'المكتوب مايتغيرش' مش موجودة"
-    # ‏الوزن مالوش يتملّى: ده اللي جاي يتقاس في الزيارة دي
-    assert "setIfEmpty(w," not in fn and "setIfEmpty(wField" not in fn, \
+    assert "function fuFillEmpty(force)" in html, \
+        "‏الملء مابقاش ليه وضعين -- الدوس على عميل لازم يملي كل حاجة"
+    # ‏الوزن مالوش يتملّى في الحالتين: ده اللي جاي يتقاس في الزيارة دي
+    assert "setVal(w," not in fn and "setVal(wField" not in fn, \
         "‏الوزن بيتملّى من زيارة قديمة -- ده اللي المفروض يتقاس"
 
 
@@ -426,6 +430,183 @@ def test_the_dropdown_is_wide_enough_to_read_on_a_phone():
     الضيقة الاسم بياخد الصف كله."""
     html = _form()
     assert ".grid-2 > .form-group:has(.ac-wrap)" in html,         "‏خانة الاسم مش بتاخد الصف كله على الموبايل، فالقايمة هتبقى ضيقة"
+
+
+def test_the_form_does_not_open_with_the_last_client_still_in_it():
+    """‏أخطر باگ في الفورم: كان بيتملى من session["pdf_data"] دايماً.
+
+    دي بيانات آخر خطة اتولّدت وبتفضل في الجلسة. النتيجة إن فتح "توليد جدول"
+    من القايمة كان بيجيب اسم ووزن وحالات آخر عميل. ولو الدكتور غيّر الاسم
+    بس، الحالات تفضل من القديم في خطوة ماشافهاش -- فالخطة تطلع على شخص
+    وبحالات شخص تاني، من غير أي رسالة غلط.
+    """
+    src = open(os.path.join(HERE, "routes_plans.py"), encoding="utf-8").read()
+    block = src[src.index("def generate"):src.index("def commit_plan")]
+    assert 'request.args.get("edit")' in block,         "‏الفورم مش بيفرّق بين تعديل وعميل جديد"
+    assert "if editing else {}" in block,         "‏الفورم لسه بيتملى من آخر خطة في كل الحالات"
+    # ‏وزرار التعديل لازم يقول إنه تعديل، وإلا الرجوع من المعاينة يفضّي الفورم
+    prev_html = open(os.path.join(HERE, "templates", "preview.html"),
+                     encoding="utf-8").read()
+    assert 'href="/generate?edit=1"' in prev_html,         "‏زرار التعديل مش بيطلب الملء، فالرجوع من المعاينة هيفضّي الفورم"
+
+
+def test_picking_a_client_overwrites_instead_of_filling_gaps():
+    """‏الدوس على عميل اختيار صريح: "ده هو". فالمفروض الفورم يبقى بياناته
+    كلها، مش نصها -- عكس كتابة الرقم اللي بتملي الفاضي بس."""
+    html = _form()
+    fn = html[html.index("function fuFillEmpty"):html.index("const btn=")]
+    assert "function fuFillEmpty(force)" in html, "‏مفيش وضع للكتابة فوق"
+    assert "if(!force && String(el.value" in fn,         "‏الكتابة فوق مش مشروطة بالدوس -- كده بيمسح شغل الدكتور"
+    assert "d.matched_by === 'pick'" in html,         "‏الملء مش عارف يفرّق بين الدوس وكتابة الرقم"
+    # ‏والأهداف والنظام لازم يتملوا كمان -- ده اللي طلبه بالنص
+    for field in ("goal_type", "diet_plan_type", "L.tdee", "L.goal_cal", "L.bmi"):
+        assert field in fn, "‏%s مش بيتملى عند الدوس" % field
+    # ‏الوزن برضه مايتملاش: ده اللي جاي يتقاس
+    assert "setVal(w," not in fn, "‏الوزن بيتملى من زيارة قديمة"
+
+
+def test_there_is_only_one_activity_field():
+    """‏كانت خانتين بيسألوا نفس السؤال بمقياسين: معامل الـTDEE، ومستوى
+    البروتين. الدكتور كان لازم يجاوب مرتين، ولو جاوب متناقض (مكتبي +
+    رياضي) الأرقام تطلع متضاربة."""
+    html = _form()
+    acts = re.findall(r'<select[^>]*name="(activity[^"]*)"', html)
+    assert acts == ["activity_mult"], "‏خانات النشاط: %s" % acts
+    assert 'name="activity_level"' not in html, "‏خانة مستوى النشاط لسه موجودة"
+
+
+def test_the_protein_level_is_derived_on_the_server_too():
+    """‏لو الاستنتاج في الجافاسكريبت بس، متصفح مقفول فيه الـJS (أو غلطة في
+    السكريبت) كان هيبعت البروتين الافتراضي والدكتور مش هيعرف."""
+    os.environ.setdefault("SECRET_KEY", "test-only")
+    import routes_plans as rp
+    cases = {"1.2": "sedentary", "1.375": "light", "1.55": "regular",
+             "1.725": "athlete", "1.9": "athlete"}
+    for mult, level in cases.items():
+        assert rp._activity_level(mult) == level,             "‏×%s المفروض %s وطلع %s" % (mult, level, rp._activity_level(mult))
+    # ‏رقم غريب أو فاضي مايكسرش حاجة
+    for bad in ("", None, "abc", "9.9"):
+        assert rp._activity_level(bad) == "regular", "‏%r كسر الاستنتاج" % (bad,)
+    # ‏والقالب لازم يستخدم نفس الخريطة عشان الرقم يبان فوراً
+    html = _form()
+    assert "MULT_P" in html, "‏القالب مش بيعرض البروتين من نفس الاختيار"
+    for mult in cases:
+        assert "'%s'" % mult in html, "‏×%s ناقص من خريطة القالب" % mult
+
+
+def test_the_activity_label_matches_the_protein_it_produces():
+    """‏الليبل بيعد بروتين معيّن -- والخانة لازم تدي نفس الرقم.
+
+    دمجنا خانتين في واحدة عشان مايتناقضوش، فلو الليبل بيقول "بروتين 2.0"
+    والخريطة بتحسب 1.6، الدكتور بيقرا رقم والخطة بتتحسب برقم تاني -- ومفيش
+    حاجة في الشاشة تقول كده.
+    """
+    html = _form()
+    mult_p = dict(re.findall(r"'([\d.]+)':([\d.]+)", html[html.index("const MULT_P="):]
+                             .split("}", 1)[0]))
+    assert mult_p, "‏خريطة MULT_P مش موجودة"
+    opts = re.findall(r'<option value="([\d.]+)"[^>]*>\{\{ \'([^\']*)\'', html)
+    assert len(opts) == len(mult_p), (
+        "‏عدد اختيارات النشاط (%d) مش قد الخريطة (%d)" % (len(opts), len(mult_p)))
+    for value, label in opts:
+        said = re.search(r"بروتين ([\d.]+)", label)
+        assert said, "‏اختيار ×%s مش مكتوب فيه البروتين" % value
+        assert float(said.group(1)) == float(mult_p[value]), (
+            "‏×%s الليبل بيقول %s والخريطة بتحسب %s"
+            % (value, said.group(1), mult_p[value]))
+
+
+def test_picking_a_client_resyncs_the_protein_with_the_activity():
+    """‏حط قيمة في select من الكود مابيرميش change، فالمستنتج منها
+    بيفضل على القديم. حصل فعلاً: النشاط بقى ×1.725 والبروتين فضل 1.6."""
+    html = _form()
+    fn = html[html.index("function fuFillEmpty"):html.index("const btn=")]
+    branch = fn[fn.index("if(actMult && L.activity"):]
+    branch = branch[:branch.index("// ")] if "// " in branch[:400] else branch[:400]
+    assert "setProteinFromAct()" in branch, (
+        "‏الملء بيغيّر النشاط ومابيعيدش حساب البروتين")
+
+
+def _js_code_only(script):
+    """‏السكريبت بعد شيل النصوص والتعليقات، والطول محفوظ.
+
+    بنسيب مكان كل حرف زي ما هو (بنبدّله بمسافة) عشان الفهارس تفضل مظبوطة،
+    فالبحث عن "قبل التعريف" يفضل صح.
+    """
+    out = list(script)
+    i, n = 0, len(script)
+    while i < n:
+        ch = script[i]
+        if ch in "\"'`":
+            quote, j = ch, i + 1
+            # ‏في الـtemplate literal، اللي جوه ${...} كود حقيقي فبنسيبه
+            keep = []
+            while j < n:
+                if script[j] == "\\":
+                    j += 2
+                    continue
+                if quote == "`" and script.startswith("${", j):
+                    depth, k = 1, j + 2
+                    while k < n and depth:
+                        if script[k] == "{":
+                            depth += 1
+                        elif script[k] == "}":
+                            depth -= 1
+                        k += 1
+                    keep.append((j + 2, k - 1))
+                    j = k
+                    continue
+                if script[j] == quote:
+                    break
+                j += 1
+            for k in range(i, min(j + 1, n)):
+                if out[k] != "\n":
+                    out[k] = " "
+            for a, b in keep:
+                for k in range(a, min(b, n)):
+                    out[k] = script[k]
+            i = j + 1
+            continue
+        if script.startswith("//", i):
+            j = script.find("\n", i)
+            j = n if j < 0 else j
+            for k in range(i, j):
+                out[k] = " "
+            i = j
+            continue
+        if script.startswith("/*", i):
+            j = script.find("*/", i + 2)
+            j = n if j < 0 else j + 2
+            for k in range(i, j):
+                if out[k] != "\n":
+                    out[k] = " "
+            i = j
+            continue
+        i += 1
+    return "".join(out)
+
+
+def test_no_script_reads_a_const_before_it_is_declared():
+    """‏غلطة وقعت فيها فعلاً: نقلت استخدام actMult فوق تعريفه، فالمتصفح رمى
+    "Cannot access before initialization" -- وده **قتل باقي السكريبت كله**،
+    فبحث العملاء والملء بالمفتاح مكانوش بيتعرّفوا أصلاً. الصفحة كانت شكلها
+    سليم والكارت بيظهر، بس الدوس مايملّيش. ده أسوأ نوع: بيفشل في صمت.
+    """
+    html = _form()
+    mark = "<script>\n// ═══ بحث العملاء"
+    script = html[html.index(mark) if mark in html else html.index("<script>"):]
+    # ‏الـid جوه نص ('nameField' في getElementById) مش استخدام للمتغير، فلازم
+    # نشيل النصوص والتعليقات الأول وإلا الاختبار بيرمي غلطة مش موجودة.
+    bare = _js_code_only(script)
+    for name in ("actMult", "pPerKg", "fatPct", "carbPct", "nameField",
+                 "phoneField", "ageField", "fuBox"):
+        decl = bare.find("const %s=" % name)
+        assert decl != -1, "‏%s مش متعرّف بـconst" % name
+        # ‏أول استخدام بعد التعريف: بندوّر على الاسم قبل مكان التعريف
+        before = bare[:decl]
+        uses = re.findall(r"\b%s\b" % re.escape(name), before)
+        assert not uses, (
+            "‏%s مستخدم قبل تعريفه -- المتصفح هيرمي غلطة تقتل السكريبت" % name)
 
 
 if __name__ == "__main__":

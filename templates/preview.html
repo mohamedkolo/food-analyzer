@@ -11,7 +11,10 @@
     <i class="fa-solid fa-eye"></i> {{ t('معاينة الخطة','Plan Preview') }}
   </h1>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <a href="/generate" class="btn btn-outline">
+    {# ‏?edit=1 بيقول للفورم: املا من الخطة اللي لسه ولّدتها. من غيره الفورم
+       بيفتح فاضي -- عشان فتح "توليد جدول" من القايمة كان بيجيب بيانات آخر
+       عميل ولّدت له، ويخليك تبعت خطة على بياناته من غير ما تحس. #}
+    <a href="/generate?edit=1" class="btn btn-outline">
       <i class="fa-solid {{ 'fa-arrow-right' if is_ar else 'fa-arrow-left' }}"></i> {{ t('تعديل البيانات','Edit details') }}
     </a>
     <form method="POST" action="/regenerate_plan" style="display:inline">

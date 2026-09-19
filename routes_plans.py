@@ -114,7 +114,7 @@ def generate():
             "weight": request.form.get("weight",""), "fat_pct": request.form.get("fat_pct",""),
             "bmi": request.form.get("bmi",""), "tdee": request.form.get("tdee",""),
             "goal_cal": request.form.get("goal_cal","1400"),
-            "activity_level": request.form.get("activity_level","regular"),
+            "activity_level": _activity_level(request.form.get("activity_mult")),
             "protein_per_kg": request.form.get("protein_per_kg","1.6"),
             "fat_pct_cal": request.form.get("fat_pct_cal","30"),
             "goal_type": request.form.get("goal_type","weight_loss"),
@@ -157,11 +157,36 @@ def generate():
         # الحفظ بيحصل لما يطلبه: زرار حفظ، أو لينك، أو تحميل PDF.
         return redirect("/preview")
 
-    # الرجوع من المعاينة لازم يلاقي الفورم مليان زي ما ساب — مش فاضي
+    # ‏الفورم بيفتح **فاضي**، إلا لو راجع من المعاينة يعدّل (?edit=1).
+    #
+    # كان بيتملى من session["pdf_data"] دايماً -- وهي بيانات آخر خطة اتولّدت
+    # وبتفضل في الجلسة. النتيجة إن فتح "توليد جدول" من القايمة كان بيجيب
+    # بيانات آخر عميل: اسمه ووزنه وحالاته المرضية. ولو الدكتور غيّر الاسم بس،
+    # الحالات بتفضل من القديم في خطوة ماشافهاش -- فالخطة تطلع على شخص وبحالات
+    # شخص تاني. ده أخطر شكل للباگ: مفيش رسالة غلط، الخطة تطلع وتتبعت.
+    editing = request.args.get("edit") in ("1", "true", "yes")
     return render_template("generate.html", user=u, lang=session.get("lang","ar"),
                            diet_plans=DIET_PLAN_TYPES, zigzag_modes=ZIGZAG_MODES,
                            zigzag_json=json.dumps(ZIGZAG_MODES, ensure_ascii=False),
-                           prev=session.get("pdf_data") or {})
+                           prev=(session.get("pdf_data") or {}) if editing else {})
+
+# ‏خانة النشاط بقت واحدة: بتبعت معامل الـTDEE، ومستوى البروتين بيتستنتج
+# منه هنا -- في السيرفر مش في الجافاسكريبت. لو كان الاستنتاج في الـJS بس،
+# متصفح الـJS فيه مقفول (أو غلطة في السكريبت) كان بيبعت البروتين الافتراضي
+# وخلاص، والدكتور مش هيعرف. ونفس الخريطة في القالب لعرض الرقم فوراً.
+ACT_TO_LEVEL = {
+    "1.2": "sedentary",
+    "1.375": "light",
+    "1.55": "regular",
+    "1.725": "athlete",
+    "1.9": "athlete",
+}
+
+
+def _activity_level(mult):
+    """‏مستوى البروتين من معامل النشاط. الافتراضي regular لو الرقم غريب."""
+    return ACT_TO_LEVEL.get(str(mult or "").strip(), "regular")
+
 
 def commit_plan(data=None, plan=None):
     """يحفظ الجدول ويسجّل الزيارة — مرة واحدة لكل جدول، مش كل ضغطة.
@@ -348,6 +373,7 @@ def followup_lookup():
             "weight": prev.get("weight"), "height": prev.get("height"),
             "age": prev.get("age"), "gender": prev.get("gender"),
             "fat_pct": prev.get("fat_pct"), "tdee": prev.get("tdee"),
+            "bmi": prev.get("bmi"),
             "goal_cal": prev.get("goal_cal"), "activity": prev.get("activity"),
             "goal_type": prev.get("goal_type"),
             "diet_plan_type": prev.get("diet_plan_type"),

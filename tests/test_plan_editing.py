@@ -91,6 +91,10 @@ def test_adjusting_after_saving_updates_the_same_visit():
     # the suites share one database, so this needs a client of its own or an
     # earlier test's rows get counted as history
     who = {"name": "مريض التصحيح", "phone": "01055554444"}
+    # ‏وكمان بينضّف سطوره الأول: الاختبار بيعدّ زيارات المفتاح ده، فلو
+    # القاعدة فيها سطر من تشغيلة قديمة كان بيفشل ويورّي باگ مش موجود.
+    key = __import__("followup").client_key(who["name"], who["phone"])
+    core.db_run("DELETE FROM plan_visits WHERE client_key=?", (key,))
     c = _staff_client()
     _generate(c, weight="95", **who)
     c.post("/api/save-plan")
@@ -100,7 +104,6 @@ def test_adjusting_after_saving_updates_the_same_visit():
     c.post("/api/save-plan")
     assert _counts() == (plans, visits), "the correction was filed as a new visit"
 
-    key = __import__("followup").client_key(who["name"], who["phone"])
     rows = core.visits_for(1, key)
     assert len(rows) == 1, f"{len(rows)} visits recorded for one appointment"
     assert float(rows[0]["weight"]) == 93.0, "the visit kept the old weight"
@@ -119,14 +122,41 @@ def test_a_different_client_starts_a_new_record():
 
 
 def test_going_back_to_edit_finds_the_form_filled_in():
+    """Only the edit link refills the form -- /generate?edit=1.
+
+    A plain /generate is a new client: it used to come back carrying the last
+    plan's data, so the next person's plan was silently built on the previous
+    one's conditions. The edit button on the preview page now asks for the
+    refill explicitly, and that is what this checks.
+    """
     c = _staff_client()
     _generate(c, name="أحمد على", weight="95", height="176", age="32")
-    body = c.get("/generate").get_data(as_text=True)
+    body = c.get("/generate?edit=1").get_data(as_text=True)
     for value in ("أحمد على", "95", "176", "32", "01012345678"):
         assert f'value="{value}"' in body, f"{value} was lost from the form"
     # and the choices too, not just the text boxes
     assert re.search(r'name="goal_type" value="weight_loss"[^>]*checked', body)
     assert re.search(r'name="culture" value="مصري"[^>]*checked', body)
+
+
+def test_a_plain_generate_is_empty_even_right_after_a_plan():
+    """The other half: the form must not open on the last client's data."""
+    c = _staff_client()
+    # ‏هدف مش الافتراضي، عشان لو رجع يبقى رجع من الخطة اللي فاتت
+    _generate(c, name="أحمد على", weight="95", height="176", age="32",
+              goal_type="muscle_gain")
+    body = c.get("/generate").get_data(as_text=True)
+    for value in ("أحمد على", "95", "176", "32"):
+        assert f'value="{value}"' not in body, (
+            f"{value} came back in a fresh form -- the next client inherits it")
+    # ‏الراديو بيرجع لافتراضيه (تخسيس)، مش لهدف العميل اللي فات
+    assert not re.search(r'name="goal_type" value="muscle_gain"[^>]*checked', body), (
+        "the goal was pre-picked from the last plan")
+    assert re.search(r'name="goal_type" value="weight_loss"[^>]*checked', body), (
+        "the goal group opens with nothing picked")
+    prev = c.get("/preview").get_data(as_text=True)
+    assert "/generate?edit=1" in prev, (
+        "the edit button no longer asks for the refill")
 
 
 def test_a_meal_can_be_swapped_with_the_one_above_it():
