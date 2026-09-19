@@ -180,6 +180,12 @@
         </div>
       </div>
       <div id="zzDesc" style="font-size:11.5px;color:#456b61;margin-top:8px"></div>
+      {# ‏التدوير بيبقى مستحيل رياضياً لو الهدف اليومي عند الحد الآمن أو تحته:
+         مفيش مساحة ننزّل يوم عنه، فالأيام تطلع متساوية. الصندوق كان بيرسم ٧
+         أعمدة متساوية تحت جملة بتقول "سعرات أعلى أيام التمرين" ومايقولش ليه --
+         فالدكتور فاكر التدوير شغال وهو مش شغال. #}
+      <div id="zzWarn" hidden style="font-size:12px;color:#92400e;background:#fffbeb;
+           border:1px solid #fcd34d;border-radius:8px;padding:9px 11px;margin-top:8px"></div>
       <div id="zzBars" style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px"></div>
       <div style="font-size:11px;color:#456b61;margin-top:8px">
         {{ 'البروتين بيفضل ثابت كل يوم، والفرق في السعرات بيتحمّله الكارب. المجموع الأسبوعي زي ما هو.'
@@ -1182,11 +1188,19 @@ const zzMode=document.getElementById('zzMode');
 const zzBars=document.getElementById('zzBars');
 const zzDesc=document.getElementById('zzDesc');
 const zzAvg=document.getElementById('zzAvg');
+const zzWarn=document.getElementById('zzWarn');
 const DAY_LBL={{ ('["ح","ن","ث","ر","خ","ج","س"]' if is_ar else '["Su","Mo","Tu","We","Th","Fr","Sa"]')|safe }};
 
 function zzFloor(){
   const g=(genderSel?.value||'').toLowerCase();
   return (g.includes('نث')||g.includes('female')) ? 1200 : 1500;
+}
+// ‏نفس أرقام MIN_KCAL في zigzag.py. الرسالة بتقول الرقم ولمين، عشان الدكتور
+// يعرف يرفع الهدف قد إيه بدل ما يجرّب.
+function zzFloorWho(){
+  const g=(genderSel?.value||'').toLowerCase();
+  return (g.includes('نث')||g.includes('female')) ? T('للأنثى','for a female')
+                                                  : T('للذكر','for a male');
 }
 // نفس منطق zigzag.py: نقصّ عند الحد الأدنى ونرد الفرق على باقي الأيام
 function zzDays(target,pattern,floor){
@@ -1215,8 +1229,23 @@ function renderZigzag(){
   const m=ZZ[zzMode.value];
   const target=parseFloat(goal.value)||0;
   zzDesc.textContent = m ? ({{ 'true' if is_ar else 'false' }} ? m.desc_ar : m.desc_en) : '';
-  if(!m||!target){ zzBars.innerHTML=''; zzAvg.value='—'; return; }
-  let floor=zzFloor(); if(floor>=target) floor=target;
+  if(!m||!target){ zzBars.innerHTML=''; zzAvg.value='—';
+    if(zzWarn) zzWarn.hidden=true; return; }
+  let floor=zzFloor();
+  const noRoom = floor>=target && zzMode.value!=='off';
+  if(zzWarn){
+    zzWarn.hidden = !noRoom;
+    if(noRoom) zzWarn.textContent = '⚠️ ' + T(
+      'الهدف اليومي ('+Math.round(target)+' سعر) عند الحد الآمن الأدنى ('
+        +floor+' '+zzFloorWho()+') أو تحته، فمفيش مساحة ننزّل أي يوم عنه — '
+        +'الأيام هتطلع متساوية والتدوير مش هيعمل حاجة. ارفع الهدف اليومي، '
+        +'أو سيب النمط على "بدون تدوير".',
+      'The daily target ('+Math.round(target)+' kcal) is at or below the safe '
+        +'floor ('+floor+' '+zzFloorWho()+'), so no day can go under it. The '
+        +'days come out equal and the cycling does nothing. Raise the daily '
+        +'target, or leave the pattern on "No cycling".');
+  }
+  if(floor>=target) floor=target;
   const d=zzDays(target,m.pattern,floor);
   const hi=Math.max(...d);
   zzAvg.value=Math.round(d.reduce((a,b)=>a+b,0)/7)+' kcal';

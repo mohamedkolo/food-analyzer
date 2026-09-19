@@ -527,6 +527,44 @@ def test_picking_a_client_resyncs_the_protein_with_the_activity():
         "‏الملء بيغيّر النشاط ومابيعيدش حساب البروتين")
 
 
+def test_the_form_says_why_the_cycling_did_nothing():
+    """‏لو الهدف اليومي عند الحد الآمن أو تحته، التدوير مستحيل رياضياً.
+
+    مفيش مساحة ننزّل يوم عن الحد، والمجموع الأسبوعي لازم يفضل زي ما هو،
+    فالسبع أيام بيطلعوا متساويين. الصندوق كان بيرسم السبع أعمدة المتساوية دي تحت
+    جملة بتقول "سعرات أعلى أيام التمرين" -- ومايقولش ليه. فالدكتور يقعد يبدّل
+    في الأنماط ومفيش حاجة بتتغير، ويفترض إن الخانة بايظة.
+
+    والحد لازم يبقى نفسه في الصفحة وفي zigzag.py -- لو اختلفوا، المعاينة
+    الحية بتوري حاجة والخطة بتطلع حاجة تانية.
+    """
+    import zigzag
+    html = _form()
+
+    assert 'id="zzWarn"' in html, "‏مفيش مكان للتحذير في صندوق التدوير"
+    script = html[html.index("function renderZigzag"):]
+    script = script[:script.index("if(zzMode)")]
+    assert "noRoom" in script and "floor>=target" in script, (
+        "‏المعاينة الحية مش بتكتشف إن مفيش مساحة للتدوير")
+    assert "zzWarn.hidden" in script, "‏التحذير مش بيتظهر ولا بيتخفي"
+    # ‏مع "بدون تدوير" الأيام المتساوية هي الصح، فمالوش تحذير
+    assert "zzMode.value!=='off'" in script, (
+        "‏التحذير بيطلع كمان مع 'بدون تدوير'، وده مش غلط أصلاً")
+
+    # ‏نفس أرقام الحد الآمن في الاتنين
+    for value in (zigzag.MIN_KCAL_FEMALE, zigzag.MIN_KCAL_MALE):
+        assert str(value) in html, (
+            "‏الحد الآمن %s موجود في zigzag.py ومش موجود في الصفحة" % value)
+
+    # ‏والرسالة لازم تقول الرقمين: الهدف والحد -- "مفيش مساحة" لوحدها
+    # مابتقولش للدكتور يرفع الهدف قد إيه
+    msg = script[script.index("zzWarn.textContent"):]
+    msg = msg[:msg.index(");")]
+    # ‏وبالعربي والإنجليزي الاتنين، مش في نص واحد
+    assert msg.count("Math.round(target)") >= 2 and msg.count("+floor+") >= 2, (
+        "‏التحذير مش بيقول الهدف الحالي والحد الآمن بالأرقام في اللغتين")
+
+
 def _js_code_only(script):
     """‏السكريبت بعد شيل النصوص والتعليقات، والطول محفوظ.
 
