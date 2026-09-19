@@ -29,6 +29,27 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FORM = os.path.join(HERE, "templates", "generate.html")
 
 
+def _seed_clients(uid=77):
+    """‏عملاء للاختبار في قاعدة خاصة. كل اختبار بينادي دي بنفسه -- الاعتماد
+    على إن اختبار تاني زرع الداتا بيكسر مع أي إعادة ترتيب."""
+    os.environ.setdefault("SECRET_KEY", "test-only")
+    os.environ["NUTRAX_DB"] = "/tmp/nutrax_search_test.db"
+    import core
+    core.db_run("DELETE FROM plan_visits WHERE user_id=?", (uid,))
+    people = [
+        ("mhmd ahmd|294521", "محمد أحمد", "01004294521", 3),
+        ("mhmd sayd|551122", "محمد سيد", "01155551122", 1),
+        ("fatm aly|443322", "فاطمة علي", "01099443322", 2),
+    ]
+    for key, name, phone, visit in people:
+        core.db_run(
+            """INSERT INTO plan_visits (user_id, client_key, client_name, phone,
+                 visit_no, age, height, weight, conditions)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (uid, key, name, phone, visit, 40, 175.0, 90.0, "[]"))
+    return core
+
+
 def _form():
     with open(FORM, encoding="utf-8") as fh:
         return fh.read()
@@ -283,6 +304,128 @@ def test_the_css_tokens_the_cards_use_are_actually_defined():
         used |= set(re.findall(r"var\((--[a-z0-9-]+)\)", html))
     missing = sorted(used - defined)
     assert not missing, "‏توكنز مستخدمة ومش معرّفة: %s" % missing
+
+
+def test_the_search_finds_a_client_from_two_characters():
+    """‏قايمة اقتراحات زي جوجل: حرفين من الاسم أو رقمين من الموبايل.
+
+    الفرق عن visits_by_phone: دي عايزة ٦ أرقام كاملة وبترجّع عميل واحد.
+    دي بترجّع قايمة يدوس منها، فالدكتور مايستناش لحد ما يكتب الرقم كله.
+    """
+    core = _seed_clients()
+
+    # ‏حرفين من الاسم
+    got = core.search_clients(77, "مح", limit=8)
+    assert len(got) == 2, "‏'مح' المفروض تلاقي اتنين، لاقت %d" % len(got)
+    # ‏والهمزة والألف موحّدين: "احمد" تلاقي "أحمد"
+    assert core.search_clients(77, "احمد", limit=8), "‏التوحيد مش شغال"
+    # ‏جزء من الرقم
+    assert len(core.search_clients(77, "0115", limit=8)) == 1, "‏جزء الرقم مالقاش"
+    assert len(core.search_clients(77, "9944", limit=8)) == 1, "‏وسط الرقم مالقاش"
+    # ‏حرف واحد مش كفاية -- بيرجّع كل حاجة ومالوش لازمة
+    assert core.search_clients(77, "م", limit=8) == [], "‏حرف واحد رجّع نتايج"
+    # ‏دكتور تاني مايشوفش عملاء غيره
+    assert core.search_clients(76, "مح", limit=8) == [], "‏دكتور تاني شاف عملاء غيره"
+    # ‏العميل الواحد مرة واحدة، مش زيارة لكل صف
+    core.db_run(
+        """INSERT INTO plan_visits (user_id, client_key, client_name, phone,
+             visit_no, conditions) VALUES (?,?,?,?,?,?)""",
+        (77, "mhmd ahmd|294521", "محمد أحمد", "01004294521", 4, "[]"))
+    again = core.search_clients(77, "محمد أحمد", limit=8)
+    assert len(again) == 1, "‏العميل اتكرر بعدد زياراته: %d" % len(again)
+
+
+def test_each_suggestion_carries_what_tells_two_people_apart():
+    """‏اسمين متشابهين: اللي بيفرّق هو الرقم وآخر وزن وعدد الزيارات."""
+    core = _seed_clients()
+    got = core.search_clients(77, "مح", limit=8)
+    assert got, "‏البذرة مازرعتش عملاء"
+    for c in got:
+        for field in ("key", "name", "phone", "visits"):
+            assert field in c, "‏الاقتراح ناقصه %s" % field
+        assert c["key"], "‏مفيش مفتاح -- الدوس مش هيعرف يجيب مين"
+
+
+def test_picking_a_suggestion_looks_the_client_up_by_key():
+    """‏الدوس بيجيب العميل بمفتاحه، مش بتخمين بالاسم.
+
+    من غير كده، اتنين بنفس الاسم ممكن ندوس على واحد ونجيب بيانات التاني.
+    """
+    src = open(os.path.join(HERE, "routes_plans.py"), encoding="utf-8").read()
+    block = src[src.index("def followup_lookup"):src.index("def followups")]
+    assert 'request.args.get("key")' in block, "‏الـlookup مش بياخد مفتاح"
+    i_key = block.index("if key_arg:")
+    i_phone = block.index("visits_by_phone(session")
+    assert i_key < i_phone, "‏المفتاح المفروض يسبق التخمين بالرقم"
+    assert '"pick"' in block, "‏الواجهة مش هتعرف إن الدكتور اختار بنفسه"
+    assert "/api/clients/search" in src, "‏مفيش endpoint للبحث"
+
+
+def test_the_suggestion_list_is_reachable_by_keyboard_and_announced():
+    html = _form()
+    js = html[html.index("// ═══ بحث العملاء"):]
+    js = js[:js.index("// ═══ بحث الحالات المرضية")]
+    for key in ("ArrowDown", "ArrowUp", "Enter", "Escape"):
+        assert key in js, "‏القايمة مش بتستجيب لـ%s" % key
+    assert 'role="combobox"' in html, "‏الخانة مش معلَنة كـcombobox"
+    assert 'role="listbox"' in html, "‏القايمة مش معلَنة كـlistbox"
+    assert 'role="option"' in js, "‏عناصر القايمة مش معلَنة"
+    assert "aria-activedescendant" in js, "‏قارئ الشاشة مش هيعرف المحدّد فين"
+    assert 'aria-live="polite"' in html, "‏عدد النتايج مش بيتقال لقارئ الشاشة"
+
+
+def test_the_suggestion_escapes_names_before_putting_them_in_html():
+    """‏الاسم بيجي من الداتابيز وبيتحط كـHTML. اسم فيه < أو " يقدر يكسر
+    الصفحة أو أسوأ، فلازم يتـescape قبل ما يتعرض."""
+    html = _form()
+    js = html[html.index("// ═══ بحث العملاء"):]
+    js = js[:js.index("// ═══ بحث الحالات المرضية")]
+    assert "function esc(" in js, "‏مفيش escape لأسماء العملاء"
+    assert "&amp;" in js and "&lt;" in js, "‏الـescape ناقص"
+    assert "esc(c.name" in js or "mark(c.name" in js, "‏الاسم بيتعرض من غير معالجة"
+    # ‏mark بتستخدم esc جواها
+    mark_fn = js[js.index("function mark("):js.index("function render(")]
+    assert "esc(" in mark_fn, "‏التظليل بيتخطى الـescape"
+
+
+def test_a_stale_search_reply_cannot_overwrite_a_newer_one():
+    """‏الدكتور بيكتب بسرعة، فردود البحث بتوصل مش بالترتيب. لو القديم كتب
+    فوق الجديد، بيشوف نتايج حرف قديم."""
+    html = _form()
+    js = html[html.index("// ═══ بحث العملاء"):]
+    js = js[:js.index("// ═══ بحث الحالات المرضية")]
+    assert "reqSeq" in js, "‏مفيش ترقيم للطلبات"
+    assert "mine !== reqSeq" in js, "‏الرد القديم مش بيتجاهل"
+
+
+def test_two_clients_with_the_same_name_stay_apart():
+    """‏ده السبب إن الاقتراح بيعرض الرقم وآخر وزن وعدد الزيارات.
+
+    اسمين متطابقين بالحرف: لو الملء بيخمّن بالاسم، الدوس على واحد بيجيب
+    بيانات التاني. المفتاح هو اللي بيمنع ده -- جربتها في المتصفح.
+    """
+    core = _seed_clients()
+    for key, phone, visit in (("aly hsn|111222", "01011111222", 1),
+                              ("aly hsn|333444", "01233334444", 4)):
+        core.db_run(
+            """INSERT INTO plan_visits (user_id, client_key, client_name, phone,
+                 visit_no, age, height, weight, conditions)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (77, key, "علي حسن", phone, visit, 30, 170.0, 85.0, "[]"))
+    got = core.search_clients(77, "علي حسن", limit=8)
+    assert len(got) == 2, "‏الاتنين اندمجوا في واحد: %d" % len(got)
+    keys = {c["key"] for c in got}
+    assert len(keys) == 2, "‏نفس المفتاح للاتنين -- مش هينفع نفرّقهم"
+    phones = {c["phone"] for c in got}
+    assert len(phones) == 2, "‏الأرقام مش ظاهرة في الاقتراح، فمفيش حاجة تفرّق"
+
+
+def test_the_dropdown_is_wide_enough_to_read_on_a_phone():
+    """‏خانة الاسم في عمود من اتنين، فعلى الموبايل عرضها 170 بكسل والقايمة
+    بتاخد نفس العرض -- قِستها وماكانش ينفع تقرا اسم ورقم فيها. فعلى الشاشة
+    الضيقة الاسم بياخد الصف كله."""
+    html = _form()
+    assert ".grid-2 > .form-group:has(.ac-wrap)" in html,         "‏خانة الاسم مش بتاخد الصف كله على الموبايل، فالقايمة هتبقى ضيقة"
 
 
 if __name__ == "__main__":

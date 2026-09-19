@@ -887,6 +887,74 @@ def last_visit_id(doctor_uid, key):
     return rows[0]["id"] if rows else None
 
 
+def search_clients(doctor_uid, q, limit=8):
+    """‏اقتراحات عملاء وانت بتكتب -- بالرقم أو بالاسم، وجزء منه كفاية.
+
+    الفرق عن visits_by_phone: دي عايزة ٦ أرقام كاملة وبترجّع عميل واحد.
+    دي بترجّع قايمة من حرفين أو رقمين، عشان الدكتور يشوف الاسم ويدوس عليه
+    بدل ما يكتب الرقم كله ويستنى.
+
+    المطابقة على الأرقام المجرّدة (الموبايل متخزّن بأي شكل: +20، مسافات،
+    شرطات) وعلى الاسم الموحّد (fold_name بيشيل التشكيل وبيوحّد الألف
+    والهمزة، فـ"احمد" بتلاقي "أحمد").
+    """
+    from followup import fold_name      # موضعي زي client_key -- تفادي دورة استيراد
+
+    q = (q or "").strip()
+    if len(q) < 2:
+        return []
+    digits = re.sub(r"\D", "", q)
+    folded = fold_name(q)
+    try:
+        rows = db_rows("""SELECT * FROM plan_visits WHERE user_id=?
+                          ORDER BY created_at DESC, id DESC LIMIT 600""",
+                       (doctor_uid,)) or []
+    except Exception as e:
+        log_error("search_clients", e)
+        return []
+
+    seen, out = set(), []
+    for r in rows:
+        row = dict(r)
+        key = row.get("client_key")
+        if not key or key in seen:
+            continue                      # ‏أحدث زيارة لكل عميل بس
+        hit = False
+        if digits:
+            stored = re.sub(r"\D", "", str(row.get("phone") or ""))
+            hit = len(digits) >= 2 and digits in stored
+        if not hit and folded:
+            hit = folded in fold_name(row.get("client_name"))
+        if not hit:
+            continue
+        seen.add(key)
+        out.append({
+            "key": key,
+            "name": row.get("client_name") or "",
+            "phone": row.get("phone") or "",
+            "visits": int(row.get("visit_no") or 1),
+            "last_weight": row.get("weight"),
+            "last_at": str(row.get("created_at") or "")[:10],
+            "days_since": _days_since(row.get("created_at")),
+        })
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _days_since(ts):
+    """‏كام يوم فات على التاريخ ده. None لو مش قادر يقراه."""
+    if not ts:
+        return None
+    txt = str(ts)[:19].replace("T", " ")
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        try:
+            return max(0, (datetime.now() - datetime.strptime(txt, fmt)).days)
+        except ValueError:
+            continue
+    return None
+
+
 def recent_clients(doctor_uid, limit=60):
     """آخر عميل في كل ملف متابعة، مع عدد زياراته."""
     try:

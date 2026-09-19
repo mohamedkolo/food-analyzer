@@ -23,6 +23,7 @@ from flask import (Blueprint, jsonify, redirect, render_template, request,
 import meal_extra
 from core import (
     visits_by_phone,
+    search_clients,
     DIET_PLAN_TYPES, bump_plan_link, create_plan_link, cur_lang, db_row,
     db_rows, db_run, filter_by_conditions, get_meal_pool, get_plan_link,
     get_user_by_id, last_visit, last_visit_id, log_error, record_visit,
@@ -276,6 +277,18 @@ def public_plan_pdf(token):
         return redirect(f"/p/{token}")
 
 
+@bp.route("/api/clients/search")
+@staff_required
+def clients_search():
+    """‏اقتراحات وانت بتكتب -- زي بحث جوجل: قايمة تدوس منها.
+
+    لوحدها مش بتملّي حاجة. الدكتور يدوس على اقتراح، والواجهة تنادي
+    /api/followup/lookup بالـkey بتاعه، واللي هو بيملّي فعلاً.
+    """
+    rows = search_clients(session["uid"], request.args.get("q") or "", limit=8)
+    return jsonify({"clients": rows})
+
+
 @bp.route("/api/followup/lookup")
 @staff_required
 def followup_lookup():
@@ -285,12 +298,21 @@ def followup_lookup():
     الحالات، الحساسية) ويعرض القراءة، من غير ما يقفل على الدكتور أي قرار."""
     name = (request.args.get("name") or "").strip()
     phone = (request.args.get("phone") or "").strip()
+    key_arg = (request.args.get("key") or "").strip()
 
-    # ‏الرقم أولاً: الدكتور بيكتب الموبايل قبل الاسم عادة، وclient_key مبني
-    # على الاسم فمابيلاقيش حاجة من غيره. فبندوّر بالرقم لوحده، وبنرجع للاسم
-    # بس لو الرقم مالقاش (أو مكتوب ناقص).
-    rows = visits_by_phone(session["uid"], phone, limit=12)
-    matched_by = "phone" if rows else None
+    # ‏لو الدكتور دوس على اقتراح، إحنا عارفين العميل بالظبط -- مفيش تخمين
+    # بالاسم ولا بالرقم، ومفيش احتمال إننا نجيب حد تاني بنفس الاسم.
+    if key_arg:
+        rows = visits_for(session["uid"], key_arg, limit=12)
+        matched_by = "pick" if rows else None
+        if not rows:
+            return jsonify({"found": False})
+    else:
+        # ‏الرقم أولاً: الدكتور بيكتب الموبايل قبل الاسم عادة، وclient_key مبني
+        # على الاسم فمابيلاقيش حاجة من غيره. فبندوّر بالرقم لوحده، وبنرجع للاسم
+        # بس لو الرقم مالقاش (أو مكتوب ناقص).
+        rows = visits_by_phone(session["uid"], phone, limit=12)
+        matched_by = "phone" if rows else None
 
     if not rows:
         key = followup.client_key(name, phone)
