@@ -1106,10 +1106,15 @@ def download_pdf():
         except Exception as _e:
             log_error("commit on download", _e)
     try:
-        pdf_bytes = build_pdf(data, plan)
+        # ‏clean=1: ورقة من غير اسم العيادة ولا اسم المُعِد ولا رقم الملف.
+        # الدكتور بيشتغل في أكتر من عيادة، ومايسلّمش عميل هناك ورقة عليها
+        # اسم مكان تاني. الكلام الطبي كله زي ما هو.
+        clean = request.args.get("clean") in ("1", "true", "yes")
+        pdf_bytes = build_pdf(data, plan, clean=clean)
         buf = io.BytesIO(pdf_bytes); buf.seek(0)
         name = data.get("name","plan").replace(" ","_")
-        return send_file(buf, as_attachment=True, download_name=f"NutraX_{name}.pdf", mimetype="application/pdf")
+        fname = (f"{name}.pdf" if clean else f"NutraX_{name}.pdf")
+        return send_file(buf, as_attachment=True, download_name=fname, mimetype="application/pdf")
     except Exception as e:
         import traceback; traceback.print_exc()
         return f"خطأ: {str(e)}", 500

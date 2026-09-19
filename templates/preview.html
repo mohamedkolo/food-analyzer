@@ -43,6 +43,13 @@
     <a href="/download_pdf" class="btn btn-success">
       <i class="fa-solid fa-download"></i> {{ t('تحميل PDF','Download PDF') }}
     </a>
+    {# ‏الدكتور بيشتغل في أكتر من عيادة. النسخة دي بتشيل اسم العيادة واسم
+       المُعِد ورقم الملف، وبتسيب الكلام الطبي كله -- عشان يسلّمها في أي مكان. #}
+    <a href="/download_pdf?clean=1" class="btn btn-outline"
+       title="{{ t('نفس الجدول من غير اسم العيادة ولا اسم المُعِد',
+                   'The same table without the clinic or author name') }}">
+      <i class="fa-solid fa-file-lines"></i> {{ t('نسخة بدون اسم العيادة','Unbranded copy') }}
+    </a>
   </div>
 </div>
 
@@ -467,6 +474,10 @@
   <a href="/download_pdf" class="btn btn-success btn-full" data-share-alt
      style="font-size:17px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.2)">
     <i class="fa-solid fa-file-pdf"></i> {{ t('تحميل الخطة كـ PDF','Download plan as PDF') }}
+  </a>
+  <a href="/download_pdf?clean=1" class="btn btn-outline btn-full"
+     style="font-size:15px;padding:13px;margin-top:8px">
+    <i class="fa-solid fa-file-lines"></i> {{ t('نسخة بدون اسم العيادة','Unbranded copy') }}
   </a>
 </div>
 

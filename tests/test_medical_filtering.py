@@ -1058,3 +1058,116 @@ if __name__ == "__main__":
             failed += 1
     print(f"\n{passed} passed, {failed} failed")
     raise SystemExit(1 if failed else 0)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ‏الفطار: العدد الآمن، وإن البديل يفضل فطار
+# ═══════════════════════════════════════════════════════════════════════════
+
+_MIN_SAFE_BREAKFASTS = 10
+
+
+def _all_conditions():
+    from meal_database import CONDITION_MAP, unsafe_keys_for
+    out = {}
+    for ar in sorted(set(CONDITION_MAP)):
+        keys = unsafe_keys_for([ar])
+        if keys:
+            out[ar] = keys
+    return out
+
+
+def test_every_condition_has_enough_safe_breakfasts():
+    """‏الرقم ده كان ١ للسيلياك واللاكتوز، من ١٢ وجبة.
+
+    والخطة سبع أيام، فست أيام كانت بتروح للاستبدال. والاستبدال بياخد من
+    SAFE_ALTERNATIVES، و٤١ بديل من ١٢٨ فيها أطباق غدا -- فالفطار كان بيطلع
+    "دجاج + أرز بني + سلطة". الدكتور شافها في الجدول وقال إنها مش منطقية،
+    وهو صح.
+
+    عشرة مش سبعة: سبعة تعني وجبة لكل يوم بالعدد وصفر تنويع، فأي تكرار أو
+    استثناء أكل بيرجّعنا للاستبدال تاني.
+    """
+    import plan_engine  # noqa: F401  -- بيحمّل meal_extra
+    from meal_database import get_meal_pool, _contains_unsafe, _meal_text
+
+    conds = _all_conditions()
+    assert conds, "‏مافيش حالات مرضية أصلاً -- الاختبار مش بيقيس حاجة"
+    short = []
+    for ar, keys in conds.items():
+        for goal in ("weight_loss", "maintenance", "muscle_gain", "bulking"):
+            for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
+                pool = get_meal_pool(goal, culture).get("breakfast", [])
+                safe = [m for m in pool
+                        if not any(_contains_unsafe(_meal_text(m), k) for k in keys)]
+                if len(safe) < _MIN_SAFE_BREAKFASTS:
+                    short.append("%s / %s / %s: %d" % (ar, goal, culture, len(safe)))
+    assert not short, (
+        "‏الحالات دي فطارها أقل من %d وجبة آمنة:\n   %s"
+        % (_MIN_SAFE_BREAKFASTS, "\n   ".join(short[:12])))
+
+
+def test_a_banned_breakfast_is_replaced_by_a_breakfast():
+    """‏الاستبدال لازم يفضل في نفس خانة الوجبة.
+
+    SAFE_ALTERNATIVES قايمة واحدة لكل حالة، مش عارفة هي بتقف مكان فطار ولا
+    غدا -- فكانت بتحط طبق غدا في الفطار. الفلترة بقت بتملّي الفراغ من نفس
+    القايمة الأول، والقايمة دي فطار كلها.
+    """
+    import plan_engine  # noqa: F401
+    from meal_database import get_meal_pool, filter_by_conditions, _meal_text
+
+    # ‏حاجات مالهاش لازمة في الفطار
+    MAIN_DISH = ("ارز بني", "أرز بني", "مكرونة", "معكرونة", "شاورما", "كبسة",
+                 "برياني", "ملوخية", "بامية", "بطاطس مهروسة")
+    PROTEIN = ("دجاج", "سمك", "سلمون", "لحم", "كفتة")
+
+    offenders = []
+    for ar in _all_conditions():
+        for goal in ("weight_loss", "muscle_gain"):
+            for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
+                pool = get_meal_pool(goal, culture).get("breakfast", [])
+                out = filter_by_conditions(pool, [ar])
+                assert out, "‏فطار %s/%s/%s طلع فاضي" % (ar, goal, culture)
+                for m in out:
+                    t = _meal_text(m)
+                    if (any(w in t for w in MAIN_DISH)
+                            and any(w in t for w in PROTEIN)):
+                        offenders.append("%s: %s" % (ar, t[:60]))
+    assert not offenders, (
+        "‏فطار طلع طبق غدا:\n   %s" % "\n   ".join(sorted(set(offenders))[:8]))
+
+
+def test_the_new_breakfasts_all_read_in_english_too():
+    """‏الوجبة اللي مش مترجمة بتطلع عربي في PDF إنجليزي."""
+    import meal_extra
+    from meal_i18n import translate_meal, untranslated_terms
+
+    missing = []
+    for goal, cultures in meal_extra.EXTRA_BREAKFASTS.items():
+        for meal in cultures["مصري"]["breakfast"]:
+            text = meal["meal"]
+            if translate_meal(text) == text:
+                missing.append("%s -> %s" % (text[:45], untranslated_terms(text)))
+    assert not missing, "‏وجبات مش مترجمة:\n   %s" % "\n   ".join(missing)
+
+
+def test_the_four_portion_tiers_stay_in_step():
+    """‏الوجبة مكتوبة مرة واحدة بحصص لكل هدف، عشان النسخ ما تختلفش.
+
+    ولازم السعرات تكبر مع الهدف: التخسيس أقل من التثبيت أقل من العضل أقل من
+    التضخيم. لو حد عدّل حصة ونسي سعراتها، الترتيب بيتكسر هنا.
+    """
+    import meal_extra
+    order = ("weight_loss", "maintenance", "muscle_gain", "bulking")
+    lists = [meal_extra.EXTRA_BREAKFASTS[g]["مصري"]["breakfast"] for g in order]
+    assert len({len(x) for x in lists}) == 1, "‏الأهداف مش ليها نفس عدد الوجبات"
+    for i in range(len(lists[0])):
+        cals = [lst[i]["cal"] for lst in lists]
+        assert cals == sorted(cals), (
+            "‏وجبة %r سعراتها مش بتكبر مع الهدف: %s"
+            % (lists[0][i]["meal"][:40], cals))
+        prots = [lst[i]["p"] for lst in lists]
+        assert prots == sorted(prots), (
+            "‏وجبة %r بروتينها مش بيكبر مع الهدف: %s"
+            % (lists[0][i]["meal"][:40], prots))

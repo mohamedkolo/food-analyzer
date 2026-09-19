@@ -571,8 +571,18 @@ def get_allowed_forbidden(symptoms, goal="weight_loss"):
 
     return allowed[:8], forbidden[:8]
 
-def build_pdf(data, plan=None):
-    from weasyprint import HTML
+def plan_html(data, plan=None, clean=False):
+    """‏صفحة الجدول كـHTML. build_pdf تحتها بتحوّلها لـPDF.
+
+    مفصولة عن التحويل لسببين: الاختبار يقرا HTML مباشرة بدل ما يستخرج نص من
+    PDF (استخراج العربي بيلغبط الحروف فالاختبار عليه مش دليل)، والصفحة دي
+    تنفع تتعرض أو تتطبع زي ما هي بعدين.
+
+    clean=True يشيل هوية العيادة: اسمها، اسم المُعِد، ورقم الملف. الدكتور
+    بيشتغل في أكتر من مكان، ومايصحّش يسلّم عميل في عيادة تانية ورقة مكتوب
+    عليها اسم عيادة غيرها. الكلام الطبي كله بيفضل زي ما هو: البيانات،
+    الجدول، المسموح والممنوع، والماء. اللي بيتشال هوية، مش محتوى.
+    """
     import datetime as dt
     if plan is None: plan = generate_weekly_plan(data)
 
@@ -717,6 +727,13 @@ def build_pdf(data, plan=None):
     td = template_data
     cl = td['client']
     pdays = td['days']
+    # ‏هوية العيادة: سطر تحت العنوان، رقم الملف، والتوقيع تحت. التلاتة بيختفوا
+    # مع بعض في الوضع النضيف -- لو واحد فضل، الورقة لسه بتقول إنها من هنا.
+    _by_line = ("" if clean else
+                f'<div class="s">{_esc(td["clinic_name"])} • {_esc(td["author"])}</div>')
+    _file_line = ("" if clean else
+                  f'{_L("ملف", "File")}: {_esc(td["file_number"])}<br>')
+    _sig_by = "" if clean else f' — {_esc(td["author"])}'
     # أعمدة الوجبات (من أول يوم - تنفع لأي نظام)
     columns = [m['label'] for m in pdays[0]['meals']] if pdays else []
     ncols = len(columns)
@@ -930,8 +947,8 @@ tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
 </style></head><body>
 <div class="hdr">
   <div><div class="t">{_esc(td['plan_title'])} — {_esc(td['diet_plan_name'])}</div>
-  <div class="s">{_esc(td['clinic_name'])} • {_esc(td['author'])}</div></div>
-  <div class="s">{_L("ملف", "File")}: {_esc(td['file_number'])}<br>{_esc(td['date'])}</div>
+  {_by_line}</div>
+  <div class="s">{_file_line}{_esc(td['date'])}</div>
 </div>
 <div class="meta">
   <span><b>{_L("الاسم", "Name")}:</b> {_esc(cl['name'])}</span>
@@ -953,8 +970,13 @@ tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
   <div class="fbox wt"><h4>💧 {_L("الماء", "Water")}</h4><ul>{water_tips}</ul></div>
 </div>
 {notes_html}
-<div class="sig">{_L("المراجعة بعد", "Review in")} {_esc(td['review_weeks'])} {_L("أسابيع", "weeks")} — {_esc(td['author'])}</div>
+<div class="sig">{_L("المراجعة بعد", "Review in")} {_esc(td['review_weeks'])} {_L("أسابيع", "weeks")}{_sig_by}</div>
 </body></html>"""
 
-    pdf_bytes = HTML(string=html_string).write_pdf()
-    return pdf_bytes
+    return html_string
+
+
+def build_pdf(data, plan=None, clean=False):
+    """‏نفس الصفحة، مطبوعة PDF."""
+    from weasyprint import HTML
+    return HTML(string=plan_html(data, plan, clean)).write_pdf()

@@ -2155,6 +2155,7 @@ def filter_by_conditions(meals, conditions):
     if not active_conditions:
         return meals
     result = []
+    blocked_at = []
     for meal in meals:
         # some pools hold plain strings rather than dicts; reading .meal on those
         # raised, and every caller catches the error and falls back to the
@@ -2166,23 +2167,41 @@ def filter_by_conditions(meals, conditions):
                 unsafe_for = cond_key
                 break
         if unsafe_for:
-            # Look in the blocking condition's own alternatives first, then the
-            # other conditions'. Whatever gets picked has to be safe for ALL of
-            # this patient's conditions -- swapping a diabetic's white rice for
-            # something with gluten just moves the problem.
-            pools = [unsafe_for] + [c for c in active_conditions if c != unsafe_for]
-            candidates = []
-            for cond_key in pools:
-                for alt in SAFE_ALTERNATIVES.get(cond_key, []):
-                    if safe_for_all(alt, active_conditions) and alt not in candidates:
-                        candidates.append(alt)
-            if candidates:
-                result.append(candidates[len(result) % len(candidates)])
-            # Nothing clears every condition, so the meal is dropped rather than
-            # served: keeping it would hand the patient the exact food the ban
-            # exists to prevent.
+            # Substitute from THIS list first -- a banned breakfast is replaced by
+            # another breakfast. SAFE_ALTERNATIVES is one flat list per condition
+            # with no idea which meal of the day it is standing in for, and 41 of
+            # its 128 entries are lunch or dinner plates (chicken, rice, salad).
+            # The celiac patient had exactly one safe breakfast out of twelve, so
+            # six days a week were substituted -- and came back as lunch. The
+            # doctor sees "chicken + brown rice + salad" under الفطار and has to
+            # rewrite it by hand.
+            #
+            # Filling the gap from the same list keeps the meal in its own slot
+            # and keeps the pool's own variety. SAFE_ALTERNATIVES stays as the
+            # fallback for the case it was written for: nothing in this list
+            # clears the patient's conditions at all.
+            blocked_at.append(len(result))
+            result.append(None)            # placeholder, filled in below
         else:
             result.append(meal)
+
+    if blocked_at:
+        same_slot = [m for m in result if m is not None]
+        fallback = []
+        if not same_slot:
+            for cond_key in active_conditions:
+                for alt in SAFE_ALTERNATIVES.get(cond_key, []):
+                    if safe_for_all(alt, active_conditions) and alt not in fallback:
+                        fallback.append(alt)
+        for n, i in enumerate(blocked_at):
+            if same_slot:
+                result[i] = same_slot[n % len(same_slot)]
+            elif fallback:
+                result[i] = fallback[n % len(fallback)]
+        # Nothing clears every condition, so the meal is dropped rather than
+        # served: keeping it would hand the patient the exact food the ban
+        # exists to prevent.
+        result = [m for m in result if m is not None]
     return result
 
 
