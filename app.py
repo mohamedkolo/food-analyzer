@@ -1647,6 +1647,42 @@ def page_not_found(_e):
     return render_template("404.html", lang=session.get("lang", "ar")), 404
 
 
+# ── صفحة "في حاجة وقعت" ────────────────────────────────────────────────────
+#
+# ‏مكانش فيه errorhandler لـ500، فأي غلطة كانت بتطلّع صفحة Werkzeug: سطر
+# "Internal Server Error" على ورقة بيضاء. الصفحة دي مابتقولش للزائر يعمل
+# إيه، ومابتقولش لينا وقع فين -- الاتنين محتاجين حل.
+#
+# التفاصيل بتروح للّوج بس، مش للصفحة: الصفحة عامة وبيشوفها أي حد. اللي
+# بيظهر رقم مرجعي قصير، والدكتور يقوله لينا فنلاقي السطر في اللوج.
+@app.errorhandler(500)
+@app.errorhandler(Exception)
+def something_broke(e):
+    import traceback
+    import uuid
+    from werkzeug.exceptions import HTTPException
+
+    # ‏الأخطاء اللي ليها كود (404، 403، 413...) تكمّل طريقها الطبيعي
+    if isinstance(e, HTTPException):
+        return e
+
+    ref = uuid.uuid4().hex[:8]
+    detail = traceback.format_exc()
+    print(f"[NUTRAX-500 {ref}] {request.method} {request.path}\n{detail}",
+          flush=True)
+
+    # ‏غلطة قاعدة البيانات هي الحالة اللي ليها إجراء مختلف تماماً، فبتتفصل
+    db_hint = any(word in detail.lower() for word in
+                  ("psycopg2", "operationalerror", "could not connect",
+                   "sqlite3", "database"))
+    try:
+        return render_template("500.html", lang=session.get("lang", "ar"),
+                               ref=ref, db_hint=db_hint), 500
+    except Exception:
+        # ‏لو القالب نفسه هو اللي واقع، الرد لازم يفضل مفهوم
+        return (f"<h1>في حاجة وقعت</h1><p>الرقم المرجعي: {ref}</p>", 500)
+
+
 if __name__ == "__main__":
     app.run(debug=os.environ.get("FLASK_DEBUG") == "1")
 

@@ -96,7 +96,17 @@ def health():
     بترجّع كمان أول ٧ حروف من الكوميت الشغال، عشان تقدر تتأكد إن النشر خلص
     من غير ما تخمّن: افتح /health وقارن الرقم باللي على GitHub.
     """
-    return jsonify({"ok": True, "commit": running_commit(),
+    # ‏حالة قاعدة البيانات جوه try: الصفحة دي لازم ترد حتى لو القاعدة واقعة --
+    # دي الصفحة الوحيدة اللي تفرّق لك بين "التطبيق واقع" و"القاعدة واقعة".
+    # الموقع رد Internal Server Error على كل صفحة، والصفحات اللي بتلمس
+    # القاعدة هي اللي وقعت -- ومن غير الفرق ده مافيش حاجة تدل على السبب.
+    db_state = "ok"
+    try:
+        db_row("SELECT 1 AS ok")
+    except Exception as e:
+        db_state = "down: %s" % type(e).__name__
+    return jsonify({"ok": db_state == "ok", "db": db_state,
+                    "commit": running_commit(),
                     "branch": (os.environ.get("RENDER_GIT_BRANCH") or "").strip() or None,
                     "time": datetime.now().isoformat(timespec="seconds")}), 200
 

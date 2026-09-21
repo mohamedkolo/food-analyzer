@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% set is_ar = lang == 'ar' %}
+{% block content %}
+<div style="max-width:520px;margin:12vh auto;text-align:center;padding:0 20px">
+  <div style="font-size:44px;line-height:1;margin-bottom:14px">⚠️</div>
+  <h1 class="page-title" style="justify-content:center;margin-bottom:10px">
+    {{ 'في حاجة وقعت' if is_ar else 'Something broke' }}
+  </h1>
+  <p style="color:var(--muted);font-size:14.5px;line-height:1.8;margin-bottom:18px">
+    {% if db_hint %}
+      {{ 'الموقع شغال بس مش قادر يوصل لقاعدة البيانات. لو الحالة مستمرة، افتح لوحة Render وشوف حالة قاعدة البيانات.'
+         if is_ar else
+         'The site is up but cannot reach the database. If this continues, check the database status in the Render dashboard.' }}
+    {% else %}
+      {{ 'الغلطة اتسجّلت. جرّب تاني بعد شوية، ولو فضلت، ابعتلنا الرقم اللي تحت.'
+         if is_ar else
+         'The error was logged. Try again shortly; if it persists, send us the reference below.' }}
+    {% endif %}
+  </p>
+  <div style="font-family:ui-monospace,monospace;font-size:13px;color:var(--muted);
+              background:#f4f6f5;border:1px solid #e0e5e3;border-radius:8px;
+              padding:9px 14px;display:inline-block;margin-bottom:22px">
+    {{ 'الرقم المرجعي' if is_ar else 'Reference' }}: <b>{{ ref }}</b>
+  </div>
+  <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+    <a href="/" class="btn btn-primary">{{ 'الرئيسية' if is_ar else 'Home' }}</a>
+    <a href="/health" class="btn btn-outline">{{ 'حالة الموقع' if is_ar else 'Site status' }}</a>
+  </div>
+</div>
+{% endblock %}

@@ -42,12 +42,19 @@ def _html(clean):
     بيفشل وإن كان مكتوب -- فالاختبار عليه كان بيقول إن الاسم اختفى وهو
     موجود. الـHTML هو اللي فيه الحقيقة.
     """
-    if clean not in _CACHE:
+    if "plan" not in _CACHE:
+        # ‏**نفس** الخطة للنسختين. الوجبات بتتخلط عشوائي، فتوليد خطة لكل
+        # نسخة معناه إننا بنقارن ورقتين لعميلين مختلفين -- والفرق في الطول
+        # يبقى فرق أكل مش فرق هوية، والاختبار يقول كلام مالوش معنى.
         data = dict(DATA)
         data["zigzag"] = zigzag.zigzag_from_data(data)
         with A.app.test_request_context("/"):
-            plan = plan_engine.generate_weekly_plan(data)
-            _CACHE[clean] = plan_engine.plan_html(data, plan, clean=clean)
+            _CACHE["data"] = data
+            _CACHE["plan"] = plan_engine.generate_weekly_plan(data)
+    if clean not in _CACHE:
+        with A.app.test_request_context("/"):
+            _CACHE[clean] = plan_engine.plan_html(
+                _CACHE["data"], _CACHE["plan"], clean=clean)
     return _CACHE[clean]
 
 
@@ -89,11 +96,9 @@ def test_the_pdf_still_comes_out_of_the_same_page():
     import inspect
     src = inspect.getsource(plan_engine.build_pdf)
     assert "plan_html(" in src, "‏build_pdf مابقتش بتستخدم نفس الصفحة"
-    data = dict(DATA)
-    data["zigzag"] = zigzag.zigzag_from_data(data)
+    _html(True)   # ‏يجهّز نفس الخطة في الكاش
     with A.app.test_request_context("/"):
-        plan = plan_engine.generate_weekly_plan(data)
-        raw = plan_engine.build_pdf(data, plan, clean=True)
+        raw = plan_engine.build_pdf(_CACHE["data"], _CACHE["plan"], clean=True)
     assert raw[:4] == b"%PDF", "‏الناتج مش PDF"
     assert len(raw) > 20000, "‏الـPDF طلع فاضي تقريباً"
 
