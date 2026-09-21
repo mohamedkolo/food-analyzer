@@ -235,8 +235,13 @@ def test_reflux_removes_every_trigger_the_document_lists():
                 before = list(pool.get(slot, []))
                 after = md.filter_by_conditions(before, symptoms)
                 assert after, f"{culture}/{slot}/{symptoms}: the pool came back empty"
-                assert len(after) == len(before), (
-                    f"{culture}/{slot}: {len(before)} meals became {len(after)}")
+                # ‏الفلترة بتشيل الممنوع، فالطول بيقل -- وده المطلوب: النسخ
+                # بيخلي القايمة كلها نسخ من أكتر وجبة نجت. اللي يهم إن اللي
+                # بيفضل يكفي أسبوع من غير تكرار. أقل حالة مقيسة في التركيبات
+                # دي ١٣ وجبة.
+                assert len(after) >= 7, (
+                    f"{culture}/{slot}: {len(before)} meals became {len(after)}"
+                    f" -- less than a week")
                 for meal in after:
                     text = md.normalize_ar(
                         meal["meal"] if isinstance(meal, dict) else meal)
@@ -1044,39 +1049,6 @@ def test_the_stronger_injection_says_it_is_stronger():
     assert tirz != sema, "‏النصين متطابقين -- يعني الفرق مش مذكور"
 
 
-if __name__ == "__main__":
-    passed = failed = 0
-    for name, fn in sorted(globals().items()):
-        if not name.startswith("test_") or not callable(fn):
-            continue
-        try:
-            fn()
-            print(f"  PASS  {name}")
-            passed += 1
-        except AssertionError as e:
-            print(f"  FAIL  {name}\n        {e}")
-            failed += 1
-    print(f"\n{passed} passed, {failed} failed")
-    raise SystemExit(1 if failed else 0)
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# ‏الفطار: العدد الآمن، وإن البديل يفضل فطار
-# ═══════════════════════════════════════════════════════════════════════════
-
-_MIN_SAFE_BREAKFASTS = 10
-
-
-def _all_conditions():
-    from meal_database import CONDITION_MAP, unsafe_keys_for
-    out = {}
-    for ar in sorted(set(CONDITION_MAP)):
-        keys = unsafe_keys_for([ar])
-        if keys:
-            out[ar] = keys
-    return out
-
-
 def test_every_condition_has_enough_safe_breakfasts():
     """‏الرقم ده كان ١ للسيلياك واللاكتوز، من ١٢ وجبة.
 
@@ -1107,6 +1079,48 @@ def test_every_condition_has_enough_safe_breakfasts():
         % (_MIN_SAFE_BREAKFASTS, "\n   ".join(short[:12])))
 
 
+# ‏شكل الفطار. أطباق الغدا دي مالهاش لازمة في عمود الفطار، ولا لأي حالة
+# مرضية. الاستثناءات مقصودة: "رقاق أرز" فطار خالي من الجلوتين، و"لحم ديك
+# رومي" لحمة فطار (بيكون في الفطار الأمريكي).
+_NOT_BREAKFAST = ("ارز", "أرز", "رز ", "مكرونة", "معكرونة", "كشري",
+                  "تونة", "سردين", "دجاج", "فراخ", "سمك", "سلمون", "جمبري",
+                  "لحم بقري", "لحم مفروم", "كفتة", "شاورما", "كبسة",
+                  "برياني", "ملوخية", "بامية", "طاجن", "محشي", "شوربة",
+                  "بطاطس مسلوقة", "بطاطس مهروسة")
+_BREAKFAST_ANYWAY = ("رقاق أرز", "لحم ديك رومي")
+
+
+def _breakfast_shape_offence(text):
+    """‏الحاجات اللي بتخلي الوجبة دي طبق غدا، أو لستة فاضية لو شكلها فطار."""
+    t = text
+    for ok in _BREAKFAST_ANYWAY:
+        t = t.replace(ok, "")
+    return [w for w in _NOT_BREAKFAST if w in t]
+
+
+def test_no_breakfast_in_the_database_is_a_lunch_plate():
+    """‏ده اللي الدكتور شافه في ورقة عميل حقيقية.
+
+    أول محاولة مني لحل مشكلة الفطار زوّدت "أرز أبيض + تونة + جزر مسلوق"
+    و"سردين مصفّى + بطاطس مسلوقة" -- آمنة طبياً، مظبوطة في السعرات، وشكلها
+    غدا. فالمشكلة اللي اتصلحت في الفلترة رجعت من باب الداتا. الاختبار ده
+    بيقف على الشكل نفسه، مش على الفلترة.
+    """
+    import plan_engine  # noqa: F401
+    from meal_database import get_meal_pool, _meal_text
+
+    offenders = []
+    for goal in ("weight_loss", "maintenance", "muscle_gain", "bulking"):
+        for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
+            for meal in get_meal_pool(goal, culture).get("breakfast", []):
+                text = _meal_text(meal)
+                hits = _breakfast_shape_offence(text)
+                if hits:
+                    offenders.append("%s  <- %s" % (text[:64], ", ".join(hits[:3])))
+    assert not offenders, (
+        "‏فطار شكله طبق غدا:\n   %s" % "\n   ".join(sorted(set(offenders))[:10]))
+
+
 def test_a_banned_breakfast_is_replaced_by_a_breakfast():
     """‏الاستبدال لازم يفضل في نفس خانة الوجبة.
 
@@ -1117,11 +1131,6 @@ def test_a_banned_breakfast_is_replaced_by_a_breakfast():
     import plan_engine  # noqa: F401
     from meal_database import get_meal_pool, filter_by_conditions, _meal_text
 
-    # ‏حاجات مالهاش لازمة في الفطار
-    MAIN_DISH = ("ارز بني", "أرز بني", "مكرونة", "معكرونة", "شاورما", "كبسة",
-                 "برياني", "ملوخية", "بامية", "بطاطس مهروسة")
-    PROTEIN = ("دجاج", "سمك", "سلمون", "لحم", "كفتة")
-
     offenders = []
     for ar in _all_conditions():
         for goal in ("weight_loss", "muscle_gain"):
@@ -1129,13 +1138,14 @@ def test_a_banned_breakfast_is_replaced_by_a_breakfast():
                 pool = get_meal_pool(goal, culture).get("breakfast", [])
                 out = filter_by_conditions(pool, [ar])
                 assert out, "‏فطار %s/%s/%s طلع فاضي" % (ar, goal, culture)
-                for m in out:
-                    t = _meal_text(m)
-                    if (any(w in t for w in MAIN_DISH)
-                            and any(w in t for w in PROTEIN)):
-                        offenders.append("%s: %s" % (ar, t[:60]))
+                for meal in out:
+                    text = _meal_text(meal)
+                    hits = _breakfast_shape_offence(text)
+                    if hits:
+                        offenders.append("%s: %s" % (ar, text[:58]))
     assert not offenders, (
-        "‏فطار طلع طبق غدا:\n   %s" % "\n   ".join(sorted(set(offenders))[:8]))
+        "‏فطار طلع طبق غدا بعد الفلترة:\n   %s"
+        % "\n   ".join(sorted(set(offenders))[:8]))
 
 
 def test_the_new_breakfasts_all_read_in_english_too():
@@ -1171,3 +1181,112 @@ def test_the_four_portion_tiers_stay_in_step():
         assert prots == sorted(prots), (
             "‏وجبة %r بروتينها مش بيكبر مع الهدف: %s"
             % (lists[0][i]["meal"][:40], prots))
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ‏الفطار: العدد الآمن، وإن البديل يفضل فطار
+# ═══════════════════════════════════════════════════════════════════════════
+
+_MIN_SAFE_BREAKFASTS = 10
+
+
+def _all_conditions():
+    from meal_database import CONDITION_MAP, unsafe_keys_for
+    out = {}
+    for ar in sorted(set(CONDITION_MAP)):
+        keys = unsafe_keys_for([ar])
+        if keys:
+            out[ar] = keys
+    return out
+
+
+def test_the_week_does_not_repeat_one_breakfast_ingredient():
+    """‏٥ أيام بيض من ٧ مش تنويع، وده اللي كان بيحصل.
+
+    سببين اتجمعوا: قايمة الفطار فيها بيض كتير (لأنه المصدر الوحيد اللي
+    بيعدّي الجلوتين واللاكتوز والبقوليات مع بعض)، والترتيب بالبروتين بيطلّعه
+    فوق -- فأول ٧ كلهم بيض. وكان فيه سبب تالت أسوأ: الفلترة كانت بتملّي
+    الوجبة الممنوعة بنسخة من الآمن، فقايمة فطار ٣٥ وجبة بعد فلترة اللاكتوز
+    بقت ٣٣ بيض و٢ شوفان.
+
+    القياس على كل الحالات × الأهداف × المطابخ: أقصى تكرار لمكوّن واحد ٣.
+    """
+    import random
+    import app as A
+    import plan_engine
+    from collections import Counter
+    from meal_database import CONDITION_MAP
+
+    base = {"name": "اختبار", "age": "30", "gender": "انثى", "height": "165",
+            "weight": "80", "tdee": "2000", "goal_cal": "1600",
+            "protein_per_kg": "1.6", "fat_pct_cal": "30", "allergies": [],
+            "diet_plan_type": "standard", "zigzag_mode": "off"}
+    conds = [[], ["حساسية اللاكتوز"], ["حساسية الجلوتين"], ["سكري النوع الثاني"],
+             ["قولون عصبي"], ["الفشل الكلوي المزمن"]]
+    worst = (0, None)
+    random.seed(11)
+    for symptoms in conds:
+        for goal in ("weight_loss", "maintenance", "muscle_gain", "bulking"):
+            for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
+                data = dict(base, culture=culture, goal_type=goal,
+                            symptoms=symptoms)
+                with A.app.test_request_context("/"):
+                    week = plan_engine.generate_weekly_plan(data)
+                counts = Counter(plan_engine._bf_base(day["breakfast"])
+                                 for day in week)
+                top, n = counts.most_common(1)[0]
+                if n > worst[0]:
+                    worst = (n, (symptoms, goal, culture, top))
+    assert worst[0] <= 4, (
+        "‏مكوّن واحد اتكرر %d مرات في الأسبوع: %s" % worst)
+
+
+def test_the_filter_drops_what_it_bans_instead_of_cloning_a_survivor():
+    """‏الشيل بيسيب التوزيع زي ما الفلترة سابته. النسخ بيضخّم أكتر حاجة نجت."""
+    import plan_engine  # noqa: F401
+    from meal_database import get_meal_pool, filter_by_conditions, _meal_text
+
+    pool = get_meal_pool("maintenance", "مصري").get("breakfast", [])
+    out = filter_by_conditions(pool, ["حساسية اللاكتوز"])
+    assert out, "‏الفلترة فضّت القايمة"
+    texts = [_meal_text(m) for m in out]
+    assert len(texts) == len(set(texts)), (
+        "‏في وجبات مكرّرة بعد الفلترة -- الاستبدال بينسخ بدل ما يشيل")
+    assert len(out) < len(pool), (
+        "‏اللاكتوز مامنعتش أي وجبة -- الاختبار مش بيقيس حاجة")
+
+
+def test_no_slot_is_ever_left_empty_after_dropping():
+    """‏الشيل خطر: خانة فاضية = يوم من غير وجبة.
+
+    ولو الفلترة رجعت لستة فاضية، الكود اللي بيناديها بيرجع للقايمة **قبل**
+    الفلترة -- يعني بيقدّم للمريض الأكل اللي المنع موجود عشانه.
+    """
+    import plan_engine  # noqa: F401
+    from meal_database import get_meal_pool, filter_by_conditions
+
+    empty = []
+    for ar in _all_conditions():
+        for goal in ("weight_loss", "maintenance", "muscle_gain", "bulking"):
+            for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
+                for slot in ("breakfast", "lunch", "dinner"):
+                    pool = get_meal_pool(goal, culture).get(slot, [])
+                    if pool and not filter_by_conditions(pool, [ar]):
+                        empty.append("%s / %s / %s / %s" % (ar, goal, culture, slot))
+    assert not empty, "‏خانات فضيت:\n   %s" % "\n   ".join(empty[:10])
+
+
+if __name__ == "__main__":
+    passed = failed = 0
+    for name, fn in sorted(globals().items()):
+        if not name.startswith("test_") or not callable(fn):
+            continue
+        try:
+            fn()
+            print(f"  PASS  {name}")
+            passed += 1
+        except AssertionError as e:
+            print(f"  FAIL  {name}\n        {e}")
+            failed += 1
+    print(f"\n{passed} passed, {failed} failed")
+    raise SystemExit(1 if failed else 0)

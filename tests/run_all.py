@@ -59,6 +59,20 @@ def main():
             broken.append(suite)
             print(f"  suite crashed:\n{(r.stderr or '')[-600:]}")
 
+        # ‏كل def test_ في الملف لازم يطلع في النتيجة. حصل إني كتبت خمس
+        # اختبارات بعد بلوك __main__، فالرنر كان بيلف على globals قبل ما
+        # تتعرّف -- عدّت ولا مرة، والطقم قال "كل حاجة بتعدّي". اختبار
+        # مابيشتغلش أسوأ من اختبار فاشل: الفاشل بيقولك.
+        declared = sum(1 for line in
+                       open(os.path.join(HERE, suite), encoding="utf-8")
+                       if line.startswith("def test_"))
+        ran = sum(1 for line in r.stdout.splitlines()
+                  if line.strip().startswith(("PASS", "FAIL")))
+        if declared != ran:
+            broken.append(f"{suite} ({declared} معرّفة، {ran} اشتغلت)")
+            print(f"  ⚠️  {declared} اختبار معرّف في الملف و{ran} بس اشتغل"
+                  f" -- في اختبارات مش بتتنادى")
+
     print(f"\n{'=' * 62}")
     print(f"  TOTAL: {total_pass} passed, {total_fail} failed"
           + (f", {len(broken)} suite(s) crashed" if broken else ""))

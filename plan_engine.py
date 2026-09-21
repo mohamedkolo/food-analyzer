@@ -194,6 +194,63 @@ def _apply_clinical_safety_caps(data):
         data["notes"] = " | ".join(flags) + (" | " + existing_notes if existing_notes else "")
 
 
+# ‏المكوّن الأساسي في وجبة الفطار. الترتيب مهم: "عجة بالسبانخ" بيض، مش سبانخ.
+_BF_BASE = (
+    ("بيض", ("بيض", "عجة", "أومليت", "اومليت", "شكشوكة", "Frittata", "فريتاتا")),
+    ("زبادي", ("زبادي",)),
+    ("جبن", ("جبن", "قريش", "لبنة", "حلوم", "فيتا")),
+    ("شوفان", ("شوفان", "كورن فليكس", "جرانولا", "كينوا")),
+    ("فول", ("فول مدمس", "طعمية", "فلافل", "حمص")),
+    ("خبز", ("توست", "خبز", "رقاق", "مناقيش", "بان كيك", "بانكيك")),
+    ("بطاطا", ("بطاطا", "بطاطس")),
+    ("فاكهة", ("تفاح", "موز", "كمثرى", "فراولة", "بطيخ", "تمر", "بلح")),
+)
+
+
+def _bf_base(text):
+    """‏المكوّن الأساسي: بيتقرا من أول عنصر في الوجبة، مش من أي كلمة فيها.
+
+    الوجبات مكتوبة والنجم بدري: "فول مدمس + بيضة مسلوقة + خبز" فولها هو
+    الأساس، و"بيض مسلوق + خبز اسمر + جرجير" بيضها. لو بصينا على أي كلمة،
+    الاتنين يطلعوا "بيض" -- والتوزيع يفضل يحسبهم نفس الحاجة ويكرّر الفطار.
+    """
+    head = str(text).split(" + ")[0]
+    for name, tokens in _BF_BASE:
+        if any(t in head for t in tokens):
+            return name
+    for name, tokens in _BF_BASE:
+        if any(t in str(text) for t in tokens):
+            return name
+    return "غير ذلك"
+
+
+def _spread_by_base(meals, take=7, cap=3):
+    """‏يوزّع أول `take` وجبة بحيث مايتكرّرش نفس المكوّن أكتر من `cap`.
+
+    قايمة الفطار فيها بيض كتير، وده مقصود: الفطار اللي يعدّي الجلوتين
+    واللاكتوز والبقوليات مع بعض، البيض تقريباً مصدر البروتين الوحيد اللي
+    فاضل. بس العميل اللي مالوش قيود مايستحقّش خمس أيام بيض من سبعة -- ده
+    اللي كان بيحصل، لأن الاختيار بياخد أول ٧ من قايمة مرتّبة بالبروتين.
+
+    ترتيب مش حذف: لو القيود سابت بيض بس، الوجبات بترجع زي ما هي بدل
+    ما الأسبوع يطلع ناقص.
+    """
+    if len(meals) <= take:
+        return meals
+    picked, rest, counts = [], [], {}
+    for meal in meals:
+        base = _bf_base(_meal_text(meal))
+        if len(picked) < take and counts.get(base, 0) < cap:
+            picked.append(meal)
+            counts[base] = counts.get(base, 0) + 1
+        else:
+            rest.append(meal)
+    # ‏لو القيود مسمحتش نكمّل السبعة، نكمّل من الباقي بترتيبه
+    while len(picked) < take and rest:
+        picked.append(rest.pop(0))
+    return picked + rest
+
+
 def generate_weekly_plan(data):
     _apply_clinical_safety_caps(data)
 
@@ -387,6 +444,11 @@ def generate_weekly_plan(data):
         lunches = _rank_by_condition(lunches, _cond_keys)
         dinners = _rank_by_condition(dinners, _cond_keys)
 
+    # ‏آخر خطوة قبل الاختيار: مايتكرّرش نفس المكوّن أكتر من ٣ أيام في الفطار.
+    # لازم تبقى بعد الترتيب بالبروتين والحالة، عشان متغيّرش أولوياتهم -- هي
+    # بتوزّع اللي هما رتّبوه.
+    breakfasts = _spread_by_base(breakfasts, take=7, cap=3)
+
     SNK_P = 8  # تقدير بروتين السناك الواحد
     plan = []
     for i in range(7):
@@ -571,6 +633,14 @@ def get_allowed_forbidden(symptoms, goal="weight_loss"):
 
     return allowed[:8], forbidden[:8]
 
+# ‏نطاقات الإيموجي اللي بتظهر في نصوص الوجبات: الأكل والرموز والأسهم
+# والعلامات. بنشيلها من الورقة المطبوعة بس -- الشاشة بتفضل زي ما هي.
+_EMOJI_RX = re.compile(
+    "[\U0001F300-\U0001FAFF\U00002600-\U000027BF\U00002B00-\U00002BFF"
+    "\U0001F000-\U0001F2FF\U0000FE00-\U0000FE0F\U00002190-\U000021FF"
+    "\U00002700-\U000027BF\U0000200D]+")
+
+
 def plan_html(data, plan=None, clean=False):
     """‏صفحة الجدول كـHTML. build_pdf تحتها بتحوّلها لـPDF.
 
@@ -710,10 +780,20 @@ def plan_html(data, plan=None, clean=False):
     def _esc(s):
         return (str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
 
+    def _plain(s):
+        """‏نص الوجبة من غير إيموجي.
+
+        الوجبة متخزّنة بإيموجي عشان الشاشة، والشاشة مكان مناسب لها. الورقة
+        اللي بتتسلّم للعميل لأ: ٤ إيموجي في الخانة × ٢٨ خانة = ١١٢ رسمة
+        ملوّنة على ورقة واحدة، وهي أول حاجة العين بتشوفها قبل الأكل نفسه.
+        الداتا مابتتغيّرش -- ده رسم الورقة بس.
+        """
+        return _EMOJI_RX.sub("", str(s)).replace("  ", " ").strip()
+
     def _fmt_cell(text):
         if not text:
             return "-"
-        parts = [p.strip() for p in str(text).split(" + ") if p.strip()]
+        parts = [p.strip() for p in _plain(text).split(" + ") if p.strip()]
         out = []
         for p in parts:
             p = _esc(p)
@@ -815,16 +895,16 @@ def plan_html(data, plan=None, clean=False):
     # عمود جوه .foot لأن النصوص دي جُمل مش عناصر قصيرة.
     _notes_items = [n.strip() for n in notes_rendered.split("|") if n.strip()]
     if _notes_items:
-        notes_html = ('<div class="notes"><h4>📋 '
+        notes_html = ('<div class="notes"><h4>'
                       + _L("ملاحظات طبية", "Clinical notes") + "</h4><ul>"
                       + "".join(f"<li>{_esc(n)}</li>" for n in _notes_items)
                       + "</ul></div>")
     else:
         notes_html = ""
 
-    allowed_html = "".join(f"<li>{_esc(_g(x))}</li>" for x in td['allowed'][:6])
-    forbidden_html = "".join(f"<li>{_esc(_g(x))}</li>" for x in td['forbidden'][:6])
-    water_tips = "".join(f"<li>{_esc(x)}</li>" for x in td['tips']['water'][:3])
+    allowed_html = "".join(f"<li>{_esc(_plain(_g(x)))}</li>" for x in td['allowed'][:5])
+    forbidden_html = "".join(f"<li>{_esc(_plain(_g(x)))}</li>" for x in td['forbidden'][:5])
+    water_tips = "".join(f"<li>{_esc(_plain(x))}</li>" for x in td['tips']['water'][:3])
 
     # حساب الماكروز: بروتين بالوزن، دهون % من السعرات، الكارب الباقي
     PROTEIN_FACTORS = {"sedentary": 1.0, "light": 1.3, "regular": 1.6, "athlete": 2.0}
@@ -897,53 +977,69 @@ def plan_html(data, plan=None, clean=False):
 
     _tcal = int(_kcal) if _kcal > 0 else None
     _tp = round(_w * _ppk) if _w > 0 else None
-    summary_box = (f'<div class="summary"><span>📊 <b>{_L("المتوسط الفعلي/يوم", "Actual average per day")}:</b> '
+    summary_box = (f'<div class="summary"><span><b>{_L("المتوسط الفعلي/يوم", "Actual average per day")}:</b> '
                    f'{_avg_cal} {_L("سعرة", "kcal")} • {_avg_p} {_L("جم بروتين", "g protein")}</span>'
                    f'<span><b>{_L("الهدف", "Target")}:</b> {_tcal if _tcal else "-"} {_L("سعرة", "kcal")} • '
                    f'{_tp if _tp else "-"} {_L("جم بروتين", "g protein")}</span></div>')
 
     html_string = f"""<!DOCTYPE html><html lang="{_L("ar", "en")}"><head><meta charset="utf-8">
 <style>
-@page {{ size: A4 {orientation}; margin: 8mm; }}
+@page {{ size: A4 {orientation}; margin: 9mm 10mm; }}
 * {{ box-sizing: border-box; }}
-body {{ font-family: 'Cairo','Amiri','DejaVu Sans',sans-serif; direction: {_L('rtl', 'ltr')}; color:#1b2d24; margin:0; }}
-.hdr {{ display:flex; justify-content:space-between; align-items:center;
-        border-bottom:3px solid #14332b; padding-bottom:6px; margin-bottom:8px; }}
-.hdr .t {{ font-size:18px; font-weight:800; color:#14332b; }}
-.hdr .s {{ font-size:11px; color:#52796f; }}
-.meta {{ display:flex; flex-wrap:wrap; gap:6px 16px; font-size:11px;
-         background:#f0f7f4; border:1px solid #cfe3d9; border-radius:6px;
-         padding:7px 10px; margin-bottom:8px; }}
-.meta b {{ color:#14332b; }}
+/* ‏الورقة دي بتتسلّم لعميل. الشاشة تحتمل ألوان وإيموجي، الورقة لأ:
+   شريط أخضر غامق + شبكة خطوط غامقة + ١١٢ إيموجي كانت بتخلي الأكل نفسه
+   آخر حاجة العين تشوفها. بقى لون واحد للنص، خطوط شعر رمادية، ومساحة
+   تفصل بدل ما الخطوط تفصل. */
+body {{ font-family: 'Cairo','Amiri','DejaVu Sans',sans-serif;
+        direction: {_L('rtl', 'ltr')}; color:#22292b; margin:0;
+        font-size:10px; line-height:1.5; }}
+.hdr {{ display:flex; justify-content:space-between; align-items:baseline;
+        border-bottom:1px solid #d6dbd9; padding-bottom:6px; margin-bottom:9px; }}
+.hdr .t {{ font-size:15px; font-weight:700; color:#22292b; letter-spacing:-0.2px; }}
+.hdr .s {{ font-size:9.5px; color:#8a9391; font-weight:400; }}
+/* ‏flex gap مش مضمون في WeasyPrint -- الخانات كانت بتطلع ملزوقة في بعضها
+   ("الاسم: ريمالنوع: انثى"). span عادي بمسافة وفاصل بيتقرا في الحالتين. */
+.meta {{ font-size:9px; color:#5c6663; margin-bottom:9px; line-height:1.8; }}
+.meta span {{ margin-inline-end:7px; }}
+.meta span::after {{ content:"·"; color:#c9d0cd; margin-inline-start:7px; }}
+.meta span:last-child::after {{ content:""; }}
+.meta b {{ color:#22292b; font-weight:600; }}
 table {{ width:100%; border-collapse:collapse; table-layout:fixed; }}
-th,td {{ border:1px solid #2d5a44; padding:6px 6px; font-size:9.5px;
-         vertical-align:top; word-wrap:break-word; line-height:1.5; text-align:start; }}
-td .it {{ display:block; padding:2px 0; border-bottom:1px dashed #dcebe4; }}
-td .it:last-child {{ border-bottom:none; }}
-td b {{ color:#14332b; font-weight:700; }}
-th {{ background:#14332b; color:#fff; font-weight:700; }}
-td.dcell {{ background:#e8f3ee; font-weight:800; color:#14332b; font-size:11px; text-align:center; }}
-.dcol {{ width:62px; }} .kcol,.kcell {{ width:48px; text-align:center; }}
-.kcell {{ font-weight:700; color:#2d5a44; }}
-tr:nth-child(even) td {{ background:#fafdfb; }}
-tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
-.foot {{ display:flex; gap:10px; margin-top:9px; font-size:9.5px; }}
-.fbox {{ flex:1; border:1px solid #cfe3d9; border-radius:6px; padding:6px 9px; }}
-.fbox h4 {{ margin:0 0 3px; font-size:11px; }}
-.fbox ul {{ margin:0; padding-inline-start:15px; }}
-.fbox li {{ margin-bottom:1px; }}
-.ok h4 {{ color:#2d7d46; }} .no h4 {{ color:#c0392b; }} .wt h4 {{ color:#1d6fa5; }}
-.notes {{ margin-top:9px; border:1px solid #fcd34d; background:#fffbeb;
-          border-radius:6px; padding:6px 9px; font-size:9.5px; }}
-.notes h4 {{ margin:0 0 3px; font-size:11px; color:#92400e; }}
-.notes ul {{ margin:0; padding-inline-start:15px; }}
-.notes li {{ margin-bottom:1px; }}
-.sig {{ margin-top:8px; text-align:end; font-size:10px; color:#52796f; }}
+th,td {{ padding:4px 7px; font-size:8.8px; vertical-align:top;
+         word-wrap:break-word; line-height:1.5; text-align:start;
+         border:0; border-bottom:1px solid #e8ecea; }}
+th {{ background:transparent; color:#8a9391; font-weight:600; font-size:8.5px;
+      letter-spacing:0.3px; border-bottom:1px solid #c9d0cd;
+      padding-bottom:5px; }}
+td .it {{ display:block; padding:1px 0; }}
+td b {{ color:#22292b; font-weight:600; }}
+td.dcell {{ font-weight:700; color:#22292b; font-size:10px; text-align:center;
+            background:transparent; }}
+.dcol {{ width:58px; }}
+.kcol,.kcell {{ width:56px; text-align:center; }}
+.kcol {{ white-space:nowrap; }}
+.kcell {{ font-weight:600; color:#5c6663; }}
+tr:nth-child(even) td {{ background:#fbfcfb; }}
+.foot {{ display:flex; gap:16px; margin-top:9px; font-size:8.5px;
+         page-break-inside:avoid; }}
+.fbox {{ flex:1; border:0; border-top:1px solid #d6dbd9; padding:6px 0 0; }}
+.fbox h4 {{ margin:0 0 4px; font-size:9px; color:#8a9391; font-weight:600;
+            letter-spacing:0.3px; }}
+.fbox ul {{ margin:0; padding-inline-start:13px; color:#3f4744; }}
+.fbox li {{ margin-bottom:2px; }}
+.notes {{ margin-top:9px; border:0; border-top:1px solid #d6dbd9;
+          background:transparent; padding:6px 0 0; font-size:8.5px; }}
+.notes h4 {{ margin:0 0 4px; font-size:9px; color:#8a9391; font-weight:600; }}
+.notes ul {{ margin:0; padding-inline-start:13px; color:#3f4744; }}
+.notes li {{ margin-bottom:2px; }}
+/* ‏سطر المراجعة كان بيزحّف لصفحة تانية لوحده -- صفحة كاملة لسطر. */
+.sig {{ margin-top:7px; text-align:end; font-size:8.5px; color:#a3aaa8;
+        page-break-before:avoid; }}
 .summary {{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
-            background:#eef4f1; border:1px solid #cfe3d9; border-radius:6px;
-            padding:7px 12px; margin-top:8px; font-size:11px; }}
-.summary b {{ color:#14332b; }}
-.fu-note {{ font-size:10.5px; color:#2d4a3e; margin-top:3px; padding:0 3px; }}
+            background:transparent; border:0; border-top:1px solid #c9d0cd;
+            padding:7px 0 0; margin-top:2px; font-size:9.5px; color:#5c6663; }}
+.summary b {{ color:#22292b; font-weight:600; }}
+.fu-note {{ font-size:9px; color:#5c6663; margin:0 0 10px; }}
 </style></head><body>
 <div class="hdr">
   <div><div class="t">{_esc(td['plan_title'])} — {_esc(td['diet_plan_name'])}</div>
@@ -965,9 +1061,9 @@ tr:nth-child(even) td.dcell {{ background:#e8f3ee; }}
 <table><thead><tr>{head_cells}</tr></thead><tbody>{body_rows}</tbody></table>
 {summary_box}
 <div class="foot">
-  <div class="fbox ok"><h4>✅ {_L("مسموح", "Allowed")}</h4><ul>{allowed_html}</ul></div>
-  <div class="fbox no"><h4>🚫 {_L("ممنوع", "Avoid")}</h4><ul>{forbidden_html}</ul></div>
-  <div class="fbox wt"><h4>💧 {_L("الماء", "Water")}</h4><ul>{water_tips}</ul></div>
+  <div class="fbox ok"><h4>{_L("مسموح", "Allowed")}</h4><ul>{allowed_html}</ul></div>
+  <div class="fbox no"><h4>{_L("ممنوع", "Avoid")}</h4><ul>{forbidden_html}</ul></div>
+  <div class="fbox wt"><h4>{_L("الماء", "Water")}</h4><ul>{water_tips}</ul></div>
 </div>
 {notes_html}
 <div class="sig">{_L("المراجعة بعد", "Review in")} {_esc(td['review_weeks'])} {_L("أسابيع", "weeks")}{_sig_by}</div>
