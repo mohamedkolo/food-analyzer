@@ -224,7 +224,31 @@ def _bf_base(text):
     return "غير ذلك"
 
 
-def _spread_by_base(meals, take=7, cap=3):
+# ‏الأساس في الغدا والعشا = مصدر البروتين. سبع أيام دجاج مش خطة.
+_MAIN_BASE = (
+    ("دجاج", ("دجاج", "فراخ", "شيش طاووق", "شاورما دجاج")),
+    ("ديك رومي", ("ديك رومي", "تركي")),
+    ("سمك", ("سمك", "سلمون", "تونة", "سردين", "هامور", "بلطي", "فيليه")),
+    ("جمبري", ("جمبري", "روبيان", "مأكولات بحرية")),
+    ("لحم", ("لحم", "كفتة لحم", "بفتيك", "ستيك")),
+    ("بيض", ("بيض", "عجة", "أومليت", "شكشوكة")),
+    ("بقوليات", ("عدس", "فول", "حمص", "فاصوليا", "لوبيا", "كشري")),
+    ("جبن", ("جبن", "قريش", "لبنة", "حلوم")),
+)
+
+
+def _main_base(text):
+    head = str(text).split(" + ")[0]
+    for name, tokens in _MAIN_BASE:
+        if any(t in head for t in tokens):
+            return name
+    for name, tokens in _MAIN_BASE:
+        if any(t in str(text) for t in tokens):
+            return name
+    return "غير ذلك"
+
+
+def _spread_by_base(meals, take=7, cap=3, base=None):
     """‏يوزّع أول `take` وجبة بحيث مايتكرّرش نفس المكوّن أكتر من `cap`.
 
     قايمة الفطار فيها بيض كتير، وده مقصود: الفطار اللي يعدّي الجلوتين
@@ -237,12 +261,13 @@ def _spread_by_base(meals, take=7, cap=3):
     """
     if len(meals) <= take:
         return meals
+    base_of = base or _bf_base
     picked, rest, counts = [], [], {}
     for meal in meals:
-        base = _bf_base(_meal_text(meal))
-        if len(picked) < take and counts.get(base, 0) < cap:
+        name = base_of(_meal_text(meal))
+        if len(picked) < take and counts.get(name, 0) < cap:
             picked.append(meal)
-            counts[base] = counts.get(base, 0) + 1
+            counts[name] = counts.get(name, 0) + 1
         else:
             rest.append(meal)
     # ‏لو القيود مسمحتش نكمّل السبعة، نكمّل من الباقي بترتيبه
@@ -448,6 +473,10 @@ def generate_weekly_plan(data):
     # لازم تبقى بعد الترتيب بالبروتين والحالة، عشان متغيّرش أولوياتهم -- هي
     # بتوزّع اللي هما رتّبوه.
     breakfasts = _spread_by_base(breakfasts, take=7, cap=3)
+    # ‏والغدا والعشا بمصدر البروتين: سبع أيام دجاج مش خطة، وده كان بيحصل
+    # لأن الترتيب بالبروتين بيطلّع الدجاج فوق.
+    lunches = _spread_by_base(lunches, take=7, cap=3, base=_main_base)
+    dinners = _spread_by_base(dinners, take=7, cap=3, base=_main_base)
 
     SNK_P = 8  # تقدير بروتين السناك الواحد
     plan = []
@@ -534,6 +563,7 @@ def generate_weekly_plan(data):
     return plan
 
 def get_allowed_forbidden(symptoms, goal="weight_loss"):
+    from meal_database import unsafe_keys_for, _contains_unsafe
     has_g6pd = _has(symptoms, ["g6pd","g6bd","فافيزم"])
     has_thal = _has(symptoms, ["ثلاسيميا","thalassemia"])
     has_colon = _has(symptoms, ["قولون عصبي","ibs"])
@@ -630,6 +660,35 @@ def get_allowed_forbidden(symptoms, goal="weight_loss"):
     if has_t1d:
         forbidden = ["السكريات السريعة المنفردة","العصائر والمشروبات الغازية"] + forbidden
         allowed = ["حساب الكارب لكل وجبة (carb counting)","توزيع الكارب مع جرعة الأنسولين","كارب معقّد + ألياف","سناك لتجنب هبوط السكر"] + allowed
+
+    # ‏آخر خطوة: القايمة تتعرض على نفس قوايم المنع اللي الوجبات بتتفلتر بيها.
+    #
+    # القوايم فوق مكتوبة بإيد وبفرع لكل حالة (_has)، فأي حالة مالهاش فرع
+    # بتاخد القايمة العامة. النتيجة إن ورقة مريض سيلياك كانت بتقول له إن
+    # **"شوفان + خبز أسمر + أرز بني" مسموح** -- والفلترة في نفس الوقت شايلة
+    # كل وجبة فيها خبز من جدوله. يعني الجدول صح والنصيحة اللي جنبه غلط.
+    # نفس الحاجة في G6PD: "عدس أصفر بكميات محدودة" مكتوبة مسموح، والعدس في
+    # قايمة منعه.
+    #
+    # الفلترة بتحصل على مستوى الصنف مش السطر: "شوفان + خبز أسمر + أرز بني"
+    # بيفضل "شوفان + أرز بني" -- لو شلنا السطر كله كنا هنمنع الشوفان والأرز
+    # البني بلا سبب. واللي بيتشال بيتحوّل للممنوع، عشان المريض يشوف السبب.
+    keys = unsafe_keys_for(symptoms)
+    if keys:
+        def _banned(item):
+            return any(_contains_unsafe(item, k) for k in keys)
+
+        kept, dropped = [], []
+        for line in allowed:
+            parts = [x.strip() for x in str(line).split(" + ") if x.strip()]
+            safe = [x for x in parts if not _banned(x)]
+            dropped += [x for x in parts if _banned(x)]
+            if safe:
+                kept.append(" + ".join(safe))
+        allowed = kept
+        for item in dropped:
+            if item not in forbidden:
+                forbidden.append(item)
 
     return allowed[:8], forbidden[:8]
 

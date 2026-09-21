@@ -1049,16 +1049,23 @@ def test_the_stronger_injection_says_it_is_stronger():
     assert tirz != sema, "‏النصين متطابقين -- يعني الفرق مش مذكور"
 
 
-def test_every_condition_has_enough_safe_breakfasts():
-    """‏الرقم ده كان ١ للسيلياك واللاكتوز، من ١٢ وجبة.
+def test_every_condition_has_enough_safe_meals_in_every_slot():
+    """‏الرقم ده كان ١ للسيلياك في الفطار، و**صفر** في العشا.
 
-    والخطة سبع أيام، فست أيام كانت بتروح للاستبدال. والاستبدال بياخد من
-    SAFE_ALTERNATIVES، و٤١ بديل من ١٢٨ فيها أطباق غدا -- فالفطار كان بيطلع
-    "دجاج + أرز بني + سلطة". الدكتور شافها في الجدول وقال إنها مش منطقية،
-    وهو صح.
+    القياس الأصلي، على كل حالة × هدف × مطبخ:
 
-    عشرة مش سبعة: سبعة تعني وجبة لكل يوم بالعدد وصفر تنويع، فأي تكرار أو
-    استثناء أكل بيرجّعنا للاستبدال تاني.
+        السيلياك واللاكتوز، الفطار:  ١ من ١٢
+        السيلياك، العشا:             صفر في (مغربي/تثبيت) و(شامي/تضخيم)
+        السيلياك، العشا:             ١ في (مصري/تثبيت)
+        اللاكتوز، العشا:             ٣ من ١٣
+        G6PD و SIBO والإسهال، العشا: ٤ من ١٣
+        كرون والتقرحي، الغدا:        ٥ من ١٣
+
+    صفر معناها إن الخطة بتتبني من SAFE_ALTERNATIVES -- قايمة مش عارفة
+    الخانة. وواحدة معناها نفس الوجبة سبع مرات.
+
+    عشرة مش سبعة: سبعة تعني وجبة لكل يوم بالعدد وصفر تنويع، فأي استثناء
+    أكل أو تكرار بيرجّعنا لنفس المشكلة.
     """
     import plan_engine  # noqa: F401  -- بيحمّل meal_extra
     from meal_database import get_meal_pool, _contains_unsafe, _meal_text
@@ -1069,13 +1076,16 @@ def test_every_condition_has_enough_safe_breakfasts():
     for ar, keys in conds.items():
         for goal in ("weight_loss", "maintenance", "muscle_gain", "bulking"):
             for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
-                pool = get_meal_pool(goal, culture).get("breakfast", [])
-                safe = [m for m in pool
-                        if not any(_contains_unsafe(_meal_text(m), k) for k in keys)]
-                if len(safe) < _MIN_SAFE_BREAKFASTS:
-                    short.append("%s / %s / %s: %d" % (ar, goal, culture, len(safe)))
+                for slot in ("breakfast", "lunch", "dinner"):
+                    pool = get_meal_pool(goal, culture).get(slot, [])
+                    safe = [m for m in pool
+                            if not any(_contains_unsafe(_meal_text(m), k)
+                                       for k in keys)]
+                    if len(safe) < _MIN_SAFE_BREAKFASTS:
+                        short.append("%s / %s / %s / %s: %d"
+                                     % (ar, goal, culture, slot, len(safe)))
     assert not short, (
-        "‏الحالات دي فطارها أقل من %d وجبة آمنة:\n   %s"
+        "‏الخانات دي أقل من %d وجبة آمنة:\n   %s"
         % (_MIN_SAFE_BREAKFASTS, "\n   ".join(short[:12])))
 
 
@@ -1154,11 +1164,15 @@ def test_the_new_breakfasts_all_read_in_english_too():
     from meal_i18n import translate_meal, untranslated_terms
 
     missing = []
-    for goal, cultures in meal_extra.EXTRA_BREAKFASTS.items():
-        for meal in cultures["مصري"]["breakfast"]:
-            text = meal["meal"]
-            if translate_meal(text) == text:
-                missing.append("%s -> %s" % (text[:45], untranslated_terms(text)))
+    for source, slots in ((meal_extra.EXTRA_BREAKFASTS, ("breakfast",)),
+                          (meal_extra.EXTRA_MAIN_MEALS, ("lunch", "dinner"))):
+        for goal, cultures in source.items():
+            for slot in slots:
+                for meal in cultures["مصري"][slot]:
+                    text = meal["meal"]
+                    if translate_meal(text) == text:
+                        missing.append("%s -> %s"
+                                       % (text[:45], untranslated_terms(text)))
     assert not missing, "‏وجبات مش مترجمة:\n   %s" % "\n   ".join(missing)
 
 
@@ -1170,17 +1184,21 @@ def test_the_four_portion_tiers_stay_in_step():
     """
     import meal_extra
     order = ("weight_loss", "maintenance", "muscle_gain", "bulking")
-    lists = [meal_extra.EXTRA_BREAKFASTS[g]["مصري"]["breakfast"] for g in order]
-    assert len({len(x) for x in lists}) == 1, "‏الأهداف مش ليها نفس عدد الوجبات"
-    for i in range(len(lists[0])):
-        cals = [lst[i]["cal"] for lst in lists]
-        assert cals == sorted(cals), (
-            "‏وجبة %r سعراتها مش بتكبر مع الهدف: %s"
-            % (lists[0][i]["meal"][:40], cals))
-        prots = [lst[i]["p"] for lst in lists]
-        assert prots == sorted(prots), (
-            "‏وجبة %r بروتينها مش بيكبر مع الهدف: %s"
-            % (lists[0][i]["meal"][:40], prots))
+    for source, slots in ((meal_extra.EXTRA_BREAKFASTS, ("breakfast",)),
+                          (meal_extra.EXTRA_MAIN_MEALS, ("lunch", "dinner"))):
+        for slot in slots:
+            lists = [source[g]["مصري"][slot] for g in order]
+            assert len({len(x) for x in lists}) == 1, (
+                "‏%s: الأهداف مش ليها نفس عدد الوجبات" % slot)
+            for i in range(len(lists[0])):
+                cals = [lst[i]["cal"] for lst in lists]
+                assert cals == sorted(cals), (
+                    "‏وجبة %r سعراتها مش بتكبر مع الهدف: %s"
+                    % (lists[0][i]["meal"][:40], cals))
+                prots = [lst[i]["p"] for lst in lists]
+                assert prots == sorted(prots), (
+                    "‏وجبة %r بروتينها مش بيكبر مع الهدف: %s"
+                    % (lists[0][i]["meal"][:40], prots))
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1200,7 +1218,7 @@ def _all_conditions():
     return out
 
 
-def test_the_week_does_not_repeat_one_breakfast_ingredient():
+def test_the_week_does_not_repeat_one_ingredient_in_any_slot():
     """‏٥ أيام بيض من ٧ مش تنويع، وده اللي كان بيحصل.
 
     سببين اتجمعوا: قايمة الفطار فيها بيض كتير (لأنه المصدر الوحيد اللي
@@ -1232,13 +1250,15 @@ def test_the_week_does_not_repeat_one_breakfast_ingredient():
                             symptoms=symptoms)
                 with A.app.test_request_context("/"):
                     week = plan_engine.generate_weekly_plan(data)
-                counts = Counter(plan_engine._bf_base(day["breakfast"])
-                                 for day in week)
-                top, n = counts.most_common(1)[0]
-                if n > worst[0]:
-                    worst = (n, (symptoms, goal, culture, top))
+                for slot, base_of in (("breakfast", plan_engine._bf_base),
+                                      ("lunch", plan_engine._main_base),
+                                      ("dinner", plan_engine._main_base)):
+                    counts = Counter(base_of(day.get(slot, "")) for day in week)
+                    top, n = counts.most_common(1)[0]
+                    if n > worst[0]:
+                        worst = (n, (slot, symptoms, goal, culture, top))
     assert worst[0] <= 4, (
-        "‏مكوّن واحد اتكرر %d مرات في الأسبوع: %s" % worst)
+        "‏مصدر واحد اتكرر %d مرات في الأسبوع: %s" % worst)
 
 
 def test_the_filter_drops_what_it_bans_instead_of_cloning_a_survivor():
@@ -1274,6 +1294,81 @@ def test_no_slot_is_ever_left_empty_after_dropping():
                     if pool and not filter_by_conditions(pool, [ar]):
                         empty.append("%s / %s / %s / %s" % (ar, goal, culture, slot))
     assert not empty, "‏خانات فضيت:\n   %s" % "\n   ".join(empty[:10])
+
+
+def test_no_meal_carries_the_same_unit_twice():
+    """‏"زيت زيتون ملعقة 1 ملعقة" -- ده اللي طلع في ورقة عميل.
+
+    add_grams بتزوّد كمية لأي صنف مكتوب من غير رقم. فلما كتبت الحصة
+    "ملعقة" من غير رقم، الدالة شافت صنف بلا كمية وضافت "1 ملعقة" جنبها.
+    الحصص كلها بقى فيها رقم، والاختبار ده بيمسك أي وجبة جديدة تتكتب
+    من غير رقم فتتكرر عليها الوحدة تاني.
+    """
+    import re
+    import plan_engine  # noqa: F401
+    from meal_database import get_meal_pool, _meal_text
+
+    # ‏الوحدة الواحدة مالهاش تتكرر في نفس الصنف. بنعدّ جوه كل صنف لوحده،
+    # لأن الوجبة كلها فيها ملاعق كتير عادي، وبنشيل ال(kcal) الآخر.
+    #
+    # ‏"جم" لازم تتقاس كوحدة مش كحروف: "عين جمل 10جم" و"جمبري 150جم" فيهم
+    # "جم" جوه الكلمة نفسها، فالعدّ الساذج كان بيبلّغ عليهم غلط.
+    UNITS = (r"\d\s*جم(?![\u0600-\u06FF])",
+             r"ملعقة(?![\u0600-\u06FF])",
+             r"ملاعق(?![\u0600-\u06FF])",
+             r"كوب(?![\u0600-\u06FF])")
+    offenders = set()
+    for goal in ("weight_loss", "maintenance", "muscle_gain", "bulking"):
+        for culture in ("مصري", "خليجي", "شامي", "مغربي", "عالمي"):
+            for slot in ("breakfast", "lunch", "dinner"):
+                for meal in get_meal_pool(goal, culture).get(slot, []):
+                    text = re.sub(r"\([^)]*kcal[^)]*\)", "", _meal_text(meal))
+                    for segment in text.split(" + "):
+                        if any(len(re.findall(u, segment)) > 1 for u in UNITS):
+                            offenders.add(segment.strip()[:60])
+    assert not offenders, (
+        "‏وجبات مكتوب فيها الوحدة مرتين:\n   %s"
+        % "\n   ".join(sorted(offenders)[:8]))
+
+
+def test_the_advice_panel_never_allows_what_the_filter_bans():
+    """‏ورقة مريض السيلياك كانت بتقوله "شوفان + خبز أسمر + أرز بني: مسموح".
+
+    الفلترة في نفس الوقت شايلة كل وجبة فيها خبز من جدوله. فالجدول صح
+    والنصيحة اللي جنبه غلط -- والمريض بياخد الورقتين مع بعض.
+
+    السبب إن قايمة المسموح/الممنوع مكتوبة بإيد وبفرع لكل حالة، ومافيش
+    فرع للسيلياك، فبياخد القايمة العامة. ونفس الحاجة في G6PD: "عدس أصفر"
+    مكتوب مسموح والعدس في قايمة منعه.
+
+    القايمة بقت بتتعرض على نفس قوايم المنع، على مستوى الصنف مش السطر.
+    """
+    import plan_engine
+    from meal_database import unsafe_keys_for, _contains_unsafe
+
+    offenders = []
+    for ar, keys in _all_conditions().items():
+        for goal in ("weight_loss", "maintenance", "muscle_gain", "bulking"):
+            allowed, _forbidden = plan_engine.get_allowed_forbidden([ar], goal)
+            for line in allowed:
+                for item in str(line).split(" + "):
+                    if any(_contains_unsafe(item, k) for k in keys):
+                        offenders.append("%s / %s: %s" % (ar, goal, item.strip()))
+    assert not offenders, (
+        "‏بنود ممنوعة مكتوبة 'مسموح':\n   %s"
+        % "\n   ".join(sorted(set(offenders))[:10]))
+
+
+def test_filtering_the_advice_does_not_empty_it():
+    """‏ورقة من غير نصيحة مش ورقة. الفلترة بتشيل الصنف لا السطر."""
+    import plan_engine
+
+    for ar in _all_conditions():
+        for goal in ("weight_loss", "muscle_gain"):
+            allowed, forbidden = plan_engine.get_allowed_forbidden([ar], goal)
+            assert len(allowed) >= 3, (
+                "‏%s / %s: المسموح بقى %d سطر بس" % (ar, goal, len(allowed)))
+            assert forbidden, "‏%s / %s: مافيش ممنوع" % (ar, goal)
 
 
 if __name__ == "__main__":

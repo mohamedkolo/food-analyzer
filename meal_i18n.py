@@ -284,6 +284,10 @@ WORDS = {
     "سردين مصفّى": "drained sardines", "سردين مصفى": "drained sardines",
     "مصفّى": "drained", "مصفى": "drained",
     "ملعقة صغيرة": "1 tsp", "ملعقتين": "2 tbsp", "3 ملاعق": "3 tbsp",
+    # ‏غدا وعشا الحالات المقيّدة
+    "فيليه": "fillet", "بالجزر": "with carrots", "بالكوسة ": "with zucchini ",
+    "خضار مسلوق": "boiled vegetables", "سلطة خس": "lettuce salad",
+    "سلطة خيار": "cucumber salad", "كفتة دجاج": "chicken kofta",
     "مطهية": "cooked", "مشروب": "drink", "مهروسة": "mashed",
     # أسماك دهنية -- بتترشّح في أوراق المناعة والتصلب اللويحي وشوغرن
     "كرز": "cherries",   # مرشّح للنقرس (يقلّل حمض اليوريك) وللربو
