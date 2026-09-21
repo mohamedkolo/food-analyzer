@@ -478,13 +478,23 @@ def generate_weekly_plan(data):
     lunches = _spread_by_base(lunches, take=7, cap=3, base=_main_base)
     dinners = _spread_by_base(dinners, take=7, cap=3, base=_main_base)
 
+    from portion_scale import scale_meal
+
+    # ‏هدف السعرات اليومي: اللي الدكتور كتبه. لو مكتوبش، الحصص تفضل زي ما هي
+    # بدل ما نخمّن رقم ونكبّر عليه.
+    try:
+        _base_target = float(data.get("goal_cal") or 0)
+    except (TypeError, ValueError):
+        _base_target = 0.0
+
     SNK_P = 8  # تقدير بروتين السناك الواحد
     plan = []
     for i in range(7):
         day_plan = {"day": days[i], "diet_type": diet_type,
                     "meal_labels": plan_info["meal_labels"], "meal_emojis": plan_info["meal_emojis"]}
-        total_cal = 0
-        total_p = 0
+        # ‏سعرات وبروتين كل خانة لوحدها: المجموع بيتحسب منها، وكل خانة
+        # بتتكبّر بنفس المعامل تحت، فلازم نعرف نصيبها.
+        _slot_cals, _slot_ps = {}, {}
         if diet_type in ("standard", "keto", "low_carb"):
             b = breakfasts[i % len(breakfasts)]
             l = lunches[i % len(lunches)]
@@ -493,8 +503,10 @@ def generate_weekly_plan(data):
             day_plan["lunch"] = l["meal"]
             day_plan["dinner"] = d["meal"]
             day_plan["snack"] = snacks[i % len(snacks)]
-            total_cal = b.get("cal",300) + l.get("cal",400) + d.get("cal",300) + 150
-            total_p = b.get("p",20) + l.get("p",30) + d.get("p",20) + SNK_P
+            _slot_cals = {"breakfast": b.get("cal",300), "lunch": l.get("cal",400),
+                          "dinner": d.get("cal",300), "snack": 150}
+            _slot_ps = {"breakfast": b.get("p",20), "lunch": l.get("p",30),
+                        "dinner": d.get("p",20), "snack": SNK_P}
         elif diet_type == "two_meals":
             # وجبتين بس: الفطار والغداء، والسعرات كلها بينهم. مفيش عشاء،
             # فالحصة الواحدة أكبر من نظام التلات وجبات.
@@ -502,8 +514,8 @@ def generate_weekly_plan(data):
             l = lunches[i % len(lunches)]
             day_plan["breakfast"] = b["meal"]
             day_plan["lunch"] = l["meal"]
-            total_cal = b.get("cal", 450) + l.get("cal", 550)
-            total_p = b.get("p", 25) + l.get("p", 35)
+            _slot_cals = {"breakfast": b.get("cal",450), "lunch": l.get("cal",550)}
+            _slot_ps = {"breakfast": b.get("p",25), "lunch": l.get("p",35)}
         elif diet_type == "five_meals":
             b = breakfasts[i % len(breakfasts)]
             l = lunches[i % len(lunches)]
@@ -513,42 +525,91 @@ def generate_weekly_plan(data):
             day_plan["lunch"] = l["meal"]
             day_plan["snack2"] = snacks[(i+3) % len(snacks)]
             day_plan["dinner"] = d["meal"]
-            total_cal = b.get("cal",300) + l.get("cal",400) + d.get("cal",300) + 300
-            total_p = b.get("p",20) + l.get("p",30) + d.get("p",20) + SNK_P*2
+            _slot_cals = {"breakfast": b.get("cal",300), "lunch": l.get("cal",400),
+                          "dinner": d.get("cal",300), "snack1": 150, "snack2": 150}
+            _slot_ps = {"breakfast": b.get("p",20), "lunch": l.get("p",30),
+                        "dinner": d.get("p",20), "snack1": SNK_P, "snack2": SNK_P}
         elif diet_type == "intermittent_16_8":
             b = breakfasts[i % len(breakfasts)]
             d = dinners[i % len(dinners)]
             day_plan["meal1"] = b["meal"]
             day_plan["snack"] = snacks[i % len(snacks)]
             day_plan["meal2"] = d["meal"]
-            total_cal = b.get("cal",350) + d.get("cal",450) + 150
-            total_p = b.get("p",25) + d.get("p",30) + SNK_P
+            _slot_cals = {"meal1": b.get("cal",350), "meal2": d.get("cal",450),
+                          "snack": 150}
+            _slot_ps = {"meal1": b.get("p",25), "meal2": d.get("p",30),
+                        "snack": SNK_P}
         elif diet_type == "intermittent_18_6":
             l = lunches[i % len(lunches)]
             d = dinners[i % len(dinners)]
             day_plan["meal1"] = l["meal"]
             day_plan["meal2"] = d["meal"]
-            total_cal = l.get("cal",400) + d.get("cal",400)
-            total_p = l.get("p",30) + d.get("p",30)
+            _slot_cals = {"meal1": l.get("cal",400), "meal2": d.get("cal",400)}
+            _slot_ps = {"meal1": l.get("p",30), "meal2": d.get("p",30)}
         elif diet_type == "ramadan":
             l = lunches[i % len(lunches)]
             b = breakfasts[i % len(breakfasts)]
             day_plan["iftar"] = l["meal"]
             day_plan["snack"] = snacks[i % len(snacks)]
             day_plan["suhoor"] = b["meal"]
-            total_cal = l.get("cal",400) + b.get("cal",300) + 150
-            total_p = l.get("p",30) + b.get("p",20) + SNK_P
+            _slot_cals = {"iftar": l.get("cal",400), "suhoor": b.get("cal",300),
+                          "snack": 150}
+            _slot_ps = {"iftar": l.get("p",30), "suhoor": b.get("p",20),
+                        "snack": SNK_P}
         elif diet_type == "workout":
             b = breakfasts[i % len(breakfasts)]
             l = lunches[i % len(lunches)]
             d = dinners[i % len(dinners)]
-            day_plan["pre_workout"] = "موزة + زبدة فول سوداني + قهوة"
+            day_plan["pre_workout"] = "موزة 1 + زبدة فول سوداني 15جم + قهوة"
             day_plan["breakfast"] = b["meal"]
-            day_plan["post_workout"] = "بروتين شيك + موز + لوز"
+            day_plan["post_workout"] = "بروتين شيك 30جم + موز 1 + لوز 15جم"
             day_plan["lunch"] = l["meal"]
             day_plan["dinner"] = d["meal"]
-            total_cal = 200 + b.get("cal",300) + 250 + l.get("cal",400) + d.get("cal",300)
-            total_p = b.get("p",20) + l.get("p",30) + d.get("p",20) + 33
+            _slot_cals = {"pre_workout": 200, "breakfast": b.get("cal",300),
+                          "post_workout": 250, "lunch": l.get("cal",400),
+                          "dinner": d.get("cal",300)}
+            _slot_ps = {"pre_workout": 2, "breakfast": b.get("p",20),
+                        "post_workout": 31, "lunch": l.get("p",30),
+                        "dinner": d.get("p",20)}
+        total_cal = sum(_slot_cals.values())
+        total_p = sum(_slot_ps.values())
+
+        # ── الحصص تتظبط على هدف اليوم ──────────────────────────────────
+        #
+        # وجبات القاعدة حصصها ثابتة لكل هدف، وهدف العميل رقم متغيّر بيتحسب
+        # من وزنه وطوله وسنه ونشاطه. فالمجموع كان بيتحط جنب الهدف والرقمين
+        # مش نفس الرقم -- بفرق ١٤٪ في أحسن حالة و٥٦٪ في أسوأها. وأسوأها
+        # كانت الأنظمة اللي وجباتها أقل: بتشيل وجبة وتسيب حصص الباقي زي ما
+        # هي، فمريض نظام الوجبتين كان بياخد نص سعراته.
+        #
+        # المعامل بيتحسب على هدف **اليوم** مش الأسبوع، فأيام التدوير العالية
+        # حصصها أكبر فعلاً. والمعامل الفعلي (بعد تقريب الجرامات) هو اللي
+        # السعرات بتتحسب بيه، عشان الرقم المكتوب يكون رقم الطبق.
+        # ‏تمريرتين: التقريب لأقرب ٥ أو ١٠ جرام بيسيب باقي، والتمريرة
+        # التانية بتاكل أغلبه. أكتر من كده مابيقرّبش حاجة وبيخلي الأرقام
+        # غريبة، فبنوقف عند ٣٪.
+        _day_target = zz_days[i]["kcal"] if i < len(zz_days) else _base_target
+        _cur_cals = dict(_slot_cals)
+        _cur_ps = dict(_slot_ps)
+        for _pass in range(2):
+            _now = sum(_cur_cals.values())
+            if not (_day_target and _now > 0):
+                break
+            _factor = float(_day_target) / float(_now)
+            if abs(_factor - 1.0) < 0.03:
+                break
+            for _key in plan_info["meal_labels"]:
+                _txt = day_plan.get(_key)
+                if not _txt:
+                    continue
+                _new, _eff = scale_meal(_txt, _factor)
+                day_plan[_key] = _new
+                _cur_cals[_key] = _cur_cals.get(_key, 0) * _eff
+                _cur_ps[_key] = _cur_ps.get(_key, 0) * _eff
+        if sum(_cur_cals.values()) > 0:
+            total_cal = int(round(sum(_cur_cals.values())))
+            total_p = int(round(sum(_cur_ps.values())))
+
         day_plan["total_cal"] = total_cal
         day_plan["total_p"] = total_p
         if i < len(zz_days):
