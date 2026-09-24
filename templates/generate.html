@@ -51,13 +51,22 @@
         {# ‏مش مفعّلة: بنقول كده من غير زرار. الزرار الشغّال اللي بيرد "مش
            مفعّلة" بعد الرفع معناه إن الدكتور صوّر ورفع واستنى مقابل معلومة
            السيرفر عارفها قبل ما الصفحة تتحمّل. #}
-        <span style="font-size:13px;color:#8a6d1f;line-height:1.8">
-          <i class="fa-solid fa-camera" style="opacity:.5"></i>
-          <b>{{ 'قراءة ورقة التحليل من صورة: مش مفعّلة' if is_ar else 'Reading the report from a photo: not enabled' }}</b><br>
-          <span style="font-size:12px;color:#456b61">
-            {{ 'لتفعيلها: حُط ANTHROPIC_API_KEY في إعدادات الاستضافة (Render → الخدمة → Environment) وأعد النشر.'
+        {# ‏الصياغة الأولى كانت "قراءة ورقة التحليل من صورة: مش مفعّلة"،
+           والدكتور شافها وسأل "ايه ده". منطقي: السطر كان بيقول إن حاجة
+           مش مفعّلة من غير ما يقول الحاجة دي بتعمل إيه. فبقى بيشرح
+           الفايدة الأول، وإنها اختيارية، وبعدين إنها مقفولة والحل. #}
+        <span style="font-size:13px;color:#456b61;line-height:1.9">
+          <i class="fa-solid fa-camera" style="opacity:.55"></i>
+          <b style="color:#0F2A43">{{ 'اختياري: صوّر ورقة التحليل والبيانات تتملى لوحدها'
+                                      if is_ar else
+                                      'Optional: photograph the report and the fields fill themselves' }}</b><br>
+          {{ 'بدل ما تكتب الوزن والطول ونسبة الدهون والـBMI بإيدك، تصوّر ورقة الـInBody وهما يتملوا. إنت تراجع وتعدّل.'
+             if is_ar else
+             'Instead of typing weight, height, body fat and BMI by hand, you photograph the InBody sheet and they fill in. You check and correct.' }}<br>
+          <span style="color:#8a6d1f">
+            {{ 'لسه مش مفعّلة — محتاجة مفتاح ANTHROPIC_API_KEY في إعدادات الاستضافة (Render → الخدمة → Environment) وإعادة نشر. لحد ما تتفعّل، اكتب البيانات عادي تحت.'
                if is_ar else
-               'To enable it: set ANTHROPIC_API_KEY in the hosting environment settings (Render → service → Environment) and redeploy.' }}
+               'Not enabled yet -- it needs ANTHROPIC_API_KEY in the hosting environment settings (Render -> service -> Environment) and a redeploy. Until then, type the fields below as usual.' }}
           </span>
         </span>
         {% endif %}
