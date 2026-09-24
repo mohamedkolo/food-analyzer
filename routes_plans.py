@@ -165,9 +165,18 @@ def generate():
     # الحالات بتفضل من القديم في خطوة ماشافهاش -- فالخطة تطلع على شخص وبحالات
     # شخص تاني. ده أخطر شكل للباگ: مفيش رسالة غلط، الخطة تطلع وتتبعت.
     editing = request.args.get("edit") in ("1", "true", "yes")
+    # ‏قراءة الصور مفعّلة ولا لأ: الصفحة عارفة قبل ما الدكتور يصوّر. غير كده
+    # كان لازم يصوّر ويرفع عشان يشوف رسالة "مش مفعّلة" -- صورة ورفع ودقيقة
+    # مقابل معلومة السيرفر عارفها قبل ما الصفحة تتحمّل.
+    try:
+        import lab_report
+        can_read_reports = bool(lab_report.api_key())
+    except Exception:
+        can_read_reports = False
     return render_template("generate.html", user=u, lang=session.get("lang","ar"),
                            diet_plans=DIET_PLAN_TYPES, zigzag_modes=ZIGZAG_MODES,
                            zigzag_json=json.dumps(ZIGZAG_MODES, ensure_ascii=False),
+                           can_read_reports=can_read_reports,
                            prev=(session.get("pdf_data") or {}) if editing else {})
 
 # ‏خانة النشاط بقت واحدة: بتبعت معامل الـTDEE، ومستوى البروتين بيتستنتج

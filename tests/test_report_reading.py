@@ -311,6 +311,34 @@ def test_the_bmr_is_offered_not_written_into_the_tdee_box():
     assert "f.bmr" in script, "‏الـBMR مش معروض للدكتور يقارن"
 
 
+def test_the_page_says_it_is_off_before_you_waste_a_photo():
+    """‏الزرار الشغّال اللي بيرد "مش مفعّلة" بعد الرفع معناه إن الدكتور صوّر
+    ورفع واستنى -- مقابل معلومة السيرفر عارفها قبل ما الصفحة تتحمّل."""
+    import re
+    import app as A
+    A.app.config["WTF_CSRF_ENABLED"] = False
+    client = A.app.test_client()
+    tok = re.search(r'name="csrf_token"[^>]*value="([^"]*)"',
+                    client.get("/login").get_data(as_text=True)).group(1)
+    client.post("/login", data={"action": "login", "email": "admin@nutrax.com",
+                                "password": "pw123456", "csrf_token": tok})
+
+    os.environ.pop("ANTHROPIC_API_KEY", None)
+    off = client.get("/generate").get_data(as_text=True)
+    assert 'id="rpFile"' not in off, (
+        "‏الزرار ظاهر وهو مش مفعّل -- الدكتور هيصوّر ويرفع بلا فايدة")
+    assert "مش مفعّلة" in off, "‏الصفحة مش بتقول إنها مش مفعّلة"
+    assert "ANTHROPIC_API_KEY" in off, "‏مش بتقول الحل"
+
+    os.environ["ANTHROPIC_API_KEY"] = "test-key-not-real"
+    try:
+        on = client.get("/generate").get_data(as_text=True)
+    finally:
+        os.environ.pop("ANTHROPIC_API_KEY", None)
+    assert 'id="rpFile"' in on, "‏المفتاح متحط والزرار مش ظاهر"
+    assert "مش مفعّلة" not in on, "‏لسه بيقول مش مفعّلة والمفتاح متحط"
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):

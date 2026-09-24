@@ -33,6 +33,7 @@
     <div id="rpBox" style="background:#F4F9FB;border:1px dashed #9CC3D0;
          border-radius:10px;padding:12px 14px;margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        {% if can_read_reports %}
         <label for="rpFile" class="btn btn-outline" style="margin:0;cursor:pointer;
                background:#fff;border-color:#9CC3D0;color:#0F2A43">
           <i class="fa-solid fa-camera"></i>
@@ -46,6 +47,20 @@
              if is_ar else
              'Weight, height, body fat, BMI and BMR fill themselves. Anything unreadable stays blank for you to type.' }}
         </span>
+        {% else %}
+        {# ‏مش مفعّلة: بنقول كده من غير زرار. الزرار الشغّال اللي بيرد "مش
+           مفعّلة" بعد الرفع معناه إن الدكتور صوّر ورفع واستنى مقابل معلومة
+           السيرفر عارفها قبل ما الصفحة تتحمّل. #}
+        <span style="font-size:13px;color:#8a6d1f;line-height:1.8">
+          <i class="fa-solid fa-camera" style="opacity:.5"></i>
+          <b>{{ 'قراءة ورقة التحليل من صورة: مش مفعّلة' if is_ar else 'Reading the report from a photo: not enabled' }}</b><br>
+          <span style="font-size:12px;color:#456b61">
+            {{ 'لتفعيلها: حُط ANTHROPIC_API_KEY في إعدادات الاستضافة (Render → الخدمة → Environment) وأعد النشر.'
+               if is_ar else
+               'To enable it: set ANTHROPIC_API_KEY in the hosting environment settings (Render → service → Environment) and redeploy.' }}
+          </span>
+        </span>
+        {% endif %}
       </div>
       <div id="rpMsg" hidden style="font-size:12.5px;margin-top:10px;
            border-radius:8px;padding:9px 12px;line-height:1.8"></div>
