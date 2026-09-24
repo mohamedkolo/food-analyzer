@@ -314,6 +314,53 @@ def clients_search():
     return jsonify({"clients": rows})
 
 
+@bp.route("/api/read-report", methods=["POST"])
+@staff_required
+def read_report_image():
+    """‏صورة ورقة تحليل الجسم -> أرقام جاهزة للفورم.
+
+    الدكتور بيكتب نفس الأرقام اللي مطبوعة قدامه. دي بتقراها من الصورة
+    وبترجّعها، والدكتور يشوف ويعدّل. **أي رقم مش مقروء بيرجع فاضي** --
+    الخانة الفاضية بتبان، والرقم المخمّن بيمشي في الخطة لحد ما يوصل للعميل.
+
+    الرد بيفصل تلات حاجات عشان الواجهة تعرضها للدكتور:
+      filled      اللي اتقرا وهيتحط في الفورم
+      unreadable  خانات على الورقة والقراية مش واثقة منها
+      dropped     أرقام اتقرت وطلعت برّه المعقول فاتشالت
+    """
+    import lab_report
+
+    upload = request.files.get("image")
+    if not upload:
+        return jsonify({"ok": False, "error": "مافيش صورة مرفوعة"}), 400
+    try:
+        data = lab_report.read_report(upload.read(), upload.mimetype)
+    except lab_report.ReportError as e:
+        # ‏غلطة المفروض الدكتور يقراها ويعرف يعمل إيه، فبترجع زي ما هي
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        log_error("read_report", e)
+        return jsonify({"ok": False, "error": "في حاجة وقعت وإحنا بنقرا الصورة"}), 500
+
+    fields = {k: data.get(k) for k in
+              ("name", "gender", "age", "height", "weight", "fat_pct", "bmi")
+              if data.get(k) is not None}
+    # ‏الـBMR مش الـTDEE: الفورم عنده خانة TDEE، وضربها في معامل النشاط شغل
+    # الصفحة مش شغلنا -- فبنرجّعه باسمه ونسيب الحساب للفورم.
+    if data.get("bmr") is not None:
+        fields["bmr"] = data["bmr"]
+    # ‏الخانات اللي القراية مارجعتهاش، بأسمائها البرمجية. الواجهة بتفلترها
+    # تاني على اللي **لسه فاضي** بعد الملء: الـBMI مثلاً الصفحة بتحسبه من
+    # الطول والوزن، فمايصحّش نقول "مقدرتش أقراه، اكتبه إنت" وهو مكتوب
+    # قدام الدكتور -- ورقة بتقول حاجة والشاشة بتقول عكسها.
+    missing = [k for k in ("name", "gender", "age", "height", "weight",
+                           "fat_pct", "bmi") if data.get(k) is None]
+    return jsonify({"ok": True, "fields": fields, "missing": missing,
+                    "extras": data.get("extras") or [],
+                    "unreadable": data.get("unreadable") or [],
+                    "dropped": data.get("dropped") or []})
+
+
 @bp.route("/api/followup/lookup")
 @staff_required
 def followup_lookup():

@@ -8,3 +8,4 @@ pydyf==0.8.0
 stripe>=7.0.0
 pywebpush>=1.14.0
 flask-wtf>=1.2.0
+anthropic>=1.8.0

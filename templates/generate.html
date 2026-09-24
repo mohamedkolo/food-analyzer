@@ -25,7 +25,32 @@
   <!-- ═══════════ بيانات العميل ═══════════ -->
   <section class="wz-card">
     <h2 class="wz-card-title"><i class="fa-solid fa-user"></i> {{ 'بيانات العميل' if is_ar else 'Client Data' }}</h2>
-    <div class="wz-card-body">    <div class="grid-2">
+    <div class="wz-card-body">
+    {# ═══ صوّر ورقة التحليل ═══════════════════════════════════════════════
+       الدكتور بيكتب نفس الأرقام اللي مطبوعة قدامه على ورقة الـInBody.
+       الزرار ده بيصوّرها وبيملّي الخانات، وهو يعدّل. capture="environment"
+       بيفتح الكاميرا الخلفية على الموبايل على طول بدل معرض الصور. #}
+    <div id="rpBox" style="background:#F4F9FB;border:1px dashed #9CC3D0;
+         border-radius:10px;padding:12px 14px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label for="rpFile" class="btn btn-outline" style="margin:0;cursor:pointer;
+               background:#fff;border-color:#9CC3D0;color:#0F2A43">
+          <i class="fa-solid fa-camera"></i>
+          {{ 'صوّر ورقة التحليل' if is_ar else 'Photograph the report' }}
+        </label>
+        <input type="file" id="rpFile" accept="image/*" capture="environment"
+               style="position:absolute;width:1px;height:1px;opacity:0;
+                      overflow:hidden;clip:rect(0 0 0 0)">
+        <span id="rpHint" style="font-size:12px;color:#456b61;line-height:1.7">
+          {{ 'الوزن والطول ونسبة الدهون والـBMI والـBMR بيتملوا لوحدهم. اللي مش مقروء بيفضل فاضي وتكتبه إنت.'
+             if is_ar else
+             'Weight, height, body fat, BMI and BMR fill themselves. Anything unreadable stays blank for you to type.' }}
+        </span>
+      </div>
+      <div id="rpMsg" hidden style="font-size:12.5px;margin-top:10px;
+           border-radius:8px;padding:9px 12px;line-height:1.8"></div>
+    </div>
+    <div class="grid-2">
       <div class="form-group">
         <label class="form-label" for="nameField">{{ 'الاسم' if is_ar else 'Name' }}
           <span style="font-weight:600;color:var(--muted);font-size:11px">
@@ -1181,6 +1206,132 @@ function recomputeTdee(){
 [w,h,ageField,actMult,genderSel].forEach(el=>el&&el.addEventListener('input',recomputeTdee));
 if(actMult) actMult.addEventListener('change',recomputeTdee);
 if(genderSel) genderSel.addEventListener('change',recomputeTdee);
+
+// ═══ قراءة ورقة التحليل من صورة ══════════════════════════════════════
+//
+// ‏الدكتور بيصوّر ورقة الـInBody، والسيرفر يقراها ويرجّع الأرقام. الواجهة
+// بتفرّق تلات حاجات وبتعرضهم: اللي اتملى، واللي على الورقة والقراية مش
+// واثقة منه، والأرقام اللي طلعت برّه المعقول فاتشالت. تلاتتهم مهمين:
+// الدكتور لازم يعرف إيه اللي محتاج يكتبه بإيده بدل ما يفترض إن كله تمام.
+(function(){
+  const file = document.getElementById('rpFile');
+  const msg  = document.getElementById('rpMsg');
+  const hint = document.getElementById('rpHint');
+  if(!file || !msg) return;
+
+  const LABELS = {
+    name: T('الاسم','Name'), gender: T('النوع','Sex'), age: T('العمر','Age'),
+    height: T('الطول','Height'), weight: T('الوزن','Weight'),
+    fat_pct: T('نسبة الدهون','Body fat'), bmi: 'BMI', bmr: 'BMR'
+  };
+  const GENDER = { male: 'ذكر', female: 'انثى' };
+
+  function show(kind, html){
+    const skin = {
+      ok:   ['#f0f7f4','#cfe3d9','#1f5132'],
+      warn: ['#fffbeb','#fcd34d','#92400e'],
+      bad:  ['#fef2f2','#fca5a5','#991b1b']
+    }[kind];
+    msg.style.background = skin[0];
+    msg.style.border = '1px solid ' + skin[1];
+    msg.style.color = skin[2];
+    msg.innerHTML = html;
+    msg.hidden = false;
+  }
+
+  function setField(el, value){
+    if(!el || value === null || value === undefined || value === '') return false;
+    el.value = value;
+    el.dispatchEvent(new Event('input', {bubbles:true}));
+    return true;
+  }
+
+  file.addEventListener('change', async function(){
+    const chosen = file.files && file.files[0];
+    if(!chosen) return;
+    show('ok', T('بقرا الورقة… ثانية','Reading the sheet…'));
+    hint.style.display = 'none';
+
+    const body = new FormData();
+    body.append('image', chosen);
+    let data;
+    try{
+      const res = await fetch('/api/read-report', {method:'POST', body: body});
+      data = await res.json();
+    }catch(err){
+      show('bad', T('مقدرتش أبعت الصورة. اتأكد من النت وجرّب تاني.',
+                    'Could not send the image. Check the connection and retry.'));
+      file.value = '';
+      return;
+    }
+
+    if(!data || !data.ok){
+      show('bad', '⚠️ ' + ((data && data.error) ||
+        T('مقدرتش أقرا الصورة','Could not read the image')));
+      file.value = '';
+      return;
+    }
+
+    const f = data.fields || {};
+    const filled = [];
+    if(setField(nameField, f.name)) filled.push(LABELS.name);
+    if(setField(ageField, f.age)) filled.push(LABELS.age);
+    if(setField(h, f.height)) filled.push(LABELS.height);
+    if(setField(w, f.weight)) filled.push(LABELS.weight);
+    if(setField(document.querySelector('[name="fat_pct"]'), f.fat_pct))
+      filled.push(LABELS.fat_pct);
+    if(setField(document.getElementById('bmiField'), f.bmi)) filled.push('BMI');
+    if(genderSel && GENDER[f.gender]){
+      genderSel.value = GENDER[f.gender];
+      genderSel.dispatchEvent(new Event('change', {bubbles:true}));
+      filled.push(LABELS.gender);
+    }
+    // ‏الـBMR مش الـTDEE. الصفحة بتحسب الـTDEE من معامل النشاط، فبنسيبها
+    // تحسبه وبنقول للدكتور الرقم المقروء عشان يقارن لو حب.
+    calc(); recomputeTdee(); updateMacros();
+
+    let out = '';
+    if(filled.length){
+      out += '<b>✓ ' + T('اتملى من الورقة: ','Filled from the sheet: ') + '</b>'
+           + filled.join('، ');
+    }else{
+      out += '<b>' + T('مقراش أي خانة من الورقة','No field could be read')
+           + '</b>';
+    }
+    if(f.bmr){
+      out += '<br>' + T('الـBMR المطبوع على الورقة: ','BMR printed on the sheet: ')
+           + '<b>' + f.bmr + ' kcal</b> — '
+           + T('الصفحة بتحسب الـTDEE من معامل النشاط، فقارن لو حبيت.',
+               'the page derives TDEE from the activity factor, so compare if you like.');
+    }
+    // ‏اللي مقراهوش **ولسه فاضي فعلاً**. الـBMI الصفحة بتحسبه من الطول
+    // والوزن، فلو قلنا "مقدرتش أقراه اكتبه إنت" وهو مكتوب قدامه، بنبقى
+    // بنقول حاجة والشاشة بتقول عكسها.
+    const ELS = {
+      name: nameField, gender: genderSel, age: ageField, height: h, weight: w,
+      fat_pct: document.querySelector('[name="fat_pct"]'),
+      bmi: document.getElementById('bmiField')
+    };
+    const left = (data.missing || [])
+      .filter(k => ELS[k] && String(ELS[k].value || '').trim() === '')
+      .map(k => LABELS[k] || k)
+      .concat(data.dropped || []);
+    if(left.length){
+      out += '<br>⚠️ ' + T('لسه ناقص: ','Still missing: ') + left.join('، ')
+           + ' — ' + T('اكتبهم إنت.','type these yourself.');
+    }
+    if((data.extras || []).length){
+      out += '<br>' + T('قراءات تانية على الورقة: ','Other readings on the sheet: ')
+           + data.extras.map(x => x.label + ' ' + x.value).join(' · ');
+    }
+    out += '<br><span style="font-size:11.5px">'
+         + T('راجع الأرقام قبل التوليد — القراءة من صورة مش معصومة.',
+             'Check the numbers before generating -- reading a photo is not infallible.')
+         + '</span>';
+    show(left.length ? 'warn' : 'ok', out);
+    file.value = '';
+  });
+})();
 
 // ===== معاينة تدوير السعرات =====
 const ZZ = {{ zigzag_json|safe }};
