@@ -168,9 +168,12 @@ def generate():
     # ‏قراءة الصور مفعّلة ولا لأ: الصفحة عارفة قبل ما الدكتور يصوّر. غير كده
     # كان لازم يصوّر ويرفع عشان يشوف رسالة "مش مفعّلة" -- صورة ورفع ودقيقة
     # مقابل معلومة السيرفر عارفها قبل ما الصفحة تتحمّل.
+    # ‏القراءة شغالة من غير مفتاح دلوقتي (على السيرفر نفسه)، فالزرار بيظهر
+    # طالما فيه طريق واحد شغّال على الأقل.
     try:
         import lab_report
-        can_read_reports = bool(lab_report.api_key())
+        import ocr_report
+        can_read_reports = bool(lab_report.api_key()) or ocr_report.available()
     except Exception:
         can_read_reports = False
     return render_template("generate.html", user=u, lang=session.get("lang","ar"),

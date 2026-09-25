@@ -40,6 +40,40 @@ GOOD = {
 }
 
 
+def _sheet_bytes(tilt=-2.0, blur=0.9, quality=70):
+    """‏ورقة InBody للاختبار: مايلة ومشوشة ومضغوطة زي صورة موبايل."""
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+    try:
+        font = ImageFont.truetype(
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 19)
+        bold = ImageFont.truetype(
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 22)
+    except Exception:
+        font = bold = None
+    rows = [("ID", "Ahmed Ali"), ("Gender", "Male"), ("Age", "41"),
+            ("Height", "174.0 cm"), ("Weight", "95.6 kg"),
+            ("PBF Percent Body Fat", "31.4 %"), ("BMI", "31.6 kg/m2"),
+            ("BMR Basal Metabolic Rate", "1850 kcal"),
+            ("Target Weight", "72.0 kg"), ("Weight Control", "-23.6 kg")]
+    img = Image.new("RGB", (760, 120 + 48 * len(rows)), "white")
+    draw = ImageDraw.Draw(img)
+    draw.text((30, 25), "InBody 270 - Body Composition Analysis",
+              fill="black", font=bold)
+    draw.line([(25, 60), (735, 60)], fill="black", width=2)
+    y = 85
+    for label, value in rows:
+        draw.text((35, y), label, fill="black", font=font)
+        draw.text((470, y), value, fill="black", font=font)
+        y += 48
+    if tilt:
+        img = img.rotate(tilt, expand=True, fillcolor="white")
+    if blur:
+        img = img.filter(ImageFilter.GaussianBlur(blur))
+    buf = io.BytesIO()
+    img.save(buf, "JPEG", quality=quality)
+    return buf.getvalue()
+
+
 class _Block:
     type = "text"
 
@@ -178,16 +212,20 @@ def test_a_refusal_or_broken_reply_does_not_become_data():
         undo()
 
 
-def test_the_guards_speak_arabic_and_come_before_the_call():
-    """‏الرسايل دي الدكتور هو اللي بيقراها، ولازم تقوله يعمل إيه."""
+def test_a_corrupt_upload_gets_a_sentence_not_a_crash():
+    """‏الرفع من الموبايل بيتقطع عادي. الملف الناقص كان بيرفع OSError من
+    جوّه محرّك القراءة ويطلع خطأ 500 فاضي."""
     os.environ.pop("ANTHROPIC_API_KEY", None)
     try:
-        lab_report.read_report(PNG, "image/png")
+        lab_report.read_report(PNG, "image/png")   # ‏ترويسة PNG وبس
     except lab_report.ReportError as e:
-        assert "ANTHROPIC_API_KEY" in str(e), str(e)
+        assert "مش سليمة" in str(e) or "مقدرتش أقرا" in str(e), str(e)
     else:
-        assert False, "‏نادى الخدمة من غير مفتاح"
+        assert False, "‏قبل صورة تالفة"
 
+
+def test_the_guards_speak_arabic_and_come_before_the_call():
+    """‏الرسايل دي الدكتور هو اللي بيقراها، ولازم تقوله يعمل إيه."""
     os.environ["ANTHROPIC_API_KEY"] = "test-key-not-real"
     try:
         lab_report.read_report(b"x" * (lab_report.MAX_IMAGE_BYTES + 1), "image/png")
@@ -235,6 +273,13 @@ def test_the_route_is_staff_only_and_answers_in_json():
                                "password": "pw123456", "csrf_token": tok})
     r = staff.post("/api/read-report", data={})
     assert r.status_code == 400 and r.get_json()["ok"] is False, r.status_code
+    # ‏وصورة حقيقية من غير أي مفتاح: القراءة المحلية بترد ٢٠٠
+    os.environ.pop("ANTHROPIC_API_KEY", None)
+    r = staff.post("/api/read-report",
+                   data={"image": (io.BytesIO(_sheet_bytes()), "s.jpg")})
+    body = r.get_json()
+    assert r.status_code == 200 and body["ok"], body
+    assert body["fields"]["weight"] == 95.6, body
 
     sent, undo = _stub(GOOD)
     try:
@@ -311,11 +356,18 @@ def test_the_bmr_is_offered_not_written_into_the_tdee_box():
     assert "f.bmr" in script, "‏الـBMR مش معروض للدكتور يقارن"
 
 
-def test_the_page_says_it_is_off_before_you_waste_a_photo():
-    """‏الزرار الشغّال اللي بيرد "مش مفعّلة" بعد الرفع معناه إن الدكتور صوّر
-    ورفع واستنى -- مقابل معلومة السيرفر عارفها قبل ما الصفحة تتحمّل."""
+def test_the_camera_works_without_any_api_key():
+    """‏الميزة كانت مقفولة لحد ما الدكتور يعمل حساب ويحط مفتاح API.
+
+    المفتاح مربوط بحسابه وفيزته، فمكانش فيه حاجة أقدر أعملها -- الميزة
+    تفضل مقفولة. القراءة بقت بتحصل على السيرفر نفسه، مجاناً، والصورة
+    مابتخرجش منه، فالزرار شغّال من غير أي مفتاح.
+    """
     import re
     import app as A
+    import ocr_report
+    assert ocr_report.available(), "‏مكتبة القراءة المحلية مش متركّبة"
+
     A.app.config["WTF_CSRF_ENABLED"] = False
     client = A.app.test_client()
     tok = re.search(r'name="csrf_token"[^>]*value="([^"]*)"',
@@ -324,24 +376,27 @@ def test_the_page_says_it_is_off_before_you_waste_a_photo():
                                 "password": "pw123456", "csrf_token": tok})
 
     os.environ.pop("ANTHROPIC_API_KEY", None)
-    off = client.get("/generate").get_data(as_text=True)
-    assert 'id="rpFile"' not in off, (
-        "‏الزرار ظاهر وهو مش مفعّل -- الدكتور هيصوّر ويرفع بلا فايدة")
-    assert "مش مفعّلة" in off, "‏الصفحة مش بتقول إنها مش مفعّلة"
-    assert "ANTHROPIC_API_KEY" in off, "‏مش بتقول الحل"
-    # ‏والسطر لازم يقول الميزة بتعمل إيه: أول صياغة كانت بتقول "مش مفعّلة"
-    # بس، والدكتور سأل "ايه ده" -- سؤال مستحق.
-    assert "صوّر ورقة التحليل" in off, "‏مش بيقول الميزة دي بتعمل إيه"
-    assert "اختياري" in off, "‏مش واضح إنها اختيارية -- شكلها غلطة في الفورم"
-    assert "اكتب البيانات عادي" in off, "‏مش بيقول يعمل إيه لحد ما تتفعّل"
+    html = client.get("/generate").get_data(as_text=True)
+    assert 'id="rpFile"' in html, "‏الزرار مش ظاهر والقراءة المحلية شغالة"
+    assert "مش مفعّلة" not in html, "‏لسه بيقول مش مفعّلة وهي مفعّلة"
 
-    os.environ["ANTHROPIC_API_KEY"] = "test-key-not-real"
+
+def test_the_local_reading_is_the_default_and_the_key_upgrades_it():
+    """‏الطريقين لازم يرجّعوا نفس الشكل، والافتراضي هو المحلي."""
+    os.environ.pop("ANTHROPIC_API_KEY", None)
+    data = lab_report.read_report(_sheet_bytes(), "image/jpeg")
+    assert data["engine"] == "local", data.get("engine")
+    assert data["weight"] == 95.6 and data["height"] == 174.0, data
+
+    sent, undo = _stub(GOOD)          # ‏بيحط مفتاح
     try:
-        on = client.get("/generate").get_data(as_text=True)
+        data = lab_report.read_report(PNG, "image/png")
     finally:
+        undo()
         os.environ.pop("ANTHROPIC_API_KEY", None)
-    assert 'id="rpFile"' in on, "‏المفتاح متحط والزرار مش ظاهر"
-    assert "مش مفعّلة" not in on, "‏لسه بيقول مش مفعّلة والمفتاح متحط"
+    assert data["engine"] == "api", data.get("engine")
+    assert set(("weight", "height", "unreadable", "dropped")) <= set(data), data
+
 
 
 if __name__ == "__main__":

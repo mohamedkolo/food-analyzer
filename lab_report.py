@@ -10,8 +10,17 @@
 أسوأ من خانة فاضية: الخانة الفاضية بتبان، والرقم الغلط بيمشي في الخطة
 لحد ما يطلع في إيد العميل.
 
-بيستخدم الـAnthropic SDK بـstructured outputs، فالراجع JSON متحقّق من شكله
-مش نص محتاج تحليل.
+**طريقين للقراءة، والفرق بينهم مقيس:**
+
+  من غير مفتاح API (الافتراضي):  ocr_report -- القراءة على السيرفر نفسه،
+                                  مجاناً، والصورة مابتخرجش منه. بتقرا ورقة
+                                  الـInBody الإنجليزية صح (اختبرت ميل وتشويش
+                                  وضغط ونصف دقة: صفر رقم غلط)، ومابتعرفش
+                                  العناوين العربية.
+  بمفتاح API:                     Claude -- بيقرا العربي والورق المايل
+                                  والمكتوب بخط اليد، وبيفهم أي شكل ورقة.
+
+الاتنين بيرجّعوا نفس الشكل وبيمرّوا على نفس التنضيف وحدود المعقول.
 """
 
 import base64
@@ -181,8 +190,20 @@ def read_report(image_bytes, content_type):
         raise ReportError("نوع الملف مش صورة مدعومة (JPG أو PNG أو WEBP)")
     key = api_key()
     if not key:
-        raise ReportError("قراءة الصور مش مفعّلة على السيرفر: "
-                          "لازم ANTHROPIC_API_KEY يتحط في إعدادات الاستضافة")
+        # ‏من غير مفتاح: القراءة بتحصل على السيرفر نفسه، مجاناً، والصورة
+        # مابتخرجش منه. الميزة كانت مقفولة تماماً لحد ما الدكتور يعمل حساب
+        # ويحط مفتاح -- وده شرط مالوش لازمة لورقة InBody إنجليزية.
+        import ocr_report
+        if not ocr_report.available():
+            raise ReportError("مكتبة القراءة مش متركّبة على السيرفر -- "
+                              "شغّل النشر تاني (rapidocr في requirements.txt)")
+        try:
+            local = ocr_report.read(image_bytes)
+        except RuntimeError as e:
+            raise ReportError(str(e))
+        data = _clean(local)
+        data["engine"] = "local"
+        return data
 
     try:
         import anthropic
@@ -229,6 +250,7 @@ def read_report(image_bytes, content_type):
         raise ReportError("الرد مش مفهوم -- جرّب صورة أوضح")
 
     data = _clean(raw)
+    data["engine"] = "api"
     if not data["is_body_report"]:
         raise ReportError("الصورة دي مش ورقة تحليل جسم. صوّر ورقة الـInBody "
                           "أو جهاز قياس نسبة الدهون.")
