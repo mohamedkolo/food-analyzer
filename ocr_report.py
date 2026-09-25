@@ -58,61 +58,88 @@ def available():
         return False
 
 
-def _boxes(image_bytes):
-    """‏يرجّع [(نص, وسط س, وسط ص, أعلى, أسفل)] لكل صندوق قرأه الـOCR."""
-    import io
-    import tempfile
-    import os as _os
+# ‏القراءة بتتعمل في **عملية منفصلة**، مش جوّه السيرفر.
+#
+# النموذج بياخد ~٢٨٠ ميجا رام، والاستضافة المجانية عندها ٥١٢ والتطبيق ماشي
+# فيهم. لو القراءة اتعملت جوّه السيرفر، أول صورة ممكن توصل للحد وتخلّي
+# النظام يقتل العملية -- يعني الموقع كله يقع، مش القراءة بس. العملية
+# المنفصلة بتموت لوحدها وبترجّع رامها للنظام، ولو النظام قتلها الموقع
+# مايحسّش، وبنقول للدكتور رسالة مفهومة.
+_CHILD = r"""
+import sys, json, tempfile, os
+def main():
+    data = sys.stdin.buffer.read()
     from rapidocr_onnxruntime import RapidOCR
-
-    try:
-        engine = RapidOCR()
-    except Exception as e:
-        raise RuntimeError("محرّك القراءة مش قادر يشتغل على السيرفر (%s)"
-                           % type(e).__name__)
-    # ‏rapidocr بتاخد مسار أو numpy. بنكتب ملف مؤقت وبنمسحه، عشان مانعتمدش
-    # على numpy/cv2 في المسار ده.
     fd, path = tempfile.mkstemp(suffix=".img")
     try:
-        with _os.fdopen(fd, "wb") as fh:
-            fh.write(image_bytes)
-        try:
-            result, _ = engine(path)
-        except Exception as e:
-            # ‏ملف صورة ناقص أو تالف: PIL بترفع OSError من جوّه المحرّك،
-            # وكانت بتطلع خطأ 500 فاضي. الرفع من الموبايل بيتقطع عادي.
-            raise RuntimeError("الصورة مش سليمة أو الرفع اتقطع -- صوّرها "
-                               "تاني وارفعها (%s)" % type(e).__name__)
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+        result, _ = RapidOCR()(path)
     finally:
-        try:
-            _os.remove(path)
-        except OSError:
-            pass
-        # ‏النموذج بياخد ~٢٨٠ ميجا رام. الاستضافة عندها ٥١٢، والتطبيق ماشي
-        # فيهم، فبنسيبه يتفضى بعد كل قراءة بدل ما يفضل مقيم.
-        del engine
-        import gc
-        gc.collect()
-
+        try: os.remove(path)
+        except OSError: pass
     out = []
-    slopes = []
     for item in (result or []):
         try:
             points, text = item[0], item[1]
         except (TypeError, IndexError):
             continue
+        out.append({"t": str(text),
+                    "p": [[float(p[0]), float(p[1])] for p in points]})
+    sys.stdout.write(json.dumps(out))
+try:
+    main()
+except Exception as e:
+    sys.stderr.write(type(e).__name__)
+    sys.exit(3)
+"""
+
+READ_TIMEOUT = 90
+
+
+def _boxes(image_bytes):
+    """‏يرجّع ([(نص, وسط س, وسط ص, أعلى, أسفل)], ميل الورقة)."""
+    import json
+    import subprocess
+    import sys
+
+    try:
+        proc = subprocess.run([sys.executable, "-c", _CHILD],
+                              input=image_bytes, capture_output=True,
+                              timeout=READ_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("القراءة خدت وقت أطول من اللازم -- صوّر الورقة "
+                           "بدقة أقل وجرّب تاني")
+    except FileNotFoundError:
+        raise RuntimeError("محرّك القراءة مش متركّب على السيرفر")
+
+    if proc.returncode != 0:
+        detail = (proc.stderr or b"").decode("utf-8", "replace").strip()[:40]
+        if proc.returncode < 0:
+            # ‏النظام قتلها (غالباً الرام). الموقع لسه واقف، وده المقصود.
+            raise RuntimeError("السيرفر مش قادر يقرا الصورة دي (رام) -- "
+                               "صوّرها بدقة أقل وجرّب تاني")
+        raise RuntimeError("الصورة مش سليمة أو الرفع اتقطع -- صوّرها تاني "
+                           "وارفعها (%s)" % (detail or "?"))
+    try:
+        items = json.loads((proc.stdout or b"").decode("utf-8", "replace"))
+    except ValueError:
+        raise RuntimeError("القراءة رجعت رد مش مفهوم -- جرّب تاني")
+
+    out = []
+    slopes = []
+    for item in items:
+        points = item.get("p") or []
+        if len(points) < 2:
+            continue
         xs = [p[0] for p in points]
         ys = [p[1] for p in points]
-        out.append((str(text), sum(xs) / 4.0, sum(ys) / 4.0, min(ys), max(ys)))
-        # ‏ميل الحرف نفسه: الحد الأعلى للصندوق. الورقة المصوّرة بموبايل
-        # دايماً مايلة شوية، والميل ده هو اللي بيخلّي السطر مش أفقي.
-        try:
-            dx = points[1][0] - points[0][0]
-            dy = points[1][1] - points[0][1]
-            if dx > 20:
-                slopes.append(dy / float(dx))
-        except (TypeError, IndexError):
-            pass
+        out.append((item.get("t", ""), sum(xs) / len(xs), sum(ys) / len(ys),
+                    min(ys), max(ys)))
+        dx = points[1][0] - points[0][0]
+        dy = points[1][1] - points[0][1]
+        if dx > 20:
+            slopes.append(dy / float(dx))
     slopes.sort()
     slope = slopes[len(slopes) // 2] if slopes else 0.0
     return out, slope

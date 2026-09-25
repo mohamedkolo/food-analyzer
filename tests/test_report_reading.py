@@ -399,6 +399,67 @@ def test_the_local_reading_is_the_default_and_the_key_upgrades_it():
 
 
 
+def test_a_photo_cannot_take_the_whole_site_down():
+    """‏النموذج بياخد ~٢٥٦ ميجا، والاستضافة المجانية عندها ٥١٢ والتطبيق
+    ماشي فيهم. لو القراءة اتعملت جوّه السيرفر، أول صورة ممكن توصل للحد
+    فالنظام يقتل العملية -- يعني الموقع كله يقع، مش القراءة بس.
+
+    فالقراءة بتتعمل في عملية منفصلة: رامها بتموت معاها، وعملية الموقع
+    مابتكبرش.
+    """
+    import resource
+    import ocr_report
+
+    before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    ocr_report.read(_sheet_bytes())
+    after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    grew = (after - before) // 1024
+    assert grew < 80, (
+        "‏عملية الموقع كبرت %d ميجا -- القراءة بتحصل جوّاها" % grew)
+
+
+def test_the_system_killing_the_reader_is_a_sentence_not_a_crash():
+    """‏لو النظام قتل العملية (رام)، الموقع لسه واقف والدكتور يفهم."""
+    import subprocess
+    import ocr_report
+
+    class Killed:
+        returncode = -9
+        stdout = b""
+        stderr = b""
+
+    real = subprocess.run
+    subprocess.run = lambda *a, **k: Killed()
+    try:
+        ocr_report.read(_sheet_bytes())
+    except RuntimeError as e:
+        assert "رام" in str(e), str(e)
+    else:
+        assert False, "‏العملية اتقتلت والكود كمّل كأن مافيش حاجة"
+    finally:
+        subprocess.run = real
+
+
+def test_a_reading_that_hangs_gives_up_with_a_message():
+    import subprocess
+    import ocr_report
+
+    real = subprocess.run
+
+    def hang(*a, **k):
+        raise subprocess.TimeoutExpired("cmd", ocr_report.READ_TIMEOUT)
+
+    subprocess.run = hang
+    try:
+        ocr_report.read(_sheet_bytes())
+    except RuntimeError as e:
+        assert "وقت" in str(e), str(e)
+    else:
+        assert False, "‏القراءة علّقت ومافيش مهلة"
+    finally:
+        subprocess.run = real
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):
