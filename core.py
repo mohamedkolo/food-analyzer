@@ -66,6 +66,59 @@ def assetlinks():
     }]), 200
 
 
+# ═══ ملفات محرّك القراءة اللي بيشتغل في المتصفح ═══
+#
+# ‏القراءة بتحصل في متصفح الدكتور نفسه، مش على السيرفر. ليه:
+#
+#   ١. الميزة شغالة من غير أي تركيب ولا مفتاح ولا إعداد على الاستضافة --
+#      وده اللي الدكتور طلبه بالنص بعد ما الميزة فضلت مقفولة مرتين.
+#   ٢. الصورة مابتخرجش من الموبايل خالص. مافيش سيرفر ولا خدمة بتشوف
+#      ورقة تحليل العميل.
+#   ٣. الاستضافة عندها ٥١٢ ميجا رام والتطبيق ماشي فيهم. محرّك القراءة
+#      بياخد ~٢٨٠ -- كان أول صورة تقدر تنيّم الموقع كله.
+#
+# ‏الملفات مضغوطة .gz في المخزن (٥.٧ ميجا بدل ١١)، وبتتبعت بـContent-Encoding
+# فالمتصفح بيفكّها بنفسه: الدكتور بينزّل ~١.٥ ميجا مرة واحدة وبعدها من الكاش.
+_OCR_ASSETS = {
+    # ‏اسم الطلب: (الملف في المخزن, النوع, مبعوت مضغوط؟)
+    "tesseract.min.js":      ("tesseract.min.js.gz", "text/javascript", True),
+    "worker.min.js":         ("worker.min.js.gz", "text/javascript", True),
+    "tesseract-core-simd-lstm.wasm.js":
+        ("tesseract-core-simd-lstm.wasm.js.gz", "text/javascript", True),
+    "tesseract-core-lstm.wasm.js":
+        ("tesseract-core-lstm.wasm.js.gz", "text/javascript", True),
+    # ‏دي بتتبعت مضغوطة **كما هي**: المكتبة بتفكّها بنفسها وبتدوّر على
+    # بصمة الـgzip جوّه الملف. لو بعتناها بـContent-Encoding المتصفح كان
+    # هيفكّها والمكتبة تدوّر على البصمة ماتلاقيهاش.
+    "eng.traineddata.gz":    ("eng.traineddata.gz", "application/octet-stream", False),
+}
+
+
+@app.route("/ocr/<path:name>")
+def ocr_asset(name):
+    """‏ملفات محرّك القراءة. قايمة مقفولة بالاسم -- مافيش مسار جاي من بره."""
+    entry = _OCR_ASSETS.get(name)
+    if not entry:
+        return ("", 404)
+    filename, content_type, encoded = entry
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "static", "ocr", filename)
+    try:
+        with open(path, "rb") as fh:
+            blob = fh.read()
+    except OSError:
+        return ("", 404)
+    resp = Response(blob, mimetype=content_type, direct_passthrough=True)
+    if encoded:
+        resp.headers["Content-Encoding"] = "gzip"
+    resp.headers["Content-Length"] = str(len(blob))
+    # ‏الملفات دي مربوطة بنسخة المكتبة ومابتتغيّرش، فكاش سنة. ده اللي
+    # بيخلّي أول قراءة بس هي اللي بتنزّل.
+    resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    resp.headers["Vary"] = "Accept-Encoding"
+    return resp
+
+
 # ‏نسخة الكود اللي شغالة فعلاً. Render بيحط الكوميت في RENDER_GIT_COMMIT،
 # ولو مش موجود بنقراه من .git محلياً. السبب إن مافيش طريقة تعرف بيها إن
 # النشر خلص غير إنك تفتح صفحة وتشوف الرقم -- وده بيوفّر تخمين "هو نشر ولا لأ".
@@ -159,7 +212,10 @@ def speed_headers(resp):
 CSP = "; ".join([
     "default-src 'self'",
     # cdnjs -> Font Awesome, jsdelivr -> Chart.js
-    "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
+    # ‏'wasm-unsafe-eval' لمحرّك قراءة الورقة: المتصفح بيرفض يشغّل WebAssembly
+    # من غيرها. بتسمح بترجمة wasm بس -- مش eval للجافاسكربت.
+    "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
+    "worker-src 'self' blob:",      # ‏محرّك القراءة بيشتغل في worker
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
     "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:",
     # unsplash -> knowledge-hub article images

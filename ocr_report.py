@@ -145,15 +145,20 @@ def _boxes(image_bytes):
     return out, slope
 
 
-def _label_of(text):
+def _label_form(text):
+    """‏يرجّع (الخانة، شكل العنوان اللي طابق) أو (None, None)."""
     low = re.sub(r"[^a-z% ]", "", text.lower())
     if any(bad in low for bad in _NOT_A_READING):
-        return None
+        return None, None
     for field, forms in _LABELS:
         for form in forms:
             if form in low:
-                return field
-    return None
+                return field, form
+    return None, None
+
+
+def _label_of(text):
+    return _label_form(text)[0]
 
 
 def _number_in(text):
@@ -223,16 +228,158 @@ def parse_boxes(boxes, slope=0.0):
     return found
 
 
+# ‏رقم في أول الكلمة، والحرف اللي قبله مايكونش حرف أبجدي. الشرط التاني
+# مهم: "kg/m2" فيها رقم ٢، ولولا الشرط ده كانت تتقرا كقيمة.
+_VALUE_WORD = re.compile(r"^[^\dA-Za-z]{0,2}(\d{1,4}(?:[.,]\d{1,2})?)")
+
+
+def _value_word(word):
+    match = _VALUE_WORD.match(word.replace(",", "."))
+    if not match:
+        return None
+    try:
+        return float(match.group(1))
+    except ValueError:
+        return None
+
+
+def _after_label(words, form):
+    """‏رقم الكلمة اللي بعد آخر كلمة في العنوان.
+
+    ليه: سطر زي "Height 165.0 cm Weight 78.4 kg" فيه عنوانين. لو خدنا أول
+    رقم في السطر كان الوزن هيبقى ١٦٥. فبندوّر على الرقم اللي **بعد** العنوان.
+    """
+    norm = [re.sub(r"[^a-z% ]", "", w.lower()) for w in words]
+    for i in range(len(words)):
+        acc = ""
+        for j in range(i, len(words)):
+            acc = (acc + " " + norm[j]).strip()
+            if form in acc or form in acc.replace(" ", ""):
+                return j + 1
+    return 0
+
+
+def parse_lines(lines):
+    """‏يطلّع الأرقام من سطور محرّك المتصفح.
+
+    محرّك المتصفح بيرجّع الكلام مجمّع في سطور فعلية، فمافيش تخمين هندسي:
+    العنوان والرقم في نفس السطر بالظبط. ده أضبط من حساب الميل اللي
+    محرّك السيرفر محتاجه، عشان التجميع بيحصل جوّه المحرّك نفسه.
+
+    الشكل: [[{"t": كلمة, "x": مكانها}, ...], ...] -- أو سطور كنص عادي.
+    """
+    found = {}
+    for line in lines or []:
+        if isinstance(line, str):
+            words = line.split()
+        else:
+            words = [w if isinstance(w, str) else str((w or {}).get("t", ""))
+                     for w in (line or [])]
+        words = [w for w in words if w.strip()]
+        if not words:
+            continue
+        text = " ".join(words)
+        field, form = _label_form(text)
+        if not field:
+            continue
+
+        if field == "gender":
+            low = text.lower()
+            if "female" in low:
+                found.setdefault("gender", "female")
+            elif "male" in low:
+                found.setdefault("gender", "male")
+            continue
+
+        if field in found:
+            continue
+        for word in words[_after_label(words, form):]:
+            value = _value_word(word)
+            if value is not None:
+                found[field] = value
+                break
+    return found
+
+
+def merge_found(founds):
+    """‏يجمع قراءتين للصورة الواحدة: اللي اتفقوا عليه يتاخد، واللي اختلفوا فيه يتشال.
+
+    المتصفح بيقرا الصورة مرتين -- مرة كما هي ومرة بعد تحديد الحدود --
+    عشان كل معالجة بتنجح في حاجة التانية بتفشل فيها (التحديد رفع القراءة
+    في الصورة المهزوزة من ٥ خانات لـ٩). بس لو الاتنين طلّعوا رقمين
+    مختلفين لنفس الخانة، يبقى واحد منهم غلط ومانعرفش مين -- فبنشيلها.
+    الدكتور يكتبها بإيده، وده أحسن ألف مرة من رقم غلط في خطة.
+    """
+    merged = {}
+    conflict = set()
+    for found in founds:
+        for key, value in (found or {}).items():
+            if key not in merged:
+                merged[key] = value
+                continue
+            old = merged[key]
+            if isinstance(old, (int, float)) and isinstance(value, (int, float)):
+                if abs(float(old) - float(value)) > 0.05:
+                    conflict.add(key)
+            elif old != value:
+                conflict.add(key)
+    for key in conflict:
+        merged.pop(key, None)
+    return merged
+
+
+def read_passes(passes):
+    """‏سطور أكتر من قراءة لنفس الصورة -> نفس شكل ديكشنري read()."""
+    passes = [p for p in (passes or []) if p]
+    flat = []
+    for one in passes:
+        for line in one:
+            if isinstance(line, str):
+                flat.append(line)
+            else:
+                flat.append(" ".join(
+                    w if isinstance(w, str) else str((w or {}).get("t", ""))
+                    for w in (line or [])))
+    text_all = " ".join(flat).strip()
+    if not text_all:
+        raise RuntimeError("مقدرتش أقرا أي كلام في الصورة. صوّرها في نور أحسن "
+                           "وخلي الورقة كلها في الكادر.")
+    return interpret(merge_found([parse_lines(one) for one in passes]), text_all)
+
+
+def read_lines(lines):
+    """‏نفس شكل ديكشنري read()، بس من سطور جاهزة مش من صورة."""
+    flat = []
+    for line in lines or []:
+        if isinstance(line, str):
+            flat.append(line)
+        else:
+            flat.append(" ".join(
+                w if isinstance(w, str) else str((w or {}).get("t", ""))
+                for w in (line or [])))
+    text_all = " ".join(flat).strip()
+    if not text_all:
+        raise RuntimeError("مقدرتش أقرا أي كلام في الصورة. صوّرها في نور أحسن "
+                           "وخلي الورقة كلها في الكادر.")
+    return interpret(parse_lines(lines), text_all)
+
+
 def read(image_bytes):
     """‏يرجّع نفس شكل ديكشنري lab_report، أو يرفع RuntimeError برسالة عربية."""
     boxes, slope = _boxes(image_bytes)
     if not boxes:
         raise RuntimeError("مقدرتش أقرا أي كلام في الصورة. صوّرها في نور أحسن "
                            "وخلي الورقة كلها في الكادر.")
+    return interpret(parse_boxes(boxes, slope),
+                     " ".join(b[0] for b in boxes))
 
-    found = parse_boxes(boxes, slope)
-    text_all = " ".join(b[0] for b in boxes)
 
+def interpret(found, text_all):
+    """‏الفحوص اللي بتخلّي القراءة آمنة، مشتركة بين كل المحرّكات.
+
+    أي محرّك (السيرفر أو المتصفح) بيوصل لنفس الديكشنري ده، فالحواجز اللي
+    بتمنع الرقم الغلط بتشتغل مرة واحدة في مكان واحد وعليها اختبارات.
+    """
     # ‏ورقة عناوينها عربية: الأرقام بتتقرا والعناوين لأ. مانعرفش الرقم ده
     # الوزن ولا الطول، فمابنخمّنش.
     if not any(k in found for k in ("weight", "height", "fat_pct", "bmi", "bmr")):

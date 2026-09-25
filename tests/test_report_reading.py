@@ -468,6 +468,255 @@ def test_a_reading_that_hangs_gives_up_with_a_message():
         subprocess.run = real
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# ‏القراءة في المتصفح
+#
+# ‏الميزة فضلت مقفولة مرتين: مرة عشان محتاجة مفتاح API مربوط بحساب وفيزة،
+# ومرة عشان مكتبة القراءة على السيرفر بتاخد ~٢٨٠ ميجا رام والاستضافة
+# عندها ٥١٢. القراءة بقت في متصفح الدكتور: مافيش مفتاح ولا تركيب ولا
+# إعداد استضافة، والصورة مابتخرجش من موبايله خالص.
+#
+# ‏اللي بيوصل للسيرفر هو الكلام المقروء، والتفسير كله هنا -- فالحواجز
+# اللي بتمنع الرقم الغلط بتتقاس هنا مرة واحدة لكل المحرّكات.
+# ═══════════════════════════════════════════════════════════════════════
+
+def _fixture():
+    """‏كلام حقيقي طلع من محرّك المتصفح (Chromium) على ١١ صورة.
+
+    مش مكتوب بإيدي: ده مخرج المحرّك الفعلي على نفس الصور، متسجّل عشان
+    الاختبار يقيس القراءة الحقيقية من غير ما يفتح متصفح.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    with io.open(os.path.join(here, "data", "browser_passes.json"),
+                 encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+TRUTH = {"age": 29, "height": 165.0, "weight": 78.4, "fat_pct": 38.2,
+         "bmi": 28.8, "bmr": 1420, "gender": "female"}
+
+
+def test_the_camera_works_with_no_key_and_nothing_installed():
+    data = lab_report.read_browser([[
+        ["Gender", "Female"], ["Age", "29"], ["Height", "165.0", "cm"],
+        ["Weight", "78.4", "kg"], ["PBF", "Percent", "Body", "Fat", "38.2%"],
+        ["BMI", "28.8", "kg/m2"], ["BMR", "Basal", "Metabolic", "Rate",
+                                   "1420", "kcal"],
+    ]])
+    for key, want in TRUTH.items():
+        assert data.get(key) == want, "‏%s قريت %r بدل %r" % (key, data.get(key), want)
+    assert data["engine"] == "browser", data["engine"]
+
+
+def test_a_target_weight_is_never_taken_as_the_weight():
+    """‏"Target Weight 60.0" لو اتقرت كوزن، الخطة تتحسب على وزن العميل
+    المستهدف مش وزنه -- ١٨ كيلو فرق في المثال ده."""
+    data = lab_report.read_browser([[
+        ["Weight", "78.4", "kg"], ["Target", "Weight", "60.0", "kg"],
+        ["Ideal", "Weight", "58.0", "kg"], ["Weight", "Control", "-18.4", "kg"],
+    ]])
+    assert data["weight"] == 78.4, data["weight"]
+
+
+def test_two_labels_on_one_line_do_not_swap_the_numbers():
+    """‏القراءة ساعات بتلزق سطرين في واحد. الرقم بيتاخد **بعد** العنوان."""
+    import ocr_report
+    found = ocr_report.parse_lines([
+        ["Height", "165.0", "cm", "Weight", "78.4", "kg"]])
+    assert found.get("weight") == 78.4, found
+    found = ocr_report.parse_lines([
+        ["Weight", "78.4", "kg", "Height", "165.0", "cm"]])
+    assert found.get("weight") == 78.4, found
+
+
+def test_a_unit_is_not_a_reading():
+    """‏"kg/m2" فيها رقم ٢. لولا الشرط، الـBMI كان يبقى ٢."""
+    import ocr_report
+    for unit in ("kg/m2", "kg", "cm", "kcal", "m2", "%"):
+        assert ocr_report._value_word(unit) is None, unit
+    for value, want in (("38.2%", 38.2), ("33.0L", 33.0), ("9", 9.0),
+                        ("(78.4", 78.4), ("1420", 1420.0)):
+        assert ocr_report._value_word(value) == want, value
+    found = ocr_report.parse_lines([["BMI", "kg/m2", "28.8"]])
+    assert found.get("bmi") == 28.8, found
+
+
+def test_the_two_readings_must_agree_or_the_field_is_dropped():
+    """‏الصورة بتتقرا مرتين بمعالجتين. اختلفوا في رقم؟ يتشال.
+
+    ليه: النقطة العشرية هي أول حاجة بتضيع، و"38.2" بتبقى "382". لو واحدة
+    قالت ٣٨.٢ والتانية ٣٨٢، إحنا مانعرفش مين الصح -- والدكتور يكتبها
+    بإيده أحسن ألف مرة من رقم غلط ماشي في خطة.
+    """
+    import ocr_report
+    agree = ocr_report.merge_found([{"weight": 78.4}, {"weight": 78.4}])
+    assert agree["weight"] == 78.4, agree
+    clash = ocr_report.merge_found([{"weight": 78.4}, {"weight": 87.4}])
+    assert "weight" not in clash, clash
+    # ‏واحدة قرأت والتانية لأ -> بتتاخد. مافيش خلاف هنا.
+    one = ocr_report.merge_found([{"bmi": 28.8}, {}])
+    assert one["bmi"] == 28.8, one
+    sex = ocr_report.merge_found([{"gender": "female"}, {"gender": "male"}])
+    assert "gender" not in sex, sex
+
+
+def test_an_arabic_sheet_says_so_instead_of_guessing():
+    """‏محرّك المتصفح بيقرا إنجليزي. ورقة عربية = أرقام بدون عناوين،
+    ومانعرفش الرقم ده الوزن ولا الطول -- فمابنخمّنش."""
+    try:
+        lab_report.read_browser([[["78.4"], ["165.0"], ["29"]]])
+    except lab_report.ReportError as e:
+        assert "مش عارف" in str(e) or "مش إنجليزي" in str(e), str(e)
+    else:
+        raise AssertionError("‏ورقة بأرقام بدون عناوين اتقرت")
+
+
+def test_the_real_engine_output_never_produces_a_wrong_number():
+    """‏أهم اختبار في الملف: مخرج المحرّك الحقيقي على ١١ صورة.
+
+    الصور: ورقة نضيفة، صورة موبايل مايلة، ميل ١.٥ و٣ و٦ درجات، صورة
+    مهزوزة، صورة في ضلمة بتشويش، ظل متدرّج، نص دقة، وورقة عربية.
+
+    المقياس **صفر رقم غلط**، مش عدد الخانات اللي اتملت. الخانة الفاضية
+    الدكتور بيشوفها ويكتبها؛ الرقم الغلط بيمشي في حساب السعرات لحد ما
+    يوصل للعميل.
+    """
+    wrong, filled, refused = [], 0, []
+    fixture = _fixture()
+    for name in sorted(fixture):
+        try:
+            data = lab_report.read_browser(fixture[name]["passes"])
+        except lab_report.ReportError:
+            refused.append(name)
+            continue
+        for key, want in TRUTH.items():
+            got = data.get(key)
+            if got is None:
+                continue
+            if got != want:
+                wrong.append("%s: %s=%r (الصح %r)" % (name, key, got, want))
+            else:
+                filled += 1
+    assert not wrong, "‏أرقام غلط: " + " | ".join(wrong)
+    assert refused == ["sheet_ar"], refused
+    # ‏٧ خانات × ١٠ صور. الرقم ده بيقع لو معالجة الصورة أو التفسير رجعوا
+    # لورا، من غير ما رقم غلط يظهر.
+    assert filled >= 60, "‏القراءة رجعت لورا: %d خانة بس من ٧٠" % filled
+
+
+def test_what_the_browser_sends_is_cut_to_known_limits():
+    """‏الطلب مفتوح لأي حساب موظف، فالحدود على السيرفر مش في الجافاسكربت."""
+    huge = [[["Weight", "78.4", "kg"]] * 5000] * 9
+    tidy = lab_report._tidy_passes(huge)
+    assert len(tidy) <= lab_report.MAX_PASSES, len(tidy)
+    assert len(tidy[0]) <= lab_report.MAX_LINES, len(tidy[0])
+    long_word = lab_report._tidy_passes([[["W" * 500, "1"]]])
+    assert len(long_word[0][0][0]) <= lab_report.MAX_WORD
+    wide = lab_report._tidy_passes([[["x"] * 500]])
+    assert len(wide[0][0]) <= lab_report.MAX_WORDS
+    for junk in (None, "nope", 5, {"a": 1}):
+        try:
+            lab_report._tidy_passes(junk)
+        except lab_report.ReportError:
+            pass
+        else:
+            raise AssertionError("‏شكل غريب عدّى: %r" % (junk,))
+    # ‏سطور فاضية = مافيش قراءة، وبترد جملة مش استثناء
+    try:
+        lab_report._tidy_passes([[], [[""]]])
+    except lab_report.ReportError as e:
+        assert "مقدرتش أقرا" in str(e), str(e)
+    else:
+        raise AssertionError("‏سطور فاضية عدّت")
+
+
+def test_the_route_takes_the_browser_reading_and_not_the_image():
+    import re
+    import app as A
+    A.app.config["WTF_CSRF_ENABLED"] = False
+    anon = A.app.test_client()
+    r = anon.post("/api/read-report", json={"passes": [[["Weight", "78.4"]]]})
+    assert r.status_code in (301, 302, 401, 403), r.status_code
+
+    staff = A.app.test_client()
+    tok = re.search(r'name="csrf_token"[^>]*value="([^"]*)"',
+                    staff.get("/login").get_data(as_text=True)).group(1)
+    staff.post("/login", data={"action": "login", "email": "admin@nutrax.com",
+                               "password": "pw123456", "csrf_token": tok})
+    os.environ.pop("ANTHROPIC_API_KEY", None)
+    r = staff.post("/api/read-report", json={"passes": _fixture()["sheet_clean"]["passes"]})
+    body = r.get_json()
+    assert r.status_code == 200 and body["ok"], body
+    assert body["fields"]["weight"] == 78.4, body
+    assert body["fields"]["height"] == 165.0, body
+    assert body["fields"].get("bmr") == 1420, body
+    # ‏طلب فاضي: جملة مفهومة، مش ٥٠٠
+    r = staff.post("/api/read-report", json={})
+    assert r.status_code == 400 and r.get_json()["ok"] is False, r.status_code
+
+
+def test_the_engine_files_are_in_the_deploy_and_served_compressed():
+    """‏لو ملف من دول ناقص، الزرار بيظهر ويفضل بيلف. فبنقيسه."""
+    import routes_plans
+    assert routes_plans.report_engine_ready(), "‏ملفات المحرّك ناقصة"
+
+    import app as A
+    client = A.app.test_client()
+    for name in ("tesseract.min.js", "worker.min.js",
+                 "tesseract-core-simd-lstm.wasm.js",
+                 "tesseract-core-lstm.wasm.js"):
+        r = client.get("/ocr/" + name)
+        assert r.status_code == 200, (name, r.status_code)
+        assert r.headers.get("Content-Encoding") == "gzip", name
+        assert len(r.get_data()) > 5000, (name, len(r.get_data()))
+        assert "max-age" in (r.headers.get("Cache-Control") or ""), name
+    # ‏ملف اللغة بيتبعت مضغوط **كما هو**: المكتبة بتفكّه بنفسها وبتدوّر
+    # على بصمة الـgzip جوّه الملف. Content-Encoding كان بيضيّعها.
+    lang = client.get("/ocr/eng.traineddata.gz")
+    assert lang.status_code == 200 and "Content-Encoding" not in lang.headers
+    assert lang.get_data()[:2] == b"\x1f\x8b", "‏ملف اللغة مش gzip"
+
+
+def test_the_asset_route_serves_nothing_but_the_engine():
+    import app as A
+    client = A.app.test_client()
+    for path in ("/ocr/nope.js", "/ocr/../core.py", "/ocr/../../etc/passwd",
+                 "/ocr/", "/ocr/SOURCE.txt"):
+        r = client.get(path)
+        assert r.status_code in (301, 308, 404), (path, r.status_code)
+
+
+def test_the_security_policy_lets_the_engine_run():
+    """‏المتصفح بيرفض WebAssembly من غير 'wasm-unsafe-eval'، والرفض
+    صامت: الزرار يفضل بيلف والدكتور مش عارف ليه."""
+    import core
+    assert "'wasm-unsafe-eval'" in core.CSP, core.CSP
+    assert "worker-src" in core.CSP, core.CSP
+
+
+def test_the_page_reads_in_the_browser_and_keeps_the_image_there():
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with io.open(os.path.join(here, "templates", "generate.html"),
+                 encoding="utf-8") as fh:
+        page = fh.read()
+    assert "js/report_ocr.js" in page, "‏الصفحة مش بتحمّل محرّك القراءة"
+    assert "window.ReportOCR.read" in page, "‏الصفحة مش بتنادي القراءة"
+    # ‏الصورة عمرها ما تتبعت: الطلب JSON فيه الكلام بس
+    assert "body.append('image'" not in page, "‏الصورة لسه بتتبعت للسيرفر"
+    assert "JSON.stringify({passes:" in page, "‏الطلب مش بيبعت الكلام"
+    # ‏والدكتور لازم يعرف إن الصورة مش بتخرج من جهازه
+    assert "مابتطلعش من الموبايل" in page, "‏الصفحة مش بتقول إن الصورة مابتخرجش"
+
+    with io.open(os.path.join(here, "static", "js", "report_ocr.js"),
+                 encoding="utf-8") as fh:
+        js = fh.read()
+    # ‏كل حاجة من نفس الموقع: مافيش CDN يقع ولا خدمة تشوف الصورة
+    assert "cdn" not in js.lower(), "‏المحرّك بينزّل من خدمة برّه"
+    assert "workerBlobURL: false" in js, "‏الـworker من blob بيتخانق مع CSP"
+    # ‏قراءتين: واحدة للصورة كما هي وواحدة بعد تحديد الحدود
+    assert "sharpenCanvas" in js and "passes.push" in js
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):

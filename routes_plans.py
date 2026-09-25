@@ -168,14 +168,11 @@ def generate():
     # ‏قراءة الصور مفعّلة ولا لأ: الصفحة عارفة قبل ما الدكتور يصوّر. غير كده
     # كان لازم يصوّر ويرفع عشان يشوف رسالة "مش مفعّلة" -- صورة ورفع ودقيقة
     # مقابل معلومة السيرفر عارفها قبل ما الصفحة تتحمّل.
-    # ‏القراءة شغالة من غير مفتاح دلوقتي (على السيرفر نفسه)، فالزرار بيظهر
-    # طالما فيه طريق واحد شغّال على الأقل.
-    try:
-        import lab_report
-        import ocr_report
-        can_read_reports = bool(lab_report.api_key()) or ocr_report.available()
-    except Exception:
-        can_read_reports = False
+    #
+    # ‏القراءة بقت في المتصفح نفسه، فالشرط الوحيد هو إن ملفات المحرّك
+    # موجودة في النشر. مافيش مفتاح ولا تركيب ولا إعداد على الاستضافة --
+    # الميزة فضلت مقفولة مرتين بسببهم.
+    can_read_reports = report_engine_ready()
     return render_template("generate.html", user=u, lang=session.get("lang","ar"),
                            diet_plans=DIET_PLAN_TYPES, zigzag_modes=ZIGZAG_MODES,
                            zigzag_json=json.dumps(ZIGZAG_MODES, ensure_ascii=False),
@@ -326,6 +323,21 @@ def clients_search():
     return jsonify({"clients": rows})
 
 
+# ‏ملفات محرّك القراءة اللي بيشتغل في المتصفح. لو واحد منهم ناقص من
+# النشر، الزرار مايظهرش -- أحسن من إنه يظهر ويفضل بيلف.
+_ENGINE_FILES = ("tesseract.min.js.gz", "worker.min.js.gz",
+                 "tesseract-core-simd-lstm.wasm.js.gz",
+                 "tesseract-core-lstm.wasm.js.gz", "eng.traineddata.gz")
+
+
+def report_engine_ready():
+    import os
+    base = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "static", "ocr")
+    return all(os.path.exists(os.path.join(base, name))
+               for name in _ENGINE_FILES)
+
+
 @bp.route("/api/read-report", methods=["POST"])
 @staff_required
 def read_report_image():
@@ -342,11 +354,19 @@ def read_report_image():
     """
     import lab_report
 
+    # ‏الطريق العادي: المتصفح قرا الصورة وبعت الكلام. الصورة نفسها
+    # مابتخرجش من موبايل الدكتور -- ولا السيرفر ولا أي خدمة بتشوفها.
+    payload = request.get_json(silent=True) if request.is_json else None
     upload = request.files.get("image")
-    if not upload:
-        return jsonify({"ok": False, "error": "مافيش صورة مرفوعة"}), 400
+    if payload is None and not upload:
+        return jsonify({"ok": False, "error": "مافيش قراءة ولا صورة"}), 400
     try:
-        data = lab_report.read_report(upload.read(), upload.mimetype)
+        if payload is not None:
+            data = lab_report.read_browser(payload.get("passes"))
+        else:
+            # ‏الطريق التاني: الصورة نفسها تتقرا على السيرفر. سايبينه
+            # لأنه بيقرا العربي وخط اليد لو الدكتور فعّل مفتاح API.
+            data = lab_report.read_report(upload.read(), upload.mimetype)
     except lab_report.ReportError as e:
         # ‏غلطة المفروض الدكتور يقراها ويعرف يعمل إيه، فبترجع زي ما هي
         return jsonify({"ok": False, "error": str(e)}), 400

@@ -46,35 +46,28 @@
           {{ 'الوزن والطول ونسبة الدهون والـBMI والـBMR بيتملوا لوحدهم. اللي مش مقروء بيفضل فاضي وتكتبه إنت.'
              if is_ar else
              'Weight, height, body fat, BMI and BMR fill themselves. Anything unreadable stays blank for you to type.' }}
+          <br>
+          <span style="opacity:.85">
+            {{ 'الصورة مابتطلعش من الموبايل — القراءة بتحصل في المتصفح نفسه. أول مرة بتنزّل المحرّك (~٤ ميجا) وبعدها فوري.'
+               if is_ar else
+               'The photo never leaves your phone -- the reading happens in the browser. The first use downloads the engine (~4 MB); after that it is instant.' }}
+          </span>
         </span>
         {% else %}
-        {# ‏مش مفعّلة: بنقول كده من غير زرار. الزرار الشغّال اللي بيرد "مش
-           مفعّلة" بعد الرفع معناه إن الدكتور صوّر ورفع واستنى مقابل معلومة
-           السيرفر عارفها قبل ما الصفحة تتحمّل. #}
-        {# ‏الصياغة الأولى كانت "قراءة ورقة التحليل من صورة: مش مفعّلة"،
-           والدكتور شافها وسأل "ايه ده". منطقي: السطر كان بيقول إن حاجة
-           مش مفعّلة من غير ما يقول الحاجة دي بتعمل إيه. فبقى بيشرح
-           الفايدة الأول، وإنها اختيارية، وبعدين إنها مقفولة والحل. #}
+        {# ‏الحالة دي بقت نادرة ومعناها حاجة واحدة: ملفات المحرّك ناقصة من
+           النشر (static/ocr). مافيش مفتاح ولا مكتبة ولا إعداد استضافة --
+           الميزة فضلت مقفولة مرتين بسببهم، والقراءة بقت في المتصفح خلاص. #}
         <span style="font-size:13px;color:#456b61;line-height:1.9">
           <i class="fa-solid fa-camera" style="opacity:.55"></i>
           <b style="color:#0F2A43">{{ 'اختياري: صوّر ورقة التحليل والبيانات تتملى لوحدها'
                                       if is_ar else
                                       'Optional: photograph the report and the fields fill themselves' }}</b><br>
-          {{ 'بدل ما تكتب الوزن والطول ونسبة الدهون والـBMI بإيدك، تصوّر ورقة الـInBody وهما يتملوا. إنت تراجع وتعدّل.'
-             if is_ar else
-             'Instead of typing weight, height, body fat and BMI by hand, you photograph the InBody sheet and they fill in. You check and correct.' }}<br>
           <span style="color:#8a6d1f">
-            {{ 'لسه مش مفعّلة على السيرفر. لحد ما تتفعّل، اكتب البيانات عادي تحت — كل حاجة تانية شغالة.'
+            {{ 'ملفات القراءة ناقصة من النشر. اكتب البيانات عادي تحت — كل حاجة تانية شغالة.'
                if is_ar else
-               'Not enabled on the server yet. Until it is, type the fields below as usual -- everything else works.' }}
-            <br>
-            {# ‏فيه طريقين للتفعيل دلوقتي، والأول مجاني وبدون حساب: المكتبة
-               في requirements-ocr.txt وأمر البناء مكتوب جوّاه. التاني مفتاح
-               API، وبيزود إنه يقرا العربي والورق المايل وخط اليد. #}
+               'The reader files are missing from this deploy. Type the fields below as usual -- everything else works.' }}
             <span style="font-size:11.5px;opacity:.9">
-              {{ 'للمطوّر: requirements-ocr.txt (مجاني، على السيرفر) أو ANTHROPIC_API_KEY (بيقرا العربي كمان).'
-                 if is_ar else
-                 'For the developer: requirements-ocr.txt (free, on-server) or ANTHROPIC_API_KEY (also reads Arabic).' }}
+              {{ '(للمطوّر: static/ocr)' if is_ar else '(for the developer: static/ocr)' }}
             </span>
           </span>
         </span>
@@ -83,6 +76,11 @@
       <div id="rpMsg" hidden style="font-size:12.5px;margin-top:10px;
            border-radius:8px;padding:9px 12px;line-height:1.8"></div>
     </div>
+    {% if can_read_reports %}
+    {# ‏محرّك القراءة نفسه (~٤ ميجا) مابينزلش مع الصفحة -- الملف ده صغير
+       وبينزّله أول ما الدكتور يدوس صوّر. #}
+    <script src="{{ url_for('static', filename='js/report_ocr.js') }}" defer></script>
+    {% endif %}
     <div class="grid-2">
       <div class="form-group">
         <label class="form-label" for="nameField">{{ 'الاسم' if is_ar else 'Name' }}
@@ -1279,24 +1277,58 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
     return true;
   }
 
+  // ‏حالة القراءة اللي الدكتور بيشوفها. أول مرة بتنزّل محرّك القراءة
+  // (~٤ ميجا) وده بياخد شوية على النت الضعيف، فلازم يعرف إن الشغل ماشي
+  // بدل ما يفتكر إن الزرار مابيردّش ويدوس تاني.
+  function stage(m){
+    if(!m || !m.status) return;
+    if(m.status.indexOf('core') >= 0 || m.status.indexOf('worker') >= 0)
+      show('ok', T('بنزّل محرّك القراءة… (أول مرة بس)',
+                   'Downloading the reader... (first time only)'));
+    else if(m.status.indexOf('language') >= 0 || m.status.indexOf('traineddata') >= 0)
+      show('ok', T('بنزّل ملف اللغة… (أول مرة بس)',
+                   'Downloading the language file... (first time only)'));
+    else if(m.status.indexOf('recognizing') >= 0)
+      show('ok', T('بقرا الورقة…','Reading the sheet...'));
+  }
+
+  let busy = false;
+
   file.addEventListener('change', async function(){
     const chosen = file.files && file.files[0];
     if(!chosen) return;
-    show('ok', T('بقرا الورقة… ثانية','Reading the sheet…'));
+    if(busy){ file.value = ''; return; }
+    busy = true;
+    show('ok', T('بجهّز القراءة…','Getting ready...'));
     hint.style.display = 'none';
 
-    const body = new FormData();
-    body.append('image', chosen);
+    // ‏القراءة بتحصل هنا، في المتصفح. الصورة مابتطلعش من الجهاز خالص --
+    // اللي بيتبعت للسيرفر هو الكلام المقروء، وهو اللي بيفسّره ويقرّر أي
+    // رقم يتصدّق (نفس الكود اللي عليه الاختبارات).
     let data;
     try{
-      const res = await fetch('/api/read-report', {method:'POST', body: body});
+      if(!window.ReportOCR) throw new Error('no-engine');
+      const passes = await window.ReportOCR.read(chosen, stage);
+      const res = await fetch('/api/read-report', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({passes: passes})
+      });
       data = await res.json();
     }catch(err){
-      show('bad', T('مقدرتش أبعت الصورة. اتأكد من النت وجرّب تاني.',
-                    'Could not send the image. Check the connection and retry.'));
+      const why = String((err && err.message) || err || '');
+      show('bad', why.indexOf('engine') >= 0
+        ? T('مقدرتش أنزّل محرّك القراءة. اتأكد من النت وجرّب تاني — أو اكتب البيانات بإيدك.',
+            'Could not download the reader. Check the connection and retry -- or type the fields yourself.')
+        : (why.indexOf('bad-image') >= 0
+            ? T('الصورة مش سليمة. صوّرها تاني.','That image is not readable. Take it again.')
+            : T('حصلت مشكلة وإحنا بنقرا الورقة. جرّب تاني، أو اكتب البيانات بإيدك.',
+                'Something went wrong while reading the sheet. Retry, or type the fields yourself.')));
       file.value = '';
+      busy = false;
       return;
     }
+    busy = false;
 
     if(!data || !data.ok){
       show('bad', '⚠️ ' + ((data && data.error) ||

@@ -177,6 +177,66 @@ def _clean(raw):
     return out
 
 
+# ‏حدود على اللي جاي من المتصفح. مش عشان الدكتور -- عشان الطلب نفسه
+# مفتوح، وأي حد داخل بحساب موظف يقدر يبعت أي حجم. الأرقام دي أوسع بكتير
+# من أي ورقة تحليل حقيقية (ورقة InBody فيها ~٦٠ سطر).
+MAX_PASSES = 3
+MAX_LINES = 400
+MAX_WORDS = 40
+MAX_WORD = 40
+
+
+def _tidy_passes(passes):
+    """‏يقصّ اللي جاي من المتصفح على حدود معروفة قبل أي تفسير."""
+    if not isinstance(passes, list):
+        raise ReportError("القراءة رجعت شكل مش متوقع -- جرّب تاني")
+    out = []
+    for one in passes[:MAX_PASSES]:
+        if not isinstance(one, list):
+            continue
+        lines = []
+        for line in one[:MAX_LINES]:
+            words = []
+            if isinstance(line, str):
+                words = [w[:MAX_WORD] for w in line.split()[:MAX_WORDS]]
+            elif isinstance(line, list):
+                for word in line[:MAX_WORDS]:
+                    if isinstance(word, str):
+                        text = word
+                    elif isinstance(word, dict):
+                        text = str(word.get("t", ""))
+                    else:
+                        continue
+                    text = text.strip()[:MAX_WORD]
+                    if text:
+                        words.append(text)
+            if words:
+                lines.append(words)
+        if lines:
+            out.append(lines)
+    if not out:
+        raise ReportError("مقدرتش أقرا أي كلام في الصورة. صوّرها في نور أحسن "
+                          "وخلي الورقة كلها في الكادر.")
+    return out
+
+
+def read_browser(passes):
+    """‏سطور جاية من محرّك المتصفح -> نفس شكل ديكشنري read_report.
+
+    الصورة عمرها ما وصلت للسيرفر. اللي وصل هو الكلام، والتفسير والحواجز
+    اللي بتمنع الرقم الغلط بتشتغل هنا -- نفس الكود ونفس الاختبارات بتاعة
+    القراءة على السيرفر.
+    """
+    import ocr_report
+    try:
+        local = ocr_report.read_passes(_tidy_passes(passes))
+    except RuntimeError as e:
+        raise ReportError(str(e))
+    data = _clean(local)
+    data["engine"] = "browser"
+    return data
+
+
 def read_report(image_bytes, content_type):
     """‏يرجّع ديكشنري بالأرقام المقروءة. بيرفع ReportError برسالة عربية."""
     if not image_bytes:

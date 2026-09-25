@@ -1,0 +1,14 @@
+tesseract.js 5.1.1            (Apache-2.0)  npm: tesseract.js
+tesseract.js-core 5.1.1       (Apache-2.0)  npm: tesseract.js-core
+eng.traineddata 4.0.0_best_int (Apache-2.0) npm: @tesseract.js-data/eng
+
+ليه الملفات هنا مش من CDN: الموقع لازم يشتغل من غير ما يعتمد على خدمة برّه،
+وعشان الصورة مالهاش أي طريق تخرج من موبايل الدكتور -- القراءة كلها بتحصل
+في المتصفح، فمافيش سيرفر ولا خدمة بتشوف الصورة.
+
+كلها مضغوطة .gz ومتبعوتة بـContent-Encoding: gzip من /ocr/<name> في core.py:
+  tesseract-core-simd-lstm.wasm.js   3.94M -> 1.47M
+  tesseract-core-lstm.wasm.js        3.94M -> 1.47M  (للأجهزة القديمة، من غير SIMD)
+  eng.traineddata.gz                 مضغوط أصلاً، والمكتبة بتفكّه بنفسها
+
+الترقية: نفس أوامر npm pack، وبعدها gzip -9 -c لكل ملف.
