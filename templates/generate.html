@@ -64,9 +64,18 @@
              if is_ar else
              'Instead of typing weight, height, body fat and BMI by hand, you photograph the InBody sheet and they fill in. You check and correct.' }}<br>
           <span style="color:#8a6d1f">
-            {{ 'لسه مش مفعّلة — محتاجة مفتاح ANTHROPIC_API_KEY في إعدادات الاستضافة (Render → الخدمة → Environment) وإعادة نشر. لحد ما تتفعّل، اكتب البيانات عادي تحت.'
+            {{ 'لسه مش مفعّلة على السيرفر. لحد ما تتفعّل، اكتب البيانات عادي تحت — كل حاجة تانية شغالة.'
                if is_ar else
-               'Not enabled yet -- it needs ANTHROPIC_API_KEY in the hosting environment settings (Render -> service -> Environment) and a redeploy. Until then, type the fields below as usual.' }}
+               'Not enabled on the server yet. Until it is, type the fields below as usual -- everything else works.' }}
+            <br>
+            {# ‏فيه طريقين للتفعيل دلوقتي، والأول مجاني وبدون حساب: المكتبة
+               في requirements-ocr.txt وأمر البناء مكتوب جوّاه. التاني مفتاح
+               API، وبيزود إنه يقرا العربي والورق المايل وخط اليد. #}
+            <span style="font-size:11.5px;opacity:.9">
+              {{ 'للمطوّر: requirements-ocr.txt (مجاني، على السيرفر) أو ANTHROPIC_API_KEY (بيقرا العربي كمان).'
+                 if is_ar else
+                 'For the developer: requirements-ocr.txt (free, on-server) or ANTHROPIC_API_KEY (also reads Arabic).' }}
+            </span>
           </span>
         </span>
         {% endif %}

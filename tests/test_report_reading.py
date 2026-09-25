@@ -366,7 +366,10 @@ def test_the_camera_works_without_any_api_key():
     import re
     import app as A
     import ocr_report
-    assert ocr_report.available(), "‏مكتبة القراءة المحلية مش متركّبة"
+    # ‏المكتبة في ملف لوحدها (requirements-ocr.txt)، فمش مضمون إنها متركّبة
+    # على كل جهاز. الاختبار بيقيس الحالتين: متركّبة -> زرار، مش متركّبة ->
+    # سطر بيقول مش مفعّلة. اللي مايصحّش هو الزرار اللي مايشتغلش.
+    installed = ocr_report.available()
 
     A.app.config["WTF_CSRF_ENABLED"] = False
     client = A.app.test_client()
@@ -377,8 +380,13 @@ def test_the_camera_works_without_any_api_key():
 
     os.environ.pop("ANTHROPIC_API_KEY", None)
     html = client.get("/generate").get_data(as_text=True)
-    assert 'id="rpFile"' in html, "‏الزرار مش ظاهر والقراءة المحلية شغالة"
-    assert "مش مفعّلة" not in html, "‏لسه بيقول مش مفعّلة وهي مفعّلة"
+    if installed:
+        assert 'id="rpFile"' in html, "‏الزرار مش ظاهر والقراءة المحلية شغالة"
+        assert "مش مفعّلة" not in html, "‏لسه بيقول مش مفعّلة وهي مفعّلة"
+    else:
+        assert 'id="rpFile"' not in html, (
+            "‏زرار شغّال والقراءة مش متركّبة -- الدكتور هيصوّر بلا فايدة")
+        assert "مش مفعّلة" in html, "‏مش بيقول إنها مش مفعّلة"
 
 
 def test_the_local_reading_is_the_default_and_the_key_upgrades_it():
