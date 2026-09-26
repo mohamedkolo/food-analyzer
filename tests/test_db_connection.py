@@ -288,6 +288,86 @@ def test_the_app_boots_and_builds_its_tables_on_postgres():
         assert needed in tables, "‏جدول %s مااتعملش على Postgres" % needed
 
 
+POOLER_DSN = "postgresql://postgres@127.0.0.1:6432/nutrax_dbtest"
+
+
+def test_nothing_is_passed_as_a_connection_startup_parameter():
+    """‏ده الشرط اللي كسر نشر كامل، ولازم يفضل مقفول.
+
+    ‏قاعدة البيانات في الإنتاج بتتوصّل من خلال pooler، والبولر بيرفض أي
+    startup parameter مش من اللي بيعرفها:
+
+        FATAL: unsupported startup parameter in options: statement_timeout
+
+    ‏فالتطبيق مقدرش يفتح ولا اتصال واحد ومات وقت التشغيل، والنشر فشل.
+    وماظهرش في الاختبار لأن الاختبار كان على Postgres **مباشر** --
+    والبولر هو اللي في الإنتاج.
+
+    ‏الحد لازم يتحط بـSQL جوّه المعاملة (SET LOCAL)، مش بارامتر فتح اتصال.
+    """
+    with open(os.path.join(ROOT, "core.py"), encoding="utf-8") as fh:
+        source = fh.read()
+    layer = source[source.index("if DATABASE_URL:"):]
+    layer = layer[:layer.index("from werkzeug.security import")]
+    layer = "\n".join(line.split("#")[0] for line in layer.splitlines())
+
+    connect = layer[layer.index("psycopg2.connect("):]
+    connect = connect[:connect.index(")")]
+    assert "options" not in connect, (
+        "‏فيه startup parameter في فتح الاتصال -- البولر بيرفض الاتصال "
+        "من أصله والتطبيق مايقومش: %s" % " ".join(connect.split()))
+    # ‏والحد لازم يفضل موجود، بس بالطريقة اللي بتمشي على البولر
+    assert "SET LOCAL statement_timeout" in layer, (
+        "‏حد وقت الاستعلام اتشال خالص")
+
+
+def _pooler_ready():
+    try:
+        import psycopg2
+        conn = psycopg2.connect(POOLER_DSN, connect_timeout=5)
+        conn.close()
+        return True
+    except Exception:
+        return False
+
+
+def test_the_app_boots_through_a_transaction_pooler():
+    """‏نفس شكل الإنتاج: pooler بيوزّع اتصال السيرفر على عملاء كتير.
+
+    ‏لو مافيش pooler محلي، الاختبار بيتأكد من الشرط اللي كسر النشر بس
+    (اللي فوق) -- وده الحاجة اللي بترجع بسطر واحد.
+    """
+    if not _pooler_ready():
+        # ‏مافيش بولر هنا. الشرط الثابت فوق هو اللي بيمنع رجوع الباج،
+        # وهو بيشتغل على أي جهاز. فبنتأكد إنه موجود وخلاص.
+        test_nothing_is_passed_as_a_connection_startup_parameter()
+        return
+
+    import subprocess
+    script = (
+        "import sys; sys.path.insert(0, %r)\n"
+        "import core, psycopg2\n"
+        "assert core.db_row('SELECT 1 AS ok')['ok'] == 1\n"
+        "print('TIMEOUT=' + core.db_row("
+        "  \"SELECT current_setting('statement_timeout') AS t\")['t'])\n"
+        "try:\n"
+        "    core.db_row('SELECT pg_sleep(40)')\n"
+        "    print('SLOW=ran')\n"
+        "except psycopg2.extensions.QueryCanceledError:\n"
+        "    print('SLOW=cancelled')\n"
+        "assert core.db_row('SELECT 2 AS ok')['ok'] == 2\n"
+        "print('OK')\n" % ROOT)
+    env = dict(os.environ, DATABASE_URL=POOLER_DSN, SECRET_KEY="test-key")
+    run = subprocess.run([sys.executable, "-c", script], capture_output=True,
+                         text=True, env=env, timeout=180)
+    out = run.stdout
+    assert "OK" in out, "‏التطبيق مقامش على البولر:\n%s\n%s" % (
+        out[-400:], (run.stderr or "")[-600:])
+    assert "SLOW=cancelled" in out, (
+        "‏الاستعلام البطيء مااتقطعش على البولر -- الحد مش بيوصل: %s" % out)
+    assert "TIMEOUT=" in out and "TIMEOUT=0" not in out, out
+
+
 def test_the_leak_that_was_fixed_cannot_come_back_quietly():
     """‏الباج ده بيرجع بتغيير سطر واحد، فالسطر ده مقفول باختبار.
 

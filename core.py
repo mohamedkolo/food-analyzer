@@ -373,15 +373,38 @@ if DATABASE_URL:
     _db_local = threading.local()
 
     def _new_conn():
+        # ‏**ممنوع** يتحط هنا options="-c statement_timeout=..." ولا أي
+        # startup parameter تانية. قاعدة البيانات بتتوصّل من خلال pooler
+        # (Neon/PgBouncer)، والبولر بيرفض الاتصال من أصله:
+        #
+        #     FATAL: unsupported startup parameter in options: statement_timeout
+        #
+        # ‏وده فشّل نشر كامل: التطبيق مقدرش يفتح ولا اتصال ومات وقت
+        # التشغيل. وماظهرش عندي لأني كنت بجرّب على Postgres مباشر.
+        # الحد بيتحط مع كل استعلام (شوف _with_timeout) -- ده بيشتغل على
+        # أي بولر لأنه SQL عادي جوّه المعاملة، مش بارامتر فتح اتصال.
         return psycopg2.connect(
             DATABASE_URL,
             connect_timeout=CONNECT_TIMEOUT,
-            options="-c statement_timeout=%d" % STATEMENT_TIMEOUT_MS,
             # ‏الاستضافة بتقفل الاتصالات الساكنة من غير ما تقول، فبنخلي
             # النظام يسأل عليها -- بدل ما أول طلب بعد سكون يلاقي اتصال ميّت.
             keepalives=1, keepalives_idle=30,
             keepalives_interval=10, keepalives_count=3,
         )
+
+    def _with_timeout(sql):
+        """‏يلزق حد وقت الاستعلام قبله، في نفس النداء.
+
+        ‏psycopg2 بيركّب البارامترات في النص وبيبعت النص كله مرة واحدة،
+        فالجملتين بيمشوا في رحلة واحدة ومافيش تأخير زيادة. والنتيجة
+        اللي بترجع هي نتيجة آخر جملة، يعني الاستعلام نفسه.
+
+        ‏SET LOCAL مش SET: السطر جوّه المعاملة، فمابيتسرّبش لاتصال تاني
+        على البولر -- البولر بيوزّع نفس اتصال السيرفر على عملاء كتير.
+        """
+        if STATEMENT_TIMEOUT_MS <= 0:
+            return sql
+        return "SET LOCAL statement_timeout = %d; %s" % (STATEMENT_TIMEOUT_MS, sql)
 
     def _drop_conn():
         conn = getattr(_db_local, "conn", None)
@@ -406,7 +429,7 @@ if DATABASE_URL:
                     continue
             try:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                    cur.execute(sql, params)
+                    cur.execute(_with_timeout(sql), params)
                     if fetch == "one":
                         result = cur.fetchone()
                     elif fetch == "all":
