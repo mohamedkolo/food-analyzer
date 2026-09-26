@@ -6,6 +6,7 @@ template helpers live in core.py. This file holds the routes.
 """
 
 from core import *                      # noqa: F401,F403
+import draft_store
 # names starting with an underscore are not covered by `import *`
 from core import (                      # noqa: F401
     _CULTURE_EN, _GENDER_EN, _clear_login_attempts, _is_login_rate_limited,
@@ -1077,16 +1078,16 @@ def track_whatsapp_click():
 @app.route("/regenerate_plan", methods=["POST"])
 @staff_required
 def regenerate_plan():
-    data = session.get("pdf_data")
+    data = draft_store.draft_data()
     if not data: return redirect("/generate")
-    session["current_plan"] = generate_weekly_plan(data)
+    draft_store.set_draft(plan=generate_weekly_plan(data))
     return redirect("/preview")
 
 @app.route("/download_pdf")
 @login_required
 def download_pdf():
-    data = session.get("pdf_data")
-    plan = session.get("current_plan")
+    data = draft_store.draft_data()
+    plan = draft_store.draft_plan()
     u = get_user_by_id(session["uid"])
     role = get_user_role(u)
     if role == "client":
@@ -1173,8 +1174,7 @@ def patient_generate(pid):
         "goal_type": "weight_loss", "culture": "مصري", "diet_plan_type": "standard",
         "symptoms": json.loads(pt["conditions"] or "[]"), "notes": pt["notes"] or "",
     }
-    session["pdf_data"] = data
-    session["current_plan"] = generate_weekly_plan(data)
+    draft_store.set_draft(data=data, plan=generate_weekly_plan(data))
     return redirect("/preview")
 
 @app.route("/patients/<int:pid>/status/<s>")

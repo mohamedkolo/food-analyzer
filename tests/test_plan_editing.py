@@ -223,18 +223,30 @@ def test_a_plain_generate_is_empty_even_right_after_a_plan():
         "the edit button no longer asks for the refill")
 
 
+def _plan_of(client):
+    """‏الخطة من مكانها الجديد: صف في القاعدة، والكوكي فيه رقمه بس.
+
+    كانت في الكوكي، والكوكي حده ٤٠٩٣ بايت -- وخطة التكميم ٤٧٠٧، فالمتصفح
+    كان بيرميها والدكتور مابيشوفش الجدول.
+    """
+    import draft_store
+    from core import db_row
+    with client.session_transaction() as sess:
+        ident = sess.get(draft_store.KEY)
+    row = db_row("SELECT plan_json AS v FROM plan_drafts WHERE id=?", (ident,))
+    return json.loads(row["v"]) if row and row.get("v") else None
+
+
 def test_a_meal_can_be_swapped_with_the_one_above_it():
     c = _staff_client()
     _generate(c)
-    with c.session_transaction() as s:
-        before = dict(s["current_plan"][0])
+    before = dict(_plan_of(c)[0])
 
     r = c.post("/move_meal", data={"day_idx": "0", "meal_type": "lunch",
                                    "other_type": "breakfast"})
     assert r.status_code == 200 and r.get_json()["ok"]
 
-    with c.session_transaction() as s:
-        after = s["current_plan"][0]
+    after = _plan_of(c)[0]
     assert after["breakfast"] == before["lunch"], "the meals did not swap"
     assert after["lunch"] == before["breakfast"]
     assert after["dinner"] == before["dinner"], "an untouched meal moved"

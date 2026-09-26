@@ -15,6 +15,7 @@ import io
 import json
 import os
 import threading
+import draft_store
 from datetime import datetime, timedelta
 
 from flask import (Blueprint, jsonify, redirect, render_template, request,
@@ -146,8 +147,7 @@ def admin_request_generate(rid):
         "name": client.get("name","") if client else req.get("client_name",""),
         **rdata,
     }
-    session["pdf_data"] = data
-    session["current_plan"] = generate_weekly_plan(data)
+    draft_store.set_draft(data=data, plan=generate_weekly_plan(data))
     session["current_request_id"] = rid
     return redirect("/preview")
 
@@ -270,8 +270,7 @@ def admin_request_manual(rid):
         for meal_key in plan_info["meals"]:
             day_plan[meal_key] = get_starter(meal_key, i)
         empty_plan.append(day_plan)
-    session["pdf_data"] = data
-    session["current_plan"] = empty_plan
+    draft_store.set_draft(data=data, plan=empty_plan)
     session["current_request_id"] = rid
     session["manual_mode"] = True
     return redirect("/preview")
@@ -280,8 +279,8 @@ def admin_request_manual(rid):
 @bp.route("/admin/requests/<int:rid>/approve", methods=["POST"])
 @staff_required
 def admin_request_approve(rid):
-    plan = session.get("current_plan")
-    data = session.get("pdf_data")
+    plan = draft_store.draft_plan()
+    data = draft_store.draft_data()
     if not plan or not data: return redirect("/admin/requests")
     db_run("UPDATE plan_requests SET status='approved', plan_data=?, updated_at=? WHERE id=?",
            (json.dumps({"plan": plan, "data": data}), datetime.now().isoformat(), rid))

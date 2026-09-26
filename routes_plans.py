@@ -21,6 +21,7 @@ from flask import (Blueprint, jsonify, redirect, render_template, request,
                    send_file, session)
 
 import meal_extra
+import draft_store
 from core import (
     visits_by_phone,
     search_clients,
@@ -75,8 +76,7 @@ def open_saved_plan(pid):
         data = pd.get("data")
         plan = pd.get("plan")
         if data and plan:
-            session["pdf_data"] = data
-            session["current_plan"] = plan
+            draft_store.set_draft(data=data, plan=plan)
             session.pop("current_request_id", None)
             return redirect("/preview")
     except Exception as _e:
@@ -148,9 +148,8 @@ def generate():
             except (ValueError, TypeError):
                 data["avoid_meals"] = []
 
-        session["pdf_data"] = data
         plan = generate_weekly_plan(data)
-        session["current_plan"] = plan
+        draft_store.set_draft(data=data, plan=plan)
         # مفيش حفظ هنا. الدكتور بيولّد ويرجع يظبط ويولّد تاني، والحفظ التلقائي
         # كان بيعمل خطة محفوظة وزيارة متابعة في كل مرة -- تلات تظبيطات كانوا
         # بيبانوا تلات زيارات في نفس اليوم ويبوّظوا حساب التقدّم.
@@ -177,7 +176,7 @@ def generate():
                            diet_plans=DIET_PLAN_TYPES, zigzag_modes=ZIGZAG_MODES,
                            zigzag_json=json.dumps(ZIGZAG_MODES, ensure_ascii=False),
                            can_read_reports=can_read_reports,
-                           prev=(session.get("pdf_data") or {}) if editing else {})
+                           prev=(draft_store.draft_data() or {}) if editing else {})
 
 # ‏خانة النشاط بقت واحدة: بتبعت معامل الـTDEE، ومستوى البروتين بيتستنتج
 # منه هنا -- في السيرفر مش في الجافاسكريبت. لو كان الاستنتاج في الـJS بس،
@@ -205,8 +204,8 @@ def commit_plan(data=None, plan=None):
     يعمل خطة وزيارة جديدة.
 
     بيرجّع رقم الخطة المحفوظة، أو None."""
-    data = data or session.get("pdf_data")
-    plan = plan or session.get("current_plan")
+    data = data or draft_store.draft_data()
+    plan = plan or draft_store.draft_plan()
     if not data or not plan:
         return None
 
@@ -259,8 +258,8 @@ def save_current_plan():
 @staff_required
 def make_plan_link():
     """يعمل رابط للخطة اللي في المعاينة دلوقتي."""
-    data = session.get("pdf_data")
-    plan = session.get("current_plan")
+    data = draft_store.draft_data()
+    plan = draft_store.draft_plan()
     if not data or not plan:
         return jsonify({"ok": False}), 400
     commit_plan(data, plan)          # عمل لينك معناه إن الجدول خلص
@@ -538,8 +537,8 @@ def followup_detail(key):
 @staff_required
 def preview():
     u = get_user_by_id(session["uid"])
-    data = session.get("pdf_data")
-    plan = session.get("current_plan")
+    data = draft_store.draft_data()
+    plan = draft_store.draft_plan()
     if not data or not plan: return redirect("/generate")
     current_request_id = session.get("current_request_id")
     return render_template("preview.html", user=u, lang=session.get("lang","ar"),
@@ -590,8 +589,8 @@ def _meal_display(text):
 @bp.route("/swap_meal", methods=["POST"])
 @staff_required
 def swap_meal():
-    data = session.get("pdf_data")
-    plan = session.get("current_plan")
+    data = draft_store.draft_data()
+    plan = draft_store.draft_plan()
     if not data or not plan: return jsonify({"ok": False}), 400
     day_idx = int(request.form.get("day_idx", 0))
     meal_type = request.form.get("meal_type", "breakfast")
@@ -609,7 +608,7 @@ def swap_meal():
         if options:
             new_meal = random.choice(options)
             plan[day_idx][meal_type] = new_meal["meal"]
-            session["current_plan"] = plan
+            draft_store.set_draft(plan=plan)
             return jsonify({"ok": True, "new_meal": new_meal["meal"],
                             "display": _meal_display(new_meal["meal"])})
     return jsonify({"ok": False}), 400
@@ -617,7 +616,7 @@ def swap_meal():
 @bp.route("/get_meal_options", methods=["POST"])
 @staff_required
 def get_meal_options():
-    data = session.get("pdf_data")
+    data = draft_store.draft_data()
     if not data: return jsonify({"ok": False, "options": []}), 400
     meal_type = request.form.get("meal_type", "breakfast")
     culture = data.get("culture", "مصري")
@@ -646,7 +645,7 @@ def get_meal_options():
 @bp.route("/replace_meal", methods=["POST"])
 @staff_required
 def replace_meal():
-    plan = session.get("current_plan")
+    plan = draft_store.draft_plan()
     if not plan: return jsonify({"ok": False, "error": "no plan"}), 400
     try:
         day_idx = int(request.form.get("day_idx", 0))
@@ -655,7 +654,7 @@ def replace_meal():
         if not new_meal or not meal_type: return jsonify({"ok": False, "error": "missing data"}), 400
         if day_idx < 0 or day_idx >= len(plan): return jsonify({"ok": False, "error": "invalid day"}), 400
         plan[day_idx][meal_type] = new_meal
-        session["current_plan"] = plan
+        draft_store.set_draft(plan=plan)
         return jsonify({"ok": True, "new_meal": new_meal,
                         "display": _meal_display(new_meal)})
     except Exception as e:
@@ -669,7 +668,7 @@ def move_meal():
     مش كل الناس بتاكل بنفس الترتيب: فيه اللي بياكل الغدا بدري والفطار متأخر.
     ده بيسيب الدكتور يرتّب اليوم زي ما العميل فعلاً بيأكل، من غير ما يعيد
     كتابة الوجبتين بإيده."""
-    plan = session.get("current_plan")
+    plan = draft_store.draft_plan()
     if not plan:
         return jsonify({"ok": False, "error": "no plan"}), 400
     try:
@@ -684,7 +683,7 @@ def move_meal():
         if a not in day or b not in day:
             return jsonify({"ok": False, "error": "unknown meal"}), 400
         day[a], day[b] = day[b], day[a]
-        session["current_plan"] = plan
+        draft_store.set_draft(plan=plan)
         return jsonify({"ok": True, "a": day[a], "b": day[b]})
     except Exception as e:
         log_error("move_meal", e)
@@ -694,7 +693,7 @@ def move_meal():
 @bp.route("/edit_meal", methods=["POST"])
 @staff_required
 def edit_meal():
-    plan = session.get("current_plan")
+    plan = draft_store.draft_plan()
     if not plan: return jsonify({"ok": False, "error": "no plan"}), 400
     try:
         day_idx = int(request.form.get("day_idx", 0))
@@ -703,7 +702,7 @@ def edit_meal():
         if not new_text or not meal_type: return jsonify({"ok": False, "error": "missing data"}), 400
         if day_idx < 0 or day_idx >= len(plan): return jsonify({"ok": False, "error": "invalid day"}), 400
         plan[day_idx][meal_type] = new_text
-        session["current_plan"] = plan
+        draft_store.set_draft(plan=plan)
         return jsonify({"ok": True, "saved_text": new_text})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500

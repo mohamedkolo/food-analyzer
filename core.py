@@ -624,6 +624,10 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS meal_checks (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, UNIQUE(user_id, check_date, meal_key))""",
             """CREATE TABLE IF NOT EXISTS meal_reminders_sent (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, UNIQUE(user_id, check_date, meal_key))""",
             """CREATE TABLE IF NOT EXISTS weekly_summary_sent (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, week_key TEXT NOT NULL, UNIQUE(user_id, week_key))""",
+            # ‏الخطة اللي الدكتور بيشتغل عليها. كانت في كوكي الجلسة، والكوكي
+            # حده ٤٠٩٣ بايت في كل المتصفحات -- وخطة التكميم ٤٧٠٧ بايت. المتصفح
+            # كان بيرمي الكوكي بالهدوء، فالتوليد يلف ويرجّع للفورم من غير جدول.
+            """CREATE TABLE IF NOT EXISTS plan_drafts (id TEXT PRIMARY KEY, user_id INTEGER, data_json TEXT, plan_json TEXT, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         ]
         for sql in tables_pg:
             try: db_run(sql)
@@ -644,6 +648,7 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS meal_checks (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, UNIQUE(user_id, check_date, meal_key))""",
             """CREATE TABLE IF NOT EXISTS meal_reminders_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, UNIQUE(user_id, check_date, meal_key))""",
             """CREATE TABLE IF NOT EXISTS weekly_summary_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, week_key TEXT NOT NULL, UNIQUE(user_id, week_key))""",
+            """CREATE TABLE IF NOT EXISTS plan_drafts (id TEXT PRIMARY KEY, user_id INTEGER, data_json TEXT, plan_json TEXT, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         ]
         for sql in tables_sq:
             try: db_run(sql)
