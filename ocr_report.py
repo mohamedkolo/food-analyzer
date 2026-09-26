@@ -43,9 +43,21 @@ _LABELS = [
 # ‏السطور دي أرقامها مش قراءة العميل: هدف، أو نطاق طبيعي، أو تحكّم في الوزن.
 # "Target Weight 60.0 kg" لو اتقرت كوزن، الخطة تتحسب على وزن العميل المستهدف
 # مش وزنه الحالي -- والفرق ١٨ كيلو في المثال اللي جرّبته.
+# ‏السطور اللي أرقامها مش قراءة العميل. الدفعة التانية جاية من ورقة
+# DR.NUTRITION الحقيقية بتاعة الدكتور، واللي كانت بتطلّع أرقام غلط:
+#
+#   "Biological Age 1324"   ->  العمر = ١٣٢٤   (والرقم ده أصله الـBMR)
+#   "( Target Weight : 55.6 )" ->  الوزن = ٥٥.٦
+#   "Body Cell Mass 78"     ->  رقم مالوش خانة
+#
+# ‏"Biological Age" فيها كلمة age كاملة، فحدود الكلمة مابتمنعهاش -- لازم
+# تتشال بالاسم.
 _NOT_A_READING = ("target", "ideal", "control", "range", "normal", "recommend",
                   "desirable", "standard", "goal", "loss", "gain", "obesity",
-                  "degree", "score", "history", "graph", "date", "trend")
+                  "degree", "score", "history", "graph", "date", "trend",
+                  "biological", "cell mass", "expenditure", "impedance",
+                  "segmental", "circumference", "ratio", "body type",
+                  "evaluation", "balance")
 
 _NUMBER = re.compile(r"(\d{1,4}(?:[.,]\d{1,2})?)")
 
@@ -203,6 +215,13 @@ def parse_boxes(boxes, slope=0.0):
     """
     found = {}
     for text, cx, cy, top, bottom in boxes:
+        # ‏الاستبعاد لازم يتقاس على **السطر** مش على الصندوق لوحده. في
+        # المطابقة بالمكان كل صندوق كلمة واحدة، فصندوق "Age" وحده مافيهوش
+        # كلمة "Biological" -- وورقة الدكتور طلّعت منها العمر = ١٣٢٤.
+        height = max(1.0, bottom - top)
+        row = " ".join(b[0] for b in boxes if abs(b[2] - cy) < height * 0.6)
+        if _label_form(row)[0] is None and _label_of(text):
+            continue
         field = _label_of(text)
         if not field or field in found:
             continue

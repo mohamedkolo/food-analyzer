@@ -693,6 +693,55 @@ def test_a_label_inside_another_word_is_not_a_label():
         assert field == want, "‏%r -> %s (المتوقع %s)" % (line, field, want)
 
 
+def test_a_sheet_the_engine_cannot_read_fills_nothing_instead_of_guessing():
+    """‏ورقة DR.NUTRITION الحقيقية بتاعة الدكتور -- مخرج المحرّك عليها.
+
+    ‏الورقة دي **مابتتقراش** بمحرّك المتصفح، وده مقيس مش مفترض: أرقامها
+    المهمة مطبوعة فوق أعمدة الرسم بخط رقيق، فالوزن ٥٣.٧ بيطلع "٥٣ ٧" أو
+    "٨٣.٧"، والـBMI ٢١.٢ بيطلع "١٧٢". وفيها كمان سطرين خدّاعين:
+
+        Biological Age 1324        (والرقم أصله الـBMR)
+        ( Target Weight : 55.6 )
+
+    ‏اللي الاختبار ده بيقيسه مش إن القراية تنجح -- هي مش بتنجح. بيقيس إن
+    **مافيش رقم غلط** بيوصل للفورم منها: كل رقم يا إما بيتشال في حدود
+    المعقول يا إما مابيتقراش. الدكتور بيلاقي الخانات فاضية ويكتبها، وده
+    أحسن ألف مرة من وزن ٥٥.٦ (وهو الوزن المستهدف) ماشي في خطة.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    with io.open(os.path.join(here, "data", "sheet_drnutrition.json"),
+                 encoding="utf-8") as fh:
+        sheet = json.load(fh)["drnutrition_chart_sheet"]["passes"]
+
+    # ‏الصح المطبوع على الورقة، بعيني
+    truth = {"age": 23, "height": 159.0, "weight": 53.7, "fat_pct": 17.7,
+             "bmi": 21.2, "bmr": 1324}
+    try:
+        data = lab_report.read_browser(sheet)
+    except lab_report.ReportError:
+        return          # ‏رفضت تقرا -- ده أسلم رد ممكن
+    wrong = [(key, data.get(key)) for key, want in truth.items()
+             if data.get(key) is not None and data.get(key) != want]
+    assert not wrong, "‏أرقام غلط وصلت للفورم من ورقة مش مقروءة: %s" % wrong
+    # ‏والسطرين الخدّاعين تحديداً
+    assert data.get("age") != 1324, "‏Biological Age اتقرا كعمر"
+    assert data.get("weight") != 55.6, "‏Target Weight اتقرا كوزن"
+    # ‏ودول مستبعدين عند القراية نفسها، مش معتمدين على حدود المعقول بس:
+    # "Biological Age 1324" رقمها معقول لو كان BMI أو وزن، فالحدود
+    # مش دايماً هتمسكها.
+    import ocr_report
+    assert "age" not in ocr_report.parse_lines([["Biological", "Age", "1324"]])
+    assert "age" not in ocr_report.parse_lines([["Biological", "Age", "45"]]), (
+        "‏Biological Age 45 هيمشي كعمر -- رقم معقول في الخانة الغلط")
+    assert "weight" not in ocr_report.parse_lines(
+        [["(", "Target", "Weight", ":", "55.6", ")"]])
+    assert "muscle_mass" not in ocr_report.parse_lines(
+        [["Segmental", "Lean", "Mass"], ["Trunk", "20.71kg"]])
+    # ‏ولازم يبان للدكتور إن فيه حاجة اتشالت أو إن مافيش قراية
+    assert data["dropped"] or not any(
+        data.get(k) is not None for k in truth), data
+
+
 def test_what_the_browser_sends_is_cut_to_known_limits():
     """‏الطلب مفتوح لأي حساب موظف، فالحدود على السيرفر مش في الجافاسكربت."""
     huge = [[["Weight", "78.4", "kg"]] * 5000] * 9
