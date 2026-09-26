@@ -620,6 +620,79 @@ def test_the_real_engine_output_never_produces_a_wrong_number():
     assert filled >= 60, "‏القراءة رجعت لورا: %d خانة بس من ٧٠" % filled
 
 
+def test_a_full_inbody_sheet_does_not_read_a_leg_as_the_height():
+    """‏ورقة الدكتور الحقيقية، والباج اللي ظهر منها.
+
+    ‏ورقة الـInBody الكاملة فيها صفوف للأطراف وصفوف متوسطات. والعنوان
+    كان بيتطابق كـ**جزء من أي كلمة**، فطلع الآتي على ورقته:
+
+        Right Leg 6.01   ->  الطول = ٦.٠١     ("ht" جوّه "right")
+        Average 1324     ->  العمر = ١٣٢٤     ("age" جوّه "average")
+
+    ‏وحدود المعقول شالت الاتنين، فالنتيجة إن ولا خانة اتملت وهو مش عارف
+    ليه. الأرقام دي مش مفترضة -- دي اللي الرسالة عرضتها على ورقته.
+    """
+    import ocr_report
+    sheet = [
+        ["InBody", "770", "Body", "Composition", "Analysis"],
+        ["ID", "Noura", "Sayed"],
+        ["Gender", "Female"],
+        ["Age", "29"],
+        ["Height", "165.0", "cm"],
+        ["Weight", "78.4", "kg"],
+        ["PBF", "Percent", "Body", "Fat", "38.2", "%"],
+        ["BMI", "28.8", "kg/m2"],
+        ["SMM", "Skeletal", "Muscle", "Mass", "24.1", "kg"],
+        ["BMR", "1420", "kcal"],
+        ["Visceral", "Fat", "Level", "9"],
+        ["Total", "Body", "Water", "33.0", "L"],
+        # ‏الصفوف اللي كانت بتلخبط القراية
+        ["Segmental", "Lean", "Analysis"],
+        ["Right", "Arm", "2.34", "kg"],
+        ["Left", "Arm", "2.28", "kg"],
+        ["Trunk", "21.4", "kg"],
+        ["Right", "Leg", "6.01", "kg"],
+        ["Left", "Leg", "5.94", "kg"],
+        ["Average", "1324"],
+        ["Percentage", "of", "Standard", "104", "%"],
+        ["Weight", "Control", "-18.4", "kg"],
+        ["Target", "Weight", "60.0", "kg"],
+    ]
+    found = ocr_report.parse_lines(sheet)
+    assert found.get("height") == 165.0, "‏الطول: %r" % found.get("height")
+    assert found.get("age") == 29, "‏العمر: %r" % found.get("age")
+    assert found.get("weight") == 78.4, "‏الوزن: %r" % found.get("weight")
+    assert found.get("fat_pct") == 38.2, found.get("fat_pct")
+    assert found.get("bmi") == 28.8, found.get("bmi")
+    assert found.get("muscle_mass") == 24.1, found.get("muscle_mass")
+    assert found.get("body_water") == 33.0, found.get("body_water")
+    assert found.get("visceral_fat") == 9, found.get("visceral_fat")
+    assert found.get("bmr") == 1420, found.get("bmr")
+
+    # ‏وكل الخانات دي بتعدّي حدود المعقول، فالدكتور بيلاقيها متملّية فعلاً
+    data = lab_report.read_browser([sheet])
+    assert data["dropped"] == [], data["dropped"]
+    for field, want in (("height", 165.0), ("weight", 78.4), ("age", 29),
+                        ("fat_pct", 38.2), ("bmi", 28.8)):
+        assert data[field] == want, (field, data[field])
+
+
+def test_a_label_inside_another_word_is_not_a_label():
+    """‏الحدود دي هي التصليح، فمقفولة باختبار لكل عنوان قصير."""
+    import ocr_report
+    for line in ("Right Leg 6.01", "Average 1324", "Percentage of Standard 104",
+                 "Weight Control -18.4", "Usage 5", "Highlight 12"):
+        field, _ = ocr_report._label_form(line)
+        assert field is None, "‏%r اتقرا كـ%s" % (line, field)
+    # ‏والعناوين القصيرة الحقيقية لسه بتتقرا
+    for line, want in (("Ht 165", "height"), ("Wt 78.4", "weight"),
+                       ("Age 29", "age"), ("SMM 24.1", "muscle_mass"),
+                       ("TBW 33.0", "body_water"), ("BMI 28.8", "bmi"),
+                       ("PBF 38.2 %", "fat_pct"), ("VFA 9", "visceral_fat")):
+        field, _ = ocr_report._label_form(line)
+        assert field == want, "‏%r -> %s (المتوقع %s)" % (line, field, want)
+
+
 def test_what_the_browser_sends_is_cut_to_known_limits():
     """‏الطلب مفتوح لأي حساب موظف، فالحدود على السيرفر مش في الجافاسكربت."""
     huge = [[["Weight", "78.4", "kg"]] * 5000] * 9

@@ -1451,14 +1451,24 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
     // ‏اللي المحرّك قراه فعلاً. ده الفرق بين "الورقة مش واضحة" و"شكل
     // العناوين مختلف" -- والدكتور يقدر يبعت السطور دي عشان تتصلّح.
     if((data.seen || []).length){
-      out += '<details style="margin-top:8px"><summary style="cursor:pointer;'
-           + 'font-size:12px">'
+      // ‏لما ولا خانة اتملت، السطور دي هي الحاجة الوحيدة اللي بتقول ليه --
+      // فبتفتح لوحدها. الدكتور مش لازم يعرف إنه يدوس على حاجة.
+      const openIt = filled.length ? '' : ' open';
+      out += '<details' + openIt + ' style="margin-top:8px">'
+           + '<summary style="cursor:pointer;font-size:12px">'
            + T('شوف اللي المحرّك قراه من الورقة','See what the engine read')
            + '</summary><div style="font-family:monospace;font-size:11.5px;'
            + 'direction:ltr;text-align:left;background:#fff;border-radius:6px;'
-           + 'padding:8px;margin-top:6px;max-height:220px;overflow:auto">'
+           + 'padding:8px;margin-top:6px;max-height:220px;overflow:auto"'
+           + ' id="rpSeen">'
            + data.seen.map(l => l.replace(/[<>&]/g, '')).join('<br>')
-           + '</div></details>';
+           + '</div>'
+           + '<button type="button" id="rpCopySeen" class="btn btn-outline" '
+           + 'style="font-size:11.5px;padding:5px 10px;margin-top:6px">'
+           + T('انسخ السطور دي','Copy these lines') + '</button>'
+           + '<span id="rpSeenCopied" hidden style="font-size:11.5px;'
+           + 'color:#1f5132;margin-inline-start:8px">' + T('اتنسخ','Copied')
+           + '</span></details>';
     }
     if((data.extras || []).length){
       out += '<br>' + T('قراءات تانية على الورقة: ','Other readings on the sheet: ')
@@ -1473,7 +1483,21 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
          + T('راجع الأرقام قبل التوليد — القراءة من صورة مش معصومة.',
              'Check the numbers before generating -- reading a photo is not infallible.')
          + '</span>';
-    show(left.length ? 'warn' : 'ok', out);
+    show(left.length || (data.dropped || []).length ? 'warn' : 'ok', out);
+    // ‏نسخ السطور: أسهل وأدق من صورة شاشة لما الورقة محتاجة تظبيط.
+    const copySeen = document.getElementById('rpCopySeen');
+    if(copySeen) copySeen.addEventListener('click', async function(){
+      const text = (data.seen || []).join('\n');
+      try{ await navigator.clipboard.writeText(text); }
+      catch(e){
+        const box = document.createElement('textarea');
+        box.value = text; document.body.appendChild(box); box.select();
+        try{ document.execCommand('copy'); }catch(e2){}
+        document.body.removeChild(box);
+      }
+      const flag = document.getElementById('rpSeenCopied');
+      if(flag){ flag.hidden = false; setTimeout(function(){ flag.hidden = true; }, 2200); }
+    });
     file.value = '';
     // ‏الشرح على طول بعد القراءة: دي الخطوة اللي بعدها فعلاً -- الدكتور
     // قرا الورقة، وبيشرحها للعميل اللي قاعد قدامه.

@@ -145,6 +145,29 @@ def _boxes(image_bytes):
     return out, slope
 
 
+# ‏العنوان لازم يطابق ككلمة كاملة، مش كجزء من كلمة. ده مش تجميل:
+#
+#   "Right Leg 6.01"   كان بيتقرا **طول 6.01**   -- "ht" جوّه "right"
+#   "Average 1324"     كان بيتقرا **عمر 1324**   -- "age" جوّه "average"
+#
+# ‏وورقة الـInBody الكاملة مليانة الصفوف دي (الأطراف، والمتوسطات)، فالقراية
+# كانت بتطلّع أرقام من صفوف مالهاش علاقة، وحدود المعقول هي اللي بتشيلها --
+# يعني الدكتور مابيتملّاش ولا خانة ومش عارف ليه. الأرقام دي مقيسة من
+# ورقته هو، مش مفترضة.
+_FORM_RX = {}
+
+
+def _form_regex(form):
+    rx = _FORM_RX.get(form)
+    if rx is None:
+        # ‏(?<![a-z]) و(?![a-z]) = حدود كلمة على الحروف بس، عشان "fat%"
+        # و"fat %" يفضلوا يطابقوا.
+        body = r"\s+".join(re.escape(word) for word in form.split())
+        rx = re.compile(r"(?<![a-z])" + body + r"(?![a-z])")
+        _FORM_RX[form] = rx
+    return rx
+
+
 def _label_form(text):
     """‏يرجّع (الخانة، شكل العنوان اللي طابق) أو (None, None)."""
     low = re.sub(r"[^a-z% ]", "", text.lower())
@@ -152,7 +175,7 @@ def _label_form(text):
         return None, None
     for field, forms in _LABELS:
         for form in forms:
-            if form in low:
+            if _form_regex(form).search(low):
                 return field, form
     return None, None
 
@@ -250,11 +273,14 @@ def _after_label(words, form):
     رقم في السطر كان الوزن هيبقى ١٦٥. فبندوّر على الرقم اللي **بعد** العنوان.
     """
     norm = [re.sub(r"[^a-z% ]", "", w.lower()) for w in words]
+    rx = _form_regex(form)
     for i in range(len(words)):
         acc = ""
         for j in range(i, len(words)):
             acc = (acc + " " + norm[j]).strip()
-            if form in acc or form in acc.replace(" ", ""):
+            # ‏نفس حدود الكلمة بتاعة _label_form، وإلا الرقم يتاخد من بعد
+            # كلمة غلط: "Right Leg" كان بيعتبر "right" هو عنوان الطول.
+            if rx.search(acc) or rx.search(acc.replace(" ", "")):
                 return j + 1
     return 0
 
