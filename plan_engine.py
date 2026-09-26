@@ -877,7 +877,7 @@ def plan_html(data, plan=None, clean=False):
         'plan_title': plan_title,
         'diet_plan_name': plan_info["name"] if _pdf_ar else (plan_info.get("name_en") or plan_info["name"]),
         'culture': _CULTURE_EN.get(data.get("culture"), data.get("culture", "-")) if not _pdf_ar else data.get("culture","مصري"),
-        'client': {'name': data.get('name','-'), 'age': data.get('age','-'),
+        'client': {'name': (data.get('name') or '').strip(), 'age': data.get('age','-'),
             'gender': data.get('gender','-'), 'height': data.get('height','-'),
             'weight': data.get('weight','-'), 'bmi': data.get('bmi','-'),
             'body_fat': data.get('fat_pct','-'), 'tdee': data.get('tdee','-'),
@@ -1198,7 +1198,7 @@ tr:nth-child(even) td {{ background:#fbfcfb; }}
   <div class="s">{_file_line}{_esc(td['date'])}</div>
 </div>
 <div class="meta">
-  <span><b>{_L("الاسم", "Name")}:</b> {_esc(cl['name'])}</span>
+  {f'<span><b>{_L("الاسم", "Name")}:</b> {_esc(cl["name"])}</span>' if cl.get('name') else ''}
   <span><b>{_L("النوع", "Sex")}:</b> {_esc(_GENDER_EN.get(cl['gender'], cl['gender']) if not _pdf_ar else cl['gender'])}</span>
   <span><b>{_L("العمر", "Age")}:</b> {_esc(cl['age'])}</span>
   <span><b>{_L("الوزن", "Weight")}:</b> {_esc(cl['weight'])} {_L("كجم", "kg")}</span>

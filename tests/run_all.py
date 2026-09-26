@@ -15,12 +15,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # ‏قاعدة الاختبارات: منفصلة عن /tmp/nutrax.db بتاعة التشغيل المحلي
 TEST_DB = os.environ.get("NUTRAX_TEST_DB", "/tmp/nutrax_suite.db")
 SUITES = [
+    "test_db_connection.py",
     "test_medical_filtering.py",
     "test_access_control.py",
     "test_translation.py",
     "test_zigzag.py",
     "test_food_data.py",
     "test_followup.py",
+    "test_quick_check_and_renaming.py",
     "test_plan_link.py",
     "test_plan_editing.py",
     "test_plan_reaches_the_table.py",

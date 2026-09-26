@@ -101,13 +101,25 @@ def test_the_lookup_endpoint_accepts_a_phone_with_no_name():
     assert "matched_by" in block, "‏الواجهة مش بتعرف لقاه بالرقم ولا بالاسم"
 
 
-def test_the_autofill_fills_the_name_because_the_field_is_required():
-    """‏لو الاسم فضل فاضي، المتصفح بيرفض الإرسال والدكتور مش فاهم ليه."""
+def test_the_autofill_still_fills_the_name_now_that_it_is_optional():
+    """‏الاسم بقى **اختياري**: الدكتور بيعمل فحص سريع أو مجاني كتير والاسم
+    والرقم مالهمش لازمة وقتها.
+
+    ‏الاختبار ده كان بيتأكد إن الحقل required -- عشان لو فضل فاضي المتصفح
+    يرفض الإرسال. بقى العكس: الفاضي مسموح. اللي لسه مهم إن الملء التلقائي
+    يملّيه لما الدكتور يدوس على عميل من القايمة، وإن الصفحة تقول إيه اللي
+    مش هيحصل لو سابه فاضي -- مش تسيبه يخمّن.
+    """
     html = _form()
-    assert 'name="name" id="nameField" required' in html, \
-        "‏شكل حقل الاسم اتغير -- الاختبار ده محتاج تحديث"
+    import re
+    tag = re.search(r'<input[^>]*id="nameField"[^>]*>', html)
+    assert tag, "‏حقل الاسم مش موجود"
+    assert "required" not in tag.group(0), (
+        "‏الاسم بقى required تاني -- الفحص السريع مش هينفع: %s" % tag.group(0))
     assert "setVal(nameField, d.name" in html, \
-        "‏الملء التلقائي مش بيملّي الاسم، والحقل required"
+        "‏الملء التلقائي مش بيملّي الاسم"
+    assert "مش هيتعمل ملف متابعة" in html, \
+        "‏الصفحة مش بتقول إن سيبه فاضي معناه مافيش ملف متابعة"
 
 
 def test_the_autofill_never_overwrites_what_was_typed():

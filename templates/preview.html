@@ -115,7 +115,8 @@
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
     <div>
       <div style="font-size:13px;opacity:0.8">{{ t('العميل','Client') }}</div>
-      <div style="font-size:22px;font-weight:800">{{ data.name }}</div>
+      {# ‏الاسم اختياري، فلو فاضي بنقول إنه فحص سريع بدل سطر فاضي #}
+      <div style="font-size:22px;font-weight:800">{{ data.name or t('فحص سريع — بدون اسم','Quick check -- no name') }}</div>
     </div>
     <div style="display:flex;gap:20px;flex-wrap:wrap">
       <div style="text-align:center">

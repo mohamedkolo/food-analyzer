@@ -340,8 +340,9 @@ def read_passes(passes):
                 flat.append(" ".join(
                     w if isinstance(w, str) else str((w or {}).get("t", ""))
                     for w in (line or [])))
-    text_all = " ".join(flat).strip()
-    if not text_all:
+    # ‏السطور بتتوصّل بفاصل عشان interpret يرجّعها للدكتور سطور تاني.
+    text_all = " | ".join(line for line in flat if line.strip())
+    if not text_all.strip():
         raise RuntimeError("مقدرتش أقرا أي كلام في الصورة. صوّرها في نور أحسن "
                            "وخلي الورقة كلها في الكادر.")
     return interpret(merge_found([parse_lines(one) for one in passes]), text_all)
@@ -407,6 +408,9 @@ def interpret(found, text_all):
             found.pop(field, None)
 
     out = dict(found)
+    # ‏السطور اللي المحرّك شافها. لما مافيش خانة اتملت، دي الحاجة الوحيدة
+    # اللي بتقول ليه: الورقة مش واضحة، ولا عناوينها بشكل تاني؟
+    out["seen"] = [line for line in (text_all or "").split(" | ") if line.strip()]
     out["is_body_report"] = True
     out["name"] = None          # ‏الاسم على الورقة مش دايماً، وتخمينه غلط
     out["extras"] = []

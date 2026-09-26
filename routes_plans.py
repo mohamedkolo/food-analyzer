@@ -337,6 +337,45 @@ def report_engine_ready():
                for name in _ENGINE_FILES)
 
 
+@bp.route("/followups/<path:key>/rename", methods=["POST"])
+@staff_required
+def rename_followup(key):
+    """‏يصلّح اسم أو موبايل عميل في ملف المتابعة كله.
+
+    ‏ليه محتاج كود ومش مجرد UPDATE: مفتاح العميل نفسه **مبني** على الاسم
+    والموبايل (followup.client_key). فتغيير الاسم لازم يغيّر المفتاح في كل
+    الزيارات، وإلا الملف يتقسم نصين: الزيارات القديمة على مفتاح والجديدة
+    على مفتاح تاني، والتقدّم يتحسب غلط.
+    """
+    from followup import client_key as _key
+    rows = visits_for(session["uid"], key, limit=1)
+    if not rows:
+        return redirect("/followups")
+
+    new_name = (request.form.get("name") or "").strip()
+    new_phone = (request.form.get("phone") or "").strip()
+    if not new_name:
+        return redirect("/followups/%s?err=name" % key)
+
+    new_key = _key(new_name, new_phone)
+    if not new_key:
+        return redirect("/followups/%s?err=name" % key)
+
+    # ‏لو المفتاح الجديد لملف موجود بالفعل، الدمج بياخد قرار مش قرارنا:
+    # زيارات اتنين يبقوا واحد وترقيمهم يتغيّر، ومفيش رجوع. فبنوقف ونقول.
+    if new_key != key and visits_for(session["uid"], new_key, limit=1):
+        return redirect("/followups/%s?err=exists" % key)
+
+    try:
+        db_run("""UPDATE plan_visits SET client_name=?, phone=?, client_key=?
+                  WHERE user_id=? AND client_key=?""",
+               (new_name, new_phone, new_key, session["uid"], key))
+    except Exception as e:
+        log_error("rename_followup", e)
+        return redirect("/followups/%s?err=save" % key)
+    return redirect("/followups/%s?ok=1" % new_key)
+
+
 @bp.route("/api/read-report", methods=["POST"])
 @staff_required
 def read_report_image():
@@ -395,7 +434,11 @@ def read_report_image():
     return jsonify({"ok": True, "fields": fields, "missing": missing,
                     "extras": data.get("extras") or [],
                     "unreadable": data.get("unreadable") or [],
-                    "dropped": data.get("dropped") or []})
+                    "dropped": data.get("dropped") or [],
+                    # ‏السطور اللي المحرّك قراها. لما القراية ماتملّيش
+                    # حاجة، ده الفرق بين "الورقة مش واضحة" و"العناوين
+                    # شكلها مختلف" -- والدكتور يقدر يبعتها ويتصلّح.
+                    "seen": (data.get("seen") or [])[:25]})
 
 
 @bp.route("/api/explain-report", methods=["POST"])
@@ -530,6 +573,8 @@ def followup_detail(key):
 
     return render_template("followup_detail.html", user=u, lang=session.get("lang", "ar"),
                            client_name=rows[0].get("client_name"), client_key=key,
+                           client_phone=rows[0].get("phone") or "",
+                           err=request.args.get("err"), saved=request.args.get("ok"),
                            steps=steps, summary=followup.summarise_history(rows))
 
 

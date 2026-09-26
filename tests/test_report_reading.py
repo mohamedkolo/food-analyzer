@@ -153,9 +153,15 @@ def test_a_number_outside_the_possible_is_thrown_away():
         data = lab_report.read_report(PNG, "image/png")
     finally:
         undo()
+    # ‏والمشيل بيرجع ومعاه **الرقم اللي اتقرا**، مش اسم الخانة بس: الدكتور
+    # كان بيشوف "height, muscle_mass" وبس، فمش هو ولا أنا نعرف القراية
+    # شافت إيه ولا إيه اللي محتاج يتصلّح.
+    thrown = {d["field"]: d for d in data["dropped"]}
     for field in ("weight", "height", "age", "bmr"):
         assert data[field] is None, "%s = %r اتحط وهو مستحيل" % (field, data[field])
-        assert field in data["dropped"], data["dropped"]
+        assert field in thrown, data["dropped"]
+        assert thrown[field]["value"] == payload[field], thrown[field]
+        assert thrown[field]["low"] is not None, thrown[field]
     # ‏وباقي الأرقام المعقولة لسه موجودة
     assert data["fat_pct"] == 38.2, data
 

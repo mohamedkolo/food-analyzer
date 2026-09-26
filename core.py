@@ -343,15 +343,67 @@ if IS_PRODUCTION and not DATABASE_URL:
     )
 
 if DATABASE_URL:
-    import psycopg2, psycopg2.extras, psycopg2.pool
-    # ═══ مخزن اتصالات: بنفتح الاتصال مرة ونعيد استخدامه بدل اتصال جديد لكل استعلام ═══
-    _pg_pool = psycopg2.pool.ThreadedConnectionPool(minconn=1, maxconn=20, dsn=DATABASE_URL)
+    import psycopg2, psycopg2.extras, psycopg2.extensions
+
+    # ═══ اتصال قاعدة البيانات: واحد لكل خيط، مش مخزن مشترك ═══
+    #
+    # ‏اللي كان قبل كده: ThreadedConnectionPool بـ٢٠ اتصال. وباظ بطريقتين
+    # الاتنين ظهروا في لوج الاستضافة:
+    #
+    # ‏① **تسريب اتصال مع كل طلب بيتقطع.** الاستضافة بتقطع الطلب بعد ١٢٠
+    #    ثانية، والقطع بيوصل كـSystemExit -- وده BaseException مش
+    #    Exception، فـ"except Exception" مابيشوفهوش والاتصال مايرجعش
+    #    للمخزن. مقيس: كل قطع بيزوّد اتصال مستخدم ومايرجّعوش (١، ٢، ٣...).
+    #    بعد ٢٠ قطع المخزن يخلص وكل طلب بعد كده يفشل.
+    #
+    # ‏② **قفل مهجور.** لو القطع جه وخيط ماسك قفل المخزن، القفل مايتفتحش
+    #    تاني، وكل الخيوط تستنى عليه للأبد. ده اللي كان في اللوج:
+    #    "psycopg2/pool.py in getconn -> self._lock.acquire()" والعامل
+    #    واقف، لحد ما الاستضافة قتلته بـSIGKILL.
+    #
+    # ‏الحل: مافيش مخزن ولا قفل مشترك. كل خيط له اتصاله، ولو باظ بيتقفل
+    # ويتفتح واحد جديد. الخيط اللي بيموت بياخد اتصاله لوحده معاه.
+    #
+    # ‏وحاجة تالتة: statement_timeout. من غيرها الاستعلام يقدر يستنى ١٢٠
+    # ثانية كاملة لحد ما الاستضافة تقتل العامل. بيها بيرجع غلطة بعد ٢٠
+    # ثانية والموقع يفضل واقف.
+    CONNECT_TIMEOUT = int(os.environ.get("DB_CONNECT_TIMEOUT", "10"))
+    STATEMENT_TIMEOUT_MS = int(os.environ.get("DB_STATEMENT_TIMEOUT_MS", "20000"))
+
+    _db_local = threading.local()
+
+    def _new_conn():
+        return psycopg2.connect(
+            DATABASE_URL,
+            connect_timeout=CONNECT_TIMEOUT,
+            options="-c statement_timeout=%d" % STATEMENT_TIMEOUT_MS,
+            # ‏الاستضافة بتقفل الاتصالات الساكنة من غير ما تقول، فبنخلي
+            # النظام يسأل عليها -- بدل ما أول طلب بعد سكون يلاقي اتصال ميّت.
+            keepalives=1, keepalives_idle=30,
+            keepalives_interval=10, keepalives_count=3,
+        )
+
+    def _drop_conn():
+        conn = getattr(_db_local, "conn", None)
+        _db_local.conn = None
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
     def _pool_exec(sql, params, fetch):
-        """ينفّذ الاستعلام باتصال من المخزن، ولو الاتصال باظ (قطع شبكة مثلاً) يجرب باتصال جديد"""
+        """ينفّذ الاستعلام على اتصال الخيط، ولو الاتصال باظ يفتح واحد جديد."""
         last_err = None
         for attempt in range(2):
-            conn = _pg_pool.getconn()
+            conn = getattr(_db_local, "conn", None)
+            if conn is None or conn.closed:
+                try:
+                    conn = _db_local.conn = _new_conn()
+                except psycopg2.OperationalError as e:
+                    last_err = e
+                    _db_local.conn = None
+                    continue
             try:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                     cur.execute(sql, params)
@@ -362,20 +414,24 @@ if DATABASE_URL:
                     else:
                         result = None
                 conn.commit()
-                _pg_pool.putconn(conn)
                 return result
+            except psycopg2.extensions.QueryCanceledError:
+                # ‏الاستعلام عدّى الحد. إعادته مش هتنجح، وبتضاعف الاستنى --
+                # فبنرجع الغلطة على طول. (بترث من OperationalError، فلازم
+                # تتمسك قبلها.)
+                _drop_conn()
+                raise
             except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
-                # اتصال بايظ — نتخلص منه ونحاول تاني باتصال جديد
                 last_err = e
-                try: _pg_pool.putconn(conn, close=True)
-                except Exception: pass
-            except Exception:
+                _drop_conn()
+            except BaseException:
+                # ‏**BaseException مقصودة**، مش Exception. القطع من
+                # الاستضافة بيجي كـSystemExit، وهو مش Exception -- وده
+                # بالظبط اللي كان بيسرّب الاتصالات لحد ما الموقع يقف.
                 try:
                     conn.rollback()
-                    _pg_pool.putconn(conn)
-                except Exception:
-                    try: _pg_pool.putconn(conn, close=True)
-                    except Exception: pass
+                except BaseException:
+                    _drop_conn()
                 raise
         raise last_err
 

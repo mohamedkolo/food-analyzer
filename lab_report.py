@@ -162,13 +162,22 @@ def _clean(raw):
            "name": (raw.get("name") or "").strip() or None,
            "gender": raw.get("gender") if raw.get("gender") in ("male", "female") else None,
            "extras": [], "dropped": [],
-           "unreadable": [str(x) for x in (raw.get("unreadable") or [])][:12]}
+           "unreadable": [str(x) for x in (raw.get("unreadable") or [])][:12],
+           # ‏السطور اللي المحرّك قراها، زي ما هي. الدكتور يشوفها لما
+           # القراية ماتملّيش حاجة -- وإلا مافيش حاجة تدل على السبب.
+           "seen": [str(x)[:120] for x in (raw.get("seen") or [])][:25]}
     for key in ("age", "height", "weight", "fat_pct", "bmi", "bmr",
                 "muscle_mass", "visceral_fat", "body_water"):
         value, dropped = _clean_number(raw.get(key), key)
         out[key] = value
         if dropped:
-            out["dropped"].append(dropped)
+            # ‏الرقم اللي اتقرا بيرجع مع الخانة. قبل كده كان بيرجع اسم
+            # الخانة بس، فالدكتور كان يشوف "height, muscle_mass" ومايعرفش
+            # القراية شافت إيه -- ولا هو ولا أنا نعرف نصلّح إيه.
+            out["dropped"].append({"field": dropped,
+                                   "value": raw.get(key),
+                                   "low": SANE_RANGES.get(dropped, (None, None))[0],
+                                   "high": SANE_RANGES.get(dropped, (None, None))[1]})
     for item in (raw.get("extras") or [])[:8]:
         label = str(item.get("label", "")).strip()[:40]
         value = str(item.get("value", "")).strip()[:40]

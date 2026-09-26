@@ -111,13 +111,17 @@
       <div class="form-group">
         <label class="form-label" for="nameField">{{ 'الاسم' if is_ar else 'Name' }}
           <span style="font-weight:600;color:var(--muted);font-size:11px">
-            {{ '— اكتب اسم أو رقم وهتنزل لك قايمة العملاء' if is_ar else '— type a name or number and a client list drops down' }}
+            {{ '— اختياري. سيبه فاضي للفحص السريع، بس مش هيتعمل ملف متابعة' if is_ar else '— optional. Leave it blank for a quick check; no follow-up file is created' }}
           </span>
         </label>
         {# ‏بحث بقايمة اقتراحات: حرفين أو رقمين كفاية. combobox/listbox عشان
            قارئ الشاشة يعرف إن فيه قايمة وإن فيها اختيار حالي. #}
         <div class="ac-wrap">
-          <input class="form-input" type="text" name="name" id="nameField" required
+          {# ‏الاسم **مش مطلوب**: الدكتور بيعمل فحص سريع أو مجاني كتير،
+             والاسم والرقم مالهمش لازمة وقتها. الخطة تتولّد وتتطبع وتتحمّل
+             عادي؛ اللي مش بيحصل هو ملف متابعة -- والمتابعة محتاجة اسم
+             تتعلّق بيه أصلاً. #}
+          <input class="form-input" type="text" name="name" id="nameField"
                  value="{{ prev.name or '' }}" autocomplete="off"
                  role="combobox" aria-expanded="false" aria-autocomplete="list"
                  aria-controls="acList"
@@ -1419,13 +1423,42 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
       fat_pct: document.querySelector('[name="fat_pct"]'),
       bmi: document.getElementById('bmiField')
     };
+    const ALL_LBL = Object.assign({}, LABELS, {
+      muscle_mass: T('كتلة العضل','Skeletal muscle'),
+      visceral_fat: T('الدهون الحشوية','Visceral fat'),
+      body_water: T('ماء الجسم','Body water'), bmr: 'BMR'
+    });
     const left = (data.missing || [])
       .filter(k => ELS[k] && String(ELS[k].value || '').trim() === '')
-      .map(k => LABELS[k] || k)
-      .concat(data.dropped || []);
+      .map(k => ALL_LBL[k] || k);
     if(left.length){
       out += '<br>⚠️ ' + T('لسه ناقص: ','Still missing: ') + left.join('، ')
            + ' — ' + T('اكتبهم إنت.','type these yourself.');
+    }
+    // ‏الأرقام اللي اتقرت وطلعت برّه المعقول: بنقول **الرقم نفسه**.
+    // قبل كده كان بيطلع "height, muscle_mass, body_water" وبس -- أسماء
+    // إنجليزية مالهاش معنى، ومافيش طريقة تعرف القراية شافت إيه.
+    if((data.dropped || []).length){
+      out += '<br>⚠️ ' + T('قريت الأرقام دي ومصدّقتهاش: ','I read these and did not trust them: ')
+           + data.dropped.map(function(d){
+               const label = ALL_LBL[d.field] || d.field;
+               const range = (d.low !== null && d.low !== undefined)
+                 ? ' ' + T('(المعقول ','(sane is ') + d.low + '–' + d.high + ')' : '';
+               return '<b>' + label + ' = ' + d.value + '</b>' + range;
+             }).join('، ')
+           + ' — ' + T('اكتبهم إنت.','type these yourself.');
+    }
+    // ‏اللي المحرّك قراه فعلاً. ده الفرق بين "الورقة مش واضحة" و"شكل
+    // العناوين مختلف" -- والدكتور يقدر يبعت السطور دي عشان تتصلّح.
+    if((data.seen || []).length){
+      out += '<details style="margin-top:8px"><summary style="cursor:pointer;'
+           + 'font-size:12px">'
+           + T('شوف اللي المحرّك قراه من الورقة','See what the engine read')
+           + '</summary><div style="font-family:monospace;font-size:11.5px;'
+           + 'direction:ltr;text-align:left;background:#fff;border-radius:6px;'
+           + 'padding:8px;margin-top:6px;max-height:220px;overflow:auto">'
+           + data.seen.map(l => l.replace(/[<>&]/g, '')).join('<br>')
+           + '</div></details>';
     }
     if((data.extras || []).length){
       out += '<br>' + T('قراءات تانية على الورقة: ','Other readings on the sheet: ')

@@ -21,11 +21,87 @@
 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin:10px 0 18px">
   <h1 class="page-title" style="margin:0">
     <i class="fa-solid fa-user-check"></i> {{ client_name }}
+    {% if client_phone %}<span style="font-size:14px;font-weight:600;color:var(--muted)">{{ client_phone }}</span>{% endif %}
   </h1>
-  <a href="/generate" class="btn btn-primary" style="text-decoration:none">
-    <i class="fa-solid fa-plus"></i> {{ t('زيارة جديدة','New visit') }}
-  </a>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    {# ‏تعديل الاسم والرقم: الاسم بيتكتب بالعجلة في العيادة، والغلطة
+       بتفضل في الملف كله. الزرار ده بيصلّحها في كل الزيارات مرة واحدة. #}
+    <button type="button" class="btn btn-outline" id="fuEditBtn"
+            style="text-decoration:none">
+      <i class="fa-solid fa-pen"></i> {{ t('تعديل الاسم/الرقم','Edit name/phone') }}
+    </button>
+    <a href="/generate" class="btn btn-primary" style="text-decoration:none">
+      <i class="fa-solid fa-plus"></i> {{ t('زيارة جديدة','New visit') }}
+    </a>
+  </div>
 </div>
+
+{% if saved %}
+<div style="background:#f0f7f4;border:1px solid #cfe3d9;color:#1f5132;border-radius:10px;
+            padding:10px 14px;margin-bottom:14px;font-size:13.5px">
+  ✓ {{ t('اتعدّل في كل الزيارات.','Updated across every visit.') }}
+</div>
+{% endif %}
+{% if err %}
+<div style="background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;border-radius:10px;
+            padding:10px 14px;margin-bottom:14px;font-size:13.5px">
+  ⚠️
+  {% if err == 'exists' %}
+    {{ t('فيه ملف متابعة تاني بنفس الاسم والرقم. لو ده نفس العميل ومكرّر، قولّي وأنا أدمج الملفين — الدمج بيغيّر ترقيم الزيارات فمش بعمله لوحدي.',
+         'Another follow-up file already has that name and phone. If it is the same client duplicated, say so and I will merge them -- a merge renumbers the visits, so I do not do it on my own.') }}
+  {% elif err == 'name' %}
+    {{ t('الاسم مايبقاش فاضي — الملف محتاج اسم يتعلّق بيه.','The name cannot be empty -- the file needs a name to hang on.') }}
+  {% else %}
+    {{ t('التعديل مااتحفظش. جرّب تاني.','The change was not saved. Try again.') }}
+  {% endif %}
+</div>
+{% endif %}
+
+<form id="fuEditForm" method="POST" action="/followups/{{ client_key|urlencode }}/rename"
+      hidden class="card" style="padding:16px 18px;margin-bottom:16px">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div style="font-weight:800;color:var(--blue-dark);margin-bottom:4px">
+    {{ t('تعديل بيانات العميل','Edit the client details') }}</div>
+  <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
+    {{ t('التعديل بيسري على كل زيارات الملف، والتقدّم بيفضل متصل زي ما هو.',
+         'The change applies to every visit in the file, and the progress history stays connected.') }}
+  </div>
+  <div class="grid-2">
+    <div class="form-group">
+      <label class="form-label" for="fuName">{{ t('الاسم','Name') }}</label>
+      <input class="form-input" type="text" id="fuName" name="name"
+             value="{{ client_name or '' }}" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="fuPhone">{{ t('الموبايل','Phone') }}
+        <span style="font-weight:600;color:var(--muted);font-size:11px">
+          {{ '— اختياري' if is_ar else '-- optional' }}</span>
+      </label>
+      <input class="form-input" type="text" id="fuPhone" name="phone"
+             value="{{ client_phone or '' }}" placeholder="01xxxxxxxxx">
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button type="submit" class="btn btn-primary">
+      <i class="fa-solid fa-check"></i> {{ t('احفظ','Save') }}</button>
+    <button type="button" class="btn btn-outline" id="fuCancel">
+      {{ t('إلغاء','Cancel') }}</button>
+  </div>
+</form>
+
+<script>
+(function(){
+  const btn = document.getElementById('fuEditBtn');
+  const form = document.getElementById('fuEditForm');
+  const cancel = document.getElementById('fuCancel');
+  if(!btn || !form) return;
+  btn.addEventListener('click', function(){
+    form.hidden = !form.hidden;
+    if(!form.hidden) document.getElementById('fuName').focus();
+  });
+  if(cancel) cancel.addEventListener('click', function(){ form.hidden = true; });
+})();
+</script>
 
 {% if summary %}
 <div class="card" style="padding:18px 20px;margin-bottom:16px">
