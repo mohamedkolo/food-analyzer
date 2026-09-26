@@ -381,6 +381,12 @@ def read_report_image():
     # الصفحة مش شغلنا -- فبنرجّعه باسمه ونسيب الحساب للفورم.
     if data.get("bmr") is not None:
         fields["bmr"] = data["bmr"]
+    # ‏الأرقام اللي مالهاش خانة في الفورم بس الورقة فيها: كتلة العضل،
+    # الدهون الحشوية، الماء. كانت بتتقرا وتتضيّع. دلوقتي بترجع عشان
+    # شرح الورقة للعميل يستعملها -- دي أهم أرقام في الشرح أصلاً.
+    for key in ("muscle_mass", "visceral_fat", "body_water"):
+        if data.get(key) is not None:
+            fields[key] = data[key]
     # ‏الخانات اللي القراية مارجعتهاش، بأسمائها البرمجية. الواجهة بتفلترها
     # تاني على اللي **لسه فاضي** بعد الملء: الـBMI مثلاً الصفحة بتحسبه من
     # الطول والوزن، فمايصحّش نقول "مقدرتش أقراه، اكتبه إنت" وهو مكتوب
@@ -391,6 +397,42 @@ def read_report_image():
                     "extras": data.get("extras") or [],
                     "unreadable": data.get("unreadable") or [],
                     "dropped": data.get("dropped") or []})
+
+
+@bp.route("/api/explain-report", methods=["POST"])
+@staff_required
+def explain_report():
+    """‏أرقام الفحص -> شرح للعميل: يعني إيه، وتشرحها إزاي، وتركّز على إيه.
+
+    ليه على السيرفر مش في الجافاسكربت: النطاقات الطبية والحساب لازم يبقوا
+    في مكان واحد عليه اختبارات. ومافيش نداء لأي خدمة برّه -- كله حساب من
+    الأرقام اللي دخلت، فمافيش رقم جاي من مكان مانعرفهوش.
+    """
+    import body_read
+
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return jsonify({"ok": False, "error": "شكل الطلب مش متوقع"}), 400
+
+    numbers = {key: payload.get(key) for key in
+               ("gender", "weight", "height", "age", "fat_pct", "bmi", "bmr",
+                "tdee", "muscle_mass", "visceral_fat", "body_water")}
+    # ‏الوزن والطول هما الحد الأدنى: من غيرهم مافيش تقسيم ولا BMI ولا هدف.
+    if not (body_read._num(numbers.get("weight"))
+            and body_read._num(numbers.get("height"))):
+        return jsonify({"ok": False,
+                        "error": "اكتب الوزن والطول الأول، وبعد كده اضغط اشرح."}), 400
+
+    is_ar = session.get("lang", "ar") != "en"
+    try:
+        result = body_read.explain(numbers, is_ar=is_ar)
+    except Exception as e:
+        log_error("explain_report", e)
+        return jsonify({"ok": False, "error": "في حاجة وقعت وإحنا بنجهّز الشرح"}), 500
+
+    result["ok"] = True
+    result["text"] = body_read.as_text(result, is_ar=is_ar)
+    return jsonify(result)
 
 
 @bp.route("/api/followup/lookup")

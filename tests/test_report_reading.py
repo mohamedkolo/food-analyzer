@@ -348,12 +348,22 @@ def test_the_bmr_is_offered_not_written_into_the_tdee_box():
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     html = open(os.path.join(here, "templates", "generate.html"),
                 encoding="utf-8").read()
-    script = html[html.index("// ═══ قراءة ورقة التحليل من صورة"):]
-    script = script[:script.index("// ===== معاينة تدوير السعرات")]
+    import re
+    whole = html[html.index("// ═══ قراءة ورقة التحليل من صورة"):]
+    whole = whole[:whole.index("// ===== معاينة تدوير السعرات")]
+    # ‏القراءة نفسها مالهاش أي شغل بخانة الـTDEE
+    script = whole[:whole.index("// ═══ اشرح الفحص للعميل")]
     assert "tdeeField" not in script, (
-        "‏الواجهة بتكتب في خانة الـTDEE -- الرقم المطبوع BMR مش TDEE")
+        "‏القراءة بتلمس خانة الـTDEE -- الرقم المطبوع BMR مش TDEE")
     assert "recomputeTdee()" in script, "‏الصفحة مش بتحسب الـTDEE بعد الملء"
     assert "f.bmr" in script, "‏الـBMR مش معروض للدكتور يقارن"
+    # ‏شرح الفحص **بيقرا** الـTDEE عشان يقوله للعميل، وده مطلوب. اللي
+    # ممنوع هو الكتابة فيه: الشرط الأول كان بيمنع أي ذكر، فكان بيمنع
+    # القراءة كمان. ده بيمنع الكتابة بالظبط.
+    for hit in re.finditer("tdeeField", whole):
+        after = whole[hit.end():hit.end() + 40]
+        assert not re.match(r"""['"]?\s*\)?\s*\.?value\s*=[^=]""", after), (
+            "‏حاجة بتكتب في خانة الـTDEE: %s" % after[:40])
 
 
 def test_the_camera_works_without_any_api_key():

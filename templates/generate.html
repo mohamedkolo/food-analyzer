@@ -81,6 +81,32 @@
        وبينزّله أول ما الدكتور يدوس صوّر. #}
     <script src="{{ url_for('static', filename='js/report_ocr.js') }}" defer></script>
     {% endif %}
+
+    {# ═══ اشرح الفحص للعميل ═════════════════════════════════════════════
+       الدكتور بيقرا الورقة قدام العميل. الزرار ده بياخد الأرقام اللي في
+       الفورم (مكتوبة بإيده أو مقروءة من الورقة) ويرجّع: كل رقم يعني إيه،
+       النقاط اللي يركّز عليها، والترتيب اللي يشرح بيه.
+       بيشتغل من غير صورة: الوزن والطول كفاية يبدأ. #}
+    {# ‏أرقام الورقة اللي مالهاش خانة في الفورم. بدون name عشان ماتتبعتش
+       مع الفورم -- دي حالة الصفحة مش بيانات الخطة. #}
+    <input type="hidden" id="brMuscle"><input type="hidden" id="brVisceral">
+    <input type="hidden" id="brWater"><input type="hidden" id="brBmr">
+    <div id="brBox" style="background:#FBF7F1;border:1px dashed #D9C9AE;
+         border-radius:10px;padding:12px 14px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button type="button" id="brBtn" class="btn btn-outline" style="margin:0;
+                background:#fff;border-color:#D9C9AE;color:#4A3B22">
+          <i class="fa-solid fa-comments"></i>
+          {{ 'اشرح الفحص للعميل' if is_ar else 'Explain the report to the client' }}
+        </button>
+        <span id="brHint" style="font-size:12px;color:#6b5a3e;line-height:1.7">
+          {{ 'كل رقم يعني إيه، النقاط اللي تركّز عليها، والترتيب اللي تشرح بيه. الوزن والطول كفاية تبدأ.'
+             if is_ar else
+             'What each number means, what to focus on, and the order to walk through it. Weight and height are enough to start.' }}
+        </span>
+      </div>
+      <div id="brOut" hidden style="margin-top:12px"></div>
+    </div>
     <div class="grid-2">
       <div class="form-group">
         <label class="form-label" for="nameField">{{ 'الاسم' if is_ar else 'Name' }}
@@ -1355,6 +1381,22 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
     // تحسبه وبنقول للدكتور الرقم المقروء عشان يقارن لو حب.
     calc(); recomputeTdee(); updateMacros();
 
+    // ‏أرقام الورقة اللي مالهاش خانة في الفورم. كانت بتتقرا وتتضيّع --
+    // وهي أهم أرقام في شرح الورقة للعميل.
+    const SHEET = { muscle_mass: 'brMuscle', visceral_fat: 'brVisceral',
+                    body_water: 'brWater', bmr: 'brBmr' };
+    const extraRead = [];
+    const EXTRA_LBL = { muscle_mass: T('كتلة العضل','Skeletal muscle'),
+                        visceral_fat: T('الدهون الحشوية','Visceral fat'),
+                        body_water: T('ماء الجسم','Body water') };
+    Object.keys(SHEET).forEach(function(key){
+      const box = document.getElementById(SHEET[key]);
+      if(box && f[key] !== null && f[key] !== undefined){
+        box.value = f[key];
+        if(EXTRA_LBL[key]) extraRead.push(EXTRA_LBL[key] + ' ' + f[key]);
+      }
+    });
+
     let out = '';
     if(filled.length){
       out += '<b>✓ ' + T('اتملى من الورقة: ','Filled from the sheet: ') + '</b>'
@@ -1389,13 +1431,169 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
       out += '<br>' + T('قراءات تانية على الورقة: ','Other readings on the sheet: ')
            + data.extras.map(x => x.label + ' ' + x.value).join(' · ');
     }
+    if(extraRead.length){
+      out += '<br>' + T('كمان من الورقة (مالهاش خانة، بتستعملها في الشرح): ',
+                        'Also from the sheet (no box for these, used in the explanation): ')
+           + extraRead.join('، ');
+    }
     out += '<br><span style="font-size:11.5px">'
          + T('راجع الأرقام قبل التوليد — القراءة من صورة مش معصومة.',
              'Check the numbers before generating -- reading a photo is not infallible.')
          + '</span>';
     show(left.length ? 'warn' : 'ok', out);
     file.value = '';
+    // ‏الشرح على طول بعد القراءة: دي الخطوة اللي بعدها فعلاً -- الدكتور
+    // قرا الورقة، وبيشرحها للعميل اللي قاعد قدامه.
+    if(window.explainReport) window.explainReport();
   });
+})();
+
+// ═══ اشرح الفحص للعميل ═══════════════════════════════════════════════
+//
+// ‏الشرح نفسه بيتحسب على السيرفر (body_read.py): النطاقات الطبية والحساب
+// في مكان واحد عليه اختبارات، مش متفرّقين في جافاسكربت الصفحة.
+(function(){
+  const btn = document.getElementById('brBtn');
+  const out = document.getElementById('brOut');
+  if(!btn || !out) return;
+
+  const TONE = {
+    good:  ['#f0f7f4','#1f5132'], watch: ['#fffbeb','#92400e'],
+    high:  ['#fef2f2','#991b1b'], low:   ['#fef2f2','#991b1b'],
+    plain: ['#f6f7f8','#3f4a52']
+  };
+
+  function esc(v){
+    return String(v === null || v === undefined ? '' : v)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  function val(id){
+    const el = document.getElementById(id);
+    return el ? el.value : '';
+  }
+
+  async function run(){
+    const body = {
+      gender: genderSel ? genderSel.value : '',
+      weight: w ? w.value : '', height: h ? h.value : '',
+      age: ageField ? ageField.value : '',
+      fat_pct: (document.querySelector('[name="fat_pct"]') || {}).value || '',
+      bmi: val('bmiField'), tdee: val('tdeeField'),
+      muscle_mass: val('brMuscle'), visceral_fat: val('brVisceral'),
+      body_water: val('brWater'), bmr: val('brBmr')
+    };
+    out.hidden = false;
+    out.innerHTML = '<span style="color:#6b5a3e">'
+                  + T('بجهّز الشرح…','Preparing the explanation...') + '</span>';
+    let data;
+    try{
+      const res = await fetch('/api/explain-report', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      data = await res.json();
+    }catch(err){
+      out.innerHTML = '<span style="color:#991b1b">'
+        + T('مقدرتش أجهّز الشرح. اتأكد من النت وجرّب تاني.',
+            'Could not prepare the explanation. Check the connection and retry.')
+        + '</span>';
+      return;
+    }
+    if(!data || !data.ok){
+      out.innerHTML = '<span style="color:#991b1b">⚠️ '
+        + esc((data && data.error) || T('مقدرتش أجهّز الشرح','Could not prepare the explanation'))
+        + '</span>';
+      return;
+    }
+
+    let html = '<div style="background:#fff;border:1px solid #E6DAC4;border-radius:10px;'
+             + 'padding:12px 14px;line-height:1.9">';
+    html += '<div style="font-weight:800;color:#0F2A43;margin-bottom:10px">'
+          + esc(data.headline) + '</div>';
+
+    (data.rows || []).forEach(function(row){
+      const tone = TONE[row.kind] || TONE.plain;
+      html += '<div style="background:' + tone[0] + ';border-radius:8px;'
+            + 'padding:7px 10px;margin-bottom:6px">'
+            + '<b style="color:#0F2A43">' + esc(row.label) + ':</b> '
+            + '<b>' + esc(row.value) + (row.unit ? ' ' + esc(row.unit) : '') + '</b>'
+            + (row.band ? ' <span style="color:' + tone[1] + ';font-weight:700">— '
+                          + esc(row.band) + '</span>' : '')
+            + '<br><span style="font-size:12.5px;color:#4a5560">'
+            + esc(row.means) + '</span></div>';
+    });
+
+    if((data.targets || []).length){
+      html += '<div style="margin-top:10px;font-weight:800;color:#0F2A43">'
+            + T('الهدف بالأرقام','The goal in numbers') + '</div>';
+      html += '<div style="font-size:12.5px;color:#4a5560;margin-bottom:6px">'
+            + T('لو النازل دهون بس والعضل ثابت:','If the loss is fat only and muscle holds:')
+            + '</div>';
+      data.targets.forEach(function(tg){
+        html += '<div style="padding:4px 0">• '
+              + T('عند نسبة دهون ','At ') + '<b>' + esc(tg.fat_pct) + '%</b>'
+              + T(': الوزن ',' body fat: weight ') + '<b>' + esc(tg.weight) + ' '
+              + T('كجم','kg') + '</b> — '
+              + T('نزول ','a drop of ') + '<b>' + esc(tg.drop) + ' ' + T('كجم','kg') + '</b> '
+              + T('كلهم دهون','all of it fat') + '</div>';
+      });
+    }
+
+    if((data.focus || []).length){
+      html += '<div style="margin-top:12px;font-weight:800;color:#0F2A43">'
+            + T('النقاط اللي تركّز عليها','What to focus on') + '</div>';
+      data.focus.forEach(function(item){
+        html += '<div style="border-inline-start:3px solid #C89B3C;padding:4px 10px;margin:6px 0">'
+              + '<b>' + esc(item.title) + '</b><br>'
+              + '<span style="font-size:12.5px;color:#4a5560">' + esc(item.why) + '</span><br>'
+              + '<span style="font-size:12.5px;color:#1f5132">' + esc(item.do) + '</span></div>';
+      });
+    }
+
+    if((data.script || []).length){
+      html += '<div style="margin-top:12px;font-weight:800;color:#0F2A43">'
+            + T('السيناريو — اشرحها بالترتيب ده','How to walk through it') + '</div>';
+      data.script.forEach(function(line){
+        html += '<div style="padding:3px 0;font-size:13px">' + esc(line) + '</div>';
+      });
+    }
+
+    (data.caveats || []).forEach(function(line){
+      html += '<div style="margin-top:8px;font-size:11.5px;color:#8a6d1f">'
+            + esc(line) + '</div>';
+    });
+
+    html += '<div style="margin-top:12px">'
+          + '<button type="button" id="brCopy" class="btn btn-outline" '
+          + 'style="font-size:12px;padding:6px 12px">'
+          + '<i class="fa-regular fa-copy"></i> '
+          + T('انسخ الشرح','Copy the explanation') + '</button>'
+          + '<span id="brCopied" hidden style="font-size:12px;color:#1f5132;'
+          + 'margin-inline-start:8px">' + T('اتنسخ','Copied') + '</span></div>';
+    html += '</div>';
+    out.innerHTML = html;
+
+    // ‏نسخ الشرح: الدكتور بيبعته واتساب للعميل بعد الزيارة.
+    const copy = document.getElementById('brCopy');
+    if(copy) copy.addEventListener('click', async function(){
+      try{ await navigator.clipboard.writeText(data.text || ''); }
+      catch(e){
+        const box = document.createElement('textarea');
+        box.value = data.text || '';
+        document.body.appendChild(box); box.select();
+        try{ document.execCommand('copy'); }catch(e2){}
+        document.body.removeChild(box);
+      }
+      const flag = document.getElementById('brCopied');
+      if(flag){ flag.hidden = false; setTimeout(function(){ flag.hidden = true; }, 2200); }
+    });
+  }
+
+  btn.addEventListener('click', run);
+  // ‏القراءة من الصورة بتنادي دي بعد ما تملّي الخانات.
+  window.explainReport = run;
 })();
 
 // ===== معاينة تدوير السعرات =====

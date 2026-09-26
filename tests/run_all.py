@@ -27,6 +27,7 @@ SUITES = [
     "test_sleeve_diet.py",
     "test_form_prefill.py",
     "test_report_reading.py",
+    "test_report_explaining.py",
     "test_error_pages.py",
     "test_portion_scaling.py",
     "test_pdf_unbranded.py",

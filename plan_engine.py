@@ -591,21 +591,52 @@ def generate_weekly_plan(data):
         _day_target = zz_days[i]["kcal"] if i < len(zz_days) else _base_target
         _cur_cals = dict(_slot_cals)
         _cur_ps = dict(_slot_ps)
-        for _pass in range(2):
+        _cum = {}          # ‏المعامل المتراكم لكل وجبة من حصتها الأساسية
+        # ‏فيه وجبات مابتتحركش: "٢ بيض" مش بيبقى "١.٨ بيضة"، و"سلطة خضراء
+        # حرة" مالهاش كمية تتضرب. المعامل الموحّد كان بيتطلب منها تتحرك،
+        # هي مابتتحركش، والباقي بيضيع -- وفي نظام وجبتين الوجبة الواحدة
+        # نص اليوم، فاليوم كان بيبعد ١٢٪ عن هدفه (١٢٠٠ يطلع ١٣٤٠ أو ١٠٧٤).
+        #
+        # ‏فبنعمل زي ما التدوير بيعمل مع الحد الأدنى: نثبّت اللي مش بيتحرك،
+        # ونرد الباقي على اللي بيتحرك. وبنقفل على الوجبة اللي طلبنا منها
+        # تتحرك ومااتحركتش، عشان مانلفّش عليها تاني.
+        _stuck = set()
+        for _pass in range(5):
             _now = sum(_cur_cals.values())
             if not (_day_target and _now > 0):
                 break
-            _factor = float(_day_target) / float(_now)
-            if abs(_factor - 1.0) < 0.03:
+            if abs(float(_day_target) / float(_now) - 1.0) < 0.03:
                 break
-            for _key in plan_info["meal_labels"]:
-                _txt = day_plan.get(_key)
-                if not _txt:
+            _movable = [_k for _k in plan_info["meal_labels"]
+                        if day_plan.get(_k) and _cur_cals.get(_k, 0) > 0
+                        and _k not in _stuck]
+            if not _movable:
+                break
+            _held = sum(_c for _k, _c in _cur_cals.items() if _k not in _movable)
+            _free = sum(_cur_cals[_k] for _k in _movable)
+            _want = float(_day_target) - _held
+            if _free <= 0 or _want <= 0:
+                break
+            _factor = _want / _free
+            # ‏وبرضه الطبق لازم يفضل طبق: حصة أكبر من ٣ أضعاف الأساس أو أقل
+            # من تلته بتبقى رقم على الورق مش أكل، فبنقف عند الحد ونسيب
+            # الفرق ظاهر بدل ما نكتب حصة مش معقولة.
+            for _key in _movable:
+                _cap_hi = 3.0 / max(_cum.get(_key, 1.0), 0.01)
+                _cap_lo = 0.34 / max(_cum.get(_key, 1.0), 0.01)
+                _use = min(max(_factor, _cap_lo), _cap_hi)
+                if abs(_use - 1.0) < 0.01:
+                    _stuck.add(_key)
                     continue
-                _new, _eff = scale_meal(_txt, _factor)
+                _new, _eff = scale_meal(day_plan[_key], _use)
                 day_plan[_key] = _new
                 _cur_cals[_key] = _cur_cals.get(_key, 0) * _eff
                 _cur_ps[_key] = _cur_ps.get(_key, 0) * _eff
+                _cum[_key] = _cum.get(_key, 1.0) * _eff
+                if abs(_eff - 1.0) < 0.01:
+                    # ‏طلبنا منها تتحرك ومااتحركتش -- يبقى مالهاش كمية
+                    # تتضرب (عدد أو حصة حرة). مش هتتحرك في تمريرة تانية.
+                    _stuck.add(_key)
         if sum(_cur_cals.values()) > 0:
             total_cal = int(round(sum(_cur_cals.values())))
             total_p = int(round(sum(_cur_ps.values())))
