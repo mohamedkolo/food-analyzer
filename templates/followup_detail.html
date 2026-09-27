@@ -30,6 +30,11 @@
             style="text-decoration:none">
       <i class="fa-solid fa-pen"></i> {{ t('تعديل الاسم/الرقم','Edit name/phone') }}
     </button>
+    {% if others %}
+    <button type="button" class="btn btn-outline" id="fuMergeBtn">
+      <i class="fa-solid fa-code-merge"></i> {{ t('دمج مع ملف تاني','Merge into another file') }}
+    </button>
+    {% endif %}
     <a href="/generate" class="btn btn-primary" style="text-decoration:none">
       <i class="fa-solid fa-plus"></i> {{ t('زيارة جديدة','New visit') }}
     </a>
@@ -39,7 +44,11 @@
 {% if saved %}
 <div style="background:#f0f7f4;border:1px solid #cfe3d9;color:#1f5132;border-radius:10px;
             padding:10px 14px;margin-bottom:14px;font-size:13.5px">
-  ✓ {{ t('اتعدّل في كل الزيارات.','Updated across every visit.') }}
+  ✓
+  {% if saved == 'visit' %}{{ t('أرقام الزيارة اتصلّحت، والتقدّم اتحسب تاني.','The visit is corrected and the progress recomputed.') }}
+  {% elif saved == 'deleted' %}{{ t('الزيارة اتمسحت، والترقيم اترتّب تاني.','The visit is gone and the numbering was tidied.') }}
+  {% elif saved == 'merged' %}{{ t('الملفين بقوا ملف واحد، والزيارات اترتّبت بتاريخها.','The two files are one, with the visits ordered by date.') }}
+  {% else %}{{ t('اتعدّل في كل الزيارات.','Updated across every visit.') }}{% endif %}
 </div>
 {% endif %}
 {% if err %}
@@ -47,8 +56,14 @@
             padding:10px 14px;margin-bottom:14px;font-size:13.5px">
   ⚠️
   {% if err == 'exists' %}
-    {{ t('فيه ملف متابعة تاني بنفس الاسم والرقم. لو ده نفس العميل ومكرّر، قولّي وأنا أدمج الملفين — الدمج بيغيّر ترقيم الزيارات فمش بعمله لوحدي.',
-         'Another follow-up file already has that name and phone. If it is the same client duplicated, say so and I will merge them -- a merge renumbers the visits, so I do not do it on my own.') }}
+    {{ t('فيه ملف متابعة تاني بنفس الاسم والرقم. لو ده نفس العميل ومكرّر، استعمل زرار «دمج مع ملف تاني» فوق.',
+         'Another follow-up file already has that name and phone. If it is the same client duplicated, use the "Merge into another file" button above.') }}
+  {% elif err == 'number' %}
+    {{ t('فيه رقم مش مفهوم. اكتب أرقام بس (زي 78.4).','One of the numbers is not a number. Digits only (like 78.4).') }}
+  {% elif err == 'weight' %}
+    {{ t('الوزن مايبقاش فاضي — كل حساب التقدّم مبني عليه.','The weight cannot be empty -- the whole progress calculation rests on it.') }}
+  {% elif err == 'merge' %}
+    {{ t('اختار ملف تاني للدمج.','Pick another file to merge into.') }}
   {% elif err == 'name' %}
     {{ t('الاسم مايبقاش فاضي — الملف محتاج اسم يتعلّق بيه.','The name cannot be empty -- the file needs a name to hang on.') }}
   {% else %}
@@ -89,7 +104,60 @@
   </div>
 </form>
 
+{% if others %}
+{# ‏دمج ملفين لنفس العميل: بيحصل لما الاسم يتكتب بشكلين، فالعميل يبقى له
+   ملفين وكل واحد بيحسب تقدّمه لوحده. الدمج مالوش رجوع، فعليه تأكيد. #}
+<form id="fuMergeForm" method="POST" action="/followups/{{ client_key|urlencode }}/merge"
+      hidden class="card" style="padding:16px 18px;margin-bottom:16px"
+      onsubmit="return confirm('{{ t('الدمج مالوش رجوع. تأكيد؟','A merge cannot be undone. Are you sure?') }}')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div style="font-weight:800;color:var(--blue-dark);margin-bottom:4px">
+    {{ t('دمج الملف ده في ملف تاني','Merge this file into another') }}</div>
+  <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
+    {{ t('كل زيارات الملف ده هتنقل للملف اللي تختاره، وتترتّب بتاريخها. الملف ده هيختفي، والدمج مالوش رجوع.',
+         'Every visit here moves into the file you pick and they are ordered by date. This file disappears, and a merge cannot be undone.') }}
+  </div>
+  <div class="form-group">
+    <label class="form-label" for="fuInto">{{ t('يندمج في','Merge into') }}</label>
+    <select class="form-input" id="fuInto" name="into" required>
+      <option value="">{{ t('— اختار الملف —','-- pick a file --') }}</option>
+      {% for c in others %}
+      <option value="{{ c.client_key }}">{{ c.client_name }}
+        ({{ c.visits }} {{ t('زيارة','visits') }})</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button type="submit" class="btn btn-primary">
+      <i class="fa-solid fa-code-merge"></i> {{ t('ادمج','Merge') }}</button>
+    <button type="button" class="btn btn-outline" id="fuMergeCancel">
+      {{ t('إلغاء','Cancel') }}</button>
+  </div>
+</form>
+{% endif %}
+
 <script>
+(function(){
+  const merge = document.getElementById('fuMergeBtn');
+  const mergeForm = document.getElementById('fuMergeForm');
+  const mergeCancel = document.getElementById('fuMergeCancel');
+  if(merge && mergeForm){
+    merge.addEventListener('click', function(){ mergeForm.hidden = !mergeForm.hidden; });
+    if(mergeCancel) mergeCancel.addEventListener('click', function(){ mergeForm.hidden = true; });
+  }
+  // ‏كل زيارة ليها فورم تعديل مخفي لوحده.
+  //
+  // ‏الاستماع على document مش على الزراير: السكربت ده مكانه **قبل** كروت
+  // الزيارات في الصفحة، فلو دوّرنا على الزراير وقت التحميل مانلاقيش
+  // حاجة -- والزرار يفضل مايفتحش. (الاختبارات مامسكتهاش لأنها بتقرا
+  // الـHTML مش بتشغّله، ظهرت في متصفح حقيقي.)
+  document.addEventListener('click', function(event){
+    const btn = event.target.closest('[data-visit-edit]');
+    if(!btn) return;
+    const form = document.getElementById('visitForm' + btn.dataset.visitEdit);
+    if(form) form.hidden = !form.hidden;
+  });
+})();
 (function(){
   const btn = document.getElementById('fuEditBtn');
   const form = document.getElementById('fuEditForm');
@@ -233,6 +301,65 @@
       {{ t('شوف جدول الزيارة دي','Open this visit’s plan') }} ›</a>
   </div>
   {% endif %}
+
+  {# ‏تصليح أرقام الزيارة: الرقم اللي اتدخّل غلط بيفضل في الملف ويلخبط
+     كل حساب التقدّم بعديه. والتقدّم بيتحسب وقت العرض، فتصليح الرقم
+     بيصلّح السلسلة كلها لوحده. #}
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+    <button type="button" class="btn btn-outline" data-visit-edit="{{ v.id }}"
+            style="font-size:12px;padding:5px 11px">
+      <i class="fa-solid fa-pen"></i> {{ t('تعديل أرقام الزيارة','Correct this visit') }}
+    </button>
+    <form method="POST" action="/followups/{{ client_key|urlencode }}/visit/{{ v.id }}/delete"
+          style="display:inline"
+          onsubmit="return confirm('{{ t('مسح الزيارة دي؟ مالوش رجوع.','Delete this visit? It cannot be undone.') }}')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline"
+              style="font-size:12px;padding:5px 11px;color:#991b1b;border-color:#fca5a5">
+        <i class="fa-regular fa-trash-can"></i> {{ t('امسح الزيارة','Delete visit') }}
+      </button>
+    </form>
+  </div>
+
+  <form id="visitForm{{ v.id }}" method="POST" hidden
+        action="/followups/{{ client_key|urlencode }}/visit/{{ v.id }}/edit"
+        style="margin-top:12px;background:#FBF7F1;border:1px dashed #D9C9AE;
+               border-radius:10px;padding:14px 16px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div style="font-size:12.5px;color:#6b5a3e;margin-bottom:10px">
+      {{ t('صلّح اللي اتدخّل غلط. الـBMI بيتحسب من الوزن والطول، والتقدّم بيتحسب تاني لوحده.',
+           'Correct what was entered wrong. BMI is computed from weight and height, and the progress recomputes itself.') }}
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label" for="vw{{ v.id }}">{{ t('الوزن (كجم)','Weight (kg)') }}</label>
+        <input class="form-input" type="number" step="0.1" id="vw{{ v.id }}"
+               name="weight" value="{{ v.weight or '' }}" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="vh{{ v.id }}">{{ t('الطول (سم)','Height (cm)') }}</label>
+        <input class="form-input" type="number" step="0.1" id="vh{{ v.id }}"
+               name="height" value="{{ v.height or '' }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="vf{{ v.id }}">{{ t('نسبة الدهون %','Body fat %') }}</label>
+        <input class="form-input" type="number" step="0.1" id="vf{{ v.id }}"
+               name="fat_pct" value="{{ v.fat_pct or '' }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="va{{ v.id }}">{{ t('العمر','Age') }}</label>
+        <input class="form-input" type="number" id="va{{ v.id }}"
+               name="age" value="{{ v.age or '' }}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="vn{{ v.id }}">{{ t('ملاحظة الزيارة','Visit note') }}</label>
+      <input class="form-input" type="text" id="vn{{ v.id }}"
+             name="visit_notes" value="{{ v.visit_notes or '' }}">
+    </div>
+    <button type="submit" class="btn btn-primary" style="font-size:13px">
+      <i class="fa-solid fa-check"></i> {{ t('احفظ','Save') }}</button>
+  </form>
 </div>
 {% endfor %}
 

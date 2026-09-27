@@ -224,6 +224,191 @@ def test_the_page_offers_the_edit_without_leaving_the_file():
     assert "كل زيارات الملف" in page, "‏مش بيقول إن التعديل على الملف كله"
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# ‏تصليح الزيارات: تعديل أرقامها، مسح زيارة غلط، ودمج ملفين
+#
+# ‏الرقم اللي اتدخّل غلط مش مشكلة في سطر واحد: حساب التقدّم كله مبني عليه،
+# فوزن ٩٥ بالغلط بيخلي الزيارة تبان "زيادة ١٨ كيلو" واللي بعديها "نزول ١٩".
+# ═══════════════════════════════════════════════════════════════════════
+
+def _three_visits(name="نورة سيد", phone="01011112222", weights=("78.4", "77.0", "95.0")):
+    """‏تلات زيارات، كل واحدة في جلسة لوحدها -- زي الواقع (التطبيق بيمنع
+    إن نفس الجدول يتسجّل زيارتين في نفس الجلسة)."""
+    _wipe()
+    for weight in weights:
+        client = _staff()
+        client.post("/generate", data=dict(BASE, name=name, phone=phone,
+                                           weight=weight, fat_pct="38.2"))
+        client.post("/api/save-plan")
+    key = core.recent_clients(_uid())[0]["client_key"]
+    return key, core.visits_for(_uid(), key, limit=9)
+
+
+def _visit_with(rows, weight):
+    return [row for row in rows if row["weight"] == weight][0]
+
+
+def test_a_wrong_number_in_a_visit_can_be_corrected():
+    key, rows = _three_visits()
+    wrong = _visit_with(rows, 95.0)
+    client = _staff()
+    response = client.post("/followups/%s/visit/%s/edit" % (key, wrong["id"]),
+                           data={"weight": "76.0", "height": "165",
+                                 "fat_pct": "36.0", "age": "29",
+                                 "visit_notes": "اتصلّح"},
+                           follow_redirects=False)
+    assert response.status_code == 302, response.status_code
+    assert "ok=visit" in response.headers["Location"], response.headers["Location"]
+
+    fixed = core.db_row("SELECT * FROM plan_visits WHERE id=?", (wrong["id"],))
+    assert fixed["weight"] == 76.0, fixed["weight"]
+    assert fixed["fat_pct"] == 36.0, fixed["fat_pct"]
+    assert fixed["visit_notes"] == "اتصلّح", fixed["visit_notes"]
+    # ‏الـBMI بيتحسب من الوزن والطول، مابيتكتبش بالإيد
+    assert abs(fixed["bmi"] - 76.0 / (1.65 ** 2)) < 0.1, fixed["bmi"]
+
+
+def test_correcting_a_visit_fixes_the_progress_that_hangs_off_it():
+    """‏ده اللي بيفرق فعلاً: التقدّم بيتحسب وقت العرض من الزيارات، فتصليح
+    رقم واحد بيصلّح السلسلة كلها -- من غير ما نلمس أي حساب."""
+    import followup
+    key, rows = _three_visits()
+    wrong = _visit_with(rows, 95.0)
+    ordered = sorted(rows, key=lambda row: row["visit_no"])
+    before = followup.assess(ordered[-2], ordered[-1], "ar")
+    assert before["delta"] > 0, "‏المفروض الزيارة الغلط تبان زيادة: %s" % before
+
+    client = _staff()
+    client.post("/followups/%s/visit/%s/edit" % (key, wrong["id"]),
+                data={"weight": "76.0", "height": "165", "fat_pct": "36.0",
+                      "age": "29"})
+    again = sorted(core.visits_for(_uid(), key, limit=9),
+                   key=lambda row: row["visit_no"])
+    after = followup.assess(again[-2], again[-1], "ar")
+    assert after["delta"] < 0, "‏بعد التصليح المفروض تبان نزول: %s" % after
+
+
+def test_a_visit_edit_refuses_nonsense_and_changes_nothing():
+    key, rows = _three_visits()
+    target = _visit_with(rows, 77.0)
+    client = _staff()
+    for payload, why in (({"weight": "abc"}, "number"),
+                         ({"weight": "-5"}, "number"),
+                         ({"weight": ""}, "weight")):
+        response = client.post("/followups/%s/visit/%s/edit" % (key, target["id"]),
+                               data=payload, follow_redirects=False)
+        assert "err=%s" % why in response.headers["Location"], (payload, response.headers)
+        still = core.db_row("SELECT weight FROM plan_visits WHERE id=?", (target["id"],))
+        assert still["weight"] == 77.0, (payload, still)
+
+
+def test_a_visit_recorded_by_mistake_can_be_deleted_and_the_rest_renumbered():
+    key, rows = _three_visits()
+    victim = _visit_with(rows, 95.0)
+    client = _staff()
+    response = client.post("/followups/%s/visit/%s/delete" % (key, victim["id"]),
+                           follow_redirects=False)
+    assert response.status_code == 302, response.status_code
+    assert "ok=deleted" in response.headers["Location"], response.headers["Location"]
+
+    left = core.visits_for(_uid(), key, limit=9)
+    assert len(left) == 2, left
+    assert 95.0 not in [row["weight"] for row in left], left
+    # ‏الترقيم لازم يترتّب: فجوة في الأرقام معناها الدكتور يقرا "زيارة ٣"
+    # وهي التانية
+    assert sorted(row["visit_no"] for row in left) == [1, 2], [
+        row["visit_no"] for row in left]
+
+
+def test_deleting_the_only_visit_closes_the_file():
+    _wipe()
+    client = _staff()
+    client.post("/generate", data=dict(BASE, name="ملف واحد", phone="01000001111"))
+    client.post("/api/save-plan")
+    key = core.recent_clients(_uid())[0]["client_key"]
+    only = core.visits_for(_uid(), key, limit=1)[0]
+    response = client.post("/followups/%s/visit/%s/delete" % (key, only["id"]),
+                           follow_redirects=False)
+    assert response.headers["Location"].endswith("/followups"), response.headers
+    assert core.recent_clients(_uid()) == [], core.recent_clients(_uid())
+
+
+def test_two_files_for_one_client_can_be_merged_into_one_history():
+    """‏نفس العميل باسمين = ملفين، وكل واحد بيحسب تقدّمه لوحده. يعني نزول
+    ٦ كيلو على ٣ زيارات بيتقسم نصين ومحدش شايف الصورة كاملة."""
+    key, _rows = _three_visits()
+    client = _staff()
+    client.post("/generate", data=dict(BASE, name="نوره سييد", phone="01099998888"))
+    client.post("/api/save-plan")
+    files = core.recent_clients(_uid())
+    assert len(files) == 2, files
+    duplicate = [f for f in files if f["client_name"] == "نوره سييد"][0]["client_key"]
+
+    client = _staff()
+    response = client.post("/followups/%s/merge" % duplicate, data={"into": key},
+                           follow_redirects=False)
+    assert response.status_code == 302, response.status_code
+    assert "ok=merged" in response.headers["Location"], response.headers["Location"]
+
+    after = core.recent_clients(_uid())
+    assert len(after) == 1, "‏الدمج ساب ملفين: %s" % after
+    assert after[0]["visits"] == 4, after[0]
+    merged = core.visits_for(_uid(), key, limit=9)
+    # ‏الترقيم بترتيب التاريخ، بدون تكرار -- وإلا "زيارة ١" تبان مرتين
+    assert sorted(row["visit_no"] for row in merged) == [1, 2, 3, 4], [
+        row["visit_no"] for row in merged]
+    assert len({row["client_name"] for row in merged}) == 1, merged
+
+
+def test_a_merge_needs_a_real_other_file():
+    key, _rows = _three_visits()
+    client = _staff()
+    for payload in ({"into": ""}, {"into": key}, {"into": "nobody|000000"}):
+        response = client.post("/followups/%s/merge" % key, data=payload,
+                               follow_redirects=False)
+        assert "err=merge" in response.headers["Location"], (payload, response.headers)
+    assert core.recent_clients(_uid())[0]["visits"] == 3, core.recent_clients(_uid())
+
+
+def test_nobody_can_touch_a_visit_that_is_not_theirs():
+    key, rows = _three_visits()
+    target = rows[0]
+
+    anon = A.app.test_client()
+    for path in ("edit", "delete"):
+        response = anon.post("/followups/%s/visit/%s/%s" % (key, target["id"], path),
+                             data={"weight": "1"})
+        assert response.status_code in (301, 302, 401, 403), (path, response.status_code)
+    assert core.db_row("SELECT weight FROM plan_visits WHERE id=?",
+                       (target["id"],))["weight"] == target["weight"]
+
+    # ‏وزيارة من ملف تاني: المسار بيحدّد الملف، فلازم يتطابق
+    client = _staff()
+    response = client.post("/followups/%s/visit/%s/edit" % ("ملف|تاني", target["id"]),
+                           data={"weight": "1"}, follow_redirects=False)
+    assert response.headers["Location"].endswith("/followups"), response.headers
+    assert core.db_row("SELECT weight FROM plan_visits WHERE id=?",
+                       (target["id"],))["weight"] == target["weight"]
+
+
+def test_the_page_offers_all_three_and_warns_before_the_ones_that_cannot_be_undone():
+    key, rows = _three_visits()
+    client = _staff()
+    # ‏ملف تاني عشان زرار الدمج يظهر
+    client.post("/generate", data=dict(BASE, name="حد تاني", phone="01055554444"))
+    client.post("/api/save-plan")
+    page = client.get("/followups/%s" % key).get_data(as_text=True)
+
+    assert 'data-visit-edit="%s"' % rows[0]["id"] in page, "‏مافيش زرار تعديل للزيارة"
+    assert 'id="visitForm%s"' % rows[0]["id"] in page, "‏مافيش فورم تعديل"
+    assert "/visit/%s/delete" % rows[0]["id"] in page, "‏مافيش زرار مسح"
+    assert 'id="fuMergeForm"' in page, "‏مافيش فورم دمج"
+    # ‏المسح والدمج مالهمش رجوع، فلازم تأكيد قبلهم
+    assert page.count("confirm(") >= 2, "‏مافيش تأكيد قبل اللي مالوش رجوع"
+    # ‏وكل فورم عليه توكن
+    assert page.count('name="csrf_token"') >= 3, page.count('name="csrf_token"')
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):

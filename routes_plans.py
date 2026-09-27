@@ -376,6 +376,129 @@ def rename_followup(key):
     return redirect("/followups/%s?ok=1" % new_key)
 
 
+def _renumber(doctor_uid, key):
+    """‏يرقّم زيارات الملف من ١ بترتيب تاريخها.
+
+    ‏لازم بعد أي مسح أو دمج: ترقيم الزيارات بيتحسب وقت الحفظ (آخر رقم + ١)،
+    فلو زيارة اتشالت من الوسط الترقيم بيبقى فيه فجوة، ولو ملفين اتدمجوا
+    بيبقى فيه أرقام مكررة -- والدكتور بيقرا "زيارة ٣" مرتين.
+    """
+    rows = db_rows("""SELECT id FROM plan_visits WHERE user_id=? AND client_key=?
+                      ORDER BY created_at ASC, id ASC""", (doctor_uid, key)) or []
+    for number, row in enumerate(rows, start=1):
+        db_run("UPDATE plan_visits SET visit_no=? WHERE id=? AND user_id=?",
+               (number, row["id"], doctor_uid))
+    return len(rows)
+
+
+def _own_visit(doctor_uid, key, visit_id):
+    """‏الزيارة دي بتاعة الدكتور ده وفي الملف ده؟ غير كده مالوش دعوة بيها."""
+    return db_row("""SELECT * FROM plan_visits
+                     WHERE id=? AND user_id=? AND client_key=?""",
+                  (visit_id, doctor_uid, key))
+
+
+@bp.route("/followups/<path:key>/visit/<int:visit_id>/edit", methods=["POST"])
+@staff_required
+def edit_visit(key, visit_id):
+    """‏يصلّح أرقام زيارة اتدخّلت غلط.
+
+    ‏حساب التقدّم بيتحسب وقت العرض من الزيارات نفسها، فتصليح رقم هنا
+    بيصلّح التقدّم كله لوحده -- مش محتاج نلمسه.
+    """
+    if not _own_visit(session["uid"], key, visit_id):
+        return redirect("/followups")
+
+    def _num(name, cast=float):
+        raw = (request.form.get(name) or "").strip()
+        if raw == "":
+            return None
+        try:
+            value = cast(raw.replace(",", "."))
+        except (TypeError, ValueError):
+            return "bad"
+        return value if value > 0 else "bad"
+
+    weight = _num("weight")
+    height = _num("height")
+    fat_pct = _num("fat_pct")
+    age = _num("age", lambda v: int(float(v)))
+    if "bad" in (weight, height, fat_pct, age):
+        return redirect("/followups/%s?err=number" % key)
+    # ‏الوزن هو اللي التقدّم كله محسوب عليه، فمايبقاش فاضي
+    if weight is None:
+        return redirect("/followups/%s?err=weight" % key)
+
+    notes = (request.form.get("visit_notes") or "").strip()[:500]
+    # ‏الـBMI بيتحسب من الوزن والطول، مابيتكتبش بالإيد -- عشان مايبقاش
+    # فيه تلات أرقام بيقولوا حاجتين مختلفتين في نفس السطر.
+    bmi = None
+    if weight and height and height > 0:
+        bmi = round(weight / ((height / 100.0) ** 2), 1)
+
+    try:
+        db_run("""UPDATE plan_visits SET weight=?, height=?, fat_pct=?, age=?,
+                         bmi=?, visit_notes=? WHERE id=? AND user_id=?""",
+               (weight, height, fat_pct, age, bmi, notes, visit_id, session["uid"]))
+    except Exception as e:
+        log_error("edit_visit", e)
+        return redirect("/followups/%s?err=save" % key)
+    return redirect("/followups/%s?ok=visit" % key)
+
+
+@bp.route("/followups/<path:key>/visit/<int:visit_id>/delete", methods=["POST"])
+@staff_required
+def delete_visit(key, visit_id):
+    """‏يمسح زيارة اتسجلت بالغلط، ويرقّم اللي فاضل تاني."""
+    if not _own_visit(session["uid"], key, visit_id):
+        return redirect("/followups")
+    try:
+        db_run("DELETE FROM plan_visits WHERE id=? AND user_id=? AND client_key=?",
+               (visit_id, session["uid"], key))
+        left = _renumber(session["uid"], key)
+    except Exception as e:
+        log_error("delete_visit", e)
+        return redirect("/followups/%s?err=save" % key)
+    # ‏آخر زيارة اتمسحت = الملف خلص
+    if not left:
+        return redirect("/followups")
+    return redirect("/followups/%s?ok=deleted" % key)
+
+
+@bp.route("/followups/<path:key>/merge", methods=["POST"])
+@staff_required
+def merge_followups(key):
+    """‏يدمج ملف في ملف تاني لنفس العميل.
+
+    ‏بيحصل لما الاسم يتكتب بشكلين (أو مرة بموبايل ومرة بدونه)، فالعميل
+    يبقى له ملفين وكل واحد بيحسب تقدّمه لوحده -- يعني نزول ٦ كيلو على
+    ٣ زيارات بيتقسم ملفين ومحدش شايف الصورة كاملة.
+
+    ‏الدمج مالوش رجوع، فالزر عليه تأكيد، والملف اللي بيروح لازم يكون
+    الدكتور اختاره بنفسه من قايمة ملفاته.
+    """
+    target = (request.form.get("into") or "").strip()
+    if not target or target == key:
+        return redirect("/followups/%s?err=merge" % key)
+
+    mine = visits_for(session["uid"], key, limit=1)
+    theirs = visits_for(session["uid"], target, limit=1)
+    if not mine or not theirs:
+        return redirect("/followups/%s?err=merge" % key)
+
+    keep = dict(theirs[0])
+    try:
+        db_run("""UPDATE plan_visits SET client_key=?, client_name=?, phone=?
+                  WHERE user_id=? AND client_key=?""",
+               (target, keep.get("client_name") or "", keep.get("phone") or "",
+                session["uid"], key))
+        _renumber(session["uid"], target)
+    except Exception as e:
+        log_error("merge_followups", e)
+        return redirect("/followups/%s?err=save" % key)
+    return redirect("/followups/%s?ok=merged" % target)
+
+
 @bp.route("/api/read-report", methods=["POST"])
 @staff_required
 def read_report_image():
@@ -575,6 +698,8 @@ def followup_detail(key):
                            client_name=rows[0].get("client_name"), client_key=key,
                            client_phone=rows[0].get("phone") or "",
                            err=request.args.get("err"), saved=request.args.get("ok"),
+                           others=[c for c in recent_clients(session["uid"])
+                                   if c.get("client_key") != key],
                            steps=steps, summary=followup.summarise_history(rows))
 
 
