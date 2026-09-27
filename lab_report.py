@@ -55,6 +55,7 @@ SANE_RANGES = {
     "muscle_mass": (10.0, 120.0),
     "visceral_fat": (1.0, 60.0),
     "body_water": (10.0, 90.0),
+    "fat_mass": (1.0, 200.0),
 }
 
 _SCHEMA = {
@@ -167,7 +168,7 @@ def _clean(raw):
            # القراية ماتملّيش حاجة -- وإلا مافيش حاجة تدل على السبب.
            "seen": [str(x)[:120] for x in (raw.get("seen") or [])][:25]}
     for key in ("age", "height", "weight", "fat_pct", "bmi", "bmr",
-                "muscle_mass", "visceral_fat", "body_water"):
+                "muscle_mass", "visceral_fat", "body_water", "fat_mass"):
         value, dropped = _clean_number(raw.get(key), key)
         out[key] = value
         if dropped:
@@ -178,6 +179,23 @@ def _clean(raw):
                                    "value": raw.get(key),
                                    "low": SANE_RANGES.get(dropped, (None, None))[0],
                                    "high": SANE_RANGES.get(dropped, (None, None))[1]})
+    # ‏فحص تناسق: الـBMI = الوزن ÷ (الطول بالمتر)². التلاتة مطبوعين على
+    # الورقة، فلو الحساب مااتطابقش يبقى واحد منهم اتقرا غلط ومانعرفش مين --
+    # فبنشيل التلاتة والدكتور يكتبهم. الفحص ده بيمسك النوع اللي حدود
+    # المعقول مابتمسكهوش: رقم معقول في الخانة الغلط.
+    #
+    # ‏وبيجي **بعد** حدود المعقول بالقصد. لما كان قبلها، BMI = ١٤٥٠ (رقم
+    # من مسطرة رسم) كان بيشيل الطول والوزن الصح معاه.
+    weight, height, bmi = out.get("weight"), out.get("height"), out.get("bmi")
+    if weight and height and bmi and height > 0:
+        computed = weight / ((height / 100.0) ** 2)
+        if abs(computed - bmi) > 1.5:
+            for key in ("weight", "height", "bmi"):
+                if out.get(key) is not None:
+                    out["dropped"].append({"field": key, "value": out[key],
+                                           "low": None, "high": None})
+                out[key] = None
+
     for item in (raw.get("extras") or [])[:8]:
         label = str(item.get("label", "")).strip()[:40]
         value = str(item.get("value", "")).strip()[:40]

@@ -23,9 +23,20 @@ import re
 
 # ‏العناوين وأشكالها اللي بتطلع من الـOCR. الترتيب مهم: أطول تعبير الأول،
 # عشان "target weight" ما تتقراش كـ"weight".
+# ‏**نسبة الدهون وكتلة الدهون مش نفس الحاجة**، وورقة GAIA بتطبع الاتنين:
+#
+#     P.B.F.     36.1     نسبة الدهون (٪)
+#     Body Fat   24.3     كتلة الدهون (كجم)
+#
+# ‏"body fat" كانت في قايمة النسبة، فالقراية كانت تاخد ٢٤.٣ وتحطها كنسبة
+# دهون. و٢٤.٣٪ نسبة **معقولة تماماً**، فحدود المعقول مش هتمسكها، والخطة
+# تتحسب على نسبة غلط بفرق ١٢ نقطة. فالنسبة بقى ليها عناوينها الصريحة بس،
+# والكتلة بقت خانة لوحدها -- ومنها بنحسب النسبة بالقسمة على الوزن (٢٤.٣ ÷
+# ٦٧.٣ = ٣٦.١٪، وده بالظبط الرقم المطبوع).
 _LABELS = [
-    ("fat_pct", ("percent body fat", "percentbodyfat", "body fat", "bodyfat",
-                 "pbf", "fat%", "fat %")),
+    ("fat_pct", ("percent body fat", "percentbodyfat", "pbf", "fat%", "fat %",
+                 "body fat %", "bodyfat%", "pbf%")),
+    ("fat_mass", ("body fat", "bodyfat", "fat mass", "fatmass")),
     ("bmr", ("basal metabolic rate", "basalmetabolicrate", "basal metabolic",
              "bmr")),
     ("bmi", ("bmi",)),
@@ -56,6 +67,7 @@ _NOT_A_READING = ("target", "ideal", "control", "range", "normal", "recommend",
                   "desirable", "standard", "goal", "loss", "gain", "obesity",
                   "degree", "score", "history", "graph", "date", "trend",
                   "biological", "cell mass", "expenditure", "impedance",
+                  "matched", "reference", "estimated", "assessment",
                   "segmental", "circumference", "ratio", "body type",
                   "evaluation", "balance")
 
@@ -274,9 +286,25 @@ def parse_boxes(boxes, slope=0.0):
 # مهم: "kg/m2" فيها رقم ٢، ولولا الشرط ده كانت تتقرا كقيمة.
 _VALUE_WORD = re.compile(r"^[^\dA-Za-z]{0,2}(\d{1,4}(?:[.,]\d{1,2})?)")
 
+# ‏رقم بإشارة = فرق، مش قياس. ورق التحليل مليان خانات "اللي تحتاج تتغير":
+#
+#     Body Fat  ——  +7.0        (كتلة دهون تنزل ٧ كيلو)
+#     Weight Control  -18.4
+#     Obesity Degree  -3.4
+#
+# ‏و"+7.0" كانت بتتقرا كأنها كتلة الدهون نفسها. مافيش قياس جسم بيتكتب
+# بإشارة، فأي رقم قبله + أو − بيتشال.
+_SIGNED = re.compile(r"^[+\u2212\u2013-]\s*\d")
+
+# ‏"Body Fat:24.3" -- الرقم بعد نقطتين في نفس الكلمة
+_GLUED = re.compile(r"[:=]\s*(\d{1,4}(?:[.,]\d{1,2})?)\s*$")
+
 
 def _value_word(word):
-    match = _VALUE_WORD.match(word.replace(",", "."))
+    clean = word.replace(",", ".")
+    if _SIGNED.match(clean):
+        return None
+    match = _VALUE_WORD.match(clean)
     if not match:
         return None
     try:
@@ -304,6 +332,53 @@ def _after_label(words, form):
     return 0
 
 
+def _labels_in(words):
+    """‏كل العناوين في السطر ومكانها: [(الخانة, أول كلمة, آخر كلمة+١)].
+
+    ‏ليه أكتر من عنوان في السطر: ورق GAIA بيحط اتنين جنب بعض --
+    "Height 162.0 cm Age 53 yrs" و"Weight 67.3 kg Gender Female". لما كنا
+    بناخد أول عنوان بس، العمر والنوع كانوا بيضيعوا من كل ورقة من النوع ده.
+
+    ‏المكان بيتحسب بخريطة حرف→كلمة، مش بتجميع من كل بداية: النسخة الأولى
+    كانت بتقول إن "Age" بتبدأ من كلمة "162.0" لأنها جمّعت من عندها لحد ما
+    لقتها -- فالطول كان بيضيع.
+    """
+    norm = [re.sub(r"[^a-z% ]", "", w.lower()) for w in words]
+    text = ""
+    owner = []
+    for index, word in enumerate(norm):
+        if index:
+            text += " "
+            owner.append(index)
+        text += word
+        owner.extend([index] * len(word))
+
+    hits = []
+    taken = set()
+    seen = set()
+    # ‏الأطول الأول: "percent body fat" تاخد كلماتها قبل ما "body fat"
+    # تاخد نصها -- وإلا النسبة والكتلة يتلخبطوا في نفس السطر.
+    order = sorted(((field, form) for field, forms in _LABELS for form in forms),
+                   key=lambda pair: -len(pair[1]))
+    for field, form in order:
+        if field in seen:
+            continue
+        for match in _form_regex(form).finditer(text):
+            first_char, last_char = match.start(), match.end() - 1
+            if last_char >= len(owner):
+                continue
+            first, last = owner[first_char], owner[last_char]
+            span = set(range(first, last + 1))
+            if span & taken:
+                continue
+            taken |= span
+            seen.add(field)
+            hits.append((field, first, last + 1))
+            break
+    hits.sort(key=lambda hit: hit[1])
+    return hits
+
+
 def parse_lines(lines):
     """‏يطلّع الأرقام من سطور محرّك المتصفح.
 
@@ -324,25 +399,47 @@ def parse_lines(lines):
         if not words:
             continue
         text = " ".join(words)
-        field, form = _label_form(text)
-        if not field:
+        # ‏الاستبعاد على السطر كله: سطر فيه "Target" أو "Control" أرقامه
+        # كلها مش قراءة، مهما كان العنوان اللي فيه.
+        if _label_form(text)[0] is None:
             continue
 
-        if field == "gender":
-            low = text.lower()
-            if "female" in low:
-                found.setdefault("gender", "female")
-            elif "male" in low:
-                found.setdefault("gender", "male")
-            continue
+        hits = _labels_in(words)
+        for index, (field, start, after) in enumerate(hits):
+            # ‏الرقم لازم يبقى **قبل العنوان اللي بعده**. من غير الشرط ده،
+            # "Height 162.0 cm Age 53" كان ينفع ياخد ٥٣ كطول.
+            stop = hits[index + 1][1] if index + 1 < len(hits) else len(words)
 
-        if field in found:
-            continue
-        for word in words[_after_label(words, form):]:
-            value = _value_word(word)
+            if field == "gender":
+                low = " ".join(words[after:stop]).lower() or text.lower()
+                if "female" in low:
+                    found.setdefault("gender", "female")
+                elif "male" in low:
+                    found.setdefault("gender", "male")
+                continue
+
+            if field in found:
+                continue
+            value = None
+            for word in words[after:stop]:
+                value = _value_word(word)
+                if value is not None:
+                    break
+            if value is None:
+                # ‏الرقم ملزوق في نفس كلمة العنوان: "Body Fat:24.3" أو
+                # "T.B.W.:31.0". الملخّص في آخر ورقة GAIA كله بالشكل ده،
+                # وهو المكان الوحيد فيها اللي العنوان والرقم في سطر واحد.
+                for word in words[start:after]:
+                    match = _GLUED.search(word.replace(",", "."))
+                    if match:
+                        try:
+                            value = float(match.group(1))
+                        except ValueError:
+                            value = None
+                        if value is not None:
+                            break
             if value is not None:
                 found[field] = value
-                break
     return found
 
 
@@ -436,21 +533,23 @@ def interpret(found, text_all):
         raise RuntimeError("الصورة دي مش ورقة تحليل جسم. صوّر ورقة الـInBody "
                            "أو جهاز قياس نسبة الدهون.")
 
-    # ‏فحص تناسق: الـBMI = الوزن ÷ (الطول بالمتر)². التلاتة مطبوعين على
-    # الورقة، فلو الحساب مااتطابقش يبقى واحد منهم اتقرا غلط -- ومانعرفش
-    # مين. فبنشيل التلاتة ونقول للدكتور يكتبهم. الفحص ده بيمسك بالظبط نوع
-    # الغلط اللي حدود المعقول مابتمسكهوش: رقم معقول في الخانة الغلط.
-    w, hgt, bmi = found.get("weight"), found.get("height"), found.get("bmi")
-    mismatch = False
-    if w and hgt and bmi and hgt > 0:
-        try:
-            computed = w / ((hgt / 100.0) ** 2)
-            mismatch = abs(computed - bmi) > 1.5
-        except ZeroDivisionError:
-            mismatch = True
-    if mismatch:
-        for field in ("weight", "height", "bmi"):
-            found.pop(field, None)
+    # ‏نسبة الدهون من كتلتها: ورقة GAIA بتطبع النسبة فوق عمود رسم (والقراية
+    # بتقراها "PBE." مش "PBF."، والرقم مش في سطرها)، بس بتطبع كتلة الدهون
+    # بالكيلو في الملخّص. والقسمة على الوزن بتطلّع نفس الرقم المطبوع بالظبط:
+    # ٢٤.٣ ÷ ٦٧.٣ = ٣٦.١٪. ده حساب مش تخمين، وبيتعمل بس لما النسبة نفسها
+    # مش مقروءة.
+    if ("fat_pct" not in found and found.get("fat_mass")
+            and found.get("weight")):
+        fat_mass, weight = found["fat_mass"], found["weight"]
+        if 0 < fat_mass < weight:
+            percent = fat_mass / weight * 100.0
+            if 2.0 <= percent <= 75.0:
+                found["fat_pct"] = round(percent, 1)
+
+    # ‏فحص تناسق الـBMI مع الوزن والطول اتنقل لـlab_report._clean، بعد ما
+    # حدود المعقول تشيل الأرقام المستحيلة. الترتيب كان مقلوب: ورقة GAIA
+    # طلّعت BMI = ١٤٥٠ (رقم من مسطرة الرسم)، فالفحص قارنه بالمحسوب
+    # (٢٥.٦)، مالقاهمش متطابقين، وشال **الطول والوزن الصح** معاه.
 
     out = dict(found)
     # ‏السطور اللي المحرّك شافها. لما مافيش خانة اتملت، دي الحاجة الوحيدة

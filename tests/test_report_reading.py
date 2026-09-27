@@ -693,6 +693,78 @@ def test_a_label_inside_another_word_is_not_a_label():
         assert field == want, "‏%r -> %s (المتوقع %s)" % (line, field, want)
 
 
+def test_the_gaia_sheet_reads_every_field_the_form_needs():
+    """‏الجهاز التاني في العيادة: GAIA 359 -- مخرج المحرّك على ورقة حقيقية.
+
+    ‏دي بتتقرا، والأرقام دي مقيسة مش مفترضة. وفي الورقة دي تلات فخاخ
+    اتلقوا واتصلّحوا:
+
+    ‏① النسبة والكتلة: الورقة بتطبع "P.B.F. 36.1" (نسبة) و"Body Fat 24.3"
+       (كيلو). "body fat" كانت في قايمة النسبة، فالقراية كانت تحط ٢٤.٣
+       كنسبة دهون -- و٢٤.٣٪ نسبة معقولة تماماً، فحدود المعقول مش هتمسكها،
+       والخطة تتحسب على فرق ١٢ نقطة.
+
+    ‏② عنوانين في سطر واحد: "Height 162.0 cm Age 53 yrs" -- العمر كان
+       بيضيع لأننا كنا بناخد أول عنوان في السطر وبس.
+
+    ‏③ ترتيب الفحوص: القراية طلّعت BMI = ١٤٥٠ (رقم من مسطرة الرسم)، وفحص
+       التناسق قارنه بالمحسوب وشال **الطول والوزن الصح** معاه.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    with io.open(os.path.join(here, "data", "sheet_gaia359.json"),
+                 encoding="utf-8") as fh:
+        sheet = json.load(fh)["gaia_359_sheet"]["passes"]
+
+    data = lab_report.read_browser(sheet)
+    # ‏الصح المطبوع على الورقة
+    for field, want in (("height", 162.0), ("age", 53), ("weight", 67.3),
+                        ("fat_pct", 36.1), ("fat_mass", 24.3)):
+        assert data.get(field) == want, "‏%s = %r (الصح %r)" % (
+            field, data.get(field), want)
+    assert data.get("gender") == "female", data.get("gender")
+    # ‏والـBMI الغلط اتشال ومابقاش سبب في شيل حاجة تانية
+    thrown = {item["field"] for item in data["dropped"]}
+    assert "weight" not in thrown and "height" not in thrown, data["dropped"]
+
+    # ‏ونسبة الدهون مش مقروءة من السطر -- محسوبة من الكتلة ÷ الوزن،
+    # والحساب بيطلّع نفس الرقم المطبوع على الورقة.
+    assert abs(24.3 / 67.3 * 100 - 36.1) < 0.1
+
+
+def test_fat_in_kilos_is_never_read_as_a_percentage():
+    """‏أخطر فخ في الورقة دي، ومقفول باختبار لوحده.
+
+    ‏٢٤.٣ كنسبة دهون رقم معقول تماماً، فمافيش حد بيمسكه. الحاجة الوحيدة
+    اللي بتفرّق هي العنوان: النسبة عنوانها P.B.F. أو "Percent Body Fat"،
+    والكيلو عنوانه "Body Fat" لوحده.
+    """
+    import ocr_report
+    kilos = ocr_report.parse_lines([["Body", "Fat", "24.3", "kg"]])
+    assert kilos.get("fat_mass") == 24.3, kilos
+    assert "fat_pct" not in kilos, "‏كتلة الدهون بالكيلو اتقرت كنسبة"
+
+    percent = ocr_report.parse_lines([["PBF", "Percent", "Body", "Fat", "38.2", "%"]])
+    assert percent.get("fat_pct") == 38.2, percent
+    assert "fat_mass" not in percent, "‏النسبة اتقرت كمان ككتلة"
+
+    # ‏والاتنين في سطر واحد: كل واحد لخانته
+    both = ocr_report.parse_lines([["P.B.F.", "36.1", "Body", "Fat", "24.3"]])
+    assert both.get("fat_pct") == 36.1 and both.get("fat_mass") == 24.3, both
+
+
+def test_a_number_with_a_sign_is_a_change_not_a_measurement():
+    """‏ورق التحليل مليان خانات "المطلوب يتغيّر": "Body Fat +7.0" و
+    "Weight Control -18.4". دي فروق، ولو اتقرت كقياسات بتبوّظ الخطة."""
+    import ocr_report
+    for word in ("+7.0", "-18.4", "\u22123.4", "+1.7"):
+        assert ocr_report._value_word(word) is None, word
+    for word, want in (("24.3", 24.3), ("0.80", 0.8), ("162.0", 162.0)):
+        assert ocr_report._value_word(word) == want, word
+    # ‏سطر "Body Fat —— +7.0" في ورقة GAIA: مايتقراش كتلة دهون ٧ كيلو
+    assert "fat_mass" not in ocr_report.parse_lines(
+        [["Body", "Fat", "\u2014\u2014", "+7.0"]])
+
+
 def test_a_sheet_the_engine_cannot_read_fills_nothing_instead_of_guessing():
     """‏ورقة DR.NUTRITION الحقيقية بتاعة الدكتور -- مخرج المحرّك عليها.
 
