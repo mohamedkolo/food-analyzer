@@ -49,7 +49,10 @@ SANE_RANGES = {
     "weight": (20.0, 400.0),
     "height": (80.0, 250.0),
     "age": (1, 120),
-    "fat_pct": (2.0, 75.0),
+    # ‏الحد الأدنى ٣٪ مش ٢٪: الدهون الأساسية (حوالين الأعضاء والأعصاب)
+    # لوحدها ٣٪ للذكر و٨٪ للأنثى، وأقل بطل كمال أجسام في ذروته بيوصل ٤٪.
+    # ورقة عيادة فيها ٢٪ قراءة غلط، مش حالة نادرة.
+    "fat_pct": (3.0, 75.0),
     "bmi": (8.0, 90.0),
     "bmr": (600, 4500),
     "muscle_mass": (10.0, 120.0),
@@ -157,10 +160,23 @@ def _clean_number(value, key):
     return round(number, 1), None
 
 
+_PHONE_OK = re.compile(r"^01[0125]\d{8}$")
+
+
+def _clean_phone(value):
+    """‏موبايل مصري ١١ رقم، وإلا None."""
+    digits = re.sub(r"\D", "", str(value or ""))
+    return digits if _PHONE_OK.match(digits) else None
+
+
 def _clean(raw):
     """‏يشيل أي رقم برّه المعقول ويحوّله لتحذير."""
     out = {"is_body_report": bool(raw.get("is_body_report")),
            "name": (raw.get("name") or "").strip() or None,
+           # ‏موبايل مطبوع على الورقة. الصفحة بتدوّر بيه في المتابعين،
+           # فلازم يبقى ١١ رقم نضيفين -- أي حاجة غير كده بترجع None،
+           # لأن رقم نصه غلط بيفتح ملف عميل تاني.
+           "phone": _clean_phone(raw.get("phone")),
            "gender": raw.get("gender") if raw.get("gender") in ("male", "female") else None,
            "extras": [], "dropped": [],
            "unreadable": [str(x) for x in (raw.get("unreadable") or [])][:12],
@@ -191,6 +207,35 @@ def _clean(raw):
         computed = weight / ((height / 100.0) ** 2)
         if abs(computed - bmi) > 1.5:
             for key in ("weight", "height", "bmi"):
+                if out.get(key) is not None:
+                    out["dropped"].append({"field": key, "value": out[key],
+                                           "low": None, "high": None})
+                out[key] = None
+
+    # ‏فحص تناسق تاني: الوزن ونسبة الدهون والطول لازم يوصفوا جسم ممكن
+    # يكون موجود. المقياس هو FFMI -- الكتلة الخالية من الدهون على مربع
+    # الطول، زي الـBMI بالظبط بس على الكتلة الخالية بدل الوزن:
+    #
+    #     الكتلة الخالية = الوزن × (١ - نسبة الدهون ÷ ١٠٠)
+    #     FFMI = الكتلة الخالية ÷ (الطول بالمتر)²
+    #
+    # ‏الرقم ده عند البشر بين ١٦ و٢٢ للعادي، و٢٥ لأعلى رياضي طبيعي،
+    # و~٣٠ بالمنشّطات. والحدود هنا (٨ إلى ٣٢) واسعة بالقصد: بتسيب أضخم
+    # رياضي وأنحف حالة يعدّوا، وبتمسك المستحيل بس.
+    #
+    # ‏ده اللي مسك ورقة طلعت «وزن ١١٠.٩ كجم ونسبة دهون ٢٪»: يعني ١٠٨.٧
+    # كجم كتلة خالية من الدهون على طول ١٦٢ = FFMI ٤١، وده مش موجود في
+    # البشر. وكل رقم لوحده كان جوّه حدود المعقول، فمافيش حاجة تمسكه غير
+    # إن التلاتة يتحسبوا مع بعض.
+    #
+    # ‏وبنشيل نسبة الدهون هي بالتحديد (مش الوزن ولا الطول): الوزن والطول
+    # ليهم شاهد تاني -- فحص الـBMI فوق -- ونسبة الدهون مالهاش.
+    weight, height, fat_pct = out.get("weight"), out.get("height"), out.get("fat_pct")
+    if weight and height and fat_pct and height > 0:
+        lean = weight * (1.0 - fat_pct / 100.0)
+        ffmi = lean / ((height / 100.0) ** 2)
+        if not (8.0 <= ffmi <= 32.0):
+            for key in ("fat_pct", "fat_mass"):
                 if out.get(key) is not None:
                     out["dropped"].append({"field": key, "value": out[key],
                                            "low": None, "high": None})

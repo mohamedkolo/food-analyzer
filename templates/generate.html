@@ -840,6 +840,20 @@
             border-radius:0 9px 9px 0; padding:8px 12px }
   .ex-note { font-size:11.5px; color:var(--muted); line-height:1.8;
              margin-top:5px }
+  /* ‏التفاصيل مقفولة لحد ما يطلبها. الـsummary مفروض يبان إنه بيتدوس،
+     فبقى شكله زي زرار عريض على عرض اللوحة. */
+  .ex-more { border-top:1px solid #eef2f6 }
+  .ex-more-s { list-style:none; cursor:pointer; padding:11px 15px;
+               font-size:12.5px; font-weight:700; color:var(--green);
+               display:flex; align-items:center; gap:8px;
+               background:#f8fafb; user-select:none }
+  .ex-more-s::-webkit-details-marker { display:none }
+  .ex-more-s:hover { background:var(--green-pale) }
+  .ex-more-s i { font-size:10px; transition:transform .2s }
+  .ex-more[open] > .ex-more-s { background:var(--green-pale) }
+  .ex-more[open] > .ex-more-s i { transform:rotate(180deg) }
+  .ex-more-s:focus-visible { outline:2px solid var(--blue-light);
+                             outline-offset:-2px }
   .ex-foot { background:#f8fafb; border-top:1px solid var(--gray-2);
              padding:11px 15px }
   .ex-caveat { font-size:11.5px; color:var(--muted); line-height:1.8;
@@ -1478,6 +1492,16 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
       return;
     }
 
+    applyReading(data);
+    file.value = '';
+  });
+
+  // ‏القراءة وصلت -> تتحط في الفورم وتتعرض للدكتور.
+  //
+  // ‏دي كانت جوّه معالج رفع الصورة، فالجزء اللي بيملّي الفورم ماكانش
+  // ينفع يتشغّل غير بصورة حقيقية وبمحرّك قراءة كامل. بقت دالة باسمها،
+  // فالاختبار بيقدر يناديها بقراءة جاهزة ويشوف الفورم اتملى إزاي.
+  function applyReading(data){
     const f = data.fields || {};
     const filled = [];
     if(setField(nameField, f.name)) filled.push(LABELS.name);
@@ -1512,6 +1536,52 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
       }
     });
 
+    // ═══ الرقم اللي على الورقة: هو ده عميل متابع؟ ═══
+    //
+    // ‏السيرفر دوّر بالرقم في العملاء ورجّع اللقطة. لو لقيناه، بنملّي
+    // الاسم والموبايل -- وساعتها الشرح بيبقى مقارنة بآخر زيارة لوحده،
+    // لأن /api/explain-report بيختار السيناريو من الاسم والتاريخ.
+    // ‏الاسم جاي من الداتابيز وبيتحط كـHTML، فلازم يتعمله escape. الـesc
+    // اللي في اللوحة التانية جوّه IIFE تانية، فمش شايفينها من هنا.
+    const escName = function(t){
+      return String(t == null ? '' : t)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    };
+    let knownLine = '';
+    if(data.phone){
+      const ph = document.getElementById('phoneField')
+              || document.querySelector('[name="phone"]');
+      if(data.known && data.known.name){
+        if(nameField && !nameField.value.trim()){
+          nameField.value = data.known.name;
+          nameField.dispatchEvent(new Event('input', {bubbles:true}));
+        }
+        if(ph && !ph.value.trim()) ph.value = data.known.phone || data.phone;
+        const ac = document.getElementById('acList');
+        if(ac) ac.hidden = true;            // ‏مانفتحش قايمة اقتراحات بعد الملء
+        knownLine = '<b style="color:#1b5e38">✓ '
+          + T('الرقم اللي على الورقة (','The number on the sheet (') + data.phone
+          + T(') لعميل متابع: ',') belongs to a follow-up client: ')
+          + '</b>' + escName(data.known.name)
+          + (data.known.visits ? ' — ' + T('زيارة ','visit ')
+                                 + (data.known.visits + 1) : '')
+          + (data.known.last_at ? ' — ' + T('آخر زيارة ','last visit ')
+                                  + escName(data.known.last_at) : '')
+          + '<br>' + T('الشرح هيبقى مقارنة بآخر زيارة.',
+                       'The explanation will compare against the last visit.');
+      }else{
+        if(ph && !ph.value.trim()){
+          ph.value = data.phone;
+          ph.dispatchEvent(new Event('input', {bubbles:true}));
+        }
+        knownLine = T('الرقم اللي على الورقة (','The number on the sheet (')
+          + '<b>' + data.phone + '</b>'
+          + T(') مش في المتابعين — يعني عميل جديد. اكتب الاسم لو عايز تعمله ملف.',
+              ') is not among the follow-ups -- a new client. Enter a name to open a file.');
+      }
+    }
+
     let out = '';
     if(filled.length){
       out += '<b>✓ ' + T('اتملى من الورقة: ','Filled from the sheet: ') + '</b>'
@@ -1520,6 +1590,7 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
       out += '<b>' + T('مقراش أي خانة من الورقة','No field could be read')
            + '</b>';
     }
+    if(knownLine) out += '<br>' + knownLine;
     if(f.bmr){
       out += '<br>' + T('الـBMR المطبوع على الورقة: ','BMR printed on the sheet: ')
            + '<b>' + f.bmr + ' kcal</b> — '
@@ -1609,11 +1680,14 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
       const flag = document.getElementById('rpSeenCopied');
       if(flag){ flag.hidden = false; setTimeout(function(){ flag.hidden = true; }, 2200); }
     });
-    file.value = '';
     // ‏الشرح على طول بعد القراءة: دي الخطوة اللي بعدها فعلاً -- الدكتور
     // قرا الورقة، وبيشرحها للعميل اللي قاعد قدامه.
     if(window.explainReport) window.explainReport();
-  });
+  }
+
+  // ‏مكشوفة عشان الاختبار في المتصفح يناديها بقراءة جاهزة، من غير ما
+  // يشغّل محرّك القراءة على صورة حقيقية.
+  window.applyReading = applyReading;
 })();
 
 // ═══ اشرح الفحص للعميل ═══════════════════════════════════════════════
@@ -1735,57 +1809,12 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
       html += '</div></div>';
     }
 
-    if((data.rows || []).length){
-      html += '<div class="ex-sec"><div class="ex-sec-h">'
-            + T('الأرقام، وكل رقم يعني إيه',
-                'The numbers, and what each one means') + '</div>';
-      data.rows.forEach(function(row){
-        html += '<div class="ex-r">'
-              + '<span class="ex-r-l">' + esc(row.label) + '</span>'
-              + '<span class="ex-r-v">' + esc(row.value) + '</span>'
-              + '<span class="ex-r-u">' + esc(row.unit || '') + '</span>'
-              + (row.band ? '<span class="ex-pill ' + esc(row.kind || 'plain')
-                            + '">' + esc(row.band) + '</span>' : '')
-              + '<span class="ex-r-m">' + esc(row.means) + '</span>'
-              + '</div>';
-      });
-      html += '</div>';
-    }
-
-    if((data.targets || []).length){
-      html += '<div class="ex-sec"><div class="ex-sec-h">'
-            + T('الهدف بالأرقام', 'The goal in numbers') + '</div>'
-            + '<div class="ex-goal">'
-            + '<div style="color:var(--muted);font-size:12px;margin-bottom:4px">'
-            + T('لو النازل دهون بس والعضل ثابت:',
-                'If the loss is fat only and muscle holds:') + '</div>';
-      data.targets.forEach(function(tg){
-        html += '<div>• ' + T('عند نسبة دهون ', 'At ')
-              + '<b>' + esc(tg.fat_pct) + '%</b>'
-              + T('، الوزن يبقى ', ' body fat, the weight is ')
-              + '<b>' + esc(tg.weight) + ' ' + T('كجم', 'kg') + '</b> — '
-              + T('نزول ', 'a drop of ') + '<b>' + esc(tg.drop) + ' '
-              + T('كجم', 'kg') + '</b> '
-              + T('كلهم دهون', 'all of it fat') + '</div>';
-      });
-      html += '</div></div>';
-    }
-
-    if((data.focus || []).length){
-      html += '<div class="ex-sec"><div class="ex-sec-h">'
-            + T('النقاط اللي تركّز عليها', 'What to focus on') + '</div>';
-      data.focus.forEach(function(item){
-        html += '<div class="ex-focus">'
-              + '<div class="ex-focus-t">' + esc(item.title) + '</div>'
-              + '<div class="ex-focus-w">' + esc(item.why) + '</div>'
-              + '<div class="ex-focus-d">' + esc(item.do) + '</div></div>';
-      });
-      html += '</div>';
-    }
-
+    // ‏السيناريو جاي قبل الأرقام بالقصد. الدكتور والعميل قاعد قدامه
+    // بيقرا الكلام، مش الجدول -- فالكلام لازم يكون أول حاجة تقع عينه
+    // عليها، والجدول ورا كبسة واحدة لما يحتاجه.
     if((data.script || []).length){
       html += '<div class="ex-sec"><div class="ex-sec-h">'
-            + T('السيناريو — الكلام بالترتيب', 'The script, in order')
+            + T('الكلام اللي تقوله، بالترتيب', 'What to say, in order')
             + (AIM[data.mode] ? '<span style="font-weight:600;letter-spacing:0">('
                                 + esc(AIM[data.mode]) + ')</span>' : '')
             + '</div>';
@@ -1800,6 +1829,67 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
               + '</div></div>';
       });
       html += '</div>';
+    }
+
+    // ═══ التفاصيل: مقفولة لحد ما يطلبها ═══
+    //
+    // ‏الأرقام والهدف والنقاط كانوا مفتوحين كلهم، فاللوحة كانت بتطلع
+    // خمس شاشات والدكتور قال «ابسط من كده». اللي بيحتاجه وهو بيتكلّم
+    // هو الحكم والكلام، والباقي مرجع بيفتحه لما يسأله العميل.
+    const details = [];
+    if((data.rows || []).length){
+      let block = '<div class="ex-sec"><div class="ex-sec-h">'
+                + T('كل رقم يعني إيه', 'What each number means') + '</div>';
+      data.rows.forEach(function(row){
+        block += '<div class="ex-r">'
+              + '<span class="ex-r-l">' + esc(row.label) + '</span>'
+              + '<span class="ex-r-v">' + esc(row.value) + '</span>'
+              + '<span class="ex-r-u">' + esc(row.unit || '') + '</span>'
+              + (row.band ? '<span class="ex-pill ' + esc(row.kind || 'plain')
+                            + '">' + esc(row.band) + '</span>' : '')
+              + '<span class="ex-r-m">' + esc(row.means) + '</span>'
+              + '</div>';
+      });
+      details.push(block + '</div>');
+    }
+
+    if((data.targets || []).length){
+      let block = '<div class="ex-sec"><div class="ex-sec-h">'
+                + T('الهدف بالأرقام', 'The goal in numbers') + '</div>'
+                + '<div class="ex-goal">'
+                + '<div style="color:var(--muted);font-size:12px;margin-bottom:4px">'
+                + T('لو النازل دهون بس والعضل ثابت:',
+                    'If the loss is fat only and muscle holds:') + '</div>';
+      data.targets.forEach(function(tg){
+        block += '<div>• ' + T('عند نسبة دهون ', 'At ')
+              + '<b>' + esc(tg.fat_pct) + '%</b>'
+              + T('، الوزن يبقى ', ' body fat, the weight is ')
+              + '<b>' + esc(tg.weight) + ' ' + T('كجم', 'kg') + '</b> — '
+              + T('نزول ', 'a drop of ') + '<b>' + esc(tg.drop) + ' '
+              + T('كجم', 'kg') + '</b> '
+              + T('كلهم دهون', 'all of it fat') + '</div>';
+      });
+      details.push(block + '</div></div>');
+    }
+
+    if((data.focus || []).length){
+      let block = '<div class="ex-sec"><div class="ex-sec-h">'
+                + T('النقاط اللي تركّز عليها', 'What to focus on') + '</div>';
+      data.focus.forEach(function(item){
+        block += '<div class="ex-focus">'
+              + '<div class="ex-focus-t">' + esc(item.title) + '</div>'
+              + '<div class="ex-focus-w">' + esc(item.why) + '</div>'
+              + '<div class="ex-focus-d">' + esc(item.do) + '</div></div>';
+      });
+      details.push(block + '</div>');
+    }
+
+    if(details.length){
+      html += '<details class="ex-more"><summary class="ex-more-s">'
+            + '<i class="fa-solid fa-chevron-down"></i> '
+            + T('التفاصيل: كل رقم يعني إيه، والهدف، والنقاط',
+                'Detail: what each number means, the goal, the focus points')
+            + '</summary>' + details.join('') + '</details>';
     }
 
     html += '<div class="ex-foot">';

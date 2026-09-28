@@ -1066,6 +1066,186 @@ def test_the_page_reads_in_the_browser_and_keeps_the_image_there():
     assert "sharpenCanvas" in js and "passes.push" in js
 
 
+# ═══ جسم مستحيل ══════════════════════════════════════
+#
+# ‏الدكتور بعت لقطة من الموقع فيها: «وزن 110.9 كجم، منهم 2.2
+# كجم دهون — نسبة الدهون 2%»، واللوحة نصحته «النزول أكتر مش
+# هدف هنا». كل رقم لوحده كان جوّه حدود المعقول، فمافيش حاجة
+# مسكته غير إن التلاتة يتحسبوا مع بعض.
+
+
+def _ffmi(weight, height, fat_pct):
+    lean = weight * (1.0 - fat_pct / 100.0)
+    return lean / ((height / 100.0) ** 2)
+
+
+def test_a_sheet_that_describes_an_impossible_body_loses_its_fat_percent():
+    """‏وزن 110.9 ونسبة دهون 2% = 108.7 كجم عضل وعضم وماء.
+
+    ‏على طول 162 سم ده FFMI = 41، وأعلى رقم موجود في البشر
+    حوالي 30. فنسبة الدهون بتتشال والدكتور يكتبها.
+    """
+    raw = {"is_body_report": True, "weight": 110.9, "height": 162.0,
+           "fat_pct": 2.0, "bmr": 1385, "gender": "female"}
+    assert _ffmi(110.9, 162.0, 2.0) > 32, "‏المقدمة اتغيرت"
+    out = lab_report._clean(raw)
+    assert out["fat_pct"] is None, out["fat_pct"]
+    assert any(d["field"] == "fat_pct" for d in out["dropped"]), out["dropped"]
+    # ‏والوزن والطول فاضلين: ليهم شاهد تاني (فحص الـBMI)،
+    # ونسبة الدهون مالهاش
+    assert out["weight"] == 110.9 and out["height"] == 162.0, out
+
+
+def test_the_impossible_body_check_catches_a_wrong_weight_too():
+    """‏نفس الورقة بنسبة دهون معقولة: لسه مستحيل.
+
+    ‏110.9 كجم بنسبة 15% = 94 كجم كتلة خالية على 162 سم،
+    يعني FFMI 36. فالفحص مابيمسكش نسبة غلط بس — بيمسك أي
+    تلاتة ماينفعوش يكونوا مع بعض.
+    """
+    out = lab_report._clean({"is_body_report": True, "weight": 110.9,
+                             "height": 162.0, "fat_pct": 15.0})
+    assert out["fat_pct"] is None, out["fat_pct"]
+
+
+def test_a_real_body_keeps_its_fat_percent():
+    """‏الحدود واسعة بالقصد: أضخم رياضي وأنحف حالة يعدّوا.
+
+    ‏فحص بيرفض قراية صح أسوأ من مفيش فحص: الدكتور بيبطل يستنى
+    منه حاجة ويرجع يكتب كل حاجة بإيده.
+    """
+    real = [
+        ("سيدة عادية", 82.0, 162.0, 38.4),
+        ("رياضي ضخم", 110.0, 190.0, 12.0),
+        ("بطل كمال أجسام في ذروته", 90.0, 178.0, 4.5),
+        ("سمنة مفرطة", 150.0, 160.0, 62.0),
+        ("نحافة شديدة", 40.0, 165.0, 35.0),
+        ("ورقة GAIA الحقيقية", 67.3, 162.0, 36.1),
+        ("ورقة X-CONTACT الحقيقية", 67.9, 164.0, 29.2),
+    ]
+    for tag, weight, height, fat_pct in real:
+        out = lab_report._clean({"is_body_report": True, "weight": weight,
+                                 "height": height, "fat_pct": fat_pct})
+        assert out["fat_pct"] == fat_pct, \
+            "‏%s (FFMI %.1f) اترفضت: %s" % (tag, _ffmi(weight, height, fat_pct), out)
+
+
+def test_two_percent_body_fat_never_reaches_the_form():
+    """‏الدهون الأساسية لوحدها 3% للذكر وأكتر للأنثى.
+
+    ‏فحد 2% اللي كان موجود ماكانش بيمنع حاجة — ورقة عيادة
+    فيها 2% قراية غلط، مش حالة نادرة.
+    """
+    assert lab_report.SANE_RANGES["fat_pct"][0] >= 3.0, \
+        lab_report.SANE_RANGES["fat_pct"]
+    # ‏من غير طول (ففحص الجسم المستحيل مابيشتغلش)، الحد لوحده كفاية
+    out = lab_report._clean({"is_body_report": True, "weight": 110.9,
+                             "fat_pct": 2.0})
+    assert out["fat_pct"] is None, out["fat_pct"]
+
+
+# ═══ الموبايل اللي على الورقة ════════════════════════
+#
+# ‏طلب الدكتور: «لو الرقم اللي مكتوب في الورقه شوفها من
+# المتابعين ولا لا». فالقراية بتطلّع الموبايل، والروت بيدور
+# بيه في العملاء.
+
+
+def test_the_phone_on_the_sheet_is_read_however_it_is_printed():
+    """‏الورقة بتطبع الموبايل بأي تجميع."""
+    import ocr_report
+    for text in ("Name A | Tel 01004294521 | Weight 82.0",
+                 "Phone 0100 429 4521",
+                 "Mobile 0100-429-4521",
+                 "موبايل 010 0429 4521"):
+        assert ocr_report._phone_in(text) == "01004294521", text
+
+
+def test_a_number_that_is_not_a_mobile_is_not_taken_as_one():
+    """‏رقم غلط معناه إننا نفتح ملف عميل تاني ونقول للي قاعد
+    قدامنا أرقام حد غيره. فالشك بيرجّع None."""
+    import ocr_report
+    for text in ("Device 01004294521999",          # كود جهاز 14 رقم
+                 "Tel 0223456789",                 # أرضي
+                 "Tel 01384294521",                # بادئة مش موجودة
+                 "Weight 82.0 Height 162 Fat 38.4",
+                 "ID 12345678901"):
+        assert ocr_report._phone_in(text) is None, text
+    # ‏وأكتر من موبايل: مانختارش واحد منهم
+    assert ocr_report._phone_in(
+        "Tel 01004294521 | Clinic 01298765432") is None
+    # ‏بس نفس الرقم مرتين مش خلاف
+    assert ocr_report._phone_in(
+        "Tel 01004294521 | Tel 0100 429 4521") == "01004294521"
+
+
+def test_the_phone_survives_the_cleaning_only_when_it_is_clean():
+    """‏lab_report بيتأكد تاني، لأن القراية ممكن تيجي من محرّك تاني."""
+    assert lab_report._clean({"phone": "01004294521"})["phone"] == "01004294521"
+    assert lab_report._clean({"phone": "0100 429 4521"})["phone"] == "01004294521"
+    for bad in (None, "", "0223456789", "010042945", "01004294521999", "abc"):
+        assert lab_report._clean({"phone": bad})["phone"] is None, bad
+
+
+def _logged_in_staff():
+    import app as A
+    import re as _re
+    A.app.config["WTF_CSRF_ENABLED"] = False
+    staff = A.app.test_client()
+    page = staff.get("/login").get_data(as_text=True)
+    tok = _re.search(r'name="csrf_token"[^>]*value="([^"]*)"', page).group(1)
+    staff.post("/login", data={"action": "login", "email": "admin@nutrax.com",
+                               "password": "pw123456", "csrf_token": tok})
+    return staff
+
+
+def test_the_route_says_whether_the_sheet_s_number_is_a_follow_up_client():
+    """‏طلب الدكتور بالنص. الورقة فيها موبايل -> هو ده عميل جه
+    قبل كده؟ لو أيوة، الصفحة تملّي الاسم والشرح يبقى مقارنة."""
+    import json as _json
+    import core
+    import followup
+
+    staff = _logged_in_staff()
+    phone = "01004294521"
+    key = followup.client_key("منى سعيد", phone)
+    core.db_run("DELETE FROM plan_visits WHERE client_key=?", (key,))
+    core.db_run("""INSERT INTO plan_visits (user_id, client_key, client_name,
+        phone, visit_no, age, gender, height, weight, fat_pct, bmi, tdee,
+        goal_cal, activity, goal_type, diet_plan_type, conditions)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (1, key, "منى سعيد", phone, 2, 31, "انثى", 164.0, 79.0,
+         37.0, 29.4, 2000, 1500, 1.55, "weight_loss", "five_meals",
+         _json.dumps([], ensure_ascii=False)))
+
+    lines = ["Height 164.0 cm Weight 77.5 kg",
+             "PBF 35.4 %", "Tel %s" % phone]
+    r = staff.post("/api/read-report", json={"passes": [lines, lines]})
+    body = r.get_json()
+    assert r.status_code == 200 and body["ok"], body
+    assert body["phone"] == phone, body.get("phone")
+    assert body["known"] and body["known"]["name"] == "منى سعيد", body.get("known")
+    assert body["known"]["visits"] == 2, body["known"]
+    # ‏والموبايل بيرجع في الخانات كمان عشان الفورم يملّيه
+    assert body["fields"].get("phone") == phone, body["fields"]
+
+    core.db_run("DELETE FROM plan_visits WHERE client_key=?", (key,))
+
+
+def test_a_number_with_no_client_behind_it_is_reported_as_new():
+    """‏موبايل مش في المتابعين: الرقم يرجع وknown تبقى فاضية.
+
+    ‏ماينفعش نخترع عميل، وماينفعش نسكت عن الرقم كمان.
+    """
+    staff = _logged_in_staff()
+    lines = ["Height 170.0 cm Weight 70.0 kg", "Tel 01555000111"]
+    body = staff.post("/api/read-report",
+                      json={"passes": [lines, lines]}).get_json()
+    assert body["ok"], body
+    assert body["phone"] == "01555000111", body.get("phone")
+    assert not body["known"], body.get("known")
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):

@@ -278,9 +278,16 @@ def test_the_free_check_sells_on_the_numbers_not_on_fear():
     said = _said(out)
     for scare in ("خطر", "مرض", "سرطان", "هتموت", "مضمون", "نهائي", "أسبوع واحد"):
         assert scare not in said, "‏تهويل أو وعد في الكلام: %s" % scare
-    # ‏المدة الحقيقية موجودة، والمعدل مذكور
-    assert "أسبوع" in said, said
-    assert "نص في المية" in said or "٠.٥" in said, "‏المعدل الواقعي مش مذكور"
+    # ‏المدة الحقيقية موجودة بعدد أسابيع محدد، ومعاها ليه مش أسرع.
+    #
+    # ‏الاختبار ده كان بيدوّر على جملة «بمعدل نص في المية لواحد في المية من
+    # وزنك في الأسبوع». الدكتور قال «طريقة الشرح ابسط من كده»، والجملة دي
+    # كلام دكاترة مش كلام عميل. المقصود منها -- إننا مانوعدش بأسرع من
+    # الواقع -- لسه محفوظ: العدد الحقيقي للأسابيع بيتقال، ومعاه إن الأسرع
+    # بياخد من العضل.
+    weeks = re.search(r"(\d+)\s*أسبوع", said)
+    assert weeks and int(weeks.group(1)) >= 2, "‏المدة مش مذكورة بعدد: %s" % said
+    assert "أسرع" in said and "العضل" in said, "‏مافيش كلام عن تكلفة الأسرع"
     # ‏والهدف رقم محسوب، وبيقول إنه محسوب
     assert "محسوب" in said, "‏مش بيقول إن الرقم محسوب مش تقدير"
 
@@ -746,6 +753,144 @@ def test_a_gain_that_is_mostly_fat_is_not_called_fine():
     bucket, line = _find(out, "الزيادة دي إيه")
     assert bucket == "work", (bucket, line)
     assert "2.8" in line, line
+
+
+# ═══ «طريقة الشرح ابسط من كده» ════════════════════
+
+
+def test_no_spoken_line_is_a_paragraph():
+    """‏الدكتور بيقرا الجملة دي بصوته والعميل قاعد قدامه.
+
+    ‏جملة من تلات سطور ماتتقالش — بتتلخّص في دماغه وبتتقال
+    بشكل تاني، وساعتها اللوحة مابقتش بتفرق. وده اللي قاله:
+    «طريقة الشرح ابسط من كده».
+
+    ‏الحد 140 حرف: ده جملتين قصيرين بالعربي، وكان فيه خطوات
+    فوق الـ200.
+    """
+    import followup
+    cases = [("free", body_read.explain(WOMAN, mode="free")),
+             ("first", body_read.explain(WOMAN, mode="first")),
+             ("followup", body_read.explain(FOLLOW_NOW, mode="followup",
+                                            progress=_progress(), visit_no=3))]
+    long_lines = []
+    for mode, out in cases:
+        for step in out["script"]:
+            if len(step["say"]) > 140:
+                long_lines.append("%s / %s: %d حرف\n      %s"
+                                  % (mode, step["label"], len(step["say"]),
+                                     step["say"]))
+            # ‏والملاحطة للدكتور أقصر من الجملة نفسها
+            if step.get("note") and len(step["note"]) > 90:
+                long_lines.append("%s / %s (ملاحطة): %d حرف"
+                                  % (mode, step["label"], len(step["note"])))
+    assert not long_lines, "‏جمل طويلة:\n  " + "\n  ".join(long_lines)
+
+
+def test_no_scenario_runs_past_seven_steps():
+    """‏سيناريو من عشر خطوات ماحد هيقراه والعميل مستني."""
+    cases = [("free", body_read.explain(WOMAN, mode="free")),
+             ("first", body_read.explain(WOMAN, mode="first")),
+             ("followup", body_read.explain(FOLLOW_NOW, mode="followup",
+                                            progress=_progress(), visit_no=3))]
+    for mode, out in cases:
+        assert 3 <= len(out["script"]) <= 7, \
+            (mode, len(out["script"]), [s["label"] for s in out["script"]])
+
+
+def test_the_panel_puts_the_words_first_and_the_tables_behind_one_click():
+    """‏الدكتور والعميل قاعد قدامه بيقرا الكلام، مش الجدول.
+
+    ‏فالكلام لازم يبقى قبل الأرقام في الرسم، والأرقام جوّه
+    details مقفولة. اللوحة كانت بتطلع خمس شاشات مفتوحة كلها.
+    """
+    page = io.open("templates/generate.html", encoding="utf-8").read()
+    script_at = page.index("data.script.forEach")
+    rows_at = page.index("data.rows.forEach")
+    assert script_at < rows_at, "‏الأرقام لسه بتترسم قبل الكلام"
+    # ‏والتفاصيل جوّه details مافيها open
+    assert "<details class=\"ex-more\">" in page, "‏التفاصيل مش مطوّية"
+    assert "<details class=\"ex-more\" open" not in page, "‏التفاصيل مفتوحة من الأول"
+    assert ".ex-more-s" in page, "‏مافيش شكل لزرار التفاصيل"
+    # ‏والحكم لسه قبل الكلام: دي البصة الأولى
+    assert page.index("ex-judge") < script_at, "‏الحكم موش في الأول"
+
+
+def test_the_copy_text_still_carries_the_detail_the_panel_folds_away():
+    """‏اللي اتطوى في اللوحة ماضاعش — النص المنسوخ فيه كل حاجة.
+
+    ‏الدكتور بيبعته واتساب للعميل، وهناك مافيش حاجة تتدوس.
+    """
+    out = body_read.explain(WOMAN)
+    text = _text(out)
+    for row in out["rows"]:
+        assert row["label"] in text, row["label"]
+        assert row["means"] in text, row["means"]
+    for item in out["focus"]:
+        assert item["title"] in text, item["title"]
+    for target in out["targets"]:
+        assert target["weight"] in text, target
+
+
+def test_a_percentage_over_a_hundred_is_never_said_to_a_client():
+    """‏لو الدهون نزلت أكتر من الوزن كله، يعني العضل زاد.
+
+    ‏ده أحسن اللي ممكن يحصل، بس النسبة بتطلع فوق 100%. واللوحة
+    طلّعت فعلاً «1.8 كجم دهون (120%)» — رقم مايتقالش لعميل،
+    والدكتور بيقرا السطر ده بصوته.
+    """
+    import followup
+    base = {"height": 164.0, "age": 31, "gender": "انثى",
+            "goal_type": "weight_loss", "goal_cal": 1500}
+    previous = dict(base, weight=79.0, fat_pct=37.0, tdee=2000,
+                    created_at="2026-08-25 10:00:00")
+    current = dict(base, weight=77.5, fat_pct=35.4, tdee=1950,
+                   created_at="2026-09-28 10:00:00")
+    progress = followup.assess(previous, current, "ar")
+    out = body_read.explain(current, mode="followup", progress=progress,
+                            visit_no=3)
+    bucket, line = _find(out, "النازل")
+    assert bucket == "good", (bucket, line)
+    assert "1.8" in line, line              # الدهون اللي نزلت بالكيلو
+    assert "العضل زاد" in line, line        # واللي زاد، بالاسم
+    # ‏ومافيش ولا نسبة فوق 100% في أي حكم أو أي جملة بتتقال
+    blobs = [item["line"] for key in ("good", "work", "unsure")
+             for item in out["verdict"][key]]
+    blobs += [step["say"] for step in out["script"]]
+    for blob in blobs:
+        for hit in re.finditer(r"(\d+(?:\.\d+)?)\s*%", blob):
+            assert float(hit.group(1)) <= 100.0, (hit.group(0), blob)
+
+
+def test_a_burn_that_went_up_is_not_announced_as_a_drop():
+    """‏tdee_drop = القديم ناقص الجديد، فبيطلع سالب لما الحرق يزيد.
+
+    ‏الجملة كانت بتطلع في المتصفح «وجسمك بقى بيحرق أقل -201
+    كالوري» — والدكتور بيقرا السطر ده بصوته للعميل.
+    """
+    progress = dict(_progress())
+    progress["tdee_drop"] = -201
+    out = body_read.explain(FOLLOW_NOW, mode="followup", progress=progress,
+                            visit_no=3)
+    said = _said(out)
+    assert "-201" not in said and "201" not in said, said
+    assert not any(step["label"] == "السبب" for step in out["script"]), \
+        [s["label"] for s in out["script"]]
+    # ‏ولما يبقى نزول حقيقي، الجملة بتتقال
+    progress["tdee_drop"] = 80
+    said = _said(body_read.explain(FOLLOW_NOW, mode="followup",
+                                   progress=progress, visit_no=3))
+    assert "80" in said and "أقل" in said, said
+    # ‏ومافيش علامة سالب في أي جملة بتتقال في أي حالة
+    for mode, kw in (("free", {}), ("first", {}),
+                     ("followup", {"progress": _progress(), "visit_no": 3})):
+        out = body_read.explain(WOMAN if mode != "followup" else FOLLOW_NOW,
+                                mode=mode, **kw)
+        for step in out["script"]:
+            # ‏شرطة **بادية رقم**، مش شرطة جوّه نطاق زي «2-4 أسابيع»:
+            # الأولى علامة سالب في كلام بيتقال، والتانية مدى عادي.
+            assert not re.search(r"(?:^|[\s«(:])-\s*\d", step["say"]), \
+                (mode, step["say"])
 
 
 if __name__ == "__main__":

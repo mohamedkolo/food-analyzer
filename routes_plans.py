@@ -538,6 +538,20 @@ def read_report_image():
     fields = {k: data.get(k) for k in
               ("name", "gender", "age", "height", "weight", "fat_pct", "bmi")
               if data.get(k) is not None}
+    # ‏الموبايل المطبوع على الورقة، ومعاه: هو ده عميل جه قبل كده؟
+    #
+    # ‏ده اللي الدكتور طلبه: «لو الرقم اللي مكتوب في الورقة شوفها من
+    # المتابعين ولا لا». فبنرجّع الرقم ومعاه العميل لو لقيناه، والصفحة
+    # تملّي الاسم -- وساعتها الشرح بيبقى مقارنة بآخر زيارة لوحده، لأن
+    # /api/explain-report بيختار السيناريو من الاسم والتاريخ.
+    known = None
+    if data.get("phone"):
+        fields["phone"] = data["phone"]
+        matches = search_clients(session["uid"], data["phone"], limit=2)
+        # ‏واحد بالظبط. اتنين معناه إن الرقم مشترك بين ملفين، واختيار
+        # واحد منهم غلط أسوأ من إن الدكتور يختار هو.
+        if len(matches) == 1:
+            known = matches[0]
     # ‏الـBMR مش الـTDEE: الفورم عنده خانة TDEE، وضربها في معامل النشاط شغل
     # الصفحة مش شغلنا -- فبنرجّعه باسمه ونسيب الحساب للفورم.
     if data.get("bmr") is not None:
@@ -558,6 +572,9 @@ def read_report_image():
                     "extras": data.get("extras") or [],
                     "unreadable": data.get("unreadable") or [],
                     "dropped": data.get("dropped") or [],
+                    # ‏الموبايل اللي على الورقة، وهو ده عميل متابع ولا لأ
+                    "phone": data.get("phone"),
+                    "known": known,
                     # ‏السطور اللي المحرّك قراها. لما القراية ماتملّيش
                     # حاجة، ده الفرق بين "الورقة مش واضحة" و"العناوين
                     # شكلها مختلف" -- والدكتور يقدر يبعتها ويتصلّح.
