@@ -244,7 +244,10 @@ FOLLOW_PREV = {"weight": 78.4, "height": 165.0, "age": 29, "gender": "انثى",
                "created_at": "2026-08-20 10:00:00"}
 FOLLOW_NOW = {"weight": 74.0, "height": 165.0, "age": 29, "gender": "انثى",
               "fat_pct": 35.0, "activity": 1.55, "goal_type": "weight_loss",
-              "goal_cal": 1400}
+              "goal_cal": 1400,
+              # ‏لازم يبقى لها تاريخ: من غيره assess بتقيس لدلوقتي،
+              # والمدة بتكبر يوم كل يوم فالاختبار بيوقع لوحده.
+              "created_at": "2026-09-27 10:00:00"}
 
 
 def _progress(previous=None, current=None):
@@ -457,6 +460,292 @@ def test_the_page_offers_the_step_without_submitting_the_form():
     assert "name=" not in hidden, hidden
     # ‏وبعد ما الورقة تتقرا، الشرح بيفتح لوحده -- دي الخطوة اللي بعدها
     assert "window.explainReport" in page
+
+
+# ═══ صح وغلط ════════════════════════════════════════
+#
+# ‏الدكتور طلب: «نقط الشرح صح وايه الغلط». فاللوحة بقت
+# بتقسّم الورقة تلات قوايم: اللي تمام، اللي فيه شغل، واللي
+# مالوش حكم. والتالتة مهمة زي التانية — رقم مسكوت عنه
+# بيبان كأنه تمام.
+
+
+def _buckets(result):
+    return result["verdict"]
+
+
+def _all_judgements(result):
+    out = []
+    for key in ("good", "work", "unsure"):
+        for item in result["verdict"][key]:
+            out.append((key, item["label"], item["line"]))
+    return out
+
+
+def _find(result, needle):
+    """(القايمة, السطر) لأول حكم عنوانه فيه الكلمة دي."""
+    for key, label, line in _all_judgements(result):
+        if needle in label:
+            return key, line
+    return None, None
+
+
+def test_every_number_lands_in_exactly_one_of_the_three_lists():
+    """‏ماينفعش رقم يبقى تمام وفيه شغل في نفس الوقت.
+
+    ‏الدكتور بيبص البصة دي والعميل قاعد قدامه، فعنوان
+    متكرر في قايمتين معناه إنه هيقول حاجة ويرجع ينقضها.
+    """
+    for case in (WOMAN, dict(WOMAN, fat_pct=22.0), dict(WOMAN, gender=""),
+                 {"weight": 67.9, "height": 164.0}):
+        out = body_read.explain(case)
+        labels = [label for _, label, _ in _all_judgements(out)]
+        assert len(labels) == len(set(labels)), labels
+
+
+def test_a_judgement_never_disagrees_with_the_row_it_came_from():
+    """‏الحكم والصف لازم يقولوا نفس الحاجة.
+
+    ‏النطاق بيتحسب مرة واحدة والاتنين بيقروا منه، والاختبار
+    ده هو اللي بيمنع حد يفكهم بعدين. الـBMI برّه القاعدة لأنه
+    لوحده بيكدب لما نسبة الدهون تقول عكسه (اختبار لوحده تحت).
+    """
+    cases = (WOMAN, dict(WOMAN, fat_pct=22.0, bmi=None),
+             dict(WOMAN, visceral_fat=4, body_water=25.0),
+             dict(WOMAN, muscle_mass=16.0), dict(WOMAN, fat_pct=11.0))
+    for case in cases:
+        out = body_read.explain(case)
+        for row in out["rows"]:
+            if row["kind"] == "plain" or "BMI" in row["label"]:
+                continue
+            bucket, line = _find(out, row["label"].split(" (")[0])
+            assert bucket is not None, (row["label"], _all_judgements(out))
+            if row["kind"] == "good":
+                assert bucket == "good", (row["label"], row["band"], bucket, line)
+            else:
+                assert bucket == "work", (row["label"], row["band"], bucket, line)
+
+
+def test_a_normal_bmi_with_high_fat_is_not_called_fine():
+    """‏وزن طبيعي ودهون عالية: دي الحالة اللي الميزان بيخبّيها.
+
+    ‏لو قلنا على الـBMI «تمام»، العميل هيسمع الكلمة دي وهيروح.
+    """
+    out = body_read.explain({"gender": "انثى", "weight": 58.0,
+                             "height": 160.0, "fat_pct": 34.0})
+    bucket, line = _find(out, "BMI")
+    assert bucket == "unsure", (bucket, line)
+    assert "34" in line, line
+    fat_bucket, _ = _find(out, "نسبة الدهون")
+    assert fat_bucket == "work", _all_judgements(out)
+
+
+def test_a_high_bmi_with_good_fat_is_not_called_a_problem():
+    """‏رياضي وزنه عالي ودهونه قليلة: الزيادة عضل مش دهن."""
+    out = body_read.explain({"gender": "ذكر", "weight": 92.0,
+                             "height": 178.0, "fat_pct": 13.0})
+    bucket, line = _find(out, "BMI")
+    assert bucket == "unsure", (bucket, line)
+    assert "13" in line, line
+    fat_bucket, _ = _find(out, "نسبة الدهون")
+    assert fat_bucket == "good", _all_judgements(out)
+
+
+def test_a_number_that_cannot_be_judged_is_said_out_loud():
+    """‏مافيش نوع -> نسبة الدهون ماتتحكمش، وماتتسكتش عنها كمان."""
+    out = body_read.explain(dict(WOMAN, gender=""))
+    bucket, line = _find(out, "نسبة الدهون")
+    assert bucket == "unsure", (bucket, line)
+    assert "38.2" in line, line
+    # ‏ومافيش ولا حكم واحد بيدّعي نطاق من غير النوع
+    for key, label, _ in _all_judgements(out):
+        if "العضل" in label:
+            assert key == "unsure", (label, key)
+
+
+def test_the_numbers_that_are_missing_are_named():
+    """‏الورقة اللي فيها وزن وطول بس: لازم تقول الناقص إيه.
+
+    ‏ده طلب الدكتور بالنص: يملّي الموجود ويسيب الباقي — بس
+    يقول إيه الباقي.
+    """
+    out = body_read.explain({"weight": 67.9, "height": 164.0}, mode="free")
+    lines = " | ".join(line for key, _, line in _all_judgements(out)
+                       if key == "unsure")
+    for needle in ("الدهون الحشوية", "كتلة العضل", "ماء الجسم"):
+        assert needle in lines, (needle, lines)
+    # ‏ومايدّعيش إن فيه حاجة تمام وهو ماشاف غير رقمين
+    assert not out["verdict"]["good"], out["verdict"]["good"]
+
+
+def test_the_split_of_a_loss_is_in_kilos_not_in_percentage_points():
+    """‏أوضح غلطة ممكنة هنا، والدكتور بيقول الرقم للعميل.
+
+    ‏followup.assess بيرجّع fat_delta بـ**النقطة** (فرق النسبة)،
+    مش بالكيلو. و٥٥.٤ من ٨٨ كيلو مش زي ٤٠٪ من ٨٢:
+
+        40% من 88 = 35.2 كجم دهون
+        36% من 82 = 29.5 كجم دهون   ->  5.7 كجم نزلت، مش 4
+    """
+    import followup
+    previous = {"weight": 88.0, "height": 162.0, "age": 34, "gender": "انثى",
+                "fat_pct": 40.0, "tdee": 2100, "goal_cal": 1600,
+                "goal_type": "weight_loss", "created_at": "2026-08-20 10:00:00"}
+    current = {"weight": 82.0, "height": 162.0, "age": 34, "gender": "انثى",
+               "fat_pct": 36.0, "goal_type": "weight_loss", "goal_cal": 1600,
+               "tdee": 2000, "created_at": "2026-09-28 10:00:00"}
+    progress = followup.assess(previous, current, "ar")
+    assert progress["fat_delta"] == -4.0, progress["fat_delta"]   # نقط، مش كيلو
+    out = body_read.explain(current, mode="followup", progress=progress, visit_no=3)
+    bucket, line = _find(out, "النازل")
+    assert bucket == "good", (bucket, line)
+    assert "5.7" in line, line
+    assert "4 كجم دهون" not in line, line
+
+
+def test_a_loss_that_is_mostly_lean_mass_is_never_called_fine():
+    """‏نزول ٦ كيلو منهم ٢ دهون يعني ٤ راحوا من الكتلة الخالية.
+
+    ‏الميزان بيضحك على العميل هنا، فماينفعش اللوحة تضحك معاه.
+    والحكم على النسبة، مش على إن الدهون نزلت أصلاً.
+    """
+    import followup
+    previous = {"weight": 88.0, "height": 162.0, "age": 34, "gender": "انثى",
+                "fat_pct": 40.0, "tdee": 2100, "goal_cal": 1600,
+                "goal_type": "weight_loss", "created_at": "2026-08-20 10:00:00"}
+    current = {"weight": 82.0, "height": 162.0, "age": 34, "gender": "انثى",
+               "fat_pct": 40.5, "goal_type": "weight_loss", "goal_cal": 1600,
+               "tdee": 2000, "created_at": "2026-09-28 10:00:00"}
+    progress = followup.assess(previous, current, "ar")
+    out = body_read.explain(current, mode="followup", progress=progress, visit_no=3)
+    bucket, line = _find(out, "النازل")
+    assert bucket == "work", (bucket, line)
+    assert "عضل" in line or "ماء" in line, line
+
+
+def test_the_copied_text_carries_the_three_lists():
+    """‏الدكتور بينسخ الشرح ويبعته واتساب، فالحكم لازم يمشي معاه."""
+    out = body_read.explain(WOMAN)
+    text = _text(out)
+    assert "اللي تمام:" in text or "اللي فيه شغل:" in text, text[:400]
+    head = text.index(out["headline"])
+    rows = text.index("• ")
+    verdict = min(text.index(item["line"]) for key in ("good", "work", "unsure")
+                  for item in out["verdict"][key] or [])
+    # ‏الحكم قبل الأرقام: ده اللي بيتقرا الأول
+    assert head < verdict < rows, (head, verdict, rows)
+
+
+def test_the_panel_shows_the_three_lists_and_styles_them():
+    """‏اللوحة نفسها: تلات أعمدة ولكل واحد لونه.
+
+    ‏والألوان من توكنز البرنامج، مش باليت تانية — اللوحة كانت
+    بالبنّي والبيج ووسط صفحة كحلي، فبانت ملزوقة.
+    """
+    page = io.open("templates/generate.html", encoding="utf-8").read()
+    for cls in (".ex-card", ".ex-head", ".ex-lead", ".ex-judge", ".ex-j.good",
+                ".ex-j.work", ".ex-j.unsure", ".ex-r", ".ex-pill", ".ex-say"):
+        assert cls + " " in page or cls + "," in page or cls + "\n" in page, cls
+    # ‏تلات قوايم في الرسم، وكل واحدة باسمها
+    assert "data.verdict" in page, "‏اللوحة مابتقراش الحكم"
+    for key in ("'good'", "'work'", "'unsure'"):
+        assert key in page, key
+    # ‏مافيش لون من الباليت القديمة رجع
+    for dead in ("#FBF7F1", "#D9C9AE", "#4A3B22", "#E6DAC4"):
+        assert dead not in page, dead
+
+
+def test_every_printed_number_uses_the_same_digits():
+    """‏ورقة فيها «٧٠-٧٥%» جنب «69.6%» بتبان غلطة طباعة.
+
+    ‏القيم نفسها بتتكتب لاتيني من بايثون (%s من float)، فأي نطاق
+    مكتوب بإيدنا بأرقام عربية بيخلّي السطر نوعين أرقام.
+    """
+    arabic = re.compile("[\u0660-\u0669]")
+    out = body_read.explain(WOMAN)
+    blobs = [out["headline"], _text(out)]
+    for row in out["rows"]:
+        blobs += [row["value"], row["means"], row["band"] or ""]
+    for key in ("good", "work", "unsure"):
+        for item in out["verdict"][key]:
+            blobs += [item["label"], item["line"]]
+    for step in out["script"]:
+        blobs += [step["label"], step["say"], step.get("note") or ""]
+    for item in out["focus"]:
+        blobs += [item["title"], item["why"], item["do"]]
+    for blob in blobs:
+        assert not arabic.search(blob), blob
+
+
+def test_no_follow_up_verdict_falls_through_to_the_wrong_sentence():
+    """‏عشرة أحكام في followup، وكل واحد لازم يلقى جملته.
+
+    ‏اللوحة كانت بتغطي ستة وترمي الباقي في else، فالرياضي اللي بيزيد
+    عضل بالمعدل الصح (gain_on_track) كان بيتقراله «الوزن رجع» — يعني
+    نجاح بيتقال للعميل كأنه انتكاسة.
+    """
+    import followup
+    for key in followup.VERDICTS:
+        gaining = key.startswith("gain_") or key == "lost_on_gain"
+        up = key.startswith("gain_")
+        progress = {"verdict": key, "days": 30, "delta": 1.5 if up else -1.5,
+                    "rate": 0.35 if up else -0.35, "fat_delta": 0.2,
+                    "old_weight": 78.0, "direction": "up" if up else "down",
+                    "goal_type": "muscle_gain" if gaining else "weight_loss",
+                    "note_ar": followup.VERDICTS[key][0],
+                    "note_en": followup.VERDICTS[key][1]}
+        current = {"weight": 79.5 if up else 76.5, "height": 175.0, "age": 27,
+                   "gender": "ذكر", "fat_pct": 14.2}
+        out = body_read.explain(current, mode="followup", progress=progress)
+        judged = _all_judgements(out)
+        assert judged, key
+        moves = [(bucket, label, line) for bucket, label, line in judged
+                 if "زيارة" in label or "معدل" in label or "سرعة" in label
+                 or "الوزن" in label]
+        assert moves, (key, judged)
+        if up:
+            for bucket, label, line in moves:
+                assert "رجع" not in label, (key, label, line)
+
+
+def test_a_clean_muscle_gain_is_called_fine_not_a_relapse():
+    """‏زيادة 1.5 كجم منهم 1.1 كتلة خالية: دي اللي الرياضي جاي عشانها.
+
+    ‏الحكم على التقسيم بيقلب مع الهدف: في النزول عايزين النازل
+    دهون، وفي الزيادة عايزين الزايد كتلة خالية.
+    """
+    import followup
+    base = {"height": 175.0, "age": 27, "gender": "ذكر",
+            "goal_type": "muscle_gain", "goal_cal": 3100}
+    previous = dict(base, weight=78.0, fat_pct=14.0, tdee=2800,
+                    created_at="2026-08-20 10:00:00")
+    current = dict(base, weight=79.5, fat_pct=14.2, tdee=2850,
+                   created_at="2026-09-28 10:00:00")
+    progress = followup.assess(previous, current, "ar")
+    assert progress["verdict"] == "gain_on_track", progress["verdict"]
+    out = body_read.explain(current, mode="followup", progress=progress, visit_no=2)
+    bucket, line = _find(out, "الزيادة دي إيه")
+    assert bucket == "good", (bucket, line)
+    assert "1.1" in line, line          # الكتلة الخالية، محسوبة بالكيلو
+    assert not out["verdict"]["work"] or all(
+        "رجع" not in item["label"] for item in out["verdict"]["work"]), \
+        out["verdict"]["work"]
+
+
+def test_a_gain_that_is_mostly_fat_is_not_called_fine():
+    """‏زيادة 3 كجم منهم 2.8 دهون: دي مش بناء عضل."""
+    import followup
+    base = {"height": 175.0, "age": 27, "gender": "ذكر",
+            "goal_type": "muscle_gain", "goal_cal": 3100}
+    previous = dict(base, weight=78.0, fat_pct=14.0, tdee=2800,
+                    created_at="2026-08-20 10:00:00")
+    current = dict(base, weight=81.0, fat_pct=17.0, tdee=2850,
+                   created_at="2026-09-28 10:00:00")
+    progress = followup.assess(previous, current, "ar")
+    out = body_read.explain(current, mode="followup", progress=progress, visit_no=2)
+    bucket, line = _find(out, "الزيادة دي إيه")
+    assert bucket == "work", (bucket, line)
+    assert "2.8" in line, line
 
 
 if __name__ == "__main__":

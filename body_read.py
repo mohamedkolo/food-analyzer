@@ -67,15 +67,13 @@ def _pick(ar, en, is_ar):
     return ar if is_ar else en
 
 
-_ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩"
-
-
 def _step(number, is_ar):
-    """‏ترقيم الخطوات. لازم يبقى بأرقام عربية في النص العربي -- الترقيم
-    كان بيطلع «١. ٢. ٣. 5. 6.» لما الرقم كان بيتحسب في بايثون."""
-    if not is_ar:
-        return "%d." % number
-    return "".join(_ARABIC_DIGITS[int(d)] for d in str(number)) + "."
+    """‏ترقيم خطوات النص المنسوخ.
+
+    ‏كان بأرقام عربية في النص العربي، وبقيت لاتينية: كل رقم جوّه
+    النص (الوزن، النسبة، السعرات) بيتكتب لاتيني من بايثون، فالترقيم
+    العربي كان بيخلي الورقة نوعين أرقام في نفس السطر."""
+    return "%d." % number
 
 
 # ═══ النطاقات ═══════════════════════════════════════════════════════
@@ -213,7 +211,7 @@ def _script_free(_say, weight, fat_mass, lean_mass, fat_pct, targets, weeks,
     steps.append(_say(
         "الفرق", "The difference",
         "«الكلام ده كله تقدر تعمله لوحدك. اللي بيفرق إن الخطة تتحسب على أرقامك دي "
-        "بالتحديد، وإننا نقيس كل ٢-٤ أسابيع ونعدّل على اللي بيحصل فعلاً — "
+        "بالتحديد، وإننا نقيس كل 2-4 أسابيع ونعدّل على اللي بيحصل فعلاً — "
         "مش نمشي على ورقة ثابتة شهرين.»",
         "\"You could do all of this on your own. What changes it is a plan computed "
         "from these numbers of yours, and measuring every 2-4 weeks and adjusting to "
@@ -276,7 +274,7 @@ def _script_first(_say, weight, fat_mass, lean_mass, targets, weeks, visit_no,
             "", ""))
     steps.append(_say(
         "المتابعة", "Follow-up",
-        "«المقياس بينا: نسبة الدهون والمقاسات كل ٢-٤ أسابيع، مش الميزان كل يوم. "
+        "«المقياس بينا: نسبة الدهون والمقاسات كل 2-4 أسابيع، مش الميزان كل يوم. "
         "الميزان بيتقلّب بالماء والملح والأكل في المعدة.»",
         "\"Our measure: body fat and tape measurements every 2-4 weeks, not the scale "
         "daily. The scale swings with water, salt and food in the gut.\"",
@@ -329,7 +327,7 @@ def _script_followup(progress, _say, fat_pct, is_ar, _fmt):
         if fat_delta < 0:
             steps.append(_say(
                 "الأهم", "The part that matters",
-                "«والأهم من الوزن: نسبة الدهون نزلت %s نقطة. يعني النازل دهون فعلاً، "
+                "«والأهم من الوزن: نسبة الدهون نزلت %s نقاط. يعني النازل دهون فعلاً، "
                 "مش عضل ولا ماء.»" % _fmt(abs(fat_delta)),
                 "\"And more important than the weight: body fat is down %s points. "
                 "So what came off really was fat, not muscle or water.\""
@@ -339,7 +337,7 @@ def _script_followup(progress, _say, fat_pct, is_ar, _fmt):
         else:
             steps.append(_say(
                 "اللي محتاج شغل", "What needs work",
-                "«بس نسبة الدهون زادت %s نقطة. يعني الوزن اتحرك من حاجة تانية — "
+                "«بس نسبة الدهون زادت %s نقاط. يعني الوزن اتحرك من حاجة تانية — "
                 "ماء أو عضل — ودي اللي هنظبّطها.»" % _fmt(fat_delta),
                 "\"But body fat is up %s points. So the weight moved from something "
                 "else -- water or muscle -- and that is what we fix.\"" % _fmt(fat_delta),
@@ -377,7 +375,7 @@ def _script_followup(progress, _say, fat_pct, is_ar, _fmt):
 
     steps.append(_say(
         "الخطوة الجاية", "The next step",
-        "«نفس المقياس: نقيس تاني بعد ٢-٤ أسابيع. ولو حصل ثبات أسبوعين متواصلين، "
+        "«نفس المقياس: نقيس تاني بعد 2-4 أسابيع. ولو حصل ثبات أسبوعين متواصلين، "
         "تعالى قبل الميعاد.»",
         "\"Same measure: we measure again in 2-4 weeks. And if it stalls two weeks in "
         "a row, come in before the appointment.\"",
@@ -423,6 +421,15 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
         fat_mass = weight * fat_pct / 100.0
         lean_mass = weight - fat_mass
 
+    # ‏النطاق بيتحسب مرة واحدة هنا، والصفوف وقايمة «صح وغلط» بيقروا من
+    # نفس المتغيّر -- عشان يبقى مستحيل الصف يقول حاجة والحكم يقول غيرها.
+    fat_band = (_band(fat_pct, _FAT_FEMALE if female else _FAT_MALE)
+                if (fat_pct and sex_known) else None)
+    bmi_band = _band(bmi, _BMI) if bmi else None
+    vis_band = _band(visceral, _VISCERAL) if visceral else None
+    muscle_band = water_band = None
+    smi = water_share = None
+
     if weight:
         rows.append(_row(
             "الوزن", "Weight", _fmt(weight), _pick("كجم", "kg", is_ar), None,
@@ -431,7 +438,7 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
             is_ar))
 
     if fat_mass is not None:
-        band = _band(fat_pct, _FAT_FEMALE if female else _FAT_MALE) if sex_known else None
+        band = fat_band
         rows.append(_row(
             "نسبة الدهون", "Body fat", _fmt(fat_pct), "%", band,
             "يعني %s كجم دهون، و%s كجم كتلة خالية من الدهون (عضل وعظم وماء)."
@@ -443,15 +450,15 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
         missing.append(_pick("نسبة الدهون", "body fat", is_ar))
 
     if bmi:
-        band = _band(bmi, _BMI)
+        band = bmi_band
         rows.append(_row(
             "BMI", "BMI", _fmt(bmi), _pick("كجم/م²", "kg/m2", is_ar), band,
-            "مقياس وزن على طول، مابيفرّقش بين عضل ودهن -- فبنقراه جنب نسبة الدهون مش لوحده.",
+            "مقياس وزن على طول، مابيفرّقش بين عضل ودهن — فبنقراه جنب نسبة الدهون مش لوحده.",
             "A weight-for-height number. It cannot tell muscle from fat, so it is read next to body fat, never alone.",
             is_ar))
 
     if visceral:
-        band = _band(visceral, _VISCERAL)
+        band = vis_band
         rows.append(_row(
             "الدهون الحشوية (مستوى)", "Visceral fat (level)", _fmt(visceral),
             "", band,
@@ -468,6 +475,7 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
             band = {"ar": "أقل من الطبيعي شوية", "en": "slightly below normal", "kind": "watch"}
         else:
             band = {"ar": "أقل من الطبيعي", "en": "below normal", "kind": "low"}
+        muscle_band = band
         rows.append(_row(
             "كتلة العضل", "Skeletal muscle", _fmt(muscle),
             _pick("كجم", "kg", is_ar), band,
@@ -485,10 +493,11 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
             band = {"ar": "أعلى من المتوقع", "en": "higher than expected", "kind": "watch"}
         else:
             band = {"ar": "طبيعي", "en": "normal", "kind": "good"}
+        water_band, water_share = band, share
         rows.append(_row(
             "ماء الجسم", "Body water", _fmt(water), _pick("لتر", "L", is_ar), band,
-            "%s%% من كتلتك الخالية من الدهون (الطبيعي ٧٠-٧٥%%). بنقيسه على الكتلة الخالية مش على الوزن، "
-            "لأن الدهون فيها ماء قليل -- فنسبة الماء من الوزن بتبان أقل كل ما الدهون تزيد."
+            "%s%% من كتلتك الخالية من الدهون (الطبيعي 70-75%%). بنقيسه على الكتلة الخالية مش على الوزن، "
+            "لأن الدهون فيها ماء قليل — فنسبة الماء من الوزن بتبان أقل كل ما الدهون تزيد."
             % _fmt(share),
             "%s%% of your fat-free mass (normal is 70-75%%). It is measured against fat-free mass, "
             "not total weight: fat holds little water, so water-as-a-share-of-weight looks low whenever fat is high."
@@ -507,6 +516,317 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
             "ده اللي جسمك بيحرقه وهو ساكن تماماً." + extra,
             "This is what the body burns at complete rest." + extra,
             is_ar))
+
+    # ═══ صح وغلط: البصة الواحدة ═══
+    #
+    # ‏الدكتور بيبص على الورقة مرة واحدة، وعايز تلات حاجات: إيه اللي
+    # تمام عشان يحافظ عليه، وإيه اللي فيه شغل، وإيه اللي مانقدرش نحكم
+    # عليه أصلاً. والتالتة مهمة زي التانية -- الرقم اللي مش متحكوم عليه
+    # بيبان كأنه تمام لو سكتنا عنه.
+    #
+    # ‏وفي حالتين الرقم لوحده بيكدب، فبيروح «مش متحكوم عليه» بدل ما
+    # نقول عليه صح أو غلط:
+    #     BMI عالي ونسبة الدهون كويسة  ->  الزيادة كتلة خالية من الدهون
+    #     BMI طبيعي ونسبة الدهون عالية ->  الميزان مخبّي الحالة
+    #
+    # ‏وكله بيتبني من نفس النطاقات اللي فوق، فمستحيل الصف يقول حاجة
+    # والحكم يقول غيرها.
+    good, work, unsure = [], [], []
+
+    def _judge(kind, label_ar, label_en, line_ar, line_en):
+        item = {"label": _pick(label_ar, label_en, is_ar),
+                "line": _pick(line_ar, line_en, is_ar)}
+        if kind == "good":
+            good.append(item)
+        elif kind == "unsure":
+            unsure.append(item)
+        else:
+            work.append(item)
+
+    # ‏في المتابعة، أول حاجة تتقال هي اللي حصل — مش أي رقم في الورقة.
+    #
+    # ‏والحكم مابيتحسبش هنا تاني: followup.assess هو اللي بيقرر،
+    # واللي هنا مجرّد ترجمة لكل حكم لسطر يتقال للعميل. ولو جه
+    # حكم مش في الجدول (اتضاف حكم جديد في followup بعدين)، بنقول
+    # ملاحظة assess نفسها وبنحطها في «مالوش حكم» — أحسن من
+    # إن حكم ماتعرفناهوش يقع في else ويتقرا غلط: رياضي بيزيد عضل
+    # بالمعدل الصح (gain_on_track) كان بيطلع «الوزن رجع».
+    if mode == "followup" and progress:
+        rate = abs(float(progress.get("rate") or 0))
+        moved = abs(float(progress.get("delta") or 0))
+        days = int(progress.get("days") or 0)
+        went_up = str(progress.get("direction") or "") == "up"
+        verb_ar = "زاد" if went_up else "نزل"
+        verb_en = "Up" if went_up else "Down"
+
+        # (القايمة, العنوان عربي/إنجليزي, السطر عربي/إنجليزي)
+        moves = {
+            "on_track": (
+                "good", "اللي حصل من آخر زيارة", "Since the last visit",
+                "%s %s كجم في %d يوم، بمعدل %s كجم في الأسبوع — جوّه النطاق الآمن."
+                % (verb_ar, _fmt(moved), days, _fmt(rate)),
+                "%s %s kg over %d days, %s kg a week -- inside the safe band."
+                % (verb_en, _fmt(moved), days, _fmt(rate))),
+            "gain_on_track": (
+                "good", "اللي حصل من آخر زيارة", "Since the last visit",
+                "زاد %s كجم في %d يوم، بمعدل %s كجم في الأسبوع — ده المعدل الصحي "
+                "لبناء العضل." % (_fmt(moved), days, _fmt(rate)),
+                "Up %s kg over %d days, %s kg a week -- the healthy rate for building muscle."
+                % (_fmt(moved), days, _fmt(rate))),
+            "too_soon": (
+                "unsure", "اللي حصل من آخر زيارة", "Since the last visit",
+                "%d يوم بس بين الزيارتين. الفرق ده مياه، مش دليل على حاجة." % days,
+                "Only %d days between visits. This is water, not evidence." % days),
+            "too_fast": (
+                "work", "سرعة النزول", "Rate of loss",
+                "%s كجم في الأسبوع — أسرع من الآمن، والسريع بياخد عضل معاه." % _fmt(rate),
+                "%s kg a week -- faster than is safe, and fast loss takes muscle with it."
+                % _fmt(rate)),
+            "too_slow": (
+                "work", "سرعة النزول", "Rate of loss",
+                "%s كجم في الأسبوع — أبطأ من المتوقع للعجز اللي ماشي." % _fmt(rate),
+                "%s kg a week -- slower than the running deficit predicts." % _fmt(rate)),
+            "plateau": (
+                "work", "الوزن ثابت", "Weight has stalled",
+                "مافيش فرق يعتد بيه في %d يوم. أول حاجة: الـTDEE يتحسب على الوزن الجديد."
+                % days,
+                "No meaningful change in %d days. First move: recalculate TDEE on the new weight."
+                % days),
+            "regained": (
+                "work", "الوزن زاد", "Weight regained",
+                "زاد %s كجم من آخر زيارة، والهدف نزول." % _fmt(moved),
+                "Up %s kg since the last visit, on a weight-loss plan." % _fmt(moved)),
+            "gain_too_fast": (
+                "work", "سرعة الزيادة", "Rate of gain",
+                "%s كجم في الأسبوع — أسرع من اللازم، والزيادة السريعة بتبقى دهون "
+                "أكتر من عضل." % _fmt(rate),
+                "%s kg a week -- faster than needed, and fast gain is more fat than muscle."
+                % _fmt(rate)),
+            "gain_stalled": (
+                "work", "الوزن مش بيزيد", "The gain has stalled",
+                "مافيش زيادة تعتد بيها في %d يوم. الفائض محتاج يكبر." % days,
+                "No meaningful gain in %d days. The surplus needs to grow." % days),
+            "lost_on_gain": (
+                "work", "الوزن نزل والهدف زيادة", "Lost weight on a gain plan",
+                "نزل %s كجم، والهدف زيادة — السعرات أقل من اللازم." % _fmt(moved),
+                "Down %s kg on a gain plan -- calories are below what is needed." % _fmt(moved)),
+        }
+        move = moves.get(progress.get("verdict"))
+        if move:
+            _judge(move[0], move[1], move[2], move[3], move[4])
+        elif progress.get("note_ar") or progress.get("note"):
+            _judge("unsure", "اللي حصل من آخر زيارة", "Since the last visit",
+                   progress.get("note_ar") or progress.get("note"),
+                   progress.get("note_en") or progress.get("note"))
+
+        # ‏تقسيم التغيّر: دهون ولّا كتلة خالية من الدهون؟
+        #
+        # ‏حتة مهمة: fat_delta اللي جاي من followup هو فرق **النسبة**
+        # بالنقطة، مش كيلوهات. ولو اتقرا كتر بيطلع غلط كتير:
+        # 40% من 88 كيلو = 35.2 كجم دهون، و36% من 82 = 29.5 — يعني 5.7 كجم
+        # دهون نزلت، مش 4. فالكيلوهات بتتحسب من الوزنين والنسبتين.
+        #
+        # ‏والحكم على **نسبة** الدهون من التغيّر، وبيقلب مع الهدف:
+        #     نزول  ->  نعوز النازل دهون. نزول 6 كيلو منهم 1.6 دهون
+        #                معناه إن 4.4 راحوا من الكتلة الخالية — خسارة.
+        #     زيادة  ->  العكس: نعوز الزايد كتلة خالية، والدهون أقل ما يمكن.
+        # ‏الاستيراد جوّه الدالة مقصود: الملف ده مابيستوردش حاجة على
+        # مستوى الملف، وقايمة أهداف الزيادة لازم تيجي من مكان واحد
+        # (followup) مش تتكرر هنا.
+        import followup as _fu
+        gaining = str(progress.get("goal_type") or "") in _fu.GAIN_GOALS
+        fat_points = progress.get("fat_delta")
+        old_weight = _num(progress.get("old_weight"))
+        if (fat_points is not None and fat_pct and weight and old_weight
+                and moved > 0.2):
+            old_pct = fat_pct - float(fat_points)
+            old_fat_kg = old_weight * old_pct / 100.0
+            new_fat_kg = weight * fat_pct / 100.0
+            fat_kg = new_fat_kg - old_fat_kg
+            lean_kg = (weight - new_fat_kg) - (old_weight - old_fat_kg)
+            if gaining and went_up:
+                # ‏الزيادة المطلوبة: نصّها عضل ولازم يبقى أقل حاجة.
+                if lean_kg / moved >= 0.5:
+                    _judge("good", "الزيادة دي إيه", "What the gain was",
+                           "من %s كجم زادوا، %s كجم كتلة خالية من الدهون و%s كجم دهون "
+                           "— دي زيادة نضيفة."
+                           % (_fmt(moved), _fmt(max(0.0, lean_kg)), _fmt(max(0.0, fat_kg))),
+                           "Of the %s kg gained, %s kg was fat-free mass and %s kg was fat "
+                           "-- that is a clean gain."
+                           % (_fmt(moved), _fmt(max(0.0, lean_kg)), _fmt(max(0.0, fat_kg))))
+                else:
+                    _judge("work", "الزيادة دي إيه", "What the gain was",
+                           "من %s كجم زادوا، %s كجم دهون — يعني أغلب الزيادة دهن مش عضل. "
+                           "الفائض محتاج يقل والمقاومة تزيد."
+                           % (_fmt(moved), _fmt(max(0.0, fat_kg))),
+                           "Of the %s kg gained, %s kg was fat -- most of the gain is fat, "
+                           "not muscle. The surplus needs to come down and resistance work up."
+                           % (_fmt(moved), _fmt(max(0.0, fat_kg))))
+            elif not went_up and (-fat_kg) / moved >= 0.65:
+                _judge("good", "النازل ده إيه", "What actually came off",
+                       "من %s كجم نزلوا، %s كجم دهون (%s%%) — ده بالظبط اللي إحنا وراه."
+                       % (_fmt(moved), _fmt(-fat_kg), _fmt((-fat_kg) / moved * 100, 0)),
+                       "Of the %s kg lost, %s kg was fat (%s%%) -- exactly what we are after."
+                       % (_fmt(moved), _fmt(-fat_kg), _fmt((-fat_kg) / moved * 100, 0)))
+            elif not went_up and (-fat_kg) / moved >= 0.4:
+                _judge("work", "النازل ده إيه", "What actually came off",
+                       "من %s كجم نزلوا، %s كجم دهون و%s كجم كتلة خالية من الدهون. "
+                       "البروتين وتمرين المقاومة محتاجين يعلوا."
+                       % (_fmt(moved), _fmt(-fat_kg), _fmt(max(0.0, -lean_kg))),
+                       "Of the %s kg lost, %s kg was fat and %s kg was fat-free mass. "
+                       "Protein and resistance training need to go up."
+                       % (_fmt(moved), _fmt(-fat_kg), _fmt(max(0.0, -lean_kg))))
+            elif not went_up:
+                _judge("work", "النازل ده إيه", "What actually came off",
+                       "من %s كجم نزلوا، %s كجم بس دهون — الباقي ماء وعضل. "
+                       "ده اللي يعمل الثبات بعدين، ولازم يتصلّح دلوقتي."
+                       % (_fmt(moved), _fmt(max(0.0, -fat_kg))),
+                       "Of the %s kg lost, only %s kg was fat -- the rest was water and muscle. "
+                       "This is what stalls progress later, and it is fixed now."
+                       % (_fmt(moved), _fmt(max(0.0, -fat_kg))))
+            elif fat_kg > 0.2:
+                _judge("work", "الزيادة دي إيه", "What the gain was",
+                       "الوزن زاد %s كجم، منهم %s كجم دهون."
+                       % (_fmt(moved), _fmt(fat_kg)),
+                       "Weight went up %s kg, of which %s kg was fat."
+                       % (_fmt(moved), _fmt(fat_kg)))
+            else:
+                _judge("good", "الزيادة دي إيه", "What the gain was",
+                       "الوزن زاد %s كجم والدهون مازادتش — الزيادة كتلة خالية من الدهون."
+                       % _fmt(moved),
+                       "Weight went up %s kg with no fat gain -- the gain was fat-free mass."
+                       % _fmt(moved))
+
+    if fat_band:
+        pct = _fmt(fat_pct)
+        if fat_band["kind"] == "good":
+            _judge("good", "نسبة الدهون", "Body fat",
+                   "%s%% — في النطاق الصحي (%s). دي أهم حاجة تمام في الورقة، "
+                   "والشغل إننا نحافظ عليها." % (pct, fat_band["ar"]),
+                   "%s%% -- in the healthy range (%s). This is the best thing on the sheet, "
+                   "and the job is to hold it." % (pct, fat_band["en"]))
+        elif fat_band["kind"] == "watch":
+            _judge("work", "نسبة الدهون", "Body fat",
+                   "%s%% — %s، يعني فوق النطاق الصحي. مش خطر، بس هي الشغل الأساسي."
+                   % (pct, fat_band["ar"]),
+                   "%s%% -- %s, above the healthy range. Not dangerous, but this is the main work."
+                   % (pct, fat_band["en"]))
+        elif fat_band["kind"] == "high":
+            _judge("work", "نسبة الدهون", "Body fat",
+                   "%s%% — %s. ده أعلى رقم في ترتيب الأولويات." % (pct, fat_band["ar"]),
+                   "%s%% -- %s. This is the top priority on the sheet."
+                   % (pct, fat_band["en"]))
+        else:
+            _judge("work", "نسبة الدهون", "Body fat",
+                   "%s%% — أقل من الحد الصحي. النزول أكتر مش هدف هنا، الشغل بناء." % pct,
+                   "%s%% -- below the healthy floor. Losing more is not the goal here; building is."
+                   % pct)
+    elif fat_pct:
+        _judge("unsure", "نسبة الدهون", "Body fat",
+               "%s%% مكتوبة، بس النوع مش مختار — والنطاق الصحي بيفرق كتير "
+               "(السمنة بتبدأ 32%% للأنثى و25%% للذكر)." % _fmt(fat_pct),
+               "%s%% is entered, but the sex is not selected -- and the range differs a lot "
+               "(obesity starts at 32%% for women, 25%% for men)." % _fmt(fat_pct))
+    elif weight:
+        _judge("unsure", "نسبة الدهون", "Body fat",
+               "مش مكتوبة، فالوزن مش متقسّم دهون وكتلة خالية من الدهون. "
+               "ده أهم سطر ناقص في الورقة.",
+               "Not entered, so the weight is not split into fat and fat-free mass. "
+               "This is the most useful missing line.")
+
+    if bmi_band:
+        value = _fmt(bmi)
+        if fat_band and fat_band["kind"] == "good" and bmi_band["kind"] != "good":
+            _judge("unsure", "BMI", "BMI",
+                   "%s — بيقول «%s»، ونسبة الدهون %s%% وهي في نطاق كويس. "
+                   "يعني الرقم ده جاي من كتلة خالية من الدهون، فمانشتغلش عليه هنا."
+                   % (value, bmi_band["ar"], _fmt(fat_pct)),
+                   "%s -- reads %s while body fat is %s%%, which sits in a good range. "
+                   "The number comes from fat-free mass, so it is not what we chase."
+                   % (value, bmi_band["en"], _fmt(fat_pct)))
+        elif fat_band and fat_band["kind"] == "high" and bmi_band["kind"] == "good":
+            _judge("unsure", "BMI", "BMI",
+                   "%s — بيقول «طبيعي»، ودي الحالة اللي الميزان بيخبّيها: "
+                   "نسبة الدهون %s%%. الحكم بيتاخد من نسبة الدهون مش منه."
+                   % (value, _fmt(fat_pct)),
+                   "%s -- reads normal, and this is exactly the case the scale hides: "
+                   "body fat is %s%%. The verdict comes from body fat, not from here."
+                   % (value, _fmt(fat_pct)))
+        elif bmi_band["kind"] == "good":
+            _judge("good", "BMI", "BMI",
+                   "%s — الوزن على الطول في النطاق الطبيعي." % value,
+                   "%s -- weight-for-height sits in the normal range." % value)
+        else:
+            _judge("work", "BMI", "BMI",
+                   "%s — %s بمقياس الوزن على الطول." % (value, bmi_band["ar"]),
+                   "%s -- %s on weight-for-height." % (value, bmi_band["en"]))
+
+    if vis_band:
+        if vis_band["kind"] == "good":
+            _judge("good", "الدهون الحشوية", "Visceral fat",
+                   "مستوى %s — طبيعي. دي اللي بتفرق في السكر والضغط ودهون الكبد، "
+                   "وكونها في مكانها خبر كبير." % _fmt(visceral),
+                   "Level %s -- normal. This is the fat that moves blood sugar, blood pressure "
+                   "and liver fat, so having it in range is a big deal." % _fmt(visceral))
+        else:
+            _judge("work", "الدهون الحشوية", "Visceral fat",
+                   "مستوى %s — %s. بتستجيب بسرعة للعجز، وبتبان في التحاليل قبل الميزان."
+                   % (_fmt(visceral), vis_band["ar"]),
+                   "Level %s -- %s. It responds fast to a deficit and shows in labs before the scale."
+                   % (_fmt(visceral), vis_band["en"]))
+
+    if muscle_band and smi is not None:
+        if muscle_band["kind"] == "good":
+            _judge("good", "كتلة العضل", "Skeletal muscle",
+                   "%s كجم، ونسبةً للطول %s — في النطاق الطبيعي. دي اللي بتحرق، "
+                   "وحمايتها وإحنا بننزّل هي الشغل." % (_fmt(muscle), _fmt(smi, 2)),
+                   "%s kg, and %s relative to height -- within normal. This is the tissue that "
+                   "burns, and protecting it while losing is the job."
+                   % (_fmt(muscle), _fmt(smi, 2)))
+        else:
+            _judge("work", "كتلة العضل", "Skeletal muscle",
+                   "%s كجم، ونسبةً للطول %s والطبيعي %s وأكتر — %s. "
+                   "ده بيقلّل الحرق ويعمل ثبات بعد شهرين."
+                   % (_fmt(muscle), _fmt(smi, 2), _fmt(_SMI[sex][0], 2), muscle_band["ar"]),
+                   "%s kg, %s relative to height against a normal of %s and up -- %s. "
+                   "It lowers the burn and stalls progress a couple of months in."
+                   % (_fmt(muscle), _fmt(smi, 2), _fmt(_SMI[sex][0], 2), muscle_band["en"]))
+    elif muscle:
+        _judge("unsure", "كتلة العضل", "Skeletal muscle",
+               "%s كجم مكتوبة، بس الحكم عليها محتاج الطول والنوع." % _fmt(muscle),
+               "%s kg is entered, but judging it needs the height and the sex." % _fmt(muscle))
+
+    if water_band and water_share is not None:
+        if water_band["kind"] == "good":
+            _judge("good", "ماء الجسم", "Body water",
+                   "%s%% من الكتلة الخالية من الدهون — في الطبيعي (70-75%%)."
+                   % _fmt(water_share),
+                   "%s%% of fat-free mass -- normal (70-75%%)." % _fmt(water_share))
+        else:
+            _judge("work", "ماء الجسم", "Body water",
+                   "%s%% من الكتلة الخالية من الدهون — %s (الطبيعي 70-75%%). "
+                   "راجع الملح والدوا وتقلّب الوزن اليومي."
+                   % (_fmt(water_share), water_band["ar"]),
+                   "%s%% of fat-free mass -- %s (normal is 70-75%%). "
+                   "Review salt, medication and day-to-day weight swings."
+                   % (_fmt(water_share), water_band["en"]))
+
+    # ‏اللي مش موجود خالص: بيتقال مرة واحدة في سطر، مش يتسكت عنه.
+    absent_ar, absent_en = [], []
+    for present, name_ar, name_en in (
+            (visceral, "الدهون الحشوية", "visceral fat"),
+            (muscle, "كتلة العضل", "skeletal muscle"),
+            (water, "ماء الجسم", "body water"),
+            (bmr, "معدل الحرق وقت الراحة", "resting metabolic rate")):
+        if not present:
+            absent_ar.append(name_ar)
+            absent_en.append(name_en)
+    if absent_ar:
+        _judge("unsure", "أرقام مش موجودة", "Numbers not present",
+               "%s — لا في الورقة ولا مكتوبة، فمالهاش حكم."
+               % "، ".join(absent_ar),
+               "%s -- neither on the sheet nor entered, so there is no verdict on them."
+               % ", ".join(absent_en))
 
     # ═══ الهدف بالأرقام: أقوى حاجة تقولها للعميل ═══
     #
@@ -550,7 +870,7 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
                     "Body fat is %s%% and %s. For this client weight is a weak signal; "
                     "body fat is what moves meaningfully." % (_fmt(fat_pct), band["en"]),
                     is_ar),
-                "do": _pick("قوله: هنقيس نسبة الدهون والمقاسات كل ٢-٤ أسابيع، مش الميزان كل يوم.",
+                "do": _pick("قوله: هنقيس نسبة الدهون والمقاسات كل 2-4 أسابيع، مش الميزان كل يوم.",
                             "Tell them: we measure body fat and tape measurements every 2-4 weeks, not the scale daily.",
                             is_ar)})
         elif band["kind"] == "low":
@@ -574,7 +894,7 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
                     "Muscle relative to height is %s against a normal of %s and up. Fast loss takes muscle, "
                     "and lost muscle lowers the burn and stalls progress." % (_fmt(smi, 2), _fmt(_SMI[sex][0], 2)),
                     is_ar),
-                "do": _pick("قوله: البروتين في كل وجبة + تمرين مقاومة ٢-٣ مرات أسبوعياً، مش كارديو بس.",
+                "do": _pick("قوله: البروتين في كل وجبة + تمرين مقاومة 2-3 مرات أسبوعياً، مش كارديو بس.",
                             "Tell them: protein at every meal plus resistance training 2-3 times a week, not cardio alone.",
                             is_ar)})
 
@@ -679,13 +999,13 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
             "Weight %s kg, BMI %s. Body fat is missing, so the fat/muscle split is not computed."
             % (_fmt(weight), _fmt(bmi)), is_ar)
     else:
-        headline = _pick("الأرقام مش كفاية للشرح -- اكتب الوزن والطول على الأقل.",
+        headline = _pick("الأرقام مش كفاية للشرح — اكتب الوزن والطول على الأقل.",
                          "Not enough numbers to explain -- enter at least weight and height.", is_ar)
 
     # ═══ اللي ناقص واللي الملف ده مش بيعمله ═══
     if not sex_known:
         caveats.append(_pick(
-            "النوع مش مختار، ونطاقات الدهون والعضل بتفرق كتير بين الذكر والأنثى -- "
+            "النوع مش مختار، ونطاقات الدهون والعضل بتفرق كتير بين الذكر والأنثى — "
             "فعرضت الأرقام من غير حكم على النطاق. اختار النوع وهيتحدّد.",
             "Sex is not selected, and the fat and muscle ranges differ a lot between male and female -- "
             "so the numbers are shown without a range verdict. Pick the sex and it resolves.",
@@ -707,6 +1027,7 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
         is_ar))
 
     return {"headline": headline, "rows": rows, "focus": focus, "script": script,
+            "verdict": {"good": good, "work": work, "unsure": unsure},
             "targets": targets, "caveats": caveats, "mode": mode,
             "visit_no": visit_hint,
             "missing": [m for m in missing if m]}
@@ -715,6 +1036,22 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
 def as_text(result, is_ar=True):
     """‏نفس الشرح كنص سادة -- الدكتور بينسخه ويبعته واتساب للعميل."""
     out = [result["headline"], ""]
+
+    # ‏الحكم قبل الأرقام: ده اللي الدكتور بيقراه الأول، وده اللي
+    # العميل بياخد باله منه لو الدكتور بعت له النص ده واتساب.
+    verdict = result.get("verdict") or {}
+    for key, head_ar, head_en, mark in (
+            ("good", "اللي تمام:", "What is fine:", "✓"),
+            ("work", "اللي فيه شغل:", "What needs work:", "!"),
+            ("unsure", "اللي مالوش حكم:", "What has no verdict:", "?")):
+        items = verdict.get(key) or []
+        if not items:
+            continue
+        out.append(_pick(head_ar, head_en, is_ar))
+        for item in items:
+            out.append("%s %s: %s" % (mark, item["label"], item["line"]))
+        out.append("")
+
     for row in result["rows"]:
         value = ("%s %s" % (row["value"], row["unit"])).strip()
         band = (" — %s" % row["band"]) if row["band"] else ""

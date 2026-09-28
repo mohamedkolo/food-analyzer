@@ -224,6 +224,55 @@ def test_no_template_calls_a_jinja_filter_that_does_not_exist():
     )
 
 
+# ‏لوحة شرح الفحص فيها ألوان خاصة بها (أخضر للتمام، عنبري للشغل،
+# رمادي للي مالوش حكم) مش جاية من التوكنز، فمحتاجة تتقاس بالاسم.
+# الدكتور بيقرا منها والعميل قاعد قدامه، وساعات من تليفون في نور شمس.
+EXPLAIN_PANEL_COLORS = (
+    ("عنوان «اللي تمام»", "#1b5e38", "#f4faf6"),
+    ("عنوان «اللي فيه شغل»", "#8a5a00", "#fffaf0"),
+    ("عنوان «مالوش حكم»", "#55647a", "#f7f9fb"),
+    ("نص الحكم", "#374151", "#f4faf6"),
+    ("شارة كويسة", "#1b5e38", "#e7f4ec"),
+    ("شارة تحذير", "#8a5a00", "#fdf3dd"),
+    ("شارة خطر", "#8b1f1f", "#fdeaea"),
+    ("الجملة المقولة", "#0f172a", "#f7fafc"),
+    ("فعل التركيز", "#1b5e38", "#fffdf7"),
+)
+
+
+def _relative_luminance(hex_color):
+    raw = hex_color.lstrip("#")
+    channels = []
+    for start in (0, 2, 4):
+        value = int(raw[start:start + 2], 16) / 255.0
+        channels.append(value / 12.92 if value <= 0.03928
+                        else ((value + 0.055) / 1.055) ** 2.4)
+    red, green, blue = channels
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+
+
+def _contrast(foreground, background):
+    first = _relative_luminance(foreground)
+    second = _relative_luminance(background)
+    lighter, darker = max(first, second), min(first, second)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def test_the_explain_panel_colors_pass_on_their_own_backgrounds():
+    """‏كل لون في لوحة الشرح فوق 4.5:1 على الخلفية اللي محطوط عليها."""
+    page = _read(os.path.join(TPL, "generate.html"))
+    weak = []
+    for name, foreground, background in EXPLAIN_PANEL_COLORS:
+        # ‏اللون لازم يبقى لسه موجود في الصفحة، وإلا الاختبار بيقيس وهم
+        assert foreground in page or background in page, \
+            "‏%s: اللون %s مش في الصفحة خلاص" % (name, foreground)
+        ratio = _contrast(foreground, background)
+        if ratio < 4.5:
+            weak.append("%s: %s على %s = %.2f:1" % (name, foreground,
+                                                     background, ratio))
+    assert not weak, "‏ألوان تحت 4.5:1:\n  " + "\n  ".join(weak)
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):

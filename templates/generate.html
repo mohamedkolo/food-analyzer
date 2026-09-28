@@ -91,18 +91,18 @@
        مع الفورم -- دي حالة الصفحة مش بيانات الخطة. #}
     <input type="hidden" id="brMuscle"><input type="hidden" id="brVisceral">
     <input type="hidden" id="brWater"><input type="hidden" id="brBmr">
-    <div id="brBox" style="background:#FBF7F1;border:1px dashed #D9C9AE;
-         border-radius:10px;padding:12px 14px;margin-bottom:16px">
+    <div id="brBox" style="background:var(--gray);border:1.5px solid var(--gray-2);
+         border-radius:12px;padding:12px 14px;margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <button type="button" id="brBtn" class="btn btn-outline" style="margin:0;
-                background:#fff;border-color:#D9C9AE;color:#4A3B22">
+                background:var(--white);border-color:var(--blue-light);color:var(--blue)">
           <i class="fa-solid fa-comments"></i>
           {{ 'اشرح الفحص للعميل' if is_ar else 'Explain the report to the client' }}
         </button>
-        <span id="brHint" style="font-size:12px;color:#6b5a3e;line-height:1.7">
-          {{ 'كل رقم يعني إيه، النقاط اللي تركّز عليها، والترتيب اللي تشرح بيه. الوزن والطول كفاية تبدأ.'
+        <span id="brHint" style="font-size:12px;color:var(--muted);line-height:1.7">
+          {{ 'إيه التمام وإيه اللي فيه شغل، كل رقم يعني إيه، والكلام اللي تقوله بالترتيب. الوزن والطول كفاية تبدأ.'
              if is_ar else
-             'What each number means, what to focus on, and the order to walk through it. Weight and height are enough to start.' }}
+             'What is fine and what needs work, what each number means, and the words to say in order. Weight and height are enough to start.' }}
         </span>
       </div>
       <div id="brOut" hidden style="margin-top:12px"></div>
@@ -739,6 +739,117 @@
     .nx-opt-ic { flex:0 0 30px; height:30px; font-size:15px }
     .nx-opt-t { font-size:12.5px }
     .nx-opt-s { font-size:10.5px }
+  }
+  /* ‏═══ لوحة شرح الفحص ═══
+     اللوحة دي الدكتور بيقرا منها والعميل قاعد قدامه، فهي
+     مفروض تبان ورقة عيادة مش مخرج برنامج. تلات قرارات:
+
+       ١) ألوان البرنامج نفسها (الكحلي والفيروزي) مش باليت دافية
+          منفصلة — اللوحة كانت بانية ملزوقة على الصفحة.
+       ٢) اللون على الحكم بس (الشارة والإطار)، مش خلفية ملونة
+          لكل سطر — كل سطر ملون يعني مفيش سطر مهم.
+       ٣) الأرقام متراصة في عمود واحد بخط جدولي، عشان تتقرا
+          بالبصة من على بعد. */
+  .ex-card { background:var(--white); border:1.5px solid var(--gray-2);
+             border-radius:14px; overflow:hidden;
+             box-shadow:0 3px 14px rgba(15,42,67,.07) }
+  .ex-head { background:var(--blue); color:#fff; padding:11px 15px;
+             display:flex; align-items:center; gap:10px; flex-wrap:wrap }
+  .ex-head-t { font-size:14px; font-weight:800; display:flex;
+               align-items:center; gap:8px }
+  .ex-mode { margin-inline-start:auto; background:rgba(255,255,255,.16);
+             border:1px solid rgba(255,255,255,.25); border-radius:20px;
+             padding:3px 11px; font-size:11.5px; font-weight:700 }
+  .ex-lead { background:var(--blue-pale); color:var(--blue);
+             padding:11px 15px; font-size:14px; font-weight:700;
+             line-height:1.85; border-bottom:1px solid var(--gray-2) }
+  .ex-sec { padding:13px 15px; border-top:1px solid #eef2f6 }
+  .ex-sec:first-of-type { border-top:none }
+  .ex-sec-h { font-size:11.5px; font-weight:800; color:var(--muted);
+              letter-spacing:.4px; margin-bottom:9px; display:flex;
+              align-items:center; gap:7px }
+  .ex-sec-h::before { content:''; width:3px; height:13px; border-radius:2px;
+                      background:var(--green); flex:0 0 3px }
+
+  /* ‏صح وغلط: تلات أعمدة جنب بعض على الدايركتور، وفوق بعض
+     على الموبايل — الدكتور بيفتح الموقع من التليفون جوّه العيادة. */
+  .ex-judge { display:grid; gap:9px;
+              grid-template-columns:repeat(auto-fit,minmax(215px,1fr)) }
+  .ex-j { border:1px solid var(--gray-2); border-radius:11px; padding:10px 12px;
+          background:#fbfcfd }
+  .ex-j-h { font-size:12px; font-weight:800; display:flex; align-items:center;
+            gap:7px; margin-bottom:7px }
+  .ex-j-n { font-size:10.5px; font-weight:800; border-radius:20px;
+            padding:1px 7px; background:rgba(15,42,67,.09) }
+  .ex-j.good   { border-color:#bcdfcd; background:#f4faf6 }
+  .ex-j.good   .ex-j-h { color:#1b5e38 }
+  .ex-j.work   { border-color:#f0d9a8; background:#fffaf0 }
+  .ex-j.work   .ex-j-h { color:#8a5a00 }
+  .ex-j.unsure { border-color:var(--gray-2); background:#f7f9fb }
+  .ex-j.unsure .ex-j-h { color:var(--muted) }
+  .ex-j-i { padding:6px 0; font-size:12.5px; line-height:1.8;
+            color:var(--text-2) }
+  .ex-j-i + .ex-j-i { border-top:1px dashed rgba(85,100,122,.25) }
+  .ex-j-i b { color:var(--text); font-weight:800 }
+
+  /* ‏الأرقام: القيمة بخط جدولي عشان تتراص تحت بعضها. */
+  .ex-r { padding:8px 0; display:grid; gap:3px 10px;
+          grid-template-columns:1fr auto auto; align-items:baseline }
+  .ex-r + .ex-r { border-top:1px solid #eef2f6 }
+  .ex-r-l { font-size:13px; font-weight:700; color:var(--text) }
+  /* ‏عرض ثابت للقيمة والوحدة عشان الأرقام تتراص تحت بعضها،
+     مش كل رقم يقف في مكان — ده اللي يخليها تتقرا كجدول. */
+  .ex-r-v { font-size:15px; font-weight:800; color:var(--blue);
+            font-variant-numeric:tabular-nums; white-space:nowrap;
+            min-width:58px; text-align:end }
+  .ex-r-u { font-size:11.5px; font-weight:700; color:var(--muted);
+            min-width:54px; text-align:start }
+  .ex-r-m { grid-column:1/-1; font-size:12px; color:var(--muted);
+            line-height:1.8 }
+  .ex-pill { grid-column:1/-1; justify-self:start; font-size:11px;
+             font-weight:800; border-radius:20px; padding:2px 10px;
+             margin-top:2px }
+  .ex-pill.good  { background:#e7f4ec; color:#1b5e38 }
+  .ex-pill.watch { background:#fdf3dd; color:#8a5a00 }
+  .ex-pill.high, .ex-pill.low { background:#fdeaea; color:#8b1f1f }
+
+  .ex-goal { font-size:13px; line-height:2; color:var(--text-2) }
+  .ex-goal b { color:var(--blue) }
+  .ex-focus { border-inline-start:3px solid #C89B3C; border-radius:0 8px 8px 0;
+              background:#fffdf7; padding:9px 12px; margin-bottom:8px }
+  .ex-focus-t { font-size:13px; font-weight:800; color:var(--text) }
+  .ex-focus-w { font-size:12.5px; color:var(--muted); line-height:1.8;
+                margin-top:3px }
+  .ex-focus-d { font-size:12.5px; color:#1b5e38; font-weight:700;
+                line-height:1.8; margin-top:3px }
+
+  /* ‏السيناريو: الجملة اللي بتتقال لازم تبقى أبرز حاجة في
+     الخطوة، والملاحظة للدكتور صغيرة تحتيها — عشان يقرا الكلام
+     من على الشاشة من غير ما يترجمه بنفسه وسط الكلام. */
+  .ex-step { display:grid; grid-template-columns:24px 1fr; gap:10px;
+             padding:9px 0 }
+  .ex-step + .ex-step { border-top:1px solid #eef2f6 }
+  .ex-n { width:24px; height:24px; border-radius:50%; background:var(--green);
+          color:#fff; font-size:11.5px; font-weight:800; display:flex;
+          align-items:center; justify-content:center; margin-top:2px }
+  .ex-step-l { font-size:11.5px; font-weight:800; color:var(--green);
+               letter-spacing:.2px; margin-bottom:4px }
+  .ex-say { font-size:14.5px; font-weight:600; color:var(--text);
+            line-height:2.05; background:#f7fafc;
+            border-inline-start:3px solid var(--blue-light);
+            border-radius:0 9px 9px 0; padding:8px 12px }
+  .ex-note { font-size:11.5px; color:var(--muted); line-height:1.8;
+             margin-top:5px }
+  .ex-foot { background:#f8fafb; border-top:1px solid var(--gray-2);
+             padding:11px 15px }
+  .ex-caveat { font-size:11.5px; color:var(--muted); line-height:1.8;
+               margin-bottom:5px }
+
+  @media(max-width:768px){
+    .ex-lead { font-size:13px }
+    .ex-say { font-size:13.5px; line-height:1.95 }
+    .ex-r { grid-template-columns:1fr auto }
+    .ex-r-u { grid-column:2 }
   }
 </style>
 
@@ -1549,7 +1660,7 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
       body_water: val('brWater'), bmr: val('brBmr')
     };
     out.hidden = false;
-    out.innerHTML = '<span style="color:#6b5a3e">'
+    out.innerHTML = '<span style="color:var(--muted)">'
                   + T('بجهّز الشرح…','Preparing the explanation...') + '</span>';
     let data;
     try{
@@ -1572,98 +1683,136 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
       return;
     }
 
-    let html = '<div style="background:#fff;border:1px solid #E6DAC4;border-radius:10px;'
-             + 'padding:12px 14px;line-height:1.9">';
-    html += '<div style="font-weight:800;color:#0F2A43;margin-bottom:10px">'
-          + esc(data.headline) + '</div>';
+    // ‏أنهي حالة؟ السيرفر بيقرر، واللوحة بتكتبها فوق عشان الدكتور
+    // يعرف الكلام اللي جاي موجّه لإيه.
+    const MODE = {
+      free: T('فحص سريع · مفيش ملف متابعة',
+              'Quick check · no follow-up file'),
+      first: T('أول زيارة بخطة', 'First visit with a plan'),
+      followup: T('متابعة' + (data.visit_no ? ' · زيارة ' + data.visit_no : ''),
+                  'Follow-up' + (data.visit_no ? ' · visit ' + data.visit_no : ''))
+    };
+    const AIM = {
+      free: T('الكلام موجّه إنه يبدأ معاك',
+              'the script is aimed at getting them started'),
+      first: T('الأرقام دي نقطة البداية', 'these numbers are the baseline'),
+      followup: T('الكلام على اللي اتغيّر', 'the script is about what changed')
+    };
 
-    (data.rows || []).forEach(function(row){
-      const tone = TONE[row.kind] || TONE.plain;
-      html += '<div style="background:' + tone[0] + ';border-radius:8px;'
-            + 'padding:7px 10px;margin-bottom:6px">'
-            + '<b style="color:#0F2A43">' + esc(row.label) + ':</b> '
-            + '<b>' + esc(row.value) + (row.unit ? ' ' + esc(row.unit) : '') + '</b>'
-            + (row.band ? ' <span style="color:' + tone[1] + ';font-weight:700">— '
-                          + esc(row.band) + '</span>' : '')
-            + '<br><span style="font-size:12.5px;color:#4a5560">'
-            + esc(row.means) + '</span></div>';
-    });
+    let html = '<div class="ex-card">';
+    html += '<div class="ex-head"><span class="ex-head-t">'
+          + '<i class="fa-solid fa-file-waveform"></i> '
+          + T('قراءة الورقة', 'Reading the sheet') + '</span>'
+          + (MODE[data.mode] ? '<span class="ex-mode">' + esc(MODE[data.mode])
+                               + '</span>' : '')
+          + '</div>';
+    html += '<div class="ex-lead">' + esc(data.headline) + '</div>';
+
+    // ‏صح وغلط قبل الأرقام: دي البصة اللي الدكتور بيبصّها الأول.
+    const V = data.verdict || {};
+    const BUCKETS = [
+      ['good',   T('اللي تمام', 'What is fine'),        'fa-circle-check'],
+      ['work',   T('اللي فيه شغل', 'What needs work'),  'fa-circle-exclamation'],
+      ['unsure', T('اللي مالوش حكم', 'No verdict yet'), 'fa-circle-question']
+    ];
+    if(BUCKETS.some(function(b){ return (V[b[0]] || []).length; })){
+      html += '<div class="ex-sec"><div class="ex-sec-h">'
+            + T('صح وغلط — البصة الواحدة',
+                'Right and wrong — at a glance')
+            + '</div><div class="ex-judge">';
+      BUCKETS.forEach(function(bucket){
+        const items = V[bucket[0]] || [];
+        if(!items.length) return;
+        html += '<div class="ex-j ' + bucket[0] + '"><div class="ex-j-h">'
+              + '<i class="fa-solid ' + bucket[2] + '"></i> ' + esc(bucket[1])
+              + '<span class="ex-j-n">' + items.length + '</span></div>';
+        items.forEach(function(item){
+          html += '<div class="ex-j-i"><b>' + esc(item.label) + '</b><br>'
+                + esc(item.line) + '</div>';
+        });
+        html += '</div>';
+      });
+      html += '</div></div>';
+    }
+
+    if((data.rows || []).length){
+      html += '<div class="ex-sec"><div class="ex-sec-h">'
+            + T('الأرقام، وكل رقم يعني إيه',
+                'The numbers, and what each one means') + '</div>';
+      data.rows.forEach(function(row){
+        html += '<div class="ex-r">'
+              + '<span class="ex-r-l">' + esc(row.label) + '</span>'
+              + '<span class="ex-r-v">' + esc(row.value) + '</span>'
+              + '<span class="ex-r-u">' + esc(row.unit || '') + '</span>'
+              + (row.band ? '<span class="ex-pill ' + esc(row.kind || 'plain')
+                            + '">' + esc(row.band) + '</span>' : '')
+              + '<span class="ex-r-m">' + esc(row.means) + '</span>'
+              + '</div>';
+      });
+      html += '</div>';
+    }
 
     if((data.targets || []).length){
-      html += '<div style="margin-top:10px;font-weight:800;color:#0F2A43">'
-            + T('الهدف بالأرقام','The goal in numbers') + '</div>';
-      html += '<div style="font-size:12.5px;color:#4a5560;margin-bottom:6px">'
-            + T('لو النازل دهون بس والعضل ثابت:','If the loss is fat only and muscle holds:')
-            + '</div>';
+      html += '<div class="ex-sec"><div class="ex-sec-h">'
+            + T('الهدف بالأرقام', 'The goal in numbers') + '</div>'
+            + '<div class="ex-goal">'
+            + '<div style="color:var(--muted);font-size:12px;margin-bottom:4px">'
+            + T('لو النازل دهون بس والعضل ثابت:',
+                'If the loss is fat only and muscle holds:') + '</div>';
       data.targets.forEach(function(tg){
-        html += '<div style="padding:4px 0">• '
-              + T('عند نسبة دهون ','At ') + '<b>' + esc(tg.fat_pct) + '%</b>'
-              + T(': الوزن ',' body fat: weight ') + '<b>' + esc(tg.weight) + ' '
-              + T('كجم','kg') + '</b> — '
-              + T('نزول ','a drop of ') + '<b>' + esc(tg.drop) + ' ' + T('كجم','kg') + '</b> '
-              + T('كلهم دهون','all of it fat') + '</div>';
+        html += '<div>• ' + T('عند نسبة دهون ', 'At ')
+              + '<b>' + esc(tg.fat_pct) + '%</b>'
+              + T('، الوزن يبقى ', ' body fat, the weight is ')
+              + '<b>' + esc(tg.weight) + ' ' + T('كجم', 'kg') + '</b> — '
+              + T('نزول ', 'a drop of ') + '<b>' + esc(tg.drop) + ' '
+              + T('كجم', 'kg') + '</b> '
+              + T('كلهم دهون', 'all of it fat') + '</div>';
       });
+      html += '</div></div>';
     }
 
     if((data.focus || []).length){
-      html += '<div style="margin-top:12px;font-weight:800;color:#0F2A43">'
-            + T('النقاط اللي تركّز عليها','What to focus on') + '</div>';
+      html += '<div class="ex-sec"><div class="ex-sec-h">'
+            + T('النقاط اللي تركّز عليها', 'What to focus on') + '</div>';
       data.focus.forEach(function(item){
-        html += '<div style="border-inline-start:3px solid #C89B3C;padding:4px 10px;margin:6px 0">'
-              + '<b>' + esc(item.title) + '</b><br>'
-              + '<span style="font-size:12.5px;color:#4a5560">' + esc(item.why) + '</span><br>'
-              + '<span style="font-size:12.5px;color:#1f5132">' + esc(item.do) + '</span></div>';
+        html += '<div class="ex-focus">'
+              + '<div class="ex-focus-t">' + esc(item.title) + '</div>'
+              + '<div class="ex-focus-w">' + esc(item.why) + '</div>'
+              + '<div class="ex-focus-d">' + esc(item.do) + '</div></div>';
       });
+      html += '</div>';
     }
 
     if((data.script || []).length){
-      const MODE = {
-        free: T('فحص سريع — الكلام موجّه إنه يبدأ معاك',
-                'Quick check -- the script is aimed at getting them started'),
-        first: T('أول زيارة بخطة — الأرقام دي نقطة البداية',
-                 'First visit with a plan -- these numbers are the baseline'),
-        followup: T('متابعة' + (data.visit_no ? ' — زيارة ' + data.visit_no : '')
-                    + ' — الكلام على اللي اتغيّر',
-                    'Follow-up' + (data.visit_no ? ' -- visit ' + data.visit_no : '')
-                    + ' -- the script is about what changed')
-      };
-      html += '<div style="margin-top:14px;font-weight:800;color:#0F2A43">'
-            + T('السيناريو — الكلام بالترتيب','The script, in order') + '</div>';
-      if(MODE[data.mode]){
-        html += '<div style="font-size:12px;color:#8a6d1f;margin-bottom:8px">'
-              + esc(MODE[data.mode]) + '</div>';
-      }
-      // ‏الجملة نفسها بارزة، والملاحظة للدكتور صغيرة تحتها -- عشان يقرا
-      // الكلام والعميل قاعد قدامه من غير ما يترجمه بنفسه.
+      html += '<div class="ex-sec"><div class="ex-sec-h">'
+            + T('السيناريو — الكلام بالترتيب', 'The script, in order')
+            + (AIM[data.mode] ? '<span style="font-weight:600;letter-spacing:0">('
+                                + esc(AIM[data.mode]) + ')</span>' : '')
+            + '</div>';
       data.script.forEach(function(step, i){
         const label = typeof step === 'string' ? '' : (step.label || '');
         const say = typeof step === 'string' ? step : (step.say || '');
         const note = typeof step === 'string' ? '' : (step.note || '');
-        html += '<div style="border-inline-start:3px solid #9CC3D0;'
-              + 'padding:6px 12px;margin:9px 0">'
-              + (label ? '<div style="font-size:11.5px;color:#1B6E80;'
-                         + 'font-weight:800">' + (i + 1) + '. ' + esc(label)
-                         + '</div>' : '')
-              + '<div style="font-size:14px;color:#0F2A43;line-height:1.95;'
-              + 'font-weight:600">' + esc(say) + '</div>'
-              + (note ? '<div style="font-size:11.5px;color:#6b7280;'
-                        + 'margin-top:4px">' + esc(note) + '</div>' : '')
-              + '</div>';
+        html += '<div class="ex-step"><div class="ex-n">' + (i + 1) + '</div><div>'
+              + (label ? '<div class="ex-step-l">' + esc(label) + '</div>' : '')
+              + '<div class="ex-say">' + esc(say) + '</div>'
+              + (note ? '<div class="ex-note">' + esc(note) + '</div>' : '')
+              + '</div></div>';
       });
+      html += '</div>';
     }
 
+    html += '<div class="ex-foot">';
     (data.caveats || []).forEach(function(line){
-      html += '<div style="margin-top:8px;font-size:11.5px;color:#8a6d1f">'
-            + esc(line) + '</div>';
+      html += '<div class="ex-caveat">' + esc(line) + '</div>';
     });
-
-    html += '<div style="margin-top:12px">'
-          + '<button type="button" id="brCopy" class="btn btn-outline" '
-          + 'style="font-size:12px;padding:6px 12px">'
+    html += '<button type="button" id="brCopy" class="btn btn-outline" '
+          + 'style="font-size:12px;padding:6px 12px;margin:6px 0 0">'
           + '<i class="fa-regular fa-copy"></i> '
-          + T('انسخ الشرح','Copy the explanation') + '</button>'
-          + '<span id="brCopied" hidden style="font-size:12px;color:#1f5132;'
-          + 'margin-inline-start:8px">' + T('اتنسخ','Copied') + '</span></div>';
+          + T('انسخ الشرح', 'Copy the explanation') + '</button>'
+          + '<span id="brCopied" hidden style="font-size:12px;color:#1b5e38;'
+          + 'font-weight:700;margin-inline-start:8px">' + T('اتنسخ', 'Copied')
+          + '</span></div>';
     html += '</div>';
     out.innerHTML = html;
 
