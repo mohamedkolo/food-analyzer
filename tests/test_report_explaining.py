@@ -377,6 +377,11 @@ def test_the_route_picks_the_scenario_from_the_name_and_the_history():
     numbers = {"gender": "انثى", "weight": "78.4", "height": "165",
                "age": "29", "fat_pct": "38.2"}
     client = staff()
+    # ‏الاختبار بينضّف قاعدته بنفسه. الملف ده بيستخدم قاعدة ثابتة في
+    # /tmp، فزيارة سابقة من تشغيل قديم كانت بتخلي "أول زيارة" تبان
+    # "متابعة" -- الاختبار عدّى لوحده وفشل في الطقم الكامل.
+    uid = core.db_row("SELECT id FROM users WHERE email='admin@nutrax.com'")["id"]
+    core.db_run("DELETE FROM plan_visits WHERE user_id=?", (uid,))
     # ‏مافيش اسم -> فحص سريع
     free = client.post("/api/explain-report", json=dict(numbers)).get_json()
     assert free["mode"] == "free", free["mode"]
@@ -387,8 +392,6 @@ def test_the_route_picks_the_scenario_from_the_name_and_the_history():
     assert first["mode"] == "first", first["mode"]
 
     # ‏زيارة محفوظة -> متابعة، والأرقام من المقارنة الحقيقية
-    core.db_run("DELETE FROM plan_visits WHERE user_id=?", (
-        core.db_row("SELECT id FROM users WHERE email='admin@nutrax.com'")["id"],))
     plan = {"age": "29", "gender": "انثى", "height": "165", "weight": "78.4",
             "goal_cal": "1400", "tdee": "2000", "activity_mult": "1.55",
             "protein_per_kg": "1.6", "fat_pct_cal": "30", "fat_pct": "38.2",
