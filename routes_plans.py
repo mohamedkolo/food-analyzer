@@ -582,15 +582,44 @@ def explain_report():
     numbers = {key: payload.get(key) for key in
                ("gender", "weight", "height", "age", "fat_pct", "bmi", "bmr",
                 "tdee", "muscle_mass", "visceral_fat", "body_water")}
+    numbers["activity"] = payload.get("activity") or payload.get("tdee")
+    numbers["goal_type"] = payload.get("goal_type") or "weight_loss"
+    numbers["goal_cal"] = payload.get("goal_cal")
     # ‏الوزن والطول هما الحد الأدنى: من غيرهم مافيش تقسيم ولا BMI ولا هدف.
     if not (body_read._num(numbers.get("weight"))
             and body_read._num(numbers.get("height"))):
         return jsonify({"ok": False,
                         "error": "اكتب الوزن والطول الأول، وبعد كده اضغط اشرح."}), 400
 
+    # ═══ أنهي سيناريو؟ السيرفر بيعرف لوحده، مش الصفحة ═══
+    #
+    # ‏الهدف من الكلام مختلف في كل حالة، فالكلام نفسه لازم يختلف:
+    #
+    #   مافيش اسم ولا رقم  ->  فحص سريع. العميل ماعندوش خطة، والكلام
+    #                          بيوضّح الفرق بين الميزان والتركيب وبيدعوه
+    #                          يبدأ -- وده اللي الدكتور طلبه بالنص.
+    #   اسم وله تاريخ      ->  متابعة. الكلام كله على اللي اتغيّر: إيه
+    #                          اللي نزل، وليه، وإيه اللي نكمّل عليه.
+    #   اسم وملوش تاريخ    ->  أول زيارة بخطة: الأرقام دي نقطة البداية.
+    name = (payload.get("name") or "").strip()
+    phone = (payload.get("phone") or "").strip()
+    mode, progress, visit_no = "free", None, None
+    if name:
+        mode = "first"
+        key = followup.client_key(name, phone)
+        previous = last_visit(session["uid"], key) if key else None
+        if previous:
+            # ‏المقارنة بتتعمل بنفس الكود اللي المتابعات ماشية بيه، مش
+            # بحساب تاني -- عشان مايبقاش فيه رقمين بيقولوا نفس الحاجة.
+            progress = followup.assess(previous, numbers, cur_lang())
+            if progress:
+                mode = "followup"
+                visit_no = int(previous.get("visit_no") or 1) + 1
+
     is_ar = session.get("lang", "ar") != "en"
     try:
-        result = body_read.explain(numbers, is_ar=is_ar)
+        result = body_read.explain(numbers, is_ar=is_ar, mode=mode,
+                                   progress=progress, visit_no=visit_no)
     except Exception as e:
         log_error("explain_report", e)
         return jsonify({"ok": False, "error": "في حاجة وقعت وإحنا بنجهّز الشرح"}), 500

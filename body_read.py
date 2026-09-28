@@ -146,8 +146,253 @@ def _fmt(value, places=1):
     return ("%%.%df" % places) % value
 
 
-def explain(data, is_ar=True):
-    """‏أرقام الفورم -> شرح للعميل. مافيش نداء لأي خدمة، كله حساب."""
+def _script_free(_say, weight, fat_mass, lean_mass, fat_pct, targets, weeks,
+                 sex_known, female, is_ar, _fmt):
+    """‏فحص سريع بدون اسم ولا رقم.
+
+    ‏الهدف إن العميل يشوف الفرق بين "أعرف وزني" و"أعرف تركيبي وأقيسه"،
+    ويقرر هو. الإقناع من الأرقام اللي قدامه، مش من تهويل: مافيش كلام عن
+    مرض ولا خطر، ومافيش وعد بمدة أقصر من الواقع.
+    """
+    steps = []
+    steps.append(_say(
+        "الافتتاح", "Opening",
+        "«خليني أقولك الميزان قال إيه — وبعدين أقولك الورقة دي بتقول إيه أكتر من الميزان.»",
+        "\"Let me tell you what the scale says -- then what this sheet says beyond it.\"",
+        "ابدأ بده دايماً: بيفتح الباب للرقم اللي بعده.",
+        "Always start here: it opens the door for the number that follows."))
+
+    if fat_mass is not None:
+        steps.append(_say(
+            "التقسيم", "The split",
+            "«وزنك %s كجم. بس جواه %s كجم دهون و%s كجم كتلة خالية من الدهون "
+            "— عضل وعظم وماء. الرقم اللي بيفرق هو الـ%s.»"
+            % (_fmt(weight), _fmt(fat_mass), _fmt(lean_mass), _fmt(fat_mass)),
+            "\"You weigh %s kg. But inside that is %s kg of fat and %s kg of "
+            "fat-free mass -- muscle, bone, water. The number that matters is the %s.\""
+            % (_fmt(weight), _fmt(fat_mass), _fmt(lean_mass), _fmt(fat_mass)),
+            "قول الرقمين بصوت عالي. دي اللحظة اللي بيفهم فيها إن الميزان ناقص.",
+            "Say both numbers out loud. This is when the scale starts to look incomplete."))
+
+    if fat_pct and sex_known:
+        band_top = 31.0 if female else 24.0
+        if fat_pct > band_top:
+            steps.append(_say(
+                "المعنى", "What it means",
+                "«نسبة الدهون عندك %s%%، والنطاق الصحي لحد %s%%. الفرق ده هو الشغل — "
+                "مش الوزن كله.»" % (_fmt(fat_pct), _fmt(band_top)),
+                "\"Your body fat is %s%%, and the healthy range tops out at %s%%. "
+                "That gap is the work -- not the whole weight.\""
+                % (_fmt(fat_pct), _fmt(band_top)),
+                "بيحوّل الكلام من «إنت تقيل» لـ«فيه رقم محدد نشتغل عليه».",
+                "It turns \"you are heavy\" into \"there is one number to work on\"."))
+
+    if targets:
+        first = targets[0]
+        steps.append(_say(
+            "الهدف بالأرقام", "The goal in numbers",
+            "«لو نزّلنا دهون بس والعضل ثابت، وزنك يبقى %s كجم — يعني %s كجم، "
+            "كلهم دهون. ده رقم محسوب من أرقامك، مش تقدير.»"
+            % (first["weight"], first["drop"]),
+            "\"If we lose fat only and hold the muscle, you land at %s kg -- a drop "
+            "of %s kg, all of it fat. That is computed from your numbers, not a guess.\""
+            % (first["weight"], first["drop"]),
+            "أقوى جملة في الكلام كله. الرقم محسوب فعلاً، فقوله بثقة.",
+            "The strongest line here. The number really is computed, so say it with confidence."))
+
+    if weeks:
+        steps.append(_say(
+            "المدة الحقيقية", "The honest timeline",
+            "«ده بياخد حوالي %d أسبوع بمعدل نص في المية لواحد في المية من وزنك "
+            "في الأسبوع. أسرع من كده بياخد من العضل.»" % weeks,
+            "\"That takes about %d weeks at half to one percent of your weight a week. "
+            "Faster than that comes out of muscle.\"" % weeks,
+            "قول المدة الحقيقية. اللي بيوعد بشهر بيرجع بعد شهرين.",
+            "Give the honest timeline. Whoever promises a month is seen again in two."))
+
+    steps.append(_say(
+        "الفرق", "The difference",
+        "«الكلام ده كله تقدر تعمله لوحدك. اللي بيفرق إن الخطة تتحسب على أرقامك دي "
+        "بالتحديد، وإننا نقيس كل ٢-٤ أسابيع ونعدّل على اللي بيحصل فعلاً — "
+        "مش نمشي على ورقة ثابتة شهرين.»",
+        "\"You could do all of this on your own. What changes it is a plan computed "
+        "from these numbers of yours, and measuring every 2-4 weeks and adjusting to "
+        "what actually happens -- instead of following one fixed sheet for two months.\"",
+        "ده اللي بتبيعه فعلاً: القياس والتعديل، مش الورقة.",
+        "This is what you are actually offering: measurement and adjustment, not a sheet."))
+
+    steps.append(_say(
+        "الخطوة الجاية", "The next step",
+        "«لو تحب نبدأ، أنا أعملك خطة على أرقام النهاردة، ونتقابل بعد أسبوعين نقيس "
+        "تاني ونشوف الأرقام مشيت إزاي.»",
+        "\"If you would like to start, I will build a plan on today's numbers, and we "
+        "meet in two weeks, measure again, and see how they moved.\"",
+        "اقفل بدعوة محددة ومقيسة، مش «فكّر وتعالى».",
+        "Close with something specific and measurable, not \"think about it\"."))
+    return steps
+
+
+def _script_first(_say, weight, fat_mass, lean_mass, targets, weeks, visit_no,
+                  is_ar, _fmt):
+    """‏أول زيارة بخطة: الأرقام دي بقت نقطة البداية اللي نقيس عليها."""
+    steps = []
+    steps.append(_say(
+        "الافتتاح", "Opening",
+        "«الأرقام دي بقت نقطة البداية بتاعتنا. كل مرة جاية هنقيس ونقارن بيها.»",
+        "\"These numbers are our starting point. Every time from now on we measure and "
+        "compare against them.\"",
+        "بيخلي القياس الجاي متوقّع، فمايبقاش مفاجأة.",
+        "It makes the next measurement expected rather than a surprise."))
+    if fat_mass is not None:
+        steps.append(_say(
+            "التقسيم", "The split",
+            "«وزنك %s كجم: %s كجم دهون و%s كجم كتلة خالية من الدهون. اللي هنشتغل "
+            "على نزوله هو الـ%s، واللي هنحافظ عليه هو الـ%s.»"
+            % (_fmt(weight), _fmt(fat_mass), _fmt(lean_mass),
+               _fmt(fat_mass), _fmt(lean_mass)),
+            "\"You weigh %s kg: %s kg fat and %s kg fat-free. The %s is what we bring "
+            "down; the %s is what we protect.\""
+            % (_fmt(weight), _fmt(fat_mass), _fmt(lean_mass),
+               _fmt(fat_mass), _fmt(lean_mass)),
+            "الجملة دي بتشرح البروتين والمقاومة من غير ما تسمّيهم.",
+            "This line explains protein and resistance work without naming either."))
+    if targets:
+        first = targets[0]
+        steps.append(_say(
+            "الهدف", "The goal",
+            "«الهدف الأول: %s كجم عند نسبة دهون %s%% — يعني %s كجم نازلين، كلهم دهون.»"
+            % (first["weight"], first["fat_pct"], first["drop"]),
+            "\"First target: %s kg at %s%% body fat -- a %s kg drop, all of it fat.\""
+            % (first["weight"], first["fat_pct"], first["drop"]),
+            "هدف واحد بس. التاني بعد ما يوصل للأول.",
+            "One target only. The second comes after the first is met."))
+    if weeks:
+        steps.append(_say(
+            "المدة", "The timeline",
+            "«حوالي %d أسبوع. ولو نزل أسرع من كده، هنبطّأ — الأسرع بياخد من العضل.»"
+            % weeks,
+            "\"About %d weeks. And if it goes faster we slow it down -- faster comes "
+            "out of muscle.\"" % weeks,
+            "", ""))
+    steps.append(_say(
+        "المتابعة", "Follow-up",
+        "«المقياس بينا: نسبة الدهون والمقاسات كل ٢-٤ أسابيع، مش الميزان كل يوم. "
+        "الميزان بيتقلّب بالماء والملح والأكل في المعدة.»",
+        "\"Our measure: body fat and tape measurements every 2-4 weeks, not the scale "
+        "daily. The scale swings with water, salt and food in the gut.\"",
+        "اتفق على ده قبل ما يمشي، وإلا هيوزن كل يوم ويزهق.",
+        "Agree on this before they leave, or they will weigh daily and give up."))
+    return steps
+
+
+def _script_followup(progress, _say, fat_pct, is_ar, _fmt):
+    """‏عنده تاريخ: الكلام كله على اللي اتغيّر.
+
+    ‏الأرقام هنا مش محسوبة هنا -- جاية من followup.assess، اللي بيقارن
+    الزيارة بالزيارة اللي قبلها. فمافيش حساب مكرر ومافيش رقمين مختلفين
+    بيقولوا نفس الحاجة.
+    """
+    delta = progress.get("delta") or 0
+    days = progress.get("days")
+    rate = progress.get("rate")
+    fat_delta = progress.get("fat_delta")
+    steps = []
+
+    steps.append(_say(
+        "الافتتاح", "Opening",
+        "«قبل أي حاجة — خليني أقولك النتيجة من آخر مرة.»",
+        "\"Before anything else -- let me tell you the result since last time.\"",
+        "ابدأ بالنتيجة. لو بدأت بالكلام، هو مستني الرقم وهو مش سامعك.",
+        "Start with the result. If you start with talk, they are waiting for the number and not listening."))
+
+    if delta < 0:
+        moved = "«الوزن نزل %s كجم" % _fmt(abs(delta))
+        moved_en = "\"Weight is down %s kg" % _fmt(abs(delta))
+    elif delta > 0:
+        moved = "«الوزن زاد %s كجم" % _fmt(delta)
+        moved_en = "\"Weight is up %s kg" % _fmt(delta)
+    else:
+        moved = "«الوزن ثابت"
+        moved_en = "\"Weight is unchanged"
+    if days:
+        moved += " في %s يوم" % days
+        moved_en += " over %s days" % days
+    if rate:
+        moved += "، بمعدل %s كجم في الأسبوع" % _fmt(abs(rate))
+        moved_en += ", about %s kg a week" % _fmt(abs(rate))
+    steps.append(_say(
+        "اللي حصل", "What happened", moved + ".»", moved_en + ".\"",
+        "الرقم زي ما هو، من غير تحسين ولا تهويل.",
+        "The number as it is, neither dressed up nor dressed down."))
+
+    if fat_delta:
+        if fat_delta < 0:
+            steps.append(_say(
+                "الأهم", "The part that matters",
+                "«والأهم من الوزن: نسبة الدهون نزلت %s نقطة. يعني النازل دهون فعلاً، "
+                "مش عضل ولا ماء.»" % _fmt(abs(fat_delta)),
+                "\"And more important than the weight: body fat is down %s points. "
+                "So what came off really was fat, not muscle or water.\""
+                % _fmt(abs(fat_delta)),
+                "دي الجملة اللي بتخليه يكمّل. الوزن لوحده مابيقولش ده.",
+                "This is the line that keeps them going. Weight alone does not say it."))
+        else:
+            steps.append(_say(
+                "اللي محتاج شغل", "What needs work",
+                "«بس نسبة الدهون زادت %s نقطة. يعني الوزن اتحرك من حاجة تانية — "
+                "ماء أو عضل — ودي اللي هنظبّطها.»" % _fmt(fat_delta),
+                "\"But body fat is up %s points. So the weight moved from something "
+                "else -- water or muscle -- and that is what we fix.\"" % _fmt(fat_delta),
+                "قولها بصراحة. لو سكتت عنها، القياس الجاي هيبقى مفاجأة.",
+                "Say it plainly. If you skip it, the next measurement is a shock."))
+
+    note = progress.get("note_ar") if is_ar else progress.get("note_en")
+    if note:
+        steps.append(_say(
+            "القراءة", "The reading", "«%s»" % note, "\"%s\"" % note,
+            "دي قراءة المعدل مقابل المتوقع لهدفه.",
+            "This reads the rate against what his goal expects."))
+
+    if progress.get("tdee_drop"):
+        steps.append(_say(
+            "السبب", "The reason",
+            "«وحاجة لازم تعرفها: جسمك بقى بيحرق أقل %s كالوري من الأول، عشان الوزن "
+            "نزل. فنفس الأكل اللي كان بينزّلك بقى أقرب للثبات — وده مش فشل، ده "
+            "متوقع وبنعدّله.»" % progress["tdee_drop"],
+            "\"And something you should know: your body now burns %s kcal less than "
+            "before, because the weight came down. So the same food that was working "
+            "is closer to maintenance -- that is not failure, it is expected, and we "
+            "adjust for it.\"" % progress["tdee_drop"],
+            "الجملة دي بتمنع إحساس الفشل عند الثبات.",
+            "This line heads off the sense of failure at a plateau."))
+
+    steps.append(_say(
+        "اللي ماشي صح", "What is working",
+        "«اللي عملناه الفترة اللي فاتت شغّال، فمش هنقلبه. هنعدّل فيه على أرقام "
+        "النهاردة وبس.»",
+        "\"What we did last period is working, so we are not overturning it. We adjust "
+        "it against today's numbers, nothing more.\"",
+        "التغيير الكامل بيلغي اللي اتعلّمه. عدّل، مابدّلش.",
+        "A full rewrite throws away what they learned. Adjust, do not replace."))
+
+    steps.append(_say(
+        "الخطوة الجاية", "The next step",
+        "«نفس المقياس: نقيس تاني بعد ٢-٤ أسابيع. ولو حصل ثبات أسبوعين متواصلين، "
+        "تعالى قبل الميعاد.»",
+        "\"Same measure: we measure again in 2-4 weeks. And if it stalls two weeks in "
+        "a row, come in before the appointment.\"",
+        "الميعاد المفتوح بيخلّي الثبات يتحول لانسحاب.",
+        "An open-ended appointment lets a plateau turn into dropping out."))
+    return steps
+
+
+def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
+    """‏أرقام الفورم -> شرح للعميل. مافيش نداء لأي خدمة، كله حساب.
+
+    mode: "free" (فحص سريع بدون اسم) أو "first" (أول زيارة بخطة) أو
+          "followup" (عنده تاريخ، ومعاه progress من followup.assess).
+    """
+    visit_hint = visit_no
     sex = _sex(data.get("gender"))
     # ‏من غير نوع: بنعرض الأرقام ومانحكمش على النطاق. نطاق دهون الأنثى
     # بيبدأ سمنة عند ٣٢٪ والذكر عند ٢٥٪ -- حكم بالغلط هنا أسوأ من مفيش حكم.
@@ -383,38 +628,39 @@ def explain(data, is_ar=True):
                             "Tell them: if weight swings a kilo and a half in a day, that is water, not fat.",
                             is_ar)})
 
-    # ═══ السيناريو: ترتيب الكلام قدام العميل ═══
-    def _add(ar, en):
-        head = _step(len(script) + 1, is_ar)
-        script.append(head + " " + _pick(ar, en, is_ar))
+    # ═══ السيناريو: الكلام اللي بيتقال، بالترتيب ═══
+    #
+    # ‏ده مش تعليمات -- دي جمل تتقال. الدكتور بيقرا من على الشاشة والعميل
+    # قاعد قدامه، فأي سطر بيقول "اشرح له كذا" بيضطره يترجمه بنفسه وسط
+    # الكلام. فكل خطوة: العنوان (وإحنا فين)، والجملة، وسبب قصير له هو.
+    #
+    # ‏وبيختلف على حسب الحالة، لأن الهدف مختلف:
+    #
+    #   free      فحص سريع بدون اسم ولا رقم. العميل ماعندوش خطة، والهدف
+    #             إنه يشوف الفرق بين "أعرف وزني" و"أعرف تركيبي وأقيسه"،
+    #             ويقرر هو.
+    #   first     أول زيارة بخطة. الأرقام دي بقت نقطة البداية.
+    #   followup  عنده تاريخ. الكلام كله بيبقى على اللي اتغيّر: إيه اللي
+    #             نزل، وليه، وإيه اللي نكمّل عليه.
+    def _say(label_ar, label_en, say_ar, say_en, note_ar="", note_en=""):
+        return {"label": _pick(label_ar, label_en, is_ar),
+                "say": _pick(say_ar, say_en, is_ar),
+                "note": _pick(note_ar, note_en, is_ar)}
 
-    _add("ابدأ بالوزن وقوله إنه رقم واحد مش قصة كاملة: «الميزان بيقولنا كام، ومابيقولناش إيه.»",
-         "Start with the weight and say it is one number, not the story: the scale says how much, not what.")
-    if fat_mass is not None:
-        _add("قسّم الوزن قدامه: «من الـ%s كجم دي، %s كجم دهون و%s كجم كتلة خالية من الدهون.» "
-             "قول الرقمين بصوت عالي -- دي اللحظة اللي العميل بيفهم فيها الورقة."
-             % (_fmt(weight), _fmt(fat_mass), _fmt(lean_mass)),
-             "Split the weight in front of them: of these %s kg, %s kg is fat and %s kg is fat-free mass. "
-             "Say both numbers out loud -- this is the moment the sheet makes sense to them."
-             % (_fmt(weight), _fmt(fat_mass), _fmt(lean_mass)))
-    if targets:
-        first = targets[0]
-        _add("حوّل الهدف لرقم: «لو نزّلنا دهون بس والعضل ثابت، عند نسبة دهون %s%% وزنك يبقى %s كجم — "
-             "يعني %s كجم، كلهم دهون.» ده بيخلّي الهدف واضح ومقيس."
-             % (first["fat_pct"], first["weight"], first["drop"]),
-             "Turn the goal into a number: if we lose fat only and hold muscle, at %s%% body fat your weight is "
-             "%s kg -- a drop of %s kg, all of it fat. This makes the goal concrete and measurable."
-             % (first["fat_pct"], first["weight"], first["drop"]))
-    if visceral:
-        _add("الدهون الحشوية: قوله دي الرقم اللي بيفرق في صحته مش في شكله، ودي أول حاجة بتتحسّن.",
-             "Visceral fat: tell them this is the number that matters for health rather than looks, "
-             "and it is the first to improve.")
-    _add("اتفق على مقياس المتابعة قبل ما يمشي: نسبة الدهون والمقاسات كل ٢-٤ أسابيع. "
-         "الميزان اليومي بيتقلّب بالماء والملح والأكل في المعدة، والعميل بيزهق منه.",
-         "Agree on the measure before they leave: body fat and tape measurements every 2-4 weeks. "
-         "A daily scale swings with water, salt and food in the gut, and it wears the client out.")
-    _add("الرقم الواقعي: نزول ٠.٥ إلى ١٪ من الوزن في الأسبوع. أسرع من كده بياخد من العضل.",
-         "The realistic rate: 0.5 to 1% of body weight a week. Faster than that comes out of muscle.")
+    weeks = None
+    if targets and weight:
+        # ‏٠.٧٥٪ من الوزن في الأسبوع -- وسط النطاق الواقعي (٠.٥ إلى ١٪).
+        drop = float(targets[0]["drop"])
+        weeks = max(2, int(round(drop / (weight * 0.0075))))
+
+    if mode == "followup" and progress:
+        script = _script_followup(progress, _say, fat_pct, is_ar, _fmt)
+    elif mode == "free":
+        script = _script_free(_say, weight, fat_mass, lean_mass, fat_pct,
+                              targets, weeks, sex_known, female, is_ar, _fmt)
+    else:
+        script = _script_first(_say, weight, fat_mass, lean_mass, targets,
+                               weeks, visit_hint, is_ar, _fmt)
 
     # ═══ الجملة الأولى ═══
     if fat_pct and weight:
@@ -461,7 +707,8 @@ def explain(data, is_ar=True):
         is_ar))
 
     return {"headline": headline, "rows": rows, "focus": focus, "script": script,
-            "targets": targets, "caveats": caveats,
+            "targets": targets, "caveats": caveats, "mode": mode,
+            "visit_no": visit_hint,
             "missing": [m for m in missing if m]}
 
 
@@ -489,6 +736,11 @@ def as_text(result, is_ar=True):
             out.append("• %s — %s" % (item["title"], item["why"]))
             out.append("  %s" % item["do"])
     out.append("")
-    out.append(_pick("السيناريو:", "How to walk through it:", is_ar))
-    out.extend(result["script"])
+    out.append(_pick("السيناريو — الكلام بالترتيب:", "The script, in order:", is_ar))
+    for index, step in enumerate(result["script"], start=1):
+        out.append("")
+        out.append("%s %s" % (_step(index, is_ar), step["label"]))
+        out.append(step["say"])
+        if step.get("note"):
+            out.append("   (%s)" % step["note"])
     return "\n".join(out)

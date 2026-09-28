@@ -165,18 +165,27 @@ def test_a_missing_number_is_said_not_filled_in():
     assert "38" not in body, "‏رقم مش مدخّل ظهر في الشرح"
 
 
-def test_the_script_is_ordered_and_numbered_in_the_page_language():
-    """‏الترقيم كان بيطلع «١. ٢. ٣. 5. 6.» -- خلط أرقام عربي وإنجليزي."""
-    out = body_read.explain(WOMAN)
-    assert len(out["script"]) >= 5, out["script"]
-    for line in out["script"]:
-        assert re.match(r"^[٠-٩]+\.\s", line), line
-    english = body_read.explain(WOMAN, is_ar=False)
-    for line in english["script"]:
-        assert re.match(r"^\d+\.\s", line), line
-    # ‏الترتيب: الوزن الأول، والتقسيم بعده، والهدف بعديهم
-    assert "الميزان" in out["script"][0], out["script"][0]
-    assert "قسّم الوزن" in out["script"][1], out["script"][1]
+def test_every_step_is_a_sentence_to_say_not_an_instruction():
+    """‏الدكتور بيقرا من الشاشة والعميل قاعد قدامه.
+
+    ‏الخطوات كانت تعليمات ("ابدأ بالوزن وقوله...")، فكان لازم يترجمها
+    بنفسه وسط الكلام. بقت كلام مقول: عنوان (إحنا فين)، والجملة بين
+    قوسين، وملاحظة قصيرة له هو.
+    """
+    for mode in ("free", "first"):
+        out = body_read.explain(WOMAN, mode=mode)
+        assert len(out["script"]) >= 4, (mode, out["script"])
+        for step in out["script"]:
+            assert set(step) >= {"label", "say", "note"}, step
+            assert step["label"], step
+            # ‏الجملة بين قوسين عربية: علامة إنها كلام يتقال زي ما هو
+            assert step["say"].startswith("«") and step["say"].rstrip().endswith("»"), \
+                step["say"]
+            assert len(step["say"]) > 25, step["say"]
+    # ‏والترتيب: يفتح، وبعدين يقسّم الوزن، ويقفل بالخطوة الجاية
+    free = body_read.explain(WOMAN, mode="free")
+    assert "الميزان" in free["script"][0]["say"], free["script"][0]
+    assert free["script"][-1]["label"] == "الخطوة الجاية", free["script"][-1]
 
 
 def test_each_language_stays_in_its_own_language():
@@ -197,8 +206,9 @@ def test_the_copy_text_carries_everything_on_the_screen():
         assert row["label"] in blob, row["label"]
     for item in out["focus"]:
         assert item["title"] in blob and item["do"] in blob, item
-    for line in out["script"]:
-        assert line in blob, line
+    for step in out["script"]:
+        assert step["say"] in blob, step["say"]
+        assert step["label"] in blob, step["label"]
     for target in out["targets"]:
         assert target["weight"] in blob, target
 
@@ -218,6 +228,187 @@ def test_junk_numbers_do_not_become_readings():
     empty = body_read.explain({})
     assert "مش كفاية" in empty["headline"], empty["headline"]
     assert empty["rows"] == [], empty["rows"]
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# ‏السيناريو بيختلف على حسب الحالة
+#
+#   «لو مفهاش رقم ولا اسم يبقى فحص مجانى يبقى طريقة شرحها يبقى عشان
+#    يشترك معايا. اما لو فيها رقم واسم وبيتابع اصلا يبقى السينايرو
+#    بيختلف: ايه الى نزل ايه الى حصل وايه الى نمشى عليه صح»
+# ═══════════════════════════════════════════════════════════════════════
+
+FOLLOW_PREV = {"weight": 78.4, "height": 165.0, "age": 29, "gender": "انثى",
+               "fat_pct": 38.2, "activity": 1.55, "goal_type": "weight_loss",
+               "goal_cal": 1400, "visit_no": 2,
+               "created_at": "2026-08-20 10:00:00"}
+FOLLOW_NOW = {"weight": 74.0, "height": 165.0, "age": 29, "gender": "انثى",
+              "fat_pct": 35.0, "activity": 1.55, "goal_type": "weight_loss",
+              "goal_cal": 1400}
+
+
+def _progress(previous=None, current=None):
+    import followup
+    return followup.assess(previous or FOLLOW_PREV, current or FOLLOW_NOW, "ar")
+
+
+def _said(out):
+    return " ".join(step["say"] for step in out["script"])
+
+
+def test_a_free_check_ends_by_inviting_them_to_start():
+    """‏فحص سريع: العميل ماعندوش خطة، والكلام بيقفل بدعوة محددة."""
+    out = body_read.explain(WOMAN, mode="free")
+    last = out["script"][-1]
+    assert last["label"] == "الخطوة الجاية", last
+    assert "نبدأ" in last["say"] and "خطة" in last["say"], last["say"]
+    # ‏وفيه خطوة بتقول الفرق بين إنه يعملها لوحده وإنه يعملها معاك
+    said = _said(out)
+    assert "لوحدك" in said, "‏مافيش كلام عن الفرق اللي بتقدّمه"
+    assert "نقيس" in said and "نعدّل" in said, "‏الفرق مش مشروح بالقياس والتعديل"
+
+
+def test_the_free_check_sells_on_the_numbers_not_on_fear():
+    """‏الإقناع من أرقامه اللي قدامه. مافيش كلام عن مرض ولا خطر، ومافيش
+    وعد بمدة أقصر من الواقع."""
+    out = body_read.explain(WOMAN, mode="free")
+    said = _said(out)
+    for scare in ("خطر", "مرض", "سرطان", "هتموت", "مضمون", "نهائي", "أسبوع واحد"):
+        assert scare not in said, "‏تهويل أو وعد في الكلام: %s" % scare
+    # ‏المدة الحقيقية موجودة، والمعدل مذكور
+    assert "أسبوع" in said, said
+    assert "نص في المية" in said or "٠.٥" in said, "‏المعدل الواقعي مش مذكور"
+    # ‏والهدف رقم محسوب، وبيقول إنه محسوب
+    assert "محسوب" in said, "‏مش بيقول إن الرقم محسوب مش تقدير"
+
+
+def test_a_follow_up_opens_with_the_result_and_says_what_moved():
+    """‏«ايه الى نزل ايه الى حصل» -- الرقم الأول، وقبل أي كلام."""
+    out = body_read.explain(FOLLOW_NOW, mode="followup",
+                            progress=_progress(), visit_no=3)
+    assert out["mode"] == "followup" and out["visit_no"] == 3, out["mode"]
+    assert out["script"][0]["label"] == "الافتتاح", out["script"][0]
+    assert "النتيجة" in out["script"][0]["say"], out["script"][0]["say"]
+
+    moved = out["script"][1]
+    assert moved["label"] == "اللي حصل", moved
+    # ‏الأرقام جاية من followup.assess، مش محسوبة تاني
+    assert "4.4" in moved["say"], moved["say"]
+    assert "38" in moved["say"], "‏المدة مش مذكورة: %s" % moved["say"]
+
+    said = _said(out)
+    assert "3.2" in said, "‏نزول نسبة الدهون مش مذكور"
+    assert "دهون فعلاً" in said, "‏مش بيقول إن النازل دهون"
+    # ‏«وايه الى نمشى عليه صح»
+    assert "شغّال" in said and "مش هنقلبه" in said, "‏مافيش كلام عن اللي ماشي صح"
+
+
+def test_a_follow_up_says_a_bad_month_plainly():
+    """‏لو نسبة الدهون زادت، الكلام يقولها -- السكوت عليها بيخلي القياس
+    الجاي مفاجأة."""
+    worse = dict(FOLLOW_NOW, weight=77.0, fat_pct=39.5)
+    out = body_read.explain(worse, mode="followup",
+                            progress=_progress(current=worse))
+    said = _said(out)
+    assert "زادت" in said, "‏الزيادة مش مذكورة: %s" % said[:200]
+    assert "هنظبّطها" in said or "هنصلّحها" in said, said[:200]
+
+
+def test_the_three_scenarios_do_not_borrow_each_other_s_lines():
+    """‏كل حالة هدفها مختلف، فالكلام مايتكررش بينهم."""
+    free = _said(body_read.explain(WOMAN, mode="free"))
+    first = _said(body_read.explain(WOMAN, mode="first"))
+    follow = _said(body_read.explain(FOLLOW_NOW, mode="followup",
+                                     progress=_progress()))
+    # ‏دعوة الاشتراك في الفحص السريع بس
+    assert "لو تحب نبدأ" in free
+    assert "لو تحب نبدأ" not in first and "لو تحب نبدأ" not in follow
+    # ‏وكلام المتابعة مابيظهرش لحد مالوش تاريخ
+    assert "النتيجة من آخر مرة" in follow
+    assert "النتيجة من آخر مرة" not in free and "النتيجة من آخر مرة" not in first
+    # ‏وأول زيارة بتقول إن دي نقطة البداية
+    assert "نقطة البداية" in first, first[:120]
+
+
+def test_a_missing_number_drops_its_step_instead_of_inventing_one():
+    """‏من غير نسبة دهون، مافيش تقسيم ومافيش هدف -- ومافيش رقم مخترع."""
+    thin = {"gender": "انثى", "weight": 78.4, "height": 165.0}
+    out = body_read.explain(thin, mode="free")
+    labels = [step["label"] for step in out["script"]]
+    assert "التقسيم" not in labels, labels
+    assert "الهدف بالأرقام" not in labels, labels
+    # ‏والافتتاح والخطوة الجاية لسه موجودين: الكلام مايبقاش فاضي
+    assert labels[0] == "الافتتاح" and labels[-1] == "الخطوة الجاية", labels
+    said = _said(out)
+    assert "38" not in said and "29.9" not in said, "‏رقم مش مدخّل ظهر في الكلام"
+
+
+def test_every_scenario_stays_in_one_language():
+    for mode in ("free", "first"):
+        blob = body_read.as_text(
+            body_read.explain(WOMAN, is_ar=False, mode=mode), is_ar=False)
+        assert not re.search(r"[\u0600-\u06FF]", blob), [
+            line for line in blob.splitlines()
+            if re.search(r"[\u0600-\u06FF]", line)][:3]
+    english = body_read.as_text(
+        body_read.explain(FOLLOW_NOW, is_ar=False, mode="followup",
+                          progress=_progress(current=FOLLOW_NOW)), is_ar=False)
+    # ‏قراءة followup.assess نفسها بتيجي باللغة المطلوبة، فالمفروض تفضل إنجليزي
+    assert not re.search(r"[\u0600-\u06FF]", english), [
+        line for line in english.splitlines()
+        if re.search(r"[\u0600-\u06FF]", line)][:3]
+
+
+def test_the_route_picks_the_scenario_from_the_name_and_the_history():
+    """‏الصفحة مابتقولش السيرفر يعمل أنهي سيناريو -- السيرفر بيعرف."""
+    import re as _re
+    import app as A
+    import core
+    A.app.config["WTF_CSRF_ENABLED"] = False
+
+    def staff():
+        client = A.app.test_client()
+        token = _re.search(r'name="csrf_token"[^>]*value="([^"]*)"',
+                           client.get("/login").get_data(as_text=True)).group(1)
+        client.post("/login", data={"action": "login", "email": "admin@nutrax.com",
+                                    "password": "pw123456", "csrf_token": token})
+        return client
+
+    numbers = {"gender": "انثى", "weight": "78.4", "height": "165",
+               "age": "29", "fat_pct": "38.2"}
+    client = staff()
+    # ‏مافيش اسم -> فحص سريع
+    free = client.post("/api/explain-report", json=dict(numbers)).get_json()
+    assert free["mode"] == "free", free["mode"]
+    # ‏اسم ملوش تاريخ -> أول زيارة
+    first = client.post("/api/explain-report",
+                        json=dict(numbers, name="سلمى فتحي",
+                                  phone="01088887777")).get_json()
+    assert first["mode"] == "first", first["mode"]
+
+    # ‏زيارة محفوظة -> متابعة، والأرقام من المقارنة الحقيقية
+    core.db_run("DELETE FROM plan_visits WHERE user_id=?", (
+        core.db_row("SELECT id FROM users WHERE email='admin@nutrax.com'")["id"],))
+    plan = {"age": "29", "gender": "انثى", "height": "165", "weight": "78.4",
+            "goal_cal": "1400", "tdee": "2000", "activity_mult": "1.55",
+            "protein_per_kg": "1.6", "fat_pct_cal": "30", "fat_pct": "38.2",
+            "goal_type": "weight_loss", "culture": "مصري",
+            "zigzag_mode": "classic", "diet_plan_type": "standard",
+            "name": "سلمى فتحي", "phone": "01088887777"}
+    maker = staff()
+    maker.post("/generate", data=plan)
+    maker.post("/api/save-plan")
+
+    later = staff()
+    follow = later.post("/api/explain-report",
+                        json=dict(numbers, name="سلمى فتحي", phone="01088887777",
+                                  weight="74.0", fat_pct="35.0",
+                                  activity="1.55", goal_type="weight_loss",
+                                  goal_cal="1400")).get_json()
+    assert follow["mode"] == "followup", follow["mode"]
+    assert follow.get("visit_no") == 2, follow.get("visit_no")
+    said = " ".join(step["say"] for step in follow["script"])
+    assert "4.4" in said, said[:200]
 
 
 def test_the_route_is_staff_only_and_needs_a_weight_and_height():
