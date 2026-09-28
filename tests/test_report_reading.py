@@ -688,7 +688,12 @@ def test_a_label_inside_another_word_is_not_a_label():
     for line, want in (("Ht 165", "height"), ("Wt 78.4", "weight"),
                        ("Age 29", "age"), ("SMM 24.1", "muscle_mass"),
                        ("TBW 33.0", "body_water"), ("BMI 28.8", "bmi"),
-                       ("PBF 38.2 %", "fat_pct"), ("VFA 9", "visceral_fat")):
+                       ("PBF 38.2 %", "fat_pct"),
+                       # ‏"VFA 9" كانت هنا وبقت مرفوضة بالقصد: VFA مساحة
+                       # (سم²) مش مستوى، والاختصار في تلات ورقات من أربعة
+                       # بيقع على صف رسم بياني فبيطلّع رقم من المسطرة.
+                       # شوف test_visceral_fat_is_read_from_its_full_name_only
+                       ("Visceral Fat Level 9", "visceral_fat")):
         field, _ = ocr_report._label_form(line)
         assert field == want, "‏%r -> %s (المتوقع %s)" % (line, field, want)
 
@@ -763,6 +768,140 @@ def test_a_number_with_a_sign_is_a_change_not_a_measurement():
     # ‏سطر "Body Fat —— +7.0" في ورقة GAIA: مايتقراش كتلة دهون ٧ كيلو
     assert "fat_mass" not in ocr_report.parse_lines(
         [["Body", "Fat", "\u2014\u2014", "+7.0"]])
+
+
+SHEETS = {
+    # ‏الملف, اسم المفتاح, الصح المطبوع على الورقة (بعيني), الخانات المتوقعة
+    "sheet_gaia359.json": ("gaia_359_sheet", {
+        "height": 162.0, "age": 53, "gender": "female", "weight": 67.3,
+        "fat_pct": 36.1, "fat_mass": 24.3, "bmi": 25.6, "bmr": 1125,
+        "body_water": 31.0, "muscle_mass": 39.2}, 6),
+    "sheet_xcontact357.json": ("xcontact_357_sheet", {
+        "height": 164.0, "age": 37, "gender": "male", "weight": 67.9,
+        "fat_pct": 29.2, "fat_mass": 19.8, "bmi": 25.2, "bmr": 1316,
+        "body_water": 34.6, "visceral_fat": 13, "muscle_mass": 44.2}, 4),
+    "sheet_drnutrition.json": ("drnutrition_chart_sheet", {
+        "height": 159.0, "age": 23, "gender": "male", "weight": 53.7,
+        "fat_pct": 17.7, "fat_mass": 9.5, "bmi": 21.2, "bmr": 1324,
+        "body_water": 32.3, "visceral_fat": 6, "muscle_mass": 24.6}, 0),
+}
+
+READ_FIELDS = ("height", "age", "gender", "weight", "fat_pct", "fat_mass",
+               "bmi", "bmr", "body_water", "visceral_fat", "muscle_mass")
+
+
+def _sheet(name):
+    here = os.path.dirname(os.path.abspath(__file__))
+    with io.open(os.path.join(here, "data", name), encoding="utf-8") as fh:
+        raw = json.load(fh)
+    return raw[SHEETS[name][0]]["passes"]
+
+
+def test_no_clinic_sheet_ever_puts_a_wrong_number_in_the_form():
+    """‏المقياس الواحد اللي كل حرف في القراية مبني عليه.
+
+    ‏تلات أجهزة من العيادة، ومخرج المحرّك الحقيقي على ورق كل واحد. الصح
+    مكتوب بعيني من الصور. المقياس مش عدد الخانات اللي اتملت -- المقياس
+    إن **مافيش رقم غلط** يوصل للفورم. الخانة الفاضية الدكتور بيشوفها
+    ويكتبها؛ الرقم الغلط بيمشي في حساب السعرات لحد ما يوصل للعميل.
+    """
+    wrong = []
+    for name, (_key, truth, _least) in SHEETS.items():
+        try:
+            data = lab_report.read_browser(_sheet(name))
+        except lab_report.ReportError:
+            continue            # ‏رفضت تقرا -- أسلم رد
+        for field in READ_FIELDS:
+            got = data.get(field)
+            if got is not None and got != truth.get(field):
+                wrong.append("%s: %s = %r (الصح %r)"
+                             % (name, field, got, truth.get(field)))
+    assert not wrong, "‏أرقام غلط وصلت للفورم:\n  " + "\n  ".join(wrong)
+
+
+def test_each_sheet_reads_at_least_what_it_read_when_it_was_measured():
+    """‏عدد الخانات مقيس لكل ورقة. لو نزل، يبقى تغيير كسر قراية كانت شغالة."""
+    for name, (_key, _truth, least) in SHEETS.items():
+        try:
+            data = lab_report.read_browser(_sheet(name))
+        except lab_report.ReportError:
+            assert least == 0, "‏%s كانت بتقرا %d خانة وبقت ترفض" % (name, least)
+            continue
+        filled = sum(1 for field in READ_FIELDS if data.get(field) is not None)
+        assert filled >= least, "‏%s بقت تقرا %d خانة بدل %d" % (name, filled, least)
+
+
+def test_the_xcontact_sheet_reads_what_it_can_and_stops_there():
+    """‏X-CONTACT 357: الجهاز التالت. أرقامه المهمة في عمود عناوينه في سطر
+    وقيمه في سطر تاني، وعلى أعمدة رسم -- فاللي بيتقرا هو اللي في نص عادي:
+    الطول، الوزن، النوع، والـBMR.
+
+    ‏والـBMR ده كان بيضيع: صفه "B.M.R. 1316 kcal T.E.E. 2027 kcal Date
+    Weight ..." فيه كلمة "Date" على بعد ست كلمات، والاستبعاد كان على
+    السطر كله فكان بيرفضه كله.
+    """
+    data = lab_report.read_browser(_sheet("sheet_xcontact357.json"))
+    assert data.get("height") == 164.0, data.get("height")
+    assert data.get("weight") == 67.9, data.get("weight")
+    assert data.get("gender") == "male", data.get("gender")
+    assert data.get("bmr") == 1316, data.get("bmr")
+
+
+def test_an_excluding_word_only_blocks_the_label_next_to_it():
+    """‏"Target Weight" لازم تترفض، و"B.M.R. 1316 ... Date Weight" لأ."""
+    import ocr_report
+    blocked = ocr_report.parse_lines([["(", "Target", "Weight", ":", "55.6", ")"]])
+    assert "weight" not in blocked, blocked
+    assert "age" not in ocr_report.parse_lines([["Biological", "Age", "45"]])
+
+    far = ocr_report.parse_lines([["B.M.R.", "1316", "kcal", "T.E.E.", "2027",
+                                   "kcal", "Date", "Weight"]])
+    assert far.get("bmr") == 1316, "‏كلمة بعيدة رفضت العنوان: %s" % far
+
+
+def test_the_two_readings_agree_on_any_of_their_candidates():
+    """‏القراءة بتشوف العنوان في أكتر من سطر. لو واحدة شافت ضوضاء قبل الصف
+    الحقيقي، ماينفعش تلغي الرقم الصح اللي التانية شافته.
+
+    ‏ورقة GAIA ضيّعت كتلة الدهون ٢٤.٣ كده بالظبط: قراءة شافت "Body Fat 1]"
+    في سطر نص قبل صف الملخّص.
+    """
+    import ocr_report
+    noisy = {"fat_mass": [1.0, 24.3]}     # ‏شافت الضوضاء الأول
+    clean = {"fat_mass": [24.3]}
+    assert ocr_report.merge_found([noisy, clean])["fat_mass"] == 24.3
+    assert ocr_report.merge_found([clean, noisy])["fat_mass"] == 24.3
+    # ‏ومافيش اتفاق خالص = يتشال
+    assert "bmr" not in ocr_report.merge_found([{"bmr": [538.0]}, {"bmr": [2038.0]}])
+
+
+def test_a_lost_decimal_point_is_the_only_disagreement_that_is_resolved():
+    """‏١٦٤.٠ و١٦٤٠ نفس الرقم بنقطة ضايعة، مش قراءتين مختلفتين.
+
+    ‏جرّبت قاعدة أوسع (خد اللي في حدود المعقول) وطلّعت رقم غلط: ورقة
+    DR.NUTRITION قراءتها قالت BMR = ٥٣٨ و٢٠٣٨، و٢٠٣٨ معقول تماماً --
+    بس الصح ١٣٢٤. فالقاعدة بقت على النقطة الضايعة بس.
+    """
+    import ocr_report
+    slip = ocr_report.merge_found([{"height": [164.0]}, {"height": [1640.0]}])
+    assert slip.get("height") == 164.0, slip
+    # ‏رقمين مختلفين والاتنين معقولين: يتشالوا
+    assert "bmr" not in ocr_report.merge_found([{"bmr": [1316.0]}, {"bmr": [2027.0]}])
+    # ‏والاتنين برّه المعقول: يتشالوا برضه
+    assert "fat_pct" not in ocr_report.merge_found([{"fat_pct": [128.0]}, {"fat_pct": [0.0]}])
+
+
+def test_visceral_fat_is_read_from_its_full_name_only():
+    """‏في تلات ورقات من الأربعة المستوى مطبوع فوق عمود رسم، والصف كله
+    أرقام مسطرة -- فسطر "VFL i = 2" كان بيطلّع مستوى ٢ والصح ٦.
+
+    ‏والمستوى الغلط أخطر من مفيش: الشرح بيقول للعميل "طبيعي" وهو مرتفع.
+    """
+    import ocr_report
+    full = ocr_report.parse_lines([["Visceral", "Fat", "Level", "9"]])
+    assert full.get("visceral_fat") == 9, full
+    assert "visceral_fat" not in ocr_report.parse_lines([["VFL", "i", "=", "2", "."]])
+    assert "visceral_fat" not in ocr_report.parse_lines([["V.F.A.", "139"]])
 
 
 def test_a_sheet_the_engine_cannot_read_fills_nothing_instead_of_guessing():

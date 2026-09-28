@@ -42,8 +42,16 @@ _LABELS = [
     ("bmi", ("bmi",)),
     ("muscle_mass", ("skeletal muscle mass", "skeletalmusclemass",
                      "skeletal muscle", "smm", "muscle mass")),
+    # ‏الدهون الحشوية بالعنوان الكامل بس، بدون اختصار.
+    #
+    # ‏VFA مساحة (سم²) وVFL مستوى (١-٢٠)، وكانوا الاتنين على نفس الخانة.
+    # وأهم من كده: في تلات ورقات من الأربعة اللي جرّبتها المستوى مطبوع
+    # فوق عمود رسم، والصف بيبقى كله أرقام مسطرة -- فسطر "VFL i = 2 ."
+    # كان بيطلّع مستوى ٢ والصح ٦. والمستوى الغلط أخطر من مفيش: الشرح
+    # بيقول للعميل "طبيعي" وهو مرتفع. العنوان الكامل ("Visceral Fat
+    # Level 9" في ورق InBody) بيتقرا من صف نص عادي، وهو الآمن.
     ("visceral_fat", ("visceral fat level", "visceralfatlevel",
-                      "visceral fat", "vfa", "visceral")),
+                      "visceral fat area", "visceral fat")),
     ("body_water", ("total body water", "totalbodywater", "tbw", "body water")),
     ("weight", ("weight", "wt")),
     ("height", ("height", "ht")),
@@ -356,6 +364,11 @@ def _labels_in(words):
     hits = []
     taken = set()
     seen = set()
+    # ‏كلمات الاستبعاد ومكانها، عشان نشوف قربها من كل عنوان
+    bad_at = [index for index, word in enumerate(norm)
+              if any(bad in word for bad in _NOT_A_READING)]
+    bad_at += [index for index, word in enumerate(norm[:-1])
+               if any(bad in (word + " " + norm[index + 1]) for bad in _NOT_A_READING)]
     # ‏الأطول الأول: "percent body fat" تاخد كلماتها قبل ما "body fat"
     # تاخد نصها -- وإلا النسبة والكتلة يتلخبطوا في نفس السطر.
     order = sorted(((field, form) for field, forms in _LABELS for form in forms),
@@ -370,6 +383,14 @@ def _labels_in(words):
             first, last = owner[first_char], owner[last_char]
             span = set(range(first, last + 1))
             if span & taken:
+                continue
+            # ‏كلمة الاستبعاد بتلغي العنوان لو **جنبه**، مش لو موجودة في
+            # أي مكان في السطر. القراية بتلزق أعمدة في سطر واحد، فسطر
+            # "B.M.R. 1316 kcal T.E.E. 2027 kcal Date Weight ..." كان
+            # بيترفض كله بسبب كلمة "Date" على بعد ست كلمات -- والـBMR
+            # الصح كان بيضيع. واللي المفروض يترفض قريب دايماً:
+            # "Target Weight"، "Biological Age"، "Weight Control".
+            if any(first - 2 <= at <= last + 2 for at in bad_at):
                 continue
             taken |= span
             seen.add(field)
@@ -388,6 +409,18 @@ def parse_lines(lines):
 
     الشكل: [[{"t": كلمة, "x": مكانها}, ...], ...] -- أو سطور كنص عادي.
     """
+    return {field: values[0] for field, values in _scan(lines).items()}
+
+
+def _scan(lines):
+    """‏كل الاحتمالات لكل خانة، بترتيب ظهورها في الورقة.
+
+    ‏ليه احتمالات مش رقم واحد: القراءة الواحدة بتشوف العنوان في أكتر من
+    سطر (الصف الحقيقي، وسطر الشرح، وصف "المطلوب يتغيّر"). ولما كنا
+    بناخد أول واحد ونسيب الباقي، قراءة شافت ضوضاء قبل الصف الحقيقي كانت
+    بتلغي قراءة تانية شافته صح -- وورقة GAIA ضيّعت كتلة الدهون ٢٤.٣
+    بسبب "Body Fat 1]" في سطر نص.
+    """
     found = {}
     for line in lines or []:
         if isinstance(line, str):
@@ -399,12 +432,13 @@ def parse_lines(lines):
         if not words:
             continue
         text = " ".join(words)
-        # ‏الاستبعاد على السطر كله: سطر فيه "Target" أو "Control" أرقامه
-        # كلها مش قراءة، مهما كان العنوان اللي فيه.
-        if _label_form(text)[0] is None:
-            continue
-
+        # ‏الاستبعاد بقى جوّه _labels_in وعلى جوار كل عنوان لوحده، فمافيش
+        # رفض للسطر كله هنا. الشرط القديم كان بيرفض السطر لو فيه كلمة
+        # استبعاد في أي مكان -- وسطر "B.M.R. 1316 kcal ... Date Weight"
+        # كان بيترفض كله بسبب "Date" على بعد ست كلمات.
         hits = _labels_in(words)
+        if not hits:
+            continue
         for index, (field, start, after) in enumerate(hits):
             # ‏الرقم لازم يبقى **قبل العنوان اللي بعده**. من غير الشرط ده،
             # "Height 162.0 cm Age 53" كان ينفع ياخد ٥٣ كطول.
@@ -413,14 +447,17 @@ def parse_lines(lines):
             if field == "gender":
                 low = " ".join(words[after:stop]).lower() or text.lower()
                 if "female" in low:
-                    found.setdefault("gender", "female")
+                    found.setdefault("gender", []).append("female")
                 elif "male" in low:
-                    found.setdefault("gender", "male")
+                    found.setdefault("gender", []).append("male")
                 continue
 
-            if field in found:
-                continue
             value = None
+            # ‏الرقم لازم يبقى **قريب** من عنوانه. سطر الشرح في آخر ورقة
+            # X-CONTACT ("M.B.F. : Mass of Body Fat ... A.M.B. 1 ...")
+            # كان بيطلّع كتلة دهون = ١، والرقم بعيد عشر كلمات عن العنوان.
+            # في الصفوف الحقيقية الرقم بيبقى كلمة أو اتنين بعد العنوان.
+            stop = min(stop, after + 5)
             for word in words[after:stop]:
                 value = _value_word(word)
                 if value is not None:
@@ -439,34 +476,76 @@ def parse_lines(lines):
                         if value is not None:
                             break
             if value is not None:
-                found[field] = value
+                found.setdefault(field, []).append(value)
     return found
 
 
 def merge_found(founds):
     """‏يجمع قراءتين للصورة الواحدة: اللي اتفقوا عليه يتاخد، واللي اختلفوا فيه يتشال.
 
-    المتصفح بيقرا الصورة مرتين -- مرة كما هي ومرة بعد تحديد الحدود --
+    ‏المتصفح بيقرا الصورة مرتين -- مرة كما هي ومرة بعد تحديد الحدود --
     عشان كل معالجة بتنجح في حاجة التانية بتفشل فيها (التحديد رفع القراءة
-    في الصورة المهزوزة من ٥ خانات لـ٩). بس لو الاتنين طلّعوا رقمين
-    مختلفين لنفس الخانة، يبقى واحد منهم غلط ومانعرفش مين -- فبنشيلها.
-    الدكتور يكتبها بإيده، وده أحسن ألف مرة من رقم غلط في خطة.
+    في الصورة المهزوزة من ٥ خانات لـ٩).
+
+    ‏الاتفاق بيتحسب على **كل** احتمالات كل قراءة، مش على أول واحد فيها.
+    القراءة بتشوف العنوان في أكتر من سطر (الصف الحقيقي، سطر الشرح، صف
+    "المطلوب يتغيّر")، فلو واحدة شافت ضوضاء قبل الصف الحقيقي كانت بتلغي
+    الرقم الصح اللي التانية شافته.
     """
-    merged = {}
-    conflict = set()
+    lists = []
     for found in founds:
-        for key, value in (found or {}).items():
-            if key not in merged:
-                merged[key] = value
-                continue
-            old = merged[key]
-            if isinstance(old, (int, float)) and isinstance(value, (int, float)):
-                if abs(float(old) - float(value)) > 0.05:
-                    conflict.add(key)
-            elif old != value:
-                conflict.add(key)
-    for key in conflict:
-        merged.pop(key, None)
+        if not found:
+            continue
+        lists.append({key: (values if isinstance(values, list) else [values])
+                      for key, values in found.items()})
+    if not lists:
+        return {}
+
+    def _same(one, two):
+        if isinstance(one, (int, float)) and isinstance(two, (int, float)):
+            return abs(float(one) - float(two)) <= 0.05
+        return one == two
+
+    def _decimal_slip(one, two):
+        """‏نفس الرقم وفرقه عشرة أو مية ضعف = نقطة عشرية ضايعة."""
+        if not (isinstance(one, (int, float)) and isinstance(two, (int, float))):
+            return False
+        small, big = sorted((abs(float(one)), abs(float(two))))
+        if small <= 0:
+            return False
+        return any(abs(big - small * factor) < 0.01 for factor in (10.0, 100.0))
+
+    # ‏الحدود جوّه الدالة عشان مافيش استيراد متبادل بين الملفين.
+    from lab_report import SANE_RANGES
+
+    def _sane(key, value):
+        low, high = SANE_RANGES.get(key, (None, None))
+        if low is None or not isinstance(value, (int, float)):
+            return True
+        return low <= float(value) <= high
+
+    merged = {}
+    for key in set().union(*[set(one) for one in lists]):
+        seen = [one.get(key) or [] for one in lists]
+        if any(not values for values in seen):
+            # ‏قراءة واحدة بس شافته. مافيش اتفاق يتقاس، فبناخده -- وحدود
+            # المعقول والفحوص اللي بعدها هي اللي بتحكم.
+            merged[key] = next(values[0] for values in seen if values)
+            continue
+        agreed = [value for value in seen[0]
+                  if all(any(_same(value, other) for other in values)
+                         for values in seen[1:])]
+        if agreed:
+            merged[key] = agreed[0]
+            continue
+        # ‏مافيش اتفاق. استثناء واحد ضيّق: نقطة عشرية ضايعة (١٦٤.٠ و١٦٤٠)،
+        # وواحد منهم بس في حدود المعقول.
+        first, second = seen[0][0], seen[1][0]
+        if _decimal_slip(first, second):
+            if _sane(key, first) and not _sane(key, second):
+                merged[key] = first
+            elif _sane(key, second) and not _sane(key, first):
+                merged[key] = second
     return merged
 
 
@@ -487,7 +566,7 @@ def read_passes(passes):
     if not text_all.strip():
         raise RuntimeError("مقدرتش أقرا أي كلام في الصورة. صوّرها في نور أحسن "
                            "وخلي الورقة كلها في الكادر.")
-    return interpret(merge_found([parse_lines(one) for one in passes]), text_all)
+    return interpret(merge_found([_scan(one) for one in passes]), text_all)
 
 
 def read_lines(lines):
