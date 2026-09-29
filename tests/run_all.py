@@ -35,12 +35,38 @@ SUITES = [
     "test_portion_scaling.py",
     "test_pdf_unbranded.py",
     "test_accessibility.py",
+    "test_diet_programs.py",
 ]
+
+
+def _unlisted_suites():
+    """‏ملفات اختبار موجودة في الفولدر ومش مكتوبة في SUITES.
+
+    ‏القايمة فوق مكتوبة بإيدنا، وده معناه إن ملف اختبار جديد ممكن
+    يتكتب ويتنسى -- وحصل: كتبت test_diet_programs.py بـ20 اختبار،
+    والطقم طلّع نفس الرقم بالظبط اللي كان قبله (392) وقال "0 فاشل".
+    الرقم كان صح والتغطية كانت ناقصة، وده أسوأ من اختبار فاشل: الفاشل
+    بيقولك.
+    """
+    listed = set(SUITES)
+    return sorted(name for name in os.listdir(HERE)
+                  if name.startswith("test_") and name.endswith(".py")
+                  and name not in listed)
 
 
 def main():
     total_pass = total_fail = 0
     broken = []
+
+    # ‏الفحص ده قبل أي تشغيل: لو فيه ملف مش في القايمة، الرقم اللي
+    # هيطلع في الآخر مش بيغطّيه، فالطقم لازم يقع مش يكمّل.
+    unlisted = _unlisted_suites()
+    if unlisted:
+        broken.extend("%s (مش في SUITES)" % name for name in unlisted)
+        print("⚠️  ملفات اختبار مش في القايمة، فمش بتتشغّل:")
+        for name in unlisted:
+            print("      " + name)
+
     for suite in SUITES:
         print(f"\n{'=' * 62}\n  {suite}\n{'=' * 62}")
         # ‏الاختبارات ليها قاعدتها. قبل كده كانت بتمسح /tmp/nutrax.db --
