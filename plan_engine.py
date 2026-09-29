@@ -306,6 +306,42 @@ def generate_weekly_plan(data):
     allergies = data.get("allergies", []) if isinstance(data.get("allergies"), list) else []
     user_exclusions = parse_user_exclusions(notes, disliked, allergies)
 
+    # ‏برامج التغذية الـ11 (diet_programs): كل برنامج جدول سبعة أيام
+    # بأكله هو، على شكل ورقة العيادة اللي الدكتور بعتها. الأكل نفسه هو
+    # البرنامج، مش خانات بتتملّي من مجموعة وجبات الهدف -- فبيرجع في
+    # وحدته زي الكيميائي والتكميم.
+    #
+    # ‏الفرق عنهم إنه **بياخد هدف السعرات**: الجدول بيحدّد الأكل
+    # والترتيب، وdiet_programs بيظبّط الحصص على (الهدف ÷ مجموع اليوم).
+    # فورقة واحدة بتخدم اللي هدفه 1400 واللي هدفه 2600.
+    try:
+        from diet_programs import PROGRAMS as _PROGRAMS
+    except Exception:
+        _PROGRAMS = {}
+    if diet_type in _PROGRAMS:
+        from diet_programs import build_program_plan
+        try:
+            _target = float(data.get("goal_cal") or 0)
+        except (TypeError, ValueError):
+            _target = 0.0
+        prog_days, prog_warnings = build_program_plan(
+            diet_type, target_cal=_target, symptoms=symptoms,
+            exclusions=user_exclusions, gender=data.get("gender"),
+            goal_type=data.get("goal_type"))
+        if prog_warnings:
+            existing = data.get("notes", "") or ""
+            # ‏نفس معالجة الكيميائي والتكميم: أزواج (عربي، إنجليزي) عشان
+            # الـPDF الإنجليزي مايطلعش عربي -- الأسطر فيها أرقام وأسماء
+            # أيام متغيرة، والترجمة من خريطة ثابتة مش بتعرف تمسكها.
+            pairs = list(dict.fromkeys(
+                ("⚠️ " + w["reason"], "⚠️ " + w["reason_en"])
+                for w in prog_warnings))
+            data["chemical_note_pairs"] = pairs
+            data["notes"] = (" | ".join(ar for ar, _ in pairs)
+                             + (" | " + existing if existing else ""))
+        data["program_warnings"] = prog_warnings
+        return prog_days
+
     # النظام الكيميائي دورة ثابتة 6 أيام: اليوم نفسه هو المحتوى (خضار، فاكهة،
     # سمك...) مش خانات بتتملي من مجموعة وجبات، والترتيب جزء من البروتوكول.
     # فبيتبني في وحدته وبيرجع من غير ما يعدي على منطق الأسبوع -- ولا على

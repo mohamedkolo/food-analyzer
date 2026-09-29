@@ -26,6 +26,32 @@ import re
 
 # ── multi-word terms, checked before single words ──────────────────────────
 PHRASES = {
+    # ‏برامج التغذية الـ12 (diet_programs) — المفردات اللي دخلت معاها.
+    # ‏مركّبة قبل المفردة الواحدة عشان تطلع إنجليزي سليم: "كورن فليكس"
+    # مش "corn flakes" كلمتين متفرّقين، و"بذر كتان" مش "seed flax".
+    # ‏"بياض بيض" لازم تبقى عبارة: الكلمة الواحدة كانت بتطلّع
+    # "whites eggs" بترتيب مقلوب
+    "بياض بيض": "egg whites",
+    "بياض البيض": "egg whites",
+    "كورن فليكس": "corn flakes",
+    "حليب اللوز": "almond milk",
+    "حليب لوز": "almond milk",
+    "جبنة حلومي": "halloumi cheese",
+    "جبنة شيدر": "cheddar cheese",
+    "روبيان مشوي": "grilled prawns",
+    "فاهيتا دجاج": "chicken fajita",
+    "فاهيتا الدجاج": "chicken fajita",
+    "تكا دجاج": "chicken tikka",
+    "برجر لحم": "beef burger",
+    "خضار مشكل": "mixed vegetables",
+    "شوكولاتة دايت": "diet chocolate",
+    "فلفل ألوان": "mixed peppers",
+    "بذر كتان": "flaxseed",
+    "بذر شيا": "chia seeds",
+    "بذور شيا": "chia seeds",
+    "مشمش مجفف": "dried apricots",
+    "شرائح رومي": "turkey slices",
+    "صدر رومي": "turkey breast",
     # النظام الكيميائي
     "تونة مصفاة": "drained tuna",
     "بالبخار": "steamed",
@@ -212,6 +238,15 @@ PHRASES = {
 
 # ── single words ───────────────────────────────────────────────────────────
 WORDS = {
+    # ‏مفردات برامج التغذية الـ12
+    "تفو": "tofu", "عنب": "grapes", "بلح": "dates", "رومي": "turkey",
+    "خوخ": "peaches", "شمام": "melon",
+    "مسقعة": "moussaka", "كشك": "kishk", "كالماري": "calamari",
+    "روبيان": "prawns", "مشكل": "mixed", "ألوان": "mixed-colour",
+    "بذر": "seeds", "بذور": "seeds", "مجفف": "dried", "مجففة": "dried",
+    "حلومي": "halloumi", "شيدر": "cheddar", "فاهيتا": "fajita",
+    "تكا": "tikka", "برجر": "burger", "دايت": "diet",
+    "شوكولاتة": "chocolate", "مشمش": "apricots",
     # units / quantities
     "جم": "g", "مل": "ml", "ملعقة": "tbsp", "ملاعق": "tbsp", "كوب": "cup",
     "حبة": "pc", "حبات": "pcs", "قطعة": "pc", "قطع": "pcs", "ثمرة": "piece",

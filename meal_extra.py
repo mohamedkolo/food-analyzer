@@ -480,6 +480,19 @@ def apply():
     except Exception as e:
         print(f"meal_extra: sleeve system error {e}")
 
+    # ‏برامج التغذية الـ11 (diet_programs). الدكتور طلب أوبشن يختار منه
+    # البرنامج زي شاشة الشركة، وأول ما يدوس يتعمل بالأكل بتاعه -- فكل
+    # واحد فيهم مدخل في DIET_PLAN_TYPES زي أي نظام تاني، والمحرّك بيعرفه
+    # من مفتاح "program" في المدخل.
+    #
+    # ‏try مستقل عشان فشله ما يوقّعش الأنظمة اللي فوق.
+    try:
+        from diet_programs import PROGRAM_SYSTEMS
+        for _key, _entry in PROGRAM_SYSTEMS.items():
+            DIET_PLAN_TYPES.setdefault(_key, _entry)
+    except Exception as e:
+        print(f"meal_extra: diet programs error {e}")
+
     print(f"meal_extra: added {added} extra meals")
     return added
 
