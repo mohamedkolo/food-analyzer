@@ -12,6 +12,7 @@
 Run with:  python3 tests/test_diet_programs.py
 """
 
+import io
 import os
 import re
 import sys
@@ -238,15 +239,12 @@ def test_every_plant_program_keeps_a_protein_in_every_slot():
                                                         slot, text)
 
 
-def test_optitect_says_it_is_not_the_real_protocol():
-    """‏اسم بروتوكول تجاري مانعرفوش. الهيكل عام، والتحذير لازم يطلع --
-    اختراع بروتوكول باسم تجاري أسوأ من إني أقول مانعرفهوش."""
-    _, warnings = dp.build_program_plan("optitect", target_cal=2000)
-    flagged = [w for w in warnings if w["kind"] == "needs_source"]
-    assert flagged, "‏Optitect بيطلع كأنه البروتوكول الأصلي"
-    assert "Optitect" in flagged[0]["reason"], flagged[0]
-    assert flagged[0]["reason_en"] and \
-        flagged[0]["reason_en"] != flagged[0]["reason"], flagged[0]
+# ‏كان فيه هنا test_optitect_says_it_is_not_the_real_protocol، بيتأكد إن
+# البرنامج بيقول إنه **مش** بروتوكول Optitect الأصلي. اتشال لأن المقدمة
+# بتاعته بطلت صح: الدكتور بعت عرض الشركة، والحساب بقى البروتوكول
+# الحقيقي فعلاً (optitect.py، ومعاه اختبارات بتقيس كل معادلة فيه
+# بالرقم). اللي لسه ناقص حاجة واحدة -- كتيّب نقاط الأصناف -- وده
+# متحقّق منه في test_optitect_still_says_the_food_points_booklet_is_missing.
 
 
 # ═══ البرنامجين اللي مش للتخسيس ═══════════════════════════════════════
@@ -401,6 +399,154 @@ def test_the_clean_table_is_the_company_sheet_s_shape():
     assert "NX-" not in html and "NutraX" not in html
     assert "1626" in html or re.search(r">\s*1[5-7]\d\d\s*<", html), \
         "‏عمود السعرات اختفى من النسخة النضيفة"
+
+
+# ═══ سطر المرجع ═════════════════════════════════════
+#
+# ‏الدكتور بعت كتابين محفوظين الحقوق عشان أبني منهم. البديل اللي
+# اتعمل: كل برنامج بيقول المرجع المنشور اللي ماشي عليه -- سند يقدر
+# يكتبه على الورقة ويوريه لعميل.
+
+
+def test_every_programme_names_a_source():
+    """‏والمرجع بالعربي والإنجليزي: الـPDF الإنجليزي بياخد التاني."""
+    for program in dp.PROGRAMS:
+        pair = dp.PROGRAM_SOURCES.get(program)
+        assert pair, "‏%s مالوش مرجع" % program
+        source_ar, source_en = pair
+        assert source_ar.strip() and source_en.strip(), program
+        assert source_ar != source_en, "‏%s: الإنجليزي نسخة من العربي" % program
+        entry = dp.PROGRAM_SYSTEMS[program]
+        assert entry["source"] == source_ar, program
+        assert entry["source_en"] == source_en, program
+
+
+def test_the_source_reaches_the_plan_and_the_picker():
+    """‏مرجع في الكود ومابيوصلش للورقة مالوش قيمة."""
+    for program in dp.PROGRAMS:
+        days, _ = dp.build_program_plan(program, target_cal=1700,
+                                        gender="أنثى", weight=80)
+        for day in days:
+            assert day.get("source"), (program, day["day"])
+            assert day.get("source_en"), (program, day["day"])
+    page = io.open("templates/generate.html", encoding="utf-8").read()
+    assert "nx-opt-src" in page, "‏سطر المرجع مش في الفورم"
+    assert "info.source" in page, "‏الفورم مش بيقرا المرجع"
+
+
+# ═══ Opti-tect: نظام النقاط من عرض الشركة ══════════
+#
+# ‏العرض بيحدد المعادلات كلها، فالاختبارات دي بتقيسها بالرقم
+# زي ما هي مكتوبة فيه -- مش بتقيس حاجة انا اخترعتها.
+
+
+def test_the_points_come_out_exactly_as_the_deck_says():
+    """‏النقاط = الوزن × معامل، والمعامل من العرض."""
+    import optitect
+    cases = [
+        # (الوزن, الهدف, النوع, المرحلة, رياضي) -> (من, إلى)
+        ((95, "weight_loss", "ذكر", "first", None), (95 * 1.2, 95 * 1.5)),
+        ((82, "weight_loss", "انثى", "first", None), (82 * 1.2, 82 * 1.2)),
+        ((82, "weight_loss", "ذكر", "switch", None), (82 * 1.5, 82 * 1.8)),
+        ((82, "weight_loss", "انثى", "switch", None), (82 * 1.4, 82 * 1.6)),
+        ((70, "maintenance", "ذكر", "first", None), (70 * 1.5, 70 * 2.0)),
+        ((60, "muscle_gain", "ذكر", "first", None), (60 * 5.0, 60 * 7.0)),
+        ((80, "weight_loss", "ذكر", "first", "cut"), (80 * 1.8, 80 * 2.5)),
+        ((80, "maintenance", "ذكر", "first", "perform"), (80 * 2.5, 80 * 4.0)),
+        ((80, "muscle_gain", "ذكر", "first", "bulk"), (80 * 5.0, 80 * 7.0)),
+    ]
+    for (weight, goal, gender, phase, athlete), (low, high) in cases:
+        got = optitect.points_for(weight, goal, gender, phase, athlete)
+        assert got["low"] == round(low), (weight, goal, gender, phase,
+                                          athlete, got["low"], low)
+        assert got["high"] == round(high), (weight, goal, gender, phase,
+                                            athlete, got["high"], high)
+
+
+def test_the_carb_tier_follows_the_weight_bands_in_the_deck():
+    """‏سلايد 9: A فوق 90، B من 75 لـ90، C أقل من 75."""
+    import optitect
+    for weight, want in ((120, "A"), (95, "A"), (90.5, "A"),
+                         (90, "B"), (82, "B"), (75.5, "B"),
+                         (75, "C"), (60, "C"), (45, "C")):
+        tier = optitect.carb_tier(weight)
+        assert tier and tier[0] == want, (weight, tier, want)
+    # ‏من غير وزن مافيش فئة -- الفئة بتتحدد من الوزن وبس
+    assert optitect.carb_tier(0) is None
+    assert optitect.carb_tier(None) is None
+    assert optitect.carb_tier("") is None
+
+
+def test_the_two_week_stall_zigzag_matches_the_deck():
+    """‏ثبات أكتر من أسبوعين: أول 3 أيام الوزن×(1 إلى 1.3)،
+    وآخر 3 أيام الوزن×(0.8 إلى 1)."""
+    import optitect
+    z = optitect.zigzag_points(88)
+    assert z["high_low"] == 88 and z["high_high"] == round(88 * 1.3), z
+    assert z["low_low"] == round(88 * 0.8) and z["low_high"] == 88, z
+    assert z["weeks"] == 2, z
+    # ‏وبيطلع في الوصفة لما يتقال إن فيه ثبات، ومابيطلعش من نفسه
+    quiet, _ = optitect.prescribe(88, "weight_loss", "انثى")
+    loud, _ = optitect.prescribe(88, "weight_loss", "انثى",
+                                 stalled_two_weeks=True)
+    assert not any("زجزاج" in ar for ar, _ in quiet), quiet
+    assert any("زجزاج" in ar for ar, _ in loud), loud
+
+
+def test_an_allowance_outside_the_booklet_is_flagged():
+    """‏العرض بيقول 105 برنامج من 40 لـ300 نقطة، ومعادلة الزيادة
+    (الوزن × 5 إلى 7) بتطلّع 420 نقطة لعميل 60 كجم.
+
+    ‏ده تناقض جوّه أرقام العرض نفسه. الأخصائي هيدوّر على برنامج 420
+    نقطة في كتيّب أقصاه 300 ومش هيلاقيه، فلازم يتقال.
+    """
+    import optitect
+    lines, detail = optitect.prescribe(60, "muscle_gain", "ذكر")
+    assert detail["out_of_book"], detail
+    assert any("الكتيّب" in ar for ar, _ in lines), lines
+    # ‏والرصيد العادي مش بيتعلّم
+    _, ok = optitect.prescribe(82, "weight_loss", "انثى")
+    assert not ok["out_of_book"], ok
+
+
+def test_optitect_still_says_the_food_points_booklet_is_missing():
+    """‏الحساب بقى حقيقي، بس نقاط الأصناف في كتيّب مش معانا -- والعرض
+    مابيكتبش المعادلة اللي بتحوّل الأكل لنقاط.
+
+    ‏خمس أمثلة بس مش كفاية لمعادلة بتلاتة معاملات، فاستخراجها منهم
+    بيبقى تخمين لابس شكل معادلة -- ورصيد غلط معناه عميل بياكل غلط.
+    """
+    _, warnings = dp.build_program_plan("optitect", target_cal=1700,
+                                        gender="انثى", weight=82)
+    flagged = [w for w in warnings if w["kind"] == "needs_source"]
+    assert flagged, "‏الكتيّب الناقص مش بيتقال"
+    assert "Opti-tect Diet Guide" in flagged[0]["reason"], flagged[0]
+    import optitect
+    assert len(optitect.EXAMPLE_POINTS) == 5, optitect.EXAMPLE_POINTS
+
+
+def test_the_points_prescription_lands_on_the_sheet_not_as_a_warning():
+    """‏رصيد النقاط هو الوصفة، مش مشكلة. التحذيرات بتتكتب بعلامة ⚠️،
+    فلو الرصيد اتحط فيها كان هيطلع للعميل كأنه تحذير."""
+    days, warnings = dp.build_program_plan("optitect", target_cal=1700,
+                                           gender="انثى", weight=82)
+    note = days[0]["note"]
+    assert "نقطة" in note, note
+    assert "98" in note, note              # 82 × 1.2
+    assert "B" in note, note               # فئة الكربوهيدرات
+    assert days[0]["note_en"] != note, "‏الإنجليزي نسخة من العربي"
+    assert "points" in days[0]["note_en"], days[0]["note_en"]
+    kinds = [w["kind"] for w in warnings]
+    assert "optitect_points" not in kinds, kinds
+
+
+def test_optitect_without_a_weight_asks_for_it_instead_of_guessing():
+    """‏رصيد النقاط كله بيتحسب من الوزن. من غيره مانخمّنش."""
+    import optitect
+    lines, detail = optitect.prescribe(None, "weight_loss", "انثى")
+    assert detail["points"] is None, detail
+    assert len(lines) == 1, lines
+    assert "الوزن" in lines[0][0], lines[0]
 
 
 if __name__ == "__main__":

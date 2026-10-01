@@ -376,6 +376,15 @@
           <span class="nx-opt-tx">
             <span class="nx-opt-t">{{ info.name if is_ar else (info.name_en or info.name) }}</span>
             <span class="nx-opt-s">{{ info.description if is_ar else (info.description_en or info.description) }}</span>
+            {# ‏سطر المرجع: الدكتور بعت كتب محفوظة الحقوق عشان أبني منها،
+               والبديل إن كل برنامج يقول المرجع المنشور اللي ماشي عليه --
+               سند يقدر يكتبه على الورقة ويوريه لعميل. #}
+            {% set src = info.source if is_ar else (info.source_en or info.source) %}
+            {% if src %}
+            <span class="nx-opt-src">
+              <i class="fa-solid fa-book-open" aria-hidden="true"></i> {{ src }}
+            </span>
+            {% endif %}
           </span>
         </span>
       </label>
@@ -726,6 +735,11 @@
   .nx-opt-t  { font-size:13.5px; font-weight:700; color:var(--text);
                line-height:1.3 }
   .nx-opt-s  { font-size:11px; color:var(--gray-dark); line-height:1.35 }
+  /* ‏سطر المرجع: أصغر وأخف من الوصف، فبيبان كمصدر مش كجزء من الشرح */
+  .nx-opt-src { display:block; margin-top:4px; padding-top:4px;
+                border-top:1px dashed var(--gray-2); font-size:9.5px;
+                color:var(--muted); line-height:1.4 }
+  .nx-opt-src i { font-size:8.5px; opacity:.75 }
 
   .nx-opt:hover .nx-opt-b { border-color:var(--blue-light) }
   /* ‏الاختيار بيتعرف من الحدود واللون وعلامة الصح -- تلات إشارات مش واحدة،

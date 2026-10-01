@@ -327,7 +327,9 @@ def generate_weekly_plan(data):
         prog_days, prog_warnings = build_program_plan(
             diet_type, target_cal=_target, symptoms=symptoms,
             exclusions=user_exclusions, gender=data.get("gender"),
-            goal_type=data.get("goal_type"))
+            goal_type=data.get("goal_type"),
+            # ‏الوزن لازم لـOpti-tect: رصيد النقاط كله بيتحسب منه
+            weight=data.get("weight"))
         if prog_warnings:
             existing = data.get("notes", "") or ""
             # ‏نفس معالجة الكيميائي والتكميم: أزواج (عربي، إنجليزي) عشان

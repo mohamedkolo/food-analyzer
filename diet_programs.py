@@ -156,19 +156,81 @@ PROGRAM_NOTES = {
     "ovo_vegetarian": (
         "نباتي + بيض، بدون ألبان. الكالسيوم من الطحينة والسبانخ والبروكلي واللوز.",
         "Plant-based plus eggs, no dairy. Calcium comes from tahini, spinach, broccoli and almonds."),
+    # ‏Opti-tect مش جدول: العميل بياخد رصيد نقاط وبيصرفه من كتيّب
+    # الشركة. فالملاحظة دي بيتزاد عليها الرصيد والفئة المحسوبين لكل
+    # عميل (شوف build_program_plan)، والجدول اللي تحت مثال.
     "optitect": (
-        "بروتين عالي في كل وجبة مع خضار ونشوية محدودة.",
-        "High protein at every meal with vegetables and limited starch."),
+        "حمية النقاط: رصيد يومي بالنقاط بتصرفه من دليل الأصناف. "
+        "الجدول اللي تحت مثال — الأساس هو الرصيد.",
+        "The points system: a daily points allowance spent from the food guide. "
+        "The table below is an example; the allowance is what governs."),
 }
 
-# ‏البرامج اللي محتاجة ورقة من الدكتور عشان تتظبّط. Optitect اسم
-# بروتوكول تجاري بتاع الشركة ومانعرفوش، فاللي مكتوب هيكل عام --
-# والتحذير ده بيطلع للدكتور مع الخطة.
+# ‏البرامج اللي لسه ناقصها حاجة من الشركة.
+#
+# ‏Optitect بقى متنفّذ من عرض الشركة الحقيقي (optitect.py): المعادلات
+# والفئات وقواعد التعديل كلها من العرض. اللي لسه ناقص حاجة واحدة --
+# **نقاط كل صنف أكل**، وهي في كتيّب «Opti-tect Diet Guide» مش معانا،
+# والعرض مابيكتبش المعادلة اللي بتحوّل الأكل لنقاط.
 NEEDS_SOURCE = {
     "optitect": (
-        "الهيكل ده عام ومش بروتوكول Optitect الأصلي — ابعت ورقة الشركة عشان يتظبّط عليها.",
-        "This is a generic structure, not the actual Optitect protocol -- send the company's "
-        "sheet so it can be built from it."),
+        "الحساب كله من عرض الشركة. اللي ناقص نقاط أصناف الأكل — دي في كتيّب "
+        "«Opti-tect Diet Guide»، فابعته وهتتحمّل من غير ما يتغيّر أي حرف في الحساب.",
+        "The whole calculation comes from the company's deck. What is missing is the "
+        "points value of each food, which lives in the Opti-tect Diet Guide booklet -- "
+        "send it and the foods load without a line of the calculation changing."),
+}
+
+# ═══ سطر المرجع لكل برنامج ═══════════════════════════════════════════
+#
+# ‏الدكتور بعت كتابين (Clinical Nutrition من Wiley، وكتاب عربي ممسوح من
+# موقع بيوزّع كتب) عشان أبني منهم. مانقلتش منهم حاجة -- التطبيق بيتباع
+# بفلوس، ونقل جداول من كتاب محفوظ الحقوق بيحوّل المشكلة لحسابه.
+#
+# ‏واللي هو عايزه متحقّق بطريقة أحسن: كل برنامج هنا مبني على **مرجع
+# منشور يقدر يكتبه على الورقة** ويوريه لعميل أو جهة رقابية. ده السند
+# اللي كان بيدوّر عليه، وبشكل يقدر يدافع عنه.
+PROGRAM_SOURCES = {
+    "low_carb_program": (
+        "ورقة العيادة (IR Formula) + نطاقات الكربوهيدرات في توصيات ADA لمقاومة الأنسولين",
+        "The clinic's own IR Formula sheet, with carbohydrate levels per ADA guidance "
+        "on insulin resistance"),
+    "low_fat": (
+        "توصيات منظمة الصحة العالمية للدهون: 20-25% من السعرات، والمشبعة أقل من 10%",
+        "WHO guidance on fat intake: 20-25% of energy, with saturated fat under 10%"),
+    "dash": (
+        "NHLBI / المعاهد الوطنية للصحة الأمريكية — نظام DASH لضغط الدم",
+        "NHLBI / US National Institutes of Health -- the DASH eating plan"),
+    "detox": (
+        "أكل كامل بسعرات يوم طبيعي — مافيش بروتوكول تنقية معترف بيه، "
+        "والكبد والكلى هما اللي بينضّفوا",
+        "Whole food at a normal day's energy -- no detox protocol is recognised; the "
+        "liver and kidneys do the clearing"),
+    "kids": (
+        "احتياجات الطاقة للأطفال، منظمة الصحة العالمية ومنظمة الأغذية والزراعة (FAO/WHO/UNU)",
+        "Child energy requirements, FAO/WHO/UNU"),
+    "breast_feeding": (
+        "احتياج الرضاعة الزائد (+330 إلى 400 كالوري) ومرجع الكالسيوم والحديد، "
+        "معهد الطب الأمريكي (IOM/NASEM)",
+        "The added energy cost of lactation (+330 to 400 kcal) with calcium and iron "
+        "references, US Institute of Medicine (IOM/NASEM)"),
+    "vegan": (
+        "موقف جمعية التغذية الأمريكية من الحميات النباتية — كفاية غذائية مع مكمّل ب12",
+        "Academy of Nutrition and Dietetics position on vegetarian diets -- adequate "
+        "with a B12 supplement"),
+    "lacto_vegetarian": (
+        "موقف جمعية التغذية الأمريكية من الحميات النباتية",
+        "Academy of Nutrition and Dietetics position on vegetarian diets"),
+    "lacto_ovo_vegetarian": (
+        "موقف جمعية التغذية الأمريكية من الحميات النباتية",
+        "Academy of Nutrition and Dietetics position on vegetarian diets"),
+    "ovo_vegetarian": (
+        "موقف جمعية التغذية الأمريكية من الحميات النباتية، ومصادر الكالسيوم غير الألبان",
+        "Academy of Nutrition and Dietetics position on vegetarian diets, with "
+        "non-dairy calcium sources"),
+    "optitect": (
+        "عرض الشركة «Opti-tect Diet — Dr.Nutrition Team 2023»",
+        "The company's own deck, \"Opti-tect Diet -- Dr.Nutrition Team 2023\""),
 }
 
 _LABELS = {"breakfast": "الفطار", "lunch": "الغداء",
@@ -211,17 +273,22 @@ _NAMES = {
     "ovo_vegetarian": ("نباتي + بيض", "Ovo Vegetarian Diet",
                        "نباتي مع البيض، بدون ألبان",
                        "Plant-based with eggs, no dairy"),
-    "optitect": ("Optitect (هيكل مؤقّت)", "Optitect Diet",
-                 "بروتين عالي — الهيكل عام ومستني ورقة الشركة",
-                 "High protein -- a generic structure awaiting the company's sheet"),
+    "optitect": ("Optitect (نظام النقاط)", "Optitect Diet (points)",
+                 "رصيد نقاط من الوزن والهدف — مستني كتيّب نقاط الأصناف",
+                 "A points allowance from weight and goal -- awaiting the food-points "
+                 "booklet"),
 }
 
 
 def _system_entry(key):
     name_ar, name_en, desc_ar, desc_en = _NAMES[key]
+    source_ar, source_en = PROGRAM_SOURCES.get(key, ("", ""))
     return {
         "name": name_ar,
         "name_en": name_en,
+        # ‏سطر المرجع: بيبان للدكتور وهو بيختار، وبيروح على الورقة كمان
+        "source": source_ar,
+        "source_en": source_en,
         "meals": list(SLOTS),
         "meal_labels": dict(_LABELS),
         "meal_labels_en": dict(_LABELS_EN),
@@ -267,7 +334,7 @@ def _floor_for_program(program, gender):
 
 
 def build_program_plan(program, target_cal=0, symptoms=None, exclusions=None,
-                       gender=None, goal_type=None):
+                       gender=None, goal_type=None, weight=None):
     """‏جدول البرنامج، مفلتر على حالة العميل ومظبوط على هدفه.
 
     بترجع (days, warnings) وكل تحذير له kind:
@@ -311,6 +378,22 @@ def build_program_plan(program, target_cal=0, symptoms=None, exclusions=None,
                          "reason": reason_ar, "reason_en": reason_en})
 
     note_ar, note_en = PROGRAM_NOTES.get(program, ("", ""))
+    source_ar, source_en = PROGRAM_SOURCES.get(program, ("", ""))
+
+    # ═══ Opti-tect: الوصفة بالنقاط ═══
+    #
+    # ‏ده البرنامج الوحيد اللي مش جدول: العميل بياخد رصيد نقاط وبيصرفه
+    # من كتيّب الشركة. فالجدول هنا مثال، والرقم اللي الأخصائي محتاجه
+    # فعلاً هو الرصيد والفئة -- وده بيتحسب من المعادلات اللي في عرض
+    # الشركة، وبيروح في ملاحظة كل يوم عشان يطلع على الورقة.
+    # ‏الوصفة بتروح في ملاحظة اليوم (فبتطلع على ورقة العميل)، **ومش**
+    # في التحذيرات: التحذيرات بتتكتب في الملاحظات بعلامة ⚠️، ورصيد
+    # النقاط مش مشكلة -- ده الوصفة نفسها.
+    points_lines = []
+    if program == "optitect":
+        import optitect
+        points_lines, _detail = optitect.prescribe(
+            weight, goal_type=goal_type, gender=gender)
 
     for day in days_table:
         entry = {
@@ -320,9 +403,19 @@ def build_program_plan(program, target_cal=0, symptoms=None, exclusions=None,
             "program": program,
             "note": note_ar,
             "note_en": note_en,
+            # ‏سطر المرجع على كل يوم، فبيطلع على الورقة
+            "source": source_ar,
+            "source_en": source_en,
             "meal_labels": dict(_LABELS),
             "meal_emojis": dict(_EMOJIS),
         }
+        # ‏Opti-tect: الرصيد والفئة في ملاحظة اليوم، لأن ده اللي
+        # الأخصائي بيشتغل بيه -- الجدول مثال بس
+        if points_lines:
+            entry["note"] = note_ar + " " + " ".join(
+                ar for ar, _ in points_lines)
+            entry["note_en"] = note_en + " " + " ".join(
+                en for _, en in points_lines)
         picked = {}
         for slot in SLOTS:
             options = [o for o in day["meals"][slot]
