@@ -379,11 +379,11 @@
             {# ‏سطر المرجع: الدكتور بعت كتب محفوظة الحقوق عشان أبني منها،
                والبديل إن كل برنامج يقول المرجع المنشور اللي ماشي عليه --
                سند يقدر يكتبه على الورقة ويوريه لعميل. #}
+            {# ‏إيموجي مش Font Awesome، زي باقي الكارت: الخط بيتحمّل من CDN
+               ولو فشل الكروت بتبان مربعات فاضية -- وفيه اختبار بيمنعها. #}
             {% set src = info.source if is_ar else (info.source_en or info.source) %}
             {% if src %}
-            <span class="nx-opt-src">
-              <i class="fa-solid fa-book-open" aria-hidden="true"></i> {{ src }}
-            </span>
+            <span class="nx-opt-src"><span aria-hidden="true">📖</span> {{ src }}</span>
             {% endif %}
           </span>
         </span>
@@ -739,7 +739,7 @@
   .nx-opt-src { display:block; margin-top:4px; padding-top:4px;
                 border-top:1px dashed var(--gray-2); font-size:9.5px;
                 color:var(--muted); line-height:1.4 }
-  .nx-opt-src i { font-size:8.5px; opacity:.75 }
+  .nx-opt-src span { font-size:9px; opacity:.75 }
 
   .nx-opt:hover .nx-opt-b { border-color:var(--blue-light) }
   /* ‏الاختيار بيتعرف من الحدود واللون وعلامة الصح -- تلات إشارات مش واحدة،
