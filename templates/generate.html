@@ -1676,7 +1676,13 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
       lean_water: T('اتأكّد من الكتلة الخالية من الدهون',
                     'checked against the fat-free mass'),
       lean_bmr: T('اتأكّد من الكتلة الخالية من الدهون',
-                  'checked against the fat-free mass')
+                  'checked against the fat-free mass'),
+      lean_mineral: T('اتحسب من الكتلة الخالية ناقص المعادن، ولقيته مطبوع على الورقة',
+                      'derived from fat-free mass minus mineral, and found printed on the sheet'),
+      lean_protein: T('اتحسب من الكتلة الخالية ناقص البروتين والمعادن، ولقيته مطبوع على الورقة',
+                      'derived from fat-free mass minus protein and mineral, and found printed on the sheet'),
+      bmr_lost_digit: T('اتقرا ناقص خانة من أوله، والخانة الراجعة هي الوحيدة اللي تمشي مع الجسم ده',
+                        'was read with a lost leading digit; the restored digit is the only one this body allows')
     };
     const CONF = data.confirmed || {};
     const confKeys = Object.keys(CONF);

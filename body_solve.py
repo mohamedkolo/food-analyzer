@@ -187,7 +187,32 @@ def reconcile(found, lines):
         lean = weight * (1.0 - fat_pct / 100.0)
 
     if lean and lean > 0:
+        mineral = mineral_on_sheet(lines)
+        protein = protein_on_sheet(lines)
+
+        # ── كتلة العضل = الكتلة الخالية - المعادن ──
+        #
+        # ‏(Soft Lean Mass = Lean Body Mass - bone mineral. ورقة GAIA
+        # بتطبع التلاتة.) ٤٣.٠ - ٣.٨ = ٣٩.٢، والمطبوع ٣٩.٢ بالظبط.
+        #
+        # ‏العنوان نفسه كان بيضيع لأن القراءة بتحط الرقم **قبله**
+        # ("39.2 SLM.")، والبحث بياخد الرقم اللي بعد العنوان -- وده
+        # شرط لازم (من غيره "Height 162 Age 53" بتلخبط). فالمعادلة هي
+        # اللي بتوصل للرقم، مش ترخية الشرط.
+        if mineral and _known(found, "muscle_mass") is None:
+            _take("muscle_mass", _only(pool, lean - mineral, 0.2,
+                                       "muscle_mass"), "lean_mineral")
+
+        # ── ماء الجسم = الكتلة الخالية - البروتين - المعادن ──
+        #
+        # ‏المدى لوحده مابيكفيش هنا: مسطرة الـBMI على الورقة فيها
+        # ٢٧.٥ و٣٠.٠ و٣٢.٥، وكلهم جوّه المدى المتوقّع للماء -- فأكتر
+        # من مرشح والوحدانية ترفض. المعادلة بتحدّد رقم واحد (٣١.٠)
+        # فالوحدانية بتعدّي.
         if _known(found, "body_water") is None:
+            if protein and mineral:
+                _take("body_water", _only(pool, lean - protein - mineral,
+                                          0.2, "body_water"), "lean_protein")
             _take("body_water",
                   _only_in_band(pool, lean * TBW_LOW, lean * TBW_HIGH,
                                 "body_water"), "lean_water")
@@ -208,6 +233,40 @@ def reconcile(found, lines):
                                if abs(n - printed_tdee) > 20)
             _take("bmr", _only_in_band(bmr_pool, katch * BMR_LOW,
                                        katch * BMR_HIGH, "bmr"), "lean_bmr")
+
+            # ── رقم ضايع من **أول** الرقم ──
+            #
+            # ‏ورقة GAIA: المحرّك قرا "B.M.R. 125 kcal" والمطبوع ١١٢٥
+            # -- الواحد الأول ضاع. ١٢٥ برّه المعقول فاتشال، و١١٢٥ مش
+            # موجود في الورقة خالص، فمافيش حاجة تلقطه.
+            #
+            # ‏الرقم اتقرا **من سطر عنوانه** (العنوان طابق)، فاللي
+            # ناقص خانة مش أكتر. بنجرّب نرجّع خانة واحدة قدّامه
+            # (١ لـ٩) ونشوف مين يعدّي الحواجز التلاتة: جوّه مدى
+            # Katch-McArdle، وأقل من الـTDEE المطبوع، و**واحد بس**.
+            # في الورقة دي: ١١٢٥ لوحده (٢١٢٥ وفوق برّه المدى).
+            #
+            # ‏ده أضيق حاجة في الملف كله، وبالقصد: إحنا بنرجّع خانة
+            # لرقم اتقرا في مكانه الصح، مش بنخلق رقم من ورقة.
+            raw = found.get("bmr")
+            # ‏تلات خانات بالظبط: خانة واحدة ضايعة، مش أكتر. "125" ->
+            # "1125" أيوة، لكن "25" -> "925" لأ -- رقم من خانتين مابيدلّش
+            # على رقم أربع خانات، والحاجز بيبقى أرخى من اللازم.
+            if (values.get("bmr") is None and isinstance(raw, (int, float))
+                    and 100 <= raw < 1000):
+                digits = str(int(raw))
+                guesses = []
+                for lead in range(1, 10):
+                    cand = float(str(lead) + digits)
+                    if not _in_range("bmr", cand):
+                        continue
+                    if not (katch * BMR_LOW <= cand <= katch * BMR_HIGH):
+                        continue
+                    if printed_tdee and cand >= printed_tdee - 20:
+                        continue
+                    guesses.append(cand)
+                if len(guesses) == 1:
+                    _take("bmr", guesses[0], "bmr_lost_digit")
 
     return {"values": values, "why": why}
 
@@ -248,6 +307,52 @@ _TDEE_LABEL = re.compile(
     r"(?<![a-z])(?:total\s*daily\s*energy"
     r"|total\s*energy\s*expenditure"
     r"|t\.?e\.?e\.?)(?![a-z])", re.I)
+
+
+# ‏شواهد مطبوعة على الورقة مابتروحش الفورم خالص. الفورم مالوش خانة
+# لا للمعادن ولا للبروتين، ومش هنضيف خانات -- الأرقام دي قيمتها إنها
+# بتحدّد خانات تانية:
+#
+#     كتلة العضل (S.L.M.) = الكتلة الخالية - المعادن
+#     ماء الجسم  (T.B.W.) = الكتلة الخالية - البروتين - المعادن
+#
+# ‏دي مش معادلات من عندي: ورقة GAIA بتطبع الأربعة في سطر واحد
+# ("T.B.W.:31.0 Protein:8.2 Mineral:3.8 Body Fat:24.3") ومجموعهم =
+# الوزن بالظبط. ٣١.٠ + ٨.٢ + ٣.٨ + ٢٤.٣ = ٦٧.٣.
+_MINERAL_LABEL = re.compile(r"(?<![a-z])mineral(?![a-z])", re.I)
+# ‏"Protzin" -- القراءة التانية قرات الـe غلط. الحرف الوسط مرن.
+_PROTEIN_LABEL = re.compile(r"(?<![a-z])prot[a-z]?in(?![a-z])", re.I)
+
+
+def _witness(lines, label, low, high):
+    """‏رقم مطبوع جنب عنوانه، **كشاهد بس**.
+
+    ‏بتاخد الشكل الملزوق ("Mineral:3.8") والمفصول ("Mineral 3.8")،
+    والرقم لازم يكون جوّه مدى معقول للحاجة دي -- وإلا مش شاهد.
+    """
+    for line in lines or []:
+        text = str(line).replace(",", ".")
+        for match in label.finditer(text):
+            tail = text[match.end():match.end() + 24]
+            for number in _NUMBER.finditer(tail):
+                try:
+                    value = float(number.group(1))
+                except ValueError:
+                    continue
+                if low <= value <= high:
+                    return value
+                break
+    return None
+
+
+def mineral_on_sheet(lines):
+    """‏كتلة المعادن (العضم أساساً) بالكيلو. عند البشر ٢ إلى ٨ كجم."""
+    return _witness(lines, _MINERAL_LABEL, 1.5, 8.0)
+
+
+def protein_on_sheet(lines):
+    """‏كتلة البروتين بالكيلو. عند البشر ٤ إلى ٢٥ كجم."""
+    return _witness(lines, _PROTEIN_LABEL, 4.0, 25.0)
 
 
 def tdee_on_sheet(lines):

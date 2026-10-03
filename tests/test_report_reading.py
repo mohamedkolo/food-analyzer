@@ -772,6 +772,8 @@ def test_a_number_with_a_sign_is_a_change_not_a_measurement():
 
 SHEETS = {
     # ‏الملف, اسم المفتاح, الصح المطبوع على الورقة (بعيني), الخانات المتوقعة
+    # ‏الرقم الأخير = أقل عدد خانات الورقة دي قرأته لما اتقيست. لو نزل،
+    # يبقى تغيير كسر قراية كانت شغالة.
     "sheet_gaia359.json": ("gaia_359_sheet", {
         "height": 162.0, "age": 53, "gender": "female", "weight": 67.3,
         "fat_pct": 36.1, "fat_mass": 24.3, "bmi": 25.6, "bmr": 1125,
@@ -1522,22 +1524,19 @@ def test_a_misread_digit_does_not_reach_the_form_as_a_body_fat():
     assert hit and hit[0]["value"] == 26.1, data["dropped"]
 
 
-def test_the_doctors_own_sheet_reads_seven_fields_and_gets_none_wrong():
-    """‏نفس مقياس باقي الورق: العدد مقيس، والغلط صفر.
+def test_the_doctors_own_sheet_reads_all_ten_and_gets_none_wrong():
+    """‏عشرة من عشرة، وصفر غلط. العدد مقيس مش مفترض.
 
-    ‏التلات خانات الفاضية رفض مقصود مش عجز:
-      معدل الحرق  المحرّك قرا "B.M.R. 125" (الواحد الأول ضاع) فاتشال
-                  في حدود المعقول، و١١٢٥ مش موجود في المخرج خالص.
-      ماء الجسم   ٣١.٠ مطبوع، بس مسطرة الـBMI فيها ٢٧.٥ و٣٠.٠ و٣٢.٥
-                  وكلهم جوّه مدى الماء المتوقّع -- فأكتر من مرشح = رفض.
-      كتلة العضل  مافيش معادلة بتحدّدها لوحدها.
+    ‏وصلت لسبعة بالقراءة المباشرة، والتلاتة الباقية من معادلات مطبوعة
+    على الورقة نفسها -- تفاصيل كل واحدة في الاختبار اللي تحت.
     """
     data = lab_report.read_browser(_gaia_photo())
     wrong = [(k, data.get(k), v) for k, v in _GAIA_PHOTO_TRUTH.items()
              if data.get(k) is not None and data.get(k) != v]
     assert not wrong, "‏أرقام غلط وصلت للفورم: %s" % wrong
     read = sum(1 for k in _GAIA_PHOTO_TRUTH if data.get(k) is not None)
-    assert read >= 7, "‏بقت تقرا %d خانة بدل 7" % read
+    assert read == len(_GAIA_PHOTO_TRUTH), (
+        "‏بقت تقرا %d خانة بدل %d" % (read, len(_GAIA_PHOTO_TRUTH)))
 
 
 def test_the_printed_tdee_never_lands_in_the_bmr_box():
@@ -1574,6 +1573,105 @@ def test_the_fat_triangle_only_fires_when_the_sheet_disagrees():
     for body in ({"weight": 67.3, "fat_pct": 36.1, "fat_mass": 24.3},
                  {"weight": 53.7, "fat_pct": 17.7, "fat_mass": 9.5}):
         assert not body_solve.contradictions(body, []), body
+
+
+def test_the_doctors_sheet_reads_every_field_from_printed_identities():
+    """‏الدكتور قال "تمام بس عايز تظبط" -- يعني التلات خانات الفاضية.
+
+    ‏الورقة نفسها فيها المعادلات اللي بتحدّدهم، وكلها مطبوعة عليها:
+
+      كتلة العضل  = الكتلة الخالية - المعادن     (٤٣.٠ - ٣.٨ = ٣٩.٢)
+      ماء الجسم   = الخالية - البروتين - المعادن  (٤٣.٠ - ٨.٢ - ٣.٨ = ٣١.٠)
+      معدل الحرق  = ١٢٥ وناقصه خانة من الأول     (١١٢٥، والوحيد اللي
+                                                  يمشي مع الجسم ده)
+
+    ‏ومع كل واحدة فيهم نفس الحاجز: الرقم المحسوب لازم يلاقي **رقم واحد
+    مطبوع** على الورقة قريب منه (٠.٢ كجم). مافيش ولا رقم بيتحط من
+    الحساب لوحده.
+    """
+    data = lab_report.read_browser(_gaia_photo())
+    for field, want in _GAIA_PHOTO_TRUTH.items():
+        assert data.get(field) == want, (
+            "‏%s = %s، والمطبوع %s" % (field, data.get(field), want))
+    why = data["confirmed"]
+    assert why.get("muscle_mass") == "lean_mineral", why
+    assert why.get("body_water") == "lean_protein", why
+    assert why.get("bmr") == "bmr_lost_digit", why
+
+
+def test_the_witnesses_never_reach_the_form():
+    """‏المعادن والبروتين شواهد بس. الفورم مالوش خانة لهم ومش هيبقى."""
+    import body_solve
+
+    lines = ["T.B.W.:31.0 Protein:8.2 Mineral:3.8 Body Fat:24.3"]
+    assert body_solve.mineral_on_sheet(lines) == 3.8
+    assert body_solve.protein_on_sheet(lines) == 8.2
+    # ‏"Protzin" -- القراءة التانية بتقرا الـe غلط، وبرضه بتتلقط
+    assert body_solve.protein_on_sheet(["Protzin:8.2"]) == 8.2
+    # ‏وبرّه المدى البشري مش شاهد
+    assert body_solve.mineral_on_sheet(["Mineral:99.0"]) is None
+    assert body_solve.protein_on_sheet(["Protein:0.4"]) is None
+
+    out = body_solve.reconcile({"weight": 67.3, "fat_mass": 24.3}, lines)
+    for key in ("mineral", "protein"):
+        assert key not in out["values"], out["values"]
+
+
+def test_a_lost_leading_digit_is_restored_only_when_one_digit_fits():
+    """‏أضيق حاجة في الملف، وبالقصد.
+
+    ‏تلات حواجز مع بعض: الرقم اتقرا من سطر عنوانه، والراجع لازم يبقى
+    جوّه مدى Katch-McArdle، وأقل من الـTDEE المطبوع، و**واحد بس**.
+    """
+    import body_solve
+
+    body = {"weight": 67.3, "fat_mass": 24.3}
+    lines = ["Weight 67.3 Body Fat 24.3",
+             "B.M.R. 125 kcal T.E.E. 1733 kcal"]
+    out = body_solve.reconcile(dict(body, bmr=125.0), lines)
+    assert out["values"].get("bmr") == 1125.0, out
+
+    # ‏جسم تاني، خانة تانية: ١٠٠ كجم و٢٠٪ دهون -> خالية ٨٠ ->
+    # Katch ٢٠٩٨ والمدى ١٤٦٩-٢٨٣٢. ١١٢٥ تحت المدى و٣١٢٥ فوقه، فالوحيد
+    # اللي يمشي هو ٢١٢٥ -- ومع الجسم ده ده هو الصح.
+    big = body_solve.reconcile({"weight": 100.0, "fat_pct": 20.0, "bmr": 125.0},
+                               ["Weight 100.0 Fat 20.0", "B.M.R. 125 kcal"])
+    assert big["values"].get("bmr") == 2125.0, big
+
+    # ‏ولما المدى يسمح بخانتين، بيرفض. الخالية ٥٦.٧ -> Katch ١٥٩٥
+    # والمدى ١١١٦-٢١٥�3، فـ١١٢٥ و٢١٢٥ الاتنين جوّاه -> مانعرفش مين.
+    two_fit = body_solve.reconcile({"weight": 70.0, "fat_pct": 19.0, "bmr": 125.0},
+                                   ["Weight 70.0 Fat 19.0", "B.M.R. 125 kcal"])
+    assert two_fit["values"].get("bmr") is None, (
+        "‏ملا رقم والمدى يسمح بخانتين: %s" % two_fit)
+
+    # ‏رقم من خانتين مابيدلّش على رقم أربع خانات
+    two = body_solve.reconcile(dict(body, bmr=25.0),
+                               ["Weight 67.3 Body Fat 24.3", "B.M.R. 25 kcal"])
+    assert two["values"].get("bmr") is None, two
+
+
+def test_no_sheet_gains_a_wrong_number_from_the_identities():
+    """‏المقياس اللي كل حرف مبني عليه، على الخمس ورقات كلها."""
+    sheets = [
+        (_gaia_photo(), _GAIA_PHOTO_TRUTH),
+        (_photo_sheet(), {"height": 159.0, "age": 23, "weight": 53.7,
+                          "fat_pct": 17.7, "bmi": 21.2, "bmr": 1324,
+                          "fat_mass": 9.5, "body_water": 32.3}),
+    ]
+    for name, (_key, truth, _least) in SHEETS.items():
+        sheets.append((_sheet(name), truth))
+    wrong = []
+    for passes, truth in sheets:
+        try:
+            data = lab_report.read_browser(passes)
+        except lab_report.ReportError:
+            continue
+        for field, want in truth.items():
+            got = data.get(field)
+            if got is not None and got != want:
+                wrong.append("%s = %r (الصح %r)" % (field, got, want))
+    assert not wrong, "‏أرقام غلط وصلت للفورم:\n  " + "\n  ".join(wrong)
 
 if __name__ == "__main__":
     passed = failed = 0
