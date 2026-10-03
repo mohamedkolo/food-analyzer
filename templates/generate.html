@@ -1479,27 +1479,69 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
     // ‏القراءة بتحصل هنا، في المتصفح. الصورة مابتطلعش من الجهاز خالص --
     // اللي بيتبعت للسيرفر هو الكلام المقروء، وهو اللي بيفسّره ويقرّر أي
     // رقم يتصدّق (نفس الكود اللي عليه الاختبارات).
-    let data;
+    // ‏الخطوتين مفصولتين بالقصد: القراءة في المتصفح، وبعدين التفسير
+    // على السيرفر. قبل كده كانوا في try واحد، وأي فشل في أي واحدة
+    // فيهم كان بيطلّع نفس الجملة: "حصلت مشكلة وإحنا بنقرا الورقة".
+    //
+    // ‏الدكتور بعتلي صورة الشاشة والجملة دي فيها، وماعرفتش منها حاجة --
+    // ولا هو. السبب الحقيقي كان مرمي: الكود كان بيبص على كلمتين بس في
+    // نص الغلطة ('engine' و'bad-image') وبيلغي الباقي.
+    //
+    // ‏ومصيدة تانية كانت جوّاها: res.json() بترمي استثناء لو الرد مش
+    // JSON خالص -- صفحة غلطة ٥٠٠، أو ٥٠٢ من الاستضافة، أو صفحة
+    // تحويل. فغلطة في السيرفر كانت بتوصل كأنها غلطة في القراءة.
+    function why(err){
+      let text = String((err && err.message) || err || '');
+      return text.replace(/[<>&]/g, '').slice(0, 160);
+    }
+    function fail(advice, detail){
+      // ‏النصيحة الأول، وبعدها نص الغلطة الحقيقي. الدكتور بيبعتلي
+      // صورة الشاشة -- فلازم تكون فيها الحقيقة، مش جملة عامة.
+      show('bad', advice + (detail
+        ? '<br><span style="font-size:11.5px;opacity:.85;direction:ltr;'
+          + 'display:inline-block;font-family:monospace">' + detail + '</span>'
+        : ''));
+      file.value = '';
+      busy = false;
+    }
+
+    let passes;
     try{
       if(!window.ReportOCR) throw new Error('no-engine');
-      const passes = await window.ReportOCR.read(chosen, stage);
+      passes = await window.ReportOCR.read(chosen, stage);
+    }catch(err){
+      const text = why(err);
+      fail(text.indexOf('engine') >= 0
+        ? T('مقدرتش أنزّل محرّك القراءة. اتأكد من النت وجرّب تاني — أو اكتب البيانات بإيدك.',
+            'Could not download the reader. Check the connection and retry -- or type the fields yourself.')
+        : (text.indexOf('bad-image') >= 0
+            ? T('الصورة مش سليمة. صوّرها تاني.','That image is not readable. Take it again.')
+            : T('القراءة في المتصفح وقعت. جرّب صورة أصغر، أو اكتب البيانات بإيدك.',
+                'The in-browser reading failed. Try a smaller photo, or type the fields yourself.')),
+        text);
+      return;
+    }
+
+    let data;
+    try{
       const res = await fetch('/api/read-report', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({passes: passes})
       });
-      data = await res.json();
+      // ‏الرد لازم يتقرا نص الأول. res.json() على صفحة HTML بترمي
+      // "Unexpected token '<'" -- وهي كانت بتوصل للدكتور كأن القراءة
+      // هي اللي فشلت.
+      const body = await res.text();
+      try{ data = JSON.parse(body); }
+      catch(e){
+        throw new Error('HTTP ' + res.status + ' — '
+                        + body.replace(/<[^>]*>/g, ' ').trim().slice(0, 120));
+      }
     }catch(err){
-      const why = String((err && err.message) || err || '');
-      show('bad', why.indexOf('engine') >= 0
-        ? T('مقدرتش أنزّل محرّك القراءة. اتأكد من النت وجرّب تاني — أو اكتب البيانات بإيدك.',
-            'Could not download the reader. Check the connection and retry -- or type the fields yourself.')
-        : (why.indexOf('bad-image') >= 0
-            ? T('الصورة مش سليمة. صوّرها تاني.','That image is not readable. Take it again.')
-            : T('حصلت مشكلة وإحنا بنقرا الورقة. جرّب تاني، أو اكتب البيانات بإيدك.',
-                'Something went wrong while reading the sheet. Retry, or type the fields yourself.')));
-      file.value = '';
-      busy = false;
+      fail(T('القراءة اتعملت بس السيرفر مارجّعش رد مفهوم. جرّب تاني.',
+             'The sheet was read but the server did not return a usable reply. Retry.'),
+           why(err));
       return;
     }
     busy = false;

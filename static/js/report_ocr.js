@@ -226,6 +226,10 @@ window.ReportOCR = (function () {
     // يقول للدكتور "صوّرها أقرب" بدل "الورقة مش واضحة". شكلها كلمات
     // عادية فـ_tidy_passes بيقبلها زي أي سطر.
     if (sourceEdge && sourceEdge < MIN_SOURCE_EDGE) {
+      // ‏لو القراءتين ماطلّعوش ولا سطر، passes[-1] بيبقى undefined
+      // و.push عليه بترمي -- والاستثناء ده كان بيتحوّل لجملة عامة
+      // ومحدش يعرف السبب. السطر ده بيضمن إن فيه قايمة نضيفها فيها.
+      if (!passes.length) passes.push([]);
       passes[passes.length - 1].push(['__NX_SMALL__', String(sourceEdge)]);
     }
     return passes;

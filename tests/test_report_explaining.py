@@ -893,6 +893,58 @@ def test_a_burn_that_went_up_is_not_announced_as_a_drop():
                 (mode, step["say"])
 
 
+
+def test_no_verdict_line_argues_with_its_own_label():
+    """‏الدكتور بعت صورة الشاشة وفيها الجملة دي:
+
+        "نسبة الدهون 26.1% — مقبولة، يعني فوق النطاق الصحي."
+
+    ‏ست كلمات بيتخانقوا. "مقبولة" و"فوق النطاق الصحي" مايمشوش مع بعض،
+    والدكتور مايقدرش يقولها قدام عميل -- العميل بيسأل "يعني مقبولة ولا
+    لأ؟" ومافيش رد.
+
+    ‏الاختبار بيمشي على كل الأرقام في كل النطاقات ويتأكد إن مافيش سطر
+    بيقول حاجة وعكسها.
+    """
+    import body_read
+
+    bad = []
+    for gender in ("ذكر", "انثى"):
+        for fat in [x / 2.0 for x in range(8, 140)]:
+            data = {"gender": gender, "weight": 70.0, "height": 170.0,
+                    "age": 35, "fat_pct": fat, "bmi": 24.2}
+            out = body_read.explain(data, True, "free", None, None)
+            for group in ("good", "work", "unsure"):
+                for item in out["verdict"][group]:
+                    line = item["line"]
+                    # ‏"مقبولة" + "فوق النطاق الصحي" في سطر واحد = تناقض.
+                    # الوصف الصح بيقول فوق نطاق **اللياقة**، وده حاجة تانية.
+                    if "مقبول" in line and "فوق النطاق الصحي" in line:
+                        bad.append((gender, fat, line))
+                    # ‏ولا "في النطاق الصحي" مع "الشغل الأساسي"
+                    if "في النطاق الصحي" in line and "الشغل الأساسي" in line:
+                        bad.append((gender, fat, line))
+    assert not bad, "‏سطور بتناقض نفسها:\n  " + "\n  ".join(
+        "%s %.1f%%: %s" % row for row in bad[:4])
+
+
+def test_the_acceptable_band_says_where_its_edges_are():
+    """‏"مقبولة" لوحدها مابتقولش للعميل هو فين. الحدود بتقولها."""
+    import body_read
+
+    out = body_read.explain({"gender": "انثى", "weight": 67.3, "height": 162.0,
+                             "age": 43, "fat_pct": 26.1, "bmi": 25.6},
+                            True, "free", None, None)
+    line = [i["line"] for i in out["verdict"]["work"] if "الدهون" in i["label"]]
+    assert line, out["verdict"]
+    assert "25%" in line[0] and "32%" in line[0], line[0]
+    # ‏والراجل حدوده مختلفة -- مش نفس الأرقام متكتوبة على الحالتين
+    male = body_read.explain({"gender": "ذكر", "weight": 80.0, "height": 175.0,
+                              "age": 35, "fat_pct": 20.0, "bmi": 26.1},
+                             True, "free", None, None)
+    mline = [i["line"] for i in male["verdict"]["work"] if "الدهون" in i["label"]]
+    assert mline and "18%" in mline[0] and "25%" in mline[0], mline
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):

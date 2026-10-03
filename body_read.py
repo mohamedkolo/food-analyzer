@@ -119,9 +119,21 @@ _SMI = {"female": (6.76, 5.76), "male": (10.76, 8.51)}
 
 
 def _band(value, table):
+    """‏النطاق اللي الرقم واقع فيه، ومعاه حدوده.
+
+    ‏الحدود (floor/top) بترجع عشان الشرح يقدر يقول للعميل **فين** هو
+    بالظبط. الجملة اللي كانت بتتقال من غيرها كانت بتناقض نفسها:
+    "٢٦.١٪ -- مقبولة، يعني فوق النطاق الصحي". ست كلمات بيتخانقوا:
+    مقبولة وفوق الصحي مايمشوش مع بعض، والدكتور مايقدرش يقولها قدام
+    عميل. بالحدود الجملة بتوصف الواقع: مقبولة = فوق نطاق اللياقة
+    وتحت نطاق السمنة، والرقمين مكتوبين.
+    """
+    floor = None
     for top, key, ar, en, kind in table:
         if top is None or value < top:
-            return {"key": key, "ar": ar, "en": en, "kind": kind}
+            return {"key": key, "ar": ar, "en": en, "kind": kind,
+                    "floor": floor, "top": top}
+        floor = top
     return None
 
 
@@ -689,11 +701,21 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
                    "%s%% -- in the healthy range (%s). This is the best thing on the sheet, "
                    "and the job is to hold it." % (pct, fat_band["en"]))
         elif fat_band["kind"] == "watch":
+            # ‏الحدود مكتوبة في الجملة: "مقبولة" لوحدها مع "فوق النطاق
+            # الصحي" كانت تناقض، و"فوق نطاق اللياقة (٢٥٪) وتحت نطاق
+            # السمنة (٣٢٪)" بتوصف نفس الحقيقة من غير خناقة.
+            _edges_ar = ""
+            _edges_en = ""
+            if fat_band.get("floor") and fat_band.get("top"):
+                _edges_ar = (": فوق نطاق اللياقة (%s%%) وتحت نطاق السمنة (%s%%)"
+                             % (_fmt(fat_band["floor"], 0), _fmt(fat_band["top"], 0)))
+                _edges_en = (": above the fit band (%s%%) and below the obese band (%s%%)"
+                             % (_fmt(fat_band["floor"], 0), _fmt(fat_band["top"], 0)))
             _judge("work", "نسبة الدهون", "Body fat",
-                   "%s%% — %s، يعني فوق النطاق الصحي. مش خطر، بس هي الشغل الأساسي."
-                   % (pct, fat_band["ar"]),
-                   "%s%% -- %s, above the healthy range. Not dangerous, but this is the main work."
-                   % (pct, fat_band["en"]))
+                   "%s%% — %s%s. مش خطر، بس هي الشغل الأساسي."
+                   % (pct, fat_band["ar"], _edges_ar),
+                   "%s%% -- %s%s. Not dangerous, but this is the main work."
+                   % (pct, fat_band["en"], _edges_en))
         elif fat_band["kind"] == "high":
             _judge("work", "نسبة الدهون", "Body fat",
                    "%s%% — %s. ده أعلى رقم في ترتيب الأولويات." % (pct, fat_band["ar"]),
