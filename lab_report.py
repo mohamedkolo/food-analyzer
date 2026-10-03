@@ -205,11 +205,17 @@ def _clean(raw):
     #
     # ‏والدكتور لازم يشوف الرقم نفسه: "BMR اتشال" مايقولش حاجة، و
     # "BMR = ٢٠٣٨ اتشال لأن الجسم ده بيحرق ١٣٢٥" بتقول كل حاجة.
+    _was = raw.get("contradicted_values") or {}
     for _field, _reason in {str(k): str(v) for k, v
                             in (raw.get("contradicted") or {}).items()}.items():
-        if out.get(_field) is not None:
-            out["dropped"].append({"field": _field, "value": out[_field],
-                                   "low": None, "high": None, "why": _reason})
+        # ‏القيمة المرفوضة جاية من contradicted_values: المحرّك بيشيلها
+        # من found قبل أي حساب، فهي مش في out خلاص. ولو الحساب بعد
+        # الرفض ملا الخانة تاني (النسبة من الكتلة والوزن)، الخانة
+        # بتفضل مليانة بالرقم الصح والمرفوض بيتعرض جنبه.
+        _value = _was.get(_field, out.get(_field))
+        out["dropped"].append({"field": _field, "value": _value,
+                               "low": None, "high": None, "why": _reason})
+        if _field not in _was and out.get(_field) is not None:
             out[_field] = None
 
     # ‏فحص تناسق: الـBMI = الوزن ÷ (الطول بالمتر)². التلاتة مطبوعين على

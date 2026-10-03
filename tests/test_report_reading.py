@@ -790,6 +790,14 @@ READ_FIELDS = ("height", "age", "gender", "weight", "fat_pct", "fat_mass",
                "bmi", "bmr", "body_water", "visceral_fat", "muscle_mass")
 
 
+def _gaia_photo():
+    """‏مخرج المحرّك على **صورة** ورقة GAIA اللي الدكتور بعتها."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    with io.open(os.path.join(here, "data", "sheet_gaia_photo.json"),
+                 encoding="utf-8") as fh:
+        return json.load(fh)["gaia_photo"]["passes"]
+
+
 def _photo_sheet():
     """‏مخرج المحرّك على **صورة** ورقة الدكتور، مش على نص مكتوب بإيد."""
     here = os.path.dirname(os.path.abspath(__file__))
@@ -1479,6 +1487,93 @@ def test_the_bmr_is_never_taken_as_the_tdee_on_its_own_row():
         {"weight": 70.0, "fat_pct": 20.0, "bmr": 1900.0},
         ["B.M.R. 1900 kcal", "Total Daily Energy Expenditure 1900 kcal"])
     assert out.get("bmr") in ("bmr_over_tdee", "lean_bmr"), out
+
+
+# ‏الصح المطبوع على صورة ورقة GAIA اللي الدكتور بعتها، بعيني
+_GAIA_PHOTO_TRUTH = {
+    "height": 162.0, "age": 53, "gender": "female", "weight": 67.3,
+    "fat_pct": 36.1, "fat_mass": 24.3, "bmi": 25.6, "bmr": 1125,
+    "body_water": 31.0, "muscle_mass": 39.2,
+}
+
+
+def test_a_misread_digit_does_not_reach_the_form_as_a_body_fat():
+    """‏أخطر رقم غلط لحد دلوقتي، وجه من ورقة الدكتور نفسها.
+
+    ‏المحرّك قرا "P.B.F. 26.1" والورقة مطبوع فيها **36.1** -- التلاتة
+    اتقرت اتنين. و**في القراءتين مع بعض**، فحاجز الاتفاق بينهم عدّاها.
+    ٢٦.١٪ نسبة معقولة تماماً لست، فحدود المعقول عدّتها. والـFFMI
+    (١٨.٩) عدّاها كمان.
+
+    ‏والفرق مش تفصيلة: ٣٦.١٪ لست عندها ٥٣ سنة = نطاق سمنة، و٢٦.١٪ =
+    نطاق لياقة. والشرح كان بيقول للعميلة "١٧.٦ كجم دهون" والورقة
+    قدامها مكتوب ٢٤.٣ -- الورقة بتقول حاجة والشاشة بتقول عكسها.
+
+    ‏اللي مسكها: الورقة نفسها فيها الشاهد التالت، الكتلة الخالية.
+        لو النسبة ٢٦.١ صح -> الخالية ٤٩.٧ -> مش مطبوعة
+        لو الكتلة ٢٤.٣ صح -> الخالية ٤٣.٠ -> مطبوعة (سطر L.B.M.)
+    """
+    data = lab_report.read_browser(_gaia_photo())
+    assert data.get("fat_pct") == 36.1, (
+        "‏نسبة الدهون %s، والمطبوع على الورقة 36.1" % data.get("fat_pct"))
+    # ‏والرقم المرفوض بيوصل للدكتور بقيمته وسببه، مش بيختفي
+    hit = [d for d in data["dropped"]
+           if d["field"] == "fat_pct" and d.get("why") == "fat_triangle"]
+    assert hit and hit[0]["value"] == 26.1, data["dropped"]
+
+
+def test_the_doctors_own_sheet_reads_seven_fields_and_gets_none_wrong():
+    """‏نفس مقياس باقي الورق: العدد مقيس، والغلط صفر.
+
+    ‏التلات خانات الفاضية رفض مقصود مش عجز:
+      معدل الحرق  المحرّك قرا "B.M.R. 125" (الواحد الأول ضاع) فاتشال
+                  في حدود المعقول، و١١٢٥ مش موجود في المخرج خالص.
+      ماء الجسم   ٣١.٠ مطبوع، بس مسطرة الـBMI فيها ٢٧.٥ و٣٠.٠ و٣٢.٥
+                  وكلهم جوّه مدى الماء المتوقّع -- فأكتر من مرشح = رفض.
+      كتلة العضل  مافيش معادلة بتحدّدها لوحدها.
+    """
+    data = lab_report.read_browser(_gaia_photo())
+    wrong = [(k, data.get(k), v) for k, v in _GAIA_PHOTO_TRUTH.items()
+             if data.get(k) is not None and data.get(k) != v]
+    assert not wrong, "‏أرقام غلط وصلت للفورم: %s" % wrong
+    read = sum(1 for k in _GAIA_PHOTO_TRUTH if data.get(k) is not None)
+    assert read >= 7, "‏بقت تقرا %d خانة بدل 7" % read
+
+
+def test_the_printed_tdee_never_lands_in_the_bmr_box():
+    """‏الـTDEE دايماً جوّه المدى المقبول للـBMR (هو الـBMR × ١.٢-١.٩).
+
+    ‏في ورقة GAIA الـT.E.E. (١٧٣٣) كان واحد من أربع مرشحين للـBMR،
+    فالوحدانية رفضتهم كلهم -- يعني الخانة فضلت فاضية **بالحظ**. لو
+    القراءة كانت أنضف شوية وفضل ١٧٣٣ لوحده، كان بيتحط في خانة
+    الـBMR: ١٧٣٣ بدل ١١٢٥.
+    """
+    import body_solve
+
+    body = {"weight": 67.3, "fat_mass": 24.3}
+    only_tdee = body_solve.reconcile(dict(body), [
+        "Weight 67.3 Body Fat 24.3 LBM 43.0",
+        "B.M.R. ... kcal T.E.E. 1733 kcal"])
+    assert only_tdee["values"].get("bmr") is None, only_tdee
+
+    # ‏ولمّا الـBMR الصح مطبوع، شيل الـTDEE بيخلّي الصح وحيد فيتاخد
+    with_bmr = body_solve.reconcile(dict(body), [
+        "Weight 67.3 Body Fat 24.3",
+        "B.M.R. 1125 kcal T.E.E. 1733 kcal"])
+    assert with_bmr["values"].get("bmr") == 1125.0, with_bmr
+
+
+def test_the_fat_triangle_only_fires_when_the_sheet_disagrees():
+    """‏الحاجز مايضربش على ورقة متسقة -- وإلا بيشيل أرقام صح."""
+    import body_solve
+
+    consistent = ["Weight 67.9 PBF 29.2 Body Fat 19.8 LBM 48.1"]
+    assert not body_solve.contradictions(
+        {"weight": 67.9, "fat_pct": 29.2, "fat_mass": 19.8}, consistent)
+    # ‏والتلات ورقات التانية كلها متسقة
+    for body in ({"weight": 67.3, "fat_pct": 36.1, "fat_mass": 24.3},
+                 {"weight": 53.7, "fat_pct": 17.7, "fat_mass": 9.5}):
+        assert not body_solve.contradictions(body, []), body
 
 if __name__ == "__main__":
     passed = failed = 0

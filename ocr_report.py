@@ -730,6 +730,39 @@ def interpret(found, text_all, lines=None):
         raise RuntimeError("الصورة دي مش ورقة تحليل جسم. صوّر ورقة الـInBody "
                            "أو جهاز قياس نسبة الدهون.")
 
+    # ‏السطور اللي المعادلات تشوفها **من غير علامات المتصفح**. العلامة
+    # "__NX_SMALL__ 1600" رقمها مش من الورقة، و١٦٠٠ جوّه مدى الـBMR
+    # المعقول (٦٠٠-٤٥٠٠) -- فجسم كتلته الخالية ٥٦.٩ كجم (Katch-McArdle
+    # = ١٦٠٠ بالظبط) كان بياخد BMR = ١٦٠٠ من **حجم الصورة**. جرّبتها
+    # وطلعت. رقم عن الصورة بيتحوّل لقراءة طبية: ده بالظبط النوع اللي
+    # الملف كله موجود عشانه، وأنا اللي دخّلته.
+    _solve_lines = _strip_marks(
+        lines if lines is not None
+        else [line for line in (text_all or "").split(" | ")])
+
+    # ── الرقم اللي اتقرا من سطره والورقة بتناقضه ──
+    #
+    # ‏لازم ييجي **قبل** أي حساب بيعتمد على الأرقام دي. ورقة GAIA
+    # قرا فيها المحرّك "P.B.F. 26.1" والمطبوع ٣٦.١ -- ٣ اتقرت ٢، وفي
+    # القراءتين مع بعض فحاجز الاتفاق عدّاها. لو الرفض جه بعد الحساب،
+    # الحساب كان بيلاقي النسبة "موجودة" ومايصلّحهاش.
+    #
+    # ‏وبعد الرفض، الحساب تحت بيملاها من كتلة الدهون والوزن:
+    # ٢٤.٣ ÷ ٦٧.٣ = ٣٦.١٪ -- الرقم المطبوع بالظبط. التفاصيل في
+    # body_solve.contradictions.
+    _rejected = {}
+    try:
+        import body_solve as _bs
+        _rejected = _bs.contradictions(found, _solve_lines)
+    except Exception as _e2:
+        import sys
+        print("body_solve.contradictions failed: %s: %s"
+              % (type(_e2).__name__, _e2), file=sys.stderr)
+    _rejected_values = {}
+    for _field in _rejected:
+        if _field in found:
+            _rejected_values[_field] = found.pop(_field)
+
     # ‏نسبة الدهون من كتلتها: ورقة GAIA بتطبع النسبة فوق عمود رسم (والقراية
     # بتقراها "PBE." مش "PBF."، والرقم مش في سطرها)، بس بتطبع كتلة الدهون
     # بالكيلو في الملخّص. والقسمة على الوزن بتطلّع نفس الرقم المطبوع بالظبط:
@@ -762,15 +795,6 @@ def interpret(found, text_all, lines=None):
     # مسطرة رسم، والحساب (٢٥.٦٤) لقى في الورقة كلها رقم واحد قريب:
     # ٢٥.٦، وهو المطبوع بالظبط. وورقة X-CONTACT الحساب فيها ٢٥.٢٥
     # ومالقاش ولا رقم قريب، فسابها فاضية -- وده المقصود.
-    # ‏السطور اللي المعادلات تشوفها **من غير علامات المتصفح**. العلامة
-    # "__NX_SMALL__ 1600" رقمها مش من الورقة، و١٦٠٠ جوّه مدى الـBMR
-    # المعقول (٦٠٠-٤٥٠٠) -- فجسم كتلته الخالية ٥٦.٩ كجم (Katch-McArdle
-    # = ١٦٠٠ بالظبط) كان بياخد BMR = ١٦٠٠ من **حجم الصورة**. جرّبتها
-    # وطلعت. رقم عن الصورة بيتحوّل لقراءة طبية: ده بالظبط النوع اللي
-    # الملف كله موجود عشانه، وأنا اللي دخّلته.
-    _solve_lines = _strip_marks(
-        lines if lines is not None
-        else [line for line in (text_all or "").split(" | ")])
     try:
         import body_solve
         _solved = body_solve.reconcile(found, _solve_lines)
@@ -783,20 +807,6 @@ def interpret(found, text_all, lines=None):
         print("body_solve failed: %s: %s" % (type(_e).__name__, _e),
               file=sys.stderr)
         _solved = {"values": {}, "why": {}}
-    # ‏والعكس: رقم اتقرا من سطره والجسم بيقول إنه مستحيل. ورقة
-    # DR.NUTRITION بتطبع عمود القيم مزحلق صف لفوق، فالرقم اللي على صف
-    # الـBMR هو الـTDEE -- ٧١٤ كالوري غلط لو عدّى. التفاصيل في body_solve.
-    _rejected = {}
-    try:
-        import body_solve as _bs
-        _rejected = _bs.contradictions(found, _solve_lines)
-    except Exception as _e2:
-        import sys
-        print("body_solve.contradictions failed: %s: %s"
-              % (type(_e2).__name__, _e2), file=sys.stderr)
-    for _field in _rejected:
-        found.pop(_field, None)
-
     for _field, _value in _solved["values"].items():
         # ‏تعيين مباشر مش setdefault: المعادلة مابترجّعش خانة إلا لما
         # تكون فاضية **أو رقمها برّه المعقول**. والحالة التانية هي
@@ -812,6 +822,10 @@ def interpret(found, text_all, lines=None):
     # ‏اللي اتشال لأن معادلة ناقضته، ومعاه السبب. الدكتور بيشوفه في
     # نفس مكان الأرقام اللي برّه المعقول -- خانة فاضية مع سبب.
     out["contradicted"] = dict(_rejected)
+    # ‏والقيمة اللي اتشالت نفسها. lab_report بياخد القيمة من out، وهي
+    # بقت None بعد الرفض -- فمن غير السطر ده الدكتور كان يشوف "نسبة
+    # الدهون اتشالت" من غير الرقم، ومايعرفش القراية شافت إيه.
+    out["contradicted_values"] = dict(_rejected_values)
     # ‏السطور اللي المحرّك شافها. لما مافيش خانة اتملت، دي الحاجة الوحيدة
     # اللي بتقول ليه: الورقة مش واضحة، ولا عناوينها بشكل تاني؟
     # ‏وعلامة حجم الصورة مابتبانش في "اللي المحرّك قراه": هي ملاحظة

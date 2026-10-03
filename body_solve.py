@@ -193,8 +193,21 @@ def reconcile(found, lines):
                                 "body_water"), "lean_water")
         if _known(found, "bmr") is None:
             katch = 370.0 + 21.6 * lean
-            _take("bmr", _only_in_band(pool, katch * BMR_LOW, katch * BMR_HIGH,
-                                       "bmr"), "lean_bmr")
+            # ‏الـT.E.E. المطبوع بيتشال من المرشحين **قبل** الوحدانية.
+            #
+            # ‏السبب: الـTDEE دايماً جوّه المدى المقبول للـBMR (هو
+            # الـBMR في معامل بين ١.٢ و١.٩)، فوجوده على الورقة كان
+            # بيعمل حاجة من اتنين -- يا يبقى هو المرشح الوحيد فيتحط
+            # في خانة الـBMR (١٧٣٣ بدل ١١٢٥ في ورقة GAIA)، يا يبقى
+            # مرشح تاني جنب الصح فالوحدانية ترفض الاتنين والخانة تفضل
+            # فاضية وهي مقروءة. شيله بيحل الحالتين.
+            printed_tdee = tdee_on_sheet(lines)
+            bmr_pool = pool
+            if printed_tdee:
+                bmr_pool = set(n for n in pool
+                               if abs(n - printed_tdee) > 20)
+            _take("bmr", _only_in_band(bmr_pool, katch * BMR_LOW,
+                                       katch * BMR_HIGH, "bmr"), "lean_bmr")
 
     return {"values": values, "why": why}
 
@@ -261,6 +274,24 @@ def tdee_on_sheet(lines):
     return None
 
 
+# ‏تفاوت مثلث الدهون: الوزن × النسبة = الكتلة. أكتر من نص كيلو فرق =
+# واحد من التلاتة اتقرا غلط. (٠.٥ عشان الورقة بتقرّب لخانة عشرية.)
+FAT_TOL_KG = 0.5
+
+# ‏تفاوت شاهد الكتلة الخالية. ضيّق بالقصد: مسطرة الـP.B.F. على ورقة
+# GAIA فيها علامات ١٠ و١٥ ... و٥٠، والكتلة الخالية المحسوبة من النسبة
+# الغلط كانت ٤٩.٧ -- يعني ٠.٣ من علامة الـ٥٠. بتفاوت نص كيلو علامة
+# المسطرة كانت هتشهد للرقم الغلط.
+LEAN_TOL_KG = 0.2
+
+
+def _printed_near(pool, target, tol=LEAN_TOL_KG):
+    """‏هل فيه رقم **واحد** مطبوع على الورقة في حدود tol من المحسوب؟"""
+    near = sorted(set(round(n, 2) for n in pool
+                      if abs(n - target) <= tol))
+    return len(near) == 1
+
+
 def contradictions(found, lines):
     """‏الخانات اللي المعادلات تقول إن الرقم المقروء فيها مستحيل.
 
@@ -291,6 +322,38 @@ def contradictions(found, lines):
         share = water / lean
         if not (0.50 <= share <= 0.90):
             out["body_water"] = "lean_water"
+
+    # ── مثلث الدهون: الوزن × النسبة = الكتلة ──
+    #
+    # ‏ده اللي مسك أخطر رقم غلط لحد دلوقتي. ورقة GAIA بتاعة الدكتور
+    # (٦٧.٣ كجم، كتلة دهون ٢٤.٣، نسبة ٣٦.١٪) المحرّك قرا فيها
+    # "P.B.F. 26.1" -- ٣ اتقرت ٢ -- **في القراءتين مع بعض**، فحاجز
+    # الاتفاق بين القراءتين عدّاها. والرقم معقول (٢٦.١٪ نسبة عادية
+    # لست)، فحدود المعقول عدّتها. والـFFMI عدّاها كمان (١٨.٩).
+    #
+    # ‏والفرق مش تفصيلة: ٣٦.١٪ لست عندها ٥٣ سنة = نطاق سمنة، و٢٦.١٪ =
+    # نطاق لياقة. عشر نقط مئوية بتغيّر الورقة كلها، والشرح كان بيقول
+    # للعميلة "١٧.٦ كجم دهون" والورقة قدامها مكتوب ٢٤.٣.
+    #
+    # ‏اللي مسكها: الورقة نفسها فيها الشاهد التالت -- **الكتلة الخالية**.
+    #
+    #     لو النسبة ٢٦.١ صح  ->  الخالية = ٦٧.٣ × ٠.٧٣٩ = ٤٩.٧  -> مش مطبوعة
+    #     لو الكتلة ٢٤.٣ صح  ->  الخالية = ٦٧.٣ - ٢٤.٣ = ٤٣.٠  -> مطبوعة (سطر L.B.M.)
+    #
+    # ‏فاللي الورقة شاهدة له بيفضل، واللي مالوش شاهد بيتشال. ولو
+    # الاتنين مالهمش شاهد (أو ليهم)، الاتنين بيتشالوا -- مانعرفش مين.
+    if weight and fat_pct and fat_mass:
+        if abs(weight * fat_pct / 100.0 - fat_mass) > FAT_TOL_KG:
+            pool = numbers_in(lines)
+            by_mass = _printed_near(pool, weight - fat_mass)
+            by_pct = _printed_near(pool, weight * (1.0 - fat_pct / 100.0))
+            if by_mass and not by_pct:
+                out["fat_pct"] = "fat_triangle"
+            elif by_pct and not by_mass:
+                out["fat_mass"] = "fat_triangle"
+            else:
+                out["fat_pct"] = "fat_triangle"
+                out["fat_mass"] = "fat_triangle"
 
     if bmr and "bmr" not in out:
         tdee = tdee_on_sheet(lines)
