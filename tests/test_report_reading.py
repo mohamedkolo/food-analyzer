@@ -775,7 +775,7 @@ SHEETS = {
     "sheet_gaia359.json": ("gaia_359_sheet", {
         "height": 162.0, "age": 53, "gender": "female", "weight": 67.3,
         "fat_pct": 36.1, "fat_mass": 24.3, "bmi": 25.6, "bmr": 1125,
-        "body_water": 31.0, "muscle_mass": 39.2}, 6),
+        "body_water": 31.0, "muscle_mass": 39.2}, 7),
     "sheet_xcontact357.json": ("xcontact_357_sheet", {
         "height": 164.0, "age": 37, "gender": "male", "weight": 67.9,
         "fat_pct": 29.2, "fat_mass": 19.8, "bmi": 25.2, "bmr": 1316,
@@ -1245,6 +1245,107 @@ def test_a_number_with_no_client_behind_it_is_reported_as_new():
     assert body["phone"] == "01555000111", body.get("phone")
     assert not body["known"], body.get("known")
 
+
+
+def test_a_lost_reading_comes_back_from_the_numbers_that_frame_it():
+    """‏أرقام ورقة التحليل مش مستقلة -- الـBMI هو الوزن على مربع الطول.
+
+    ‏فلو القراية شافت الوزن والطول صح وضيّعت الـBMI، الـBMI مش محتاج
+    تخمين: بيتحسب، وبعدين **بندوّر على رقم مطبوع على الورقة** قريب من
+    المحسوب. لو لقينا واحد بس بنحطه، وأكتر من واحد أو ولا واحد = فاضي.
+
+    ‏ورقة GAIA: القراية قرأت الـBMI ١٤٥٠ (رقم من مسطرة رسم)، والحساب
+    بيطلّع ٢٥.٦٤، وفي الورقة كلها رقم واحد في حدود ٠.٢ منه: ٢٥.٦ --
+    وهو المطبوع بالظبط.
+    """
+    data = lab_report.read_browser(_sheet("sheet_gaia359.json"))
+    assert data.get("bmi") == 25.6, data.get("bmi")
+    assert data["confirmed"].get("bmi") == "weight_height", data["confirmed"]
+
+
+def test_the_frame_fills_nothing_when_the_number_is_not_on_the_paper():
+    """‏ورقة X-CONTACT: الحساب بيطلّع BMI ٢٥.٢٥، والمطبوع ٢٥.٢ -- بس
+    القراية ضيّعته خالص من الورقة. فالخانة بتفضل فاضية.
+
+    ‏ده الفرق بين الملف ده وبين التخمين: مابنحطّش ٢٥.٢٥ المحسوب، بنحط
+    الرقم **المطبوع** اللي الحساب دلّنا عليه، ولو مش مطبوع مابنحطّش حاجة.
+    """
+    data = lab_report.read_browser(_sheet("sheet_xcontact357.json"))
+    assert data.get("bmi") is None, data.get("bmi")
+    assert not data["confirmed"], data["confirmed"]
+
+
+def test_the_frame_refuses_when_two_numbers_fit():
+    """‏الوحدانية هي الحاجز. رقمين قريبين = مانعرفش = فاضي.
+
+    ‏ورقة الـInBody فيها ١٠٠+ رقم بين الرسومات والمعايير، فلو قبلنا أول
+    رقم قريب كنا بنفتح باب لرقم من مسطرة رسم.
+    """
+    import body_solve
+
+    found = {"weight": 70.0, "height": 170.0}
+    one = body_solve.reconcile(found, ["Weight 70.0 Height 170.0 BMI 24.2"])
+    assert one["values"].get("bmi") == 24.2, one
+
+    two = body_solve.reconcile(
+        dict(found), ["Weight 70.0 Height 170.0 BMI 24.2", "range 24.3 24.2"])
+    assert "bmi" not in two["values"], (
+        "‏رقمين في المدى والقراية اختارت واحد: %s" % two)
+
+    none = body_solve.reconcile(dict(found), ["Weight 70.0 Height 170.0"])
+    assert "bmi" not in none["values"], none
+
+
+def test_the_frame_replaces_a_reading_that_is_outside_the_possible():
+    """‏رقم برّه المعقول = قراءة غلط، والخانة بتتعامل كأنها فاضية.
+
+    ‏لو سِبنا ١٤٥٠ مكانه، حدود المعقول كانت بتشيله والخانة تفضل فاضية،
+    والرقم الصح المطبوع يتوه -- وده اللي كان بيحصل في ورقة GAIA.
+    """
+    import body_solve
+
+    out = body_solve.reconcile({"weight": 70.0, "height": 170.0, "bmi": 1450.0},
+                               ["Weight 70.0 Height 170.0 BMI 24.2 1450"])
+    assert out["values"].get("bmi") == 24.2, out
+    # ‏وخانة مقروءة وجوّه المعقول مابتتلمسش
+    keep = body_solve.reconcile({"weight": 70.0, "height": 170.0, "bmi": 24.2},
+                                ["Weight 70.0 Height 170.0 BMI 24.2"])
+    assert "bmi" not in keep["values"], keep
+
+
+def test_the_frame_never_invents_a_whole_body():
+    """‏من غير نقطة بداية مقروءة، المعادلات مالهاش شغل.
+
+    ‏ورقة DR.NUTRITION بتاعة الدكتور دي حالتها: القراية مابتطلّعش منها لا
+    عنوان ولا رقم صح، فمافيش حاجة تتبنى عليها معادلة -- والنتيجة فاضي،
+    مش أرقام مخمّنة من مية رقم على الورقة.
+    """
+    import body_solve
+
+    out = body_solve.reconcile({}, ["53.7 32.3 9.5 1324 23 159 21.2 17.7"])
+    assert not out["values"], out
+
+    data = lab_report.read_browser(_sheet("sheet_drnutrition.json"))
+    for field in READ_FIELDS:
+        assert data.get(field) is None, "‏%s اتملى من ورقة مش مقروءة" % field
+
+
+def test_the_water_and_the_metabolism_are_checked_against_the_lean_mass():
+    """‏مياه الجسم نسبة من الكتلة الخالية (~٠.٧٣)، والأيض من معادلة
+    Katch-McArdle عليها. الاتنين بيتأكّدوا بالمدى، مش بيتحسبوا.
+    """
+    import body_solve
+
+    # ‏وزن ٧٠، دهون ٢٠٪ -> خالية ٥٦، فالماء المتوقّع ٣٦-٤٥ والأيض ٦٠٠-٢٠٠٠
+    lines = ["Weight 70.0 Fat 20.0", "TBW 40.5", "BMR 1480"]
+    out = body_solve.reconcile({"weight": 70.0, "fat_pct": 20.0}, lines)
+    assert out["values"].get("body_water") == 40.5, out
+    assert out["values"].get("bmr") == 1480, out
+
+    # ‏ورقم برّه المدى مابيعدّيش: ماء ٨ لتر على خالية ٥٦ مستحيل
+    bad = body_solve.reconcile({"weight": 70.0, "fat_pct": 20.0},
+                               ["Weight 70.0 Fat 20.0", "TBW 8.0"])
+    assert "body_water" not in bad["values"], bad
 
 if __name__ == "__main__":
     passed = failed = 0

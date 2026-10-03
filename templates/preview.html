@@ -46,8 +46,8 @@
     {# ‏الدكتور بيشتغل في أكتر من عيادة. النسخة دي بتشيل اسم العيادة واسم
        المُعِد ورقم الملف، وبتسيب الكلام الطبي كله -- عشان يسلّمها في أي مكان. #}
     <a href="/download_pdf?clean=1" class="btn btn-outline"
-       title="{{ t('نفس الجدول من غير اسم العيادة ولا اسم المُعِد',
-                   'The same table without the clinic or author name') }}">
+       title="{{ t('نفس الجدول من غير اسم العيادة ولا اسم المُعِد — وبشكل جدول الشركة: إطار على كل خانة، رأس رمادي، صفحة واحدة عرضية',
+                   'The same table without the clinic or author name -- and in the company sheet style: a border on every cell, a grey header, one landscape page') }}">
       <i class="fa-solid fa-file-lines"></i> {{ t('نسخة بدون اسم العيادة','Unbranded copy') }}
     </a>
   </div>
@@ -287,6 +287,18 @@
     {{ t('كل يوم — الفرق في السعرات بيتحمّله الكارب.','every day — carbs carry the calorie swing.') }}
     {{ t('الكارب بيتراوح','Carbs range') }}
     <b style="color:#0F2A43">{{ zz.days|map(attribute='carb_g')|min }}–{{ zz.days|map(attribute='carb_g')|max }} {{ t('جم','g') }}</b>.
+  </div>
+  {% endif %}
+  {% if zz.capped_at_tdee %}
+  {# ‏اليوم الأعلى في خطة عجز ما يعدّيش اللي العميل بيحرقه. السطر ده
+     موجود عشان الدكتور لو طلب تدوير قوي ولقى اليوم العالي أقل من
+     المتوقّع، يعرف السبب بدل ما يفتكرها غلطة حساب. #}
+  <div style="font-size:12px;color:#0F2A43;background:#E4F0F4;border:1px solid #B4D0DA;border-radius:8px;padding:9px 12px;margin-top:10px">
+    ℹ️ {{ t('دي خطة عجز، فاليوم الأعلى متسقّف عند اللي العميل بيحرقه',
+            'This is a deficit plan, so the highest day is capped at what the client burns') }}
+    (<b>{{ zz.ceiling }} kcal</b>)
+    {{ t('— يوم ريفيد بيروح لحد التثبيت، مش فوقه.',
+         '— a refeed day goes up to maintenance, not past it.') }}
   </div>
   {% endif %}
   {% if zz.floor_disabled %}

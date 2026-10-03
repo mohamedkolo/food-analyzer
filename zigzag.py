@@ -154,33 +154,91 @@ def build_zigzag(target_cal, mode=DEFAULT_MODE, gender="male", weight=None,
     if floor_disabled:
         # الهدف نفسه عند الحد الآمن أو تحته: مفيش مجال ننزّل يوم عنه، سيب الأيام ثابتة
         floor = target
+    # ── سقف اليوم الأعلى ──
+    #
+    # ‏كان max(TDEE × ١.٢٥, الهدف × ١.١٥)، يعني اليوم الأعلى في خطة تخسيس
+    # كان يعدّي اللي العميل بيحرقه بـ٢٥٪. واحدة TDEE بتاعها ١٩٠٠ وهدفها
+    # ١٤٠٠ كانت تاخد يوم ١٩٣٠ -- يوم **زيادة** مطبوع على ورقة تخسيس.
+    #
+    # ‏الريفيد في الأبحاث بيروح لحد **التثبيت**، مش فوقه: الفكرة إن اللبتين
+    # والغدة الدرقية يرجعوا يوم، مش إن العميل يدخل فائض. وفوق كده الورقة
+    # نفسها بتبوّظ الثقة -- العميل بيقرا ٢٠٠٠ سعرة في خطة تخسيس وبيسأل.
+    #
+    # ‏فالقاعدة بقت: **لو الهدف تحت الـTDEE (يعني خطة تخسيس)، مافيش يوم
+    # يعدّي الـTDEE.** الهدف فوق أو يساوي الـTDEE (تثبيت/تضخيم) الفائض هو
+    # المقصود أصلاً، فالسقف القديم بيفضل.
+    tdee_val = 0.0
     if tdee:
         try:
-            ceiling = max(float(tdee) * 1.25, target * 1.15)
+            tdee_val = float(tdee)
         except (TypeError, ValueError):
-            ceiling = target * 1.6
+            tdee_val = 0.0
+    capped_at_tdee = False
+    if tdee_val > 0:
+        if target < tdee_val:
+            ceiling = tdee_val
+            capped_at_tdee = True
+        else:
+            ceiling = max(tdee_val * 1.25, target * 1.15)
     else:
         ceiling = target * 1.6
+    # ‏السقف ما ينفعش ينزل تحت الهدف: ساعتها كل الأيام تتقفل على رقم واحد
+    # والمجموع الأسبوعي يبوظ. بيحصل لو الهدف قريب جداً من الـTDEE.
+    if ceiling < target:
+        ceiling = target
 
     kcal, leftover = _clamped_days(target, pattern, floor, ceiling)
 
-    # تقريب لأقرب ١٠. فرق التقريب بيتاخد من الأيام الأعلى — أبعد يوم عن الحد الأدنى --
-    # عشان التقريب نفسه ما ينزلش يوم تحت الحد الآمن.
-    rounded = [int(round(v / 10.0) * 10) for v in kcal]
+    # ── تقريب لأقرب ١٠ ──
+    #
+    # ‏فرق التقريب بيترد على الأيام في حدود الأرضية والسقف: من غير ده
+    # التقريب نفسه كان بيكسر الحدين -- ينزّل يوم تحت الحد الآمن، أو
+    # يرفع يوم فوق الحرق.
+    #
+    # ‏والسقف لازم يبقى من مضاعفات العشرة هو كمان، وإلا التقريب نفسه
+    # بيكسره: سقف ١٣٦٨ بيتقرّب لـ١٣٧٠، فاليوم بيعدّي الحرق بـسعرتين --
+    # من غير ما حد يبص. فبناخد أكبر مضاعف للعشرة **مش فوق** السقف.
+    floor_i = int(floor)
+    ceil_i = int(ceiling // 10 * 10)
+    if ceil_i < floor_i:
+        ceil_i = int(ceiling)
+
+    rounded = [min(int(round(v / 10.0) * 10), ceil_i) for v in kcal]
     drift = int(round(target * 7)) - sum(rounded)
-    if drift:
-        floor_i = int(floor)
-        for i in sorted(range(7), key=lambda j: rounded[j], reverse=True):
-            if drift == 0:
-                break
-            if drift > 0:
-                rounded[i] += drift
-                drift = 0
-            else:
+
+    # ‏الفرق بيترد على الأيام في حدود السقف والأرضية. أكتر من لفة لأن
+    # اللفة الواحدة بتدي كل يوم مساحته مرة واحدة بس.
+    for _ in range(4):
+        if drift == 0:
+            break
+        if drift > 0:
+            # ‏من أعلى يوم لأقل: اليوم العالي هو اللي المفروض يشيل الزيادة
+            for i in sorted(range(7), key=lambda j: rounded[j], reverse=True):
+                if drift == 0:
+                    break
+                give = min(ceil_i - rounded[i], drift)
+                if give > 0:
+                    rounded[i] += give
+                    drift -= give
+        else:
+            for i in sorted(range(7), key=lambda j: rounded[j], reverse=True):
+                if drift == 0:
+                    break
                 take = min(rounded[i] - floor_i, -drift)
                 if take > 0:
                     rounded[i] -= take
                     drift += take
+        if drift and all((rounded[i] >= ceil_i) if drift > 0 else
+                         (rounded[i] <= floor_i) for i in range(7)):
+            break
+    if drift:
+        # ‏كل الأيام عند الحد ومفيش مكان للفرق -- بيحصل بس لما الهدف
+        # نفسه عند السقف أو عند الأرضية. المجموع الأسبوعي هو الرقم اللي
+        # الخطة اتحسبت عليه، فبيتحط على اليوم اللي أبعد عن الحد المكسور.
+        i = (min(range(7), key=lambda j: rounded[j]) if drift > 0
+             else max(range(7), key=lambda j: rounded[j]))
+        rounded[i] += drift
+        drift = 0
 
     # ── الماكروز: البروتين ثابت، الكارب هو اللي بيتأرجح ──
     try:
@@ -250,6 +308,10 @@ def build_zigzag(target_cal, mode=DEFAULT_MODE, gender="male", weight=None,
         "low": min(d["kcal"] for d in days),
         "high": max(d["kcal"] for d in days),
         "floor": int(floor),
+        "ceiling": int(ceiling),
+        # ‏اليوم الأعلى متسقّف عند الـTDEE لأن دي خطة عجز. الواجهة بتقول
+        # للدكتور إن ده حصل، عشان ميدوّرش على اليوم العالي اللي طلبه.
+        "capped_at_tdee": capped_at_tdee,
         "clamped": abs(leftover) > 1,
         "floor_disabled": floor_disabled,
         "fat_floor_applied": fat_floor_applied,

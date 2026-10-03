@@ -1616,6 +1616,29 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
            + T('الصفحة بتحسب الـTDEE من معامل النشاط، فقارن لو حبيت.',
                'the page derives TDEE from the activity factor, so compare if you like.');
     }
+    // ‏الخانة اللي سطرها مش مقروء، والمعادلة هي اللي دلّت عليها: الـBMI
+    // من الوزن والطول، كتلة الدهون من الوزن والنسبة. الدكتور لازم يعرف
+    // الفرق -- دي أرقام مطبوعة على الورقة فعلاً بس اتلقطت بطريق تاني،
+    // فهي أضعف من اللي اتقرا من سطره ومحتاجة نظرة.
+    const WHY = {
+      weight_height: T('اتحسب من الوزن والطول، ولقيته مطبوع على الورقة',
+                       'derived from weight and height, and found printed on the sheet'),
+      weight_bmi: T('اتحسب من الوزن والـBMI، ولقيته مطبوع على الورقة',
+                    'derived from weight and BMI, and found printed on the sheet'),
+      height_bmi: T('اتحسب من الطول والـBMI، ولقيته مطبوع على الورقة',
+                    'derived from height and BMI, and found printed on the sheet'),
+      weight_fatpct: T('اتحسب من الوزن ونسبة الدهون، ولقيته مطبوع على الورقة',
+                       'derived from weight and body fat, and found printed on the sheet'),
+      weight_fatmass: T('اتحسب من الوزن وكتلة الدهون، ولقيته مطبوع على الورقة',
+                        'derived from weight and fat mass, and found printed on the sheet'),
+      lean_water: T('اتأكّد من الكتلة الخالية من الدهون',
+                    'checked against the fat-free mass'),
+      lean_bmr: T('اتأكّد من الكتلة الخالية من الدهون',
+                  'checked against the fat-free mass')
+    };
+    const CONF = data.confirmed || {};
+    const confKeys = Object.keys(CONF);
+
     // ‏اللي مقراهوش **ولسه فاضي فعلاً**. الـBMI الصفحة بتحسبه من الطول
     // والوزن، فلو قلنا "مقدرتش أقراه اكتبه إنت" وهو مكتوب قدامه، بنبقى
     // بنقول حاجة والشاشة بتقول عكسها.
@@ -1635,6 +1658,14 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
     if(left.length){
       out += '<br>⚠️ ' + T('لسه ناقص: ','Still missing: ') + left.join('، ')
            + ' — ' + T('اكتبهم إنت.','type these yourself.');
+    }
+    if(confKeys.length){
+      out += '<br>ℹ️ '
+           + confKeys.map(function(k){
+               return '<b>' + (ALL_LBL[k] || k) + '</b> '
+                    + (WHY[CONF[k]] || CONF[k]);
+             }).join(' · ')
+           + ' — ' + T('بُص عليه.','give it a look.');
     }
     // ‏الأرقام اللي اتقرت وطلعت برّه المعقول: بنقول **الرقم نفسه**.
     // قبل كده كان بيطلع "height, muscle_mass, body_water" وبس -- أسماء

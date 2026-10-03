@@ -1371,6 +1371,117 @@ def test_filtering_the_advice_does_not_empty_it():
             assert forbidden, "‏%s / %s: مافيش ممنوع" % (ar, goal)
 
 
+
+def test_a_filtered_out_breakfast_is_replaced_by_breakfast_not_by_lunch():
+    """‏الدكتور: "لما ادوس على كذه مرض بيشل كذه حاجه من الفطار وبيحط رز".
+
+    ‏ده كان حقيقي ومقيس: عميل مختار ست حالات مع بعض كان بيفضّي طابور
+    الفطار بالكامل، والبديل كان بيتجاب من SAFE_ALTERNATIVES -- قايمة
+    واحدة مسطحة ٤١ صنف من ١٢٨ فيها أطباق غدا. فالفطار كان بيطلع:
+
+        🍗 صدر دجاج ١٥٠جم + 🍚 ارز بني ١٢٠جم + 🥗 سلطة
+
+    ‏الساعة تمانية الصبح، على ورقة بتتسلّم لعميل.
+    """
+    from meal_database import filter_by_conditions, WEIGHT_LOSS, _meal_text
+
+    heavy = ["قولون عصبي", "حساسية اللاكتوز", "سكري النوع الثاني",
+             "الفشل الكلوي المزمن", "ضغط الدم المرتفع", "G6PD"]
+    out = filter_by_conditions(list(WEIGHT_LOSS["مصري"]["breakfast"]),
+                               heavy, "breakfast")
+    assert out, "‏الفطار فضي تماماً"
+    # ‏اللي المفروض يختفي هو **شكل طبق الغدا**: بروتين مشوي كبير +
+    # نشوية مطبوخة. مش أي ذكر للأرز -- "رقاق أرز + بيضة" فطار عادي
+    # وموجود في الطابور الأصلي، والاختبار مايمنعوش.
+    for meal in out:
+        text = _meal_text(meal)
+        plate = (("دجاج" in text or "سمك" in text or "لحم" in text)
+                 and ("ارز" in text or "أرز" in text or "مكرونة" in text
+                      or "معكرونة" in text))
+        assert not plate, "‏فطار على شكل طبق غدا: %s" % text
+
+
+def test_every_slot_has_a_fallback_that_clears_all_sixty_five_conditions():
+    """‏البديل نفسه لازم يكون آمن، وإلا بنكون شِلنا مشكلة وحطينا واحدة أكبر.
+
+    ‏كل سطر في SAFE_BY_SLOT بيتقاس على الـ٤٠ مفتاح خطورة كلهم -- مش
+    على الحالة اللي فضّت الطابور بس. يعني مهما كانت تركيبة حالات
+    العميل، فيه فطار وغدا وعشا وسناك بيملوا الخانة.
+    """
+    from meal_database import (CONDITION_MAP, SAFE_BY_SLOT, _contains_unsafe,
+                               safe_fallback_for)
+
+    all_keys = sorted(set(CONDITION_MAP.values()))
+    for slot, items in SAFE_BY_SLOT.items():
+        assert items, "‏خانة %s من غير بدايل" % slot
+        for item in items:
+            broken = [k for k in all_keys if _contains_unsafe(item["meal"], k)]
+            assert not broken, "‏%s: %s بيتصادم مع %s" % (
+                slot, item["meal"], ", ".join(broken))
+        assert len(safe_fallback_for(slot, all_keys)) == len(items)
+
+
+def test_the_whole_week_stays_clean_when_every_pool_empties():
+    """‏الخطة كلها، مش الطابور لوحده: سبع أيام لعميل بكل الحالات."""
+    import plan_engine
+    from meal_database import CONDITION_MAP
+
+    data = {"name": "", "age": 40, "gender": "ذكر", "height": 170,
+            "weight": 95, "goal_cal": 1700, "tdee": 2300,
+            "goal_type": "weight_loss", "culture": "مصري",
+            "diet_plan_type": "standard",
+            "symptoms": list(CONDITION_MAP.keys())}
+    from app import app
+    with app.test_request_context("/"):
+        plan = plan_engine.generate_weekly_plan(data)
+    assert len(plan) == 7
+    for day in plan:
+        text = day.get("breakfast", "")
+        assert text, "‏يوم من غير فطار: %s" % day.get("day")
+        plate = (("دجاج" in text or "سمك" in text or "لحم" in text)
+                 and ("ارز" in text or "أرز" in text or "مكرونة" in text
+                      or "معكرونة" in text))
+        assert not plate, "‏%s: فطار على شكل طبق غدا -- %s" % (
+            day.get("day"), text)
+
+
+def test_a_thin_slot_gets_widened_instead_of_repeating_one_meal():
+    """‏النص التاني من شكوى الدكتور: "بيشل كذه حاجه من الفطار".
+
+    ‏أربع حالات مع بعض كانت بتسيب **فطارين** لسبع أيام -- يعني العميل
+    بياخد نفس الفطار أربع مرات في الأسبوع. الفلترة شغالة صح، بس اللي
+    فاضل مش كفاية لأسبوع.
+    """
+    from meal_database import filter_by_conditions, WEIGHT_LOSS
+
+    pool = list(WEIGHT_LOSS["مصري"]["breakfast"])
+    for conditions in (["قولون عصبي", "حساسية اللاكتوز"],
+                       ["قولون عصبي", "حساسية اللاكتوز",
+                        "سكري النوع الثاني", "الفشل الكلوي المزمن"],
+                       ["الداء الزلاقي", "حساسية اللاكتوز"]):
+        out = filter_by_conditions(list(pool), conditions, "breakfast")
+        assert len(out) >= 4, (
+            "‏%d فطار بس لسبع أيام مع %s" % (len(out), ", ".join(conditions)))
+
+    # ‏والعميل اللي مالوش حالة مابيتغيّرش عليه حاجة -- طابوره زي ما هو
+    assert filter_by_conditions(list(pool), [], "breakfast") == pool
+
+
+def test_the_doctors_own_meals_still_come_first():
+    """‏البدايل بتوسّع الطابور، مابتزقّهوش. الترتيب بعد كده بيفضّل الأكل
+    اللي بيساعد حالة العميل، فلو البدايل قعدت في الأول كانت بتسبق اختيار
+    الدكتور نفسه."""
+    from meal_database import filter_by_conditions, WEIGHT_LOSS, _meal_text
+
+    pool = list(WEIGHT_LOSS["مصري"]["breakfast"])
+    out = filter_by_conditions(list(pool), ["قولون عصبي", "حساسية اللاكتوز"],
+                               "breakfast")
+    survivors = [_meal_text(m) for m in out
+                 if _meal_text(m) in {_meal_text(p) for p in pool}]
+    assert survivors, out
+    # ‏أول حاجة في النتيجة لازم تكون من طابور الدكتور
+    assert _meal_text(out[0]) == survivors[0], [_meal_text(m) for m in out[:3]]
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):

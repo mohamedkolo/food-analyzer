@@ -182,7 +182,11 @@ def _clean(raw):
            "unreadable": [str(x) for x in (raw.get("unreadable") or [])][:12],
            # ‏السطور اللي المحرّك قراها، زي ما هي. الدكتور يشوفها لما
            # القراية ماتملّيش حاجة -- وإلا مافيش حاجة تدل على السبب.
-           "seen": [str(x)[:120] for x in (raw.get("seen") or [])][:25]}
+           "seen": [str(x)[:120] for x in (raw.get("seen") or [])][:25],
+           # ‏الخانات اللي المعادلة أكّدتها بدل سطرها (الـBMI من الوزن
+           # والطول مثلاً). بتبان للدكتور عشان يعرف الرقم جاي منين.
+           "confirmed": {str(k): str(v) for k, v
+                         in (raw.get("confirmed") or {}).items()}}
     for key in ("age", "height", "weight", "fat_pct", "bmi", "bmr",
                 "muscle_mass", "visceral_fat", "body_water", "fat_mass"):
         value, dropped = _clean_number(raw.get(key), key)

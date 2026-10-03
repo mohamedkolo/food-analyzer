@@ -146,8 +146,12 @@ def test_every_meal_in_the_database_translates():
     """A meal with no English falls back to Arabic, which would show up as a
     leak on an English plan. The glossary has to cover the whole database."""
     meals = set()
+    # ‏SAFE_BY_SLOT هي اللي بتملا الخانة لما كل الطابور يتصادم مع حالات
+    # العميل -- يعني هي بالظبط الوجبات اللي العميل أصعب حالة بياخدها.
+    # لو فاتت من الفحص ده، هو اللي بيلاقي عربي في ورقة إنجليزية.
     for pool in ("WEIGHT_LOSS", "MUSCLE_GAIN", "BULKING", "MAINTENANCE",
-                 "SAFE_ALTERNATIVES", "KETO_MEALS", "KETO_SNACKS"):
+                 "SAFE_ALTERNATIVES", "SAFE_BY_SLOT", "KETO_MEALS",
+                 "KETO_SNACKS"):
         node = getattr(md, pool, None)
         if node is None:
             try:

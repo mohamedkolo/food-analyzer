@@ -566,7 +566,8 @@ def read_passes(passes):
     if not text_all.strip():
         raise RuntimeError("مقدرتش أقرا أي كلام في الصورة. صوّرها في نور أحسن "
                            "وخلي الورقة كلها في الكادر.")
-    return interpret(merge_found([_scan(one) for one in passes]), text_all)
+    return interpret(merge_found([_scan(one) for one in passes]), text_all,
+                     lines=flat)
 
 
 def read_lines(lines):
@@ -583,7 +584,7 @@ def read_lines(lines):
     if not text_all:
         raise RuntimeError("مقدرتش أقرا أي كلام في الصورة. صوّرها في نور أحسن "
                            "وخلي الورقة كلها في الكادر.")
-    return interpret(parse_lines(lines), text_all)
+    return interpret(parse_lines(lines), text_all, lines=flat)
 
 
 def read(image_bytes):
@@ -592,8 +593,14 @@ def read(image_bytes):
     if not boxes:
         raise RuntimeError("مقدرتش أقرا أي كلام في الصورة. صوّرها في نور أحسن "
                            "وخلي الورقة كلها في الكادر.")
+    # ‏صناديق المحرّك بتتجمّع في سطور بالـy عشان المعادلات تشوف
+    # الورقة سطور -- مجموعة كلمات متفرّقة مش ورقة.
+    rows = {}
+    for text, _cx, cy, _top, _bottom in boxes:
+        rows.setdefault(round(cy / 12.0), []).append(text)
     return interpret(parse_boxes(boxes, slope),
-                     " ".join(b[0] for b in boxes))
+                     " ".join(b[0] for b in boxes),
+                     lines=[" ".join(words) for _, words in sorted(rows.items())])
 
 
 # ‏موبايل مصري على الورقة: ١١ رقم بيبدأوا ٠١ وبعدها ٠ أو ١ أو ٢ أو ٥
@@ -630,7 +637,7 @@ def _phone_in(text):
     return hits.pop()
 
 
-def interpret(found, text_all):
+def interpret(found, text_all, lines=None):
     """‏الفحوص اللي بتخلّي القراءة آمنة، مشتركة بين كل المحرّكات.
 
     أي محرّك (السيرفر أو المتصفح) بيوصل لنفس الديكشنري ده، فالحواجز اللي
@@ -666,7 +673,44 @@ def interpret(found, text_all):
     # طلّعت BMI = ١٤٥٠ (رقم من مسطرة الرسم)، فالفحص قارنه بالمحسوب
     # (٢٥.٦)، مالقاهمش متطابقين، وشال **الطول والوزن الصح** معاه.
 
+    # ── الخانة الضايعة من المعادلات اللي بتربط أرقام الورقة ──
+    #
+    # ‏الـBMI هو الوزن على مربع الطول، وكتلة الدهون هي الوزن في نسبتها.
+    # فلو القراية شافت اتنين وضيّعت التالت، التالت **بيتحسب** -- وبعدين
+    # بندوّر على رقم مطبوع على الورقة قريب من المحسوب. رقم واحد بس =
+    # بناخده. أكتر من واحد أو ولا واحد = الخانة تفضل فاضية.
+    #
+    # ‏ده مش تخمين: الفرق إننا مابنحطّش الرقم المحسوب، بنحط الرقم
+    # **المطبوع** اللي الحساب دلّنا عليه. ورقة GAIA قرأت الـBMI ١٤٥٠ من
+    # مسطرة رسم، والحساب (٢٥.٦٤) لقى في الورقة كلها رقم واحد قريب:
+    # ٢٥.٦، وهو المطبوع بالظبط. وورقة X-CONTACT الحساب فيها ٢٥.٢٥
+    # ومالقاش ولا رقم قريب، فسابها فاضية -- وده المقصود.
+    try:
+        import body_solve
+        _solved = body_solve.reconcile(
+            found, lines if lines is not None
+            else [line for line in (text_all or "").split(" | ")])
+    except Exception as _e:
+        # ‏لو المعادلات وقعت، القراءة بتكمّل بالخانات اللي اتقرت من
+        # سطورها -- الاتجاه الآمن (خانة فاضية، مش رقم غلط). بس
+        # **مابتسكتش**: غلطة ساكتة هنا معناها إن الميزة بطلت تشتغل
+        # ومحدش عرف، والسطر ده بيطلع في لوج السيرفر.
+        import sys
+        print("body_solve failed: %s: %s" % (type(_e).__name__, _e),
+              file=sys.stderr)
+        _solved = {"values": {}, "why": {}}
+    for _field, _value in _solved["values"].items():
+        # ‏تعيين مباشر مش setdefault: المعادلة مابترجّعش خانة إلا لما
+        # تكون فاضية **أو رقمها برّه المعقول**. والحالة التانية هي
+        # بالظبط حالة GAIA -- الـBMI مقروء ١٤٥٠ من مسطرة رسم. لو
+        # سيبنا ١٤٥٠ مكانه، حدود المعقول كانت بتشيله والخانة تفضل
+        # فاضية، والرقم الصح المطبوع (٢٥.٦) يتوه.
+        found[_field] = _value
+
     out = dict(found)
+    # ‏الخانات اللي اتأكّدت بالمعادلة مش بسطرها. الدكتور بيشوفها عشان
+    # يعرف إن الرقم ده جاي من حساب تأكّد، مش من قراءة سطره.
+    out["confirmed"] = dict(_solved["why"])
     # ‏السطور اللي المحرّك شافها. لما مافيش خانة اتملت، دي الحاجة الوحيدة
     # اللي بتقول ليه: الورقة مش واضحة، ولا عناوينها بشكل تاني؟
     out["seen"] = [line for line in (text_all or "").split(" | ") if line.strip()]

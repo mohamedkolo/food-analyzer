@@ -578,7 +578,11 @@ def read_report_image():
                     # ‏السطور اللي المحرّك قراها. لما القراية ماتملّيش
                     # حاجة، ده الفرق بين "الورقة مش واضحة" و"العناوين
                     # شكلها مختلف" -- والدكتور يقدر يبعتها ويتصلّح.
-                    "seen": (data.get("seen") or [])[:25]})
+                    "seen": (data.get("seen") or [])[:25],
+                    # ‏الخانات اللي اتأكّدت بالمعادلة بدل سطرها (الـBMI
+                    # من الوزن والطول مثلاً). الدكتور لازم يعرف الرقم
+                    # ده جاي منين -- مش كل الأرقام اتقرت من سطرها.
+                    "confirmed": data.get("confirmed") or {}})
 
 
 @bp.route("/api/explain-report", methods=["POST"])
@@ -782,7 +786,9 @@ def _filtered_meals(data, pool_key, culture=None):
         except Exception:
             pass
     try:
-        meals = filter_by_conditions(meals, symptoms) or meals
+        # pool_key هو اسم الخانة نفسه ("breakfast"/"lunch"/...)، فالبديل
+        # لما الطابور يفضى بيتجاب من بدايل الخانة دي.
+        meals = filter_by_conditions(meals, symptoms, pool_key) or meals
     except Exception as e:
         # Falling through here hands a patient with medical conditions the
         # unfiltered list -- exactly the food the ban exists to prevent. It

@@ -85,8 +85,14 @@ def test_the_unbranded_copy_keeps_every_bit_of_the_medicine():
                 "الجمعة", "السبت"):
         assert day in clean, "‏يوم %s ناقص من النسخة النضيفة" % day
     assert clean.count("<tr>") == full.count("<tr>"), "‏صف اختفى من الجدول"
-    # ‏الفرق بين النسختين لازم يبقى الهوية بس -- حاجة في حدود سطرين
-    diff = len(full) - len(clean)
+    # ‏الفرق بين النسختين لازم يبقى الهوية بس -- حاجة في حدود سطرين.
+    #
+    # ‏والمقارنة **بعد شيل الـstyle**: النسخة النضيفة بقى لها ورقة أنماط
+    # زيادة (شكل جدول الشركة)، فمقارنة الطول الخام بقت بتقيس CSS مش
+    # محتوى -- وهي أصلاً موجودة عشان تمسك محتوى طبي ضايع.
+    import re as _re
+    _strip = lambda html: _re.sub(r"<style>.*?</style>", "", html, flags=_re.S)
+    diff = len(_strip(full)) - len(_strip(clean))
     assert 0 < diff < 400, (
         "‏الفرق بين النسختين %d حرف -- ده أكبر من هوية عيادة" % diff)
 
@@ -123,6 +129,54 @@ def test_the_preview_offers_it():
     assert html.count("/download_pdf?clean=1") >= 2, (
         "‏الزرار ناقص في نسخة الموبايل أو الكمبيوتر")
 
+
+
+def test_the_unbranded_table_looks_like_the_company_sheet():
+    """‏الدكتور بعت ورقة الشركة (IR Formula) وقال: عايزه زيها في الشكل.
+
+    ‏الأرقام مقيسة من الـdocx نفسها: إطار نص بوينت أسود على كل خانة،
+    رأس بخلفية F2F2F2 غامق، عمود اليوم بنفس الخلفية، والنص في نص
+    الخانة طولاً وعرضاً، وكل صنف في سطر.
+    """
+    clean, full = _html(True), _html(False)
+
+    for rule in ("border:0.5pt solid #000", "background:#F2F2F2",
+                 "text-align:center", "vertical-align:middle",
+                 "font-weight:700"):
+        assert rule in clean, "‏شكل ورقة الشركة ناقص: %s" % rule
+    # ‏والنسخة اللي عليها اسم العيادة مابتتغيّرش -- دي ورقة الدكتور نفسه
+    assert "border:0.5pt solid #000" not in full
+    # ‏ورقة الشركة عَرضية
+    assert "size: A4 landscape" in clean
+
+
+def test_the_unbranded_copy_is_one_page():
+    """‏ورقة الشركة ورقة واحدة. العميل كان بياخد تانية فيها تلات لستات.
+
+    ‏قبل كده المسموح والممنوع والماء كانوا بيزحّفوا لصفحة لوحدهم: صفحة
+    A4 عرضية كاملة فاضية إلا من تلات سطور فوقها. صوّرت الـPDF وشفتها.
+    """
+    import plan_engine
+    try:
+        import pypdfium2 as pdfium
+    except ImportError:
+        return          # ‏مكتبة القراءة مش متركّبة -- الاختبار بيتعدّى
+    with A.app.test_request_context("/"):
+        pdf = plan_engine.build_pdf(_CACHE["data"], _CACHE["plan"], clean=True)
+    assert len(pdfium.PdfDocument(pdf)) == 1, "‏النسخة النضيفة بقت أكتر من صفحة"
+
+
+def test_the_paper_says_calories_in_the_language_it_is_written_in():
+    """‏"kcal" كلمة لاتينية جوّه سطر عربي، والترتيب الثنائي بيقلبها.
+
+    ‏"تفاح 300جم - 80 kcal" كانت بتتطبع على الورقة
+    "نفاحة (300جمkcal 80 - )" -- صوّرت الـPDF وشفتها. العميل بياخد ورقة
+    فيها رقم ملزوق في كلمة إنجليزية مقلوبة.
+    """
+    clean = _html(True)
+    body = clean.split("<tbody>")[1].split("</tbody>")[0]
+    assert "kcal" not in body, "‏لسه فيه kcal في خانات الأكل"
+    assert "سعرة" in body
 
 if __name__ == "__main__":
     passed = failed = 0

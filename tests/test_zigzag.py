@@ -197,6 +197,59 @@ def test_the_plan_carries_the_targets_onto_its_days():
     assert "target_cal" not in plan_off[0]
 
 
+
+def test_a_weight_loss_plan_never_prints_a_day_above_what_the_client_burns():
+    """‏الدكتور سأل: منطقي أحط سعرات فوق ٢٠٠٠ لحد بينزل في الوزن؟ لأ.
+
+    ‏السقف القديم كان max(TDEE × ١.٢٥, الهدف × ١.١٥) -- يعني اليوم الأعلى
+    في خطة عجز كان يعدّي اللي العميل بيحرقه بـ٢٥٪. واحدة TDEE بتاعها
+    ١٩٠٠ وهدفها ١٤٠٠ كانت تاخد يوم **١٩٣٠**، يوم فائض مطبوع على ورقة
+    تخسيس. الريفيد بيروح لحد التثبيت، مش فوقه.
+    """
+    cases = [
+        # (الهدف, النمط, النوع, الوزن, الـTDEE)
+        (1400, "refeed", "female", 80, 1900),
+        (1600, "strong", "male", 95, 2100),
+        (1800, "classic", "male", 100, 2400),
+        (1200, "classic", "female", 60, 1900),
+        (1500, "gentle", "female", 70, 1550),
+        (2000, "training", "male", 110, 2800),
+    ]
+    for target, mode, gender, weight, tdee in cases:
+        z = zz.build_zigzag(target, mode, gender=gender, weight=weight, tdee=tdee)
+        high = max(d["kcal"] for d in z["days"])
+        assert high <= tdee, (
+            "‏خطة عجز (هدف %d، حرق %d، %s): اليوم الأعلى %d فوق الحرق"
+            % (target, tdee, mode, high))
+        assert z["capped_at_tdee"] is True
+        # ‏والسقف ماخدش من المجموع الأسبوعي حاجة
+        assert sum(d["kcal"] for d in z["days"]) == target * 7, z["days"]
+
+
+def test_a_gain_plan_keeps_its_days_above_maintenance():
+    """‏السقف بيتقفل على خطة العجز بس. التضخيم الفائض هو المقصود منه."""
+    z = zz.build_zigzag(2600, "classic", gender="male", weight=90, tdee=2400)
+    assert z["capped_at_tdee"] is False
+    assert max(d["kcal"] for d in z["days"]) > 2400, z["days"]
+    assert sum(d["kcal"] for d in z["days"]) == 2600 * 7
+
+
+def test_the_rounding_leftover_does_not_sneak_a_day_over_the_ceiling():
+    """‏فرق التقريب كان بيتحط كله على أعلى يوم من غير ما يبص على السقف.
+
+    ‏يعني يوم متسقّف عند الـTDEE بالظبط كان يعدّيه بعشرة أو عشرين سعرة
+    من غير ما حد يشوف -- نفس العيب اللي السقف موجود عشانه.
+    """
+    for target in range(1100, 2300, 37):
+        for tdee in (target + 120, target + 450, target + 900):
+            for mode in ("gentle", "classic", "strong", "refeed", "training"):
+                z = zz.build_zigzag(target, mode, gender="female",
+                                        weight=75, tdee=tdee)
+                high = max(d["kcal"] for d in z["days"])
+                assert high <= tdee, (target, tdee, mode, high)
+                assert sum(d["kcal"] for d in z["days"]) == target * 7, (
+                    target, tdee, mode, z["days"])
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):

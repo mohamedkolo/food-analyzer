@@ -419,9 +419,12 @@ def generate_weekly_plan(data):
     if len(breakfasts) < 7: breakfasts = list(WEIGHT_LOSS["مصري"]["breakfast"])
     if len(lunches) < 7: lunches = list(WEIGHT_LOSS["مصري"]["lunch"])
     if len(dinners) < 7: dinners = list(WEIGHT_LOSS["مصري"]["dinner"])
-    breakfasts = filter_by_conditions(breakfasts, symptoms)
-    lunches = filter_by_conditions(lunches, symptoms)
-    dinners = filter_by_conditions(dinners, symptoms)
+    # ‏اسم الخانة بيتبعت مع الفلترة عشان لما الطابور يفضى تماماً (عميل
+    # مختار كذا حالة مع بعض) البديل يتجاب من بدايل **الفطار** مش من قايمة
+    # عامة فيها أطباق غدا -- اللي كانت بتطلّع "دجاج وأرز" في خانة الفطار.
+    breakfasts = filter_by_conditions(breakfasts, symptoms, "breakfast")
+    lunches = filter_by_conditions(lunches, symptoms, "lunch")
+    dinners = filter_by_conditions(dinners, symptoms, "dinner")
 
     breakfasts = filter_meals_by_exclusions(breakfasts, user_exclusions)
     lunches = filter_meals_by_exclusions(lunches, user_exclusions)
@@ -445,9 +448,9 @@ def generate_weekly_plan(data):
             kl = list(KETO_MEALS.get("lunch", []))
             kd = list(KETO_MEALS.get("dinner", []))
             if kb and kl and kd:
-                breakfasts = filter_meals_by_exclusions(filter_by_conditions(kb, symptoms), user_exclusions) or kb
-                lunches = filter_meals_by_exclusions(filter_by_conditions(kl, symptoms), user_exclusions) or kl
-                dinners = filter_meals_by_exclusions(filter_by_conditions(kd, symptoms), user_exclusions) or kd
+                breakfasts = filter_meals_by_exclusions(filter_by_conditions(kb, symptoms, "breakfast"), user_exclusions) or kb
+                lunches = filter_meals_by_exclusions(filter_by_conditions(kl, symptoms, "lunch"), user_exclusions) or kl
+                dinners = filter_meals_by_exclusions(filter_by_conditions(kd, symptoms, "dinner"), user_exclusions) or kd
             else:
                 breakfasts = filter_carbs(breakfasts, True)
                 lunches = filter_carbs(lunches, True)
@@ -977,7 +980,14 @@ def plan_html(data, plan=None, clean=False):
         ملوّنة على ورقة واحدة، وهي أول حاجة العين بتشوفها قبل الأكل نفسه.
         الداتا مابتتغيّرش -- ده رسم الورقة بس.
         """
-        return _EMOJI_RX.sub("", str(s)).replace("  ", " ").strip()
+        out = _EMOJI_RX.sub("", str(s)).replace("  ", " ").strip()
+        if _pdf_ar:
+            # ‏"kcal" كلمة لاتينية جوّه سطر عربي، والترتيب الثنائي بيقلبها
+            # مع الرقم اللي قبلها: "تفاح 300جم - 80 kcal" كانت بتتطبع
+            # "نفاحة (300جمkcal 80 - )" على الورقة. صوّرت الـPDF وشفتها.
+            # الكلمة العربية بتتخلص من المشكلة من أصلها.
+            out = re.sub(r"(?<![a-zA-Z])kcal(?![a-zA-Z])", "سعرة", out)
+        return out
 
     def _fmt_cell(text):
         if not text:
@@ -1009,6 +1019,10 @@ def plan_html(data, plan=None, clean=False):
     orientation = "landscape" if ncols >= 5 else "portrait"
     if (data.get("zigzag") or None) and ncols >= 4:
         orientation = "landscape"  # عمود "هدف اليوم" الزيادة محتاج عرض
+    if clean:
+        # ‏ورقة الشركة عَرضية، والنسخة اللي بتتسلّم لعميل بره العيادة
+        # بتتمشى على شكلها.
+        orientation = "landscape"
 
     # رأس الجدول
     _zz = data.get("zigzag") or None
@@ -1069,9 +1083,10 @@ def plan_html(data, plan=None, clean=False):
 
     # سطر التدوير جنب السعرات المستهدفة، ومعاه المدى عشان القارئ يفهم إن اليوم بيتغيّر
     if _zz:
-        _zz_meta = (f" — {_L('تدوير', 'cycled')} "
-                    f"{_esc(_zz['mode_ar'] if _pdf_ar else _zz['mode_en'])} "
-                    f"({_zz['low']}–{_zz['high']} kcal)")
+        # ‏اسم النمط نفسه بيبدأ بكلمة "تدوير" ("تدوير كلاسيكي (±٢٠٪)")،
+        # فالبادئة كانت بتطبع "تدوير تدوير كلاسيكي" على الورقة.
+        _zz_meta = (f" — {_esc(_zz['mode_ar'] if _pdf_ar else _zz['mode_en'])} "
+                    f"({_zz['low']}–{_zz['high']} {_L('سعرة', 'kcal')})")
     else:
         _zz_meta = ""
 
@@ -1166,6 +1181,72 @@ def plan_html(data, plan=None, clean=False):
 
     _tcal = int(_kcal) if _kcal > 0 else None
     _tp = round(_w * _ppk) if _w > 0 else None
+    # ── شكل ورقة الشركة، للنسخة اللي بتتسلّم بره العيادة ──
+    #
+    # ‏الدكتور بعت ورقة الشركة (IR Formula) وقال: عايز الجدول ده بالظبط
+    # في الشكل لما أسلّمه للناس اللي متابعة معايا. فالأرقام دي مقيسة من
+    # الـdocx نفسها، مش مقرّبة بالعين:
+    #
+    #   الأعمدة    ٧٤٥ / ٢٦٢٣ / ٤٤٢٥ / ٢٩٧٠ twip  =  ٧٪ / ٢٤٪ / ٤١٪ / ٢٨٪
+    #   الإطار     TableGrid: single sz=4  =  نص بوينت أسود على كل خانة
+    #   الرأس      خلفية F2F2F2، Calibri غامق ١٦pt، في النص
+    #   عمود اليوم خلفية F2F2F2، غامق ١٢pt، في نص الخانة طولاً وعرضاً
+    #   الخانات    بيضاء، النص في النص، غامق ١٢pt، كل صنف في سطر
+    #   الصفحة     عَرضية
+    #
+    # ‏حاجة واحدة في ورقة الشركة مش منقولة: عمود اليوم عندها **مكتوب
+    # طولاً** (textDirection=tbRl). جرّبت الطريقتين في WeasyPrint:
+    # writing-mode بيتجاهله خالص، وtransform:rotate جوّه خانة بيطلّع
+    # الحروف مركّبة على بعضها (صوّرت الناتج وشفته). فعمود اليوم أفقي
+    # وعريض شوية عشان يتقرا -- باقي الشكل زي الورقة.
+    #
+    # ‏وجملة التنبيه اللي تحت ورقة الشركة **مش منقولة بالقصد**: هي
+    # بتقول "مخصصة للأشخاص الأصحاء فقط"، وورقة الدكتور دي بتتبني على
+    # حالات مرضية. نفس الجملة على ورقة فيها كلام إكلينيكي بتكدّب نفسها.
+    _company_css = ("" if not clean else """
+@page { margin: 9mm 11mm; }
+body { color:#000; font-size:10.5px; }
+.hdr { border-bottom:0 !important; padding-bottom:2px; margin-bottom:5px; }
+.hdr .t { font-size:15.5px; font-weight:700; }
+.meta { margin-bottom:6px !important; line-height:1.65 !important; }
+table { border-collapse:collapse; }
+th, td { border:0.5pt solid #000 !important; padding:3px !important;
+         text-align:center !important; vertical-align:middle !important;
+         font-weight:700 !important; font-size:9.5px !important;
+         line-height:1.38 !important; }
+th { background:#F2F2F2 !important; color:#000 !important;
+     font-size:12px !important; letter-spacing:0 !important;
+     padding:4px 3px !important; }
+td { background:#fff !important; }
+tr:nth-child(even) td { background:#fff !important; }
+td.dcell { background:#F2F2F2 !important; font-size:10.5px !important; }
+.dcol { width:50px; }
+td .it { display:block; padding:0; }
+td b { font-weight:700; }
+/* ‏الأعمدة الرقمية: عناوينها كانت بتتقطّع نص كلمة ("سعرا/ت"،
+   "بروتي/ن") لأن القاعدة العامة فيها word-wrap:break-word، وهي لازمة
+   لخانات الأكل الطويلة. فالعمود الرقمي بس هو اللي بيلغيها. */
+.kcol, .kcell { width:54px; }
+th.kcol, td.kcell { white-space:normal !important;
+                    word-wrap:normal !important;
+                    overflow-wrap:normal !important; }
+td.kcell { background:#F2F2F2 !important; font-size:9.5px !important; }
+.summary { border-top:0.5pt solid #000; padding-top:5px; margin-top:0;
+           font-size:9.5px; }
+/* ‏المسموح والممنوع والماء كانوا بيزحّفوا لصفحة تانية لوحدهم -- صفحة
+   كاملة لتلات لستات قصيرة، والعميل بياخد ورقتين. ورقة الشركة ورقة
+   واحدة، فالمساحات هنا مضغوطة عشان الكل يدخل في الأولى. */
+.foot { margin-top:6px !important; gap:10px !important; font-size:8px !important; }
+.foot .fbox { border-top:0.5pt solid #000; padding-top:4px; }
+.foot .fbox h4 { font-size:8.5px !important; color:#000 !important;
+                 margin-bottom:2px !important; }
+.foot .fbox li { margin-bottom:0 !important; }
+.notes { margin-top:6px !important; font-size:8px !important;
+         border-top:0.5pt solid #000; padding-top:4px; }
+.notes h4 { color:#000 !important; }
+.sig { margin-top:5px !important; font-size:8px !important; }
+""")
+
     summary_box = (f'<div class="summary"><span><b>{_L("المتوسط الفعلي/يوم", "Actual average per day")}:</b> '
                    f'{_avg_cal} {_L("سعرة", "kcal")} • {_avg_p} {_L("جم بروتين", "g protein")}</span>'
                    f'<span><b>{_L("الهدف", "Target")}:</b> {_tcal if _tcal else "-"} {_L("سعرة", "kcal")} • '
@@ -1229,6 +1310,7 @@ tr:nth-child(even) td {{ background:#fbfcfb; }}
             padding:7px 0 0; margin-top:2px; font-size:9.5px; color:#5c6663; }}
 .summary b {{ color:#22292b; font-weight:600; }}
 .fu-note {{ font-size:9px; color:#5c6663; margin:0 0 10px; }}
+{_company_css}
 </style></head><body>
 <div class="hdr">
   <div><div class="t">{_esc(td['plan_title'])} — {_esc(td['diet_plan_name'])}</div>
