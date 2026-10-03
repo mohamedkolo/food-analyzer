@@ -409,7 +409,29 @@ def parse_lines(lines):
 
     الشكل: [[{"t": كلمة, "x": مكانها}, ...], ...] -- أو سطور كنص عادي.
     """
-    return {field: values[0] for field, values in _scan(lines).items()}
+    return {field: values[0] for field, values in _scan(_strip_marks(lines)).items()}
+
+
+def _strip_marks(lines):
+    """‏يشيل علامات المتصفح من السطور قبل أي تفسير.
+
+    ‏"__NX_SMALL__ 1600" ملاحظة عن الصورة، مش سطر من الورقة. لو سابناها
+    الـ١٦٠٠ ممكن تتقرا كرقم -- وبرّه المعقول لكل الخانات، بس ده حظ مش
+    حاجز.
+    """
+    out = []
+    for line in lines or []:
+        if isinstance(line, str):
+            if "__NX_SMALL__" in line:
+                continue
+            out.append(line)
+            continue
+        words = [w if isinstance(w, str) else str((w or {}).get("t", ""))
+                 for w in (line or [])]
+        if any("__NX_SMALL__" in w for w in words):
+            continue
+        out.append(line)
+    return out
 
 
 def _scan(lines):
@@ -566,8 +588,8 @@ def read_passes(passes):
     if not text_all.strip():
         raise RuntimeError("مقدرتش أقرا أي كلام في الصورة. صوّرها في نور أحسن "
                            "وخلي الورقة كلها في الكادر.")
-    return interpret(merge_found([_scan(one) for one in passes]), text_all,
-                     lines=flat)
+    return interpret(merge_found([_scan(_strip_marks(one)) for one in passes]),
+                     text_all, lines=flat)
 
 
 def read_lines(lines):
@@ -637,6 +659,37 @@ def _phone_in(text):
     return hits.pop()
 
 
+# ‏علامة المتصفح إن الصورة الأصلية صغيرة: "__NX_SMALL__ 1600". مش
+# قراءة من الورقة -- ملاحظة عن الصورة نفسها، والمتصفح هو اللي يعرفها
+# (السيرفر مايشوفش الصورة خالص). بتتشال من الكلام قبل أي تفسير عشان
+# "1600" مايتقراش كرقم من الورقة.
+_SMALL_MARK = re.compile(r"__NX_SMALL__\s*(\d{2,5})")
+
+
+def _small_source(text_all):
+    """‏عرض الصورة الأصلية لو المتصفح قال إنها أصغر من اللازم، وإلا None."""
+    match = _SMALL_MARK.search(text_all or "")
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except ValueError:
+        return None
+
+
+def _english_labels_seen(text_all):
+    """‏هل عناوين ورقة تحليل إنجليزية اتقرت فعلاً؟
+
+    ‏الفرق بين "الورقة عربي ومش عارف أقراها" و"الورقة إنجليزي وقريت
+    عناوينها بس الأرقام مش طالعة". التاني بيحتاج نصيحة تانية خالص:
+    صوّر أقرب، مش غيّر الورقة.
+    """
+    low = re.sub(r"[^a-z ]", " ", (text_all or "").lower())
+    marks = ("weight", "height", "metabolic", "body fat", "muscle",
+             "composition", "obesity", "gender", "age", "water")
+    return sum(1 for mark in marks if mark in low) >= 3
+
+
 def interpret(found, text_all, lines=None):
     """‏الفحوص اللي بتخلّي القراءة آمنة، مشتركة بين كل المحرّكات.
 
@@ -647,6 +700,30 @@ def interpret(found, text_all, lines=None):
     # الوزن ولا الطول، فمابنخمّنش.
     if not any(k in found for k in ("weight", "height", "fat_pct", "bmi", "bmr")):
         if re.search(r"\d", text_all):
+            # ‏الرسالة كانت بتقول "الورقة عناوينها مش إنجليزي" في كل
+            # الحالات. جرّبت صورة ورقة DR.NUTRITION الحقيقية بتاعة
+            # الدكتور: الورقة **إنجليزي**، والعناوين اتقرت
+            # ("Basal Metabolic Rate(BMR)" و"Height" و"Age" كلهم
+            # طلعوا) -- اللي ماطلعش هو الأرقام نفسها: ١٥٩.٠ و٢١.٢
+            # و١٧.٧ و٢٤.٦ مش موجودين في مخرج المحرّك خالص.
+            #
+            # فالرسالة كانت بتبعت الدكتور في طريق غلط: يدوّر على ورقة
+            # إنجليزي وهو ماسك ورقة إنجليزي. بقت بتفرّق بين الحالتين
+            # على اللي اتقرا فعلاً.
+            if _english_labels_seen(text_all):
+                small = _small_source(text_all)
+                if small:
+                    raise RuntimeError(
+                        "قريت عناوين الورقة بس الأرقام نفسها مش طالعة -- "
+                        "الصورة %d بكسل، وورقة التحليل محتاجة ٢٠٠٠ على "
+                        "الأقل عشان الأرقام الرقيقة تتقرا. صوّرها تاني "
+                        "أقرب وبأعلى دقة، أو اكتب البيانات بإيدك."
+                        % small)
+                raise RuntimeError("قريت عناوين الورقة بس الأرقام نفسها "
+                                   "مش طالعة من الصورة -- أرقام الورقة "
+                                   "دي رقيقة وفوق أعمدة الرسم. صوّرها "
+                                   "أقرب وفي نور أقوى، أو اكتب البيانات "
+                                   "بإيدك.")
             raise RuntimeError("قريت أرقام في الصورة بس مش عارف كل رقم بيخص "
                                "إيه -- الورقة عناوينها مش إنجليزي. اكتب "
                                "البيانات بإيدك، أو فعّل القراءة المتقدمة.")
@@ -685,11 +762,18 @@ def interpret(found, text_all, lines=None):
     # مسطرة رسم، والحساب (٢٥.٦٤) لقى في الورقة كلها رقم واحد قريب:
     # ٢٥.٦، وهو المطبوع بالظبط. وورقة X-CONTACT الحساب فيها ٢٥.٢٥
     # ومالقاش ولا رقم قريب، فسابها فاضية -- وده المقصود.
+    # ‏السطور اللي المعادلات تشوفها **من غير علامات المتصفح**. العلامة
+    # "__NX_SMALL__ 1600" رقمها مش من الورقة، و١٦٠٠ جوّه مدى الـBMR
+    # المعقول (٦٠٠-٤٥٠٠) -- فجسم كتلته الخالية ٥٦.٩ كجم (Katch-McArdle
+    # = ١٦٠٠ بالظبط) كان بياخد BMR = ١٦٠٠ من **حجم الصورة**. جرّبتها
+    # وطلعت. رقم عن الصورة بيتحوّل لقراءة طبية: ده بالظبط النوع اللي
+    # الملف كله موجود عشانه، وأنا اللي دخّلته.
+    _solve_lines = _strip_marks(
+        lines if lines is not None
+        else [line for line in (text_all or "").split(" | ")])
     try:
         import body_solve
-        _solved = body_solve.reconcile(
-            found, lines if lines is not None
-            else [line for line in (text_all or "").split(" | ")])
+        _solved = body_solve.reconcile(found, _solve_lines)
     except Exception as _e:
         # ‏لو المعادلات وقعت، القراءة بتكمّل بالخانات اللي اتقرت من
         # سطورها -- الاتجاه الآمن (خانة فاضية، مش رقم غلط). بس
@@ -699,6 +783,20 @@ def interpret(found, text_all, lines=None):
         print("body_solve failed: %s: %s" % (type(_e).__name__, _e),
               file=sys.stderr)
         _solved = {"values": {}, "why": {}}
+    # ‏والعكس: رقم اتقرا من سطره والجسم بيقول إنه مستحيل. ورقة
+    # DR.NUTRITION بتطبع عمود القيم مزحلق صف لفوق، فالرقم اللي على صف
+    # الـBMR هو الـTDEE -- ٧١٤ كالوري غلط لو عدّى. التفاصيل في body_solve.
+    _rejected = {}
+    try:
+        import body_solve as _bs
+        _rejected = _bs.contradictions(found, _solve_lines)
+    except Exception as _e2:
+        import sys
+        print("body_solve.contradictions failed: %s: %s"
+              % (type(_e2).__name__, _e2), file=sys.stderr)
+    for _field in _rejected:
+        found.pop(_field, None)
+
     for _field, _value in _solved["values"].items():
         # ‏تعيين مباشر مش setdefault: المعادلة مابترجّعش خانة إلا لما
         # تكون فاضية **أو رقمها برّه المعقول**. والحالة التانية هي
@@ -711,9 +809,16 @@ def interpret(found, text_all, lines=None):
     # ‏الخانات اللي اتأكّدت بالمعادلة مش بسطرها. الدكتور بيشوفها عشان
     # يعرف إن الرقم ده جاي من حساب تأكّد، مش من قراءة سطره.
     out["confirmed"] = dict(_solved["why"])
+    # ‏اللي اتشال لأن معادلة ناقضته، ومعاه السبب. الدكتور بيشوفه في
+    # نفس مكان الأرقام اللي برّه المعقول -- خانة فاضية مع سبب.
+    out["contradicted"] = dict(_rejected)
     # ‏السطور اللي المحرّك شافها. لما مافيش خانة اتملت، دي الحاجة الوحيدة
     # اللي بتقول ليه: الورقة مش واضحة، ولا عناوينها بشكل تاني؟
-    out["seen"] = [line for line in (text_all or "").split(" | ") if line.strip()]
+    # ‏وعلامة حجم الصورة مابتبانش في "اللي المحرّك قراه": هي ملاحظة
+    # من المتصفح عن الصورة، مش سطر من الورقة، والدكتور بيقرا اللستة دي
+    # عشان يفهم الورقة اتقرت إزاي.
+    out["seen"] = [line for line in (text_all or "").split(" | ")
+                   if line.strip() and "__NX_SMALL__" not in line]
     out["is_body_report"] = True
     out["name"] = None          # ‏الاسم على الورقة مش دايماً، وتخمينه غلط
     out["phone"] = _phone_in(text_all)

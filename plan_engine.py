@@ -1015,14 +1015,11 @@ def plan_html(data, plan=None, clean=False):
     _sig_by = "" if clean else f' — {_esc(td["author"])}'
     # أعمدة الوجبات (من أول يوم - تنفع لأي نظام)
     columns = [m['label'] for m in pdays[0]['meals']] if pdays else []
-    ncols = len(columns)
-    orientation = "landscape" if ncols >= 5 else "portrait"
-    if (data.get("zigzag") or None) and ncols >= 4:
-        orientation = "landscape"  # عمود "هدف اليوم" الزيادة محتاج عرض
-    if clean:
-        # ‏ورقة الشركة عَرضية، والنسخة اللي بتتسلّم لعميل بره العيادة
-        # بتتمشى على شكلها.
-        orientation = "landscape"
+    # ‏عَرضية دايماً. كانت بتتقرر من عدد الأعمدة (عرضية لو ٥ أو أكتر،
+    # وإلا طولية)، بس ورقة الشركة عَرضية -- والشكل بقى عليها، فالاتجاه
+    # بقى واحد. ولا أقل عدد أعمدة (يوم + وجبتين + سعرات + بروتين = ٥)
+    # بيضيق في العَرضية.
+    orientation = "landscape"
 
     # رأس الجدول
     _zz = data.get("zigzag") or None
@@ -1181,11 +1178,15 @@ def plan_html(data, plan=None, clean=False):
 
     _tcal = int(_kcal) if _kcal > 0 else None
     _tp = round(_w * _ppk) if _w > 0 else None
-    # ── شكل ورقة الشركة، للنسخة اللي بتتسلّم بره العيادة ──
+    # ── شكل ورقة الشركة. على **كل** نسخة، مش النضيفة بس ──
     #
-    # ‏الدكتور بعت ورقة الشركة (IR Formula) وقال: عايز الجدول ده بالظبط
-    # في الشكل لما أسلّمه للناس اللي متابعة معايا. فالأرقام دي مقيسة من
-    # الـdocx نفسها، مش مقرّبة بالعين:
+    # ‏الدكتور بعت ورقة الشركة (IR Formula) وقال الأول: عايزه زيها في
+    # الشكل لما أسلّمه للناس اللي متابعة معايا. فحطّيته على النسخة اللي
+    # بتتسلّم بره العيادة بس. وبعدها قال: «الورقة اللي بعتها دي هي اللي
+    # بديها للعميل -- طبّق عليها شكل كل جدول». فالشكل بقى على الاتنين:
+    # اللي عليها اسم العيادة واللي من غيره. الفرق بينهم هوية، مش رسم.
+    #
+    # ‏والأرقام دي مقيسة من الـdocx نفسها، مش مقرّبة بالعين:
     #
     #   الأعمدة    ٧٤٥ / ٢٦٢٣ / ٤٤٢٥ / ٢٩٧٠ twip  =  ٧٪ / ٢٤٪ / ٤١٪ / ٢٨٪
     #   الإطار     TableGrid: single sz=4  =  نص بوينت أسود على كل خانة
@@ -1203,7 +1204,7 @@ def plan_html(data, plan=None, clean=False):
     # ‏وجملة التنبيه اللي تحت ورقة الشركة **مش منقولة بالقصد**: هي
     # بتقول "مخصصة للأشخاص الأصحاء فقط"، وورقة الدكتور دي بتتبني على
     # حالات مرضية. نفس الجملة على ورقة فيها كلام إكلينيكي بتكدّب نفسها.
-    _company_css = ("" if not clean else """
+    _company_css = """
 @page { margin: 9mm 11mm; }
 body { color:#000; font-size:10.5px; }
 .hdr { border-bottom:0 !important; padding-bottom:2px; margin-bottom:5px; }
@@ -1245,7 +1246,7 @@ td.kcell { background:#F2F2F2 !important; font-size:9.5px !important; }
          border-top:0.5pt solid #000; padding-top:4px; }
 .notes h4 { color:#000 !important; }
 .sig { margin-top:5px !important; font-size:8px !important; }
-""")
+"""
 
     summary_box = (f'<div class="summary"><span><b>{_L("المتوسط الفعلي/يوم", "Actual average per day")}:</b> '
                    f'{_avg_cal} {_L("سعرة", "kcal")} • {_avg_p} {_L("جم بروتين", "g protein")}</span>'

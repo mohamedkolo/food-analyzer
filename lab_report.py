@@ -199,6 +199,19 @@ def _clean(raw):
                                    "value": raw.get(key),
                                    "low": SANE_RANGES.get(dropped, (None, None))[0],
                                    "high": SANE_RANGES.get(dropped, (None, None))[1]})
+    # ‏الرقم اللي معادلة ناقضته: بيتسجّل في dropped **بقيمته** والخانة
+    # تتفضّى. لازم يجي **بعد** حلقة الأرقام فوق، وإلا الحلقة بترجّع
+    # تحط الرقم اللي لسه شِلناه (جرّبتها بالترتيب الغلط: BMR ٢٠٣٨ رجع).
+    #
+    # ‏والدكتور لازم يشوف الرقم نفسه: "BMR اتشال" مايقولش حاجة، و
+    # "BMR = ٢٠٣٨ اتشال لأن الجسم ده بيحرق ١٣٢٥" بتقول كل حاجة.
+    for _field, _reason in {str(k): str(v) for k, v
+                            in (raw.get("contradicted") or {}).items()}.items():
+        if out.get(_field) is not None:
+            out["dropped"].append({"field": _field, "value": out[_field],
+                                   "low": None, "high": None, "why": _reason})
+            out[_field] = None
+
     # ‏فحص تناسق: الـBMI = الوزن ÷ (الطول بالمتر)². التلاتة مطبوعين على
     # الورقة، فلو الحساب مااتطابقش يبقى واحد منهم اتقرا غلط ومانعرفش مين --
     # فبنشيل التلاتة والدكتور يكتبهم. الفحص ده بيمسك النوع اللي حدود

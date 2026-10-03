@@ -144,10 +144,13 @@ def test_the_unbranded_table_looks_like_the_company_sheet():
                  "text-align:center", "vertical-align:middle",
                  "font-weight:700"):
         assert rule in clean, "‏شكل ورقة الشركة ناقص: %s" % rule
-    # ‏والنسخة اللي عليها اسم العيادة مابتتغيّرش -- دي ورقة الدكتور نفسه
-    assert "border:0.5pt solid #000" not in full
-    # ‏ورقة الشركة عَرضية
+        # ‏والنسخة اللي عليها اسم العيادة **نفس الشكل**. الدكتور قال:
+        # "الورقة اللي بعتها دي هي اللي بديها للعميل -- طبّق عليها شكل
+        # كل جدول". فالفرق بين النسختين هوية، مش رسم.
+        assert rule in full, "‏شكل ورقة الشركة ناقص من النسخة العادية: %s" % rule
+    # ‏ورقة الشركة عَرضية -- الاتنين
     assert "size: A4 landscape" in clean
+    assert "size: A4 landscape" in full
 
 
 def test_the_unbranded_copy_is_one_page():
@@ -161,9 +164,12 @@ def test_the_unbranded_copy_is_one_page():
         import pypdfium2 as pdfium
     except ImportError:
         return          # ‏مكتبة القراءة مش متركّبة -- الاختبار بيتعدّى
-    with A.app.test_request_context("/"):
-        pdf = plan_engine.build_pdf(_CACHE["data"], _CACHE["plan"], clean=True)
-    assert len(pdfium.PdfDocument(pdf)) == 1, "‏النسخة النضيفة بقت أكتر من صفحة"
+    for clean in (True, False):
+        with A.app.test_request_context("/"):
+            pdf = plan_engine.build_pdf(_CACHE["data"], _CACHE["plan"],
+                                        clean=clean)
+        assert len(pdfium.PdfDocument(pdf)) == 1, (
+            "‏نسخة (clean=%s) بقت أكتر من صفحة" % clean)
 
 
 def test_the_paper_says_calories_in_the_language_it_is_written_in():

@@ -195,9 +195,20 @@ window.ReportOCR = (function () {
    * بياخد اللي اتفقوا عليه، واللي اختلفوا فيه بيشيله -- الدكتور يكتبه
    * بإيده، وده أحسن من رقم غلط.
    */
+  // ‏أقل عرض أصلي لورقة تحليل تتقرا. الرقم مقيس مش مفترض: ورقة
+  // DR.NUTRITION بتاعة الدكتور بصورة ١٢٠٠×١٦٠٠ طلّعت العناوين كلها
+  // صح وماطلّعتش ولا رقم من الأربعة المهمين (١٥٩.٠ و٢١.٢ و١٧.٧
+  // و٢٤.٦ مش موجودين في مخرج المحرّك خالص). ورقة A4 بعرض ١٢٠٠ بكسل
+  // = ~١٤٥ نقطة للبوصة، وأرقام الورقة دي رقيقة وفوق أعمدة رسم.
+  //
+  // ‏التكبير في drawScaled مابيخلقش تفاصيل -- بيكبّر اللي موجود. فلو
+  // الأصل صغير، لازم الدكتور يعرف قبل ما يستنى القراءة ويلاقيها فاضية.
+  var MIN_SOURCE_EDGE = 2000;
+
   async function read(file, onStep) {
     var worker = await getWorker(onStep);
     var img = await loadImage(file);
+    var sourceEdge = Math.max(img.naturalWidth || 0, img.naturalHeight || 0);
     var first = drawScaled(img);
     var w = first.width, h = first.height;
     var gray = toGray(first);
@@ -210,6 +221,12 @@ window.ReportOCR = (function () {
       var res = await worker.recognize(sheets[i], {}, { blocks: true, text: false });
       passes.push(linesOf(res.data));
       sheets[i].width = sheets[i].height = 1;   // ‏نفضّي الذاكرة على طول
+    }
+    // ‏آخر سطر في آخر قراءة: ملاحظة عن حجم الأصل، عشان السيرفر يعرف
+    // يقول للدكتور "صوّرها أقرب" بدل "الورقة مش واضحة". شكلها كلمات
+    // عادية فـ_tidy_passes بيقبلها زي أي سطر.
+    if (sourceEdge && sourceEdge < MIN_SOURCE_EDGE) {
+      passes[passes.length - 1].push(['__NX_SMALL__', String(sourceEdge)]);
     }
     return passes;
   }

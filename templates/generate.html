@@ -1676,7 +1676,18 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
                const label = ALL_LBL[d.field] || d.field;
                const range = (d.low !== null && d.low !== undefined)
                  ? ' ' + T('(المعقول ','(sane is ') + d.low + '–' + d.high + ')' : '';
-               return '<b>' + label + ' = ' + d.value + '</b>' + range;
+               // ‏رقم معادلة ناقضته: السبب أهم من المدى. "BMR = ٢٠٣٨
+               // اتشال" مايقولش حاجة، و"الجسم ده بيحرق ١٣٢٥" بتقولها.
+               const WHYNOT = {
+                 lean_bmr: T('الجسم ده بكتلته الخالية مابيحرقش الرقم ده',
+                             'this body, at its fat-free mass, does not burn that'),
+                 lean_water: T('ماء الجسم ده مش متناسب مع كتلته الخالية',
+                               'that body water does not fit the fat-free mass'),
+                 bmr_over_tdee: T('الورقة طابعة TDEE أقل أو يساوي الرقم ده — صفوفها مزحلقة',
+                                  'the sheet prints a TDEE at or below it -- its rows are offset')
+               };
+               const why = d.why ? ' — ' + (WHYNOT[d.why] || d.why) : range;
+               return '<b>' + label + ' = ' + d.value + '</b>' + why;
              }).join('، ')
            + ' — ' + T('اكتبهم إنت.','type these yourself.');
     }

@@ -197,3 +197,108 @@ def reconcile(found, lines):
                                        "bmr"), "lean_bmr")
 
     return {"values": values, "why": why}
+
+# ═══════════════════════════════════════════════════════════════════════
+#  رفض رقم مقروء بتناقضه معادلة
+# ═══════════════════════════════════════════════════════════════════════
+#
+# ‏لحد هنا الملف بيضيف الخانة الفاضية. الجزء ده بيعمل العكس: بيشيل رقم
+# **اتقرا من سطره** لما الجسم نفسه بيقول إنه مستحيل.
+#
+# ‏اللي خلّى ده لازم: ورقة DR.NUTRITION بتاعة الدكتور بتطبع عمود القيم
+# **مزحلق صف واحد لفوق** عن عمود العناوين. قِسْتها على صورة الورقة
+# الحقيقية بصناديق المحرّك:
+#
+#     y~324   Biological Age            1324     ← ده الـBMR فعلاً
+#     y~378   Basal Metabolic Rate      2038     ← ده الـTDEE فعلاً
+#     y~432   Total Daily Energy Exp.   28.6     ← ده Body Cell Mass
+#
+# ‏يعني الرقم اللي على صف الـBMR هو الـTDEE. لو القراءتين اتفقوا عليه،
+# الفورم كان بياخد BMR = ٢٠٣٨ والصح ١٣٢٤ -- **٧١٤ كالوري غلط** ماشية
+# في حساب هدف العميل. اللي منعها كان الحظ: قراءة شافت ٥٠٣٨ وقراءة
+# شافت ٢٠٣٨ فاختلفوا واتشال. الحظ مش حاجز.
+#
+# ‏فحاجزين، والاتنين مقيسين على التلات ورقات الحقيقية:
+#
+#   ١) الـBMR مقابل الكتلة الخالية (Katch-McArdle). النسب الحقيقية:
+#      ٠.٨٧ و٠.٩٣ و١.٠٠. فبرّه ٠.٥٥-١.٤٥ = مستحيل. ده بيمسك ١.٥٤
+#      بتاعة ٢٠٣٨ -- وبهامش ضيّق، فهو حاجز مش برهان: TDEE بتاع واحد
+#      قليل الحركة (×١.٢) ممكن يعدّي منه.
+#
+#   ٢) والحاجز اللي مش محتاج هامش: **الـBMR لازم يكون أقل من الـTDEE**.
+#      ده مش تقدير، ده تعريف -- الـTDEE هو الـBMR في معامل النشاط،
+#      والمعامل أكبر من واحد دايماً. فلو الورقة طابعة الاتنين والرقم
+#      اللي على صف الـBMR مش أصغر، يبقى الصفوف مزحلقة وبنشيله.
+# ‏(?<![a-z]) على الشمال مهمة: "t.e.e" من غيرها بتطابق جوّه
+# "commit**tee**"، فسطر فيه الكلمة ورقم كان بيبقى شاهد TDEE.
+_TDEE_LABEL = re.compile(
+    r"(?<![a-z])(?:total\s*daily\s*energy"
+    r"|total\s*energy\s*expenditure"
+    r"|t\.?e\.?e\.?)(?![a-z])", re.I)
+
+
+def tdee_on_sheet(lines):
+    """‏رقم الـTDEE المطبوع، **كشاهد بس** -- مابيروحش الفورم خالص.
+
+    ‏الفورم عنده خانة TDEE بيحسبها من معامل النشاط، والرقم المطبوع على
+    الورقة جهاز تاني حسبه بمعامل تاني. فده مش بديل عنه -- ده شاهد
+    بيقول إن الـBMR اللي قرينا معقول ولا لأ.
+    """
+    for line in lines or []:
+        text = str(line)
+        match = _TDEE_LABEL.search(text)
+        if not match:
+            continue
+        tail = text[match.end():]
+        for number in _NUMBER.finditer(tail.replace(",", ".")):
+            try:
+                value = float(number.group(1))
+            except ValueError:
+                continue
+            # ‏الـTDEE لأي إنسان بين ٨٠٠ و٦٠٠٠ كالوري
+            if 800.0 <= value <= 6000.0:
+                return value
+    return None
+
+
+def contradictions(found, lines):
+    """‏الخانات اللي المعادلات تقول إن الرقم المقروء فيها مستحيل.
+
+    ‏بترجّع {خانة: سبب}. النداء بيشيلها ويعرض السبب للدكتور -- خانة
+    فاضية بيكتبها بإيده أحسن من رقم غلط ماشي في حساب السعرات.
+    """
+    out = {}
+
+    weight = _known(found, "weight")
+    fat_pct = _known(found, "fat_pct")
+    fat_mass = _known(found, "fat_mass")
+    bmr = _known(found, "bmr")
+    water = _known(found, "body_water")
+
+    lean = None
+    if weight and fat_mass and 0 < fat_mass < weight:
+        lean = weight - fat_mass
+    elif weight and fat_pct:
+        lean = weight * (1.0 - fat_pct / 100.0)
+
+    if bmr and lean and lean > 0:
+        katch = 370.0 + 21.6 * lean
+        ratio = bmr / katch
+        if not (0.55 <= ratio <= 1.45):
+            out["bmr"] = "lean_bmr"
+
+    if water and lean and lean > 0:
+        share = water / lean
+        if not (0.50 <= share <= 0.90):
+            out["body_water"] = "lean_water"
+
+    if bmr and "bmr" not in out:
+        tdee = tdee_on_sheet(lines)
+        # ‏الـTDEE = الـBMR × معامل النشاط، والمعامل أكبر من واحد. فلو
+        # الرقم اللي على صف الـBMR مش أصغر من الـTDEE المطبوع، الصفوف
+        # مزحلقة. الهامش (٢٠ كالوري) للتقريب بس.
+        if tdee and bmr >= tdee - 20:
+            out["bmr"] = "bmr_over_tdee"
+
+    return out
+

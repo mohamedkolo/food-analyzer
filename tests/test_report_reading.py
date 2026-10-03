@@ -790,6 +790,14 @@ READ_FIELDS = ("height", "age", "gender", "weight", "fat_pct", "fat_mass",
                "bmi", "bmr", "body_water", "visceral_fat", "muscle_mass")
 
 
+def _photo_sheet():
+    """‏مخرج المحرّك على **صورة** ورقة الدكتور، مش على نص مكتوب بإيد."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    with io.open(os.path.join(here, "data", "sheet_drnutrition_photo.json"),
+                 encoding="utf-8") as fh:
+        return json.load(fh)["drnutrition_photo"]["passes"]
+
+
 def _sheet(name):
     here = os.path.dirname(os.path.abspath(__file__))
     with io.open(os.path.join(here, "data", name), encoding="utf-8") as fh:
@@ -1346,6 +1354,131 @@ def test_the_water_and_the_metabolism_are_checked_against_the_lean_mass():
     bad = body_solve.reconcile({"weight": 70.0, "fat_pct": 20.0},
                                ["Weight 70.0 Fat 20.0", "TBW 8.0"])
     assert "body_water" not in bad["values"], bad
+
+
+def test_the_real_photo_of_the_doctors_sheet_says_why_it_failed():
+    """‏صورة ورقة DR.NUTRITION الحقيقية، من محرّك المتصفح على صورته هو.
+
+    ‏الورقة دي **مش بتتقرا**، وده مقيس مش مفترض: أربعة من أهم أرقامها
+    (الطول ١٥٩.٠، الـBMI ٢١.٢، نسبة الدهون ١٧.٧، كتلة العضل ٢٤.٦) مش
+    موجودين في مخرج المحرّك **خالص** -- مش مكانهم غلط، مش موجودين.
+    الصورة ١٢٠٠×١٦٠٠، يعني ورقة A4 بـ~١٤٥ نقطة للبوصة، وأرقام الورقة
+    دي رقيقة ومطبوعة فوق أعمدة الرسم.
+
+    ‏اللي الاختبار ده بيقيسه مش إن القراية تنجح -- هي مش بتنجح. بيقيس
+    إن **الرسالة بتقول الحقيقة**. قبل كده كانت بتقول "الورقة عناوينها
+    مش إنجليزي" -- والورقة إنجليزي، وعناوينها اتقرت كلها. فالدكتور
+    كان بيتبعت يدوّر على مشكلة مش موجودة.
+    """
+    import ocr_report
+
+    sheet = _photo_sheet()
+    try:
+        data = lab_report.read_browser(sheet)
+    except lab_report.ReportError as e:
+        text = str(e)
+        assert "مش إنجليزي" not in text, (
+            "‏الرسالة لسه بتلوم لغة الورقة، والورقة إنجليزي: %s" % text)
+        # ‏ولازم تقول الحجم الحقيقي والنصيحة الصح
+        assert "1600" in text, text
+        assert "صوّرها" in text, text
+        return
+    # ‏لو قرأت حاجة، برضه مافيش رقم غلط
+    truth = {"height": 159.0, "age": 23, "weight": 53.7, "fat_pct": 17.7,
+             "bmi": 21.2, "bmr": 1324, "fat_mass": 9.5, "body_water": 32.3}
+    wrong = [(k, data.get(k)) for k, want in truth.items()
+             if data.get(k) is not None and data.get(k) != want]
+    assert not wrong, "‏أرقام غلط من ورقة مش مقروءة: %s" % wrong
+
+
+def test_the_small_photo_marker_never_becomes_a_reading():
+    """‏"__NX_SMALL__ 1600" ملاحظة عن الصورة، مش سطر من الورقة.
+
+    ‏لو سابناها، الـ١٦٠٠ ممكن تتقرا كرقم. الحظ إنها برّه المعقول لكل
+    خانة -- والحظ مش حاجز.
+    """
+    import ocr_report
+
+    marked = [[["Weight", "78.4", "kg"], ["Height", "165.0", "cm"],
+               ["__NX_SMALL__", "1600"]]]
+    data = lab_report.read_browser(marked)
+    assert data.get("weight") == 78.4, data
+    assert data.get("height") == 165.0, data
+    for field in READ_FIELDS:
+        assert data.get(field) != 1600, "‏علامة الحجم اتقرت كرقم من الورقة"
+
+    # ‏والمعادلات كمان مش بتشوفها. ١٦٠٠ جوّه مدى الـBMR المعقول
+    # (٦٠٠-٤٥٠٠)، فجسم كتلته الخالية ٥٦.٩ كجم (Katch-McArdle = ١٦٠٠
+    # بالظبط) كان بياخد BMR من **حجم الصورة**. جرّبتها وطلعت.
+    trap = lab_report.read_browser(
+        [[["Weight", "71.2", "kg"], ["Fat", "20.0", "%"],
+          ["__NX_SMALL__", "1600"]]])
+    assert trap.get("bmr") != 1600, "‏حجم الصورة بقى BMR"
+    assert trap.get("weight") == 71.2, trap
+    # ‏ولا بتبان للدكتور في لستة "اللي المحرّك قراه"
+    assert not [line for line in data["seen"] if "__NX_SMALL__" in line], (
+        data["seen"])
+    # ‏والعلامة مابتوصلش لـ_scan خالص
+    assert "__NX_SMALL__" not in str(
+        ocr_report._strip_marks([["__NX_SMALL__", "1600"], ["Weight", "78.4"]]))
+
+
+def test_a_bmr_the_body_cannot_burn_is_thrown_away():
+    """‏ورقة الدكتور بتطبع عمود القيم مزحلق صف واحد لفوق. قِسْتها على
+    صناديق المحرّك من صورته:
+
+        y~324   Biological Age          1324    ← ده الـBMR فعلاً
+        y~378   Basal Metabolic Rate    2038    ← ده الـTDEE فعلاً
+        y~432   Total Daily Energy Exp.  28.6   ← ده Body Cell Mass
+
+    ‏يعني الرقم اللي على صف الـBMR هو الـTDEE. لو القراءتين اتفقوا
+    عليه، الفورم كان بياخد BMR = ٢٠٣٨ والصح ١٣٢٤ -- **٧١٤ كالوري
+    غلط** في حساب هدف العميل. اللي منعها كان إن القراءتين اختلفوا
+    (٥٠٣٨ و٢٠٣٨). الحظ مش حاجز.
+    """
+    import body_solve
+
+    body = {"weight": 53.7, "fat_mass": 9.5}
+    lines = ["Basal Metabolic Rate(BMR) 2038 kcal",
+             "Total Daily Energy Expenditure 2038 kcal"]
+    assert body_solve.contradictions(dict(body, bmr=2038.0), lines).get("bmr")
+    # ‏والصح بيعدّي
+    assert not body_solve.contradictions(dict(body, bmr=1324.0), lines)
+    # ‏والتلات ورقات الحقيقية كلها بتعدّي -- مافيش رفض كاذب
+    assert not body_solve.contradictions(
+        {"weight": 67.3, "fat_mass": 24.3, "bmr": 1125.0}, [])
+    assert not body_solve.contradictions(
+        {"weight": 67.9, "fat_pct": 29.2, "bmr": 1316.0},
+        ["B.M.R. 1316 kcal T.E.E. 2027 kcal"])
+
+    # ‏والرقم المرفوض بيوصل للدكتور **بقيمته وسببه**، مش بيختفي
+    cleaned = lab_report._clean(
+        {"is_body_report": True, "weight": 53.7, "fat_mass": 9.5, "bmr": 2038,
+         "contradicted": {"bmr": "lean_bmr"}, "extras": [], "unreadable": []})
+    assert cleaned["bmr"] is None
+    hit = [d for d in cleaned["dropped"] if d["field"] == "bmr"]
+    assert hit and hit[0]["value"] == 2038 and hit[0]["why"] == "lean_bmr", cleaned
+
+
+def test_the_bmr_is_never_taken_as_the_tdee_on_its_own_row():
+    """‏الـTDEE = الـBMR في معامل النشاط، والمعامل أكبر من واحد. فالرقم
+    اللي على صف الـBMR لازم يكون **أقل** من الـTDEE المطبوع. ده تعريف
+    مش تقدير، فهو الحاجز اللي مش محتاج هامش."""
+    import body_solve
+
+    assert body_solve.tdee_on_sheet(
+        ["Total Daily Energy Expenditure 2038 kcal"]) == 2038.0
+    assert body_solve.tdee_on_sheet(["T.E.E. 2027 kcal"]) == 2027.0
+    assert body_solve.tdee_on_sheet(["nothing here 5"]) is None
+    # ‏و"tee" جوّه كلمة تانية مش شاهد: "commit**tee** 1500" كانت بتطابق
+    for junk in ("the committee 1500 met", "attendee 1800",
+                 "guarantee 2000 kcal"):
+        assert body_solve.tdee_on_sheet([junk]) is None, junk
+    # ‏جسم الـBMR بتاعه معقول، بس الورقة بتقول إن الـTDEE مش أعلى منه
+    out = body_solve.contradictions(
+        {"weight": 70.0, "fat_pct": 20.0, "bmr": 1900.0},
+        ["B.M.R. 1900 kcal", "Total Daily Energy Expenditure 1900 kcal"])
+    assert out.get("bmr") in ("bmr_over_tdee", "lean_bmr"), out
 
 if __name__ == "__main__":
     passed = failed = 0
