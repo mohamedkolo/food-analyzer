@@ -564,6 +564,7 @@ def generate_weekly_plan(data):
         labels = list(info["meal_labels"])
         return labels[0] if labels else "lunch"
 
+    _pf_used = {}      # ‏كل مصدر بروتين اتكرر كام مرة في الأسبوع
     plan = []
     for i in range(7):
         day_plan = {"day": days[i], "diet_type": diet_type,
@@ -728,30 +729,56 @@ def generate_weekly_plan(data):
                       for _k in plan_info["meal_labels"]
                       if day_plan.get(_k) and _cur_cals.get(_k, 0) > 0}
             _top = protein_fix.plan_topup(
-                sum(_cur_ps.values()), _target_p, _slots, _pf_safe, turn=i)
+                sum(_cur_ps.values()), _target_p, _slots, _pf_safe,
+                turn=i, used=_pf_used)
             if _top:
-                _slot = _pf_slot_for(plan_info)
-                day_plan[_slot] = (day_plan[_slot] + " + "
-                                   + protein_fix.line(_top))
-                _cur_cals[_slot] = _cur_cals.get(_slot, 0) + _top["add_cal"]
-                _cur_ps[_slot] = _cur_ps.get(_slot, 0) + _top["add_p"]
-                # ‏والمقابل: نقص السعرات من الخانات النشوية، واحدة
-                # أو أكتر -- طبق واحد مش دايماً فيه سعرات كفاية.
+                # ── القطع الأول، والزيادة بقدر اللي اتحرّر فعلاً ──
+                #
+                # ‏الترتيب ده مش تفصيلة. فيه أطباق مابتتحركش ("٢ بيض"
+                # مش بيبقى "١.٨ بيضة"، والسلطة الحرة مالهاش كمية)،
+                # فالقطع ممكن يطلب سعرات ومايحرّرش ولا واحدة. وأنا
+                # كنت بزوّد الأول وأفترض إن القطع هيدفع -- فاليوم كان
+                # بيكسب سعرات ببلاش، والطقم مسكها: أيام في نظام الخمس
+                # وجبات بعدت ١١-١٥٪ عن هدفها.
+                #
+                # ‏دلوقتي القطع بيتعمل ويتقاس، والزيادة بتتسقّف على
+                # المقاس. ولو مااتحرّرش حاجة، مافيش زيادة خالص.
+                _freed = 0.0
                 for _tk, _take in _top["trims"]:
                     if _cur_cals.get(_tk, 0) <= 0 or _take <= 0:
                         continue
-                    _shrink = max(0.2, 1.0 - _take / _cur_cals[_tk])
+                    _before = _cur_cals[_tk]
+                    _shrink = max(0.2, 1.0 - _take / _before)
                     _new, _eff = scale_meal(day_plan[_tk], _shrink)
                     day_plan[_tk] = _new
                     _cur_cals[_tk] *= _eff
                     _cur_ps[_tk] *= _eff
-                day_plan["protein_topup"] = {
-                    "grams": _top["grams"],
-                    "source_ar": _top["source"]["ar"],
-                    "source_en": _top["source"]["en"],
-                    "slot": _slot, "trim": _tk,
-                    "closed": bool(_top["closed"]),
-                }
+                    _freed += _before - _cur_cals[_tk]
+
+                _src = _top["source"]
+                _per_g = _src["cal"] / 100.0
+                _grams = int(round(min(_top["grams"],
+                                       _freed / _per_g if _per_g else 0)
+                                   / 5.0) * 5)
+                if _grams > 0:
+                    _slot = _pf_slot_for(plan_info)
+                    _add = dict(_top, grams=_grams)
+                    day_plan[_slot] = (day_plan[_slot] + " + "
+                                       + protein_fix.line(_add))
+                    _cur_cals[_slot] = (_cur_cals.get(_slot, 0)
+                                        + _grams * _per_g)
+                    _cur_ps[_slot] = (_cur_ps.get(_slot, 0)
+                                      + _grams * _src["p"] / 100.0)
+                    _pf_used[_src["ar"]] = _pf_used.get(_src["ar"], 0) + 1
+                    day_plan["protein_topup"] = {
+                        "grams": _grams,
+                        "source_ar": _src["ar"],
+                        "source_en": _src["en"],
+                        "slot": _slot,
+                        "trim": _top["trims"][0][0] if _top["trims"] else "",
+                        "closed": bool(_top["closed"]
+                                       and _grams >= _top["grams"]),
+                    }
 
         if sum(_cur_cals.values()) > 0:
             total_cal = int(round(sum(_cur_cals.values())))
