@@ -252,6 +252,37 @@
 </div>
 {% endif %}
 
+{# ‏الأيام اللي اتزوّد فيها بروتين. الدكتور لازم يعرف إن الصنف ده
+   مش من قاعدة الأكل -- هو زيادة محسوبة عشان بروتين اليوم يوصل. #}
+{% set topups = plan | selectattr('protein_topup') | list if plan else [] %}
+{% if topups %}
+<div style="background:#f0f7f4;border:1px solid #B4D0DA;border-radius:12px;padding:14px 16px;margin-bottom:16px">
+  <div style="font-weight:800;color:#0F2A43;font-size:14px;margin-bottom:6px">
+    <i class="fa-solid fa-drumstick-bite" style="color:#1B6E80"></i>
+    {{ t('بروتين زيادة','Added protein') }} —
+    <b>{{ topups|length }}</b> {{ t('يوم','day(s)') }}
+  </div>
+  <div style="font-size:12.5px;color:#55647a;line-height:1.9">
+    {{ t('الأيام دي بروتينها كان أقل من المستهدف، فاتزوّد صنف بروتين ومقابله اتقلّلت النشوية — عشان الورقة ما تقولش رقم والأكل يدي غيره.',
+         'These days fell short of the protein target, so a protein item was added and the starch cut to match — so the paper does not say one number while the food gives another.') }}
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+    {% for d in topups %}
+    {% set tu = d.protein_topup %}
+    <span style="background:#fff;border:1px solid #B4D0DA;border-radius:6px;
+                 padding:4px 10px;font-size:12px;color:#0F2A43">
+      <b>{{ d.day }}</b> ·
+      {{ tu.grams }} {{ t('جم','g') }}
+      {{ tu.source_ar if is_ar else tu.source_en }}
+      {% if not tu.closed %}
+      <span style="color:#92400e">({{ t('سدّت جزء من الفرق','partly closed') }})</span>
+      {% endif %}
+    </span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 {% set zz = data.zigzag %}
 {% if zz %}
 <!-- تدوير السعرات -->

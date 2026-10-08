@@ -36,6 +36,7 @@ SUITES = [
     "test_pdf_unbranded.py",
     "test_accessibility.py",
     "test_diet_programs.py",
+    "test_protein_target.py",
 ]
 
 

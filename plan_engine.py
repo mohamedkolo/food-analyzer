@@ -529,6 +529,41 @@ def generate_weekly_plan(data):
         _base_target = 0.0
 
     SNK_P = 8  # تقدير بروتين السناك الواحد
+
+    # ── البروتين المستهدف، ودوال الزيادة ──
+    #
+    # ‏نفس حساب الورقة: وزن العميل × جرام/كجم. الورقة بتطبعه كوصفة،
+    # والأكل لازم يوصله -- وإلا الورقة بتكدّب نفسها.
+    import protein_fix
+    PROTEIN_FACTORS = {"sedentary": 1.0, "light": 1.3, "regular": 1.6,
+                       "athlete": 2.0}
+    try:
+        _pf_w = float(data.get("weight") or 0)
+    except (TypeError, ValueError):
+        _pf_w = 0.0
+    try:
+        _pf_ppk = float(data.get("protein_per_kg")
+                        or PROTEIN_FACTORS.get(data.get("activity_level")
+                                               or "regular", 1.6))
+    except (TypeError, ValueError):
+        _pf_ppk = 1.6
+    _target_p = round(_pf_w * _pf_ppk) if (_pf_w > 0 and _pf_ppk > 0) else 0
+
+    def _pf_safe(text):
+        """‏الزيادة لازم تعدّي حالات العميل وممنوعاته زي أي أكل تاني."""
+        from meal_database import safe_for_all, unsafe_keys_for
+        if any(ex and ex in text for ex in user_exclusions):
+            return False
+        return safe_for_all(text, unsafe_keys_for(symptoms))
+
+    def _pf_slot_for(info):
+        """‏الزيادة بتتحط في أكبر وجبة -- هي اللي بتستحمل صنف زيادة."""
+        for _k in ("lunch", "dinner", "meal2", "iftar", "breakfast", "meal1"):
+            if _k in info["meal_labels"]:
+                return _k
+        labels = list(info["meal_labels"])
+        return labels[0] if labels else "lunch"
+
     plan = []
     for i in range(7):
         day_plan = {"day": days[i], "diet_type": diet_type,
@@ -678,6 +713,46 @@ def generate_weekly_plan(data):
                     # ‏طلبنا منها تتحرك ومااتحركتش -- يبقى مالهاش كمية
                     # تتضرب (عدد أو حصة حرة). مش هتتحرك في تمريرة تانية.
                     _stuck.add(_key)
+        # ── بروتين اليوم يوصل للمستهدف ───────────────────────────────
+        #
+        # ‏المعامل فوق بيشد السعرات والبروتين مع بعض، فيوم التدوير
+        # المنخفض بروتينه بينزل معاه. قِسْتها: أنثى ٩٥ كجم هدفها ١٥٢ جم
+        # كان أسبوعها بين ٧٨ و١٤٤ -- ناقص ٤٩٪. ويوم الـ٧٨ في عجز هو
+        # بالظبط اللي العميل بيفقد فيه عضل، والورقة بتقول ١٥٢.
+        #
+        # ‏الخانة بتتسد بزيادة بروتين مقابلها نقص سعرات من أقل خانة
+        # كثافة بروتين (وهي النشوية). الحسبة في protein_fix، ومعاها
+        # ليه الترتيب لوحده مش حل.
+        if _target_p > 0 and day_plan.get(_pf_slot_for(plan_info)):
+            _slots = {_k: (_cur_cals.get(_k, 0), _cur_ps.get(_k, 0))
+                      for _k in plan_info["meal_labels"]
+                      if day_plan.get(_k) and _cur_cals.get(_k, 0) > 0}
+            _top = protein_fix.plan_topup(
+                sum(_cur_ps.values()), _target_p, _slots, _pf_safe, turn=i)
+            if _top:
+                _slot = _pf_slot_for(plan_info)
+                day_plan[_slot] = (day_plan[_slot] + " + "
+                                   + protein_fix.line(_top))
+                _cur_cals[_slot] = _cur_cals.get(_slot, 0) + _top["add_cal"]
+                _cur_ps[_slot] = _cur_ps.get(_slot, 0) + _top["add_p"]
+                # ‏والمقابل: نقص السعرات من الخانات النشوية، واحدة
+                # أو أكتر -- طبق واحد مش دايماً فيه سعرات كفاية.
+                for _tk, _take in _top["trims"]:
+                    if _cur_cals.get(_tk, 0) <= 0 or _take <= 0:
+                        continue
+                    _shrink = max(0.2, 1.0 - _take / _cur_cals[_tk])
+                    _new, _eff = scale_meal(day_plan[_tk], _shrink)
+                    day_plan[_tk] = _new
+                    _cur_cals[_tk] *= _eff
+                    _cur_ps[_tk] *= _eff
+                day_plan["protein_topup"] = {
+                    "grams": _top["grams"],
+                    "source_ar": _top["source"]["ar"],
+                    "source_en": _top["source"]["en"],
+                    "slot": _slot, "trim": _tk,
+                    "closed": bool(_top["closed"]),
+                }
+
         if sum(_cur_cals.values()) > 0:
             total_cal = int(round(sum(_cur_cals.values())))
             total_p = int(round(sum(_cur_ps.values())))
@@ -1142,7 +1217,7 @@ def plan_html(data, plan=None, clean=False):
         _cg = round(max(_cc, 0) / 4)
         macro_meta = (
             f'<span><b>{_L("مستوى النشاط", "Activity level")}:</b> {_esc(_act_label)}</span>'
-            f'<span><b>{_L("بروتين", "Protein")}:</b> {_esc(_pg)} {_L("جم", "g")} ({_ppk} {_L("جم/كجم", "g/kg")})</span>'
+            f'<span><b>{_L("بروتين مستهدف", "Protein target")}:</b> {_esc(_pg)} {_L("جم", "g")} ({_ppk} {_L("جم/كجم", "g/kg")})</span>'
             f'<span><b>{_L("دهون", "Fat")}:</b> {_esc(_fg)} {_L("جم", "g")} ({int(_fatp)}%)</span>'
             f'<span><b>{_L("كارب", "Carbs")}:</b> {_esc(_cg)} {_L("جم", "g")}</span>'
         )
@@ -1248,7 +1323,57 @@ td.kcell { background:#F2F2F2 !important; font-size:9.5px !important; }
 .sig { margin-top:5px !important; font-size:8px !important; }
 """
 
-    summary_box = (f'<div class="summary"><span><b>{_L("المتوسط الفعلي/يوم", "Actual average per day")}:</b> '
+    # ── الورقة ما تقولش رقم والأكل يدي غيره ──
+    #
+    # ‏سطر الماكروز فوق **وصفة**: وزن العميل × جرام/كجم. والأكل بيدي
+    # حاجة تانية، وقِسْتها قبل الإصلاح: أنثى ٩٥ كجم هدفها ١٥٢ جم كان
+    # أسبوعها بين ٧٨ و١٤٤. الزيادة في protein_fix قرّبت المسافة، بس
+    # مش دايماً بتسدّها (حصة الزيادة لها حد، والنشوية اللي بنقطع منها
+    # لها حد).
+    #
+    # ‏فالورقة بقت بتقول الاتنين: المستهدف، والفعلي، والفرق لو كبير.
+    # الدكتور لازم يشوف الفرق ده قبل ما يسلّم الورقة -- مش يكتشفه من
+    # عميل مابينزلش.
+    # ‏التحذير بيضرب على حاجتين **إكلينيكيتين**، مش على نسبة مئوية:
+    #
+    #   ١) المتوسط الأسبوعي بعيد عن المستهدف. البروتين بيتحسب على
+    #      الأسبوع مش على اليوم، فده الرقم اللي بيحكم على الخطة.
+    #
+    #   ٢) فيه يوم تحت أرضية الجرام/كجم. ده اللي بيحمي الكتلة العضلية
+    #      في العجز، وقبل الإصلاح أنثى ٩٥ كجم نزلت ٠.٨٢ جم/كجم.
+    #
+    # ‏أول نسخة كانت بتضرب كمان على "أي يوم بعيد ٢٠٪ في أي اتجاه"،
+    # والشرط ده كان بيضرب على ورقة متوسطها مظبوط بسبب يوم **زايد**
+    # بروتين -- وزيادة البروتين في يوم مش مشكلة. فكان بيطلّع تحذير
+    # على ورقة سليمة، والاختبار بقى متقلقل (فشل ٣ مرات من ١٠).
+    _p_warn = ""
+    if _tp and _avg_p:
+        _off = abs(_avg_p - _tp) / float(_tp)
+        # ‏يوم تحت الأرضية، **أو** يوم ناقص ربع وصفته. التاني لازم:
+        # هدف ١.٦ جم/كجم ناقص ٣٦٪ لسه فوق الأرضية (١.٠٢)، فاليوم ده
+        # كان بيعدّي من غير تحذير -- والدكتور مايشوفوش. والفحص على
+        # الناقص بس، لأن يوم زايد بروتين مش مشكلة.
+        _low = [d for d in pdays
+                if (_w > 0 and (d.get("total_p") or 0) / _w < 0.95)
+                or (d.get("total_p") or 0) < _tp * 0.75]
+        if _off > 0.12 or _low:
+            _dir_ar = "أقل من" if _avg_p < _tp else "أعلى من"
+            _dir_en = "below" if _avg_p < _tp else "above"
+            _why_ar = (" ويوم أو أكتر بروتينه تحت ٠.٩٥ جم/كجم"
+                       if _low else "")
+            _why_en = (" and at least one day is below 0.95 g/kg"
+                       if _low else "")
+            _p_warn = (
+                f'<div class="pnote">⚠️ '
+                f'{_L("بروتين الأكل في الجدول", "The protein in this plan")} '
+                f'({_avg_p} {_L("جم/يوم بالمتوسط", "g/day on average")}) '
+                f'{_L(_dir_ar, _dir_en)} '
+                f'{_L("المستهدف", "the target")} ({_tp} {_L("جم", "g")})'
+                f'{_L(_why_ar, _why_en)}. '
+                f'{_L("ظبّط جرام/كجم أو زوّد بروتين في الوجبات قبل التسليم.", "Adjust the g/kg or add protein to the meals before handing this over.")}'
+                f'</div>')
+
+    summary_box = (_p_warn + f'<div class="summary"><span><b>{_L("المتوسط الفعلي/يوم", "Actual average per day")}:</b> '
                    f'{_avg_cal} {_L("سعرة", "kcal")} • {_avg_p} {_L("جم بروتين", "g protein")}</span>'
                    f'<span><b>{_L("الهدف", "Target")}:</b> {_tcal if _tcal else "-"} {_L("سعرة", "kcal")} • '
                    f'{_tp if _tp else "-"} {_L("جم بروتين", "g protein")}</span></div>')
@@ -1311,6 +1436,9 @@ tr:nth-child(even) td {{ background:#fbfcfb; }}
             padding:7px 0 0; margin-top:2px; font-size:9.5px; color:#5c6663; }}
 .summary b {{ color:#22292b; font-weight:600; }}
 .fu-note {{ font-size:9px; color:#5c6663; margin:0 0 10px; }}
+.pnote {{ font-size:9px; color:#7c2d12; background:#fff7ed;
+          border:0.5pt solid #ea580c; border-radius:3px;
+          padding:4px 6px; margin:4px 0 0; }}
 {_company_css}
 </style></head><body>
 <div class="hdr">
