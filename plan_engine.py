@@ -564,7 +564,37 @@ def generate_weekly_plan(data):
         labels = list(info["meal_labels"])
         return labels[0] if labels else "lunch"
 
-    _pf_used = {}      # ‏كل مصدر بروتين اتكرر كام مرة في الأسبوع
+    # ‏كل مصدر بروتين موجود في كام يوم من **أكل الأسبوع نفسه**، قبل
+    # أي زيادة. من غير ده الزيادة كانت بتدفع صنف من تلات أيام لأربعة
+    # (وده حد توزيع الوجبات)، فاختبار التكرار كان بيفشل مرة من تلاتة.
+    _pf_used = {}
+    try:
+        # ‏العدّ على **الخانة اللي الزيادة هتقع فيها بس**، وبنفس دالة
+        # التوزيع اللي الأسبوع بيتقاس بيها.
+        #
+        # ‏نسختين غلط قبل كده:
+        #   ١) توكن من عندي ("تونة") -- والدالة بتحوّلها "سمك"، فالعدّ
+        #      ماشافش أطباق السمك في الطابور.
+        #   ٢) العدّ على اليوم كله -- فالبيض في الفطار ٥ أيام كان
+        #      بياكل حصة بياض البيض في الغدا، والتلات مصادر بيطلعوا
+        #      "مستهلكين" فالحد بيتجاهل والزيادة تدفع صنف لـ٥.
+        #
+        # ‏والصح إن الاختبار بيقيس التكرار جوه الخانة الواحدة، فالعدّ
+        # لازم يبقى على نفس الخانة.
+        _pf_slot = _pf_slot_for(plan_info)
+        _pf_pool = {"breakfast": breakfasts, "lunch": lunches,
+                    "dinner": dinners}.get(_pf_slot)
+        _pf_base = _bf_base if _pf_slot == "breakfast" else _main_base
+        if _pf_pool:
+            _pf_bases = {_s["ar"]: _pf_base(_s["ar"])
+                         for _s in protein_fix.SOURCES}
+            for _j in range(7):
+                _b = _pf_base(_pf_pool[_j % len(_pf_pool)].get("meal", ""))
+                for _name, _want in _pf_bases.items():
+                    if _b == _want:
+                        _pf_used[_name] = _pf_used.get(_name, 0) + 1
+    except Exception:
+        _pf_used = {}
     plan = []
     for i in range(7):
         day_plan = {"day": days[i], "diet_type": diet_type,
