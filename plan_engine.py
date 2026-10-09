@@ -430,13 +430,28 @@ def generate_weekly_plan(data):
         data["sleeve_warnings"] = sl_warnings
         return sl_days
 
-    pool = get_meal_pool(goal, culture)
+    # ‏جداول الأطفال. القاعدة العادية أطباق بالغين، وأقل كثافة بروتين
+    # في قايمة الغدا فيها ٠.٠٤٤ جم/سعر -- واحتياج نورة ٠.٠٢٦. فترتيب
+    # الكثافة لوحده (تحت) نزّلها من ١٤٨ جم لـ١١٦، وهي محتاجة ٥٠.
+    # ‏الباقي محتاج أطباق مكتوبة لطفل من الأصل، وماكروزها محسوبة من
+    # مكوّناتها -- في child_meals.
+    try:
+        import child_meals
+        _child_pool = child_meals.pool_for(data.get("age"), culture)
+    except Exception:
+        child_meals, _child_pool = None, None
+    pool = _child_pool or get_meal_pool(goal, culture)
     breakfasts = list(pool.get("breakfast", []))
     lunches = list(pool.get("lunch", []))
     dinners = list(pool.get("dinner", []))
-    if len(breakfasts) < 7: breakfasts = list(WEIGHT_LOSS["مصري"]["breakfast"])
-    if len(lunches) < 7: lunches = list(WEIGHT_LOSS["مصري"]["lunch"])
-    if len(dinners) < 7: dinners = list(WEIGHT_LOSS["مصري"]["dinner"])
+    # ‏طابور أقل من ٧ بيتستبدل بقايمة البالغين المصرية. وده مع جداول
+    # الأطفال كان بيلغي الجداول من غير صوت: الخليجي كان ٦ وجبات لكل
+    # خانة، فطفل ٨ سنين خليجي كان بياخد ٦٤-١١٠ جم بروتين بدل ٣٣.
+    # ‏فالبديل بقى من **نفس القاعدة** اللي الطابور جاي منها.
+    _fb = _child_pool or WEIGHT_LOSS["مصري"]
+    if len(breakfasts) < 7: breakfasts = list(_fb["breakfast"])
+    if len(lunches) < 7: lunches = list(_fb["lunch"])
+    if len(dinners) < 7: dinners = list(_fb["dinner"])
     # ‏اسم الخانة بيتبعت مع الفلترة عشان لما الطابور يفضى تماماً (عميل
     # مختار كذا حالة مع بعض) البديل يتجاب من بدايل **الفطار** مش من قايمة
     # عامة فيها أطباق غدا -- اللي كانت بتطلّع "دجاج وأرز" في خانة الفطار.
@@ -516,7 +531,9 @@ def generate_weekly_plan(data):
     except (TypeError, ValueError):
         _base_target = 0.0
 
-    SNK_P = 8  # تقدير بروتين السناك الواحد
+    # ‏تقدير بروتين السناك الواحد. ٨ جم سناك بالغ، وسناك الطفل ٢-٤،
+    # ومن غير الفرق ده حساب بروتين اليوم بيزيد ٥ جم من العدم.
+    SNK_P = (child_meals.SNACK_P if _child_pool else 8)
 
     # ── البروتين المستهدف، ودوال الزيادة ──
     #
@@ -726,6 +743,27 @@ def generate_weekly_plan(data):
             _slot_ps = {"pre_workout": 2, "breakfast": b.get("p",20),
                         "post_workout": 31, "lunch": l.get("p",30),
                         "dinner": d.get("p",20)}
+        # ── الكارب والدهون، لما الوجبة تعرفهم ─────────────────────
+        #
+        # ‏ورقة البالغ بتقول "دهون مُقدّرة" و"كارب مُقدّر"، وده صحيح:
+        # أرقام القاعدة القديمة مكتوبة بالإيد وفيها سعرات وبروتين بس،
+        # وقِسْت استخراج الباقي من نص الوجبة فطلع ٧ وجبات من ٥٩٧
+        # أصنافها كلها بجرامات مكتوبة.
+        #
+        # ‏وجبات الأطفال مكتوبة كـ(صنف، جرامات) وماكروزها محسوبة، فهي
+        # بتعرف كاربها ودهونها. الفهرس بالنص لأن الخانة بتشيل نص --
+        # والقراءة بتحصل هنا، قبل ما الحصص تتكبّر.
+        _slot_cs, _slot_fs = {}, {}
+        _cf_full = bool(_child_pool)
+        if _child_pool:
+            for _k in plan_info["meal_labels"]:
+                _row = child_meals.MACROS.get(day_plan.get(_k) or "")
+                if _row:
+                    _slot_cs[_k] = _row[2]
+                    _slot_fs[_k] = _row[3]
+                elif day_plan.get(_k):
+                    _cf_full = False
+
         total_cal = sum(_slot_cals.values())
         total_p = sum(_slot_ps.values())
 
@@ -746,6 +784,8 @@ def generate_weekly_plan(data):
         _day_target = zz_days[i]["kcal"] if i < len(zz_days) else _base_target
         _cur_cals = dict(_slot_cals)
         _cur_ps = dict(_slot_ps)
+        _cur_cs = dict(_slot_cs)
+        _cur_fs = dict(_slot_fs)
         _cum = {}          # ‏المعامل المتراكم لكل وجبة من حصتها الأساسية
         # ‏فيه وجبات مابتتحركش: "٢ بيض" مش بيبقى "١.٨ بيضة"، و"سلطة خضراء
         # حرة" مالهاش كمية تتضرب. المعامل الموحّد كان بيتطلب منها تتحرك،
@@ -787,6 +827,9 @@ def generate_weekly_plan(data):
                 day_plan[_key] = _new
                 _cur_cals[_key] = _cur_cals.get(_key, 0) * _eff
                 _cur_ps[_key] = _cur_ps.get(_key, 0) * _eff
+                if _key in _cur_cs:
+                    _cur_cs[_key] *= _eff
+                    _cur_fs[_key] *= _eff
                 _cum[_key] = _cum.get(_key, 1.0) * _eff
                 if abs(_eff - 1.0) < 0.01:
                     # ‏طلبنا منها تتحرك ومااتحركتش -- يبقى مالهاش كمية
@@ -831,6 +874,9 @@ def generate_weekly_plan(data):
                     day_plan[_tk] = _new
                     _cur_cals[_tk] *= _eff
                     _cur_ps[_tk] *= _eff
+                    if _tk in _cur_cs:
+                        _cur_cs[_tk] *= _eff
+                        _cur_fs[_tk] *= _eff
                     _freed += _before - _cur_cals[_tk]
 
                 _src = _top["source"]
@@ -839,6 +885,7 @@ def generate_weekly_plan(data):
                                        _freed / _per_g if _per_g else 0)
                                    / 5.0) * 5)
                 if _grams > 0:
+                    _cf_full = False     # ‏الزيادة مالهاش سطر كارب/دهون
                     _slot = _pf_slot_for(plan_info)
                     _add = dict(_top, grams=_grams)
                     day_plan[_slot] = (day_plan[_slot] + " + "
@@ -864,6 +911,11 @@ def generate_weekly_plan(data):
 
         day_plan["total_cal"] = total_cal
         day_plan["total_p"] = total_p
+        # ‏بيتكتبوا بس لما كل خانة في اليوم تعرف كاربها ودهونها. يوم
+        # ناقص خانة واحدة مايطلعش رقم ناقص وهو ساكت عن النقص.
+        if _cf_full and _cur_cs:
+            day_plan["total_c"] = int(round(sum(_cur_cs.values())))
+            day_plan["total_f"] = int(round(sum(_cur_fs.values())))
         if i < len(zz_days):
             zd = zz_days[i]
             day_plan["target_cal"] = zd["kcal"]
@@ -1355,6 +1407,38 @@ def plan_html(data, plan=None, clean=False):
         _fg = round(_kcal * _fatp / 100 / 9)
         _cc = _kcal - (_pg * 4) - (_fg * 9)
         _cg = round(max(_cc, 0) / 4)
+        # ── كارب ودهون: مُقدّرين، إلا لما الأكل يعرف أرقامه ──────────
+        #
+        # ‏الرقمين فوق محسوبين من **الهدف**: السعرات × النسبة ÷ ٩
+        # للدهون والباقي كارب. وده تقدير، عشان وجبات القاعدة العادية
+        # أرقامها مكتوبة بالإيد وفيها سعرات وبروتين بس -- قِسْت
+        # استخراج الباقي من نص الوجبة وطلع ٧ وجبات من ٥٩٧ أصنافها
+        # كلها بجرامات مكتوبة.
+        #
+        # ‏جداول الأطفال مكتوبة كـ(صنف، جرامات) وماكروزها محسوبة، فكل
+        # يوم بيعرف كاربه ودهونه فعلاً. ولما السبع أيام كلهم يعرفوا،
+        # الورقة بتقول الرقم من الأكل وتشيل كلمة "مُقدّر".
+        _cf_days = [d for d in (plan or [])
+                    if d.get("total_c") is not None
+                    and d.get("total_f") is not None]
+        if plan and len(_cf_days) == len(plan):
+            _n_cf = len(_cf_days)
+            _fg_real = int(round(sum(d["total_f"] for d in _cf_days) / _n_cf))
+            _cg_real = int(round(sum(d["total_c"] for d in _cf_days) / _n_cf))
+            _cal_real = (sum(d.get("total_cal") or 0 for d in _cf_days)
+                         / float(_n_cf)) or 1
+            _fp_real = int(round(_fg_real * 9 / _cal_real * 100))
+            _macro_cf = (
+                f'<span><b>{_L("دهون (من الأكل)", "Fat (from the food)")}:</b> '
+                f'{_esc(_fg_real)} {_L("جم", "g")} ({_fp_real}%)</span>'
+                f'<span><b>{_L("كارب (من الأكل)", "Carbs (from the food)")}:</b> '
+                f'{_esc(_cg_real)} {_L("جم", "g")}</span>')
+        else:
+            _macro_cf = (
+                f'<span><b>{_L("دهون (مُقدّرة)", "Fat (estimated)")}:</b> '
+                f'{_esc(_fg)} {_L("جم", "g")} ({int(_fatp)}%)</span>'
+                f'<span><b>{_L("كارب (مُقدّر)", "Carbs (estimated)")}:</b> '
+                f'{_esc(_cg)} {_L("جم", "g")}</span>')
         macro_meta = (
             f'<span><b>{_L("مستوى النشاط", "Activity level")}:</b> {_esc(_act_label)}</span>'
             f'<span><b>{_L("بروتين مستهدف", "Protein target")}:</b> {_esc(_pg)} {_L("جم", "g")} ({_ppk} {_L("جم/كجم", "g/kg")}){_p_range}</span>'
@@ -1364,8 +1448,7 @@ def plan_html(data, plan=None, clean=False):
             # وجبات بس من ٥٩٧ أصنافها كلها بجرامات مكتوبة. فلحد ما
             # الوجبات نفسها تحمل أرقامها، الورقة بتقول إنهم تقدير بدل
             # ما تقدّمهم كأنهم الأكل.
-            f'<span><b>{_L("دهون (مُقدّرة)", "Fat (estimated)")}:</b> {_esc(_fg)} {_L("جم", "g")} ({int(_fatp)}%)</span>'
-            f'<span><b>{_L("كارب (مُقدّر)", "Carbs (estimated)")}:</b> {_esc(_cg)} {_L("جم", "g")}</span>'
+            f'{_macro_cf}'
         )
         # ── سكري النوع الأول: توزيع الكارب على عدد الوجبات لعدّ الكارب، وحساب ICR/CF لو الجرعة اليومية متوفرة ──
         _is_t1d = any(("النوع الاول" in s or "النوع الأول" in s or "type 1" in s.lower()) for s in (symptoms or []))
@@ -1463,10 +1546,48 @@ td.kcell { background:#F2F2F2 !important; font-size:9.5px !important; }
 .foot .fbox h4 { font-size:8.5px !important; color:#000 !important;
                  margin-bottom:2px !important; }
 .foot .fbox li { margin-bottom:0 !important; }
-.notes { margin-top:6px !important; font-size:8px !important;
-         border-top:0.5pt solid #000; padding-top:4px; }
-.notes h4 { color:#000 !important; }
-.sig { margin-top:5px !important; font-size:8px !important; }
+/* ‏الملاحظات الطبية كانت بتزحّف لصفحة تانية لوحدها. ملاحظة سن النمو
+   (٤-١٨) تلات أسطر كاملة، فورقة الطفل كانت بتطلع ورقتين -- والتانية
+   فيها فقرة واحدة وتوقيع. وورقة الشركة ورقة واحدة. */
+.notes { margin-top:4px !important; font-size:7px !important;
+         line-height:1.35 !important;
+         border-top:0.5pt solid #000; padding-top:3px;
+         break-inside:avoid; }
+.notes h4 { color:#000 !important; font-size:7.5px !important;
+            margin:0 0 1px !important; }
+.notes ul { padding-inline-start:10px !important; }
+.notes li { margin-bottom:0 !important; }
+.sig { margin-top:3px !important; font-size:7.5px !important; }
+"""
+
+    # ── الجدول لازم يدخل في ورقة واحدة ─────────────────────────────
+    #
+    # ‏ورقة الشركة ورقة واحدة، والخانة بتكتب كل صنف في سطر لوحده.
+    # ‏وجبات الأطفال أصنافها أكتر (مصدر الدهن صنف زيادة في كل طبق)،
+    # فالجدول طال سبع سطور وزحّف الملاحظات لصفحة تانية فيها فقرة
+    # وتوقيع -- وقِسْتها: ٤ من ٧ أوراق أطفال طلعت ورقتين.
+    #
+    # ‏والضغط مش ثابت: بيتحسب من أطول خانة فعلاً، فورقة البالغ
+    # (٣ أصناف) مابتتغيّرش، وورقة الطفل بتضيق بالقدر اللي يخليها
+    # تدخل. الأرقام دي مقيسة على الناتج المطبوع مش مخمّنة.
+    _max_items = 1
+    for _d in pdays:
+        for _m in _d.get("meals", []):
+            _max_items = max(_max_items,
+                             len((_m.get("text") or "").split(" + ")))
+    if _max_items >= 5:
+        _company_css += """
+th, td { padding:1.5px !important; font-size:8.5px !important;
+         line-height:1.22 !important; }
+th { font-size:10.5px !important; padding:3px 2px !important; }
+td.dcell { font-size:9.5px !important; }
+.meta { margin-bottom:4px !important; line-height:1.5 !important; }
+.summary { padding-top:3px; font-size:9px; }
+.foot { margin-top:4px !important; font-size:7.5px !important; }
+"""
+    elif _max_items == 4:
+        _company_css += """
+th, td { padding:2.5px !important; line-height:1.3 !important; }
 """
 
     # ── الورقة ما تقولش رقم والأكل يدي غيره ──

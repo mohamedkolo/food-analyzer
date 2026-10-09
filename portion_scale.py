@@ -42,7 +42,15 @@ _NO_SCALE = ("قرفة", "شاي", "قهوة", "ماء", "ليمون", "ملح",
 # ‏الملاعق بتفضل أرقام صحيحة: "٠.٧٥ ملعقة" مش تعليمة يقدر ينفّذها
 _SPOON_RX = re.compile(r"(\d+(?:\.\d+)?)\s*(ملعقة|ملاعق|كوب|كوباية)\b")
 
-_KCAL_RX = re.compile(r"\((\s*\d+(?:\.\d+)?)\s*kcal\s*\)")
+# ‏سعرات السناك مكتوبة جنبه، وبشكلين في القاعدة: "(80 kcal)" و"- 80
+# kcal". النسخة الأولى كانت بتمسك الأقواس بس، فسناك بشرطة كان بيتكبّر
+# والرقم جنبه مايتحركش: "تفاحة 290جم - 80 سعرة" على ورقة عميل
+# (التفاحة دي ١٥٠ سعرة). وده **كل** سناكات القاعدة القديمة -- كلها
+# بشرطة.
+_KCAL_ANY = re.compile(
+    r"\(\s*\d+(?:\.\d+)?\s*kcal\s*\)|[-\u2013\u2014]\s*\d+(?:\.\d+)?\s*kcal")
+_KCAL_PAREN = re.compile(r"\(\s*(\d+(?:\.\d+)?)\s*kcal\s*\)")
+_KCAL_DASH = re.compile(r"([-\u2013\u2014])\s*(\d+(?:\.\d+)?)\s*kcal")
 
 MIN_FACTOR = 0.5
 MAX_FACTOR = 3.0
@@ -132,7 +140,7 @@ def scale_meal(text, factor):
         return text, 1.0
 
     tail = ""
-    match = _KCAL_RX.search(text)
+    match = _KCAL_ANY.search(text)
     if match:
         tail = text[match.start():]
         text = text[:match.start()]
@@ -150,8 +158,14 @@ def scale_meal(text, factor):
     out = " + ".join(parts)
 
     if tail:
-        # ‏السناك مكتوب جنبه سعراته، فلازم تتحرك مع الحصة
-        def kcal(match):
+        # ‏السناك مكتوب جنبه سعراته، فلازم تتحرك مع الحصة. والشكل
+        # زي ما هو: الأقواس تفضل أقواس والشرطة تفضل شرطة.
+        def _paren(match):
             return "(%d kcal)" % int(round(float(match.group(1)) * effective))
-        out += _KCAL_RX.sub(kcal, tail)
+
+        def _dash(match):
+            return "%s %d kcal" % (match.group(1),
+                                   int(round(float(match.group(2))
+                                             * effective)))
+        out += _KCAL_DASH.sub(_dash, _KCAL_PAREN.sub(_paren, tail))
     return out.strip(), effective

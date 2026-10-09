@@ -187,18 +187,25 @@ def test_the_ceiling_is_the_lower_of_the_two_frames():
 
 
 def test_the_sheet_speaks_when_the_food_is_really_over():
-    """‏الطفل الصغير: أقل كثافة في القاعدة بتديله ٥٩ جم على ١٤٠٠
-    سعرة، وسقفه ٦٦. يعني القاعدة دي (أطباق بالغين) مش بتعرف تطعمه من
-    غير زيادة بروتين -- والورقة لازم تقول، مش تعدّي."""
+    """‏الطفل الصغير هو أصعب حالة: سقفه ٦٦ جم (٣ جم/كجم لـ٢٢ كجم).
+
+    ‏والتحذير إكلينيكي مش حرفي: البروتين بيتقاس على الأسبوع، فيوم
+    واحد فوق السقف مش مشكلة -- اللي مشكلة إن المتوسط برّه، أو يومين
+    وأكتر. فالاختبار بيقيس القاعدة دي، مش "أي يوم"."""
     child = dict(NOURA, age="6", weight="22", height="118", tdee="1400",
                  goal_cal="1400", protein_per_kg="1.0")
     _data, plan, html = _plan(child)
     band = protein_need.band(22, 118, 6, 1.0, 1400)
-    over = [d for d in plan if d["total_p"] > band[1]]
-    if over:
-        notes = " ".join(re.findall(r'<div class="pnote"[^>]*>(.*?)</div>',
-                                    html, re.S))
-        assert "⚠️" in notes, "‏%d يوم فوق السقف والورقة ساكتة" % len(over)
+    days = [d["total_p"] for d in plan]
+    avg = sum(days) / float(len(days))
+    out = [p for p in days if not band[0] <= p <= band[1]]
+    warned = "⚠️" in " ".join(
+        re.findall(r'<div class="pnote"[^>]*>(.*?)</div>', html, re.S))
+    if avg > band[1] or avg < band[0] or len(out) >= 2:
+        assert warned, "‏الأسبوع برّه النطاق %s (%s) والورقة ساكتة" % (
+            band, days)
+    # ‏والجداول المفروض توصّله جوه النطاق من الأصل
+    assert avg <= band[1], "‏متوسط %.0f جم وسقفه %d" % (avg, band[1])
 
 
 def test_an_adult_is_not_touched_by_any_of_this():

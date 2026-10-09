@@ -29,6 +29,7 @@ os.environ.setdefault("ADMIN_PASSWORD", "pw123456")
 import app as A            # noqa: E402
 import plan_engine         # noqa: E402
 import zigzag              # noqa: E402
+import re                              # noqa: E402
 from portion_scale import scale_meal   # noqa: E402
 
 BASE = {"name": "اختبار", "age": "30", "gender": "انثى", "height": "165",
@@ -170,6 +171,31 @@ def test_the_high_cycling_day_really_gets_more_food():
     low = min(pairs, key=lambda x: x[0])
     assert high[1] > low[1] * 1.2, (
         "‏أعلى يوم %s وأقل يوم %s -- الأكل مش بيتحرك مع الهدف" % (high, low))
+
+
+def test_the_snack_calories_move_in_the_dash_form_too():
+    """‏سعرات السناك مكتوبة جنبه بشكلين: "(80 kcal)" و"- 80 kcal".
+    ‏النسخة الأولى كانت بتمسك الأقواس بس، و**كل** سناكات القاعدة
+    بشرطة -- فورقة عميل كانت بتقول "تفاحة 290جم - 80 سعرة"،
+    والتفاحة دي ١٥٠ سعرة."""
+    for text, base in (("🍎 تفاحة (150جم) - 80 kcal", 80),
+                       ("🍊 برتقالة 130جم - 61 kcal", 61),
+                       ("🥣 زبادي 120جم + 🍯 عسل 5جم - 88 kcal", 88)):
+        out, eff = scale_meal(text, 2.0)
+        found = re.search(r"(\d+)\s*kcal", out)
+        assert found, out
+        written = int(found.group(1))
+        assert abs(written - base * eff) <= 2, (
+            "‏الحصة اتكبّرت ×%.2f والسعرات المكتوبة %d من %d: %s"
+            % (eff, written, base, out))
+
+
+def test_the_calorie_shape_stays_the_way_it_was_written():
+    """‏الأقواس تفضل أقواس والشرطة تفضل شرطة -- ده نص بيتقرا."""
+    out, _eff = scale_meal("🍎 تفاحة (150جم) - 80 kcal", 2.0)
+    assert " - " in out and "kcal)" not in out, out
+    out2, _eff2 = scale_meal("فاكهة + 🌰 لوز 20جم (120 kcal)", 2.0)
+    assert "(240 kcal)" in out2, out2
 
 
 if __name__ == "__main__":
