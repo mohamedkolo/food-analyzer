@@ -547,7 +547,15 @@ def generate_weekly_plan(data):
                                                or "regular", 1.6))
     except (TypeError, ValueError):
         _pf_ppk = 1.6
-    _target_p = round(_pf_w * _pf_ppk) if (_pf_w > 0 and _pf_ppk > 0) else 0
+    # ‏الهدف مش دايماً وزن العميل × جرام/كجم. ورقة نورة (١٠ سنين،
+    # ١٠٨.٨ كجم، طول ١٥٢) كانت بتطبع ١٤١ جم بروتين -- تلات أضعاف
+    # توصية سنها -- وزيادة البروتين كانت بتشتغل عشان توصّلها. التفاصيل
+    # والحساب في protein_need.
+    import protein_need
+    _target_p, _pf_basis, _pf_why, _pf_used_rate = protein_need.target_grams(
+        _pf_w, data.get("height"), data.get("age"), _pf_ppk)
+    data["protein_basis"] = {"grams": _target_p, "weight": _pf_basis,
+                             "why": _pf_why, "per_kg": _pf_used_rate}
 
     def _pf_safe(text):
         """‏الزيادة لازم تعدّي حالات العميل وممنوعاته زي أي أكل تاني."""
@@ -965,6 +973,22 @@ _EMOJI_RX = re.compile(
     "\U00002700-\U000027BF\U0000200D]+")
 
 
+def _protein_target(data, weight, per_kg):
+    """‏هدف البروتين زي ما المحرّك حسبه بالظبط.
+
+    ‏الورقة والمحرّك لازم يكونوا على نفس الرقم. كانوا اتنين: المحرّك
+    على protein_need والورقة على weight × per_kg، فورقة نورة (١٠
+    سنين) طبعت ١٤١ جم والجدول اللي تحتها متبني على ٥٠.
+    """
+    try:
+        import protein_need
+        grams, _basis, _why, _used = protein_need.target_grams(
+            weight, data.get("height"), data.get("age"), per_kg)
+        return grams
+    except Exception:
+        return round(float(weight or 0) * float(per_kg or 0))
+
+
 def plan_html(data, plan=None, clean=False):
     """‏صفحة الجدول كـHTML. build_pdf تحتها بتحوّلها لـPDF.
 
@@ -1268,7 +1292,11 @@ def plan_html(data, plan=None, clean=False):
                                               "Trains regularly / weight loss"))
     macro_meta = ""
     if _w > 0 and _kcal > 0:
-        _pg = round(_w * _ppk)
+        # ‏نفس الحساب اللي المحرّك بيبني بيه، مش حساب تاني. كان
+        # round(_w * _ppk) هنا و protein_need في المحرّك، فالورقة
+        # تطبع ١٤١ لنورة والجدول متبني على ٥٠ -- الورقة بتناقض
+        # الأكل اللي جوّاها.
+        _pg = _protein_target(data, _w, _ppk)
         _fg = round(_kcal * _fatp / 100 / 9)
         _cc = _kcal - (_pg * 4) - (_fg * 9)
         _cg = round(max(_cc, 0) / 4)
@@ -1309,7 +1337,7 @@ def plan_html(data, plan=None, clean=False):
                 )
 
     _tcal = int(_kcal) if _kcal > 0 else None
-    _tp = round(_w * _ppk) if _w > 0 else None
+    _tp = _protein_target(data, _w, _ppk) if _w > 0 else None
     # ── شكل ورقة الشركة. على **كل** نسخة، مش النضيفة بس ──
     #
     # ‏الدكتور بعت ورقة الشركة (IR Formula) وقال الأول: عايزه زيها في
@@ -1403,6 +1431,24 @@ td.kcell { background:#F2F2F2 !important; font-size:9.5px !important; }
     # والشرط ده كان بيضرب على ورقة متوسطها مظبوط بسبب يوم **زايد**
     # بروتين -- وزيادة البروتين في يوم مش مشكلة. فكان بيطلّع تحذير
     # على ورقة سليمة، والاختبار بقى متقلقل (فشل ٣ مرات من ١٠).
+    # ‏سطر حساب البروتين لو اتغيّر عن "وزن × جرام/كجم" (طفل). لازم
+    # يبان: الدكتور شايف "بروتين مستهدف ٥٠ جم" لطفلة ١٠٨ كجم، ولازم
+    # يعرف الرقم جه منين.
+    _p_warn_basis = ""
+    if (data.get("protein_basis") or {}).get("why"):
+        try:
+            import protein_need
+            _bn = protein_need.note(data.get("age"), data.get("height"),
+                                    data.get("weight"),
+                                    data.get("protein_per_kg") or _ppk,
+                                    is_ar=_pdf_ar)
+        except Exception:
+            _bn = None
+        if _bn:
+            _p_warn_basis = ('<div class="pnote" style="color:#13394d;'
+                             'background:#eef4f8;border-color:#1B6E80">ℹ️ '
+                             + _esc(_bn.replace("**", "")) + '</div>')
+
     _p_warn = ""
     if _tp and _avg_p:
         _off = abs(_avg_p - _tp) / float(_tp)
@@ -1430,7 +1476,7 @@ td.kcell { background:#F2F2F2 !important; font-size:9.5px !important; }
                 f'{_L("ظبّط جرام/كجم أو زوّد بروتين في الوجبات قبل التسليم.", "Adjust the g/kg or add protein to the meals before handing this over.")}'
                 f'</div>')
 
-    summary_box = (_p_warn + f'<div class="summary"><span><b>{_L("المتوسط الفعلي/يوم", "Actual average per day")}:</b> '
+    summary_box = (_p_warn_basis + _p_warn + f'<div class="summary"><span><b>{_L("المتوسط الفعلي/يوم", "Actual average per day")}:</b> '
                    f'{_avg_cal} {_L("سعرة", "kcal")} • {_avg_p} {_L("جم بروتين", "g protein")}</span>'
                    f'<span><b>{_L("الهدف", "Target")}:</b> {_tcal if _tcal else "-"} {_L("سعرة", "kcal")} • '
                    f'{_tp if _tp else "-"} {_L("جم بروتين", "g protein")}</span></div>')
