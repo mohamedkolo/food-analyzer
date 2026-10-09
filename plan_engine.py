@@ -167,6 +167,24 @@ def _apply_clinical_safety_caps(data):
     if 4 <= _age <= 18:
         flags += get_nutrient_boost_notes(["عمر 4-18"])
 
+    # ‏أنظمة مش للأطفال. طلعت من قياس خطة نورة (١٠ سنين): نظام ١٨/٦
+    # بيديها ١٨٣ جم بروتين -- ٣٣٪ من الطاقة، فوق النطاق المنشور --
+    # وده مش عيب في الحصص، ده عيب في إن النظام نفسه وجبتين بس،
+    # والاتنين من أطباق الغدا. وقبل ما نظبط حصص، الأصل إن الصيام
+    # المتقطع والكيتو مش أدوات تخسيس لطفل في سن النمو: الصيام
+    # بيضغط على وجبات يوم بيحتاج فيه نمو، والكيتو علاج طبي (صرع)
+    # بإشراف، مش نظام رجيم.
+    _child_plan = {
+        "intermittent_16_8": "صيام متقطع",
+        "intermittent_18_6": "صيام متقطع",
+        "keto": "كيتو",
+        "chemical": "الدايت الكيميائي",
+    }.get(data.get("diet_plan_type") or "")
+    if 0 < _age < 18 and _child_plan:
+        flags.append("⚠️ سن %d سنة: %s مش نظام موصى بيه في سن النمو. "
+                     "الأنسب نظام متوازن بوجبات موزّعة، والقرار قرارك."
+                     % (_age, _child_plan))
+
     try:
         tdee_val = float(data.get("tdee", 0) or 0)
         goal_cal_val = float(data.get("goal_cal", 0) or 0)
@@ -491,36 +509,6 @@ def generate_weekly_plan(data):
     random.shuffle(lunches)
     random.shuffle(dinners)
 
-    # تفضيل البروتين العالي للأهداف اللي محتاجة بروتين أكتر
-    _prefer_protein = (goal in ("muscle_gain", "bulking")) or is_cutting or (data.get("activity_level") == "athlete")
-    if _prefer_protein:
-        breakfasts = sorted(breakfasts, key=lambda m: m.get("p", 0), reverse=True)
-        lunches = sorted(lunches, key=lambda m: m.get("p", 0), reverse=True)
-        dinners = sorted(dinners, key=lambda m: m.get("p", 0), reverse=True)
-
-    # ترتيب حسب الحالة المرضية: المفيد للحالة الأول، المتجنّب آخراً
-    _cond_keys = []
-    try:
-        from meal_extra import conditions_to_keys
-        _cond_keys = conditions_to_keys(symptoms)
-    except Exception:
-        _cond_keys = []
-    if _cond_keys:
-        breakfasts = _rank_by_condition(breakfasts, _cond_keys)
-        lunches = _rank_by_condition(lunches, _cond_keys)
-        dinners = _rank_by_condition(dinners, _cond_keys)
-
-    # ‏آخر خطوة قبل الاختيار: مايتكرّرش نفس المكوّن أكتر من ٣ أيام في الفطار.
-    # لازم تبقى بعد الترتيب بالبروتين والحالة، عشان متغيّرش أولوياتهم -- هي
-    # بتوزّع اللي هما رتّبوه.
-    breakfasts = _spread_by_base(breakfasts, take=7, cap=3)
-    # ‏والغدا والعشا بمصدر البروتين: سبع أيام دجاج مش خطة، وده كان بيحصل
-    # لأن الترتيب بالبروتين بيطلّع الدجاج فوق.
-    lunches = _spread_by_base(lunches, take=7, cap=3, base=_main_base)
-    dinners = _spread_by_base(dinners, take=7, cap=3, base=_main_base)
-
-    from portion_scale import scale_meal
-
     # ‏هدف السعرات اليومي: اللي الدكتور كتبه. لو مكتوبش، الحصص تفضل زي ما هي
     # بدل ما نخمّن رقم ونكبّر عليه.
     try:
@@ -556,6 +544,58 @@ def generate_weekly_plan(data):
         _pf_w, data.get("height"), data.get("age"), _pf_ppk)
     data["protein_basis"] = {"grams": _target_p, "weight": _pf_basis,
                              "why": _pf_why, "per_kg": _pf_used_rate}
+
+    # تفضيل البروتين العالي للأهداف اللي محتاجة بروتين أكتر
+    _prefer_protein = (goal in ("muscle_gain", "bulking")) or is_cutting or (data.get("activity_level") == "athlete")
+    # ‏والطفل بالعكس تماماً. ورقة نورة (١٠ سنين، ١٠٨.٨ كجم) هدفها ٥٠ جم
+    # بروتين والأكل كان بيديها بين ٧٦ و**١٨٣**. السبب اتنين مع بعض:
+    # الترتيب فوق بيطلّع أعلى الأطباق بروتين (لأن التخسيس is_cutting)،
+    # والمعامل اللي بيوصّل اليوم لسعراته بيضرب البروتين مع السعرات --
+    # فطبق جمبري ٤٥ جم بروتين بقى ٢٩٠جم جمبري و٩٠ جم بروتين.
+    #
+    # ‏فالاختيار نفسه بيبقى على **كثافة البروتين** (جم لكل سعر) القريبة
+    # من كثافة احتياجه، مش على أعلى بروتين. والقاعدة فيها الأطباق دي
+    # فعلاً: يوم الجمعة في نفس الأسبوع طلع ٧٦ جم من غير أي تدخّل.
+    _child = protein_need.is_child(data.get("age"))
+    _want_density = 0.0
+    if _child and _target_p > 0 and _base_target > 0:
+        _want_density = _target_p / _base_target
+    if _want_density > 0:
+        def _density_gap(meal):
+            _c = float(meal.get("cal") or 0)
+            if _c <= 0:
+                return 9.9
+            return abs(float(meal.get("p") or 0) / _c - _want_density)
+        breakfasts = sorted(breakfasts, key=_density_gap)
+        lunches = sorted(lunches, key=_density_gap)
+        dinners = sorted(dinners, key=_density_gap)
+    elif _prefer_protein:
+        breakfasts = sorted(breakfasts, key=lambda m: m.get("p", 0), reverse=True)
+        lunches = sorted(lunches, key=lambda m: m.get("p", 0), reverse=True)
+        dinners = sorted(dinners, key=lambda m: m.get("p", 0), reverse=True)
+
+    # ترتيب حسب الحالة المرضية: المفيد للحالة الأول، المتجنّب آخراً
+    _cond_keys = []
+    try:
+        from meal_extra import conditions_to_keys
+        _cond_keys = conditions_to_keys(symptoms)
+    except Exception:
+        _cond_keys = []
+    if _cond_keys:
+        breakfasts = _rank_by_condition(breakfasts, _cond_keys)
+        lunches = _rank_by_condition(lunches, _cond_keys)
+        dinners = _rank_by_condition(dinners, _cond_keys)
+
+    # ‏آخر خطوة قبل الاختيار: مايتكرّرش نفس المكوّن أكتر من ٣ أيام في الفطار.
+    # لازم تبقى بعد الترتيب بالبروتين والحالة، عشان متغيّرش أولوياتهم -- هي
+    # بتوزّع اللي هما رتّبوه.
+    breakfasts = _spread_by_base(breakfasts, take=7, cap=3)
+    # ‏والغدا والعشا بمصدر البروتين: سبع أيام دجاج مش خطة، وده كان بيحصل
+    # لأن الترتيب بالبروتين بيطلّع الدجاج فوق.
+    lunches = _spread_by_base(lunches, take=7, cap=3, base=_main_base)
+    dinners = _spread_by_base(dinners, take=7, cap=3, base=_main_base)
+
+    from portion_scale import scale_meal
 
     def _pf_safe(text):
         """‏الزيادة لازم تعدّي حالات العميل وممنوعاته زي أي أكل تاني."""
@@ -1297,12 +1337,27 @@ def plan_html(data, plan=None, clean=False):
         # تطبع ١٤١ لنورة والجدول متبني على ٥٠ -- الورقة بتناقض
         # الأكل اللي جوّاها.
         _pg = _protein_target(data, _w, _ppk)
+        # ‏لطفل الورقة بتقول نطاق مش رقم: التوصية أرضية والـAMDR سقف.
+        # ‏الدكتور كان شايف "٥٠ جم" وتحتيها جدول بيدي ١١٦، فيفتكرها
+        # غلطة. هي مش غلطة -- هي رقمين مختلفين: أقل كمية مطلوبة،
+        # وأكتر كمية مقبولة.
+        _p_range = ""
+        try:
+            import protein_need as _pn_meta
+            _bnd = _pn_meta.band(_w, data.get("height"), data.get("age"),
+                                 _ppk, _kcal)
+            if _bnd:
+                _p_range = (" &mdash; %s %d-%d"
+                            % (_L("النطاق المقبول", "accepted range"),
+                               _bnd[0], _bnd[1]))
+        except Exception:
+            _p_range = ""
         _fg = round(_kcal * _fatp / 100 / 9)
         _cc = _kcal - (_pg * 4) - (_fg * 9)
         _cg = round(max(_cc, 0) / 4)
         macro_meta = (
             f'<span><b>{_L("مستوى النشاط", "Activity level")}:</b> {_esc(_act_label)}</span>'
-            f'<span><b>{_L("بروتين مستهدف", "Protein target")}:</b> {_esc(_pg)} {_L("جم", "g")} ({_ppk} {_L("جم/كجم", "g/kg")})</span>'
+            f'<span><b>{_L("بروتين مستهدف", "Protein target")}:</b> {_esc(_pg)} {_L("جم", "g")} ({_ppk} {_L("جم/كجم", "g/kg")}){_p_range}</span>'
             # ‏"مُقدّر": الرقمين دول محسوبين من **الهدف** مش من الأكل --
             # السعرات × النسبة ÷ ٩ للدهون، والباقي كارب. قِسْت إمكانية
             # حسابهم من مكوّنات الوجبات (meal_macros) والنتيجة إن ٧
@@ -1455,8 +1510,57 @@ td.kcell { background:#F2F2F2 !important; font-size:9.5px !important; }
                              'background:#eef4f8;border-color:#1B6E80">ℹ️ '
                              + _esc(_bn.replace("**", "")) + '</div>')
 
+    # ‏الطفل: نطاق مش رقم واحد.
+    #
+    # ‏التوصية (RDA) أرضية -- أقل كمية تمنع النقص -- ومش سقف. وقاعدة
+    # الأكل أطباق بالغين: أقل كثافة بروتين في الغدا ٠.٠٤٤ جم/سعر،
+    # وكثافة احتياج نورة ٠.٠٢٦. يعني مافيش أسبوع من القاعدة دي
+    # بيوقف على ٥٠ جم بالظبط، ولو قارنّا بالرقم لوحده الورقة هتفضل
+    # مكتوب عليها تحذير للأبد من غير ما يكون فيه غلط إكلينيكي.
+    #
+    # ‏فالمقارنة بقت على النطاق المنشور (AMDR): ١٠-٣٠٪ من سعرات
+    # اليوم، أرضيته مابتنزلش تحت التوصية. والتحذير بيضرب لما الأكل
+    # يخرج منه فعلاً -- وده اللي كان بيحصل قبل ترتيب الكثافة: يوم
+    # ١٦٥ جم على ١٦٢١ سعرة = ٤١٪ من الطاقة، برّه النطاق بوضوح.
+    _band = None
+    try:
+        import protein_need as _pn_band
+        _band = _pn_band.band(_w, data.get("height"), data.get("age"),
+                              _ppk, _kcal or _avg_cal)
+    except Exception:
+        _band = None
+
     _p_warn = ""
-    if _tp and _avg_p:
+    if _band and _avg_p:
+        _blo, _bhi = _band
+        # ‏كل يوم على سعرات **نفسه**: النطاق نسبة من الطاقة، ويوم
+        # التدوير العالي (٢٢٠٠) نطاقه أوسع من يوم الـ١٥٣٠. لو اتقاسوا
+        # كلهم على هدف اليوم المتوسط، يوم عالي سليم بيطلع "برّه".
+        _out = []
+        for _d in pdays:
+            _dband = None
+            try:
+                _dband = _pn_band.band(_w, data.get("height"),
+                                       data.get("age"), _ppk,
+                                       _d.get("total_kcal") or _d.get("total_cal") or 0)
+            except Exception:
+                _dband = None
+            _dlo, _dhi = _dband or (_blo, _bhi)
+            if not (_dlo <= (_d.get("total_p") or 0) <= _dhi):
+                _out.append(_d)
+        if _avg_p > _bhi or _avg_p < _blo or len(_out) >= 2:
+            _dir_ar = "تحت" if _avg_p < _blo else "فوق"
+            _dir_en = "below" if _avg_p < _blo else "above"
+            _p_warn = (
+                f'<div class="pnote">⚠️ '
+                f'{_L("بروتين الأكل في الجدول", "The protein in this plan")} '
+                f'({_avg_p} {_L("جم/يوم بالمتوسط", "g/day on average")}) '
+                f'{_L(_dir_ar, _dir_en)} '
+                f'{_L("النطاق المقبول لسن الطفل", "the accepted range for this child")} '
+                f'({_blo}-{_bhi} {_L("جم", "g")}). '
+                f'{_L("راجع الحصص قبل التسليم.", "Review the portions before handing this over.")}'
+                f'</div>')
+    elif _tp and _avg_p:
         _off = abs(_avg_p - _tp) / float(_tp)
         # ‏يوم تحت الأرضية، **أو** يوم ناقص ربع وصفته. التاني لازم:
         # هدف ١.٦ جم/كجم ناقص ٣٦٪ لسه فوق الأرضية (١.٠٢)، فاليوم ده

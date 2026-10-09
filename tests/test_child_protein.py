@@ -113,13 +113,102 @@ def test_the_sheet_says_what_it_computed_on():
     assert "38" in joined, "‏مش بيقول الوزن اللي اتحسب عليه: %s" % notes
 
 
-def test_the_sheet_flags_that_the_food_is_still_far_above_a_child():
-    """‏الهدف اتصلّح، بس الأكل في القاعدة بحصص بالغين -- ١٤٩ جم/يوم
-    لطفلة محتاجة ٥٠. الورقة لازم تقول كده بدل ما تعدّي."""
+def test_the_meals_are_chosen_on_protein_density_not_on_most_protein():
+    """‏الهدف اتصلّح قبل كده، بس الأكل فضل بحصص بالغين: ٧٦-**١٨٣** جم
+    في الأسبوع الواحد. سببين مع بعض -- الترتيب بيطلّع أعلى الأطباق
+    بروتين (التخسيس)، والمعامل اللي بيوصّل اليوم لسعراته بيضرب
+    البروتين مع السعرات (جمبري ٢٩٠جم في طبق واحد).
+
+    ‏دلوقتي الاختيار على كثافة البروتين القريبة من كثافة الاحتياج."""
+    _data, plan, _html = _plan(NOURA)
+    worst = max(d["total_p"] for d in plan)
+    assert worst < 165, "‏أعلى يوم %d جم -- لسه بيختار أعلى الأطباق بروتين" % worst
+
+
+def test_every_day_lands_inside_the_published_range():
+    """‏التوصية (RDA) أرضية مش سقف، والسقف المنشور هو الـAMDR:
+    ١٠-٣٠٪ من سعرات اليوم. والقياس على سعرات **اليوم نفسه**، لأن
+    يوم التدوير العالي نطاقه أوسع."""
+    _data, plan, _html = _plan(NOURA)
+    for day in plan:
+        band = protein_need.band(108.8, 152, 10, 1.3, day["total_cal"])
+        assert band, day
+        assert band[0] <= day["total_p"] <= band[1], (
+            "‏%s: %d جم على %d سعرة -- برّه النطاق %s"
+            % (day["day"], day["total_p"], day["total_cal"], band))
+
+
+def test_the_sheet_prints_the_range_not_only_the_floor():
+    """‏الدكتور كان شايف "٥٠ جم" وتحتيها جدول بيدي ١١٦ فيفتكرها غلطة.
+    هي مش غلطة -- هي رقمين: أقل كمية مطلوبة، وأكتر كمية مقبولة."""
     _data, _plan_days, html = _plan(NOURA)
+    band = protein_need.band(108.8, 152, 10, 1.3, 1912)
+    assert re.search(r"%d\s*-\s*%d" % band, html), (
+        "‏الورقة مش بتقول النطاق %s" % (band,))
+
+
+def test_a_silent_sheet_means_the_food_is_in_range():
+    """‏التحذير اتغيّر من "فوق المستهدف" لـ"برّه النطاق". لو سكت،
+    لازم يكون ساكت على حق."""
+    data, plan, html = _plan(NOURA)
     notes = " ".join(re.findall(r'<div class="pnote"[^>]*>(.*?)</div>',
                                 html, re.S))
-    assert "أعلى من" in notes, "‏الأكل فوق الاحتياج بكتير والورقة ساكتة"
+    if "⚠️" in notes:
+        return      # ‏بيحذّر -- والتحذير مطلوب لما يكون برّه
+    for day in plan:
+        band = protein_need.band(108.8, 152, 10, 1.3, day["total_cal"])
+        assert band[0] <= day["total_p"] <= band[1], (
+            "‏الورقة ساكتة ويوم %s برّه النطاق" % day["day"])
+
+
+def test_fasting_is_not_handed_to_a_ten_year_old_without_a_word():
+    """‏نظام ١٨/٦ لطفلة بيدي ١٨٣ جم بروتين (٣٣٪ من الطاقة). وده مش
+    عيب في الحصص -- النظام نفسه وجبتين بس من أطباق الغدا. والأصل إن
+    الصيام المتقطع مش أداة تخسيس في سن النمو."""
+    for plan_type in ("intermittent_16_8", "intermittent_18_6", "keto"):
+        data = dict(NOURA, diet_plan_type=plan_type)
+        data, _plan_days, _html = _plan(data)
+        assert "سن النمو" in (data.get("notes") or ""), (
+            "‏%s اتسلّم لطفلة من غير كلمة" % plan_type)
+
+
+def test_the_ceiling_is_the_lower_of_the_two_frames():
+    """‏نطاق الطاقة لوحده بيسمح لطفل ٢٢ كجم بـ١٠٥ جم بروتين -- ٤.٨
+    جم/كجم. والجرام/كجم لوحده بيطلّع لنورة (وزن مرجعي ٣٨) سقف أقل
+    من أكل يوم عادي، والبروتين في عجز السعرات هو اللي بيحمي العضل.
+
+    ‏فالسقف أقل الاتنين، وكل واحد بيمسك الحالة اللي التاني بيسيبها."""
+    small = protein_need.band(22, 118, 6, 1.0, 1400)
+    assert small[1] <= 22 * protein_need.DELIVERED_MAX_PER_KG, small
+    assert small[1] < 105, "‏نطاق الطاقة لوحده -- ٤.٨ جم/كجم لطفل ٦ سنين"
+
+    obese = protein_need.band(108.8, 152, 10, 1.3, 1912)
+    assert obese[1] == 143, obese     # ‏نطاق الطاقة هو اللي ماسك هنا
+
+
+def test_the_sheet_speaks_when_the_food_is_really_over():
+    """‏الطفل الصغير: أقل كثافة في القاعدة بتديله ٥٩ جم على ١٤٠٠
+    سعرة، وسقفه ٦٦. يعني القاعدة دي (أطباق بالغين) مش بتعرف تطعمه من
+    غير زيادة بروتين -- والورقة لازم تقول، مش تعدّي."""
+    child = dict(NOURA, age="6", weight="22", height="118", tdee="1400",
+                 goal_cal="1400", protein_per_kg="1.0")
+    _data, plan, html = _plan(child)
+    band = protein_need.band(22, 118, 6, 1.0, 1400)
+    over = [d for d in plan if d["total_p"] > band[1]]
+    if over:
+        notes = " ".join(re.findall(r'<div class="pnote"[^>]*>(.*?)</div>',
+                                    html, re.S))
+        assert "⚠️" in notes, "‏%d يوم فوق السقف والورقة ساكتة" % len(over)
+
+
+def test_an_adult_is_not_touched_by_any_of_this():
+    """‏البالغ مالوش نطاق AMDR هنا، ولا ملاحظة سن نمو، والترتيب
+    بيفضل على أعلى بروتين زي ما هو."""
+    adult = dict(NOURA, age="30", weight="90", height="170")
+    data, _plan_days, html = _plan(adult)
+    assert protein_need.band(90, 170, 30, 1.8, 2000) is None
+    assert "سن النمو" not in (data.get("notes") or "")
+    assert "النطاق المقبول" not in html
 
 
 def test_a_missing_age_does_not_break_anything():

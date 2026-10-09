@@ -167,3 +167,71 @@ def note(age, height, weight, per_kg, is_ar=True):
 
 def _fmt(value):
     return ("%g" % round(float(value), 1))
+
+
+# ‏نطاق توزيع الطاقة المقبول (AMDR) للبروتين، كنسبة من سعرات اليوم.
+# ‏التوصية (RDA) **أرضية** -- أقل كمية تمنع النقص. والسؤال التاني،
+# "طيب وإيه السقف؟"، جوابه مش الـRDA مضروبة في رقم من عندي: الـAMDR
+# هو الحد المنشور، ١٠-٣٠٪ من السعرات لسن ٤-١٨ (و٥-٢٠٪ تحت ٤ سنين).
+#
+# ‏ليه ده بيهم هنا: قاعدة الأكل أطباق بالغين. أقل كثافة بروتين فيها
+# (الغدا) ٠.٠٤٤ جم/سعر، وكثافة احتياج نورة ٠.٠٢٦ -- يعني **مافيش**
+# أسبوع من القاعدة دي بيوصّلها ٥٠ جم بالظبط. اللي ينفع يتعمل إن الأكل
+# يبقى جوه النطاق المنشور، والورقة تقول النطاق بدل ما تقول رقم واحد
+# والأكل بعيد عنه بالضعف.
+_AMDR = ((3, 0.05, 0.20), (18, 0.10, 0.30))
+
+
+def energy_band(kcal, age):
+    """‏(أقل، أكتر) جرامات بروتين مقبولة لسعرات اليوم، أو None للبالغ."""
+    if not is_child(age):
+        return None
+    try:
+        energy = float(kcal or 0)
+        years = float(age)
+    except (TypeError, ValueError):
+        return None
+    if energy <= 0:
+        return None
+    for top, low, high in _AMDR:
+        if years <= top:
+            return (int(round(energy * low / 4.0)),
+                    int(round(energy * high / 4.0)))
+    return None
+
+
+# ‏أعلى جرام/كجم من الوزن **الفعلي** يتقبل في أكل طفل. مافيش حد أعلى
+# (UL) منشور للبروتين، بس الممارسة بتعتبر فوق ٣ جم/كجم في الطفل زيادة.
+#
+# ‏ليه الوزن الفعلي هنا والمرجعي في الهدف: الطفل السمين سعراته سعرات
+# جسم كبير، فسقف محسوب على وزنه المرجعي (٣٨ كجم لنورة) بيطلّع رقم
+# أقل من أكل يوم عادي -- والبروتين العالي في عجز السعرات هو اللي
+# بيحمي الكتلة العضلية أصلاً. والطفل الصغير العكس: نطاق الطاقة
+# لوحده بيسمح لطفل ٢٢ كجم بـ١٠٥ جم، وده ٤.٨ جم/كجم.
+#
+# ‏فالسقف أقل الاتنين: نطاق الطاقة، والجرام/كجم. كل واحد فيهم بيمسك
+# الحالة اللي التاني بيسيبها.
+DELIVERED_MAX_PER_KG = 3.0
+
+
+def band(weight, height, age, per_kg, kcal):
+    """‏الأرضية والسقف لطفل: (أرضية, سقف) أو None.
+
+    ‏الأرضية هي الأعلى من التوصية وأقل الـAMDR -- التوصية مابتنزلش،
+    والـAMDR على سعرات اليوم. والسقف أعلى الـAMDR.
+    """
+    amdr = energy_band(kcal, age)
+    if not amdr:
+        return None
+    grams, _basis, _why, _used = target_grams(weight, height, age, per_kg)
+    low = max(grams, amdr[0])
+    high = amdr[1]
+    try:
+        actual = float(weight or 0)
+    except (TypeError, ValueError):
+        actual = 0.0
+    if actual > 0:
+        high = min(high, int(round(actual * DELIVERED_MAX_PER_KG)))
+    if high < low:
+        high = low
+    return (low, high)
