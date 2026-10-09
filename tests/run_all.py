@@ -39,6 +39,7 @@ SUITES = [
     "test_protein_target.py",
     "test_child_protein.py",
     "test_meal_macros.py",
+    "test_money.py",
 ]
 
 
