@@ -38,6 +38,7 @@ SUITES = [
     "test_diet_programs.py",
     "test_protein_target.py",
     "test_child_protein.py",
+    "test_meal_macros.py",
 ]
 
 
