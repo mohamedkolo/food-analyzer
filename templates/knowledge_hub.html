@@ -63,7 +63,7 @@
 <div id="analyzer-section" class="card">
   <div class="card-title">
     <i class="fa-solid fa-magnifying-glass-chart"></i> {{ 'محلل الأطعمة المجاني' if is_ar else 'Free Food Analyzer' }}
-    <span style="background:#E4F0F4;color:#0F2A43;padding:2px 10px;border-radius:20px;font-size:11px;margin-right:auto">300+ {{ 'أكلة' if is_ar else 'foods' }}</span>
+    <span style="background:#E4F0F4;color:#0F2A43;padding:2px 10px;border-radius:20px;font-size:11px;margin-inline-start:auto">300+ {{ 'أكلة' if is_ar else 'foods' }}</span>
   </div>
   <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
     {{ 'اكتب اسم أي وجبة أو تصفح حسب الفئة' if is_ar else 'Type any food or browse by category' }}
@@ -1073,15 +1073,15 @@ function showDisease(key) {
     '<div style="display:grid;gap:14px">' +
       '<div style="background:#E4F0F4;border:1px solid #B4D0DA;border-radius:10px;padding:14px">' +
         '<div style="font-weight:800;color:#0F2A43;margin-bottom:8px">✅ ' + (IS_AR ? 'مسموح' : 'Allowed') + '</div>' +
-        '<ul style="margin:0;padding-right:18px;line-height:2;color:#0F2A43;font-size:13px">' + allowed.map(function(x){return '<li>'+x+'</li>';}).join('') + '</ul>' +
+        '<ul style="margin:0;padding-inline-start:18px;line-height:2;color:#0F2A43;font-size:13px">' + allowed.map(function(x){return '<li>'+x+'</li>';}).join('') + '</ul>' +
       '</div>' +
       '<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:14px">' +
         '<div style="font-weight:800;color:#991b1b;margin-bottom:8px">🚫 ' + (IS_AR ? 'ممنوع' : 'Forbidden') + '</div>' +
-        '<ul style="margin:0;padding-right:18px;line-height:2;color:#991b1b;font-size:13px">' + forbidden.map(function(x){return '<li>'+x+'</li>';}).join('') + '</ul>' +
+        '<ul style="margin:0;padding-inline-start:18px;line-height:2;color:#991b1b;font-size:13px">' + forbidden.map(function(x){return '<li>'+x+'</li>';}).join('') + '</ul>' +
       '</div>' +
       '<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:14px">' +
         '<div style="font-weight:800;color:#78350f;margin-bottom:8px">💡 ' + (IS_AR ? 'نصائح' : 'Tips') + '</div>' +
-        '<ul style="margin:0;padding-right:18px;line-height:2;color:#78350f;font-size:13px">' + tips.map(function(x){return '<li>'+x+'</li>';}).join('') + '</ul>' +
+        '<ul style="margin:0;padding-inline-start:18px;line-height:2;color:#78350f;font-size:13px">' + tips.map(function(x){return '<li>'+x+'</li>';}).join('') + '</ul>' +
       '</div>' +
     '</div>';
   document.getElementById('modalTitle').textContent = (IS_AR ? d.nameAr : d.nameEn) + ' ' + d.icon;
@@ -1102,7 +1102,7 @@ var articlesData = [
   {key:'protein', icon:'💪',
     img:'https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=800&h=400&fit=crop',
     titleAr:'البروتين: كم تحتاج يومياً؟', titleEn:'Protein: How Much Do You Need?',
-    contentAr:'<img alt="" src="https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><h3 style="color:#1B6E80">حسب الهدف:</h3><ul style="margin-right:20px;line-height:2"><li><strong>عادي:</strong> 0.8 جم/كجم</li><li><strong>رياضي:</strong> 1.2-1.6 جم/كجم</li><li><strong>بناء عضل:</strong> 1.6-2.2 جم/كجم</li><li><strong>تخسيس:</strong> 1.6-2.4 جم/كجم</li></ul>',
+    contentAr:'<img alt="" src="https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><h3 style="color:#1B6E80">حسب الهدف:</h3><ul style="margin-inline-start:20px;line-height:2"><li><strong>عادي:</strong> 0.8 جم/كجم</li><li><strong>رياضي:</strong> 1.2-1.6 جم/كجم</li><li><strong>بناء عضل:</strong> 1.6-2.2 جم/كجم</li><li><strong>تخسيس:</strong> 1.6-2.4 جم/كجم</li></ul>',
     contentEn:'<p>By Goal: Regular: 0.8g/kg, Athletic: 1.2-1.6g/kg, Muscle gain: 1.6-2.2g/kg</p>'},
   {key:'breakfast', icon:'🌅',
     img:'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&h=400&fit=crop',
@@ -1112,12 +1112,12 @@ var articlesData = [
   {key:'weightloss', icon:'📉',
     img:'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=400&fit=crop',
     titleAr:'10 قواعد ذهبية لخسارة الوزن', titleEn:'10 Golden Rules for Weight Loss',
-    contentAr:'<img alt="" src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><ol style="margin-right:20px;line-height:2.2"><li><strong>عجز حراري ثابت</strong> (300-500 سعرة)</li><li><strong>بروتين عالي</strong></li><li><strong>تمرين مقاومة</strong></li><li><strong>نوم 7-8 ساعات</strong></li><li><strong>ماء قبل الوجبات</strong></li><li><strong>مضغ بطيء</strong></li><li><strong>تجنب السعرات السائلة</strong></li><li><strong>خضار في كل وجبة</strong></li><li><strong>وجبة مفضلة أسبوعياً</strong></li><li><strong>الصبر</strong></li></ol>',
+    contentAr:'<img alt="" src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><ol style="margin-inline-start:20px;line-height:2.2"><li><strong>عجز حراري ثابت</strong> (300-500 سعرة)</li><li><strong>بروتين عالي</strong></li><li><strong>تمرين مقاومة</strong></li><li><strong>نوم 7-8 ساعات</strong></li><li><strong>ماء قبل الوجبات</strong></li><li><strong>مضغ بطيء</strong></li><li><strong>تجنب السعرات السائلة</strong></li><li><strong>خضار في كل وجبة</strong></li><li><strong>وجبة مفضلة أسبوعياً</strong></li><li><strong>الصبر</strong></li></ol>',
     contentEn:'<p>Calorie deficit, high protein, resistance training, good sleep, water before meals.</p>'},
   {key:'sugar', icon:'🍬',
     img:'https://images.unsplash.com/photo-1606312619070-d48b4c652a52?w=800&h=400&fit=crop',
     titleAr:'السكر المضاف - العدو الخفي', titleEn:'Added Sugar - The Hidden Enemy',
-    contentAr:'<img alt="" src="https://images.unsplash.com/photo-1606312619070-d48b4c652a52?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><p>السكر المضاف موجود في أطعمة مش متوقعة!</p><h3 style="color:#dc2626;margin-top:16px">أكل فيه سكر مخفي:</h3><ul style="margin-right:20px;line-height:2"><li>صلصة الطماطم</li><li>الزبادي بالفواكه</li><li>الكاتشب</li><li>حبوب الفطار</li></ul>',
+    contentAr:'<img alt="" src="https://images.unsplash.com/photo-1606312619070-d48b4c652a52?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><p>السكر المضاف موجود في أطعمة مش متوقعة!</p><h3 style="color:#dc2626;margin-top:16px">أكل فيه سكر مخفي:</h3><ul style="margin-inline-start:20px;line-height:2"><li>صلصة الطماطم</li><li>الزبادي بالفواكه</li><li>الكاتشب</li><li>حبوب الفطار</li></ul>',
     contentEn:'<p>Hidden sugar in unexpected foods.</p>'},
   {key:'sleep', icon:'😴',
     img:'https://images.unsplash.com/photo-1520206183501-b80df61043c2?w=800&h=400&fit=crop',
@@ -1137,12 +1137,12 @@ var articlesData = [
   {key:'metabolism', icon:'🔥',
     img:'https://images.unsplash.com/photo-1533560904424-a0c61dc306fc?w=800&h=400&fit=crop',
     titleAr:'إزاي ترفع معدل الحرق؟', titleEn:'How to Boost Metabolism?',
-    contentAr:'<img alt="" src="https://images.unsplash.com/photo-1533560904424-a0c61dc306fc?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><h3 style="color:#1B6E80">طرق علمية:</h3><ol style="margin-right:20px;line-height:2.2"><li>تمرين المقاومة</li><li>البروتين</li><li>الماء البارد</li><li>الشاي الأخضر</li><li>القهوة</li><li>النوم الجيد</li></ol>',
+    contentAr:'<img alt="" src="https://images.unsplash.com/photo-1533560904424-a0c61dc306fc?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><h3 style="color:#1B6E80">طرق علمية:</h3><ol style="margin-inline-start:20px;line-height:2.2"><li>تمرين المقاومة</li><li>البروتين</li><li>الماء البارد</li><li>الشاي الأخضر</li><li>القهوة</li><li>النوم الجيد</li></ol>',
     contentEn:'<p>Resistance training, protein, cold water, green tea boost metabolism.</p>'},
   {key:'vitamins', icon:'💊',
     img:'https://images.unsplash.com/photo-1584473457406-6240486418e9?w=800&h=400&fit=crop',
     titleAr:'الفيتامينات الأساسية ومصادرها', titleEn:'Essential Vitamins',
-    contentAr:'<img alt="" src="https://images.unsplash.com/photo-1584473457406-6240486418e9?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><ul style="margin-right:20px;line-height:2"><li><strong>فيتامين A:</strong> الجزر، السبانخ</li><li><strong>فيتامين C:</strong> البرتقال، الفلفل</li><li><strong>فيتامين D:</strong> السمك، الشمس</li><li><strong>فيتامين E:</strong> اللوز، الأفوكادو</li><li><strong>B12:</strong> اللحوم، البيض</li></ul>',
+    contentAr:'<img alt="" src="https://images.unsplash.com/photo-1584473457406-6240486418e9?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><ul style="margin-inline-start:20px;line-height:2"><li><strong>فيتامين A:</strong> الجزر، السبانخ</li><li><strong>فيتامين C:</strong> البرتقال، الفلفل</li><li><strong>فيتامين D:</strong> السمك، الشمس</li><li><strong>فيتامين E:</strong> اللوز، الأفوكادو</li><li><strong>B12:</strong> اللحوم، البيض</li></ul>',
     contentEn:'<p>Eat colorful foods for all vitamins.</p>'},
   {key:'gym_nutrition', icon:'🏋️',
     img:'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=400&fit=crop',
@@ -1152,7 +1152,7 @@ var articlesData = [
   {key:'fasting', icon:'🌙',
     img:'https://images.unsplash.com/photo-1490818387583-1baba5e638af?w=800&h=400&fit=crop',
     titleAr:'الصيام المتقطع - فوائد وأضرار', titleEn:'Intermittent Fasting',
-    contentAr:'<img alt="" src="https://images.unsplash.com/photo-1490818387583-1baba5e638af?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><h3 style="color:#1B6E80">أنواع الصيام:</h3><ul style="margin-right:20px;line-height:2"><li>16:8</li><li>18:6</li><li>5:2</li></ul>',
+    contentAr:'<img alt="" src="https://images.unsplash.com/photo-1490818387583-1baba5e638af?w=800&h=400&fit=crop" style="width:100%;border-radius:12px;margin-bottom:14px"><h3 style="color:#1B6E80">أنواع الصيام:</h3><ul style="margin-inline-start:20px;line-height:2"><li>16:8</li><li>18:6</li><li>5:2</li></ul>',
     contentEn:'<p>16:8, 18:6, 5:2 protocols.</p>'}
 ];
 
@@ -1162,7 +1162,7 @@ function renderArticles() {
     var title = IS_AR ? a.titleAr : a.titleEn;
     html += '<div class="article-card" onclick="showArticle(\'' + a.key + '\')" style="padding:0;overflow:hidden">' +
       '<div style="height:140px;background-image:url(' + a.img + ');background-size:cover;background-position:center;position:relative">' +
-        '<div style="position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.95);width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 8px rgba(0,0,0,0.2)">' + a.icon + '</div>' +
+        '<div style="position:absolute;top:10px;inset-inline-start:10px;background:rgba(255,255,255,0.95);width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 8px rgba(0,0,0,0.2)">' + a.icon + '</div>' +
       '</div>' +
       '<div style="padding:14px">' +
         '<div style="font-weight:800;color:var(--blue);font-size:14px;margin-bottom:6px;line-height:1.5">' + title + '</div>' +

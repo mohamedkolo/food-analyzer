@@ -67,7 +67,7 @@ const MSG = {
   .user-info { flex: 1; min-width: 200px; }
   .user-name { font-size: 26px; font-weight: 800; margin: 0 0 6px; }
   .user-meta { font-size: 14px; opacity: 0.95; line-height: 1.7; }
-  .user-meta span { margin-left: 12px; }
+  .user-meta span { margin-inline-end: 12px; }
 
   .head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
   .head-btn {
@@ -498,7 +498,7 @@ const MSG = {
 
       <!-- 👤 {{ t('معلومات شخصية','Personal information') }} -->
       <div style="margin-bottom: 22px;">
-        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #1B6E80;">
+        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-inline-start: 8px; border-inline-start: 4px solid #1B6E80;">
           👤 {{ t('معلومات شخصية','Personal information') }}
         </h3>
         <div class="info-grid">
@@ -540,7 +540,7 @@ const MSG = {
 
       <!-- 📏 {{ t('القياسات والهدف','Measurements and goal') }} -->
       <div style="margin-bottom: 22px;">
-        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #2E8F9E;">
+        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-inline-start: 8px; border-inline-start: 4px solid #2E8F9E;">
           📏 {{ t('القياسات والهدف','Measurements and goal') }}
         </h3>
         <div class="info-grid">
@@ -578,7 +578,7 @@ const MSG = {
 
       <!-- 🏥 {{ t('الحالات الطبية والحساسية','Medical conditions and allergies') }} -->
       <div style="margin-bottom: 22px;">
-        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #ef4444;">
+        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-inline-start: 8px; border-inline-start: 4px solid #ef4444;">
           🏥 {{ t('الحالات الطبية والحساسية','Medical conditions and allergies') }}
         </h3>
 
@@ -608,7 +608,7 @@ const MSG = {
 
       <!-- 🍽️ {{ t('التفضيلات الغذائية','Food preferences') }} -->
       <div style="margin-bottom: 22px;">
-        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-right: 8px; border-right: 4px solid #f59e0b;">
+        <h3 style="font-size: 15px; font-weight: 800; color: #475569; margin: 0 0 12px; padding-inline-start: 8px; border-inline-start: 4px solid #f59e0b;">
           🍽️ {{ t('التفضيلات الغذائية','Food preferences') }}
         </h3>
 
@@ -809,7 +809,7 @@ const MSG = {
        style="display:inline-flex;align-items:center;gap:8px;background:#0B8043;color:#fff;padding:11px 22px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">
       <span style="font-size:18px;">💬</span> {{ t('فتح واتساب مع','Open WhatsApp with') }} {{ user.name or t('العميل','the client') }}
     </a>
-    <span style="font-size:12px;color:#55647a;margin-right:10px;">({{ user.phone }})</span>
+    <span style="font-size:12px;color:#55647a;margin-inline-start:10px;">({{ user.phone }})</span>
   </div>
   {% endif %}
 

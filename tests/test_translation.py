@@ -29,6 +29,7 @@ if os.path.exists(os.environ["NUTRAX_DB"]):
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from flask import session  # noqa: E402
 import app as A  # noqa: E402
 import meal_database as md  # noqa: E402
 from meal_i18n import translate_meal, untranslated_terms  # noqa: E402
@@ -149,16 +150,21 @@ def test_every_meal_in_the_database_translates():
     # ‏SAFE_BY_SLOT هي اللي بتملا الخانة لما كل الطابور يتصادم مع حالات
     # العميل -- يعني هي بالظبط الوجبات اللي العميل أصعب حالة بياخدها.
     # لو فاتت من الفحص ده، هو اللي بيلاقي عربي في ورقة إنجليزية.
+    # ‏CHILD_MEALS جداول الأطفال. أول ما اتكتبت، ورقة الإنجليزي طلعت
+    # نُصّها عربي: ١٤ كلمة ناقصة من القاموس كانت كفاية تخلّي ٤٢ وجبة
+    # ترجع زي ما هي (translate_meal بترجّع العربي لو فضلت كلمة واحدة).
     for pool in ("WEIGHT_LOSS", "MUSCLE_GAIN", "BULKING", "MAINTENANCE",
                  "SAFE_ALTERNATIVES", "SAFE_BY_SLOT", "KETO_MEALS",
-                 "KETO_SNACKS"):
+                 "KETO_SNACKS", "CHILD_MEALS"):
         node = getattr(md, pool, None)
         if node is None:
-            try:
-                import meal_extra
-                node = getattr(meal_extra, pool, None)
-            except ImportError:
-                node = None
+            for mod in ("meal_extra", "child_meals"):
+                try:
+                    node = getattr(__import__(mod), pool, None)
+                except ImportError:
+                    node = None
+                if node is not None:
+                    break
         stack = [node]
         while stack:
             cur = stack.pop()
@@ -184,6 +190,31 @@ def test_translated_meals_keep_their_numbers():
         assert not ARABIC.search(en), f"not fully translated: {en}"
         for num in re.findall(r"\d+", meal):
             assert num in en, f"quantity {num} lost from {en}"
+
+
+def test_a_childs_english_sheet_carries_no_arabic():
+    """‏الجدول اللي بيتسلّم. القاموس ممكن يغطّي الوجبة ومع ذلك يفضل
+    عربي في الورقة (سطر ملاحظة، اسم خانة)، فالفحص على الناتج نفسه."""
+    import plan_engine
+    import zigzag
+    child = {"name": "Child", "age": "10", "gender": "انثى", "height": "152",
+             "weight": "108.8", "tdee": "1912", "goal_cal": "1912",
+             "goal_type": "weight_loss", "culture": "مصري",
+             "diet_plan_type": "standard", "protein_per_kg": "1.3",
+             "fat_pct_cal": "30", "symptoms": [], "allergies": [],
+             "zigzag_mode": "classic", "activity_level": "light"}
+    for culture in ("مصري", "خليجي"):
+        data = dict(child, culture=culture)
+        data["zigzag"] = zigzag.zigzag_from_data(data)
+        with A.app.test_request_context("/"):
+            session["lang"] = "en"
+            plan = plan_engine.generate_weekly_plan(data)
+            html = plan_engine.plan_html(data, plan)
+        cells = re.findall(r'<td[^>]*>(.*?)</td>', html, re.S)
+        leaks = [re.sub(r"<[^>]+>", "", c).strip()
+                 for c in cells if ARABIC.search(re.sub(r"<[^>]+>", "", c))]
+        assert not leaks, "‏عربي في ورقة إنجليزية (%s): %s" % (
+            culture, leaks[:3])
 
 
 if __name__ == "__main__":

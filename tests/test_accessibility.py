@@ -20,6 +20,7 @@ Run with:  python3 tests/test_accessibility.py
 """
 
 import glob
+import io
 import os
 import re
 import sys
@@ -271,6 +272,41 @@ def test_the_explain_panel_colors_pass_on_their_own_backgrounds():
             weak.append("%s: %s على %s = %.2f:1" % (name, foreground,
                                                      background, ratio))
     assert not weak, "‏ألوان تحت 4.5:1:\n  " + "\n  ".join(weak)
+
+
+def test_no_template_hard_codes_the_arabic_direction():
+    """‏الدكتور قال: "الإنجليزي يبقى من الشمال". والسبب إن الـCSS
+    متكتوب بخصائص **فيزيائية** -- right و margin-right و
+    text-align:right -- وهي مابتلفّش مع اتجاه الصفحة. فصفحة الإنجليزي
+    كانت بتطلع بالدرج على اليمين والكتابة في كل خانة على اليمين،
+    رغم إن <html dir="ltr"> كان مظبوط من الأول.
+
+    ‏البديل: inset-inline-start / margin-inline-start / text-align:start.
+    دي بتتبع dir لوحدها، فسطر واحد بيشتغل صح في الاتجاهين.
+
+    ‏text-align:left مسموحة: فيه حاجات لازم تفضل من الشمال في
+    الاتجاهين (كود، أرقام إنجليزية)، والعيب كان في الناحية التانية.
+    """
+    banned = re.compile(
+        r"(text-align\s*:\s*right"
+        r"|margin-(?:right|left)\s*:"
+        r"|padding-(?:right|left)\s*:"
+        r"|border-(?:right|left)\s*:"
+        r"|float\s*:\s*(?:right|left))")
+    comment = re.compile(r"/\*.*?\*/|<!--.*?-->", re.S)
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    hits = []
+    for path in sorted(glob.glob(os.path.join(here, "templates", "*.html"))):
+        text = comment.sub(" ", io.open(path, encoding="utf-8").read())
+        for n, line in enumerate(text.split("\n"), 1):
+            found = banned.search(line)
+            if found:
+                hits.append("%s:%d  %s" % (os.path.basename(path), n,
+                                           found.group(0)))
+    assert not hits, (
+        "‏خصائص اتجاه فيزيائية (%d) -- استخدم inset-inline-* / "
+        "margin-inline-* / text-align:start:\n   %s"
+        % (len(hits), "\n   ".join(hits[:12])))
 
 
 if __name__ == "__main__":

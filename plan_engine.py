@@ -1531,6 +1531,11 @@ td b { font-weight:700; }
 /* ‏الأعمدة الرقمية: عناوينها كانت بتتقطّع نص كلمة ("سعرا/ت"،
    "بروتي/ن") لأن القاعدة العامة فيها word-wrap:break-word، وهي لازمة
    لخانات الأكل الطويلة. فالعمود الرقمي بس هو اللي بيلغيها. */
+/* ‏عمود اليوم: أسماء الأيام بالإنجليزي أطول من العربي، فكانت
+   بتتقطّع نص كلمة ("Wednes/day"، "Saturda/y"). نفس علاج الأعمدة
+   الرقمية: إلغاء كسر الكلمة، وعرض أوسع في النسخة الإنجليزية. */
+td.dcell { white-space:normal !important; word-wrap:normal !important;
+           overflow-wrap:normal !important; }
 .kcol, .kcell { width:54px; }
 th.kcol, td.kcell { white-space:normal !important;
                     word-wrap:normal !important;
@@ -1570,6 +1575,11 @@ td.kcell { background:#F2F2F2 !important; font-size:9.5px !important; }
     # ‏والضغط مش ثابت: بيتحسب من أطول خانة فعلاً، فورقة البالغ
     # (٣ أصناف) مابتتغيّرش، وورقة الطفل بتضيق بالقدر اللي يخليها
     # تدخل. الأرقام دي مقيسة على الناتج المطبوع مش مخمّنة.
+    if not _pdf_ar:
+        _company_css += """
+.dcol { width:76px; }
+"""
+
     _max_items = 1
     for _d in pdays:
         for _m in _d.get("meals", []):

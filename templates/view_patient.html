@@ -5,7 +5,7 @@
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
   <h1 class="page-title" style="margin:0">
     <i class="fa-solid fa-user"></i> {{ patient.name }}
-    <span class="bmi-badge {% if patient.status=='published' %}bmi-normal{% else %}bmi-over{% endif %}" style="margin-right:10px;font-size:13px">
+    <span class="bmi-badge {% if patient.status=='published' %}bmi-normal{% else %}bmi-over{% endif %}" style="margin-inline-start:10px;font-size:13px">
       {{ 'منشور' if patient.status=='published' else 'مسودة' }}
     </span>
   </h1>
