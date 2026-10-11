@@ -603,6 +603,11 @@ def explain_report():
     numbers = {key: payload.get(key) for key in
                ("gender", "weight", "height", "age", "fat_pct", "bmi", "bmr",
                 "tdee", "muscle_mass", "visceral_fat", "body_water")}
+    # ‏الحالات: من غيرها سؤال "السمنة عامل خطر ولا مرض قائم؟"
+    # مايتجاوبش -- وده أهم سطر في القراءة لعميل BMI بتاعه فوق ٣٠.
+    _conds = payload.get("symptoms")
+    numbers["symptoms"] = [str(c)[:120] for c in _conds[:40]] \
+        if isinstance(_conds, list) else []
     numbers["activity"] = payload.get("activity") or payload.get("tdee")
     numbers["goal_type"] = payload.get("goal_type") or "weight_loss"
     numbers["goal_cal"] = payload.get("goal_cal")

@@ -118,6 +118,115 @@ _GOAL_FAT = {"female": (31.0, 27.0), "male": (24.0, 20.0)}
 _SMI = {"female": (6.76, 5.76), "male": (10.76, 8.51)}
 
 
+# ═══════════════════════════════════════════════════════════════════
+#  السمنة: عامل خطر، ولا مرض قائم بذاته؟
+# ═══════════════════════════════════════════════════════════════════
+#
+# ‏لجنة Lancet (يناير ٢٠٢٥، مدعومة من أكتر من ٧٥ منظمة طبية) قسّمت
+# السمنة لقسمين:
+#
+#   ‏ما قبل إكلينيكية -- دهون زيادة والأعضاء لسه شغالة. **عامل خطر**.
+#   ‏إكلينيكية        -- الدهون بقت مسبّبة خلل عضو أو قصور وظيفي
+#                        فعلي. **مرض قائم بذاته**.
+#
+# ‏يعني شخصين نفس الـBMI ممكن يكونوا حالتين مختلفتين تماماً، والخطة
+# والإلحاح مش واحد.
+#
+# ‏اللي تحت **مش تشخيص** -- التشخيص تقييم إكلينيكي. ده بيقرا اللي
+# الدكتور دخّله في الفورم ويقوله: الحالة دي من معايير القسم التاني،
+# بُص عليها. والمعايير اللي مش في الفورم (ضيق نفس بمجهود بسيط، ألم
+# ركبة أو ورك مزمن، سلس بولي متكرر) بتتكتب كأسئلة يسألها، مش
+# بتتفترض.
+_CLINICAL_MARKERS = {
+    "سكري النوع الثاني": ("سكري النوع التاني", "type 2 diabetes"),
+    "ضغط الدم المرتفع": ("ضغط الدم المرتفع", "high blood pressure"),
+    "الكبد الدهني": ("الكبد الدهني", "fatty liver"),
+    "fatty liver": ("الكبد الدهني", "fatty liver"),
+    "انقطاع النفس النومي": ("انقطاع النفس أثناء النوم", "sleep apnoea"),
+    "تكيس المبايض": ("تكيس المبايض", "PCOS"),
+    "تكيس المبايض (PCOS/PMOS)": ("تكيس المبايض", "PCOS"),
+    "PCOS": ("تكيس المبايض", "PCOS"),
+    "PMOS": ("تكيس المبايض", "PCOS"),
+    "امراض القلب": ("أمراض القلب", "heart disease"),
+    "ارتفاع الكوليسترول": ("ارتفاع الكوليسترول", "high cholesterol"),
+}
+
+# ‏معايير القسم التاني اللي الفورم مابيسألش عنها -- بتتكتب كأسئلة.
+_ASK_ABOUT = (
+    ("ضيق نفس بمجهود بسيط", "breathlessness on mild exertion"),
+    ("ألم مزمن في الركبة أو الورك", "chronic knee or hip pain"),
+    ("سلس بولي متكرر", "recurrent urinary incontinence"),
+)
+
+# ‏الحد اللي السؤال ده بيبقى له معنى عنده
+OBESE_BMI = 30.0
+
+
+def obesity_stage(bmi, fat_band, symptoms, is_ar=True):
+    """‏السمنة هنا عامل خطر ولا مرض قائم؟ أو None لو السؤال مالوش محل.
+
+    ‏بترجّع dict فيه: key، عنوان، سطر الشرح، الحالات اللي طابقت،
+    والأسئلة اللي لسه محتاجة إجابة.
+    """
+    obese = False
+    try:
+        obese = float(bmi or 0) >= OBESE_BMI
+    except (TypeError, ValueError):
+        obese = False
+    if not obese and (fat_band or {}).get("key") == "obese":
+        # ‏نسبة الدهون أدق من BMI، فلو هي في نطاق السمنة السؤال
+        # بيفضل له محل حتى لو BMI تحت ٣٠ (عضل قليل ودهون عالية).
+        obese = True
+    if not obese:
+        return None
+
+    seen, matched = set(), []
+    for item in (symptoms or []):
+        hit = _CLINICAL_MARKERS.get(str(item).strip())
+        if hit and hit[0] not in seen:
+            seen.add(hit[0])
+            matched.append(hit)
+
+    ask = [_pick(a, e, is_ar) for a, e in _ASK_ABOUT]
+    names = [_pick(a, e, is_ar) for a, e in matched]
+
+    if matched:
+        return {
+            "key": "clinical",
+            "kind": "high",
+            "title": _pick("سمنة إكلينيكية — على اللي مسجّل",
+                           "Clinical obesity — on what is recorded", is_ar),
+            "line": _pick(
+                "فيه %s مسجّل، ودي من معايير السمنة الإكلينيكية (الدهون "
+                "بقت مسبّبة خلل فعلي، مش عامل خطر بس). يعني الحالة مرض "
+                "قائم بذاته ومحتاجة علاج مش وقاية. أكّدها إكلينيكياً."
+                % "، ".join(names),
+                "%s is recorded, which is one of the criteria for clinical "
+                "obesity (the fat is already causing real impairment, not "
+                "just raising risk). That makes it an illness in its own "
+                "right, needing treatment rather than prevention. Confirm "
+                "clinically." % ", ".join(names), is_ar),
+            "markers": names,
+            "ask": ask,
+        }
+    return {
+        "key": "preclinical",
+        "kind": "watch",
+        "title": _pick("سمنة ما قبل إكلينيكية — على اللي مسجّل",
+                       "Pre-clinical obesity — on what is recorded", is_ar),
+        "line": _pick(
+            "مافيش حالة مسجّلة من معايير السمنة الإكلينيكية، فدي لسه "
+            "**عامل خطر** مش مرض قائم. وده مش معناه إنه تمام — معناه "
+            "إن الشغل دلوقتي وقاية، والوقت لسه في صالحه.",
+            "No condition on file meets the criteria for clinical obesity, "
+            "so this is still a **risk factor**, not an illness in its own "
+            "right. That does not mean all is well -- it means the work now "
+            "is prevention, and time is still on their side.", is_ar),
+        "markers": [],
+        "ask": ask,
+    }
+
+
 def _band(value, table):
     """‏النطاق اللي الرقم واقع فيه، ومعاه حدوده.
 
@@ -392,6 +501,9 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
     muscle = _num(data.get("muscle_mass"))
     visceral = _num(data.get("visceral_fat"))
     water = _num(data.get("body_water"))
+    # ‏الحالات بتيجي عشان سؤال "عامل خطر ولا مرض قائم؟" مايتجاوبش
+    # من BMI لوحده. تفاصيله فوق في obesity_stage.
+    conditions = data.get("symptoms") or []
 
     # ‏الـBMI بيتحسب لو مش مكتوب -- الوزن والطول كفاية.
     if bmi is None and weight and height:
@@ -412,6 +524,7 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
                 if (fat_pct and sex_known) else None)
     bmi_band = _band(bmi, _BMI) if bmi else None
     vis_band = _band(visceral, _VISCERAL) if visceral else None
+    stage = obesity_stage(bmi, fat_band, conditions, is_ar)
     muscle_band = water_band = None
     smi = water_share = None
 
@@ -1033,6 +1146,7 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
 
     return {"headline": headline, "rows": rows, "focus": focus, "script": script,
             "verdict": {"good": good, "work": work, "unsure": unsure},
+            "stage": stage,
             "targets": targets, "caveats": caveats, "mode": mode,
             "visit_no": visit_hint,
             "missing": [m for m in missing if m]}
@@ -1041,6 +1155,17 @@ def explain(data, is_ar=True, mode="first", progress=None, visit_no=None):
 def as_text(result, is_ar=True):
     """‏نفس الشرح كنص سادة -- الدكتور بينسخه ويبعته واتساب للعميل."""
     out = [result["headline"], ""]
+
+    # ‏تصنيف السمنة قبل أي رقم: ده اللي بيقرر الخطة إلحاح ولا وقاية.
+    stage = result.get("stage")
+    if stage:
+        out.append("%s: %s" % (stage["title"], stage["line"].replace("**", "")))
+        if stage.get("ask"):
+            # ‏الفاصلة نفسها لغة: الفاصلة العربية "،" في نص إنجليزي
+            # بتخلي السطر مخلوط -- والطقم مسكها.
+            out.append(_pick("اسأل كمان عن: ", "Also ask about: ", is_ar)
+                       + _pick("، ", ", ", is_ar).join(stage["ask"]))
+        out.append("")
 
     # ‏الحكم قبل الأرقام: ده اللي الدكتور بيقراه الأول، وده اللي
     # العميل بياخد باله منه لو الدكتور بعت له النص ده واتساب.

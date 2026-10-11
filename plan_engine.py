@@ -1416,6 +1416,19 @@ def plan_html(data, plan=None, clean=False):
         _kcal = 0
     _act_label = ACTIVITY_LABELS.get(_act, _L("تمارين منتظمة / تخسيس",
                                               "Trains regularly / weight loss"))
+    # ‏الـBMI رقم على ورقة العميل، ومن ٣٠ وفوق الرقم لوحده بيتقرا
+    # كتشخيص. ولجنة Lancet (٢٠٢٥، +٧٥ منظمة طبية) بتقول إنه مش
+    # تشخيص: السمنة بتتقسم لعامل خطر ومرض قائم بذاته، والفرق مش في
+    # الرقم -- في إن الدهون بقت مأثرة على عضو ولا لسه. والتقييم ده
+    # في لوحة "اشرح الفحص"، مش على ورقة العميل.
+    _bmi_tail = ""
+    try:
+        if float(data.get("bmi") or 0) >= 30:
+            _bmi_tail = _L(" — مؤشر وزن على طول، مش تشخيص لوحده",
+                           " — a weight-for-height index, not a diagnosis "
+                           "on its own")
+    except (TypeError, ValueError):
+        _bmi_tail = ""
     macro_meta = ""
     if _w > 0 and _kcal > 0:
         # ‏نفس الحساب اللي المحرّك بيبني بيه، مش حساب تاني. كان
@@ -1847,7 +1860,7 @@ tr:nth-child(even) td {{ background:#fbfcfb; }}
   <span><b>{_L("العمر", "Age")}:</b> {_esc(cl['age'])}</span>
   <span><b>{_L("الوزن", "Weight")}:</b> {_esc(cl['weight'])} {_L("كجم", "kg")}</span>
   <span><b>{_L("الطول", "Height")}:</b> {_esc(cl['height'])} {_L("سم", "cm")}</span>
-  <span><b>BMI:</b> {_esc(cl['bmi'])}</span>
+  <span><b>BMI:</b> {_esc(cl['bmi'])}{_bmi_tail}</span>
   <span><b>{_L("السعرات المستهدفة", "Target calories")}:</b> {_esc(cl['target_kcal'])} kcal{_zz_meta}</span>
   <span><b>{_L("المطبخ", "Cuisine")}:</b> {_esc(td['culture'])}</span>
   {macro_meta}

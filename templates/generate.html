@@ -1840,7 +1840,13 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
       fat_pct: (document.querySelector('[name="fat_pct"]') || {}).value || '',
       bmi: val('bmiField'), tdee: val('tdeeField'),
       muscle_mass: val('brMuscle'), visceral_fat: val('brVisceral'),
-      body_water: val('brWater'), bmr: val('brBmr')
+      body_water: val('brWater'), bmr: val('brBmr'),
+      // ‏الحالات المتعلّمة: السيرفر محتاجها يقول السمنة هنا عامل خطر
+      // ولا مرض قائم بذاته. والخانات دي في خطوة 3 من الفورم، فممكن
+      // تكون لسه فاضية -- وساعتها القراءة بتقول "على اللي مسجّل".
+      symptoms: Array.prototype.map.call(
+        document.querySelectorAll('input[name="symptoms"]:checked'),
+        function(el){ return el.value; })
     };
     out.hidden = false;
     out.innerHTML = '<span style="color:var(--muted)">'
@@ -1890,6 +1896,30 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
                                + '</span>' : '')
           + '</div>';
     html += '<div class="ex-lead">' + esc(data.headline) + '</div>';
+
+    // ‏تصنيف السمنة قبل أي حاجة: ده اللي بيقرر الخطة إلحاح ولا وقاية.
+    // ‏لجنة Lancet ٢٠٢٥ قسّمت السمنة لعامل خطر ومرض قائم بذاته، والفرق
+    // ‏مش في الـBMI -- في إن الدهون بقت مأثرة على عضو ولا لسه.
+    if(data.stage){
+      const st = data.stage;
+      const tone = st.kind === 'high'
+        ? {bg:'#fef2f2', bd:'#fca5a5', fg:'#7f1d1d', icon:'fa-triangle-exclamation'}
+        : {bg:'#fffbeb', bd:'#fcd34d', fg:'#78350f', icon:'fa-circle-info'};
+      html += '<div class="ex-sec"><div style="background:' + tone.bg
+            + ';border:1.5px solid ' + tone.bd + ';border-radius:12px;'
+            + 'padding:12px 14px;color:' + tone.fg + '">'
+            + '<div style="font-weight:800;font-size:14px;margin-bottom:5px">'
+            + '<i class="fa-solid ' + tone.icon + '"></i> ' + esc(st.title)
+            + '</div>'
+            + '<div style="font-size:13px;line-height:1.7">'
+            + esc(String(st.line).replace(/\*\*/g, '')) + '</div>';
+      if((st.ask || []).length){
+        html += '<div style="font-size:12px;margin-top:7px;opacity:.9">'
+              + T('اسأل كمان عن: ', 'Also ask about: ')
+              + esc(st.ask.join(T('، ', ', '))) + '</div>';
+      }
+      html += '</div></div>';
+    }
 
     // ‏صح وغلط قبل الأرقام: دي البصة اللي الدكتور بيبصّها الأول.
     const V = data.verdict || {};
