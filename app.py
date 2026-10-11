@@ -724,7 +724,17 @@ def analyzer():
                            foods_json=json.dumps(food_data.FOODS, ensure_ascii=False))
 
 def _lookup_barcode(code):
-    """يجيب بيانات منتج معلّب بالباركود من Open Food Facts. بيرجّع (payload_dict, status_code)."""
+    """يجيب بيانات منتج معلّب بالباركود من Open Food Facts. بيرجّع (payload_dict, status_code).
+
+    ‏النسخة الأولى كانت بترفض المنتج لو **أي** قيمة من الأربعة ناقصة.
+    وقاعدة Open Food Facts بيملاها مستخدمين، فمنتجات كتير فيها سعرات
+    وبروتين والكارب أو الدهون مش مكتوبة -- وكانت بتترفض كلها بسطر
+    "البيانات الغذائية ناقصة".
+
+    ‏والعكس (نحط صفر مكان الناقص) أسوأ: "دهون 0 جم" على كارت بيتقرا
+    قدام مريض مرارة أو كبد دهني كدب. فالناقص بيترجّع None، والكارت
+    بيكتب "غير مذكور" -- اللي مش معروف يفضل مش معروف.
+    """
     import urllib.request as _ur
 
     clean_code = re.sub(r"\D", "", code or "")[:20]
@@ -746,24 +756,79 @@ def _lookup_barcode(code):
         return {"ok": False, "error": "المنتج ده مش موجود في القاعدة"}, 404
 
     p = data["product"]
-    nutr = p.get("nutriments") or {}
-    cal, protein, carbs, fat = (nutr.get("energy-kcal_100g"), nutr.get("proteins_100g"),
-                                 nutr.get("carbohydrates_100g"), nutr.get("fat_100g"))
-    if cal is None or protein is None or carbs is None or fat is None:
+    payload = _barcode_food(p, clean_code)
+    if payload is None:
         return {"ok": False, "error": "البيانات الغذائية لهذا المنتج ناقصة"}, 404
+    return {"ok": True, "food": payload}, 200
 
-    name_ar = p.get("product_name_ar") or ""
-    name_en = p.get("product_name") or p.get("generic_name") or ""
-    food = {
+
+# ‏كام كيلوجول في الكيلوكالوري
+_KJ_PER_KCAL = 4.184
+
+
+def _barcode_num(nutriments, key):
+    """‏الرقم ده مكتوب فعلاً؟ بترجّع float أو None -- مش صفر.
+
+    ‏القيمة الفاضية والصفر الحقيقي حاجتين مختلفتين: منتج دهونه صفر
+    (مياه، شاي) مكتوب فيه 0، ومنتج الشركة مامَلتش خانة دهونه مكتوب
+    فيه ولا حاجة. خلطهم بيخلي الكارت يقول رقم مش موجود.
+    """
+    value = (nutriments or {}).get(key)
+    if value is None or value == "":
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if number < 0:
+        return None
+    return number
+
+
+def _barcode_food(product, clean_code):
+    """‏منتج Open Food Facts -> كارت المحلل، أو None لو مافيش سعرات."""
+    nutr = product.get("nutriments") or {}
+
+    cal = _barcode_num(nutr, "energy-kcal_100g")
+    if cal is None:
+        # ‏منتجات أوروبية كتير بتكتب الطاقة بالكيلوجول بس
+        kj = _barcode_num(nutr, "energy-kj_100g")
+        if kj is None:
+            kj = _barcode_num(nutr, "energy_100g")
+        if kj is not None:
+            cal = kj / _KJ_PER_KCAL
+    if cal is None:
+        # ‏السعرات هي الحد الأدنى: من غيرها الكارت مالوش معنى
+        return None
+
+    protein = _barcode_num(nutr, "proteins_100g")
+    carbs = _barcode_num(nutr, "carbohydrates_100g")
+    fat = _barcode_num(nutr, "fat_100g")
+
+    missing = [label for label, value in
+               (("بروتين", protein), ("كارب", carbs), ("دهون", fat))
+               if value is None]
+
+    name_ar = product.get("product_name_ar") or ""
+    name_en = product.get("product_name") or product.get("generic_name") or ""
+    note = ("من قاعدة بيانات Open Food Facts (منتج معلّب) — "
+            "تأكد من مطابقة الباركود للمنتج.")
+    if missing:
+        note += (" والشركة مش كاتبة %s على العبوة، فمكتوب \"غير مذكور\" — "
+                 "مش صفر." % " ولا ".join(missing))
+    return {
         "n": name_ar or name_en or "منتج بدون اسم",
         "en": name_en if name_ar and name_en != name_ar else "",
-        "cat": "packaged", "cal": round(float(cal)), "p": round(float(protein), 1),
-        "c": round(float(carbs), 1), "f": round(float(fat), 1),
+        "cat": "packaged",
+        "cal": int(round(cal)),
+        "p": round(protein, 1) if protein is not None else None,
+        "c": round(carbs, 1) if carbs is not None else None,
+        "f": round(fat, 1) if fat is not None else None,
+        "missing": missing,
         "safe": [], "units": [],
-        "note": "من قاعدة بيانات Open Food Facts (منتج معلّب) — تأكد من مطابقة الباركود للمنتج.",
+        "note": note,
         "tip": "", "barcode": clean_code,
     }
-    return {"ok": True, "food": food}, 200
 
 
 @app.route("/api/food/barcode/<code>")

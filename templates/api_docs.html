@@ -66,7 +66,7 @@ curl -X POST {{ request.url_root.rstrip('/') }}/api/v1/meal-plan \
 
     <div style="margin-bottom:8px">
       <div class="endpoint-row"><span class="method get">GET</span><span class="endpoint-path">/api/v1/food/barcode/&lt;code&gt;</span></div>
-      <p style="font-size:13px;color:var(--muted-2)">{{ 'بيانات غذائية لمنتج معلّب بالباركود (سعرات/بروتين/كارب/دهون لكل 100 جرام).' if is_ar else 'Nutrition facts for a packaged product by barcode (per 100g).' }}</p>
+      <p style="font-size:13px;color:var(--muted-2)">{{ 'بيانات غذائية لمنتج معلّب بالباركود (سعرات/بروتين/كارب/دهون لكل 100 جرام). أي ماكرو الشركة مش كاتباه على العبوة بيرجع null — مش صفر.' if is_ar else 'Nutrition facts for a packaged product by barcode (per 100g). Any macro the manufacturer did not declare comes back as null — not zero.' }}</p>
     </div>
 
     <div>

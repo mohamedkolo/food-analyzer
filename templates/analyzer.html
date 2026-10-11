@@ -316,6 +316,7 @@ const AZ = {
   per100:  {{ t("لكل 100 جرام", "per 100 grams")|tojson }},
   equal:   {{ t("متساويين", "equal")|tojson }},
   diffPrefix: {{ t("فرق", "difference of")|tojson }},
+  noCmp:   {{ t("مافيش مقارنة — رقم ناقص", "no comparison — a value is missing")|tojson }},
   diffCol: {{ t("الفرق", "Difference")|tojson }},
   cmpTitle: {{ t("⚖️ مقارنة (لكل 100 جرام)", "⚖️ Comparison (per 100 grams)")|tojson }},
   cmpCal:  {{ t("🔥 السعرات", "🔥 Calories")|tojson }},
@@ -343,6 +344,19 @@ let currentMed = '';
 function noteOf(f) { return IS_AR ? f.note : (f.note_en || f.note); }
 function tipOf(f)  { return IS_AR ? f.tip  : (f.tip_en  || f.tip);  }
 
+// ‏القيمة اللي الشركة مش كاتباها على العبوة بترجع null مش صفر.
+// ‏"دهون 0 جم" على كارت بيتقرا قدام مريض مرارة أو كبد دهني كدب،
+// ‏فاللي مش معروف بيفضل مكتوب إنه مش معروف.
+const NOTSAID = IS_AR ? 'غير مذكور' : 'not declared';
+function scaled(v, ratio) {
+  if (v === null || v === undefined) return NOTSAID;
+  return (v * ratio).toFixed(1);
+}
+function macroVal(v, unit) {
+  if (v === null || v === undefined) return NOTSAID;
+  return v + (unit || '');
+}
+
 function makeCard(food) {
   return `
     <div class="food-card">
@@ -351,9 +365,9 @@ function makeCard(food) {
         <div class="food-cal">${food.cal} <small>kcal/100g</small></div>
       </div>
       <div class="macros">
-        <span class="macro-pill m-prot">🥩 ${food.p}g ${AZ.protein}</span>
-        <span class="macro-pill m-carb">🍞 ${food.c}g ${AZ.carbs}</span>
-        <span class="macro-pill m-fat">🥑 ${food.f}g ${AZ.fats}</span>
+        <span class="macro-pill m-prot">🥩 ${macroVal(food.p, 'g')} ${AZ.protein}</span>
+        <span class="macro-pill m-carb">🍞 ${macroVal(food.c, 'g')} ${AZ.carbs}</span>
+        <span class="macro-pill m-fat">🥑 ${macroVal(food.f, 'g')} ${AZ.fats}</span>
       </div>
       <div class="qty-section">
         <div>
@@ -366,9 +380,9 @@ function makeCard(food) {
         </div>
         <div class="qty-result">
           <div><strong class="r-cal">${food.cal}</strong><span>${AZ.kcal}</span></div>
-          <div><strong class="r-p">${food.p}</strong><span>${AZ.protein} g</span></div>
-          <div><strong class="r-c">${food.c}</strong><span>${AZ.carbs} g</span></div>
-          <div><strong class="r-f">${food.f}</strong><span>${AZ.fats} g</span></div>
+          <div><strong class="r-p">${macroVal(food.p)}</strong><span>${AZ.protein} g</span></div>
+          <div><strong class="r-c">${macroVal(food.c)}</strong><span>${AZ.carbs} g</span></div>
+          <div><strong class="r-f">${macroVal(food.f)}</strong><span>${AZ.fats} g</span></div>
         </div>
       </div>
       ${food.safe && food.safe.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">${food.safe.map(s => `<span style="font-size:10px;background:#F4F9FB;color:#0F2A43;border:1px solid #B4D0DA;padding:2px 8px;border-radius:999px;font-weight:700;">✓ ${MED_NAMES[s]}</span>`).join('')}</div>` : ''}
@@ -426,9 +440,10 @@ function render() {
       const grams = (parseFloat(inp.value) || 0) * unitG;
       const ratio = grams / 100;
       card.querySelector('.r-cal').textContent = (food.cal * ratio).toFixed(0);
-      card.querySelector('.r-p').textContent = (food.p * ratio).toFixed(1);
-      card.querySelector('.r-c').textContent = (food.c * ratio).toFixed(1);
-      card.querySelector('.r-f').textContent = (food.f * ratio).toFixed(1);
+      // ‏الناقص بيفضل ناقص مهما اتغيّرت الكمية -- null × 2 = 0
+      card.querySelector('.r-p').textContent = scaled(food.p, ratio);
+      card.querySelector('.r-c').textContent = scaled(food.c, ratio);
+      card.querySelector('.r-f').textContent = scaled(food.f, ratio);
     };
     inp.addEventListener('input', recalc);
     const sel = inp.closest('.food-card').querySelector('.unit-select');
@@ -520,6 +535,18 @@ function toggleCmp(food) {
 }
 
 function cmpRow(label, a, b, unit, lowerIsHighlighted) {
+  // ‏رقم ناقص من ناحية = مافيش مقارنة. Number(null) بيطلع صفر،
+  // ‏فالمنتج اللي الشركة مش كاتبة دهونه كان بيكسب "أقل دهون".
+  const missA = (a === null || a === undefined);
+  const missB = (b === null || b === undefined);
+  if (missA || missB) {
+    return `<tr>
+      <td>${label}</td>
+      <td>${missA ? NOTSAID : a + unit}</td>
+      <td>${missB ? NOTSAID : b + unit}</td>
+      <td style="color:#55647a;font-size:12px;">${AZ.noCmp}</td>
+    </tr>`;
+  }
   const av = Number(a), bv = Number(b);
   let aCls = '', bCls = '';
   if (av !== bv) {
@@ -598,9 +625,9 @@ async function lookupBarcode() {
         const grams = parseFloat(inp.value) || 0;
         const ratio = grams / 100;
         card.querySelector('.r-cal').textContent = (food.cal * ratio).toFixed(0);
-        card.querySelector('.r-p').textContent = (food.p * ratio).toFixed(1);
-        card.querySelector('.r-c').textContent = (food.c * ratio).toFixed(1);
-        card.querySelector('.r-f').textContent = (food.f * ratio).toFixed(1);
+        card.querySelector('.r-p').textContent = scaled(food.p, ratio);
+        card.querySelector('.r-c').textContent = scaled(food.c, ratio);
+        card.querySelector('.r-f').textContent = scaled(food.f, ratio);
       });
     }
     syncCmpButtons();
