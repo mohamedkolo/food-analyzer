@@ -235,3 +235,83 @@ def band(weight, height, age, per_kg, kcal):
     if high < low:
         high = low
     return (low, high)
+
+
+# ‏أرضية البروتين لعميل على إبر الـGLP-1 (أوزمبيك، مونجارو، ساكسيندا).
+#
+# ‏الإبرة بتبطّء تفريغ المعدة، فالعميل بيشبع بعد لقمتين والنزول بيبقى
+# سريع -- واللي بينزل مش دهون بس، عضل كمان. اللي بيحدد النسبة دي هو
+# اللي بيدخل جوه الحجم الصغير ده، والبروتين أهم حاجة فيه.
+#
+# ‏الرقم من إجماع خبراء ٢٠٢٥ (Delphi) ومراجعات ٢٠٢٦: ١.٢-١.٦ جم/كجم
+# والشائع ١.٥. وأرضية مش سقف -- الدكتور يقدر يزوّد.
+#
+# ‏ليه ده كان لازم: الملاحظة اللي بتتطبع على الورقة بتقول "المطلوب
+# ١.٢-١.٥ جم/كجم" بالنص، والجدول تحتها كان متبني على جرام/كجم مستوى
+# النشاط. فعميلة ٩٥ كجم خاملة على أوزمبيك كانت الورقة تقول ١.٢-١.٥
+# والهدف المطبوع ٩٥ جم (١.٠). الورقة بتقول رقم والأكل بيدي غيره --
+# نفس العيب اللي الشغل كله بيتصلّح عشانه.
+GLP1_FLOOR_PER_KG = 1.5
+
+# ‏تحت السن ده الأرضية مابتتطبقش. الدليل كله على البالغين، ومنظمة
+# الصحة العالمية (٢٠٢٦) مابتوصيش بالإبر تحت ١٠ سنين أصلاً، وللمراهقين
+# بس لو نمط الحياة فشل. فوق ١٤ (نفس فاصل التوصيات ١٤-١٨) الأرضية
+# بتتطبق، وحدود سن النمو في target_grams بتفضل ماسكة فوقها.
+GLP1_MIN_AGE = 14
+
+
+def on_glp1(symptoms):
+    """‏العميل على إبرة GLP-1؟"""
+    try:
+        from meal_extra import conditions_to_keys
+        return "glp1" in (conditions_to_keys(symptoms or []) or [])
+    except Exception:
+        # ‏لو الخريطة مش متاحة، المطابقة على أسماء الأدوية نفسها
+        names = ("سيماجلوتايد", "تيرزيباتايد", "ليراجلوتايد", "أوزمبيك",
+                 "ويجوفي", "مونجارو", "زيباوند", "ساكسيندا",
+                 "semaglutide", "tirzepatide", "liraglutide")
+        joined = " ".join(str(s) for s in (symptoms or [])).lower()
+        return any(n.lower() in joined for n in names)
+
+
+def rate_with_meds(per_kg, symptoms, age=None):
+    """‏الجرام/كجم بعد مراعاة أدوية العميل. بترجّع (الرقم, اتغيّر؟).
+
+    ‏دالة واحدة بتتنادى من المحرك ومن الورقة. كانوا اتنين قبل كده
+    والنتيجة إن الورقة طبعت رقم والجدول اتبنى على رقم تاني.
+    """
+    try:
+        rate = float(per_kg or 0)
+    except (TypeError, ValueError):
+        return 0.0, False
+    if rate <= 0 or not on_glp1(symptoms):
+        return rate, False
+    try:
+        years = float(age)
+    except (TypeError, ValueError):
+        years = None
+    if years is not None and 0 < years < GLP1_MIN_AGE:
+        return rate, False
+    if rate >= GLP1_FLOOR_PER_KG:
+        return rate, False
+    return GLP1_FLOOR_PER_KG, True
+
+
+def glp1_note(per_kg, symptoms, age=None, weight=None, is_ar=True):
+    """‏سطر على الورقة لو الجرام/كجم اترفع عشان الإبرة، وإلا None."""
+    rate, raised = rate_with_meds(per_kg, symptoms, age)
+    if not raised:
+        return None
+    try:
+        grams = int(round(float(weight or 0) * rate))
+    except (TypeError, ValueError):
+        grams = 0
+    tail = (" = %d جم" % grams) if grams else ""
+    tail_en = (" = %d g" % grams) if grams else ""
+    if is_ar:
+        return ("‏البروتين اترفع لـ%.1f جم/كجم%s عشان إبرة التخسيس: "
+                "النزول السريع بياخد عضل، والحجم الصغير لازم يبقى بروتين "
+                "الأول." % (rate, tail))
+    return ("Protein was raised to %.1f g/kg%s because of the weight-loss "
+            "injection: rapid loss costs lean mass, and the smaller meal has "
+            "to lead with protein." % (rate, tail_en))

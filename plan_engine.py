@@ -185,6 +185,27 @@ def _apply_clinical_safety_caps(data):
                      "الأنسب نظام متوازن بوجبات موزّعة، والقرار قرارك."
                      % (_age, _child_plan))
 
+    # ‏إبرة تخسيس لطفل. إرشادات منظمة الصحة العالمية (٢٠٢٦): تحت ١٠
+    # سنين لا أدوية ولا جراحة -- نمط حياة منظّم بس. وللمراهقين تتفكّر
+    # لو نمط الحياة فشل والمراهق مستعد نفسياً وبدنياً.
+    #
+    # ‏وأرضية البروتين (١.٥ جم/كجم) مابتتطبقش تحت ١٤ سنة: الدليل كله
+    # على البالغين، والتفاصيل في protein_need.
+    try:
+        import protein_need as _pn_age
+        _on_inj = _pn_age.on_glp1(symptoms)
+    except Exception:
+        _on_inj = False
+    if _on_inj and 0 < _age < 18:
+        if _age < 10:
+            flags.append("⚠️ سن %d سنة: منظمة الصحة العالمية مابتوصيش "
+                         "بإبر التخسيس تحت ١٠ سنين -- نمط حياة منظّم بس. "
+                         "راجع الوصفة قبل التسليم." % _age)
+        else:
+            flags.append("⚠️ سن %d سنة: إبر التخسيس للمراهقين تتفكّر فيها "
+                         "بعد فشل نمط الحياة وبقرار مشترك مع الأهل — مش "
+                         "خط أول. (منظمة الصحة العالمية ٢٠٢٦)" % _age)
+
     try:
         tdee_val = float(data.get("tdee", 0) or 0)
         goal_cal_val = float(data.get("goal_cal", 0) or 0)
@@ -552,6 +573,12 @@ def generate_weekly_plan(data):
                                                or "regular", 1.6))
     except (TypeError, ValueError):
         _pf_ppk = 1.6
+    # ‏إبر التخسيس بترفع أرضية البروتين. الدالة واحدة بتتنادى هنا وفي
+    # الورقة -- لو بقوا اتنين، الورقة بتطبع رقم والجدول يتبني على غيره،
+    # وده بالظبط اللي كان بيحصل: الملاحظة بتقول "١.٢-١.٥ جم/كجم"
+    # والهدف المطبوع ٩٥ جم (١.٠) لعميلة ٩٥ كجم خاملة على أوزمبيك.
+    import protein_need as _pn_meds
+    _pf_ppk, _ = _pn_meds.rate_with_meds(_pf_ppk, symptoms, data.get("age"))
     # ‏الهدف مش دايماً وزن العميل × جرام/كجم. ورقة نورة (١٠ سنين،
     # ١٠٨.٨ كجم، طول ١٥٢) كانت بتطبع ١٤١ جم بروتين -- تلات أضعاف
     # توصية سنها -- وزيادة البروتين كانت بتشتغل عشان توصّلها. التفاصيل
@@ -1368,6 +1395,13 @@ def plan_html(data, plan=None, clean=False):
         _ppk = float(data.get("protein_per_kg") or PROTEIN_FACTORS.get(_act, 1.6))
     except Exception:
         _ppk = PROTEIN_FACTORS.get(_act, 1.6)
+    # ‏نفس دالة المحرك بالظبط -- مش حساب تاني
+    try:
+        import protein_need as _pn_sheet
+        _ppk, _ppk_raised = _pn_sheet.rate_with_meds(_ppk, symptoms,
+                                                     data.get("age"))
+    except Exception:
+        _ppk_raised = False
     try:
         _fatp = float(data.get("fat_pct_cal") or 30)
     except Exception:
@@ -1630,9 +1664,11 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
     if (data.get("protein_basis") or {}).get("why"):
         try:
             import protein_need
+            # ‏_ppk هو الرقم اللي المحرك بنى بيه فعلاً (فيه أرضية
+            # الإبرة). قبل كده كان بياخد data["protein_per_kg"] الخام
+            # لو موجود، فالسطر كان يقول رقم والجدول متبني على غيره.
             _bn = protein_need.note(data.get("age"), data.get("height"),
-                                    data.get("weight"),
-                                    data.get("protein_per_kg") or _ppk,
+                                    data.get("weight"), _ppk,
                                     is_ar=_pdf_ar)
         except Exception:
             _bn = None
@@ -1640,6 +1676,21 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
             _p_warn_basis = ('<div class="pnote" style="color:#13394d;'
                              'background:#eef4f8;border-color:#1B6E80">ℹ️ '
                              + _esc(_bn.replace("**", "")) + '</div>')
+
+    # ‏سطر الإبرة: الجرام/كجم اترفع، والدكتور لازم يعرف ليه.
+    if _ppk_raised:
+        try:
+            import protein_need as _pn_note
+            _gn = _pn_note.glp1_note(
+                data.get("protein_per_kg")
+                or PROTEIN_FACTORS.get(_act, 1.6),
+                symptoms, data.get("age"), _w, is_ar=_pdf_ar)
+        except Exception:
+            _gn = None
+        if _gn:
+            _p_warn_basis += ('<div class="pnote" style="color:#13394d;'
+                              'background:#eef4f8;border-color:#1B6E80">💉 '
+                              + _esc(_gn) + '</div>')
 
     # ‏الطفل: نطاق مش رقم واحد.
     #
