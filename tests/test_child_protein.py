@@ -106,8 +106,8 @@ def test_the_paper_and_the_engine_agree_on_one_number():
 
 def test_the_sheet_says_what_it_computed_on():
     """‏الدكتور شايف "٥٠ جم" لطفلة ١٠٨ كجم -- لازم يعرف الرقم جه منين."""
-    _data, _plan_days, html = _plan(NOURA)
-    notes = re.findall(r'<div class="pnote"[^>]*>(.*?)</div>', html, re.S)
+    data, _plan_days, _html = _plan(NOURA)
+    notes = [n["short"] for n in (data.get("sheet_notes") or [])]
     joined = " ".join(notes)
     assert "الوزن المرجعي" in joined, notes
     assert "38" in joined, "‏مش بيقول الوزن اللي اتحسب عليه: %s" % notes
@@ -141,10 +141,11 @@ def test_every_day_lands_inside_the_published_range():
 def test_the_sheet_prints_the_range_not_only_the_floor():
     """‏الدكتور كان شايف "٥٠ جم" وتحتيها جدول بيدي ١١٦ فيفتكرها غلطة.
     هي مش غلطة -- هي رقمين: أقل كمية مطلوبة، وأكتر كمية مقبولة."""
-    _data, _plan_days, html = _plan(NOURA)
+    data, _plan_days, _html = _plan(NOURA)
     band = protein_need.band(108.8, 152, 10, 1.3, 1912)
-    assert re.search(r"%d\s*-\s*%d" % band, html), (
-        "‏الورقة مش بتقول النطاق %s" % (band,))
+    joined = " ".join(n["short"] for n in (data.get("sheet_notes") or []))
+    assert re.search(r"%d\s*-\s*%d" % band, joined), (
+        "‏الملاحظات مش بتقول النطاق %s: %s" % (band, joined))
 
 
 def test_a_silent_sheet_means_the_food_is_in_range():

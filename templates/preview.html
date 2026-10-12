@@ -75,6 +75,28 @@
   </div>
 </div>
 {% endif %}
+<!-- ═══════ ملاحظات الأخصائي — مش بتتطبع على ورقة العميل ═══════
+     ‏الورقة بقت جدول وممنوع/مسموح وبس بطلب الدكتور. والتحذيرات دي
+     شغله هو: "لازم يشوف الفرق ده قبل ما يسلّم الورقة". فبقت هنا،
+     مختصرة، والتفصيل عند الطلب. -->
+{% if sheet_notes %}
+<div style="background:#f8fafc;border:1.5px solid #D3E3EA;border-radius:14px;padding:14px 16px;margin-bottom:16px">
+  <div style="font-weight:800;color:#0F2A43;font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+    <i class="fa-solid fa-clipboard-check"></i>
+    {{ t('قبل ما تسلّم الورقة','Before you hand this over') }}
+    <span style="font-weight:600;font-size:11px;color:#55647a">{{ t('(دي ليك — مش بتتطبع للعميل)','(for you — not printed for the client)') }}</span>
+  </div>
+  {% for n in sheet_notes %}
+  <div style="display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid #eef2f5">
+    <span style="flex-shrink:0;font-size:13px">{{ '⚠️' if n.kind == 'warn' else 'ℹ️' }}</span>
+    <div style="flex:1;font-size:13px;line-height:1.7;color:{{ '#7f1d1d' if n.kind == 'warn' else '#1f2937' }};font-weight:{{ 700 if n.kind == 'warn' else 500 }}">
+      {{ n.short }}{% if n.full and n.full != n.short %}<details style="display:inline"><summary style="display:inline;cursor:pointer;color:#1B6E80;font-size:11px;font-weight:600"> {{ t('التفصيل','more') }}</summary><div style="font-weight:400;color:#374151;margin-top:5px;font-size:12px">{{ n.full }}</div></details>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 <!-- ═══════ ⚠️ CLIENT NOTES - IMPORTANT ALERT ═══════ -->
 {% if data.notes %}
 <div style="background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border:3px solid #f59e0b;border-radius:14px;padding:18px;margin-bottom:16px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(245,158,11,0.2)">

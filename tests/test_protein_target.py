@@ -217,9 +217,10 @@ def test_the_paper_says_when_the_food_misses_the_target():
     with A.app.test_request_context("/"):
         plan = plan_engine.generate_weekly_plan(data)
         html = plan_engine.plan_html(data, plan)
-    note = re.search(r'<div class="pnote">(.*?)</div>', html, re.S)
-    assert note, "‏الأكل بعيد عن الوصفة والورقة ساكتة"
-    assert "المستهدف" in note.group(1)
+    # ‏التحذير بقى عند الأخصائي في المعاينة، مش على ورقة العميل.
+    joined = " ".join(n["short"] for n in (data.get("sheet_notes") or []))
+    assert joined, "‏الأكل بعيد عن الوصفة ومافيش ولا ملاحظة"
+    assert "المستهدف" in joined, joined
 
     # ‏والعكس: ورقة متسقة مافيهاش تحذير -- وإلا التحذير بيبقى ضوضاء
     # والدكتور بيتعلّم يتجاهله.
@@ -288,8 +289,9 @@ def test_the_protein_line_does_not_claim_to_be_the_food():
     """‏سطر الماكروز وصفة، فلازم يقول إنه مستهدف."""
     data, plan, _target = _week(CASES[0][1])
     with A.app.test_request_context("/"):
-        html = plan_engine.plan_html(data, plan)
-    assert "بروتين مستهدف" in html, "‏السطر لسه بيقدّم الوصفة كأنها الأكل"
+        plan_engine.plan_html(data, plan)
+    joined = " ".join(n["short"] for n in (data.get("sheet_notes") or []))
+    assert "بروتين مستهدف" in joined, "‏السطر لسه بيقدّم الوصفة كأنها الأكل"
 
 
 def test_the_added_protein_reads_in_english_too():

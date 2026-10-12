@@ -139,16 +139,53 @@ def _rank_by_condition(meals, cond_keys):
             neutral.append(m)
     return good + neutral + bad
 
+# ‏الكميات والإيموجي والسعرات اللي جنب السناك -- كلهم بيتشالوا عشان
+# المقارنة تبقى على **الطبق** نفسه.
+_QTY_RX = re.compile(
+    r"\d+[\d\./]*\s*(?:جم|جرام|مل|كوب|كوباية|ملعقة|ملاعق|قطع|قطعة|حبة|"
+    r"حبات|ثمرة|ثمرات|شريحة|شرائح|نمرة|كيس|علبة|kcal|سعرة|g|ml)?")
+
+
+def _dish_key(text):
+    """‏اسم الطبق من غير أي كمية.
+
+    ‏ليه ده لازم: الخطة المحفوظة فيها الجرامات **بعد التكبير** ("صدر
+    دجاج مشوي ٢٧٠جم")، والطابور فيه الأصل ("صدر دجاج مشوي ١٥٠جم").
+    فالمقارنة على النص الكامل ماكانتش بتلاقي حاجة أبداً -- قِسْتها:
+    **صفر** من ٢٨ وجبة من الأسبوع الفات اتطابقت مع الطابور. يعني
+    خاصية "ماتكررش" كانت شغالة على ورق بس، والتكرار اللي العميل
+    بيشوفه (٣٣٪ من الأطباق) كان صدفة من الخلط.
+    """
+    if not text:
+        return ""
+    out = _EMOJI_RX.sub(" ", str(text))
+    out = _QTY_RX.sub(" ", out)
+    out = re.sub(r"[()\-–—.,،+]", " ", out)
+    try:
+        from meal_database import normalize_ar
+        out = normalize_ar(out)
+    except Exception:
+        pass
+    return re.sub(r"\s+", " ", out).strip()
+
+
 def _defer_repeats(meals, avoid):
     """يحط الوجبات اللي العميل أكلها المرة اللي فاتت في آخر اللستة.
 
     الترتيب هو اللي بيحدد إيه اللي هيتاخد (الاختيار بـ i % len)، فتأخيرها
-    معناه إنها مش هتتشاف غير لو الجديد خلص."""
+    معناه إنها مش هتتشاف غير لو الجديد خلص.
+
+    ‏والمقارنة على الطبق مش على النص: التفاصيل في _dish_key.
+    """
     if not avoid:
+        return meals
+    seen = {_dish_key(a) for a in avoid}
+    seen.discard("")
+    if not seen:
         return meals
     fresh, repeats = [], []
     for m in meals:
-        (repeats if _meal_text(m).strip() in avoid else fresh).append(m)
+        (repeats if _dish_key(_meal_text(m)) in seen else fresh).append(m)
     return fresh + repeats
 
 
@@ -489,10 +526,6 @@ def generate_weekly_plan(data):
     # حذف -- لو الفلترة الطبية سابت وجبات قليلة، الأفضل يتكرر أكل على إن
     # الخطة تطلع ناقصة.
     avoid = set(data.get("avoid_meals") or [])
-    if avoid:
-        breakfasts = _defer_repeats(breakfasts, avoid)
-        lunches = _defer_repeats(lunches, avoid)
-        dinners = _defer_repeats(dinners, avoid)
 
     # كيتو: وجبات كيتو حقيقية | لو-كارب: تقليل النشويات
     if diet_type == "keto":
@@ -544,6 +577,19 @@ def generate_weekly_plan(data):
     random.shuffle(breakfasts)
     random.shuffle(lunches)
     random.shuffle(dinners)
+
+    # ‏تأخير أكل الزيارة اللي فاتت **بعد** الخلط. كان قبله، والخلط
+    # بيمسح الترتيب كله -- فالخاصية كانت ملغية من ناحيتين في نفس
+    # الوقت: مش بتلاقي الوجبة أصلاً، ولو لاقتها الخلط بيضيّعها.
+    #
+    # ‏وقبل الترتيب الإكلينيكي بالقصد: ترتيب الحالة والبروتين
+    # sorted ثابت (stable)، فاللي ليهم نفس الأولوية الطبية بيفضلوا
+    # بترتيبهم هنا -- يعني الجديد قبل المكرر. الطب الأول، والتنويع
+    # بيفصل بين المتساويين.
+    if avoid:
+        breakfasts = _defer_repeats(breakfasts, avoid)
+        lunches = _defer_repeats(lunches, avoid)
+        dinners = _defer_repeats(dinners, avoid)
 
     # ‏هدف السعرات اليومي: اللي الدكتور كتبه. لو مكتوبش، الحصص تفضل زي ما هي
     # بدل ما نخمّن رقم ونكبّر عليه.
@@ -1264,10 +1310,46 @@ def plan_html(data, plan=None, clean=False):
             out = re.sub(r"(?<![a-zA-Z])kcal(?![a-zA-Z])", "سعرة", out)
         return out
 
+    # ‏سعرات السناك مكتوبة في آخر النص ("تفاحة 260جم - 139 سعرة").
+    # ‏الورقة بقت من غير أرقام، فالذيل ده بيتشال من المطبوع -- والرقم
+    # ‏نفسه موجود في الداتا زي ما هو للأخصائي.
+    _KCAL_TAIL = re.compile(
+        r"\s*(?:[-\u2013\u2014]\s*\d+[\d\.]*\s*(?:kcal|سعرة|سعر)"
+        r"|\(\s*\d+[\d\.]*\s*(?:kcal|سعرة|سعر)\s*\))\s*$")
+
+    # ‏التحذيرات الإكلينيكية مابقتش تتطبع على ورقة العميل -- الورقة
+    # بقت جدول وممنوع/مسموح وبس. وهي شغل الأخصائي أصلاً: "الدكتور
+    # لازم يشوف الفرق ده **قبل** ما يسلّم الورقة". فبتتجمّع هنا
+    # وبتتعرض في المعاينة.
+    _notes_out = []
+
+    def _note(kind, text):
+        """‏ملاحظة للأخصائي. مختصرة: أول جملة، والباقي عند الطلب."""
+        text = re.sub(r"<[^>]+>", " ", str(text or ""))
+        text = re.sub(r"[*ℹ️⚠️💉🧒]", " ", text)
+        text = re.sub(r"\s+", " ", text).strip()
+        if not text:
+            return
+        short = re.split(r"(?<=[.。])\s+", text)[0].strip(" .")
+        if len(short) > 150:
+            short = short[:147].rstrip() + "…"
+        _notes_out.append({"kind": kind, "short": short, "full": text})
+
     def _fmt_cell(text):
         if not text:
             return "-"
-        parts = [p.strip() for p in _plain(text).split(" + ") if p.strip()]
+        # ‏٣٥ وجبة في القاعدة آخرها إيموجي لوحده ("... + 🍋"). الإيموجي
+        # بيتشال من المطبوع، فكان بيفضل فاصل معلّق في آخر الخانة
+        # ("سلطة كبيرة 200جم +"). الجزء اللي مافيهوش حرف ولا رقم
+        # مابيتطبعش.
+        # ‏٣٥ وجبة في القاعدة آخرها إيموجي لوحده ("... + 🍋"). لما
+        # الإيموجي بيتشال من المطبوع بيفضل فاصل معلّق، و_plain بتسيبه
+        # من غير مسافة بعده ("200جم +") فالقَطع على " + " مابيشوفوش.
+        # فالقَطع بقى على أي "+" مهما كانت المسافات حواليه، والجزء
+        # اللي مافيهوش حرف ولا رقم مابيتطبعش.
+        parts = [p.strip() for p in
+                 re.split(r"\s*\+\s*", _KCAL_TAIL.sub("", _plain(text)))
+                 if re.search(r"[\w\u0600-\u06FF]", p or "")]
         out = []
         for p in parts:
             p = _esc(p)
@@ -1298,13 +1380,12 @@ def plan_html(data, plan=None, clean=False):
 
     # رأس الجدول
     _zz = data.get("zigzag") or None
+    # ‏الورقة اللي بتتسلّم = اليوم والأكل وبس. الأرقام (هدف اليوم،
+    # السعرات، البروتين) شغل الأخصائي مش شغل العميل، وبتظهرله في
+    # المعاينة قبل التسليم.
     head_cells = f'<th class="dcol">{_L("اليوم", "Day")}</th>'
     for c in columns:
         head_cells += f'<th>{_esc(c)}</th>'
-    if _zz:
-        head_cells += f'<th class="kcol">{_L("هدف اليوم", "Day target")}</th>'
-    head_cells += (f'<th class="kcol">{_L("سعرات", "kcal")}</th>'
-                   f'<th class="kcol">{_L("بروتين", "Protein")}</th>')
 
     # صفوف الأيام
     body_rows = ""
@@ -1315,15 +1396,6 @@ def plan_html(data, plan=None, clean=False):
         by_label = {m['label']: m['text'] for m in d['meals']}
         for c in columns:
             cells += f'<td>{_fmt_cell(by_label.get(c, "-"))}</td>'
-        if _zz:
-            _tk = d.get("target_kcal")
-            _tp = d.get("zigzag_pct") or 0
-            # النسبة في سطر لوحدها وبـ nowrap، عشان الـ "%" ما ينزلش لسطر تالت في عمود ضيّق
-            _sfx = (f'<br><span style="white-space:nowrap;font-size:9px">'
-                    f'{"+" if _tp > 0 else ""}{_tp}%</span>') if _tp else ""
-            cells += f'<td class="kcell">{_esc(_tk) if _tk else "-"}{_sfx}</td>'
-        cells += f'<td class="kcell">{_esc(d["total_kcal"])}</td>'
-        cells += f'<td class="kcell">{_esc(d.get("total_p", 0))} {_L("جم", "g")}</td>'
         body_rows += f'<tr>{cells}</tr>'
         _sum_cal += d.get("total_kcal", 0) or 0
         _sum_p += d.get("total_p", 0) or 0
@@ -1332,26 +1404,18 @@ def plan_html(data, plan=None, clean=False):
     _avg_cal = round(_sum_cal / _n)
     _avg_p = round(_sum_p / _n)
 
-    # ── سطر المتابعة ── الأرقام اللي تقول للعميل إن حاجة اتغيّرت من آخر زيارة
+    # ── المتابعة ── كانت سطر على ورقة العميل. الورقة بقت جدول
+    # وممنوع/مسموح وبس، والمقارنة دي شغل الأخصائي فبقت ملاحظة عنده.
     _fu = data.get("followup") or None
     if _fu:
         _dir = _L("نزل", "down") if _fu["delta"] < 0 else (
             _L("زاد", "up") if _fu["delta"] > 0 else _L("ثابت", "unchanged"))
         _amount = f" {abs(_fu['delta'])} {_L('كجم', 'kg')}" if _fu["delta"] else ""
         _rate = (f" ({_fu['rate']} {_L('كجم/أسبوع', 'kg/wk')})") if _fu["rate"] else ""
-        _fu_line = (
-            f'<div class="meta" style="background:#eef4f1">'
-            f'<span><b>{_L("متابعة رقم", "Follow-up visit")}:</b> {_esc(data.get("visit_no", 2))}</span>'
-            f'<span><b>{_L("الوزن", "Weight")}:</b> {_fu["old_weight"]} &rarr; {_fu["new_weight"]} '
-            f'{_L("كجم", "kg")}</span>'
-            f'<span><b>{_esc(_dir)}{_esc(_amount)}</b> {_L("في", "over")} {_fu["days"]} '
-            f'{_L("يوم", "days")}{_esc(_rate)}</span>'
-            + (f'<span><b>{_L("TDEE الجديد", "New TDEE")}:</b> {_fu["new_tdee"]} kcal</span>'
-               if _fu.get("new_tdee") else "")
-            + f'</div>'
-            f'<div class="fu-note">{_esc(_fu["note_ar"] if _pdf_ar else _fu["note_en"])}</div>')
-    else:
-        _fu_line = ""
+        _note("info", "%s %s: %s %s %s %s%s %s %s %s%s." % (
+            _L("متابعة رقم", "Follow-up"), data.get("visit_no", 2),
+            _L("الوزن", "weight"), _fu["old_weight"], "←", _fu["new_weight"],
+            _L(" كجم", " kg"), _dir, _amount, _fu["days"], _L(" يوم", " days")))
 
     # سطر التدوير جنب السعرات المستهدفة، ومعاه المدى عشان القارئ يفهم إن اليوم بيتغيّر
     if _zz:
@@ -1370,17 +1434,11 @@ def plan_html(data, plan=None, clean=False):
     # للأخصائي في المعاينة وبس، والعميل ياخد الجدول من غيرها. صف كامل مش
     # عمود جوه .foot لأن النصوص دي جُمل مش عناصر قصيرة.
     _notes_items = [n.strip() for n in notes_rendered.split("|") if n.strip()]
-    if _notes_items:
-        notes_html = ('<div class="notes"><h4>'
-                      + _L("ملاحظات طبية", "Clinical notes") + "</h4><ul>"
-                      + "".join(f"<li>{_esc(n)}</li>" for n in _notes_items)
-                      + "</ul></div>")
-    else:
-        notes_html = ""
+    for _n in _notes_items:
+        _note("warn" if _n.lstrip().startswith("⚠") else "info", _n)
 
     allowed_html = "".join(f"<li>{_esc(_plain(_g(x)))}</li>" for x in td['allowed'][:5])
     forbidden_html = "".join(f"<li>{_esc(_plain(_g(x)))}</li>" for x in td['forbidden'][:5])
-    water_tips = "".join(f"<li>{_esc(_plain(x))}</li>" for x in td['tips']['water'][:3])
 
     # حساب الماكروز: بروتين بالوزن، دهون % من السعرات، الكارب الباقي
     PROTEIN_FACTORS = {"sedentary": 1.0, "light": 1.3, "regular": 1.6, "athlete": 2.0}
@@ -1416,19 +1474,18 @@ def plan_html(data, plan=None, clean=False):
         _kcal = 0
     _act_label = ACTIVITY_LABELS.get(_act, _L("تمارين منتظمة / تخسيس",
                                               "Trains regularly / weight loss"))
+    # ‏الورقة اللي بتتسلّم: الاسم بس. الوزن والطول وBMI والماكروز
+    # والسعرات المستهدفة والمطبخ -- كلهم بيانات شغل، والدكتور شايفهم
+    # في المعاينة. "مفهوش أي إضافات غير الممنوع والمسموح".
+    _meta_line = ""
+    if cl.get("name"):
+        _meta_line = ('<div class="meta"><span><b>%s:</b> %s</span></div>'
+                      % (_L("الاسم", "Name"), _esc(cl["name"])))
     # ‏الـBMI رقم على ورقة العميل، ومن ٣٠ وفوق الرقم لوحده بيتقرا
     # كتشخيص. ولجنة Lancet (٢٠٢٥، +٧٥ منظمة طبية) بتقول إنه مش
     # تشخيص: السمنة بتتقسم لعامل خطر ومرض قائم بذاته، والفرق مش في
     # الرقم -- في إن الدهون بقت مأثرة على عضو ولا لسه. والتقييم ده
     # في لوحة "اشرح الفحص"، مش على ورقة العميل.
-    _bmi_tail = ""
-    try:
-        if float(data.get("bmi") or 0) >= 30:
-            _bmi_tail = _L(" — مؤشر وزن على طول، مش تشخيص لوحده",
-                           " — a weight-for-height index, not a diagnosis "
-                           "on its own")
-    except (TypeError, ValueError):
-        _bmi_tail = ""
     macro_meta = ""
     if _w > 0 and _kcal > 0:
         # ‏نفس الحساب اللي المحرّك بيبني بيه، مش حساب تاني. كان
@@ -1526,6 +1583,11 @@ def plan_html(data, plan=None, clean=False):
                     f'<span style="font-size:11px;color:#991b1b">'
                     f'{_L("نسبة الأنسولين للكارب ومعامل التصحيح: محتاجين إجمالي جرعة الأنسولين اليومية من الطبيب — لسه متدخلش", "Insulin-to-carb ratio and correction factor need the total daily insulin dose from the doctor -- not entered yet")}</span>'
                 )
+
+    # ‏سطر الماكروز كان فوق الجدول على ورقة العميل. بقى ملاحظة عند
+    # الأخصائي -- هو اللي محتاج يعرف الهدف، مش العميل.
+    if macro_meta:
+        _note("info", macro_meta)
 
     _tcal = int(_kcal) if _kcal > 0 else None
     _tp = _protein_target(data, _w, _ppk) if _w > 0 else None
@@ -1673,7 +1735,6 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
     # ‏سطر حساب البروتين لو اتغيّر عن "وزن × جرام/كجم" (طفل). لازم
     # يبان: الدكتور شايف "بروتين مستهدف ٥٠ جم" لطفلة ١٠٨ كجم، ولازم
     # يعرف الرقم جه منين.
-    _p_warn_basis = ""
     if (data.get("protein_basis") or {}).get("why"):
         try:
             import protein_need
@@ -1686,9 +1747,7 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
         except Exception:
             _bn = None
         if _bn:
-            _p_warn_basis = ('<div class="pnote" style="color:#13394d;'
-                             'background:#eef4f8;border-color:#1B6E80">ℹ️ '
-                             + _esc(_bn.replace("**", "")) + '</div>')
+            _note("info", _bn.replace("**", ""))
 
     # ‏سطر الإبرة: الجرام/كجم اترفع، والدكتور لازم يعرف ليه.
     if _ppk_raised:
@@ -1701,9 +1760,7 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
         except Exception:
             _gn = None
         if _gn:
-            _p_warn_basis += ('<div class="pnote" style="color:#13394d;'
-                              'background:#eef4f8;border-color:#1B6E80">💉 '
-                              + _esc(_gn) + '</div>')
+            _note("info", _gn)
 
     # ‏الطفل: نطاق مش رقم واحد.
     #
@@ -1725,7 +1782,6 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
     except Exception:
         _band = None
 
-    _p_warn = ""
     if _band and _avg_p:
         _blo, _bhi = _band
         # ‏كل يوم على سعرات **نفسه**: النطاق نسبة من الطاقة، ويوم
@@ -1746,15 +1802,11 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
         if _avg_p > _bhi or _avg_p < _blo or len(_out) >= 2:
             _dir_ar = "تحت" if _avg_p < _blo else "فوق"
             _dir_en = "below" if _avg_p < _blo else "above"
-            _p_warn = (
-                f'<div class="pnote">⚠️ '
-                f'{_L("بروتين الأكل في الجدول", "The protein in this plan")} '
-                f'({_avg_p} {_L("جم/يوم بالمتوسط", "g/day on average")}) '
-                f'{_L(_dir_ar, _dir_en)} '
-                f'{_L("النطاق المقبول لسن الطفل", "the accepted range for this child")} '
-                f'({_blo}-{_bhi} {_L("جم", "g")}). '
-                f'{_L("راجع الحصص قبل التسليم.", "Review the portions before handing this over.")}'
-                f'</div>')
+            _note("warn", "%s (%s %s) %s %s (%s-%s %s)." % (
+                _L("بروتين الأكل", "Plan protein"), _avg_p,
+                _L("جم/يوم", "g/day"), _L(_dir_ar, _dir_en),
+                _L("نطاق سن الطفل", "the child range"), _blo, _bhi,
+                _L("جم", "g")))
     elif _tp and _avg_p:
         _off = abs(_avg_p - _tp) / float(_tp)
         # ‏يوم تحت الأرضية، **أو** يوم ناقص ربع وصفته. التاني لازم:
@@ -1771,20 +1823,24 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
                        if _low else "")
             _why_en = (" and at least one day is below 0.95 g/kg"
                        if _low else "")
-            _p_warn = (
-                f'<div class="pnote">⚠️ '
-                f'{_L("بروتين الأكل في الجدول", "The protein in this plan")} '
-                f'({_avg_p} {_L("جم/يوم بالمتوسط", "g/day on average")}) '
-                f'{_L(_dir_ar, _dir_en)} '
-                f'{_L("المستهدف", "the target")} ({_tp} {_L("جم", "g")})'
-                f'{_L(_why_ar, _why_en)}. '
-                f'{_L("ظبّط جرام/كجم أو زوّد بروتين في الوجبات قبل التسليم.", "Adjust the g/kg or add protein to the meals before handing this over.")}'
-                f'</div>')
+            _note("warn", "%s (%s %s) %s %s (%s %s)%s." % (
+                _L("بروتين الأكل", "Plan protein"), _avg_p,
+                _L("جم/يوم", "g/day"), _L(_dir_ar, _dir_en),
+                _L("المستهدف", "the target"), _tp, _L("جم", "g"),
+                _L(_why_ar, _why_en)))
 
-    summary_box = (_p_warn_basis + _p_warn + f'<div class="summary"><span><b>{_L("المتوسط الفعلي/يوم", "Actual average per day")}:</b> '
-                   f'{_avg_cal} {_L("سعرة", "kcal")} • {_avg_p} {_L("جم بروتين", "g protein")}</span>'
-                   f'<span><b>{_L("الهدف", "Target")}:</b> {_tcal if _tcal else "-"} {_L("سعرة", "kcal")} • '
-                   f'{_tp if _tp else "-"} {_L("جم بروتين", "g protein")}</span></div>')
+    # ‏الملخص كان على ورقة العميل. بقى أول ملاحظة عند الأخصائي --
+    # دي البصة اللي بيتأكد بيها إن الجدول وصل هدفه قبل التسليم.
+    _notes_out.insert(0, {
+        "kind": "info",
+        "short": "%s %s %s · %s %s — %s %s %s · %s %s" % (
+            _L("الفعلي", "Actual"), _avg_cal, _L("سعرة", "kcal"),
+            _avg_p, _L("جم بروتين", "g protein"),
+            _L("الهدف", "target"), _tcal if _tcal else "-",
+            _L("سعرة", "kcal"), _tp if _tp else "-",
+            _L("جم بروتين", "g protein")),
+        "full": "",
+    })
 
     html_string = f"""<!DOCTYPE html><html lang="{_L("ar", "en")}"><head><meta charset="utf-8">
 <style>
@@ -1854,29 +1910,17 @@ tr:nth-child(even) td {{ background:#fbfcfb; }}
   {_by_line}</div>
   <div class="s">{_file_line}{_esc(td['date'])}</div>
 </div>
-<div class="meta">
-  {f'<span><b>{_L("الاسم", "Name")}:</b> {_esc(cl["name"])}</span>' if cl.get('name') else ''}
-  <span><b>{_L("النوع", "Sex")}:</b> {_esc(_GENDER_EN.get(cl['gender'], cl['gender']) if not _pdf_ar else cl['gender'])}</span>
-  <span><b>{_L("العمر", "Age")}:</b> {_esc(cl['age'])}</span>
-  <span><b>{_L("الوزن", "Weight")}:</b> {_esc(cl['weight'])} {_L("كجم", "kg")}</span>
-  <span><b>{_L("الطول", "Height")}:</b> {_esc(cl['height'])} {_L("سم", "cm")}</span>
-  <span><b>BMI:</b> {_esc(cl['bmi'])}{_bmi_tail}</span>
-  <span><b>{_L("السعرات المستهدفة", "Target calories")}:</b> {_esc(cl['target_kcal'])} kcal{_zz_meta}</span>
-  <span><b>{_L("المطبخ", "Cuisine")}:</b> {_esc(td['culture'])}</span>
-  {macro_meta}
-</div>
-{_fu_line}
+{_meta_line}
 <table><thead><tr>{head_cells}</tr></thead><tbody>{body_rows}</tbody></table>
-{summary_box}
 <div class="foot">
   <div class="fbox ok"><h4>{_L("مسموح", "Allowed")}</h4><ul>{allowed_html}</ul></div>
   <div class="fbox no"><h4>{_L("ممنوع", "Avoid")}</h4><ul>{forbidden_html}</ul></div>
-  <div class="fbox wt"><h4>{_L("الماء", "Water")}</h4><ul>{water_tips}</ul></div>
 </div>
-{notes_html}
 <div class="sig">{_L("المراجعة بعد", "Review in")} {_esc(td['review_weeks'])} {_L("أسابيع", "weeks")}{_sig_by}</div>
 </body></html>"""
 
+    # ‏الأخصائي بيقراها في المعاينة -- الورقة مابتحملهاش
+    data["sheet_notes"] = _notes_out
     return html_string
 
 

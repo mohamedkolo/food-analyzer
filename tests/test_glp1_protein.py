@@ -108,14 +108,16 @@ def test_the_paper_and_the_table_are_on_one_number():
     """‏الدرس اللي اتكرر مرتين قبل كده: لو الحساب اتعمل في مكانين،
     الورقة بتطبع رقم والجدول يتبني على غيره. فالرقم المطبوع لازم
     يكون هو نفسه اللي في protein_basis."""
-    data, plan, html = _plan(symptoms=[OZEMPIC])
+    data, plan, _html = _plan(symptoms=[OZEMPIC])
     grams = data["protein_basis"]["grams"]
     rate = data["protein_basis"]["per_kg"]
-    text = re.sub(r"<[^>]+>", " ", html)
+    # ‏الرقم اتنقل من ورقة العميل لملاحظات الأخصائي -- والشرط هو هو:
+    # اللي بيتكتب لازم يكون اللي الجدول اتبنى عليه.
+    text = " ".join(n["short"] for n in (data.get("sheet_notes") or []))
     assert re.search(r"%d\s*(?:جم|g)" % grams, text), (
-        "‏الورقة مش بتطبع %d" % grams)
+        "‏الملاحظات مش بتقول %d: %s" % (grams, text))
     assert re.search(r"%s\s*(?:جم/كجم|g/kg)" % rate, text), (
-        "‏الورقة مش بتطبع %s جم/كجم" % rate)
+        "‏الملاحظات مش بتقول %s جم/كجم: %s" % (rate, text))
     # ‏والأكل نفسه قريب من الهدف
     avg = round(sum(d["total_p"] for d in plan) / len(plan))
     assert abs(avg - grams) / float(grams) < 0.15, (avg, grams)
@@ -123,14 +125,12 @@ def test_the_paper_and_the_table_are_on_one_number():
 
 def test_the_sheet_says_why_the_number_moved():
     """‏الدكتور شايف ١.٥ وهو مختار "خامل" -- لازم يعرف الرقم جه منين."""
-    _data, _plan_days, html = _plan(symptoms=[OZEMPIC])
-    notes = " ".join(re.findall(r'<div class="pnote"[^>]*>(.*?)</div>',
-                                html, re.S))
+    data, _plan_days, _html = _plan(symptoms=[OZEMPIC])
+    notes = " ".join(n["short"] for n in (data.get("sheet_notes") or []))
     assert "اترفع" in notes and "1.5" in notes, notes[:300]
     # ‏ومايظهرش لما مافيش رفع
-    _d2, _p2, html2 = _plan(symptoms=[OZEMPIC], activity_level="athlete")
-    notes2 = " ".join(re.findall(r'<div class="pnote"[^>]*>(.*?)</div>',
-                                 html2, re.S))
+    d2, _p2, _h2 = _plan(symptoms=[OZEMPIC], activity_level="athlete")
+    notes2 = " ".join(n["short"] for n in (d2.get("sheet_notes") or []))
     assert "اترفع" not in notes2, notes2[:300]
 
 

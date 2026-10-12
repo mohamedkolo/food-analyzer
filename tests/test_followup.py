@@ -219,6 +219,77 @@ def test_a_follow_up_plan_avoids_last_visits_meals():
         f"only {fresh} of {len(got)} meals ({ratio:.0%}) were new in the follow-up week")
 
 
+def test_the_avoid_list_actually_matches_the_pool():
+    """‏دي كانت شغالة على ورق بس.
+
+    ‏الخطة المحفوظة فيها الجرامات **بعد التكبير** ("صدر دجاج مشوي
+    ٢٧٠جم")، والطابور فيه الأصل ("صدر دجاج مشوي ١٥٠جم"). فالمقارنة
+    على النص الكامل ماكانتش بتلاقي حاجة: قِسْتها وطلعت **صفر** من
+    ٢٨ وجبة.
+    """
+    from plan_engine import _dish_key, _defer_repeats
+    scaled = "🍗 صدر دجاج مشوي 270جم + 🍚 ارز بني 220جم"
+    base = {"meal": "🍗 صدر دجاج مشوي 150جم + 🍚 ارز بني 120جم",
+            "cal": 450, "p": 45}
+    other = {"meal": "🐟 سمك مشوي 150جم + 🍚 ارز 100جم", "cal": 420, "p": 42}
+    assert _dish_key(scaled) == _dish_key(base["meal"]), (
+        _dish_key(scaled), _dish_key(base["meal"]))
+    assert _defer_repeats([base, other], {scaled}) == [other, base]
+    # ‏السناك بسعراته جنبه برضه
+    assert _dish_key("🍎 تفاحة (260جم) - 139 kcal") == \
+        _dish_key("🍎 تفاحة (150جم) - 80 kcal")
+
+
+def test_the_shuffle_does_not_wipe_the_deferral():
+    """‏التأخير كان بيتعمل **قبل** random.shuffle، والخلط بيمسح
+    الترتيب كله. يعني الخاصية كانت ملغية من ناحيتين في نفس الوقت."""
+    import inspect
+    import plan_engine
+    src = inspect.getsource(plan_engine.generate_weekly_plan)
+    shuffle_at = src.index("random.shuffle")
+    defer_at = src.index("_defer_repeats(breakfasts")
+    assert defer_at > shuffle_at, (
+        "‏تأخير أكل الزيارة اللي فاتت لسه قبل الخلط -- الخلط بيمسحه")
+
+
+def test_a_returning_client_does_not_eat_last_visits_food_again():
+    """‏اللي الدكتور بيشوفه: نفس الأطباق في الزيارة الجديدة.
+
+    ‏القياس على **الطبق** مش على النص: "صدر دجاج ٢٧٠جم" و"صدر دجاج
+    ١٥٠جم" نفس الأكل في عين العميل. قبل الإصلاح ٣٣٪ من أطباق
+    الأسبوع الجديد كانت متكررة، وبعده ١٥٪ -- والباقي حد الطابور
+    نفسه بعد الفلترة الطبية.
+    """
+    from core import app
+    from plan_engine import generate_weekly_plan, _dish_key
+    data = {
+        "name": "عميلة راجعة", "age": "38", "gender": "انثى",
+        "height": "162", "weight": "95", "tdee": "2350",
+        "goal_cal": "1750", "goal_type": "weight_loss", "culture": "مصري",
+        "diet_plan_type": "standard", "symptoms": [], "allergies": [],
+        "notes": "", "disliked_foods": "", "user_id": 1,
+        "protein_per_kg": "1.6", "fat_pct_cal": "30", "zigzag_mode": "off",
+    }
+
+    def dishes(plan):
+        return {_dish_key(d.get(k)) for d in plan
+                for k in d.get("meal_labels", []) if d.get(k)}
+
+    worst = 0
+    for _ in range(3):
+        with app.test_request_context("/"):
+            first = generate_weekly_plan(dict(data))
+        eaten = fu.meals_in_plan(first)
+        with app.test_request_context("/"):
+            second = generate_weekly_plan(
+                dict(data, weight="91", avoid_meals=eaten))
+        a, b = dishes(first), dishes(second)
+        worst = max(worst, len(a & b) / max(len(b), 1))
+    assert worst <= 0.28, (
+        "‏%.0f%% من أطباق الأسبوع الجديد متكررة من الزيارة اللي فاتت"
+        % (100 * worst))
+
+
 def test_history_summary_spans_the_whole_journey():
     visits = [                       # newest first, the order the query returns
         {"weight": 88, "created_at": (dt.datetime.now()).strftime("%Y-%m-%d %H:%M:%S")},

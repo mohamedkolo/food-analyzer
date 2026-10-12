@@ -149,19 +149,17 @@ def test_the_plan_sheet_stops_printing_bmi_as_a_verdict():
             "activity_level": "light", "goal_type": "weight_loss",
             "weight": "95", "height": "162", "tdee": "1900",
             "goal_cal": "1500", "bmi": "36.2"}
+    # ‏الورقة بقت جدول وممنوع/مسموح وبس بطلب الدكتور، فسطر البيانات
+    # كله اتشال -- والـBMI معاه. يعني الرقم مابقاش بيتقرا كتشخيص
+    # على ورقة العميل لأنه مابقاش عليها أصلاً، والتقييم الكامل في
+    # لوحة "اشرح الفحص".
     data["zigzag"] = zigzag.zigzag_from_data(data)
     with A.app.test_request_context("/"):
         html = plan_engine.plan_html(data)
-    found = re.search(r"BMI:</b>([^<]*)", html)
-    assert found and "مش تشخيص" in found.group(1), found
-
-    # ‏وBMI طبيعي مايتعلّقش عليه -- السطر ده بيتقال لما يكون له لازمة
-    data2 = dict(data, bmi="23.4")
-    data2["zigzag"] = zigzag.zigzag_from_data(data2)
-    with A.app.test_request_context("/"):
-        html2 = plan_engine.plan_html(data2)
-    found2 = re.search(r"BMI:</b>([^<]*)", html2)
-    assert found2 and "مش تشخيص" not in found2.group(1), found2
+    assert "BMI" not in html, "‏الـBMI رجع على ورقة العميل من غير سياق"
+    meta = re.search(r'<div class="meta">(.*?)</div>', html, re.S)
+    body = re.sub(r"<[^>]+>", " ", meta.group(1)) if meta else ""
+    assert "36.2" not in body, body
 
 
 if __name__ == "__main__":

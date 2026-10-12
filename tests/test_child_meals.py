@@ -153,17 +153,20 @@ def test_the_week_lands_in_the_published_range():
 
 def test_the_sheet_says_the_carbs_and_fat_came_from_the_food():
     """‏ورقة البالغ بتقول "مُقدّرة" وهي صح. ورقة الطفل بقت تعرف."""
-    _data, _plan_days, html = _plan(CHILD)
-    assert "من الأكل" in html, "‏لسه بتقول مُقدّرة والأكل يعرف أرقامه"
-    assert "مُقدّر" not in html
+    # ‏سطر الماكروز اتنقل من ورقة العميل لملاحظات الأخصائي.
+    data, _plan_days, _html = _plan(CHILD)
+    joined = " ".join(n["short"] for n in (data.get("sheet_notes") or []))
+    assert "من الأكل" in joined, "‏لسه بتقول مُقدّرة والأكل يعرف أرقامه"
+    assert "مُقدّر" not in joined, joined
 
 
 def test_the_adult_sheet_still_says_estimated():
     """‏البالغ مااتغيّرش: قاعدته مافيهاش كارب ولا دهون."""
     adult = dict(CHILD, age="30", weight="90", height="175", tdee="2400",
                  goal_cal="2000", protein_per_kg="1.8")
-    _data, plan, html = _plan(adult)
-    assert "مُقدّر" in html
+    data, plan, _html = _plan(adult)
+    joined = " ".join(n["short"] for n in (data.get("sheet_notes") or []))
+    assert "مُقدّر" in joined, joined
     assert all(d.get("total_c") is None for d in plan)
 
 

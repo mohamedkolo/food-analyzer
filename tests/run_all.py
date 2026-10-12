@@ -43,6 +43,7 @@ SUITES = [
     "test_glp1_protein.py",
     "test_obesity_staging.py",
     "test_barcode_lookup.py",
+    "test_client_sheet.py",
     "test_money.py",
 ]
 

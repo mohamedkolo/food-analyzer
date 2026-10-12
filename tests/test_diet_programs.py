@@ -395,10 +395,15 @@ def test_the_clean_table_is_the_company_sheet_s_shape():
     # ‏كل مكوّن في سطر: العنصر بيتلف في span.it وده display:block
     assert 'class="it"' in html
     assert "td .it {" in html and "display:block" in html
-    # ‏الهوية اتشالت، والكلام الطبي فضل
+    # ‏الهوية اتشالت، والأكل فضل
     assert "NX-" not in html and "NutraX" not in html
-    assert "1626" in html or re.search(r">\s*1[5-7]\d\d\s*<", html), \
-        "‏عمود السعرات اختفى من النسخة النضيفة"
+    # ‏عمود السعرات اتشال من ورقة العميل كلها بطلب الدكتور ("مفهوش
+    # أي إضافات غير الممنوع والمسموح"). فالشرط بقى إن **الأكل** هو
+    # اللي فضل: كل يوم فيه وجباته.
+    body = html.split("<tbody>")[1].split("</tbody>")[0]
+    for row in re.findall(r"<tr>(.*?)</tr>", body, re.S):
+        items = re.findall(r'<span class="it">', row)
+        assert len(items) >= 3, "‏صف فيه %d مكوّن بس" % len(items)
 
 
 # ═══ سطر المرجع ═════════════════════════════════════

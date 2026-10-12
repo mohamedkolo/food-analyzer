@@ -246,9 +246,14 @@ def test_every_note_line_carries_its_own_english():
         assert not ARABIC.search(en), f"the English for {ar!r} still has Arabic: {en!r}"
 
 
-def test_the_client_pdf_carries_the_warnings():
-    # clinical_notes was computed and handed to the template, which never used
-    # it, so none of this reached the client's copy
+def test_the_cycle_warnings_reach_the_specialist():
+    """‏الورقة بقت جدول وممنوع/مسموح وبس بطلب الدكتور، فتحذيرات
+    الدورة (الأيام تحت الحد الآمن) مابقتش تتطبع للعميل -- بقت في
+    data["sheet_notes"] وبتتعرض في المعاينة.
+
+    ‏الاختبار ده كان بيقرا نص الـPDF. دلوقتي بيقرا الملاحظات نفسها،
+    وده أدق: مافيش استخراج نص من PDF عربي في النص.
+    """
     os.environ.setdefault("SECRET_KEY", "test-key")
     from core import app  # noqa: E402
     from flask import session  # noqa: E402
@@ -264,33 +269,23 @@ def test_the_client_pdf_carries_the_warnings():
             "notes": "", "disliked_foods": "", "user_id": 1,
             "bmi": "29", "fat_pct": "34",
         }
+        from plan_engine import plan_html  # noqa: E402
         with app.test_request_context("/"):
             session["lang"] = lang
             session["uid"] = 1
             pdf = build_pdf(data)
+            plan_html(data)
         assert pdf[:4] == b"%PDF", f"{lang}: build_pdf did not return a PDF"
 
-        # Reading the text back needs a PDF parser, and tests/README promises
-        # the suite runs on plain python. So the deep check runs only where one
-        # happens to be installed, and everywhere else this stays a smoke test
-        # plus the note-pairs check above.
-        try:
-            import io
-            from pypdf import PdfReader
-        except ImportError:
-            continue
-        text = " ".join((page.extract_text() or "")
-                        for page in PdfReader(io.BytesIO(pdf)).pages)
-        # the floor figure appears nowhere else in the document, so finding it
-        # means the notes box rendered
-        assert str(MIN_KCAL_FEMALE) in text, (
-            f"{lang}: the floor warning is not in the PDF")
+        notes = " ".join(n["short"] for n in (data.get("sheet_notes") or []))
+        assert notes, f"{lang}: the cycle produced no specialist notes"
+        # the floor figure appears nowhere else, so finding it means the
+        # warning survived
+        assert str(MIN_KCAL_FEMALE) in notes, (
+            f"{lang}: the floor warning did not reach the specialist")
         if lang == "en":
-            assert "kcal floor" in text, "the English PDF lost the warning wording"
-            i = text.find("Clinical notes")
-            assert i > -1, "the English PDF has no clinical-notes box"
-            assert not ARABIC.search(" ".join(text[i:i + 400].split())), (
-                "Arabic leaked into the English PDF's notes box")
+            assert not ARABIC.search(notes), (
+                "Arabic leaked into the English notes")
 
 
 def test_a_clean_plan_raises_nothing_beyond_the_floor():

@@ -766,9 +766,18 @@ def preview():
     plan = draft_store.draft_plan()
     if not data or not plan: return redirect("/generate")
     current_request_id = session.get("current_request_id")
+    # ‏ورقة العميل بقت جدول وممنوع/مسموح وبس. التحذيرات الإكلينيكية
+    # بتتجمّع وهي بتتبني، وبتتعرض هنا -- الأخصائي بيقراها قبل التسليم.
+    sheet_notes = []
+    try:
+        import plan_engine
+        plan_engine.plan_html(data, plan)   # بتملا data["sheet_notes"]
+        sheet_notes = data.get("sheet_notes") or []
+    except Exception as e:
+        log_error("preview_notes", e)
     return render_template("preview.html", user=u, lang=session.get("lang","ar"),
                            data=data, plan=plan, current_request_id=current_request_id,
-                           diet_plans=DIET_PLAN_TYPES)
+                           sheet_notes=sheet_notes, diet_plans=DIET_PLAN_TYPES)
 
 def _filtered_meals(data, pool_key, culture=None):
     """بيرجّع وجبات pool_key بعد تطبيق: الحالة المرضية + الحساسية + المرفوض + الكيتو/لو-كارب."""
