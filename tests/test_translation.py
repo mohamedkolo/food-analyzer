@@ -217,6 +217,47 @@ def test_a_childs_english_sheet_carries_no_arabic():
             culture, leaks[:3])
 
 
+def test_a_unit_in_the_glossary_does_not_carry_its_own_number():
+    """‏كان في المعجم "ملعقة صغيرة" -> "1 tsp" -- الرقم جوه الوحدة.
+    والنص العربي أصلاً بيجي "1 ملعقة صغيرة"، فلما المقياس كبّر
+    الكمية الورقة طلعت للعميل "olive oil 2 1 tsp".
+
+    الفحص على المعجم كله مش على الملعقة بس: أي وحدة شايلة رقم جواها
+    هي نفس الغلطة مستنية كمية تتغير.
+
+    اتنين بس مسموحين، والاتنين الرقم فيهم **ترجمة** مش زيادة:
+    العربي فيه رقم أصلاً ("3 ملاعق")، أو العربي مثنّى -- الكلمة
+    نفسها معناها اتنين ("ملعقتين"، "شريحتين")، فلازم تطلع "2".
+    """
+    import meal_i18n
+    units = ("g", "ml", "cup", "cups", "tsp", "tbsp", "pcs", "slice",
+             "slices", "piece", "pieces")
+    rx = re.compile(r"(\d+)\s+(?:%s)\Z" % "|".join(units))
+    for src in (meal_i18n.PHRASES, meal_i18n.WORDS):
+        for ar, en in src.items():
+            m = rx.match(str(en).strip())
+            if not m:
+                continue
+            ar = ar.strip()
+            if re.search(r"\d", ar):
+                continue                      # ‏الرقم مكتوب في العربي
+            is_dual = ar.endswith(("ين", "ان")) and m.group(1) == "2"
+            assert is_dual, (
+                '"%s" -> "%s": وحدة شايلة رقم جواها. لو الكمية اتغيرت '
+                "الورقة هتطبع رقمين جنب بعض" % (ar, en))
+
+
+def test_a_scaled_spoon_prints_one_number_not_two():
+    """‏نفس الغلطة من ناحية المخرج: الورقة اللي العميل بياخدها."""
+    import portion_scale
+    base = "🧒 زيت زيتون 1 ملعقة صغيرة"
+    for factor in (1.0, 1.5, 2.0, 3.0):
+        scaled, _eff = portion_scale.scale_meal(base, factor)
+        en = translate_meal(scaled)
+        assert not re.search(r"\d+\s+\d+\s*(?:tsp|tbsp|cup|g|ml)", en), (
+            "‏رقمين جنب بعض على الورقة: %s" % en)
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):

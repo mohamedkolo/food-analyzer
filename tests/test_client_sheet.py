@@ -65,16 +65,23 @@ def test_the_table_carries_the_food_and_nothing_else():
             banned, labels)
 
 
-def test_the_meta_line_is_only_the_name():
-    """‏الوزن والطول وBMI والسعرات والماكروز -- كلهم بيانات شغل."""
-    _data, _plan, html = _sheet()
-    meta = re.search(r'<div class="meta">(.*?)</div>', html, re.S)
-    assert meta, "‏سطر البيانات اختفى خالص -- الاسم المفروض يفضل"
-    body = re.sub(r"<[^>]+>", " ", meta.group(1))
-    assert "ريم محمد" in body, body
+def test_no_client_data_line_survives_on_the_sheet():
+    """‏أول مرحلة كان سطر البيانات اتقلّم لحد ما بقى الاسم بس. بعدين
+    الدكتور قال "شيل كل حاجة ما عدا اللي قلته" -- فالسطر كله راح،
+    والاسم والتاريخ ورقم الملف والتوقيع معاه.
+
+    الاختبار ده بيقفل الباب على رجوع أي رقم من أرقام الشغل للورقة
+    من باب "ده سطر صغير": مافيش سطر بيانات أصلاً يترجّع فيه.
+    """
+    data, _plan, html = _sheet()
+    assert 'class="meta"' not in html, "‏سطر البيانات رجع على ورقة العميل"
+    assert 'class="hdr"' not in html, "‏الهيدر رجع على ورقة العميل"
+    assert 'class="sig"' not in html, "‏سطر التوقيع رجع على ورقة العميل"
+    text = _text(html)
+    assert data["name"] not in text, "‏اسم العميل رجع على الورقة"
     for banned in ("BMI", "الطول", "الوزن", "بروتين مستهدف", "المطبخ",
                    "السعرات المستهدفة"):
-        assert banned not in body, "‏%s لسه في سطر البيانات: %s" % (banned, body)
+        assert banned not in text, "‏%s رجع على ورقة العميل" % banned
 
 
 def test_the_sheet_keeps_only_allowed_and_forbidden():

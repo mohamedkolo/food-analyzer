@@ -1161,10 +1161,14 @@ def plan_html(data, plan=None, clean=False):
     PDF (استخراج العربي بيلغبط الحروف فالاختبار عليه مش دليل)، والصفحة دي
     تنفع تتعرض أو تتطبع زي ما هي بعدين.
 
-    clean=True يشيل هوية العيادة: اسمها، اسم المُعِد، ورقم الملف. الدكتور
-    بيشتغل في أكتر من مكان، ومايصحّش يسلّم عميل في عيادة تانية ورقة مكتوب
-    عليها اسم عيادة غيرها. الكلام الطبي كله بيفضل زي ما هو: البيانات،
-    الجدول، المسموح والممنوع، والماء. اللي بيتشال هوية، مش محتوى.
+    الورقة بقت الجدول والمسموح والممنوع وبس، بطلب الدكتور: "مفهوش أي
+    إضافات غير الممنوع والمسموح بالنسبة للحالة". فمحصّلش إن هوية
+    العيادة تتشال في وضع وتفضل في وضع -- مابقتش موجودة في الاتنين،
+    وclean مابقاش له أثر على المطبوع. سايبينه عشان النداءات اللي
+    بتبعته (النسخة النضيفة، لينك الخطة) تفضل شغالة من غير تعديل.
+
+    الأرقام والملحوظات الإكلينيكية مراحتش: بتتجمع في
+    data["sheet_notes"] وبتتعرض للأخصائي في المعاينة قبل التسليم.
     """
     import datetime as dt
     if plan is None: plan = generate_weekly_plan(data)
@@ -1363,13 +1367,8 @@ def plan_html(data, plan=None, clean=False):
     td = template_data
     cl = td['client']
     pdays = td['days']
-    # ‏هوية العيادة: سطر تحت العنوان، رقم الملف، والتوقيع تحت. التلاتة بيختفوا
-    # مع بعض في الوضع النضيف -- لو واحد فضل، الورقة لسه بتقول إنها من هنا.
-    _by_line = ("" if clean else
-                f'<div class="s">{_esc(td["clinic_name"])} • {_esc(td["author"])}</div>')
-    _file_line = ("" if clean else
-                  f'{_L("ملف", "File")}: {_esc(td["file_number"])}<br>')
-    _sig_by = "" if clean else f' — {_esc(td["author"])}'
+    # ‏هوية العيادة (اسمها، رقم الملف، التوقيع) مابقتش على الورقة
+    # خالص -- تحت عند بناء الـbody فيه الحكاية كلها.
     # أعمدة الوجبات (من أول يوم - تنفع لأي نظام)
     columns = [m['label'] for m in pdays[0]['meals']] if pdays else []
     # ‏عَرضية دايماً. كانت بتتقرر من عدد الأعمدة (عرضية لو ٥ أو أكتر،
@@ -1474,13 +1473,16 @@ def plan_html(data, plan=None, clean=False):
         _kcal = 0
     _act_label = ACTIVITY_LABELS.get(_act, _L("تمارين منتظمة / تخسيس",
                                               "Trains regularly / weight loss"))
-    # ‏الورقة اللي بتتسلّم: الاسم بس. الوزن والطول وBMI والماكروز
-    # والسعرات المستهدفة والمطبخ -- كلهم بيانات شغل، والدكتور شايفهم
-    # في المعاينة. "مفهوش أي إضافات غير الممنوع والمسموح".
-    _meta_line = ""
-    if cl.get("name"):
-        _meta_line = ('<div class="meta"><span><b>%s:</b> %s</span></div>'
-                      % (_L("الاسم", "Name"), _esc(cl["name"])))
+    # ‏الورقة اللي بتتسلّم: **الجدول ومسموح/ممنوع وبس**.
+    #
+    # ‏الدكتور قالها على مرحلتين. الأولى: "مفهوش أي إضافات غير إيه
+    # الممنوع والمسموح بالنسبة للحالة فقط" -- فاتشال سطر البيانات
+    # وأعمدة الأرقام والملخص والماء والتحذيرات. والتانية: "شيل كل
+    # حاجة ما عدا اللي قلته" -- فاتشال كمان الهيدر (اسم العيادة،
+    # عنوان الخطة، رقم الملف، التاريخ)، سطر الاسم، وسطر التوقيع.
+    #
+    # ‏قلتله إن ورقة إكلينيكية من غير تاريخ ولا اسم مُعِد صعب تتتبع،
+    # وقال كمّل. وكلهم بيرجعوا بسطر لو غيّر رأيه.
     # ‏الـBMI رقم على ورقة العميل، ومن ٣٠ وفوق الرقم لوحده بيتقرا
     # كتشخيص. ولجنة Lancet (٢٠٢٥، +٧٥ منظمة طبية) بتقول إنه مش
     # تشخيص: السمنة بتتقسم لعامل خطر ومرض قائم بذاته، والفرق مش في
@@ -1620,9 +1622,6 @@ def plan_html(data, plan=None, clean=False):
     _company_css = """
 @page { margin: 9mm 11mm; }
 body { color:#000; font-size:10.5px; }
-.hdr { border-bottom:0 !important; padding-bottom:2px; margin-bottom:5px; }
-.hdr .t { font-size:15.5px; font-weight:700; }
-.meta { margin-bottom:6px !important; line-height:1.65 !important; }
 table { border-collapse:collapse; }
 th, td { border:0.5pt solid #000 !important; padding:3px !important;
          text-align:center !important; vertical-align:middle !important;
@@ -1637,41 +1636,19 @@ td.dcell { background:#F2F2F2 !important; font-size:10.5px !important; }
 .dcol { width:50px; }
 td .it { display:block; padding:0; }
 td b { font-weight:700; }
-/* ‏الأعمدة الرقمية: عناوينها كانت بتتقطّع نص كلمة ("سعرا/ت"،
-   "بروتي/ن") لأن القاعدة العامة فيها word-wrap:break-word، وهي لازمة
-   لخانات الأكل الطويلة. فالعمود الرقمي بس هو اللي بيلغيها. */
 /* ‏عمود اليوم: أسماء الأيام بالإنجليزي أطول من العربي، فكانت
    بتتقطّع نص كلمة ("Wednes/day"، "Saturda/y"). نفس علاج الأعمدة
    الرقمية: إلغاء كسر الكلمة، وعرض أوسع في النسخة الإنجليزية. */
 td.dcell { white-space:normal !important; word-wrap:normal !important;
            overflow-wrap:normal !important; }
-.kcol, .kcell { width:54px; }
-th.kcol, td.kcell { white-space:normal !important;
-                    word-wrap:normal !important;
-                    overflow-wrap:normal !important; }
-td.kcell { background:#F2F2F2 !important; font-size:9.5px !important; }
-.summary { border-top:0.5pt solid #000; padding-top:5px; margin-top:0;
-           font-size:9.5px; }
-/* ‏المسموح والممنوع والماء كانوا بيزحّفوا لصفحة تانية لوحدهم -- صفحة
-   كاملة لتلات لستات قصيرة، والعميل بياخد ورقتين. ورقة الشركة ورقة
-   واحدة، فالمساحات هنا مضغوطة عشان الكل يدخل في الأولى. */
+/* ‏المسموح والممنوع كانوا بيزحّفوا لصفحة تانية لوحدهم -- صفحة كاملة
+   للستّتين، والعميل بياخد ورقتين. ورقة الشركة ورقة واحدة، فالمساحات
+   هنا مضغوطة عشان الكل يدخل في الأولى. */
 .foot { margin-top:6px !important; gap:10px !important; font-size:8px !important; }
 .foot .fbox { border-top:0.5pt solid #000; padding-top:4px; }
 .foot .fbox h4 { font-size:8.5px !important; color:#000 !important;
                  margin-bottom:2px !important; }
 .foot .fbox li { margin-bottom:0 !important; }
-/* ‏الملاحظات الطبية كانت بتزحّف لصفحة تانية لوحدها. ملاحظة سن النمو
-   (٤-١٨) تلات أسطر كاملة، فورقة الطفل كانت بتطلع ورقتين -- والتانية
-   فيها فقرة واحدة وتوقيع. وورقة الشركة ورقة واحدة. */
-.notes { margin-top:4px !important; font-size:7px !important;
-         line-height:1.35 !important;
-         border-top:0.5pt solid #000; padding-top:3px;
-         break-inside:avoid; }
-.notes h4 { color:#000 !important; font-size:7.5px !important;
-            margin:0 0 1px !important; }
-.notes ul { padding-inline-start:10px !important; }
-.notes li { margin-bottom:0 !important; }
-.sig { margin-top:3px !important; font-size:7.5px !important; }
 """
 
     # ── الجدول لازم يدخل في ورقة واحدة ─────────────────────────────
@@ -1700,8 +1677,6 @@ th, td { padding:1.5px !important; font-size:8.5px !important;
          line-height:1.22 !important; }
 th { font-size:10.5px !important; padding:3px 2px !important; }
 td.dcell { font-size:9.5px !important; }
-.meta { margin-bottom:4px !important; line-height:1.5 !important; }
-.summary { padding-top:3px; font-size:9px; }
 .foot { margin-top:4px !important; font-size:7.5px !important; }
 """
     elif _max_items == 4:
@@ -1853,17 +1828,8 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
 body {{ font-family: 'Cairo','Amiri','DejaVu Sans',sans-serif;
         direction: {_L('rtl', 'ltr')}; color:#22292b; margin:0;
         font-size:10px; line-height:1.5; }}
-.hdr {{ display:flex; justify-content:space-between; align-items:baseline;
-        border-bottom:1px solid #d6dbd9; padding-bottom:6px; margin-bottom:9px; }}
-.hdr .t {{ font-size:15px; font-weight:700; color:#22292b; letter-spacing:-0.2px; }}
-.hdr .s {{ font-size:9.5px; color:#8a9391; font-weight:400; }}
 /* ‏flex gap مش مضمون في WeasyPrint -- الخانات كانت بتطلع ملزوقة في بعضها
    ("الاسم: ريمالنوع: انثى"). span عادي بمسافة وفاصل بيتقرا في الحالتين. */
-.meta {{ font-size:9px; color:#5c6663; margin-bottom:9px; line-height:1.8; }}
-.meta span {{ margin-inline-end:7px; }}
-.meta span::after {{ content:"·"; color:#c9d0cd; margin-inline-start:7px; }}
-.meta span:last-child::after {{ content:""; }}
-.meta b {{ color:#22292b; font-weight:600; }}
 table {{ width:100%; border-collapse:collapse; table-layout:fixed; }}
 th,td {{ padding:4px 7px; font-size:8.8px; vertical-align:top;
          word-wrap:break-word; line-height:1.5; text-align:start;
@@ -1876,9 +1842,6 @@ td b {{ color:#22292b; font-weight:600; }}
 td.dcell {{ font-weight:700; color:#22292b; font-size:10px; text-align:center;
             background:transparent; }}
 .dcol {{ width:58px; }}
-.kcol,.kcell {{ width:56px; text-align:center; }}
-.kcol {{ white-space:nowrap; }}
-.kcell {{ font-weight:600; color:#5c6663; }}
 tr:nth-child(even) td {{ background:#fbfcfb; }}
 .foot {{ display:flex; gap:16px; margin-top:9px; font-size:8.5px;
          page-break-inside:avoid; }}
@@ -1887,36 +1850,14 @@ tr:nth-child(even) td {{ background:#fbfcfb; }}
             letter-spacing:0.3px; }}
 .fbox ul {{ margin:0; padding-inline-start:13px; color:#3f4744; }}
 .fbox li {{ margin-bottom:2px; }}
-.notes {{ margin-top:9px; border:0; border-top:1px solid #d6dbd9;
-          background:transparent; padding:6px 0 0; font-size:8.5px; }}
-.notes h4 {{ margin:0 0 4px; font-size:9px; color:#8a9391; font-weight:600; }}
-.notes ul {{ margin:0; padding-inline-start:13px; color:#3f4744; }}
-.notes li {{ margin-bottom:2px; }}
 /* ‏سطر المراجعة كان بيزحّف لصفحة تانية لوحده -- صفحة كاملة لسطر. */
-.sig {{ margin-top:7px; text-align:end; font-size:8.5px; color:#a3aaa8;
-        page-break-before:avoid; }}
-.summary {{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
-            background:transparent; border:0; border-top:1px solid #c9d0cd;
-            padding:7px 0 0; margin-top:2px; font-size:9.5px; color:#5c6663; }}
-.summary b {{ color:#22292b; font-weight:600; }}
-.fu-note {{ font-size:9px; color:#5c6663; margin:0 0 10px; }}
-.pnote {{ font-size:9px; color:#7c2d12; background:#fff7ed;
-          border:0.5pt solid #ea580c; border-radius:3px;
-          padding:4px 6px; margin:4px 0 0; }}
 {_company_css}
 </style></head><body>
-<div class="hdr">
-  <div><div class="t">{_esc(td['plan_title'])} — {_esc(td['diet_plan_name'])}</div>
-  {_by_line}</div>
-  <div class="s">{_file_line}{_esc(td['date'])}</div>
-</div>
-{_meta_line}
 <table><thead><tr>{head_cells}</tr></thead><tbody>{body_rows}</tbody></table>
 <div class="foot">
   <div class="fbox ok"><h4>{_L("مسموح", "Allowed")}</h4><ul>{allowed_html}</ul></div>
   <div class="fbox no"><h4>{_L("ممنوع", "Avoid")}</h4><ul>{forbidden_html}</ul></div>
 </div>
-<div class="sig">{_L("المراجعة بعد", "Review in")} {_esc(td['review_weeks'])} {_L("أسابيع", "weeks")}{_sig_by}</div>
 </body></html>"""
 
     # ‏الأخصائي بيقراها في المعاينة -- الورقة مابتحملهاش

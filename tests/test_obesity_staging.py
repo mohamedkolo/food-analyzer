@@ -157,9 +157,8 @@ def test_the_plan_sheet_stops_printing_bmi_as_a_verdict():
     with A.app.test_request_context("/"):
         html = plan_engine.plan_html(data)
     assert "BMI" not in html, "‏الـBMI رجع على ورقة العميل من غير سياق"
-    meta = re.search(r'<div class="meta">(.*?)</div>', html, re.S)
-    body = re.sub(r"<[^>]+>", " ", meta.group(1)) if meta else ""
-    assert "36.2" not in body, body
+    assert "36.2" not in re.sub(r"<[^>]+>", " ", html), (
+        "‏رقم الـBMI رجع على ورقة العميل من غير تقييم جنبه")
 
 
 if __name__ == "__main__":
