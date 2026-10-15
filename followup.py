@@ -322,3 +322,159 @@ def _parse_dt(value):
             except ValueError:
                 continue
     return None
+
+
+# ── لوحة المتابعة ── كل العملاء في صفحة واحدة
+#
+# ‏صفحة /followups كانت بتقول: الاسم، عدد الزيارات، وتاريخ آخر زيارة. تلات
+# حاجات مش فيهم ولا واحدة بتقول **إيه اللي حصل**. الدكتور عنده ستين ملف،
+# وعشان يعرف مين واقف كان لازم يفتح الستين واحد واحد.
+#
+# ‏اللي اللوحة بتجاوب عليه: مين نازل، مين واقف، ومين غاب. والتلاتة دول
+# أحكام مختلفة ومحتاجين تصرّف مختلف:
+#
+#   * نازل/واقف/زايد = حكم على **آخر فترة** (آخر زيارتين)، مش على التاريخ
+#     كله. عميل نزل ١٠ كيلو في ٦ شهور وواقف من شهرين، المهم إنه واقف
+#     دلوقتي -- التاريخ الحلو مش بيلغي إن الخطة وقفت.
+#   * غاب = حكم على **الوقت من آخر زيارة**، والدكتور مشفوش أصلاً. ده
+#     بيسبق أي حكم على المعدل: لو العميل مجاش من شهرين، مافيش معنى نقول
+#     "نازل كويس" على قياس عمره شهرين. الأول يرجع، وبعدين نحكم.
+#
+# ‏الدورة ٤ أسابيع (زي "المراجعة بعد ٤ أسابيع" اللي على الورقة)، فـ:
+#   ٢٨-٥٥ يوم = ميعاده عدّى، ٥٦+ = غاب (دورتين كاملتين).
+REVIEW_DAYS = 28
+LAPSED_DAYS = REVIEW_DAYS * 2
+
+# ‏ترتيب اللوحة = ترتيب الإلحاح، مش الأبجدية ولا التاريخ. اللي محتاج
+# تدخّل فوق. الرقم الأصغر = أعلى.
+_URGENCY = {
+    "lapsed": 0,        # ‏غاب -- اتصل بيه
+    "regained": 1,      # ‏رجع زاد
+    "lost_on_gain": 1,
+    "plateau": 2,       # ‏واقف
+    "gain_stalled": 2,
+    "too_fast": 3,      # ‏أسرع من الآمن
+    "gain_too_fast": 3,
+    "due": 4,           # ‏ميعاده عدّى بس لسه في الدورة
+    "too_slow": 5,
+    "on_track": 6,      # ‏ماشي -- مش محتاج حاجة
+    "gain_on_track": 6,
+    "too_soon": 7,
+    "single": 8,        # ‏زيارة واحدة -- مافيش مقارنة أصلاً
+}
+
+# ‏حالات اللوحة اللي مش جاية من VERDICTS (دي أحكام على الوقت مش على المعدل)
+_BOARD_ONLY = {
+    # ‏"بقاله/بقالها" مذكّر ومؤنث، ونص العملاء ستات -- فالعدّ من غير ضمير
+    "lapsed": ("آخر زيارة من {days} يوم — محتاج مكالمة",
+               "Lapsed — last seen {days} days ago"),
+    "due": ("ميعاد المراجعة عدّى بـ{over} يوم",
+            "Review is {over} days overdue"),
+    "single": ("زيارة واحدة — مافيش مقارنة لسه",
+               "One visit — nothing to compare yet"),
+}
+
+# ‏اللون بيتقرا قبل النص. تلات مجموعات بس: محتاج تدخّل، تحت الملاحظة،
+# ماشي. أكتر من كده بيبقى ألوان كتير والعين بتبطّل تفرّق.
+_TONE = {
+    "lapsed": "bad", "regained": "bad", "lost_on_gain": "bad",
+    "plateau": "warn", "gain_stalled": "warn", "too_fast": "warn",
+    "gain_too_fast": "warn", "due": "warn", "too_slow": "warn",
+    "on_track": "good", "gain_on_track": "good",
+    "too_soon": "idle", "single": "idle",
+}
+
+_SHORT = {
+    "lapsed": ("غاب", "Lapsed"),
+    "regained": ("رجع زاد", "Regained"),
+    "lost_on_gain": ("نزل والهدف زيادة", "Lost on a gain plan"),
+    "plateau": ("واقف", "Stalled"),
+    "gain_stalled": ("مش بيزيد", "Not gaining"),
+    "too_fast": ("أسرع من الآمن", "Too fast"),
+    "gain_too_fast": ("زيادة سريعة", "Gaining too fast"),
+    "due": ("ميعاده عدّى", "Review due"),
+    "too_slow": ("بطيء", "Slow"),
+    "on_track": ("ماشي", "On track"),
+    "gain_on_track": ("ماشي", "On track"),
+    "too_soon": ("بدري على الحكم", "Too soon to judge"),
+    "single": ("زيارة واحدة", "One visit"),
+}
+
+
+def board(visits, lang="ar", today=None):
+    """‏كل عملاء الدكتور في صف واحد لكل عميل، مرتّبين بالإلحاح.
+
+    visits: كل صفوف plan_visits بتاعت الدكتور، أي ترتيب. بنجمّعها في
+    بايثون مش في SQL عشان أول وآخر وزن في نفس الاستعلام محتاج window
+    functions، وSQLite المحلي وPostgres اللي على الاستضافة بيختلفوا فيها.
+
+    بيرجّع {"rows": [...], "counts": {...}}.
+    """
+    today = today or dt.datetime.now()
+    by_key = {}
+    for v in (visits or []):
+        v = dict(v)
+        if not v.get("client_key"):
+            continue
+        by_key.setdefault(v["client_key"], []).append(v)
+
+    rows = []
+    for key, group in by_key.items():
+        # ‏الأحدث الأول -- زي ما visits_for بترجّعها، وassess متوقعة كده
+        group.sort(key=lambda r: _parse_dt(r.get("created_at")) or dt.datetime.min,
+                   reverse=True)
+        last = group[0]
+        prev = group[1] if len(group) > 1 else None
+        since = _days_between(last.get("created_at"), today)
+        progress = assess(prev, last, lang) if prev else None
+
+        # ‏الغياب بيسبق المعدل: لو مجاش من دورتين، الحكم على قياس قديم
+        # مش حكم على حالته دلوقتي.
+        if since >= LAPSED_DAYS:
+            state = "lapsed"
+        elif not progress:
+            state = "due" if since >= REVIEW_DAYS else "single"
+        elif since >= REVIEW_DAYS and progress["verdict"] in (
+                "on_track", "gain_on_track", "too_soon"):
+            # ‏ماشي كويس بس ميعاده عدّى -- التذكرة هي الخبر، مش المعدل
+            state = "due"
+        else:
+            state = progress["verdict"]
+
+        if state in _BOARD_ONLY:
+            ar, en = _BOARD_ONLY[state]
+            note = (ar if lang == "ar" else en).format(
+                days=since, over=max(0, since - REVIEW_DAYS))
+        else:
+            note = progress["note"]
+
+        hist = summarise_history(group)
+        rows.append({
+            "client_key": key,
+            "client_name": last.get("client_name") or "",
+            "phone": last.get("phone") or "",
+            "visits": len(group),
+            "days_since": since,
+            "state": state,
+            "tone": _TONE.get(state, "idle"),
+            "label": _SHORT.get(state, ("", ""))[0 if lang == "ar" else 1],
+            "note": note,
+            "weight": round(_f(last.get("weight")), 1) or None,
+            "last_delta": progress["delta"] if progress else None,
+            "last_rate": progress["rate"] if progress else None,
+            "total_change": hist["total_change"] if hist else None,
+            "first_weight": hist["first_weight"] if hist else None,
+            "goal_type": last.get("goal_type") or "",
+        })
+
+    rows.sort(key=lambda r: (_URGENCY.get(r["state"], 9), r["days_since"] * -1,
+                             r["client_name"]))
+    counts = {"total": len(rows), "needs": 0, "watch": 0, "ok": 0}
+    for r in rows:
+        if r["tone"] == "bad":
+            counts["needs"] += 1
+        elif r["tone"] == "warn":
+            counts["watch"] += 1
+        elif r["tone"] == "good":
+            counts["ok"] += 1
+    return {"rows": rows, "counts": counts}

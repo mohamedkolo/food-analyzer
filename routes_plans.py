@@ -23,6 +23,7 @@ from flask import (Blueprint, jsonify, redirect, render_template, request,
 import meal_extra
 import draft_store
 from core import (
+    all_visits,
     visits_by_phone,
     search_clients,
     DIET_PLAN_TYPES, bump_plan_link, create_plan_link, cur_lang, db_row,
@@ -729,10 +730,16 @@ def followup_lookup():
 @bp.route("/followups")
 @staff_required
 def followups():
-    """كل العملاء اللي ليهم ملف متابعة."""
+    """‏لوحة المتابعة: كل العملاء، ومين محتاج تدخّل.
+
+    كانت بتعرض الاسم وعدد الزيارات والتاريخ وبس -- ولا واحدة فيهم بتقول
+    إيه اللي حصل. عشان يعرف مين واقف كان لازم يفتح كل ملف لوحده.
+    """
     u = get_user_by_id(session["uid"])
+    data = followup.board(all_visits(session["uid"]), cur_lang())
     return render_template("followups.html", user=u, lang=session.get("lang", "ar"),
-                           clients=recent_clients(session["uid"]))
+                           clients=data["rows"], counts=data["counts"],
+                           state=request.args.get("state") or "")
 
 
 @bp.route("/followups/<path:key>")

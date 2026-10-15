@@ -891,6 +891,30 @@ def visits_for(doctor_uid, key, limit=20):
         return []
 
 
+def all_visits(doctor_uid, limit=3000):
+    """‏كل زيارات الدكتور -- لوحة المتابعة بتجمّعها في بايثون.
+
+    ليه مش GROUP BY: اللوحة محتاجة أول وزن وآخر وزن وآخر زيارتين في نفس
+    الوقت، وده في SQL محتاج window functions. SQLite المحلي وPostgres
+    اللي على الاستضافة بيختلفوا في دعمها، والعدد هنا عيادة واحدة مش
+    ملايين صفوف -- فالتجميع في بايثون أبسط وبيشتغل على الاتنين.
+
+    الأعمدة اللي بنجيبها هي اللي اللوحة بتقراها بس. SELECT * كان بيجيب
+    plan_json كمان -- خطة أسبوع كاملة لكل زيارة، يعني ميجات على صفحة
+    مالهاش لازمة بيها.
+    """
+    try:
+        return db_rows("""SELECT id, client_key, client_name, phone, visit_no,
+                                 age, gender, height, weight, fat_pct, bmi,
+                                 activity, tdee, goal_cal, goal_type, created_at
+                          FROM plan_visits WHERE user_id=?
+                          ORDER BY created_at DESC, id DESC LIMIT ?""",
+                       (doctor_uid, limit)) or []
+    except Exception as e:
+        log_error("all_visits", e)
+        return []
+
+
 def last_visit(doctor_uid, key):
     rows = visits_for(doctor_uid, key, limit=1)
     return dict(rows[0]) if rows else None
