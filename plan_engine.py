@@ -352,7 +352,13 @@ def _spread_by_base(meals, take=7, cap=3, base=None):
     return picked + rest
 
 
-def generate_weekly_plan(data):
+def generate_weekly_plan(data, seed=None):
+    """‏خطة سبع أيام. seed اختياري: لو اتبعت، نفس البذرة = نفس الخطة.
+
+    الافتراضي عشوائي من الساعة، عشان الدكتور لما يضغط "ولّد تاني" ياخد
+    خطة جديدة فعلاً. اللي محتاج العكس -- رابط عيّنة لازم يفتح على نفس
+    الورقة كل مرة -- بيبعت بذرة ثابتة.
+    """
     _apply_clinical_safety_caps(data)
 
     # تدوير السعرات — لازم يتحسب بعد الـ safety caps لأنها ممكن تكون غيّرت goal_cal
@@ -374,7 +380,15 @@ def generate_weekly_plan(data):
     try:
         user_id = data.get("user_id") or session.get("uid", 0) or 0
     except: user_id = 0
-    seed_val = ((user_id or 1) * 1000007 + int(datetime.now().timestamp() * 1000)) % (2**32)
+    if seed is None:
+        seed_val = ((user_id or 1) * 1000007
+                    + int(datetime.now().timestamp() * 1000)) % (2**32)
+    else:
+        # ‏zlib.crc32 مش hash(): hash للنصوص بيتملّح لكل عملية بايثون
+        # (PYTHONHASHSEED)، وgunicorn بيشغّل أكتر من worker -- فنفس
+        # الرابط كان هيدّي ورقة مختلفة حسب الـworker اللي ردّ عليه.
+        import zlib
+        seed_val = zlib.crc32(str(seed).encode("utf-8"))
     random.seed(seed_val)
 
     notes = data.get("notes", "")

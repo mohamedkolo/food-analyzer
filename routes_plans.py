@@ -37,7 +37,7 @@ from plan_engine import (
     build_pdf, filter_carbs, filter_meals_by_exclusions,
     generate_weekly_plan, parse_user_exclusions,
 )
-from zigzag import ZIGZAG_MODES
+from zigzag import ZIGZAG_MODES, zigzag_from_data
 
 bp = Blueprint("plans", __name__)
 
@@ -291,6 +291,81 @@ def public_plan(token):
     return render_template("public_plan.html", lang=session.get("lang", "ar"),
                            plan=plan, data=data, token=token,
                            client_name=row.get("client_name"))
+
+
+# ── لينك عيّنة ── ورقة شغالة من غير قاعدة بيانات
+#
+# ‏الدكتور طلب إن كل شغل يخلص يبقى معاه لينك يفتحه ويشوف الناتج. لينك
+# /p/<token> العادي مابينفعش للغرض ده: التوكن صف في قاعدة البيانات،
+# والقاعدة اللي الشغل بيتعمل عليها مش قاعدة الموقع -- فأي توكن بيتعمل
+# بره السيرفر بيطلع 404 عند الدكتور.
+#
+# ‏فده لينك عيّنة بيتبني من التوكن نفسه: مافيش صف ولا كتابة في القاعدة،
+# واللينك شغال على طول على أي نسخة منشورة.
+#
+# ‏وبيانات العيّنة **مخترعة بالكامل**. الورقة دي رابط عام من غير تسجيل
+# دخول، فلو بنت نفسها من عميل حقيقي يبقى ده تسريب ملف مريض لأي حد عنده
+# اللينك. الاسم نفسه بيقول إنها عيّنة عشان ما تتخلطش بورقة حقيقية.
+_DEMO_PROFILES = [
+    # (العمر، النوع، الطول، الوزن، النشاط، الهدف، المطبخ، الحالات)
+    (34, "انثى", 162, 88, 1.375, "weight_loss", "مصري", ["سكري النوع الثاني"]),
+    (41, "ذكر", 176, 104, 1.2, "weight_loss", "مصري", ["ضغط الدم المرتفع"]),
+    (28, "انثى", 168, 59, 1.55, "muscle_gain", "خليجي", []),
+    (52, "ذكر", 171, 95, 1.375, "weight_loss", "خليجي", ["كبد دهني"]),
+    (9, "انثى", 134, 38, 1.55, "weight_loss", "مصري", []),
+    (37, "انثى", 159, 76, 1.2, "weight_loss", "مصري", ["تكيس المبايض"]),
+]
+
+
+def _demo_data(token):
+    """‏عميل عيّنة مبني من التوكن. نفس اللينك = نفس الورقة كل مرة."""
+    import followup as _fu
+    import zlib
+    # ‏zlib.crc32 مش hash(): hash للنصوص بيتملّح لكل عملية بايثون،
+    # وgunicorn بيشغّل أكتر من worker -- فنفس اللينك كان هيدّي عميل
+    # مختلف حسب الـworker اللي ردّ على الطلب.
+    age, gender, height, weight, act, goal, culture, symptoms = (
+        _DEMO_PROFILES[zlib.crc32(str(token).encode("utf-8"))
+                       % len(_DEMO_PROFILES)])
+    tdee = int(round(_fu.bmr_mifflin(weight, height, age, gender) * act))
+    goal_cal = max(1200 if gender == "انثى" else 1500,
+                   tdee - (500 if goal == "weight_loss" else -300))
+    return {
+        "name": "عميل عيّنة" if cur_lang() == "ar" else "Sample client",
+        "age": str(age), "gender": gender, "height": str(height),
+        "weight": str(weight), "activity_level": "light",
+        "tdee": str(tdee), "goal_cal": str(goal_cal), "goal_type": goal,
+        "culture": culture, "diet_plan_type": "standard",
+        "protein_per_kg": "1.6", "fat_pct_cal": "30",
+        "symptoms": symptoms, "allergies": [], "zigzag_mode": "classic",
+    }
+
+
+@bp.route("/demo/<token>")
+def demo_plan(token):
+    """‏ورقة عيّنة على نفس قالب ورقة العميل، من غير قاعدة بيانات.
+
+    التوكن بيتستخدم بذرة عشوائية عشان نفس اللينك يدّي نفس الورقة -- لينك
+    بيتغيّر كل مرة تفتحه مش مرجع، ومينفعش يتقال عليه "شوف ده".
+    """
+    data = _demo_data(token)
+    data["zigzag"] = zigzag_from_data(data)
+    plan = generate_weekly_plan(data, seed="demo:" + str(token))
+    return render_template("public_plan.html", lang=session.get("lang", "ar"),
+                           plan=plan, data=data, token=token,
+                           pdf_url="/demo/%s/pdf" % token, demo=True,
+                           client_name=data["name"])
+
+
+@bp.route("/demo/<token>/pdf")
+def demo_plan_pdf(token):
+    data = _demo_data(token)
+    data["zigzag"] = zigzag_from_data(data)
+    plan = generate_weekly_plan(data, seed="demo:" + str(token))
+    buf = io.BytesIO(build_pdf(data, plan)); buf.seek(0)
+    return send_file(buf, as_attachment=True,
+                     download_name="NutraX_sample.pdf",
+                     mimetype="application/pdf")
 
 
 @bp.route("/p/<token>/pdf")

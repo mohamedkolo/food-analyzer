@@ -59,6 +59,16 @@
   <div class="top-in">
     <div class="brand">NutraX · {{ 'د. محمد — أخصائي التغذية الإكلينيكية' if _ar else 'Dr. Mohamed — Clinical Nutrition' }}</div>
     <div class="who">{{ client_name or ('جدولك الغذائي' if _ar else 'Your meal plan') }}</div>
+    {# ‏لازم يبان إنها عيّنة من أول سطر: الورقة دي رابط عام، ولو حد فتحها
+       وفكرها ورقته هيمشي على أكل مش مبني على حالته هو. #}
+    {% if demo %}
+    <div style="background:rgba(255,255,255,.18);border-radius:10px;padding:9px 13px;
+                margin-top:10px;font-size:13px;font-weight:700">
+      {{ 'ورقة عيّنة — بيانات مخترعة لعرض الشكل، مش ورقة حد.'
+         if _ar else
+         'Sample sheet — invented data to show the shape. It is nobody’s plan.' }}
+    </div>
+    {% endif %}
     <div class="sub">{{ 'جدول 7 أيام مبني على حالتك' if _ar else 'A 7-day plan built around your condition' }}</div>
     <div class="facts">
       {% if data.goal_cal %}
@@ -127,7 +137,8 @@
   </div>
 
   <div class="cta">
-    <a href="/p/{{ token }}/pdf">⬇️ {{ 'حمّل الجدول PDF' if _ar else 'Download the plan as PDF' }}</a>
+    {# ‏ورقة العيّنة ليها رابط PDF تاني، فاللينك بيتبعت من الراوت #}
+    <a href="{{ pdf_url or ('/p/' ~ token ~ '/pdf') }}">⬇️ {{ 'حمّل الجدول PDF' if _ar else 'Download the plan as PDF' }}</a>
   </div>
 
   <div class="foot">

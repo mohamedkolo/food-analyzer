@@ -45,6 +45,7 @@ SUITES = [
     "test_barcode_lookup.py",
     "test_client_sheet.py",
     "test_followup_board.py",
+    "test_demo_link.py",
     "test_money.py",
 ]
 
