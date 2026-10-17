@@ -35,12 +35,25 @@ MODEL = "claude-opus-5"
 # إنجليزية عن base64.
 MAX_IMAGE_BYTES = 4 * 1024 * 1024
 
+# ‏الـPDF مسموحله أكبر: ورقة تحليل متصوّرة سكانر بتطلع ٢-٣ ميجا لوحدها،
+# وحد الطلب عند الـAPI ٣٢ ميجا. بس مش سايبينه مفتوح -- ملف ٣٠ ميجا على
+# نت موبايل بيقعد دقايق وبعدين يفشل، والدكتور مايعرفش ليه.
+MAX_PDF_BYTES = 8 * 1024 * 1024
+
+PDF_TYPE = "application/pdf"
+
 ALLOWED_TYPES = {
     "image/jpeg": "image/jpeg",
     "image/jpg": "image/jpeg",
     "image/png": "image/png",
     "image/webp": "image/webp",
     "image/gif": "image/gif",
+    # ‏الدكتور بيوصله تحاليل PDF من المعمل على الواتس، فكان بيطبعها
+    # ويصوّرها عشان البرنامج يقراها. الـAPI بيقرا الـPDF نفسه، وأحسن
+    # من صورة لصفحة مطبوعة -- لأن الـPDF اللي جاي من المعمل نصّه
+    # مكتوب جوّاه أصلاً، مش محتاج يتخمّن من بكسلات.
+    PDF_TYPE: PDF_TYPE,
+    "application/x-pdf": PDF_TYPE,
 }
 
 # ‏الحدود دي مش تجميل: موديل بيقرا صورة مشوشة ممكن يطلّع "الوزن ٧٥٠ كجم".
@@ -333,17 +346,32 @@ def read_browser(passes):
 
 
 def read_report(image_bytes, content_type):
-    """‏يرجّع ديكشنري بالأرقام المقروءة. بيرفع ReportError برسالة عربية."""
+    """‏يرجّع ديكشنري بالأرقام المقروءة. بيرفع ReportError برسالة عربية.
+
+    بياخد صورة أو PDF. الـPDF بيتبعت للـAPI زي ما هو (بلوك document)،
+    مش بيتحوّل لصورة -- تحليل المعمل اللي جاي PDF نصّه مكتوب جوّاه،
+    فتحويله لصورة بيرمي النص ويخلّي القراءة تخمين من بكسلات.
+    """
     if not image_bytes:
-        raise ReportError("مافيش صورة")
-    if len(image_bytes) > MAX_IMAGE_BYTES:
-        raise ReportError("الصورة كبيرة (%.1f ميجا). الحد %d ميجا -- صوّرها بدقة أقل."
-                          % (len(image_bytes) / 1048576.0,
-                             MAX_IMAGE_BYTES // 1048576))
+        raise ReportError("مافيش ملف")
     media_type = ALLOWED_TYPES.get((content_type or "").split(";")[0].strip().lower())
     if not media_type:
-        raise ReportError("نوع الملف مش صورة مدعومة (JPG أو PNG أو WEBP)")
+        raise ReportError("نوع الملف مش مدعوم (صورة JPG أو PNG أو WEBP، أو ملف PDF)")
+    is_pdf = media_type == PDF_TYPE
+    cap = MAX_PDF_BYTES if is_pdf else MAX_IMAGE_BYTES
+    if len(image_bytes) > cap:
+        raise ReportError(
+            ("الملف كبير (%.1f ميجا). الحد %d ميجا." if is_pdf else
+             "الصورة كبيرة (%.1f ميجا). الحد %d ميجا -- صوّرها بدقة أقل.")
+            % (len(image_bytes) / 1048576.0, cap // 1048576))
     key = api_key()
+    if is_pdf and not key:
+        # ‏محرّك القراءة المحلي (rapidocr) بياخد بكسلات، مش PDF. تحويل
+        # الـPDF لصورة محتاج مكتبة تانية -- فبدل ما نضيفها عشان حالة
+        # نادرة، بنقول الحقيقة: صوّر الورقة، الصورة بتتقرا في المتصفح.
+        raise ReportError("قراءة الـPDF محتاجة مفتاح API على السيرفر. "
+                          "من غيره صوّر الورقة بالكاميرا -- الصورة بتتقرا "
+                          "في المتصفح نفسه.")
     if not key:
         # ‏من غير مفتاح: القراءة بتحصل على السيرفر نفسه، مجاناً، والصورة
         # مابتخرجش منه. الميزة كانت مقفولة تماماً لحد ما الدكتور يعمل حساب
@@ -376,7 +404,9 @@ def read_report(image_bytes, content_type):
             messages=[{
                 "role": "user",
                 "content": [
-                    {"type": "image",
+                    # ‏PDF بيتبعت بلوك document، الصورة بلوك image. والاتنين
+                    # قبل النص: الموديل بيقرا أحسن لما المستند يسبق السؤال.
+                    {"type": ("document" if is_pdf else "image"),
                      "source": {"type": "base64", "media_type": media_type,
                                 "data": base64.standard_b64encode(image_bytes).decode()}},
                     {"type": "text", "text": _PROMPT},
@@ -394,23 +424,27 @@ def read_report(image_bytes, content_type):
         raise ReportError("الخدمة ردّت بغلطة (%s)" % getattr(e, "status_code", "?"))
 
     if getattr(response, "stop_reason", None) == "refusal":
-        raise ReportError("الخدمة رفضت تقرا الصورة دي")
+        raise ReportError("الخدمة رفضت تقرا الملف ده")
 
     text = next((b.text for b in response.content if b.type == "text"), "")
     try:
         raw = json.loads(text)
     except ValueError:
-        raise ReportError("الرد مش مفهوم -- جرّب صورة أوضح")
+        raise ReportError("الرد مش مفهوم -- جرّب نسخة أوضح")
     if not isinstance(raw, dict):
-        raise ReportError("الرد مش مفهوم -- جرّب صورة أوضح")
+        raise ReportError("الرد مش مفهوم -- جرّب نسخة أوضح")
 
     data = _clean(raw)
     data["engine"] = "api"
+    # ‏الرسايل دي بقت توصل على PDF كمان، مش صورة بس -- فـ"صوّرها تاني"
+    # نصيحة مالهاش معنى لملف جاي من المعمل.
+    _it = "الملف ده" if is_pdf else "الصورة دي"
+    _retry = ("جرّب نسخة أوضح من المعمل." if is_pdf else
+              "صوّرها في نور أحسن وخلي الورقة كلها في الكادر.")
     if not data["is_body_report"]:
-        raise ReportError("الصورة دي مش ورقة تحليل جسم. صوّر ورقة الـInBody "
-                          "أو جهاز قياس نسبة الدهون.")
+        raise ReportError("%s مش ورقة تحليل جسم. ابعت ورقة الـInBody "
+                          "أو جهاز قياس نسبة الدهون." % _it)
     if not any(data.get(k) is not None for k in
                ("weight", "height", "fat_pct", "bmi", "bmr", "age")):
-        raise ReportError("مقدرتش أقرا أي رقم من الصورة. صوّرها في نور أحسن "
-                          "وخلي الورقة كلها في الكادر.")
+        raise ReportError("مقدرتش أقرا أي رقم. %s" % _retry)
     return data

@@ -259,8 +259,14 @@ def test_the_paper_says_when_the_food_misses_the_target():
         if not consistent:
             continue
         seen_quiet = True
-        assert '<div class="pnote">' not in ok_html, (
-            "‏تحذير على ورقة متسقة: هدف %d، الأيام %s" % (tgt, ps))
+        # ‏التحذير اتنقل من الورقة للمعاينة (sheet_notes) لما الورقة
+        # بقت جدول وممنوع/مسموح وبس. الضمانة زي ما هي -- مكانها بس
+        # اللي اتغيّر، فالفحص بيدوّر هناك.
+        warns = [n for n in (ok_data.get("sheet_notes") or [])
+                 if n.get("kind") == "warn"]
+        assert not warns, (
+            "‏تحذير على ورقة متسقة: هدف %d، الأيام %s — %s"
+            % (tgt, ps, [n["short"] for n in warns]))
     assert seen_quiet, "‏مالقيتش ولا ورقة متسقة أقيس عليها السكوت"
 
 
@@ -280,8 +286,14 @@ def test_a_day_a_quarter_short_of_its_protein_is_flagged():
         html = plan_engine.plan_html(data, plan)
     short = [d for d in plan if (d.get("total_p") or 0) < target * 0.75]
     if short:
-        assert re.search(r'<div class="pnote">', html), (
-            "‏يوم ناقص ربع بروتينه (%s) والورقة ساكتة"
+        # ‏زي فوق: التحذير بقى في sheet_notes مش على الورقة المطبوعة.
+        #
+        # ‏الفحص ده جوّه if، فماكانش بيتنفّذ غير لما الخطة العشوائية
+        # تطلّع يوم ناقص فعلاً -- وعشان كده فضل ساكت بعد ما الورقة
+        # اتغيّرت، وبان في تشغيلة واحدة من كل كام تشغيلة.
+        assert any(n.get("kind") == "warn"
+                   for n in (data.get("sheet_notes") or [])), (
+            "‏يوم ناقص ربع بروتينه (%s) والمعاينة ساكتة"
             % [d.get("total_p") for d in short])
 
 

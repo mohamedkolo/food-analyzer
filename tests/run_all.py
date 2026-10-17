@@ -46,6 +46,7 @@ SUITES = [
     "test_client_sheet.py",
     "test_followup_board.py",
     "test_demo_link.py",
+    "test_report_pdf.py",
     "test_money.py",
 ]
 

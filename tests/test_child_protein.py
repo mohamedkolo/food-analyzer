@@ -151,10 +151,10 @@ def test_the_sheet_prints_the_range_not_only_the_floor():
 def test_a_silent_sheet_means_the_food_is_in_range():
     """‏التحذير اتغيّر من "فوق المستهدف" لـ"برّه النطاق". لو سكت،
     لازم يكون ساكت على حق."""
-    data, plan, html = _plan(NOURA)
-    notes = " ".join(re.findall(r'<div class="pnote"[^>]*>(.*?)</div>',
-                                html, re.S))
-    if "⚠️" in notes:
+    data, plan, _html = _plan(NOURA)
+    # ‏التحذير بقى في sheet_notes مش على الورقة، و_note بيشيل الإيموجي
+    # من النص -- فالعلامة بقت kind مش "⚠️".
+    if any(n.get("kind") == "warn" for n in (data.get("sheet_notes") or [])):
         return      # ‏بيحذّر -- والتحذير مطلوب لما يكون برّه
     for day in plan:
         band = protein_need.band(108.8, 152, 10, 1.3, day["total_cal"])
@@ -195,13 +195,13 @@ def test_the_sheet_speaks_when_the_food_is_really_over():
     وأكتر. فالاختبار بيقيس القاعدة دي، مش "أي يوم"."""
     child = dict(NOURA, age="6", weight="22", height="118", tdee="1400",
                  goal_cal="1400", protein_per_kg="1.0")
-    _data, plan, html = _plan(child)
+    data, plan, _html = _plan(child)
     band = protein_need.band(22, 118, 6, 1.0, 1400)
     days = [d["total_p"] for d in plan]
     avg = sum(days) / float(len(days))
     out = [p for p in days if not band[0] <= p <= band[1]]
-    warned = "⚠️" in " ".join(
-        re.findall(r'<div class="pnote"[^>]*>(.*?)</div>', html, re.S))
+    warned = any(n.get("kind") == "warn"
+                 for n in (data.get("sheet_notes") or []))
     if avg > band[1] or avg < band[0] or len(out) >= 2:
         assert warned, "‏الأسبوع برّه النطاق %s (%s) والورقة ساكتة" % (
             band, days)

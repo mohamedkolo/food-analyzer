@@ -240,12 +240,16 @@ def test_the_guards_speak_arabic_and_come_before_the_call():
     else:
         assert False, "‏قبل صورة أكبر من الحد"
 
+    # ‏المثال هنا كان application/pdf. الـPDF بقى مدعوم (المعامل
+    # بتبعت التحاليل PDF)، فالمثال اتغيّر لنوع لسه مرفوض فعلاً --
+    # الضمانة زي ما هي: نوع مش مدعوم بيترفض برسالة عربية قبل أي
+    # نداء للـAPI.
     try:
-        lab_report.read_report(PNG, "application/pdf")
+        lab_report.read_report(PNG, "application/msword")
     except lab_report.ReportError as e:
-        assert "صورة مدعومة" in str(e), str(e)
+        assert "مدعوم" in str(e), str(e)
     else:
-        assert False, "‏قبل ملف مش صورة"
+        assert False, "‏قبل ملف نوعه مش مدعوم"
     os.environ.pop("ANTHROPIC_API_KEY", None)
 
 
