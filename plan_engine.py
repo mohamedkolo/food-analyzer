@@ -635,7 +635,10 @@ def generate_weekly_plan(data, seed=None):
 
     snacks = get_snacks_for_goal(goal)
     pool_snacks = pool.get("snack", [])
-    if pool_snacks: snacks = pool_snacks[:10]
+    # ‏كان [:10]. القص ده كان بيلغي أي زيادة في المحتوى: جداول الأطفال
+    # فيها ٢٤ سناك و١٠ بس كانوا بيوصلوا للأسبوع، والأسبوع فيه ١٤ خانة
+    # سناك (سناكين × سبع أيام) -- فالتكرار كان حتمي مهما زوّدنا أصناف.
+    if pool_snacks: snacks = list(pool_snacks)
     while len(snacks) < 7: snacks.append("فاكهة + مكسرات (120 kcal)")
 
     snacks = [s for s in snacks if not any(ex in (s if isinstance(s, str) else s.get("meal","")) for ex in user_exclusions)] or snacks
