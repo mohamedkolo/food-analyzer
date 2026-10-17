@@ -1928,6 +1928,7 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
         # التدوير العالي (٢٢٠٠) نطاقه أوسع من يوم الـ١٥٣٠. لو اتقاسوا
         # كلهم على هدف اليوم المتوسط، يوم عالي سليم بيطلع "برّه".
         _out = []
+        _out_dirs = []
         for _d in pdays:
             _dband = None
             try:
@@ -1939,14 +1940,42 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
             _dlo, _dhi = _dband or (_blo, _bhi)
             if not (_dlo <= (_d.get("total_p") or 0) <= _dhi):
                 _out.append(_d)
+                _out_dirs.append("hi" if (_d.get("total_p") or 0) > _dhi
+                                 else "lo")
         if _avg_p > _bhi or _avg_p < _blo or len(_out) >= 2:
-            _dir_ar = "تحت" if _avg_p < _blo else "فوق"
-            _dir_en = "below" if _avg_p < _blo else "above"
-            _note("warn", "%s (%s %s) %s %s (%s-%s %s)." % (
+            # ‏الاتجاه بيتقرر من **الأيام اللي برّه**، مش من المتوسط.
+            #
+            # ‏كان بيتقرر من المتوسط: "تحت" لو المتوسط تحت الأرضية، وإلا
+            # "فوق". والشرط بيولع كمان من (يومين برّه فأكتر) -- وساعتها
+            # المتوسط ممكن يكون جوّه النطاق عادي، فالاتجاه كان بيقع على
+            # "فوق" افتراضياً.
+            #
+            # ‏مقيس على ورقة حقيقية: طفل ١٠ سنين، أربع أيام بروتينهم تحت
+            # الأرضية (٤٧، ٤٨، ٤٥، ٥٠ والأرضية ٥٢) والمتوسط ٥٥ جوّه
+            # النطاق. التحذير قال "فوق نطاق سن الطفل" -- يعني بيقول
+            # للدكتور قلّل البروتين، والصح يزوّده. تعليمة بالعكس على
+            # ورقة طفل أسوأ من مافيش تعليمة.
+            _lo_days = _out_dirs.count("lo")
+            _hi_days = _out_dirs.count("hi")
+            if _avg_p < _blo:
+                _low_side = True
+            elif _avg_p > _bhi:
+                _low_side = False
+            else:
+                _low_side = _lo_days >= _hi_days
+            _dir_ar = "تحت" if _low_side else "فوق"
+            _dir_en = "below" if _low_side else "above"
+            # ‏ولو المتوسط جوّه النطاق، الجملة تقول إن الكلام على أيام
+            # بعينها -- مش على الأسبوع كله، عشان الدكتور يعرف يدوّر فين.
+            _days_ar = ("" if not (_blo <= _avg_p <= _bhi) else
+                        " في %d أيام" % len(_out))
+            _days_en = ("" if not (_blo <= _avg_p <= _bhi) else
+                        " on %d days" % len(_out))
+            _note("warn", "%s (%s %s) %s %s (%s-%s %s)%s." % (
                 _L("بروتين الأكل", "Plan protein"), _avg_p,
                 _L("جم/يوم", "g/day"), _L(_dir_ar, _dir_en),
                 _L("نطاق سن الطفل", "the child range"), _blo, _bhi,
-                _L("جم", "g")))
+                _L("جم", "g"), _L(_days_ar, _days_en)))
     elif _tp and _avg_p:
         _off = abs(_avg_p - _tp) / float(_tp)
         # ‏يوم تحت الأرضية، **أو** يوم ناقص ربع وصفته. التاني لازم:

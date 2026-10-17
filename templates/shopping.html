@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}{{ t('قايمة المشتريات','Shopping list') }}{% endblock %}
+{% block content %}
+<style>
+  /* ‏الورقة دي بتتطبع وبتتبعت واتساب. فالطباعة مش إضافة -- هي
+     الاستخدام. الشاشة عمودين، والطباعة عمودين برضه عشان تدخل في
+     ورقة واحدة. */
+  .sl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+           gap:14px}
+  .sl-box{border:1px solid #D3E3EA;border-radius:12px;padding:13px 15px;
+          background:#fff;break-inside:avoid}
+  .sl-box h3{font-size:14px;font-weight:900;color:var(--blue-dark);
+             margin:0 0 9px;padding-bottom:7px;border-bottom:1px solid #EDF4F7}
+  .sl-row{display:flex;justify-content:space-between;gap:10px;
+          padding:5px 0;font-size:13.5px;align-items:baseline}
+  .sl-row .q{font-weight:800;color:#1B6E80;white-space:nowrap}
+  .sl-row .d{font-size:11px;color:var(--muted);font-weight:600}
+  .sl-note{background:#F4F9FB;border:1px dashed #9CC3D0;border-radius:11px;
+           padding:12px 15px;font-size:13px;line-height:1.9;color:#456b61}
+  @media print{
+    .sidebar,.topbar,footer,.no-print{display:none !important}
+    .main{margin:0 !important}
+    .sl-grid{grid-template-columns:1fr 1fr;gap:8px}
+    .sl-box{border-color:#000;padding:8px 10px}
+    body{background:#fff}
+  }
+</style>
+
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px">
+  <h1 class="page-title" style="margin:0">
+    <i class="fa-solid fa-basket-shopping"></i> {{ t('قايمة المشتريات','Shopping list') }}
+  </h1>
+  <div class="no-print" style="display:flex;gap:8px">
+    <a href="/preview" class="btn btn-outline" style="text-decoration:none">
+      {{ t('رجوع للمعاينة','Back to preview') }}
+    </a>
+    <button class="btn btn-primary" onclick="window.print()">
+      <i class="fa-solid fa-print"></i> {{ t('طباعة','Print') }}
+    </button>
+  </div>
+</div>
+<p style="color:var(--muted);font-size:13.5px;margin:0 0 18px">
+  {{ t('مجموعة من جرامات الجدول نفسه — أسبوع كامل.',
+       'Summed from the plan’s own grams — one full week.') }}
+</p>
+
+{% if not items.groups %}
+<div class="card" style="text-align:center;padding:40px 24px">
+  <div style="font-size:38px;margin-bottom:10px">🧺</div>
+  <p style="color:var(--muted);font-size:13.5px;margin:0">
+    {{ t('مفيش أصناف بكميات مكتوبة في الجدول ده.',
+         'No items with written quantities in this plan.') }}
+  </p>
+</div>
+{% else %}
+
+<div class="sl-grid">
+  {% for g in items.groups %}
+  <div class="sl-box">
+    <h3>{{ g.title }}</h3>
+    {% for it in g['items'] %}
+    <div class="sl-row">
+      <span>{{ it.name }}
+        <span class="d">
+          {%- if it.days == 1 %}{{ t('مرة','once') }}
+          {%- elif it.days == 2 %}{{ t('مرتين','twice') }}
+          {%- else %}{{ it.days }} {{ t('مرات','times') }}{% endif -%}
+        </span>
+      </span>
+      <span class="q">{{ it.qty }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+{% if items.loose %}
+{# ‏الأصناف دي مالهاش كمية مكتوبة في الجدول. لو حطينا لها الحصة
+   الافتراضية وجمعناها، القايمة هتقول "قرفة ٣٥ جم" -- رقم مخترع،
+   والعميل هيشتري على أساسه. #}
+<div class="sl-note" style="margin-top:16px">
+  <b>{{ t('حسب الحاجة','As needed') }}</b> —
+  {{ t('الجدول مابيحددش كمية ليهم، فمكتوبين بأسمهم بس.',
+       'The plan does not set a quantity for these, so they are listed by name only.') }}
+  <div style="margin-top:7px;font-weight:700;color:var(--blue-dark)">
+    {% for x in items.loose %}{{ x.name }}{% if not loop.last %} · {% endif %}{% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if items.unknown %}
+{# ‏اللي القايمة معرفتوش. مابيتشالش من غير ما يتقال -- الأخصائي لازم
+   يشوفه عشان يزوّده بإيده بدل ما العميل يكتشفه في السوق. #}
+<div class="sl-note no-print" style="margin-top:12px;border-color:#f5cf9a;background:#FFF4E5;color:#8a4b00">
+  <b>{{ t('مش في جدول الأكل','Not in the food table') }}</b> —
+  {{ t('الأصناف دي مااتحسبتش. زوّدها بإيدك على القايمة قبل ما تسلّمها.',
+       'These were not counted. Add them to the list by hand before handing it over.') }}
+  <div style="margin-top:7px;font-weight:700">
+    {% for x in items.unknown %}{{ x.name }}{% if not loop.last %} · {% endif %}{% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

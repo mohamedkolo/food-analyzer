@@ -861,6 +861,31 @@ def preview():
                            data=data, plan=plan, current_request_id=current_request_id,
                            sheet_notes=sheet_notes, diet_plans=DIET_PLAN_TYPES)
 
+@bp.route("/shopping")
+@staff_required
+def shopping():
+    """‏قايمة مشتريات الأسبوع، مجموعة من جرامات الجدول.
+
+    ‏العميل بيمسك الورقة ويروح السوق ويقف: محتاج يشتري كام؟ الجمع ده
+    شغل على ٢٨ خانة، فبيشتري بالتخمين -- أكتر فيبوظ، أو أقل فالجدول
+    يقف نص الأسبوع. والمعلومة موجودة في الورقة أصلاً.
+    """
+    import shopping_list
+    u = get_user_by_id(session["uid"])
+    data = draft_store.draft_data()
+    plan = draft_store.draft_plan()
+    if not data or not plan:
+        return redirect("/generate")
+    try:
+        items = shopping_list.build(plan, cur_lang())
+    except Exception as e:
+        log_error("shopping", e)
+        items = {"groups": [], "loose": [], "unknown": []}
+    return render_template("shopping.html", user=u,
+                           lang=session.get("lang", "ar"),
+                           data=data, items=items)
+
+
 def _filtered_meals(data, pool_key, culture=None):
     """بيرجّع وجبات pool_key بعد تطبيق: الحالة المرضية + الحساسية + المرفوض + الكيتو/لو-كارب."""
     goal = data.get("goal_type", "weight_loss")

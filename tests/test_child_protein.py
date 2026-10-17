@@ -226,6 +226,71 @@ def test_a_missing_age_does_not_break_anything():
         assert grams == 128 and why is None, (age, grams, why)
 
 
+# ── اتجاه التحذير ────────────────────────────────────────────────────
+#
+# ‏الشرط بيولع من تلات حاجات: المتوسط فوق السقف، المتوسط تحت الأرضية،
+# أو (يومين برّه النطاق فأكتر). الاتجاه كان بيتقرر من **المتوسط** بس --
+# فلما الشرط يولع من الأيام والمتوسط جوّه النطاق، الاتجاه كان بيقع على
+# "فوق" افتراضياً.
+#
+# ‏مقيس على ورقة حقيقية: طفل ١٠ سنين على عجز، أربع أيام تحت الأرضية
+# والمتوسط جوّه النطاق. التحذير قال "فوق" -- يعني قلّل البروتين،
+# والصح زوّده.
+
+def _warn(data):
+    return " ".join(n["short"] for n in (data.get("sheet_notes") or [])
+                    if n.get("kind") == "warn" and "بروتين" in n["short"])
+
+
+def _forced(highs, lows):
+    """‏خطة بأيام مضبوطة بالإيد فوق السقف وتحت الأرضية."""
+    data = dict(NOURA, zigzag_mode="off")
+    data["zigzag"] = zigzag.zigzag_from_data(data)
+    with A.app.test_request_context("/"):
+        plan = plan_engine.generate_weekly_plan(data)
+        band = protein_need.band(
+            float(data["weight"]), data["height"], data["age"],
+            float(data["protein_per_kg"]), plan[0].get("total_cal") or 0)
+        for i in range(len(plan)):
+            if i in highs:
+                plan[i]["total_p"] = band[1] + 12
+            elif i in lows:
+                plan[i]["total_p"] = max(1, band[0] - 6)
+            else:
+                plan[i]["total_p"] = (band[0] + band[1]) // 2
+        plan_engine.plan_html(data, plan)
+    return data, band, [d["total_p"] for d in plan]
+
+
+def test_days_below_the_floor_are_not_reported_as_above_it():
+    """‏الغلطة اللي الدكتور مسكها: ورقة فيها أيام ناقصة بروتين والتحذير
+    بيقول زايد. تعليمة بالعكس على ورقة طفل أسوأ من مافيش تعليمة."""
+    data, band, ps = _forced(highs=(), lows=(0, 1, 2, 4))
+    text = _warn(data)
+    assert text, "‏أربع أيام برّه النطاق والمعاينة ساكتة: %s" % ps
+    assert "تحت" in text, "‏قال فوق والأيام تحت (%s، الأرضية %d): %s" % (
+        ps, band[0], text)
+    assert "فوق" not in text, text
+
+
+def test_days_above_the_ceiling_are_still_reported_as_above():
+    """‏الاتجاه التاني مااتكسرش وإحنا بنصلّح الأول."""
+    data, band, ps = _forced(highs=(0, 1, 2, 4), lows=())
+    text = _warn(data)
+    assert text, ps
+    assert "فوق" in text, "‏قال تحت والأيام فوق (%s، السقف %d): %s" % (
+        ps, band[1], text)
+
+
+def test_the_warning_says_how_many_days_when_the_average_is_fine():
+    """‏لو المتوسط جوّه النطاق، الكلام على أيام بعينها -- والدكتور لازم
+    يعرف إنه يدوّر على أيام مش على الأسبوع كله."""
+    data, _band, _ps = _forced(highs=(), lows=(0, 1, 2, 4))
+    text = _warn(data)
+    assert "أيام" in text, text
+    assert "4" in text, text
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):
