@@ -408,6 +408,48 @@ def generate_weekly_plan(data, seed=None):
         from diet_programs import PROGRAMS as _PROGRAMS
     except Exception:
         _PROGRAMS = {}
+
+    # ── طفل + برنامج = البرنامج بيتشال ──────────────────────────────
+    #
+    # ‏الـ11 برنامج كلهم **جداول بالغين بتتكبّر بالسعرات**: البرنامج
+    # بيحدّد الأكل، وdiet_programs بيضرب الحصص في (الهدف ÷ مجموع
+    # اليوم). مافيش في السلسلة دي أي حاجة بتعرف إن اللي قدامها طفل.
+    #
+    # ‏والنتيجة اتقاست على ورقتين حقيقيتين لطفل ١٠ سنين (توصيته ٥٢ جم
+    # بروتين، وسقف سنه ١٣٥):
+    #
+    #   كارب منخفض   ١٣٥-١٦٩ جم/يوم   فوق السقف كل يوم
+    #   أطفال (نمو)  ١٢٠-١٣٤ جم/يوم   قاعد على السقف كل يوم
+    #   العادي       ٥٣-١٠٠ جم/يوم    في النطاق
+    #
+    # ‏وبرنامج "الأطفال" نفسه مش استثناء: هو برنامج **نمو** أرضيته
+    # ١٥٠٠ سعرة، فلما الهدف تخسيس بيتناقض مع نفسه.
+    #
+    # ‏والسبب إن الـreturn تحت بيرجع **قبل** منطق الأطفال كله -- جداول
+    # الأطفال وحصصهم ونطاق البروتين، ولا واحد فيهم بيتنفّذ. فبدل ما
+    # نكرّر المنطق جوّه كل برنامج، الطفل بيتحوّل للعادي، وده اللي
+    # بيعدّي على جداول الأطفال فعلاً.
+    _kid_prog = None
+    if diet_type in _PROGRAMS:
+        try:
+            import protein_need as _pn_prog
+            if _pn_prog.is_child(data.get("age")):
+                # ‏الاسم من _NAMES مش من PROGRAMS: PROGRAMS هي الجداول
+                # نفسها (أيام ووجبات)، و_NAMES فيها (عربي، إنجليزي،
+                # وصف، وصف إنجليزي). الاتنين لازمين -- السطر بيتكتب
+                # بلغة الورقة، واسم عربي جوّه جملة إنجليزية بيكسرها.
+                from diet_programs import _NAMES as _PROG_NAMES
+                _info = _PROG_NAMES.get(diet_type) or ()
+                _kid_prog = (_info[0] if len(_info) > 0 else diet_type,
+                             _info[1] if len(_info) > 1 else diet_type)
+        except Exception:
+            _kid_prog = None
+    if _kid_prog:
+        data["diet_plan_type"] = diet_type = "standard"
+        data["kid_program_swap"] = _kid_prog[0]
+        data["kid_program_swap_en"] = _kid_prog[1]
+        _PROGRAMS = {}
+
     if diet_type in _PROGRAMS:
         from diet_programs import build_program_plan
         try:
@@ -1014,8 +1056,20 @@ def generate_weekly_plan(data, seed=None):
         plan.append(day_plan)
     return plan
 
-def get_allowed_forbidden(symptoms, goal="weight_loss"):
+def get_allowed_forbidden(symptoms, goal="weight_loss", age=None):
+    """‏المسموح والممنوع للحالة.
+
+    age اختياري. لو الحالة طفل، سطور السمنة بتتغيّر: القايمة الأصلية
+    مكتوبة لبالغ ("عجز سعري معتدل + بروتين عالي")، وعلى ورقة طفل
+    الجملتين دول ضرر مش نصيحة -- الأول بيقول للأهل قلّلوا أكل طفل
+    بيكبر، والتاني بيخليهم يزوّدوا بروتين فوق حمل عالي أصلاً.
+    """
     from meal_database import unsafe_keys_for, _contains_unsafe
+    try:
+        import protein_need as _pn_kid
+        _is_kid = _pn_kid.is_child(age) if age is not None else False
+    except Exception:
+        _is_kid = False
     has_g6pd = _has(symptoms, ["g6pd","g6bd","فافيزم"])
     has_thal = _has(symptoms, ["ثلاسيميا","thalassemia"])
     has_colon = _has(symptoms, ["قولون عصبي","ibs"])
@@ -1076,7 +1130,15 @@ def get_allowed_forbidden(symptoms, goal="weight_loss"):
         allowed = ["حمض فوليك: خضار ورقية + بقوليات","كالسيوم: ألبان مبسترة","حديد وبروتين كافي"] + allowed
     if has_obesity:
         forbidden = ["الوجبات السريعة + السعرات الفارغة","المشروبات السكرية"] + forbidden
-        allowed = ["عجز سعري معتدل + بروتين عالي","خضار كتير + مشي يومي"] + allowed
+        if _is_kid:
+            # ‏سمنة الأطفال: المتّبع تثبيت الوزن والطول يزيد، فالـBMI
+            # ينزل من غير ما الطفل ينزل. فمفيش كلمة "عجز" على ورقة
+            # بتروح لأهل طفل -- ولا "بروتين عالي"، لأن الجداول بتوصل
+            # حمل عالي أصلاً وأب بياخد الجملة بحرفيتها بيزوّد فوقه.
+            allowed = ["سعرات تكفي النمو + تثبيت الوزن مع زيادة الطول",
+                       "خضار كتير + لعب أو رياضة يومي"] + allowed
+        else:
+            allowed = ["عجز سعري معتدل + بروتين عالي","خضار كتير + مشي يومي"] + allowed
     if has_constip:
         allowed = ["ألياف: خضار + فاكهة بقشرها + شوفان","مياه كافية (8 أكواب)","زبادي / بروبيوتيك"] + allowed
 
@@ -1202,7 +1264,7 @@ def plan_html(data, plan=None, clean=False):
     goal = data.get("goal_type", "weight_loss")
     diet_type = data.get("diet_plan_type", "standard")
     plan_info = get_diet_plan_info(diet_type)
-    allowed, forbidden = get_allowed_forbidden(symptoms, goal)
+    allowed, forbidden = get_allowed_forbidden(symptoms, goal, data.get("age"))
     try:
         tdee = float(data.get("tdee", 0) or 0)
         target = float(data.get("goal_cal", 0) or 0)
@@ -1377,6 +1439,43 @@ def plan_html(data, plan=None, clean=False):
                        r'<b>\1</b>', p, count=1)
             out.append(f'<span class="it">{p}</span>')
         return "".join(out)
+
+    # ── سطر واحد على الورقة نفسها ──────────────────────────────────
+    #
+    # ‏الورقة بقت جدول وممنوع/مسموح وبس بطلب الدكتور، واللي اتشال راح
+    # للمعاينة. بس حاجتين مالهمش مكان في المعاينة لوحدها، لأنهم بيقولوا
+    # إن **الورقة اللي في إيدك مش اللي طلبتها**:
+    #
+    #   * برنامج اتشال عشان اللي قدامك طفل -- الدكتور اختار برنامج
+    #     وخد غيره. لو ده في المعاينة بس، ممكن يسلّم ورقة وهو فاكر
+    #     إنها البرنامج.
+    #   * برنامج بيناقض الهدف المختار (نمو + تخسيس). كان في المعاينة،
+    #     والورقة اللي بتوصل البيت كانت بتقول "عجز سعري" على برنامج
+    #     أرضيته ١٥٠٠ سعرة -- فالأهل يقروا حاجة والجدول يقول غيرها.
+    #
+    # ‏سطر واحد، وبيظهر لما يكون فيه سبب بس. الورقة العادية زي ما هي.
+    _alerts = []
+    if data.get("kid_program_swap"):
+        # ‏الصياغة بتقول **السبب**، مش حكم عام. أول نسخة كانت "مش مناسب
+        # لسن النمو" -- وده بيتقرا غلط على برنامج اسمه "أطفال (نمو)".
+        # السبب الحقيقي واحد في الـ11: الحصص بتتظبط على رقم السعرات،
+        # مافيش حاجة فيهم بتبص على سن الطفل.
+        _alerts.append(_L(
+            "«%s» حصصه بتتظبط بالسعرات مش بسن الطفل — الجدول ده "
+            "جداول الأطفال." % _esc(data["kid_program_swap"]),
+            "\u201c%s\u201d scales its portions by calories, not by the "
+            "child\u2019s age \u2014 this table is the child plan."
+            % _esc(data.get("kid_program_swap_en")
+                   or data["kid_program_swap"])))
+    for _w in (data.get("program_warnings") or []):
+        _txt = _w.get("reason") if _pdf_ar else (_w.get("reason_en")
+                                                or _w.get("reason"))
+        if _txt:
+            _alerts.append(_esc(re.sub(r"\s+", " ", str(_txt)).strip()))
+    _alert_html = ""
+    if _alerts:
+        _alert_html = ('<div class="alert">%s</div>'
+                       % "<br>".join(_alerts[:2]))
 
     td = template_data
     cl = td['client']
@@ -1865,9 +1964,14 @@ tr:nth-child(even) td {{ background:#fbfcfb; }}
 .fbox ul {{ margin:0; padding-inline-start:13px; color:#3f4744; }}
 .fbox li {{ margin-bottom:2px; }}
 /* ‏سطر المراجعة كان بيزحّف لصفحة تانية لوحده -- صفحة كاملة لسطر. */
+/* ‏سطر التنبيه: بيظهر لما الورقة مش اللي الدكتور طلبها. مابيقرّبش
+   من شكل الجدول -- سطر رفيع فوق المسموح والممنوع. */
+.alert {{ margin-top:6px; font-size:8.5px; font-weight:700;
+          color:#7f1d1d; line-height:1.5; }}
 {_company_css}
 </style></head><body>
 <table><thead><tr>{head_cells}</tr></thead><tbody>{body_rows}</tbody></table>
+{_alert_html}
 <div class="foot">
   <div class="fbox ok"><h4>{_L("مسموح", "Allowed")}</h4><ul>{allowed_html}</ul></div>
   <div class="fbox no"><h4>{_L("ممنوع", "Avoid")}</h4><ul>{forbidden_html}</ul></div>

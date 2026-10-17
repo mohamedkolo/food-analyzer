@@ -356,18 +356,38 @@ def test_the_engine_returns_the_program_when_it_is_picked():
 
 def test_a_program_s_warnings_reach_the_notes_for_the_pdf():
     """‏التحذير لازم يوصل للدكتور. نفس مسار الكيميائي والتكميم:
-    أزواج (عربي، إنجليزي) عشان الـPDF الإنجليزي مايطلعش عربي."""
+    أزواج (عربي، إنجليزي) عشان الـPDF الإنجليزي مايطلعش عربي.
+
+    المثال كان **طفل** على برنامج الأطفال. الطفل مابقاش يعدّي على أي
+    برنامج أصلاً (البرامج جداول بالغين بتتكبّر بالسعرات، فبتتشال وييجي
+    مكانها جداول الأطفال). فالمثال بقى بالغ اختار برنامج الأطفال بهدف
+    تخسيس -- التناقض اللي التحذير ده موجود عشانه لسه قايم عنده.
+    """
+    import plan_engine
+    data = {"age": "34", "gender": "ذكر", "height": "175", "weight": "95",
+            "tdee": "2400", "goal_cal": "1500", "goal_type": "weight_loss",
+            "culture": "مصري", "symptoms": [], "allergies": [],
+            "zigzag_mode": "none", "diet_plan_type": "kids"}
+    plan_engine.generate_weekly_plan(data)
+    assert not data.get("kid_program_swap"), "‏البرنامج اتشال من بالغ"
+    pairs = data.get("chemical_note_pairs") or []
+    assert pairs, "‏تحذير برنامج الأطفال مش بيوصل للملاحظات"
+    assert any("تخسيس" in ar for ar, _ in pairs), pairs
+    for ar, en in pairs:
+        assert ar and en and ar != en, (ar, en)
+
+
+def test_a_child_is_taken_off_the_program_instead_of_being_warned():
+    """‏الوش التاني للاختبار اللي فوق: الطفل مابياخدش تحذير على برنامج،
+    بياخد جدول تاني. تحذير على ورقة فيها ١٣٠ جم بروتين لطفل مش حل."""
     import plan_engine
     data = {"age": "9", "gender": "ذكر", "height": "130", "weight": "40",
             "tdee": "1500", "goal_cal": "900", "goal_type": "weight_loss",
             "culture": "مصري", "symptoms": [], "allergies": [],
             "zigzag_mode": "none", "diet_plan_type": "kids"}
     plan_engine.generate_weekly_plan(data)
-    pairs = data.get("chemical_note_pairs") or []
-    assert pairs, "‏تحذير برنامج الأطفال مش بيوصل للملاحظات"
-    assert any("تخسيس" in ar for ar, _ in pairs), pairs
-    for ar, en in pairs:
-        assert ar and en and ar != en, (ar, en)
+    assert data.get("kid_program_swap"), "‏الطفل فضل على البرنامج"
+    assert data["diet_plan_type"] == "standard", data["diet_plan_type"]
 
 
 def test_the_clean_table_is_the_company_sheet_s_shape():
