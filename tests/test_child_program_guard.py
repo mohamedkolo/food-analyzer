@@ -136,19 +136,93 @@ def test_the_child_pool_is_what_actually_fills_the_table():
 
 # ── المسموح والممنوع ────────────────────────────────────────────────
 
+# ── الورقة لازم تقول اللي بتعمله ─────────────────────────────────────
+#
+# ‏الدكتور سأل: "ده أديله الجدول ده إزاي وهو بينزل وزن؟" -- وكان محق.
+# أول نسخة من الشيل حطّت "تثبيت الوزن مع زيادة الطول" على **كل** ورقة
+# طفل، والبرنامج بيبني على رقم السعرات اللي اتكتب زي ما هو. فورقة فيها
+# عجز ٦٠٠ سعرة كانت بتتطبع ومكتوب عليها "تثبيت" -- يعني الورقة بتقول
+# عكس اللي بتعمله. الاختبارات دي بتقفل الباب ده.
+
+def test_a_sheet_with_a_real_deficit_does_not_claim_to_be_maintenance():
+    """‏أسوأ حالة: الكلام يقول تثبيت والأكل عجز ٦٠٠ سعرة."""
+    _data, plan, html = _sheet(diet_plan_type="standard",
+                               tdee="1900", goal_cal="1300")
+    joined = " ".join(_allowed(html))
+    assert "تثبيت" not in joined, (
+        "‏الورقة بتقول تثبيت والأكل عجز: %s" % joined)
+    assert "عجز" in joined, joined
+    avg = sum(d.get("total_cal") or 0 for d in plan) / float(len(plan))
+    assert avg < 1500, "‏الاختبار مالوش معنى من غير عجز فعلي (%d)" % avg
+
+
+def test_a_sheet_at_maintenance_says_maintenance():
+    """‏والعكس: من غير عجز، "عجز محسوب" كلام مالوش محل."""
+    _data, _plan, html = _sheet(diet_plan_type="standard",
+                                tdee="1900", goal_cal="1900")
+    joined = " ".join(_allowed(html))
+    assert "تثبيت" in joined, joined
+    assert "عجز" not in joined, joined
+
+
+def test_a_small_gap_is_not_called_a_deficit():
+    """‏فرق ١٠٠ سعرة جوّه خطأ تقدير الـTDEE نفسه (Mifflin ±١٠٪)، فتسميته
+    "عجز" على ورقة أهل طفل ادّعاء بدقة مش موجودة."""
+    _data, _plan, html = _sheet(diet_plan_type="standard",
+                                tdee="1900", goal_cal="1820")
+    joined = " ".join(_allowed(html))
+    assert "تثبيت" in joined, joined
+
+
+def test_the_deficit_reaches_the_specialist_with_its_number():
+    """‏"السعرات لازم تكفي النمو" جملة عامة مافيهاش رقم. عجز ٦٠٠ سعرة
+    على ابن ١٠ سنين كان بيعدّي بيها ساكت."""
+    data, _plan, _html = _sheet(diet_plan_type="standard",
+                                tdee="1900", goal_cal="1300")
+    warns = " ".join(n["short"] for n in (data.get("sheet_notes") or [])
+                     if n.get("kind") == "warn")
+    assert "600" in warns, "‏رقم العجز مش في التحذيرات: %s" % warns
+    assert "10" in warns, "‏السن مش مذكور: %s" % warns
+
+
+def test_the_doctors_own_number_is_not_changed_behind_his_back():
+    """‏عجز مقصود لحالة سمنة شديدة بمتابعة قرار إكلينيكي. اللي بيتعمل
+    إننا نحط الرقم قدامه، مش إننا نغيّره."""
+    data, plan, _html = _sheet(diet_plan_type="standard",
+                               tdee="1900", goal_cal="1300")
+    assert str(data.get("goal_cal")) == "1300", data.get("goal_cal")
+    avg = sum(d.get("total_cal") or 0 for d in plan) / float(len(plan))
+    assert abs(avg - 1300) < 150, "‏الأكل مابيتبعش الهدف: %d" % avg
+
+
+def test_an_adult_on_a_deficit_is_not_given_the_child_wording():
+    _data, _plan, html = _sheet(age="34", weight="95", height="175",
+                                diet_plan_type="standard",
+                                tdee="2400", goal_cal="1800")
+    joined = " ".join(_allowed(html))
+    assert "عجز سعري معتدل" in joined, joined
+    assert "من نفسكم" not in joined, joined
+
+
 def test_a_childs_sheet_never_tells_the_parents_to_cut_calories():
     """‏"عجز سعري معتدل + بروتين عالي" مكتوبة لبالغ. على ورقة طفل الأولى
     بتقول للأهل قلّلوا أكل طفل بيكبر، والتانية بتخليهم يزوّدوا بروتين
     فوق حمل عالي أصلاً."""
-    _data, _plan, html = _sheet(diet_plan_type="standard")
-    joined = " ".join(_allowed(html))
-    assert "عجز سعري" not in joined, joined
-    assert "بروتين عالي" not in joined, joined
+    # ‏"عجز سعري معتدل + بروتين عالي" الجملة بتاعت البالغين. الورقة لو
+    # فيها عجز فعلي بتقول عجز بصيغتها هي (الاختبار اللي فوق)، بس
+    # عمرها مابتقول الجملتين دول.
+    for over in ({"goal_cal": "1900"}, {"goal_cal": "1300"}):
+        _data, _plan, html = _sheet(diet_plan_type="standard",
+                                    tdee="1900", **over)
+        joined = " ".join(_allowed(html))
+        assert "عجز سعري معتدل" not in joined, joined
+        assert "بروتين عالي" not in joined, joined
 
 
 def test_the_childs_sheet_says_what_to_do_instead():
     """‏شيل من غير بديل بيسيب ورقة سمنة مافيهاش أي توجيه."""
-    _data, _plan, html = _sheet(diet_plan_type="standard")
+    _data, _plan, html = _sheet(diet_plan_type="standard",
+                                tdee="1900", goal_cal="1900")
     joined = " ".join(_allowed(html))
     assert "النمو" in joined, joined
     assert "الطول" in joined, "‏مافيش ذكر لتثبيت الوزن مع زيادة الطول: %s" % joined

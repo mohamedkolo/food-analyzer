@@ -189,6 +189,14 @@ def _defer_repeats(meals, avoid):
     return fresh + repeats
 
 
+# ‏العجز اللي عنده ورقة الطفل تبطّل تقول "تثبيت" وتبدأ تقول "عجز".
+#
+# ‏١٥٠ سعرة مش رقم تجميلي: تحت كده الفرق بين الهدف والحرق جوّه خطأ تقدير
+# الـTDEE نفسه (معادلة Mifflin دقّتها ±١٠٪ تقريباً)، فتسميته "عجز" على
+# ورقة بتروح لأهل طفل بيبقى ادّعاء بدقة مش موجودة. وفوقه الفرق مقصود.
+CHILD_DEFICIT_FLAG = 150
+
+
 def _apply_clinical_safety_caps(data):
     """يظبط هدف السعرات تلقائياً لحالات حساسة (حصوات المرارة، اضطرابات الأكل)، ويضيف ملاحظات تغذوية
     للحالات اللي محتاجة تأكيد على عناصر معيّنة (هشاشة العظام، نقص الحديد...)، قبل توليد الخطة."""
@@ -264,6 +272,23 @@ def _apply_clinical_safety_caps(data):
                 data["goal_cal"] = str(int(tdee_val))
             flags.append("⚠️ اضطراب أكل مسجل: الخطة اتظبطت على سعرات المحافظة (من غير عجز) بدل التخسيس — "
                          "الحالة دي لازم متابعة طبيب نفسي/طبيب مصاحبة للتغذية.")
+
+        # ‏عجز على طفل. الكود بيحدّ العجز لحصوات المرارة (٧٥٠) وبيلغيه
+        # لاضطراب الأكل، وطفل في سن النمو ماكانش له أي سطر -- بيعدّي
+        # بملاحظة معلومات بس ("السعرات لازم تكفي النمو")، وهي جملة عامة
+        # مافيهاش رقم. فعجز ٦٠٠ سعرة على ابن ١٠ سنين كان بيعدّي ساكت.
+        #
+        # ‏والرقم مابيتغيّرش من ورانا: الدكتور عارف إنه بيكتب عجز، وممكن
+        # يكون مقصود لحالة سمنة شديدة بمتابعة. اللي بيتعمل إننا نحط
+        # الرقم قدامه بدل ما يبقى مضمر في خانة.
+        if 4 <= _age < 18 and (tdee_val - goal_cal_val) >= CHILD_DEFICIT_FLAG:
+            flags.append(
+                "⚠️ سن %d سنة: الهدف %d سعرة والحرق %d — عجز %d سعرة/يوم. "
+                "المتّبع مع سمنة الأطفال تثبيت الوزن والطول يزيد، "
+                "والعجز الفعلي بإشراف ومعاه قياس طول كل أسبوعين. "
+                "الرقم زي ما هو، بس خلي باله." % (
+                    _age, int(goal_cal_val), int(tdee_val),
+                    int(tdee_val - goal_cal_val)))
 
     if flags:
         existing_notes = data.get("notes", "") or ""
@@ -1056,13 +1081,23 @@ def generate_weekly_plan(data, seed=None):
         plan.append(day_plan)
     return plan
 
-def get_allowed_forbidden(symptoms, goal="weight_loss", age=None):
+def get_allowed_forbidden(symptoms, goal="weight_loss", age=None, deficit=0):
     """‏المسموح والممنوع للحالة.
 
-    age اختياري. لو الحالة طفل، سطور السمنة بتتغيّر: القايمة الأصلية
-    مكتوبة لبالغ ("عجز سعري معتدل + بروتين عالي")، وعلى ورقة طفل
-    الجملتين دول ضرر مش نصيحة -- الأول بيقول للأهل قلّلوا أكل طفل
+    age و deficit اختياريين، وبيشتغلوا مع بعض على سطور السمنة.
+
+    القايمة الأصلية مكتوبة لبالغ ("عجز سعري معتدل + بروتين عالي")، وعلى
+    ورقة طفل الجملتين دول ضرر مش نصيحة: الأول بيقول للأهل قلّلوا أكل طفل
     بيكبر، والتاني بيخليهم يزوّدوا بروتين فوق حمل عالي أصلاً.
+
+    بس البديل لازم يبقى **صح**. أول نسخة حطّت "تثبيت الوزن مع زيادة
+    الطول" على كل ورقة طفل، والدكتور سأل السؤال الصح: "ده أديله الجدول
+    ده إزاي وهو بينزل وزن؟" -- وكان محق، لأن البرنامج بيبني على رقم
+    السعرات اللي اتكتب زي ما هو. يعني ورقة فيها عجز ٦٠٠ سعرة كانت
+    بتتطبع ومكتوب عليها "تثبيت". الكلام بقى بيتبع الأكل: فيه عجز
+    فعلي؟ الورقة تقول عجز. مافيش؟ تقول تثبيت.
+
+    deficit = الحرق ناقص الهدف (موجب يعني عجز).
     """
     from meal_database import unsafe_keys_for, _contains_unsafe
     try:
@@ -1070,6 +1105,10 @@ def get_allowed_forbidden(symptoms, goal="weight_loss", age=None):
         _is_kid = _pn_kid.is_child(age) if age is not None else False
     except Exception:
         _is_kid = False
+    try:
+        _deficit = int(float(deficit or 0))
+    except (TypeError, ValueError):
+        _deficit = 0
     has_g6pd = _has(symptoms, ["g6pd","g6bd","فافيزم"])
     has_thal = _has(symptoms, ["ثلاسيميا","thalassemia"])
     has_colon = _has(symptoms, ["قولون عصبي","ibs"])
@@ -1130,11 +1169,19 @@ def get_allowed_forbidden(symptoms, goal="weight_loss", age=None):
         allowed = ["حمض فوليك: خضار ورقية + بقوليات","كالسيوم: ألبان مبسترة","حديد وبروتين كافي"] + allowed
     if has_obesity:
         forbidden = ["الوجبات السريعة + السعرات الفارغة","المشروبات السكرية"] + forbidden
-        if _is_kid:
-            # ‏سمنة الأطفال: المتّبع تثبيت الوزن والطول يزيد، فالـBMI
-            # ينزل من غير ما الطفل ينزل. فمفيش كلمة "عجز" على ورقة
-            # بتروح لأهل طفل -- ولا "بروتين عالي"، لأن الجداول بتوصل
-            # حمل عالي أصلاً وأب بياخد الجملة بحرفيتها بيزوّد فوقه.
+        if _is_kid and _deficit >= CHILD_DEFICIT_FLAG:
+            # ‏الورقة فيها عجز فعلي. الأهل لازم يعرفوا إن ده عجز مقصود
+            # ومحسوب -- مش "تثبيت" زي ما كانت بتقول، ومش "عجز معتدل"
+            # المفتوحة بتاعت البالغين. والقياس كل أسبوعين لأن الطفل
+            # بيكبر والرقم لوحده مابيكفيش.
+            allowed = ["عجز محسوب بإشراف — مش تقليل أكل من نفسكم",
+                       "الوزن والطول يتقاسوا كل أسبوعين",
+                       "خضار كتير + لعب أو رياضة يومي"] + allowed
+        elif _is_kid:
+            # ‏سمنة الأطفال من غير عجز: المتّبع تثبيت الوزن والطول
+            # يزيد، فالـBMI ينزل من غير ما الطفل ينزل. ومفيش "بروتين
+            # عالي" على ورقة طفل، لأن الجداول بتوصل حمل عالي أصلاً وأب
+            # بياخد الجملة بحرفيتها بيزوّد فوقه.
             allowed = ["سعرات تكفي النمو + تثبيت الوزن مع زيادة الطول",
                        "خضار كتير + لعب أو رياضة يومي"] + allowed
         else:
@@ -1264,7 +1311,12 @@ def plan_html(data, plan=None, clean=False):
     goal = data.get("goal_type", "weight_loss")
     diet_type = data.get("diet_plan_type", "standard")
     plan_info = get_diet_plan_info(diet_type)
-    allowed, forbidden = get_allowed_forbidden(symptoms, goal, data.get("age"))
+    try:
+        _gap = float(data.get("tdee") or 0) - float(data.get("goal_cal") or 0)
+    except (TypeError, ValueError):
+        _gap = 0
+    allowed, forbidden = get_allowed_forbidden(symptoms, goal, data.get("age"),
+                                               deficit=_gap)
     try:
         tdee = float(data.get("tdee", 0) or 0)
         target = float(data.get("goal_cal", 0) or 0)
