@@ -33,12 +33,14 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# tables worth keeping, in an order that restores cleanly
-TABLES = [
-    "users", "plan_requests", "payments", "subscriptions", "messages",
-    "notifications", "meal_checks", "weight_log", "blocked_users",
-    "patients", "saved_plans", "api_keys",
-]
+# ‏قايمة الجداول كانت مكتوبة هنا بالإيد، و**بقت قديمة**: ناقصها
+# plan_visits (كل الزيارات والأوزان -- أهم جدول في العيادة) وplan_links.
+# يعني نسخة كانت بتتاخد وهي ناقصة المتابعات كلها ومحدش يعرف غير يوم ما
+# يحتاجها.
+#
+# ‏دلوقتي بتتقرا من القاعدة نفسها وقت التنفيذ (backup.tables)، فأي جدول
+# يتضاف للمشروع بيدخل النسخة لوحده. والملف ده والزرار اللي في الموقع
+# بيستخدموا نفس الكود.
 
 
 def _stamp():
@@ -66,22 +68,17 @@ def dump_sql(db_url, out_dir):
 def dump_json(out_dir):
     """Table-by-table export through the app's own database helpers."""
     import app as A
+    import backup as bk
 
-    path = os.path.join(out_dir, f"nutrax-{_stamp()}.json")
-    data, skipped = {}, []
-    for table in TABLES:
-        try:
-            rows = A.db_rows(f"SELECT * FROM {table}") or []
-            data[table] = [dict(r) for r in rows]
-            print(f"  {table:18} {len(data[table]):>6} rows")
-        except Exception as e:
-            skipped.append(table)
-            print(f"  {table:18} skipped ({str(e)[:60]})")
+    snap = bk.snapshot(A.db_rows)
+    for table, n in sorted(snap["counts"].items()):
+        print(f"  {table:22} {n:>6} rows")
+    for table, err in sorted(snap.get("failed", {}).items()):
+        print(f"  {table:22} FAILED ({err[:60]})")
 
+    path = os.path.join(out_dir, bk.filename(snap))
     with open(path, "w", encoding="utf-8") as fh:
-        json.dump({"taken_at": datetime.now().isoformat(),
-                   "tables": data, "skipped": skipped},
-                  fh, ensure_ascii=False, indent=2, default=str)
+        fh.write(bk.as_json(snap))
     return path
 
 

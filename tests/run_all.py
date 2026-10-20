@@ -50,6 +50,7 @@ SUITES = [
     "test_child_program_guard.py",
     "test_shopping_list.py",
     "test_snack_variety.py",
+    "test_backup.py",
     "test_money.py",
 ]
 

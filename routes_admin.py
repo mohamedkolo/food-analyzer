@@ -76,6 +76,38 @@ def admin_users_export():
     return send_file(out, as_attachment=True, download_name=fname, mimetype="text/csv; charset=utf-8")
 
 
+@bp.route("/admin/backup")
+@admin_required
+def admin_backup():
+    """‏نسخة احتياطية كاملة، بزرار.
+
+    ‏الموقع وقع يوم ٢٠ أكتوبر ٢٠٢٦ (حصة قاعدة Neon خلصت)، وأول سؤال
+    اتسأل كان "فيه نسخة احتياطية؟" والإجابة كانت لأ. والسبب مش إهمال:
+    الأداة الموجودة محتاجة Terminal وPython ورابط القاعدة، والدكتور
+    بيشتغل من المتصفح. أداة محدش يقدر يشغّلها مش أداة.
+
+    ‏وتصدير العملاء (CSV) مش بديل: ده جدول users بس. المتابعات
+    (plan_visits) والخطط المحفوظة والروابط مش فيه.
+    """
+    import backup as _bk
+    try:
+        snap = _bk.snapshot(db_rows)
+    except Exception as e:
+        log_error("admin_backup", e)
+        return ("<h1>النسخة فشلت</h1><p>جرّب تاني، ولو الحالة مستمرة "
+                "القاعدة غالباً مش بترد.</p>", 500)
+    payload = _bk.as_json(snap).encode("utf-8")
+    out = io.BytesIO(payload)
+    out.seek(0)
+    resp = send_file(out, as_attachment=True,
+                     download_name=_bk.filename(snap),
+                     mimetype="application/json; charset=utf-8")
+    # ‏الملف ده فيه بيانات صحية لكل العملاء. مايتخزّنش في أي كاش.
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    return resp
+
+
 @bp.route("/admin/users/new", methods=["GET","POST"])
 @admin_required
 def admin_new_user():
