@@ -24,7 +24,10 @@
   </div>
   <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
     <a href="/" class="btn btn-primary">{{ 'الرئيسية' if is_ar else 'Home' }}</a>
-    <a href="/health" class="btn btn-outline">{{ 'حالة الموقع' if is_ar else 'Site status' }}</a>
+    {# ‏?db=1 لازم: /health العادية مابتلمسش القاعدة (عشان الـping
+       مايصحّيهاش كل ١٠ دقايق -- التفاصيل في core.health). والزرار ده
+       موجود عشان يقول حالة القاعدة، فلازم يطلبها صراحة. #}
+    <a href="/health?db=1" class="btn btn-outline">{{ 'حالة الموقع' if is_ar else 'Site status' }}</a>
   </div>
 </div>
 {% endblock %}

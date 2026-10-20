@@ -41,9 +41,12 @@ _CLIENT = A.app.test_client()
 
 
 def test_health_answers_even_when_the_database_is_down():
-    """‏دي الصفحة الوحيدة اللي تفرّق بين "التطبيق واقع" و"القاعدة واقعة"،
-    فلازم ترد في الحالتين -- ولو هي كمان بتلمس القاعدة، بتقع معاها."""
-    ok = _CLIENT.get("/health")
+    """‏دي الحاجة الوحيدة اللي تفرّق بين "التطبيق واقع" و"القاعدة واقعة"،
+    فلازم ترد في الحالتين -- ولو هي كمان بتلمس القاعدة، بتقع معاها.
+
+    ‏والفحص بقى على ?db=1: /health العادية مابتلمسش القاعدة بالقصد.
+    """
+    ok = _CLIENT.get("/health?db=1")
     assert ok.status_code == 200, ok.status_code
     assert ok.get_json().get("db") == "ok", ok.get_json()
 
@@ -51,7 +54,7 @@ def test_health_answers_even_when_the_database_is_down():
     core.db_row = lambda *a, **k: (_ for _ in ()).throw(
         RuntimeError("could not connect to server"))
     try:
-        down = _CLIENT.get("/health")
+        down = _CLIENT.get("/health?db=1")
     finally:
         core.db_row = real
     assert down.status_code == 200, (
@@ -60,6 +63,29 @@ def test_health_answers_even_when_the_database_is_down():
     assert body.get("db", "").startswith("down"), body
     assert body.get("ok") is False, body
     assert body.get("commit"), "‏الكوميت الشغال ناقص -- مش هنعرف المنشور إيه"
+
+
+def test_the_ping_target_never_touches_the_database():
+    """‏ده اللي وقّع الموقع فعلاً.
+
+    ‏/health نقطة ping بتتضرب كل ١٠ دقايق ٢٤ ساعة عشان Render ماينامش.
+    واتضاف لها فحص للقاعدة -- ففضلت بتصحّي قاعدة Neon (اللي بتنيّم نفسها
+    بعد ٥ دقايق) نص الوقت ليل ونهار، لحد ما خلّصت حصة الحساب الشهرية
+    والمشروع اتوقف. الموقع رد "مش قادر يوصل لقاعدة البيانات"، والسبب
+    كان الـping بتاعنا.
+
+    ‏فالاختبار ده بيتأكد إن النداء العادي مابيعملش ولا استعلام.
+    """
+    calls = []
+    real = core.db_row
+    core.db_row = lambda *a, **k: (calls.append(a), {"ok": 1})[1]
+    try:
+        r = _CLIENT.get("/health")
+    finally:
+        core.db_row = real
+    assert r.status_code == 200, r.status_code
+    assert not calls, "‏نقطة الـping لمست القاعدة: %s" % (calls,)
+    assert r.get_json().get("commit"), r.get_json()
 
 
 def test_a_broken_page_says_so_and_carries_a_reference():

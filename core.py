@@ -146,22 +146,40 @@ def running_commit():
 def health():
     """نقطة خفيفة لخدمات الـ ping — بتمنع Render من تنييم الموقع.
 
-    بترجّع كمان أول ٧ حروف من الكوميت الشغال، عشان تقدر تتأكد إن النشر خلص
-    من غير ما تخمّن: افتح /health وقارن الرقم باللي على GitHub.
+    ‏**مابتلمسش قاعدة البيانات**، وده مش تفصيلة -- ده اللي وقّع الموقع
+    مرة. الحكاية:
+
+    ‏الصفحة دي اتعملت للـping: حاجة خارجية بتضربها كل ١٠ دقايق عشان
+    Render مايناماش (التفاصيل في docs/keep-awake.md، ومكتوب فيه بالنص
+    إنها "مش بتفتح الداتابيز"). وبعدين اتضاف لها فحص للقاعدة عشان
+    تفرّق بين "التطبيق واقع" و"القاعدة واقعة" -- فكرة سليمة، في المكان
+    الغلط.
+
+    ‏النتيجة: القاعدة على Neon بتنيّم نفسها بعد ٥ دقايق سكون، والـping
+    بيصحّيها كل ١٠ دقايق. يعني فضلت صاحية نص الوقت ليل ونهار، وخلّصت
+    حصة الحساب الشهرية (١١٠ CU-hrs في عشرين يوم) والمشروع **اتوقف**.
+    الموقع رد "مش قادر يوصل لقاعدة البيانات" والسبب كان الـping بتاعنا.
+
+    ‏ففحص القاعدة بقى تحت الطلب: /health?db=1 -- الدكتور بيفتحه لما
+    يحتاج، والـping بيعدّي من غير ما يلمس حاجة.
     """
-    # ‏حالة قاعدة البيانات جوه try: الصفحة دي لازم ترد حتى لو القاعدة واقعة --
-    # دي الصفحة الوحيدة اللي تفرّق لك بين "التطبيق واقع" و"القاعدة واقعة".
-    # الموقع رد Internal Server Error على كل صفحة، والصفحات اللي بتلمس
-    # القاعدة هي اللي وقعت -- ومن غير الفرق ده مافيش حاجة تدل على السبب.
-    db_state = "ok"
-    try:
-        db_row("SELECT 1 AS ok")
-    except Exception as e:
-        db_state = "down: %s" % type(e).__name__
-    return jsonify({"ok": db_state == "ok", "db": db_state,
-                    "commit": running_commit(),
-                    "branch": (os.environ.get("RENDER_GIT_BRANCH") or "").strip() or None,
-                    "time": datetime.now().isoformat(timespec="seconds")}), 200
+    want_db = str(request.args.get("db", "")).strip().lower() in ("1", "true", "yes")
+    out = {"ok": True,
+           "commit": running_commit(),
+           "branch": (os.environ.get("RENDER_GIT_BRANCH") or "").strip() or None,
+           "time": datetime.now().isoformat(timespec="seconds")}
+    if want_db:
+        # ‏جوه try: الصفحة دي لازم ترد حتى لو القاعدة واقعة -- دي الحاجة
+        # الوحيدة اللي تفرّق لك بين "التطبيق واقع" و"القاعدة واقعة".
+        try:
+            db_row("SELECT 1 AS ok")
+            out["db"] = "ok"
+        except Exception as e:
+            out["db"] = "down: %s" % type(e).__name__
+            out["ok"] = False
+    else:
+        out["db"] = "not checked (open /health?db=1)"
+    return jsonify(out), 200
 
 @app.after_request
 def speed_headers(resp):
