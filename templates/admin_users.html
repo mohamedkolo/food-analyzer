@@ -260,7 +260,9 @@
        title="{{ t('كل القاعدة: العملاء والمتابعات والخطط والروابط',
                    'The whole database: clients, follow-ups, plans and links') }}"
        style="display:inline-flex;align-items:center;gap:6px;background:#fff;color:#0F2A43;border:1.5px solid #0F2A43;padding:9px 18px;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;white-space:nowrap;">
-      🗄️ {{ t('نسخة احتياطية كاملة','Full backup') }}
+      {# ‏💾 مش 🗄️: التاني مش موجود في كل الخطوط وبيطلع مربع فاضي --
+         اتشاف في الرندر. والأول نفس عيلة 📥 اللي جنبه وبيتعرض في كل مكان. #}
+      💾 {{ t('نسخة احتياطية كاملة','Full backup') }}
     </a>
   </div>
 
