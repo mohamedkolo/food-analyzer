@@ -177,6 +177,99 @@ def test_the_labels_cover_every_key():
         assert ar and en and ar != en, (ar, en)
 
 
+# ── توفّر الطاقة ومخاطر REDs ────────────────────────────────────────
+#
+# ‏بيان اللجنة الأولمبية ٢٠٢٣. وأهم حاجة فيه إن الحد **متنازع عليه
+# والبيان نفسه بيقول كده**: ربط الـ٣٠ بالنتايج في الستات محل جدل، وحد
+# الرجالة أقل (~٩-٢٥). فاللي بيتطبع لازم يبقى مؤشر بيفتح سؤال مش
+# تشخيص بيتقفل بيه كلام.
+
+def test_the_fat_free_mass_is_never_guessed():
+    """‏المعادلة كلها بتتقسم على الرقم ده. لو اتخمّن، النتيجة بتبان
+    دقيقة وهي مبنية على فرضية -- وبعدها بيتقال للرياضي "عندك نقص
+    طاقة" على أساسها."""
+    assert SN.fat_free_mass(80, None) is None
+    assert SN.fat_free_mass(80, 0) is None
+    assert SN.fat_free_mass(80, "") is None
+    assert SN.fat_free_mass(80, 95) is None, "‏نسبة دهون ٩٥٪ عدّت"
+    assert SN.fat_free_mass(80, 15) == 68.0
+
+
+def test_energy_availability_needs_every_input_and_says_no_otherwise():
+    assert SN.energy_availability(2500, 80, None) is None
+    assert SN.energy_availability(0, 80, 15) is None
+    assert SN.energy_availability(2500, 0, 15) is None
+    assert SN.energy_availability(2500, 80, 15, hours_per_day=0) is None
+
+
+def test_an_underfuelled_athlete_is_flagged():
+    """‏عدّاء ٦٠ كجم، دهون ١٠٪، بيجري ساعتين، وبياكل ٢٠٠٠ سعرة."""
+    r = SN.energy_availability(2000, 60, 10, "endurance", 2.0, "انثى")
+    assert r, "‏مارجّعش حاجة"
+    assert r["level"] == "low", r
+    note = SN.ea_note(r)
+    assert note and "مؤشر مش تشخيص" in note, note
+
+
+def test_a_well_fuelled_athlete_is_not_flagged():
+    r = SN.energy_availability(3800, 60, 10, "endurance", 2.0, "انثى")
+    assert r["level"] == "ok", r
+    assert SN.ea_note(r) is None, "‏حذّر من غير سبب"
+
+
+def test_the_verdict_uses_the_whole_range_not_its_middle():
+    """‏شدّة التمرين مش معروفة، فالناتج نطاق. الحكم على النطاق كله:
+    لو طرفه الأعلى لسه تحت الحد يبقى خطر واضح، ولو على الحدين يبقى
+    محتمل ومحتاج قياس أدق."""
+    r = SN.energy_availability(2600, 60, 10, "endurance", 2.0, "انثى")
+    assert r["level"] == "borderline", r
+    note = SN.ea_note(r)
+    assert "شدّة التمرين مش معروفة" in note, note
+
+
+def test_the_men_threshold_is_lower_because_the_statement_says_so():
+    """‏البيان بيقول حد الرجالة أقل (~٩-٢٥)، فنفس الأرقام ممكن تبقى
+    خطر لست ومش خطر لراجل."""
+    assert SN.LEA_MALE_WATCH < SN.LEA_RISK
+    kw = dict(weight=70, fat_pct=12, sport="endurance", hours_per_day=1.5)
+    woman = SN.energy_availability(2300, gender="انثى", **kw)
+    man = SN.energy_availability(2300, gender="ذكر", **kw)
+    assert woman["threshold"] == SN.LEA_RISK
+    assert man["threshold"] == SN.LEA_MALE_WATCH
+    assert woman["ea"] == man["ea"], "‏الحساب نفسه المفروض واحد"
+
+
+def test_the_note_never_reads_as_a_diagnosis():
+    """‏RED-S متلازمة إكلينيكية مش نتيجة تحليل. والرقم ده مؤشر خطر بس."""
+    r = SN.energy_availability(1800, 60, 10, "endurance", 2.0, "انثى")
+    for lang_ar in (True, False):
+        note = SN.ea_note(r, is_ar=lang_ar)
+        low = note.lower()
+        for banned in ("تشخيص مؤكد", "مصاب", "diagnosed", "has reds",
+                       "confirmed"):
+            assert banned not in low, (banned, note)
+    assert "مؤشر" in SN.ea_note(r, True)
+    assert "indicator" in SN.ea_note(r, False).lower()
+
+
+def test_the_optimal_45_figure_is_not_in_the_code():
+    """‏الرقم ده بيتكرر في الحاسبات على النت، ومش مكتوب في البيان نفسه
+    فيما قرأنا. فمالوش مكان في كود بيطلّع أرقام لورقة رياضي."""
+    import inspect
+    src = inspect.getsource(SN)
+    assert "= 45" not in src and "45  #" not in src, (
+        "‏رقم الـ٤٥ دخل الكود من غير مصدر")
+
+
+def test_the_exercise_estimate_is_a_range_per_sport():
+    """‏جري هادي ٨ وجري سريع ١١ -- والفرق بيغيّر توفّر الطاقة كله."""
+    for sport in SN.MET_BY_SPORT:
+        ex = SN.exercise_kcal(70, sport, 1.0)
+        assert ex[0] < ex[1], (sport, ex)
+    assert set(SN.MET_BY_SPORT) == set(SN.SPORTS), (
+        set(SN.MET_BY_SPORT) ^ set(SN.SPORTS))
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):

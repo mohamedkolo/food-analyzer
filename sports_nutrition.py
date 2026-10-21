@@ -205,3 +205,128 @@ def week(weight, sport="strength", load="moderate", in_deficit=False,
         "training_days": sum(pattern),
         "avg_carb_g": (int(round(avg_lo)), int(round(avg_hi))),
     }
+
+# ── توفّر الطاقة (Energy Availability) ومخاطر REDs ───────────────────
+#
+# ‏ده أهم حاجة في تغذية الرياضيين بعد الأهداف نفسها: الرياضي اللي بياكل
+# أقل من اللي جسمه محتاجه **بعد خصم التمرين** بيتأثر أداؤه وهرموناته
+# وعظامه. والمشكلة إنه مابيبانش في الميزان -- وزنه ممكن يكون كويس
+# والمشكلة موجودة.
+#
+# ‏المعادلة (بيان اللجنة الأولمبية ٢٠٢٣):
+#
+#     توفّر الطاقة = (السعرات المأكولة − سعرات التمرين) ÷ الكتلة الخالية من الدهن
+#
+# ‏والنتيجة بالسعرة لكل كيلو كتلة خالية من الدهن في اليوم.
+#
+# ‏**والحد متنازع عليه، والبيان نفسه بيقول كده.** ٣٠ سعرة/كجم هو الرقم
+# المتداول، بس البيان بيقول إن ربطه بالنتايج في الستات محل جدل، وإن حد
+# الرجالة أقل (~٩-٢٥). فالرقم هنا **مؤشر خطر بيفتح سؤال**، مش تشخيص
+# بيتقفل بيه كلام -- نفس اللي عملناه في تصنيف السمنة.
+#
+# ‏ورقم الـ٤٥ "الأمثل" اللي بيتكرر في الحاسبات على النت **مش** مكتوب في
+# البيان نفسه فيما قرأناه، فمش هنا.
+LEA_RISK = 30          # ‏تحتها = مؤشر خطر
+LEA_MALE_WATCH = 25    # ‏حد الرجالة الأقل اللي البيان بيشاور عليه
+
+# ‏سعرات التمرين: MET لكل رياضة (نطاق، من Compendium of Physical
+# Activities). النطاق مش رقم واحد لأن الشدّة بتفرق الضعف -- جري هادي
+# ٨ وجري سريع ١١، والفرق ده بيغيّر توفّر الطاقة كله.
+MET_BY_SPORT = {
+    "strength":  (3.5, 6.0),
+    "endurance": (7.0, 11.0),
+    "mixed":     (6.0, 10.0),
+    "combat":    (6.0, 10.0),
+}
+
+
+def fat_free_mass(weight, fat_pct):
+    """‏الكتلة الخالية من الدهن بالكيلو، أو None لو نسبة الدهون مش معروفة.
+
+    ‏**مابنخمّنش نسبة الدهون.** المعادلة كلها بتتقسم على الرقم ده، فلو
+    اتخمّن تكون النتيجة رقم بيبان دقيق وهو مبني على فرضية -- وبعدها
+    بيتقال للرياضي "عندك نقص طاقة" على أساسه.
+    """
+    w, f = _num(weight), _num(fat_pct)
+    if w <= 0 or not (0 < f < 70):
+        return None
+    return round(w * (1 - f / 100.0), 1)
+
+
+def exercise_kcal(weight, sport="strength", hours_per_day=1.0):
+    """‏سعرات التمرين في اليوم، كنطاق.
+
+    ‏MET × وزن × ساعات. نطاق مش رقم، لأن الشدّة مش معروفة.
+    """
+    w, h = _num(weight), _num(hours_per_day)
+    if w <= 0 or h <= 0:
+        return None
+    lo, hi = MET_BY_SPORT.get(sport, MET_BY_SPORT["mixed"])
+    return (int(round(lo * w * h)), int(round(hi * w * h)))
+
+
+def energy_availability(intake_kcal, weight, fat_pct, sport="strength",
+                        hours_per_day=1.0, gender=None):
+    """‏توفّر الطاقة كنطاق، ومعاه قراءة الخطر.
+
+    بترجّع None لو البيانات ناقصة -- ومش بتكمّل بالتخمين.
+
+    ‏الحكم بيتبني على **النطاق كله** مش على رقمه الأوسط:
+      كله تحت الحد          -> خطر واضح
+      النطاق على الحدين     -> محتمل، محتاج قياس أدق للتمرين
+      كله فوق الحد          -> مافيش مؤشر
+    """
+    intake = _num(intake_kcal)
+    ffm = fat_free_mass(weight, fat_pct)
+    ex = exercise_kcal(weight, sport, hours_per_day)
+    if intake <= 0 or not ffm or not ex:
+        return None
+
+    # ‏سعرات تمرين أعلى = طاقة متاحة أقل، فالحدود بتتعكس
+    ea_hi = (intake - ex[0]) / ffm
+    ea_lo = (intake - ex[1]) / ffm
+
+    male = str(gender or "").strip().lower() in ("ذكر", "male", "m", "man")
+    floor = LEA_MALE_WATCH if male else LEA_RISK
+
+    if ea_hi < floor:
+        level = "low"
+    elif ea_lo < floor:
+        level = "borderline"
+    else:
+        level = "ok"
+
+    return {
+        "ea": (round(ea_lo, 1), round(ea_hi, 1)),
+        "ffm": ffm,
+        "exercise_kcal": ex,
+        "threshold": floor,
+        "level": level,
+    }
+
+
+_EA_NOTE = {
+    "low": (
+        "توفّر الطاقة {ea} سعرة/كجم كتلة خالية من الدهن — تحت حد الخطر "
+        "({th}). ده مؤشر مش تشخيص، بس يستاهل مراجعة السعرات وحجم التمرين، "
+        "وسؤال عن الدورة الشهرية والنوم والكسور الإجهادية.",
+        "Energy availability {ea} kcal/kg FFM - below the risk marker ({th}). "
+        "An indicator, not a diagnosis: review intake and training volume, "
+        "and ask about menstrual cycle, sleep and stress fractures."),
+    "borderline": (
+        "توفّر الطاقة {ea} سعرة/كجم كتلة خالية من الدهن — النطاق على حد "
+        "الخطر ({th}). الفرق جاي من إن شدّة التمرين مش معروفة بالظبط، "
+        "فلو الرقم مهم هنا لازم قياس أدق للتمرين.",
+        "Energy availability {ea} kcal/kg FFM - the range straddles the risk "
+        "marker ({th}). The spread comes from not knowing training intensity; "
+        "a closer measure of the session is needed if this number matters."),
+}
+
+
+def ea_note(result, is_ar=True):
+    """‏سطر جاهز للملاحظات، أو None لو مافيش ما يتقال."""
+    if not result or result.get("level") == "ok":
+        return None
+    ar, en = _EA_NOTE[result["level"]]
+    text = ar if is_ar else en
+    return text.format(ea="%s-%s" % result["ea"], th=result["threshold"])
