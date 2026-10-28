@@ -137,6 +137,32 @@ def test_the_measured_limits_are_still_the_limits():
     assert full >= 200, "‏الوجبات المغطاة بالكامل نزلت لـ%d" % full
 
 
+def test_the_fat_description_is_not_thrown_away_before_the_lookup():
+    """‏"كامل الدسم" و"خالي الدسم" في قايمة الوصف اللي بيتشال قبل
+    البحث، وهما في نفس الوقت **جزء من أسماء في الجدول**. فـ"حليب كامل
+    الدسم" كان بيتشال منه الوصف ويفضل "حليب"، والجسر العام بيوديه على
+    لبن رايب (٤٠ سعرة) بدل الحليب الكامل (٦١).
+
+    ‏يعني كوباية لبن لعميلة بتزوّد وزنها كانت بتتحسب ناقصة التلت --
+    والوصف اللي بيفرّق هو بالظبط اللي اتشال.
+    """
+    assert MM.find_food("حليب كامل الدسم 250مل")["n"] == "حليب كامل الدسم"
+    assert MM.find_food("زبادي خالي الدسم 200جم")["n"] == "زبادي خالي الدسم"
+    assert MM.macros("🥛 حليب كامل الدسم 250مل")["cal"] > 140
+
+
+def test_the_description_is_still_stripped_when_the_table_has_no_match():
+    """‏الشيل نفسه لسه لازم يشتغل: "دجاج مشوي" مش اسم في الجدول."""
+    assert MM.macros("🍗 فراخ مسلوقة 200جم")["covered"] >= 0.99
+
+
+def test_the_old_traps_are_still_closed():
+    """‏الترتيب "الأقرب لأول الصنف" اتجرّب غيره مرتين وفشل. التجربة
+    التانية (النص زي ما هو الأول) مالهاش حق تفتحهم تاني."""
+    assert MM.find_food("فول بطحينة 150جم")["n"] == "فول مدمس"
+    assert "لوز" not in MM.find_food("لبن لوز 200مل")["n"]
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):
