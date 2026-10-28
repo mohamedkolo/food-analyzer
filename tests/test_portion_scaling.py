@@ -77,7 +77,11 @@ def test_a_spoon_is_not_scaled_twice():
     فكانت بتتضرب مرتين -- مرة كعدد ومرة كملعقة -- و×٢ طلعت ٤."""
     out, _ = scale_meal("🫒 زيت زيتون 1 ملعقة صغيرة + 🥚 بيض مسلوق 3", 2.0)
     assert "2 ملعقة صغيرة" in out, out
-    assert "بيض مسلوق 6" in out, out
+    # ‏والبيض يتحرك برضه -- بس لحد سقفه. كان الاختبار بيطلب "٦" وهو
+    # الناتج القديم، ودلوقتي فيه سقف للعدد (tests/test_three_meals.py):
+    # ×٢ على "٣ بيض" كان بيوصل ٦، و"بيض مسلوق ٧" على ورقة عميلة حقيقية
+    # هي السبب إن السقف اتحط.
+    assert "بيض مسلوق 4" in out, out
 
 
 def test_the_snack_calories_move_with_the_portion():

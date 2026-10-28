@@ -196,6 +196,14 @@ def _defer_repeats(meals, avoid):
 # ورقة بتروح لأهل طفل بيبقى ادّعاء بدقة مش موجودة. وفوقه الفرق مقصود.
 CHILD_DEFICIT_FLAG = 150
 
+# ‏نصيب العشا في نظام "تلات وجبات (عشاء خفيف)" من العشا العادي.
+#
+# ‏النظام ده اتعمل لحالة بتتكرر في العيادة: اللي بياكل **وجبة واحدة في
+# اليوم**. النقلة لتلات وجبات كاملة مش بتحصل، فالعشا بيتكتب ومايتاكلش،
+# والورقة بتبقى مالهاش علاقة باليوم الحقيقي. فنصّه مكتوب من الأول --
+# سُلّم مش هدف نهائي، والباقي بيروح للفطار والغدا.
+DINNER_HALF = 0.55
+
 
 def _apply_clinical_safety_caps(data):
     """يظبط هدف السعرات تلقائياً لحالات حساسة (حصوات المرارة، اضطرابات الأكل)، ويضيف ملاحظات تغذوية
@@ -836,6 +844,31 @@ def generate_weekly_plan(data, seed=None):
                           "dinner": d.get("cal",300), "snack": 150}
             _slot_ps = {"breakfast": b.get("p",20), "lunch": l.get("p",30),
                         "dinner": d.get("p",20), "snack": SNK_P}
+        elif diet_type == "three_meals":
+            # ‏فطار + غدا + عشا **خفيف**. العشا بياخد نصيب أقل بالقصد:
+            # النظام ده للي بياكل وجبة واحدة في اليوم وبيتدرّج، والعشا
+            # الكامل في أول أسبوع مش هيتاكل -- فالحصة بتتوزّع على اللي
+            # هياكله فعلاً بدل ما تتكتب على ورق وتتسبب في ورقة مالهاش
+            # علاقة باللي بيحصل.
+            b = breakfasts[i % len(breakfasts)]
+            l = lunches[i % len(lunches)]
+            d = dinners[i % len(dinners)]
+            day_plan["breakfast"] = b["meal"]
+            day_plan["lunch"] = l["meal"]
+            # ‏العشا بياخد **نص** حصة العشا العادي قبل ما يدخل المعادلة.
+            # الحصص في القاعدة متساوية تقريباً بين الوجبات، فلو سبناه زي
+            # ما هو كان هيطلع عشا كامل ويتكبّر مع الباقي -- و"شوربة عدس
+            # ٤٢٠مل + خبز ١٠٠جم" مش عشا خفيف.
+            #
+            # ‏والتصغير بيتعمل هنا مش في الجدول: نفس أكل العشا بيتقدّم
+            # في الأنظمة التانية بحصته الكاملة.
+            _dn_text, _dn_eff = scale_meal(d["meal"], DINNER_HALF)
+            day_plan["dinner"] = _dn_text
+            _slot_cals = {"breakfast": b.get("cal", 400),
+                          "lunch": l.get("cal", 500),
+                          "dinner": d.get("cal", 300) * _dn_eff}
+            _slot_ps = {"breakfast": b.get("p", 22), "lunch": l.get("p", 32),
+                        "dinner": d.get("p", 18) * _dn_eff}
         elif diet_type == "two_meals":
             # وجبتين بس: الفطار والغداء، والسعرات كلها بينهم. مفيش عشاء،
             # فالحصة الواحدة أكبر من نظام التلات وجبات.
@@ -1320,6 +1353,23 @@ def plan_html(data, plan=None, clean=False):
         _gap = 0
     allowed, forbidden = get_allowed_forbidden(symptoms, goal, data.get("age"),
                                                deficit=_gap)
+
+    # ‏المياه: رقم العميل نفسه لو متسجّل، في أول المسموح.
+    #
+    # ‏الورقة اتشال منها صندوق الماء بطلب الدكتور ("مفهوش أي إضافات غير
+    # الممنوع والمسموح"). ولما طلب المياه ترجع لعميلة معيّنة، رجعت **جوه
+    # المسموح** مش كصندوق جديد -- فالورقة شكلها زي ما هو، والرقم وصل.
+    #
+    # ‏والرقم من ورقة تحليل العميل (data["water_l"]) مش قاعدة عامة: ١.٨
+    # لتر بتاعة بنت ٥٢ كجم مش نفس رقم راجل ٩٥ كجم.
+    try:
+        _water = float(data.get("water_l") or 0)
+    except (TypeError, ValueError):
+        _water = 0
+    if _water > 0:
+        _w_txt = ("%g" % _water).rstrip("0").rstrip(".") or "0"
+        allowed = [_L("مياه %s لتر يومياً" % _w_txt,
+                      "Water: %s litres a day" % _w_txt)] + allowed
     try:
         tdee = float(data.get("tdee", 0) or 0)
         target = float(data.get("goal_cal", 0) or 0)

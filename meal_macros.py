@@ -90,6 +90,13 @@ GENERIC = {
     "سمك": "سمك بلطي",
     "لحم": "لحم بقري قليل الدهن",
     "لحمة": "لحم بقري قليل الدهن",
+    # ‏"كبدة" و"كفتة" من غير وصف: الجدول فيه "كبدة بقري" و"كبدة دجاج"
+    # و"كفتة مشوية"، وأسماء الجدول بتتلاقى لما تكون **جوّه** نص الصنف --
+    # و"🍗 كبدة 200جم" مكتوبة كده في القاعدة. فالصنفين كانوا بصفر سعرة
+    # وفي "مش متعرّف" في قايمة المشتريات، وهما من أكتر الأصناف تكراراً
+    # في الجداول المصرية.
+    "كبدة": "كبدة بقري",
+    "كفتة": "كفتة مشوية",
     "سلطة": "سلطة خضراء",
     "خضار": "خضار مشكل مجمد",
     "فطر": "مشروم",
@@ -252,7 +259,7 @@ def item_grams(item, food=None):
         except ValueError:
             pass
 
-    unit = _unit_grams(text)
+    unit = _unit_grams(text, food)
     count = _COUNT.search(text)
     if count and unit:
         try:
@@ -267,18 +274,42 @@ def item_grams(item, food=None):
     return 0.0, None
 
 
-def _unit_grams(text):
-    """‏وزن الوحدة الواحدة من جدول المكاييل، أو None."""
+def _unit_grams(text, food=None):
+    """‏وزن الوحدة الواحدة، أو None.
+
+    ‏الترتيب: وحدة الصنف اللي اتعرف فعلاً، وبعدين جدول المكاييل.
+
+    ‏والجدول مابيتقراش على عمى: كان أي اسم في جدول المكاييل يظهر في
+    النص بياخد وزنه، حتى لو الصنف اللي اتعرف صنف تاني خالص. فـ"رقاق
+    أرز 6" الصنف فيها **رقاق** (٣٠جم للرقاقة)، بس كلمة "أرز" في جدول
+    المكاييل بـ١٥٠جم -- فستة رقاقات طلعت **٩٠٠جم** في قايمة المشتريات.
+    (كيلو رقاق لبنت بتفطر.)
+
+    ‏فالاسم اللي بيطابق لازم يكون نفس الصنف: جوه اسمه أو اسمه جواه.
+    """
+    if food:
+        for row in (food.get("units") or []):
+            try:
+                grams = float(row[1])
+            except (TypeError, ValueError, IndexError):
+                continue
+            if grams > 0:
+                return grams
+
     try:
         import measures
     except Exception:
         return None
+    fname = _norm(food.get("n")) if food else ""
     best = None
     for key, info in measures.FOOD_MEASURES.items():
         name = _norm(key)
-        if name and name in text:
-            if best is None or len(name) > best[0]:
-                best = (len(name), info.get("g"))
+        if not name or name not in text:
+            continue
+        if fname and name not in fname and fname not in name:
+            continue
+        if best is None or len(name) > best[0]:
+            best = (len(name), info.get("g"))
     return best[1] if best else None
 
 

@@ -1869,6 +1869,26 @@ DIET_PLAN_TYPES = {
         "description_en": "3 main meals plus a snack",
         "meal_labels_en": {"breakfast": "Breakfast", "lunch": "Lunch", "dinner": "Dinner", "snack": "Snack"}
     },
+    # ‏فطار + غدا + عشا خفيف. مكانش فيه نظام تلات وجبات من غير سناك،
+    # والأقرب كان "تقليدي" وفيه سناك رابع أو "وجبتين" ومفيهوش عشا خالص.
+    #
+    # ‏والحالة اللي طلب عشانها حالة حقيقية ومتكررة: عميلة بتاكل **وجبة
+    # واحدة في اليوم**، والنقلة لتلات وجبات كاملة مش واقعية. فالعشا
+    # خفيف بالقصد -- سُلّم مش هدف نهائي.
+    "three_meals": {
+        "name": "ثلاث وجبات (عشاء خفيف)",
+        "name_en": "Three meals (light dinner)",
+        "meals": ["breakfast", "lunch", "dinner"],
+        "meal_labels": {"breakfast": "الفطار", "lunch": "الغداء",
+                        "dinner": "عشاء خفيف"},
+        "meal_emojis": {"breakfast": "🌅", "lunch": "☀️", "dinner": "🌙"},
+        "meal_hours": {"breakfast": 9, "lunch": 15, "dinner": 20},
+        "description": "فطار وغداء وعشاء خفيف — للي بياكل وجبة واحدة وبيتدرّج",
+        "description_en": "Breakfast, lunch and a light dinner - for someone "
+                          "eating one meal a day and building up",
+        "meal_labels_en": {"breakfast": "Breakfast", "lunch": "Lunch",
+                           "dinner": "Light dinner"},
+    },
     "two_meals": {
         "name": "وجبتين (فطار + غداء)",
         "name_en": "Two meals (breakfast + lunch)",
