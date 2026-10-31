@@ -30,70 +30,39 @@
        الدكتور بيكتب نفس الأرقام اللي مطبوعة قدامه على ورقة الـInBody.
        الزرار ده بيصوّرها وبيملّي الخانات، وهو يعدّل. capture="environment"
        بيفتح الكاميرا الخلفية على الموبايل على طول بدل معرض الصور. #}
-    <div id="rpBox" style="background:#F4F9FB;border:1px dashed #9CC3D0;
-         border-radius:10px;padding:12px 14px;margin-bottom:16px">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        {% if can_read_reports %}
-        <label for="rpFile" class="btn btn-outline" style="margin:0;cursor:pointer;
-               background:#fff;border-color:#9CC3D0;color:#0F2A43">
-          <i class="fa-solid fa-camera"></i>
-          {{ 'صوّر ورقة التحليل' if is_ar else 'Photograph the report' }}
-        </label>
-        <input type="file" id="rpFile" accept="image/*" capture="environment"
-               style="position:absolute;width:1px;height:1px;opacity:0;
-                      overflow:hidden;clip:rect(0 0 0 0)">
-        {# ‏مدخل تاني للملفات. ليه مش بس نزوّد accept على اللي فوق: مع
-           capture="environment" المتصفح بيفتح الكاميرا على طول -- وده
-           المقصود في الزرار الأول، بس معناه إن ملف PDF مش هيتختار منه.
-           فزرار الكاميرا فضل زي ما هو (الحالة الشائعة)، وده جنبه. #}
-        <label for="rpUpload" class="btn btn-outline" style="margin:0;cursor:pointer;
-               background:#fff;border-color:#9CC3D0;color:#0F2A43">
-          <i class="fa-solid fa-file-arrow-up"></i>
-          {{ 'ارفع PDF أو صورة' if is_ar else 'Upload a PDF or image' }}
-        </label>
-        <input type="file" id="rpUpload" accept="application/pdf,image/*"
-               style="position:absolute;width:1px;height:1px;opacity:0;
-                      overflow:hidden;clip:rect(0 0 0 0)">
-        <span id="rpHint" style="font-size:12px;color:#456b61;line-height:1.7">
-          {{ 'الوزن والطول ونسبة الدهون والـBMI والـBMR بيتملوا لوحدهم. اللي مش مقروء بيفضل فاضي وتكتبه إنت.'
-             if is_ar else
-             'Weight, height, body fat, BMI and BMR fill themselves. Anything unreadable stays blank for you to type.' }}
-          <br>
-          {# ‏الجملة دي بقت تفرّق بين الزرارين بالقصد. قبل الـPDF كانت
-             بتقول "الصورة مابتطلعش من الموبايل" وخلاص -- وده فضل صح
-             للكاميرا وبقى غلط للـPDF. دي ملفات مرضى، والفرق ده قراره
-             قرار الدكتور، فلازم يكون قدامه قبل ما يختار. #}
-          <span style="opacity:.85">
-            {{ 'الصورة المتصوّرة مابتطلعش من الموبايل — بتتقرا في المتصفح نفسه (أول مرة بينزّل المحرّك ~٤ ميجا).'
-               if is_ar else
-               'A photo you take never leaves your phone -- it is read in the browser (the first use downloads the engine, ~4 MB).' }}
-            <br>
-            {{ 'ملف الـPDF بيترفع للسيرفر عشان يتقرا — دي الطريقة الوحيدة لقراءته، بس يبقى الملف خرج من الجهاز.'
-               if is_ar else
-               'A PDF is uploaded to the server to be read -- that is the only way to read one, but the file does leave the device.' }}
-          </span>
-        </span>
-        {% else %}
-        {# ‏الحالة دي بقت نادرة ومعناها حاجة واحدة: ملفات المحرّك ناقصة من
-           النشر (static/ocr). مافيش مفتاح ولا مكتبة ولا إعداد استضافة --
-           الميزة فضلت مقفولة مرتين بسببهم، والقراءة بقت في المتصفح خلاص. #}
-        <span style="font-size:13px;color:#456b61;line-height:1.9">
-          <i class="fa-solid fa-camera" style="opacity:.55"></i>
-          <b style="color:#0F2A43">{{ 'اختياري: صوّر ورقة التحليل والبيانات تتملى لوحدها'
-                                      if is_ar else
-                                      'Optional: photograph the report and the fields fill themselves' }}</b><br>
-          <span style="color:#8a6d1f">
-            {{ 'ملفات القراءة ناقصة من النشر. اكتب البيانات عادي تحت — كل حاجة تانية شغالة.'
-               if is_ar else
-               'The reader files are missing from this deploy. Type the fields below as usual -- everything else works.' }}
-            <span style="font-size:11.5px;opacity:.9">
-              {{ '(للمطوّر: static/ocr)' if is_ar else '(for the developer: static/ocr)' }}
-            </span>
-          </span>
-        </span>
-        {% endif %}
-      </div>
-      <div id="rpMsg" hidden style="font-size:12.5px;margin-top:10px;
+    <div id="rpBox" class="wz-tool">
+      {% if can_read_reports %}
+      <label for="rpFile" class="wz-tool-btn">
+        <i class="fa-solid fa-camera"></i>
+        {{ 'صوّر ورقة التحليل' if is_ar else 'Photograph the report' }}
+      </label>
+      <input type="file" id="rpFile" accept="image/*" capture="environment" class="wz-file">
+      {# ‏مدخل تاني للملفات. ليه مش بس نزوّد accept على اللي فوق: مع
+         capture="environment" المتصفح بيفتح الكاميرا على طول -- وده
+         المقصود في الزرار الأول، بس معناه إن ملف PDF مش هيتختار منه. #}
+      <label for="rpUpload" class="wz-tool-btn">
+        <i class="fa-solid fa-file-arrow-up"></i>
+        {{ 'ارفع PDF أو صورة' if is_ar else 'Upload a PDF or image' }}
+      </label>
+      <input type="file" id="rpUpload" accept="application/pdf,image/*" class="wz-file">
+      {# ‏السطر ده كان تلات فقرات. اللي اتشال وصف لما بيحصل؛ واللي فضل هو
+         **اللي بيغيّر القرار**: الصورة مابتخرجش من الجهاز والـPDF بيخرج،
+         ودي ملفات مرضى. فلازم يفضل قدامه قبل ما يدوس، مش جوه تفاصيل. #}
+      <span id="rpHint" class="wz-tool-hint">
+        {{ 'الخانات بتتملى لوحدها.' if is_ar else 'The fields fill themselves.' }}
+        <b>{{ 'الصورة المتصوّرة مابتطلعش من الموبايل · الـPDF بيترفع للسيرفر.'
+              if is_ar else 'A photo you take never leaves the phone - a PDF is uploaded to the server.' }}</b>
+      </span>
+      {% else %}
+      {# ‏الحالة دي معناها حاجة واحدة: ملفات المحرّك ناقصة من النشر. #}
+      <span class="wz-tool-hint">
+        {{ 'قراءة الورقة مقفولة — ملفات المحرّك ناقصة من النشر. اكتب البيانات تحت عادي.'
+           if is_ar else
+           'Report reading is off - the reader files are missing from this deploy. Type the fields below.' }}
+        <span style="opacity:.75">{{ '(للمطوّر: static/ocr)' if is_ar else '(for the developer: static/ocr)' }}</span>
+      </span>
+      {% endif %}
+      <div id="rpMsg" hidden style="flex-basis:100%;font-size:12.5px;margin-top:8px;
            border-radius:8px;padding:9px 12px;line-height:1.8"></div>
     </div>
     {% if can_read_reports %}
@@ -111,27 +80,22 @@
        مع الفورم -- دي حالة الصفحة مش بيانات الخطة. #}
     <input type="hidden" id="brMuscle"><input type="hidden" id="brVisceral">
     <input type="hidden" id="brWater"><input type="hidden" id="brBmr">
-    <div id="brBox" style="background:var(--gray);border:1.5px solid var(--gray-2);
-         border-radius:12px;padding:12px 14px;margin-bottom:16px">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <button type="button" id="brBtn" class="btn btn-outline" style="margin:0;
-                background:var(--white);border-color:var(--blue-light);color:var(--blue)">
-          <i class="fa-solid fa-comments"></i>
-          {{ 'اشرح الفحص للعميل' if is_ar else 'Explain the report to the client' }}
-        </button>
-        <span id="brHint" style="font-size:12px;color:var(--muted);line-height:1.7">
-          {{ 'إيه التمام وإيه اللي فيه شغل، كل رقم يعني إيه، والكلام اللي تقوله بالترتيب. الوزن والطول كفاية تبدأ.'
-             if is_ar else
-             'What is fine and what needs work, what each number means, and the words to say in order. Weight and height are enough to start.' }}
-        </span>
-      </div>
-      <div id="brOut" hidden style="margin-top:12px"></div>
+    <div id="brBox" class="wz-tool">
+      <button type="button" id="brBtn" class="wz-tool-btn">
+        <i class="fa-solid fa-comments"></i>
+        {{ 'اشرح الفحص للعميل' if is_ar else 'Explain the report to the client' }}
+      </button>
+      <span id="brHint" class="wz-tool-hint">
+        {{ 'كل رقم يعني إيه، والكلام بالترتيب. الوزن والطول كفاية.'
+           if is_ar else 'What each number means, in order. Weight and height are enough.' }}
+      </span>
+      <div id="brOut" hidden style="flex-basis:100%;margin-top:10px"></div>
     </div>
     <div class="grid-2">
       <div class="form-group">
         <label class="form-label" for="nameField">{{ 'الاسم' if is_ar else 'Name' }}
           <span style="font-weight:600;color:var(--muted);font-size:11px">
-            {{ '— اختياري. سيبه فاضي للفحص السريع، بس مش هيتعمل ملف متابعة' if is_ar else '— optional. Leave it blank for a quick check; no follow-up file is created' }}
+            {{ '— اختياري، بس مش هيتعمل ملف متابعة' if is_ar else '— optional, but no follow-up file is created' }}
           </span>
         </label>
         {# ‏بحث بقايمة اقتراحات: حرفين أو رقمين كفاية. combobox/listbox عشان
@@ -166,7 +130,7 @@
         <label class="form-label">
           {{ 'الموبايل' if is_ar else 'Phone' }}
           <span style="font-weight:600;color:var(--muted);font-size:11px">
-            {{ '— اختياري، بيفرّق بين المتشابهين في الاسم' if is_ar else '— optional, separates clients with the same name' }}
+            {{ '— اختياري' if is_ar else '— optional' }}
           </span>
         </label>
         <input class="form-input" type="tel" name="phone" id="phoneField" autocomplete="off"
@@ -183,7 +147,7 @@
 
     <!-- ═══════════ بانر المتابعة ═══════════ -->
     <div id="fuBox" style="display:none"></div>
-    <div class="grid-3">
+    <div class="grid-3 nums">
       <div class="form-group">
         <label class="form-label">{{ 'العمر' if is_ar else 'Age' }}</label>
         <input class="form-input" type="number" name="age" id="ageField" placeholder="30" value="{{ prev.age or '' }}">
@@ -197,7 +161,7 @@
         <input class="form-input" type="number" name="weight" step="0.1" id="wField" value="{{ prev.weight or '' }}">
       </div>
     </div>
-    <div class="grid-3">
+    <div class="grid-3 nums">
       <div class="form-group">
         <label for="f_fat_pct" class="form-label">{{ 'دهون الجسم %' if is_ar else 'Body Fat %' }}</label>
         <input id="f_fat_pct" class="form-input" type="number" name="fat_pct" step="0.1" value="{{ prev.fat_pct or '' }}">
@@ -220,7 +184,7 @@
       <label class="form-label" for="actMult">
         {{ 'نشاط العميل' if is_ar else "Client's activity" }}
         <span style="font-weight:600;color:var(--muted);font-size:11px">
-          {{ '— بيحدد الـTDEE والبروتين مع بعض' if is_ar else '— sets both TDEE and protein' }}
+          {{ '— بيحدد الـTDEE والبروتين' if is_ar else '— sets TDEE and protein' }}
         </span>
       </label>
       <select class="form-select" name="activity_mult" id="actMult">
@@ -231,21 +195,21 @@
         <option value="1.9" {% if prev.activity|string == '1.9' %}selected{% endif %}>{{ 'عالي جداً (تمرين + شغل بدني) — ×1.9 · بروتين 2.0 جم/كجم' if is_ar else 'Very high (training + physical job) — ×1.9 · protein 2.0 g/kg' }}</option>
       </select>
     </div>
-    <div style="font-size:11px;color:var(--muted);margin:-4px 0 4px">
-      {{ 'الـTDEE بيتحسب تلقائياً (Mifflin-St Jeor × معامل النشاط) وتقدر تعدّله بإيدك.'
-         if is_ar else 'TDEE is calculated automatically (Mifflin-St Jeor × activity factor) and stays editable.' }}
-    </div>
     <div class="form-group">
       <label for="goalField" class="form-label">{{ 'الهدف اليومي (kcal)' if is_ar else 'Daily Target (kcal)' }}</label>
       <input class="form-input" type="number" name="goal_cal" id="goalField" value="{{ prev.goal_cal or 1400 }}">
     </div>
 
-    <div style="background:#f0f7f4;border:1px solid #cfe3d9;border-radius:10px;padding:12px;margin-top:6px">
-      <div style="font-size:13px;font-weight:700;color:#0F2A43;margin-bottom:8px">
-        <i class="fa-solid fa-sliders"></i>
-        {{ 'نسب الماكروز (بتتحط تلقائياً حسب النظام — تقدر تعدّلها)' if is_ar else 'Macros (auto-set by diet — editable)' }}
-      </div>
-      <div class="grid-3">
+    {# ‏الماكروز والتدوير بيتحطوا **تلقائياً** حسب النظام، والدكتور بيعدّل
+       فيهم نادراً -- وكانوا صندوقين ملوّنين بياخدوا تلت الشاشة وفيهم سبع
+       أعمدة بتترسم كل مرة. بقوا سطر واحد بالأرقام، زي الورقة: الحاجة
+       والرقم جنبها، واللي عايز يعدّل بيفتح. #}
+    <details class="wz-fold" id="mxFold">
+      <summary>
+        <span>{{ 'الماكروز' if is_ar else 'Macros' }}</span>
+        <b id="mxSum">—</b>
+      </summary>
+      <div class="grid-3 nums" style="margin-top:12px">
         <div class="form-group" style="margin:0">
           <label for="proteinPerKg" class="form-label">{{ 'بروتين (جم/كجم)' if is_ar else 'Protein (g/kg)' }}</label>
           <input class="form-input" type="number" step="0.1" name="protein_per_kg" id="proteinPerKg" value="{{ prev.protein_per_kg or 1.6 }}">
@@ -257,21 +221,20 @@
         <div class="form-group" style="margin:0">
           <label for="carbPctCal" class="form-label">{{ 'كارب %' if is_ar else 'Carb %' }}</label>
           <input class="form-input" type="number" step="1" name="carb_pct_cal" id="carbPctCal" value="45" readonly
-                 style="background:#eef4f1">
+                 style="background:var(--gray)">
         </div>
       </div>
-      <div style="font-size:11px;color:#456b61;margin-top:6px">
-        {{ 'الكارب بيتحسب تلقائياً من الباقي بعد البروتين والدهون.' if is_ar else 'Carbs are auto-calculated from the remainder.' }}
+      <div class="wz-fold-note">
+        {{ 'الكارب بيتحسب من الباقي بعد البروتين والدهون.' if is_ar else 'Carbs are the remainder after protein and fat.' }}
       </div>
-    </div>
+    </details>
 
-    <!-- ═══════════ تدوير السعرات ═══════════ -->
-    <div style="background:#F4F9FB;border:1px solid #B4D0DA;border-radius:10px;padding:12px;margin-top:10px">
-      <div style="font-size:13px;font-weight:700;color:#0F2A43;margin-bottom:8px">
-        <i class="fa-solid fa-arrow-down-up-across-line"></i>
-        {{ 'تدوير السعرات (Zigzag)' if is_ar else 'Calorie cycling (Zigzag)' }}
-      </div>
-      <div class="grid-2">
+    <details class="wz-fold" id="zzFold">
+      <summary>
+        <span>{{ 'تدوير السعرات' if is_ar else 'Calorie cycling' }}</span>
+        <b id="zzSum">—</b>
+      </summary>
+      <div class="grid-2" style="margin-top:12px">
         <div class="form-group" style="margin:0">
           <label class="form-label" for="zzMode">{{ 'النمط' if is_ar else 'Pattern' }}</label>
           <select class="form-select" name="zigzag_mode" id="zzMode">
@@ -282,23 +245,22 @@
         </div>
         <div class="form-group" style="margin:0">
           <label for="zzAvg" class="form-label">{{ 'المتوسط الأسبوعي' if is_ar else 'Weekly average' }}</label>
-          <input class="form-input" id="zzAvg" value="—" readonly style="background:#eef4f1">
+          <input class="form-input" id="zzAvg" value="—" readonly style="background:var(--gray)">
         </div>
       </div>
-      <div id="zzDesc" style="font-size:11.5px;color:#456b61;margin-top:8px"></div>
+      <div id="zzDesc" class="wz-fold-note"></div>
       {# ‏التدوير بيبقى مستحيل رياضياً لو الهدف اليومي عند الحد الآمن أو تحته:
-         مفيش مساحة ننزّل يوم عنه، فالأيام تطلع متساوية. الصندوق كان بيرسم ٧
-         أعمدة متساوية تحت جملة بتقول "سعرات أعلى أيام التمرين" ومايقولش ليه --
-         فالدكتور فاكر التدوير شغال وهو مش شغال. #}
+         مفيش مساحة ننزّل يوم عنه، فالأيام تطلع متساوية. التحذير ده **بيفتح
+         الصندوق لوحده** (الجافاسكريبت تحت) -- تحذير جوه حاجة مقفولة مش تحذير. #}
       <div id="zzWarn" hidden style="font-size:12px;color:#92400e;background:#fffbeb;
            border:1px solid #fcd34d;border-radius:8px;padding:9px 11px;margin-top:8px"></div>
       <div id="zzBars" style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px"></div>
-      <div style="font-size:11px;color:#456b61;margin-top:8px">
-        {{ 'البروتين بيفضل ثابت كل يوم، والفرق في السعرات بيتحمّله الكارب. المجموع الأسبوعي زي ما هو.'
+      <div class="wz-fold-note">
+        {{ 'البروتين ثابت كل يوم والكارب بيتحمّل الفرق. المجموع الأسبوعي زي ما هو.'
            if is_ar else
-           'Protein stays constant every day and carbs carry the swing. The weekly total is unchanged.' }}
+           'Protein stays constant and carbs carry the swing. The weekly total is unchanged.' }}
       </div>
-    </div>
+    </details>
 
     </div>
   </section>
@@ -684,6 +646,45 @@
     .wz-label { font-size:12px }
     .wz-card-title { padding:12px 14px 0; font-size:14px }
     .wz-card-body { padding:12px 14px 14px }
+  }
+
+  /* ═══ الورقة اللي بتطلع من الصفحة دي بسيطة، والصفحة نفسها ماكانتش ══════
+     ثلاث فقرات شرح قبل أول خانة، وأربع صناديق ملوّنة، وصندوقين مفتوحين
+     لحاجات بتتحط تلقائياً. القاعدة هنا بقت قاعدة الورقة: **سطر واحد لكل
+     حاجة، والرقم جنبها**، واللي مش بيتقري كل مرة بيتطوي. */
+  .wz-tool { display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+             border:1px solid var(--gray-2); border-radius:10px;
+             padding:10px 12px; margin-bottom:12px }
+  .wz-tool-btn { margin:0; cursor:pointer; display:inline-flex; align-items:center;
+                 gap:7px; background:var(--white); color:var(--blue);
+                 border:1.5px solid var(--gray-2); border-radius:9px;
+                 padding:8px 13px; font-family:'Cairo',sans-serif;
+                 font-size:13px; font-weight:700; white-space:nowrap }
+  .wz-tool-btn:hover { border-color:var(--green) }
+  .wz-tool-hint { font-size:11.5px; color:var(--muted); line-height:1.65; flex:1 1 180px }
+  /* ‏مدخل الملف مخفي بصرياً بس لسه بيتفوكَس عليه من اللابل */
+  .wz-file { position:absolute; width:1px; height:1px; opacity:0;
+             overflow:hidden; clip:rect(0 0 0 0) }
+
+  .wz-fold { border:1px solid var(--gray-2); border-radius:10px;
+             padding:10px 12px; margin-top:10px }
+  .wz-fold > summary { cursor:pointer; list-style:none; display:flex;
+                       align-items:center; gap:10px; font-size:13px;
+                       font-weight:700; color:var(--text-2) }
+  .wz-fold > summary::-webkit-details-marker { display:none }
+  .wz-fold > summary::after { content:"＋"; color:var(--muted); font-weight:700 }
+  .wz-fold[open] > summary::after { content:"−" }
+  .wz-fold > summary > b { margin-inline-start:auto; font-weight:800;
+                           color:var(--blue); font-size:12.5px }
+  .wz-fold-note { font-size:11px; color:var(--muted); margin-top:7px; line-height:1.6 }
+
+  /* ‏العمر والطول والوزن أرقام من تلات خانات. على الموبايل كانوا بينزلوا
+     اتنين وواحد، فستة أرقام كانوا بياخدوا شاشة كاملة وهما بيوسعوا سطرين. */
+  .grid-3.nums { gap:9px }
+  @media(max-width:768px){
+    .grid-3.nums { grid-template-columns:1fr 1fr 1fr; gap:7px }
+    .grid-3.nums .form-label { font-size:11.5px }
+    .grid-3.nums .form-input { padding:10px 9px; font-size:13.5px }
   }
 
   /* ═══ بحث العملاء — قايمة اقتراحات تحت الخانة ═══════════════════════════
@@ -2178,17 +2179,44 @@ function zzDays(target,pattern,floor){
   }
   return r;
 }
+/* ═══ سطر الملخّص ═══════════════════════════════════════════════════════
+   الصندوقين اتطووا، فالرقم لازم يفضل مقروء وهما مقفولين -- غير كده يبقى
+   إخفاء مش تبسيط. السطر هو اللي بيحمل الرقم، زي الورقة بالظبط. */
+const zzFold=document.getElementById('zzFold');
+const zzSum=document.getElementById('zzSum');
+const mxFold=document.getElementById('mxFold');
+const mxSum=document.getElementById('mxSum');
+function zzSay(text){ if(zzSum) zzSum.textContent = text || '—'; }
+function mxSay(){
+  if(!mxSum) return;
+  const pr=document.getElementById('proteinPerKg');
+  const ft=document.getElementById('fatPctCal');
+  const cb=document.getElementById('carbPctCal');
+  mxSum.textContent = T(
+    'بروتين '+(pr&&pr.value||'—')+' · دهون '+(ft&&ft.value||'—')+'٪ · كارب '+(cb&&cb.value||'—')+'٪',
+    'Protein '+(pr&&pr.value||'—')+' · fat '+(ft&&ft.value||'—')+'% · carbs '+(cb&&cb.value||'—')+'%');
+}
+['proteinPerKg','fatPctCal','carbPctCal'].forEach(function(id){
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('input', mxSay);
+});
+mxSay();
+
 function renderZigzag(){
   if(!zzMode||!zzBars) return;
   const m=ZZ[zzMode.value];
   const target=parseFloat(goal.value)||0;
   zzDesc.textContent = m ? ({{ 'true' if is_ar else 'false' }} ? m.desc_ar : m.desc_en) : '';
+  const zzName = m ? ({{ 'true' if is_ar else 'false' }} ? m.ar : m.en) : '—';
   if(!m||!target){ zzBars.innerHTML=''; zzAvg.value='—';
+    zzSay(zzName);
     if(zzWarn) zzWarn.hidden=true; return; }
   let floor=zzFloor();
   const noRoom = floor>=target && zzMode.value!=='off';
   if(zzWarn){
     zzWarn.hidden = !noRoom;
+    /* ‏تحذير جوه صندوق مقفول مش تحذير: بيفتحه. */
+    if(noRoom && zzFold) zzFold.open = true;
     if(noRoom) zzWarn.textContent = '⚠️ ' + T(
       'الهدف اليومي ('+Math.round(target)+' سعر) عند الحد الآمن الأدنى ('
         +floor+' '+zzFloorWho()+') أو تحته، فمفيش مساحة ننزّل أي يوم عنه — '
@@ -2202,7 +2230,9 @@ function renderZigzag(){
   if(floor>=target) floor=target;
   const d=zzDays(target,m.pattern,floor);
   const hi=Math.max(...d);
-  zzAvg.value=Math.round(d.reduce((a,b)=>a+b,0)/7)+' kcal';
+  const zzMean = Math.round(d.reduce((a,b)=>a+b,0)/7);
+  zzAvg.value = zzMean+' kcal';
+  zzSay(zzName + (zzMode.value==='off' ? '' : ' · ' + zzMean + ' kcal'));
   zzBars.innerHTML=d.map((v,i)=>{
     const pct=Math.round((v-target)/target*100);
     const col=pct>=5?'#1B6E80':(pct<=-5?'#FF7A59':'#55647a');
