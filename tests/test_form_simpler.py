@@ -88,6 +88,65 @@ def test_the_warning_opens_the_box_it_lives_in():
         "‏التحذير بيظهر جوه صندوق مقفول من غير ما يفتحه")
 
 
+# ── اختيار النظام ───────────────────────────────────────────────────
+
+def test_the_programs_tied_to_a_case_are_folded_away():
+    """‏٢٢ نظام في قايمة واحدة، والدكتور بينزّل فيهم كل زيارة عشان يدوس
+    على واحد هو عارفه. والفرق مش في الأهمية -- في **إمتى بيتختار**:
+    التكميم والأطفال والرضاعة والنباتي بيتختاروا بسبب حالة العميل
+    نفسه، فلو مش الحالة دي السطر مالوش لازمة النهاردة."""
+    page = _rendered()
+    assert 'id="dpFold"' in page, "‏مافيش مجموعة مطوية"
+    head, tail = page.split('id="dpFold"', 1)
+    for key in ("sleeve", "kids", "breast_feeding", "vegan", "optitect"):
+        assert 'value="%s"' % key in tail, "‏%s مش جوه المطوي" % key
+        assert 'value="%s"' % key not in head, "‏%s برّه وجوّه" % key
+    for key in ("standard", "three_meals", "two_meals", "intermittent_16_8"):
+        assert 'value="%s"' % key in head, "‏%s اتخبّى وهو لأي عميل" % key
+
+
+def test_a_client_already_on_a_folded_program_still_sees_it():
+    """‏لو الصفحة اتفتحت لعميل تكميم والصندوق مقفول، بيدوّر على اختياره
+    ومايلاقيهوش ويفتكره اتشال."""
+    assert "dpFold.querySelector('input:checked')" in PAGE, (
+        "‏الصندوق مابيفتحش لما الاختيار يكون جواه")
+    at = PAGE.index("dpFold.querySelector('input:checked')")
+    assert "dpFold.open = true" in PAGE[at:at + 160], PAGE[at:at + 160]
+
+
+def test_every_system_is_still_offered_once():
+    """‏التقسيم مش حذف: أي نظام يقع بين المجموعتين يبقى اختفى من الفورم،
+    وأي واحد يتكرر يبقى في راديو اتنين بنفس القيمة."""
+    import collections
+    import app as A
+    os.environ.setdefault("SECRET_KEY", "test-only")
+    os.environ.setdefault("ADMIN_PASSWORD", "pw123456")
+    os.environ["NUTRAX_DB"] = "/tmp/nutrax_simpler_test.db"
+    c = A.app.test_client()
+    with c.session_transaction() as sess:
+        sess["uid"] = 1
+        sess["role"] = "admin"
+        sess["lang"] = "ar"
+    page = c.get("/generate").get_data(as_text=True)
+    vals = re.findall(r'name="diet_plan_type" value="([^"]+)"', page)
+    from meal_database import DIET_PLAN_TYPES
+    assert set(vals) == set(DIET_PLAN_TYPES), (
+        set(DIET_PLAN_TYPES) ^ set(vals))
+    dupes = [k for k, n in collections.Counter(vals).items() if n > 1]
+    assert not dupes, "‏اتعرضوا مرتين: %s" % dupes
+
+
+def test_the_description_opens_on_the_one_he_picked():
+    """‏الوصف سطر واحد مقصوص لحد ما النظام يتختار -- ساعتها بيفتح بكل
+    كلامه ومعاه المرجع اللي هيكتبه على الورقة."""
+    at = PAGE.index(".nx-opt-s  { white-space:nowrap")
+    css = PAGE[at:at + 500]
+    assert "text-overflow:ellipsis" in css, css[:160]
+    assert ":checked + .nx-opt-b .nx-opt-s { white-space:normal" in css
+    assert ":checked + .nx-opt-b .nx-opt-src { display:block }" in PAGE, (
+        "‏المرجع مش بيبان حتى على المختار")
+
+
 # ── اللي اتشال واللي **مايتشالش** ───────────────────────────────────
 
 def test_the_two_facts_that_change_the_doctors_choice_are_still_there():

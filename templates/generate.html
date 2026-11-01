@@ -349,7 +349,24 @@
         'lacto_ovo_vegetarian':'🍳', 'ovo_vegetarian':'🥚',
         'optitect':'🧬'
       } %}
-      {% for key, info in diet_plans.items() %}
+    {# ═══ ليه مجموعتين ═══════════════════════════════════════════════
+       ٢٢ نظام في قايمة واحدة، والدكتور بينزّل فيهم كل زيارة عشان يدوس
+       على واحد هو عارفه. والفرق بينهم مش في الأهمية -- في **إمتى
+       بيتختار**:
+
+         فوق: شكل اليوم. بيتختار لأي عميل (تقليدي، وجبتين، صيام، رمضان).
+         تحت: برنامج بيتختار بسبب حالة العميل نفسه -- تكميم، أطفال،
+              رضاعة، نباتي، ضغط، كبد. لو العميل مش الحالة دي، السطر
+              مالوش لازمة النهاردة.
+
+       ‏والمجموعة التحتانية **بتتفتح لوحدها** لو النظام المختار جواها
+       (الجافاسكريبت تحت) -- غير كده الدكتور يفتح الصفحة لعميل تكميم
+       ومايلاقيش اختياره. #}
+    {% set by_case = ['chemical','sleeve','kids','breast_feeding','vegan',
+                      'lacto_vegetarian','lacto_ovo_vegetarian',
+                      'ovo_vegetarian','dash','detox','low_fat',
+                      'low_carb_program','optitect'] %}
+    {% for key, info in diet_plans.items() if key not in by_case %}
       <label class="nx-opt">
         <input type="radio" name="diet_plan_type" value="{{ key }}" class="nx-opt-in"
                {% if prev.diet_plan_type == key or (not prev.diet_plan_type and loop.first) %}checked{% endif %}>
@@ -372,6 +389,33 @@
       </label>
       {% endfor %}
     </div>
+
+    <details class="wz-fold" id="dpFold">
+      <summary>
+        <span>{{ 'برامج حسب حالة العميل' if is_ar else 'Programs for a specific case' }}</span>
+        <b>{{ 'تكميم · أطفال · نباتي · وغيرها' if is_ar
+              else 'Sleeve · kids · vegetarian · more' }}</b>
+      </summary>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:9px;margin-top:12px">
+      {% for key, info in diet_plans.items() if key in by_case %}
+        <label class="nx-opt">
+          <input type="radio" name="diet_plan_type" value="{{ key }}" class="nx-opt-in"
+                 {% if prev.diet_plan_type == key %}checked{% endif %}>
+          <span class="nx-opt-b">
+            <span class="nx-opt-ic" aria-hidden="true">{{ sys_icons.get(key, '🍲') }}</span>
+            <span class="nx-opt-tx">
+              <span class="nx-opt-t">{{ info.name if is_ar else (info.name_en or info.name) }}</span>
+              <span class="nx-opt-s">{{ info.description if is_ar else (info.description_en or info.description) }}</span>
+              {% set src = info.source if is_ar else (info.source_en or info.source) %}
+              {% if src %}
+              <span class="nx-opt-src"><span aria-hidden="true">📖</span> {{ src }}</span>
+              {% endif %}
+            </span>
+          </span>
+        </label>
+      {% endfor %}
+      </div>
+    </details>
 
     {# ‏بروتوكول التكميم مالوش معنى من غير الرقم ده: المرحلة بتتحدد بعدد
        الأسابيع، ومن غيره الملف بيعرض البروتوكول كله بدل خطة أسبوع فعلي.
@@ -674,8 +718,10 @@
   .wz-fold > summary::-webkit-details-marker { display:none }
   .wz-fold > summary::after { content:"＋"; color:var(--muted); font-weight:700 }
   .wz-fold[open] > summary::after { content:"−" }
+  .wz-fold > summary > span:first-child { white-space:nowrap }
   .wz-fold > summary > b { margin-inline-start:auto; font-weight:800;
-                           color:var(--blue); font-size:12.5px }
+                           color:var(--blue); font-size:12.5px;
+                           text-align:end; line-height:1.4 }
   .wz-fold-note { font-size:11px; color:var(--muted); margin-top:7px; line-height:1.6 }
 
   /* ‏العمر والطول والوزن أرقام من تلات خانات. على الموبايل كانوا بينزلوا
@@ -745,7 +791,7 @@
   .nx-opt-in { position:absolute; opacity:0; width:1px; height:1px;
                margin:0; pointer-events:none }
   .nx-opt-b { display:flex; align-items:center; gap:10px;
-              padding:10px 12px; min-height:56px;
+              padding:9px 12px; min-height:48px;
               border:1.5px solid var(--gray-2); border-radius:12px;
               background:var(--white); box-sizing:border-box; height:100%;
               transition:border-color .15s, background .15s }
@@ -756,10 +802,21 @@
   .nx-opt-t  { font-size:13.5px; font-weight:700; color:var(--text);
                line-height:1.3 }
   .nx-opt-s  { font-size:11px; color:var(--gray-dark); line-height:1.35 }
+  /* ═══ الوصف سطر واحد لحد ما يتختار ═══════════════════════════════════
+     اختيار النظام كان ٢٢ كارت، كل واحد بعنوان وسطرين وصف وسطر مرجع --
+     ٢٢٤٣ بكسل من الأنظمة، والدكتور بينزّل فيهم كل زيارة عشان يدوس على
+     واحد هو عارفه أصلاً.
+
+     ‏فالوصف بقى سطر واحد مقصوص، والمرجع مخفي -- لحد ما النظام **يتختار**:
+     ساعتها الكارت بيفتح بكل كلامه. يعني بيبص على قايمة يقراها، ولما يقرر
+     يشوف التفاصيل اللي هيكتبها على الورقة. */
+  .nx-opt-s  { white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .nx-opt-in:checked + .nx-opt-b .nx-opt-s { white-space:normal; overflow:visible }
   /* ‏سطر المرجع: أصغر وأخف من الوصف، فبيبان كمصدر مش كجزء من الشرح */
-  .nx-opt-src { display:block; margin-top:4px; padding-top:4px;
+  .nx-opt-src { display:none; margin-top:4px; padding-top:4px;
                 border-top:1px dashed var(--gray-2); font-size:9.5px;
                 color:var(--muted); line-height:1.4 }
+  .nx-opt-in:checked + .nx-opt-b .nx-opt-src { display:block }
   .nx-opt-src span { font-size:9px; opacity:.75 }
 
   .nx-opt:hover .nx-opt-b { border-color:var(--blue-light) }
@@ -775,7 +832,7 @@
                                          outline-offset:2px }
 
   @media(max-width:768px){
-    .nx-opt-b { padding:9px 10px; min-height:52px; gap:9px }
+    .nx-opt-b { padding:8px 10px; min-height:44px; gap:9px }
     .nx-opt-ic { flex:0 0 30px; height:30px; font-size:15px }
     .nx-opt-t { font-size:12.5px }
     .nx-opt-s { font-size:10.5px }
@@ -2182,6 +2239,12 @@ function zzDays(target,pattern,floor){
 /* ═══ سطر الملخّص ═══════════════════════════════════════════════════════
    الصندوقين اتطووا، فالرقم لازم يفضل مقروء وهما مقفولين -- غير كده يبقى
    إخفاء مش تبسيط. السطر هو اللي بيحمل الرقم، زي الورقة بالظبط. */
+/* ‏نظام العميل ممكن يكون جوه المجموعة المطوية (تكميم، أطفال، نباتي...).
+   لو اتفتحت الصفحة لعميل راجع على واحد منهم، الصندوق لازم يكون مفتوح --
+   وإلا بيدوّر على اختياره ومايلاقيهوش ويفتكره اتشال. */
+const dpFold=document.getElementById('dpFold');
+if(dpFold && dpFold.querySelector('input:checked')) dpFold.open = true;
+
 const zzFold=document.getElementById('zzFold');
 const zzSum=document.getElementById('zzSum');
 const mxFold=document.getElementById('mxFold');
