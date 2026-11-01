@@ -179,7 +179,12 @@ def health():
             out["ok"] = False
     else:
         out["db"] = "not checked (open /health?db=1)"
-    return jsonify(out), 200
+    resp = jsonify(out)
+    # ‏الصفحة دي بيتفتح عشان **الحالة دلوقتي**: نزل النشر؟ القاعدة رجعت؟
+    # من غير السطر ده المتصفح بيعرض نسخة مخزّنة، فالدكتور بيبص على وقت
+    # وcommit قديمين ويفتكرهم الحاليين -- وده أسوأ من إنها ماتفتحش.
+    resp.headers["Cache-Control"] = "no-store"
+    return resp, 200
 
 @app.after_request
 def speed_headers(resp):

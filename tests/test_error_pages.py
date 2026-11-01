@@ -40,6 +40,19 @@ def _boom_other():
 _CLIENT = A.app.test_client()
 
 
+def test_health_is_never_served_from_the_cache():
+    """‏الصفحة دي بتتفتح عشان الحالة **دلوقتي**: نزل النشر؟ القاعدة
+    رجعت؟
+
+    ‏من غير no-store المتصفح بيعرض نسخة مخزّنة، فالدكتور بص على
+    commit ووقت من تلات ساعات وفاكرهم الحاليين -- وفضل مستني نشر
+    نازل خلاص. ده أسوأ من إن الصفحة ماتفتحش: دي بتكدب بثقة.
+    """
+    for url in ("/health", "/health?db=1"):
+        cc = _CLIENT.get(url).headers.get("Cache-Control", "")
+        assert "no-store" in cc, "%s: %r" % (url, cc)
+
+
 def test_health_answers_even_when_the_database_is_down():
     """‏دي الحاجة الوحيدة اللي تفرّق بين "التطبيق واقع" و"القاعدة واقعة"،
     فلازم ترد في الحالتين -- ولو هي كمان بتلمس القاعدة، بتقع معاها.
