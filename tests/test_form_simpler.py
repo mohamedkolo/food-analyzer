@@ -118,16 +118,7 @@ def test_every_system_is_still_offered_once():
     """‏التقسيم مش حذف: أي نظام يقع بين المجموعتين يبقى اختفى من الفورم،
     وأي واحد يتكرر يبقى في راديو اتنين بنفس القيمة."""
     import collections
-    import app as A
-    os.environ.setdefault("SECRET_KEY", "test-only")
-    os.environ.setdefault("ADMIN_PASSWORD", "pw123456")
-    os.environ["NUTRAX_DB"] = "/tmp/nutrax_simpler_test.db"
-    c = A.app.test_client()
-    with c.session_transaction() as sess:
-        sess["uid"] = 1
-        sess["role"] = "admin"
-        sess["lang"] = "ar"
-    page = c.get("/generate").get_data(as_text=True)
+    page = _rendered()
     vals = re.findall(r'name="diet_plan_type" value="([^"]+)"', page)
     from meal_database import DIET_PLAN_TYPES
     assert set(vals) == set(DIET_PLAN_TYPES), (
@@ -160,17 +151,30 @@ def test_the_two_facts_that_change_the_doctors_choice_are_still_there():
 
 def _rendered():
     """‏الصفحة زي ما المتصفح بيشوفها -- تعليقات Jinja مش بتتعرض،
-    فعدّها مع الكلام بيدّي رقم مالوش معنى."""
+    فعدّها مع الكلام بيدّي رقم مالوش معنى.
+
+    ‏**setdefault مش =**: الرنر (tests/run_all.py) بيبعت قاعدة نضيفة
+    لكل ملف وبيمسحها قبل كل تشغيل. أول نسخة من الملف ده كانت بتدوس
+    على المتغيّر بمسار بتاعها -- مسار الرنر مابيمسحوش، فالقاعدة فضلت
+    من تشغيل قديم ومن غير أدمن، و/generate ردّت تحويل بدل الفورم.
+    الاختبارات اللي بعدها وقعت على نص مش موجود والملف وقف في نصه.
+    """
     os.environ.setdefault("SECRET_KEY", "test-only")
     os.environ.setdefault("ADMIN_PASSWORD", "pw123456")
-    os.environ["NUTRAX_DB"] = "/tmp/nutrax_simpler_test.db"
+    os.environ.setdefault("NUTRAX_DB", "/tmp/nutrax_simpler_test.db")
     import app as A
     c = A.app.test_client()
     with c.session_transaction() as sess:
         sess["uid"] = 1
         sess["role"] = "admin"
         sess["lang"] = "ar"
-    return c.get("/generate").get_data(as_text=True)
+    r = c.get("/generate")
+    # ‏لو الصفحة مش الفورم، الاختبارات اللي تحت هتقع على نص ناقص وتطلع
+    # أعطال غامضة. أحسن تقول السبب هنا.
+    assert r.status_code == 200, "‏/generate ردّت %s" % r.status_code
+    page = r.get_data(as_text=True)
+    assert 'id="nameField"' in page, "‏الصفحة اللي رجعت مش فورم إنشاء الخطة"
+    return page
 
 
 def test_the_page_opens_on_the_fields_not_on_three_paragraphs():
