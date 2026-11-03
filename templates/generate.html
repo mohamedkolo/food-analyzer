@@ -147,32 +147,39 @@
 
     <!-- ═══════════ بانر المتابعة ═══════════ -->
     <div id="fuBox" style="display:none"></div>
+    {# ‏خانات الأرقام كلها step="any".
+       ‏السبب إن **البرنامج نفسه** بيكتب فيها كسور: الملء من آخر زيارة
+       (fuFillEmpty) بيجيب BMI وTDEE من القاعدة زي ما هما (٢٠.٣٣)، وقارئ
+       ورقة التحليل بيكتب نسبة الدهون اللي مطبوعة. وقيد زي step="0.1"
+       بيخلي الخانة **مرفوضة** -- والمتصفح ساعتها مابيبعتش حدث submit
+       أصلاً: الدكتور يدوس "ولّد الخطة" و**مايحصلش حاجة**.
+       ‏والنطاق بيتأكد منه السيرفر، مش المتصفح. #}
     <div class="grid-3 nums">
       <div class="form-group">
         <label class="form-label">{{ 'العمر' if is_ar else 'Age' }}</label>
-        <input class="form-input" type="number" name="age" id="ageField" placeholder="30" value="{{ prev.age or '' }}">
+        <input class="form-input" type="number" step="any" name="age" id="ageField" placeholder="30" value="{{ prev.age or '' }}">
       </div>
       <div class="form-group">
         <label for="hField" class="form-label">{{ 'الطول (سم)' if is_ar else 'Height (cm)' }}</label>
-        <input class="form-input" type="number" name="height" step="0.5" id="hField" value="{{ prev.height or '' }}">
+        <input class="form-input" type="number" name="height" step="any" id="hField" value="{{ prev.height or '' }}">
       </div>
       <div class="form-group">
         <label for="wField" class="form-label">{{ 'الوزن (كجم)' if is_ar else 'Weight (kg)' }}</label>
-        <input class="form-input" type="number" name="weight" step="0.1" id="wField" value="{{ prev.weight or '' }}">
+        <input class="form-input" type="number" name="weight" step="any" id="wField" value="{{ prev.weight or '' }}">
       </div>
     </div>
     <div class="grid-3 nums">
       <div class="form-group">
         <label for="f_fat_pct" class="form-label">{{ 'دهون الجسم %' if is_ar else 'Body Fat %' }}</label>
-        <input id="f_fat_pct" class="form-input" type="number" name="fat_pct" step="0.1" value="{{ prev.fat_pct or '' }}">
+        <input id="f_fat_pct" class="form-input" type="number" name="fat_pct" step="any" value="{{ prev.fat_pct or '' }}">
       </div>
       <div class="form-group">
         <label for="bmiField" class="form-label">BMI</label>
-        <input class="form-input" type="number" name="bmi" step="0.1" id="bmiField" value="{{ prev.bmi or '' }}">
+        <input class="form-input" type="number" name="bmi" step="any" id="bmiField" value="{{ prev.bmi or '' }}">
       </div>
       <div class="form-group">
         <label for="tdeeField" class="form-label">TDEE (kcal)</label>
-        <input class="form-input" type="number" name="tdee" id="tdeeField" value="{{ prev.tdee or '' }}">
+        <input class="form-input" type="number" name="tdee" step="any" id="tdeeField" value="{{ prev.tdee or '' }}">
       </div>
     </div>
     {# ‏كانت خانتين بيسألوا نفس السؤال بمقياسين: "معامل النشاط" للـTDEE
@@ -197,7 +204,7 @@
     </div>
     <div class="form-group">
       <label for="goalField" class="form-label">{{ 'الهدف اليومي (kcal)' if is_ar else 'Daily Target (kcal)' }}</label>
-      <input class="form-input" type="number" name="goal_cal" id="goalField" value="{{ prev.goal_cal or 1400 }}">
+      <input class="form-input" type="number" name="goal_cal" step="any" id="goalField" value="{{ prev.goal_cal or 1400 }}">
     </div>
 
     {# ‏الماكروز والتدوير بيتحطوا **تلقائياً** حسب النظام، والدكتور بيعدّل
@@ -212,15 +219,20 @@
       <div class="grid-3 nums" style="margin-top:12px">
         <div class="form-group" style="margin:0">
           <label for="proteinPerKg" class="form-label">{{ 'بروتين (جم/كجم)' if is_ar else 'Protein (g/kg)' }}</label>
-          <input class="form-input" type="number" step="0.1" name="protein_per_kg" id="proteinPerKg" value="{{ prev.protein_per_kg or 1.6 }}">
+          {# ‏step="any" مش 0.1: ١.٢٥ جم/كجم وصفة عادية، وstep="0.1" كان
+             بيخلي الخانة **مرفوضة** فالفورم يرفض الإرسال. والسيرفر هو اللي
+             بيتأكد من النطاق أصلاً، فالمتصفح مالوش يرفض رقم إكلينيكي سليم. #}
+          <input class="form-input" type="number" step="any" min="0" max="5"
+                 name="protein_per_kg" id="proteinPerKg" value="{{ prev.protein_per_kg or 1.6 }}">
         </div>
         <div class="form-group" style="margin:0">
           <label for="fatPctCal" class="form-label">{{ 'دهون %' if is_ar else 'Fat %' }}</label>
-          <input class="form-input" type="number" step="1" name="fat_pct_cal" id="fatPctCal" value="{{ prev.fat_pct_cal or 30 }}">
+          <input class="form-input" type="number" step="any" min="0" max="90"
+                 name="fat_pct_cal" id="fatPctCal" value="{{ prev.fat_pct_cal or 30 }}">
         </div>
         <div class="form-group" style="margin:0">
           <label for="carbPctCal" class="form-label">{{ 'كارب %' if is_ar else 'Carb %' }}</label>
-          <input class="form-input" type="number" step="1" name="carb_pct_cal" id="carbPctCal" value="45" readonly
+          <input class="form-input" type="number" step="any" name="carb_pct_cal" id="carbPctCal" value="45" readonly
                  style="background:var(--gray)">
         </div>
       </div>
@@ -1187,15 +1199,44 @@
     });
   });
 
-  // ‏لو حقل مطلوب فاضي في خطوة مخفية، المتصفح بيرفض الإرسال والدكتور
-  // مايشوفش سبب. فبنمسك الرفض ونوديه للخطوة اللي فيها الحقل ونركّز عليه.
+  // ‏لو حقل مطلوب فاضي أو قيمته مرفوضة، المتصفح بيرفض الإرسال والدكتور
+  // مايشوفش سبب. فبنمسك الرفض ونوديه للحقل ونركّز عليه.
+  //
+  // ‏والخطوة مش المكان الوحيد اللي بيخفي حقل: بعد ما الماكروز والتدوير
+  // بقوا <details> مطوية، حقل جواهم ممكن يبقى مرفوض وهو **مش مرسوم
+  // أصلاً** -- وساعتها focus() مابتعملش حاجة وreportValidity() مالهاش
+  // فقاعة تطلعها. النتيجة: الدكتور يدوس "ولّد الخطة" و**مايحصلش حاجة
+  // خالص**، من غير ولا رسالة. ده اللي حصل فعلاً.
+  //
+  // ‏فبنفتح أي صندوق مطوي الحقل جواه قبل ما نركّز عليه.
   const form = document.querySelector('form[action="/generate"]');
+
+  // ‏بنظهّر الحقل: خطوته، وأي صندوق <details> مطوي هو جواه.
+  function reveal(el){
+    const owner = el.closest('.wz-step');
+    if (owner) show(steps.indexOf(owner));
+    let box = el.closest('details:not([open])');
+    while (box) { box.open = true; box = box.closest('details:not([open])'); }
+    if (el.scrollIntoView) el.scrollIntoView({block:'center'});
+  }
+
+  // ‏**invalid مش submit.** لما يبقى في حقل قيمته مرفوضة، المتصفح
+  // مابيبعتش حدث submit أصلاً -- بيبعت invalid على الحقل ويقف. فمعالج
+  // الـsubmit اللي تحت كان **كود ميت** في الحالة دي، والحقل لو مخفي
+  // (خطوة تانية أو صندوق مطوي) مافيش فقاعة تطلع عليه: الدكتور يدوس
+  // "ولّد الخطة" و**مايحصلش حاجة خالص**، من غير ولا رسالة.
+  //
+  // ‏invalid مابيصعدش، فبنسمعه في مرحلة الالتقاط على الفورم.
+  if (form) form.addEventListener('invalid', function(ev){
+    reveal(ev.target);
+  }, true);
+
+  // ‏ولو الإرسال اتنادى بالكود (requestSubmit) الحدث ده بيحصل عادي.
   if (form) form.addEventListener('submit', function(ev){
     const bad = form.querySelector(':invalid');
     if (!bad) return;
     ev.preventDefault();
-    const owner = bad.closest('.wz-step');
-    if (owner) show(steps.indexOf(owner));
+    reveal(bad);
     bad.focus();
     if (bad.reportValidity) bad.reportValidity();
   });
