@@ -40,6 +40,29 @@ def _boom_other():
 _CLIENT = A.app.test_client()
 
 
+def test_the_keep_awake_doc_warns_about_the_hour_budget():
+    """‏الورقة دي بتقول للدكتور يشغّل ping كل ١٠ دقايق عشان Render
+    ماينامش. والـping ده **بيصرف حصة**: الخطة المجانية ٧٥٠ ساعة في
+    الشهر للـworkspace كله، والخدمة النايمة مابتستهلكش -- فping ٢٤
+    ساعة في شهر ٣١ يوم = ٧٤٤ ساعة، يعني ٩٩٪ من الحصة.
+
+    ‏ولما تخلص، Render بيوقف كل الخدمات المجانية لحد أول الشهر الجاي.
+    ‏ودي **نفس حكاية Neon بالظبط**: حصة شهرية وping بيصرفها والموقع
+    بيقف. ورقة بتقول "شغّل ping" من غير ما تقول الحساب ده بتودّي لنفس
+    اليوم من الباب التاني.
+    """
+    import os as _os
+    here = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+    with open(_os.path.join(here, "docs", "keep-awake.md"),
+              encoding="utf-8") as fh:
+        doc = fh.read()
+    assert "٧٥٠" in doc or "750" in doc, "‏الورقة مش بتقول إن فيه حصة ساعات"
+    assert "workspace" in doc, "‏مش مكتوب إن الحصة للحساب كله مش للخدمة"
+    for word in ("٧٤٤", "٧٢٠"):
+        assert word in doc, "‏مفيش حساب لساعات الـping في الشهر"
+    assert "Neon" in doc, "‏مش مربوطة باللي حصل فعلاً"
+
+
 def test_health_is_never_served_from_the_cache():
     """‏الصفحة دي بتتفتح عشان الحالة **دلوقتي**: نزل النشر؟ القاعدة
     رجعت؟
