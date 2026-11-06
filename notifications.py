@@ -153,6 +153,9 @@ def mark_read(db_run, notif_id):
 # ═══════════════════════════════════════════════
 # إرسال الإيميل
 # ═══════════════════════════════════════════════
+DOMAIN = os.environ.get("DOMAIN", "https://food-analyzer-duag.onrender.com")
+
+
 def send_admin_email(type_, title, message, link=None):
     """بيبعت إيميل HTML بسيط للأدمن. بيرجّع True لو اتبعت."""
     if not (SMTP_HOST and SMTP_USER and SMTP_PASS):
@@ -160,7 +163,10 @@ def send_admin_email(type_, title, message, link=None):
         return False
 
     meta = get_type_meta(type_)
-    full_link = link or "https://food-analyzer-duag.onrender.com/admin/notifications"
+    # ‏الدومين من المتغيّر زي payments.py وapi_platform.py. كان مكتوب هنا
+    # بالإيد لوحده -- فلو الدومين اتغيّر، كل اللينكات التانية بتتحوّل
+    # وده يفضل على القديم ويبعت الدكتور على عنوان مش شغّال.
+    full_link = link or (DOMAIN.rstrip("/") + "/admin/notifications")
 
     msg = MIMEMultipart("alternative")
     msg["From"] = SMTP_FROM

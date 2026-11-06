@@ -40,6 +40,28 @@ def _boom_other():
 _CLIENT = A.app.test_client()
 
 
+def test_nothing_hard_codes_the_site_address():
+    """‏لو الدومين اتغيّر، أي عنوان مكتوب بالإيد بيفضل على القديم ويبعت
+    الناس على لينك مش شغّال. كل مكان لازم يقرا DOMAIN من المتغيّر --
+    والقيمة المكتوبة تبقى **احتياطي** بس، في سطر فيه os.environ.get."""
+    import glob
+    import os as _os
+    import re as _re
+    here = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+    bad = []
+    for path in glob.glob(_os.path.join(here, "*.py")):
+        with open(path, encoding="utf-8") as fh:
+            for n, line in enumerate(fh, 1):
+                if "onrender.com" not in line:
+                    continue
+                if line.lstrip().startswith("#"):
+                    continue            # ‏شرح، مش عنوان بيتبعت
+                if "os.environ.get" in line:
+                    continue            # ‏احتياطي لمتغيّر -- ده المطلوب
+                bad.append("%s:%d" % (_os.path.basename(path), n))
+    assert not bad, "‏عنوان مكتوب بالإيد في: %s" % ", ".join(bad)
+
+
 def test_the_keep_awake_doc_warns_about_the_hour_budget():
     """‏الورقة دي بتقول للدكتور يشغّل ping كل ١٠ دقايق عشان Render
     ماينامش. والـping ده **بيصرف حصة**: الخطة المجانية ٧٥٠ ساعة في
