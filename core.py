@@ -617,6 +617,21 @@ ENGLISH_CONDITIONS = {
 }
 
 
+# ‏قوايم الرياضات وأحجام التمرين: ثوابت، مش بيانات طلب.
+#
+# ‏اتبعتوا الأول من راوت /generate لوحده، فأي حد تاني يعرض نفس القالب
+# (اختبار، أو راوت جديد) كان بيقع على UndefinedError جوه الـfor. ودي
+# غلطة بتتكرر كل ما خانة تتضاف. فبقوا globals للقالب: القالب
+# مابيعتمدش على اللي ناداه.
+try:
+    import sports_nutrition as _sn_lists
+    app.jinja_env.globals.setdefault("sports", _sn_lists.SPORTS)
+    app.jinja_env.globals.setdefault("training_loads", _sn_lists.LOAD_LABELS)
+except Exception:          # ‏القوايم إضافة، مش شرط لقيام التطبيق
+    app.jinja_env.globals.setdefault("sports", {})
+    app.jinja_env.globals.setdefault("training_loads", {})
+
+
 @app.template_filter('cond_en')
 def cond_en_filter(name):
     """A stored condition name, in the reader's language."""

@@ -379,6 +379,25 @@ def test_the_form_asks_for_what_the_calculation_needs():
     assert 'id="spFold"' in page, "‏الخانات مش مطوية -- بتكبّر الصفحة لكل عميل"
 
 
+def test_the_page_renders_without_the_route_handing_it_the_lists():
+    """‏القوايم اتبعتت الأول من راوت /generate لوحده، فأول حد تاني عرض
+    نفس القالب (اختبار في ملف تاني) وقع على UndefinedError جوه الـfor
+    -- والملف كله وقف في نصه.
+
+    ‏القالب مالوش يعتمد على اللي ناداه في حاجة ثابتة زي دي."""
+    from flask import render_template
+    from meal_database import DIET_PLAN_TYPES
+    from zigzag import ZIGZAG_MODES
+    A = _app()
+    with A.app.test_request_context("/"):
+        html = render_template("generate.html",
+                               user={"name": "t", "role": "admin"}, lang="ar",
+                               diet_plans=DIET_PLAN_TYPES,
+                               zigzag_modes=ZIGZAG_MODES, prev={})
+    assert 'name="sport"' in html
+    assert 'value="endurance"' in html, "‏قايمة الرياضات طلعت فاضية"
+
+
 def test_the_server_reads_those_fields():
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     with open(os.path.join(here, "routes_plans.py"), encoding="utf-8") as fh:
