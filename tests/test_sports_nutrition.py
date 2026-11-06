@@ -270,6 +270,124 @@ def test_the_exercise_estimate_is_a_range_per_sport():
         set(SN.MET_BY_SPORT) ^ set(SN.SPORTS))
 
 
+# ── الوصلة ──────────────────────────────────────────────────────────
+#
+# ‏الملف ده عاش فترة بـ٢٧ اختبار وهو **مش متوصّل بحاجة**: محدش بيستورده،
+# فمفيش سطر منه بيوصل لورقة ولا لمعاينة. والاختبارات كلها كانت بتعدّي،
+# لأنها بتختبر الحساب مش وصوله.
+#
+# ‏واللي كشفها مراجعة خارجية للمشروع: قرت الملف وكتبت "حسابات REDs
+# وACSM وISSN" في **نقاط القوة**. ميزة موجودة في الريبو ومش موجودة في
+# المنتج.
+#
+# ‏فالاختبارات دي بتختبر **الوصلة** مش الحساب.
+
+def _app():
+    os.environ.setdefault("SECRET_KEY", "test-only")
+    os.environ.setdefault("ADMIN_PASSWORD", "pw123456")
+    os.environ.setdefault("NUTRAX_DB", "/tmp/nutrax_sports_test.db")
+    import app as A
+    return A
+
+
+def _notes(**over):
+    """‏ملاحظات المعاينة لخطة كاملة."""
+    import plan_engine
+    import zigzag
+    A = _app()
+    data = {"name": "ع", "gender": "ذكر", "age": "24", "height": "178",
+            "weight": "80", "fat_pct": "12", "culture": "مصري",
+            "diet_plan_type": "five_meals", "goal_type": "muscle_gain",
+            "activity_level": "high", "tdee": "3000", "goal_cal": "2600",
+            "protein_per_kg": "1.8", "fat_pct_cal": "30",
+            "allergies": [], "symptoms": [], "zigzag_mode": "off"}
+    data.update(over)
+    data["zigzag"] = zigzag.zigzag_from_data(data)
+    with A.app.test_request_context("/"):
+        plan = plan_engine.generate_weekly_plan(data, seed="sp")
+        plan_engine.plan_html(data, plan)
+    return [n["full"] or n["short"] for n in (data.get("sheet_notes") or [])]
+
+
+def test_the_module_is_actually_imported_by_the_app():
+    """‏الحارس الأساسي: ملف مالوش مستورد = كود ميت، والاختبارات بتعدّي
+    عليه وهو مش بيشتغل."""
+    import glob
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    users = []
+    for path in glob.glob(os.path.join(here, "*.py")):
+        if os.path.basename(path) == "sports_nutrition.py":
+            continue
+        with open(path, encoding="utf-8") as fh:
+            body = fh.read()
+        if "import sports_nutrition" in body:
+            users.append(os.path.basename(path))
+    assert users, "‏مفيش ملف في المشروع بيستورد sports_nutrition"
+
+
+def test_an_athlete_gets_the_published_targets_in_the_preview():
+    notes = " ".join(_notes(sport="endurance", training_load="high",
+                            training_days="5", training_hours="2"))
+    assert "تحمّل" in notes, notes[:200]
+    assert "يوم التمرين" in notes, notes[:200]
+    assert "جم/كجم" in notes, notes[:200]
+
+
+def test_the_rest_day_is_in_the_same_note():
+    """‏الفرق بين يوم التمرين ويوم الراحة هو نص فايدة الحساب."""
+    notes = " ".join(_notes(sport="strength", training_load="moderate"))
+    assert "يوم الراحة" in notes, notes[:200]
+
+
+def test_the_weekly_average_follows_his_own_training_days():
+    few = " ".join(_notes(sport="endurance", training_days="2"))
+    many = " ".join(_notes(sport="endurance", training_days="6"))
+    assert "2 أيام تمرين" in few, few[:200]
+    assert "6 أيام تمرين" in many, many[:200]
+
+
+def test_a_client_who_is_not_an_athlete_sees_none_of_it():
+    """‏أغلب العملاء مش رياضيين، والورقة مالهاش تتلخبط بأرقام مالهاش
+    لازمة."""
+    notes = " ".join(_notes())
+    assert "يوم التمرين" not in notes, notes[:200]
+    assert "توفّر الطاقة" not in notes, notes[:200]
+
+
+def test_the_energy_availability_marker_reaches_the_preview():
+    """‏ده أهم رقم في الملف: الرياضي اللي بياكل أقل من حرقه مابيبانش
+    في الميزان."""
+    notes = " ".join(_notes(sport="endurance", training_load="high",
+                            training_hours="3", goal_cal="2200"))
+    assert "توفّر الطاقة" in notes, notes[:300]
+
+
+def test_without_body_fat_it_says_nothing_instead_of_guessing():
+    """‏الكتلة الخالية من الدهن محتاجة نسبة الدهون. من غيرها مفيش رقم."""
+    notes = " ".join(_notes(sport="endurance", fat_pct="",
+                            training_load="high", training_hours="3"))
+    assert "توفّر الطاقة" not in notes, notes[:300]
+
+
+def test_the_form_asks_for_what_the_calculation_needs():
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(here, "templates", "generate.html"),
+              encoding="utf-8") as fh:
+        page = fh.read()
+    for field in ("sport", "training_load", "training_days", "training_hours"):
+        assert 'name="%s"' % field in page, "‏خانة %s مش في الفورم" % field
+    assert 'id="spFold"' in page, "‏الخانات مش مطوية -- بتكبّر الصفحة لكل عميل"
+
+
+def test_the_server_reads_those_fields():
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(here, "routes_plans.py"), encoding="utf-8") as fh:
+        src = fh.read()
+    for field in ("sport", "training_load", "training_days", "training_hours"):
+        assert 'request.form.get("%s"' % field in src, (
+            "‏السيرفر مش بيقرا %s -- الخانة بتتبعت وبتتضيع" % field)
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):

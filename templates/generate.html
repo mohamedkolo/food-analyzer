@@ -429,6 +429,54 @@
       </div>
     </details>
 
+    {# ═══ الرياضي ═══════════════════════════════════════════════════
+       ‏مطوي بالقصد: أغلب العملاء مش رياضيين، والخانات دي تفضل مقفولة
+       فالصفحة ما تكبرش. ولو اتفتحت واتختارت رياضة، الأهداف بتتحسب من
+       بيانات منشورة (ACSM 2016 للكارب، ISSN 2017 للبروتين) بدل الرقم
+       العام، وبيظهر معاها مؤشر توفّر الطاقة في المعاينة. #}
+    <details class="wz-fold" id="spFold">
+      <summary>
+        <span>{{ 'رياضي؟' if is_ar else 'An athlete?' }}</span>
+        <b id="spSum">{{ 'لأ' if is_ar else 'No' }}</b>
+      </summary>
+      <div class="grid-2" style="margin-top:12px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label" for="spSport">{{ 'الرياضة' if is_ar else 'Sport' }}</label>
+          <select class="form-select" name="sport" id="spSport">
+            <option value="">{{ 'مش رياضي' if is_ar else 'Not an athlete' }}</option>
+            {% for key, names in sports.items() %}
+            <option value="{{ key }}" {% if prev.sport == key %}selected{% endif %}>{{ names[0] if is_ar else names[1] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label" for="spLoad">{{ 'حجم التمرين' if is_ar else 'Training load' }}</label>
+          <select class="form-select" name="training_load" id="spLoad">
+            {% for key, names in training_loads.items() %}
+            <option value="{{ key }}" {% if prev.training_load == key or (not prev.training_load and key == 'moderate') %}selected{% endif %}>{{ names[0] if is_ar else names[1] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:10px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label" for="spDays">{{ 'أيام التمرين في الأسبوع' if is_ar else 'Training days a week' }}</label>
+          <input class="form-input" type="number" step="any" min="0" max="7"
+                 name="training_days" id="spDays" value="{{ prev.training_days or 4 }}">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label" for="spHours">{{ 'ساعات التمرين في اليوم' if is_ar else 'Training hours a day' }}</label>
+          <input class="form-input" type="number" step="any" min="0" max="12"
+                 name="training_hours" id="spHours" value="{{ prev.training_hours or 1 }}">
+        </div>
+      </div>
+      <div class="wz-fold-note">
+        {{ 'الكارب والبروتين بيتحسبوا من بيانات ACSM 2016 وISSN 2017، ومؤشر توفّر الطاقة بيظهر في المعاينة لو نسبة الدهون متسجّلة.'
+           if is_ar else
+           'Carbs and protein follow ACSM 2016 and ISSN 2017, and the energy-availability marker shows in the preview when body fat is recorded.' }}
+      </div>
+    </details>
+
     {# ‏بروتوكول التكميم مالوش معنى من غير الرقم ده: المرحلة بتتحدد بعدد
        الأسابيع، ومن غيره الملف بيعرض البروتوكول كله بدل خطة أسبوع فعلي.
        الخانة بتظهر بس لما النظام ده يتختار. #}
@@ -2285,6 +2333,41 @@ function zzDays(target,pattern,floor){
    وإلا بيدوّر على اختياره ومايلاقيهوش ويفتكره اتشال. */
 const dpFold=document.getElementById('dpFold');
 if(dpFold && dpFold.querySelector('input:checked')) dpFold.open = true;
+
+/* ═══ الرياضي ═══════════════════════════════════════════════════════════
+   ‏لما تتختار رياضة، البروتين بيتاخد من نطاق ISSN بتاعها بدل الرقم
+   العام اللي جاي من خانة النشاط -- زي ما setProteinFromAct بيعمل
+   بالظبط، بس بمصدر أدق. والسطر بيقول الرياضة والحِمل وهو مقفول. */
+const spFold=document.getElementById('spFold');
+const spSport=document.getElementById('spSport');
+const spLoad=document.getElementById('spLoad');
+const spSum=document.getElementById('spSum');
+/* ‏نص النطاق: ١.٤-٢.٠ العام، و٢.٣-٣.١ للقوة في عجز (ISSN 2017). */
+const SPORT_P={strength:1.7, endurance:1.6, mixed:1.7, combat:1.6};
+function spSay(){
+  if(!spSum) return;
+  if(!spSport || !spSport.value){ spSum.textContent=T('لأ','No'); return; }
+  const sportTxt=spSport.options[spSport.selectedIndex].text;
+  const loadTxt=spLoad ? spLoad.options[spLoad.selectedIndex].text : '';
+  spSum.textContent=sportTxt+(loadTxt?' · '+loadTxt:'');
+}
+function spApply(){
+  spSay();
+  if(!spSport || !spSport.value) return;
+  const pr=document.getElementById('proteinPerKg');
+  const base=SPORT_P[spSport.value];
+  if(pr && base){
+    /* ‏عجز = تخسيس: البروتين بيعلى عشان العضل ما يروحش مع الوزن. */
+    const t=parseFloat(tdee && tdee.value)||0, g=parseFloat(goal && goal.value)||0;
+    const cutting=(t && g && t-g > 0);
+    pr.value = (cutting && spSport.value==='strength') ? 2.6 : base;
+    pr.dispatchEvent(new Event('input'));
+  }
+}
+if(spSport) spSport.addEventListener('change', spApply);
+if(spLoad) spLoad.addEventListener('change', spSay);
+if(spFold && spSport && spSport.value) spFold.open = true;
+spSay();
 
 const zzFold=document.getElementById('zzFold');
 const zzSum=document.getElementById('zzSum');

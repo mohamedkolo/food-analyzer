@@ -121,6 +121,12 @@ def generate():
             "goal_type": request.form.get("goal_type","weight_loss"),
             "culture": request.form.get("culture","مصري"),
             "diet_plan_type": request.form.get("diet_plan_type","standard"),
+            # ‏الرياضي: فاضية لأغلب العملاء، ولو اتملت الأهداف بتتحسب
+            # من بيانات منشورة بدل الرقم العام (sports_nutrition.py).
+            "sport": request.form.get("sport",""),
+            "training_load": request.form.get("training_load","moderate"),
+            "training_days": request.form.get("training_days",""),
+            "training_hours": request.form.get("training_hours",""),
             "symptoms": request.form.getlist("symptoms"),
             "allergies": request.form.getlist("allergies"),
             "liked_foods": request.form.get("liked_foods",""),
@@ -175,9 +181,14 @@ def generate():
     can_read_reports = report_engine_ready()
     return render_template("generate.html", user=u, lang=session.get("lang","ar"),
                            diet_plans=DIET_PLAN_TYPES, zigzag_modes=ZIGZAG_MODES,
+                           sports=sports_nutrition.SPORTS,
+                           training_loads=sports_nutrition.LOAD_LABELS,
                            zigzag_json=json.dumps(ZIGZAG_MODES, ensure_ascii=False),
                            can_read_reports=can_read_reports,
                            prev=(draft_store.draft_data() or {}) if editing else {})
+
+import sports_nutrition  # noqa: E402
+
 
 # ‏خانة النشاط بقت واحدة: بتبعت معامل الـTDEE، ومستوى البروتين بيتستنتج
 # منه هنا -- في السيرفر مش في الجافاسكريبت. لو كان الاستنتاج في الـJS بس،

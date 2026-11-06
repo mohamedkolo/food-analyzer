@@ -1955,6 +1955,66 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
         if _gn:
             _note("info", _gn)
 
+    # ═══ الرياضي: أهداف منشورة ومؤشر توفّر الطاقة ════════════════════
+    #
+    # ‏الملف sports_nutrition.py كان موجود بـ٢٧ اختبار و**مش متوصّل
+    # بحاجة** -- كود ميت في الريبو. مراجعة خارجية للمشروع قرته وكتبته
+    # في "نقاط القوة"، وهو مابيشتغلش. ده السبب إنه اتوصّل هنا.
+    #
+    # ‏اللي بيظهر للأخصائي في المعاينة -- مش على ورقة العميل:
+    #   ١) الكارب والبروتين يوم تمرين ويوم راحة، بالجرام وبالجرام/كجم
+    #   ٢) متوسط الكارب على الأسبوع بعدد أيام تمرينه هو
+    #   ٣) مؤشر توفّر الطاقة (REDs) لو نسبة الدهون متسجّلة
+    _sport = (data.get("sport") or "").strip()
+    if _sport:
+        try:
+            import sports_nutrition as _sn
+            _sp_w = float(data.get("weight") or 0)
+            _load = (data.get("training_load") or "moderate").strip()
+            _deficit = _gap > 0
+            _train = _sn.targets(_sp_w, _sport, _load, _deficit, True)
+            _rest = _sn.targets(_sp_w, _sport, _load, _deficit, False)
+            if _train and _rest:
+                _sp_name = _sn.SPORTS.get(_sport, ("", ""))[0 if _pdf_ar else 1]
+                _note("info", _L(
+                    "%s — يوم التمرين: كارب %d-%d جم (%s-%s جم/كجم) وبروتين "
+                    "%d-%d جم (%s-%s جم/كجم). يوم الراحة: كارب %d-%d جم، "
+                    "والبروتين زي ما هو لأن البناء بيحصل في الراحة."
+                    % (_sp_name, _train["carb_g"][0], _train["carb_g"][1],
+                       _train["carb_per_kg"][0], _train["carb_per_kg"][1],
+                       _train["protein_g"][0], _train["protein_g"][1],
+                       _train["protein_per_kg"][0], _train["protein_per_kg"][1],
+                       _rest["carb_g"][0], _rest["carb_g"][1]),
+                    "%s - training day: carbs %d-%d g (%s-%s g/kg), protein "
+                    "%d-%d g (%s-%s g/kg). Rest day: carbs %d-%d g, protein "
+                    "unchanged - muscle is built on the rest day."
+                    % (_sp_name, _train["carb_g"][0], _train["carb_g"][1],
+                       _train["carb_per_kg"][0], _train["carb_per_kg"][1],
+                       _train["protein_g"][0], _train["protein_g"][1],
+                       _train["protein_per_kg"][0], _train["protein_per_kg"][1],
+                       _rest["carb_g"][0], _rest["carb_g"][1])))
+
+                _wk = _sn.week(_sp_w, _sport, _load, _deficit,
+                               data.get("training_days") or 4)
+                if _wk:
+                    _note("info", _L(
+                        "متوسط الكارب على الأسبوع بـ%d أيام تمرين: %d-%d جم في اليوم."
+                        % (_wk["training_days"], _wk["avg_carb_g"][0],
+                           _wk["avg_carb_g"][1]),
+                        "Weekly average carbs across %d training days: %d-%d g a day."
+                        % (_wk["training_days"], _wk["avg_carb_g"][0],
+                           _wk["avg_carb_g"][1])))
+
+            # ‏توفّر الطاقة: بترجّع None لو نسبة الدهون ناقصة -- ومابتخمّنش.
+            _ea = _sn.energy_availability(
+                data.get("goal_cal"), _sp_w, data.get("fat_pct"), _sport,
+                data.get("training_hours") or 1, data.get("gender"))
+            _ea_txt = _sn.ea_note(_ea, is_ar=_pdf_ar)
+            if _ea_txt:
+                _note("warn" if _ea.get("level") == "low" else "info", _ea_txt)
+        except Exception as _e:          # ‏الرياضة إضافة، مش شرط للورقة
+            pass
+
     # ‏الطفل: نطاق مش رقم واحد.
     #
     # ‏التوصية (RDA) أرضية -- أقل كمية تمنع النقص -- ومش سقف. وقاعدة
