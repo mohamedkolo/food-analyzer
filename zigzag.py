@@ -321,6 +321,68 @@ def build_zigzag(target_cal, mode=DEFAULT_MODE, gender="male", weight=None,
     }
 
 
+def training_pattern(data):
+    """‏نمط أيام التمرين بتاع العميل نفسه، أو None.
+
+    ‏نمط "حسب أيام التمرين" الجاهز شغّال على أيام **ثابتة** (الأحد
+    والثلاثاء والخميس). وده تخمين: العميل اللي بيتمرن خمس أيام بياخد
+    جدول مبني على تلاتة.
+
+    ‏فلو الرياضة وعدد أيام التمرين متسجّلين، النمط بيتبني من بياناته:
+    sports_nutrition بيوزّع أيام التمرين على الأسبوع (مش تلاتة ورا
+    بعض)، وفرق السعرات بين يوم التمرين ويوم الراحة **مش رقم مخترع** --
+    هو فرق الكارب اللي البيانات بتقوله (يوم الراحة ٧٠٪ من كارب يوم
+    التمرين) مضروب في ٤ سعرات للجرام.
+
+    ‏والمجموع الأسبوعي مابيتغيّرش: اللي بيتزوّد في أيام التمرين هو اللي
+    بيتشال من أيام الراحة بالظبط.
+    """
+    sport = (data.get("sport") or "").strip()
+    if not sport:
+        return None
+    try:
+        import sports_nutrition as sn
+    except Exception:
+        return None
+
+    try:
+        weight = float(data.get("weight") or 0)
+        target = float(data.get("goal_cal") or 0)
+        days_n = int(float(data.get("training_days") or 0))
+    except (TypeError, ValueError):
+        return None
+    if weight <= 0 or target <= 0:
+        return None
+    days_n = max(0, min(7, days_n))
+    if days_n in (0, 7):
+        return None          # ‏كل الأيام زي بعض -- مفيش تدوير
+
+    load = (data.get("training_load") or "moderate").strip()
+    try:
+        deficit = float(data.get("tdee") or 0) - target > 0
+    except (TypeError, ValueError):
+        deficit = False
+
+    week = sn.week(weight, sport, load, deficit, days_n)
+    train = sn.targets(weight, sport, load, deficit, True)
+    rest = sn.targets(weight, sport, load, deficit, False)
+    if not (week and train and rest):
+        return None
+
+    # ‏فرق السعرات = فرق الكارب × ٤
+    c_train = sum(train["carb_g"]) / 2.0
+    c_rest = sum(rest["carb_g"]) / 2.0
+    delta = (c_train - c_rest) * 4.0
+    if delta <= 0:
+        return None
+
+    # ‏التوزيع بيحافظ على المجموع: n×up = (7-n)×down
+    up = delta * (7 - days_n) / 7.0
+    down = delta * days_n / 7.0
+    flags = [d["training_day"] for d in week["days"]]
+    return [round((up if t else -down) / target * 100.0, 2) for t in flags]
+
+
 def zigzag_from_data(data):
     """يبني التدوير من ديكشنري الفورم اللي الخطة بتتولد منه."""
     mode = (data.get("zigzag_mode") or "off").strip()
@@ -337,7 +399,13 @@ def zigzag_from_data(data):
         if len(parts) == 7:
             custom = parts
 
-    return build_zigzag(
+    # ‏"حسب أيام التمرين" بأيامه هو، لو مسجّلة
+    from_his_days = False
+    if not custom and mode == "training":
+        custom = training_pattern(data) or None
+        from_his_days = bool(custom)
+
+    out = build_zigzag(
         target_cal=data.get("goal_cal"),
         mode=mode,
         gender=data.get("gender", "ذكر"),
@@ -347,3 +415,16 @@ def zigzag_from_data(data):
         tdee=data.get("tdee"),
         custom=custom,
     )
+    if out and from_his_days:
+        # ‏النمط اتبنى من أيامه، فالاسم يفضل اسمه -- "مخصّص" بتخلي
+        # الدكتور يدوّر على اللي هو اختاره ومايلاقيهوش.
+        n = int(float(data.get("training_days") or 0))
+        out["mode"] = "training"
+        out["mode_ar"] = ZIGZAG_MODES["training"]["ar"]
+        out["mode_en"] = ZIGZAG_MODES["training"]["en"]
+        out["desc_ar"] = ("سعرات أعلى في %d أيام تمرينه وأقل في أيام راحته. "
+                          "الفرق هو فرق الكارب نفسه، والمجموع الأسبوعي زي ما هو." % n)
+        out["desc_en"] = ("Higher on his own %d training days, lower on rest days. "
+                          "The gap is the carb difference itself; the weekly total "
+                          "is unchanged." % n)
+    return out

@@ -379,6 +379,106 @@ def test_the_form_asks_for_what_the_calculation_needs():
     assert 'id="spFold"' in page, "‏الخانات مش مطوية -- بتكبّر الصفحة لكل عميل"
 
 
+# ── الجدول نفسه بيتبع أيام تمرينه ───────────────────────────────────
+
+def _zz(**over):
+    import zigzag
+    data = {"zigzag_mode": "training", "gender": "ذكر", "weight": "80",
+            "goal_cal": "3200", "tdee": "3000", "protein_per_kg": "1.8",
+            "fat_pct_cal": "30", "sport": "endurance",
+            "training_load": "high", "training_days": "5"}
+    data.update(over)
+    return zigzag.zigzag_from_data(data)
+
+
+def test_the_week_follows_his_training_days_not_fixed_ones():
+    """‏نمط "حسب أيام التمرين" الجاهز شغّال على الأحد والثلاثاء والخميس
+    -- تلات أيام ثابتة. والعميل اللي بيتمرن خمسة كان بياخد جدول مبني
+    على تلاتة."""
+    z = _zz(training_days="5")
+    kcal = [d["kcal"] for d in z["days"]]
+    high = [k for k in kcal if k > z["target"]]
+    assert len(high) == 5, "‏%d يوم عالي، والمفروض ٥: %s" % (len(high), kcal)
+
+    z2 = _zz(training_days="3")
+    high2 = [d["kcal"] for d in z2["days"] if d["kcal"] > z2["target"]]
+    assert len(high2) == 3, [d["kcal"] for d in z2["days"]]
+
+
+def test_the_weekly_total_does_not_move():
+    """‏التدوير بيوزّع، مابيزوّدش. اللي بيتزوّد في أيام التمرين هو اللي
+    بيتشال من أيام الراحة."""
+    z = _zz()
+    assert abs(z["avg"] - z["target"]) <= 2, (z["avg"], z["target"])
+
+
+def test_the_gap_is_the_carb_difference_not_a_made_up_number():
+    """‏الفرق بين اليوم العالي والواطي = فرق الكارب × ٤، مش نسبة
+    مخترعة."""
+    import zigzag
+    data = {"sport": "endurance", "training_load": "high",
+            "training_days": "5", "weight": "80", "goal_cal": "3200",
+            "tdee": "3000"}
+    train = SN.targets(80, "endurance", "high", False, True)
+    rest = SN.targets(80, "endurance", "high", False, False)
+    delta = (sum(train["carb_g"]) / 2.0 - sum(rest["carb_g"]) / 2.0) * 4
+    pat = zigzag.training_pattern(data)
+    spread = (max(pat) - min(pat)) / 100.0 * 3200
+    assert abs(spread - delta) < 15, "‏الفرق %d والكارب بيقول %d" % (spread, delta)
+
+
+def test_training_every_day_or_none_means_no_cycling():
+    """‏سبع أيام تمرين = مفيش يوم راحة يتشال منه."""
+    import zigzag
+    for n in ("0", "7"):
+        assert zigzag.training_pattern(
+            {"sport": "endurance", "training_days": n, "weight": "80",
+             "goal_cal": "3200"}) is None, n
+
+
+def test_a_client_who_is_not_an_athlete_keeps_the_old_pattern():
+    """‏اللي مختار النمط ده من غير ما يسجّل رياضة لازم ياخد اللي كان
+    بياخده -- التغيير إضافة مش استبدال."""
+    import zigzag
+    z = _zz(sport="")
+    fixed = zigzag.ZIGZAG_MODES["training"]["pattern"]
+    high = len([p for p in fixed if p > 0])
+    got = len([d for d in z["days"] if d["kcal"] > z["target"]])
+    assert got == high, (got, high)
+
+
+def test_the_name_he_picked_is_the_name_he_sees():
+    """‏النمط بيتبني كـcustom جوّه، والاسم كان بيطلع "مخصّص" -- فالدكتور
+    بيدوّر على اللي اختاره ومايلاقيهوش."""
+    z = _zz()
+    assert z["mode"] == "training", z["mode"]
+    assert "التمرين" in z["mode_ar"], z["mode_ar"]
+    assert "5" in z["desc_ar"], z["desc_ar"]
+
+
+def test_the_plan_days_really_carry_the_difference():
+    """‏النمط مالوش قيمة لو الأكل نفسه مااتغيّرش."""
+    plan_cals = []
+    import plan_engine
+    import zigzag
+    A = _app()
+    data = {"name": "ع", "gender": "ذكر", "age": "24", "height": "178",
+            "weight": "80", "fat_pct": "12", "culture": "مصري",
+            "diet_plan_type": "five_meals", "goal_type": "muscle_gain",
+            "activity_level": "high", "tdee": "3000", "goal_cal": "3200",
+            "protein_per_kg": "1.8", "fat_pct_cal": "30", "allergies": [],
+            "symptoms": [], "zigzag_mode": "training", "sport": "endurance",
+            "training_load": "high", "training_days": "5",
+            "training_hours": "2"}
+    data["zigzag"] = zigzag.zigzag_from_data(data)
+    with A.app.test_request_context("/"):
+        plan = plan_engine.generate_weekly_plan(data, seed="tr")
+    plan_cals = [d["total_cal"] for d in plan]
+    high = [c for c in plan_cals if c > 3200]
+    assert len(high) == 5, plan_cals
+    assert max(plan_cals) - min(plan_cals) > 400, plan_cals
+
+
 def test_the_page_renders_without_the_route_handing_it_the_lists():
     """‏القوايم اتبعتت الأول من راوت /generate لوحده، فأول حد تاني عرض
     نفس القالب (اختبار في ملف تاني) وقع على UndefinedError جوه الـfor
