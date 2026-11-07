@@ -309,6 +309,32 @@ def test_no_template_hard_codes_the_arabic_direction():
         % (len(hits), "\n   ".join(hits[:12])))
 
 
+def test_the_doctors_name_is_right_on_every_page():
+    """‏الفوتر بيظهر على كل صفحة بيفتحها عميل، وكان مكتوب فيه اسم
+    **غلط** (د. محمد كولو) بالعربي والإنجليزي -- في الفوتر وفي وصف
+    المنصة. والاسم ده هو اللي العميل بيثق فيه ويدوّر عليه.
+
+    ‏الاختبار ده بيمسك الاسم القديم لو رجع من أي حتة (نسخة قديمة من
+    القالب، أو copy-paste من ملف تاني).
+    """
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    import glob
+    wrong = []
+    for path in (glob.glob(os.path.join(here, "templates", "*.html"))
+                 + glob.glob(os.path.join(here, "*.py"))):
+        with open(path, encoding="utf-8") as fh:
+            body = fh.read()
+        if "كولو" in body or "Mohamed Kolo" in body:
+            wrong.append(os.path.basename(path))
+    assert not wrong, "‏الاسم الغلط لسه في: %s" % ", ".join(wrong)
+
+    with open(os.path.join(here, "templates", "base.html"),
+              encoding="utf-8") as fh:
+        base = fh.read()
+    assert "محمد أشرف" in base, "‏اسم الدكتور اختفى من الفوتر"
+    assert "Mohamed Ashraf" in base, "‏الاسم الإنجليزي مش موجود"
+
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):
