@@ -202,6 +202,36 @@
         <option value="1.9" {% if prev.activity|string == '1.9' %}selected{% endif %}>{{ 'عالي جداً (تمرين + شغل بدني) — ×1.9 · بروتين 2.0 جم/كجم' if is_ar else 'Very high (training + physical job) — ×1.9 · protein 2.0 g/kg' }}</option>
       </select>
     </div>
+    {# ═══ الهدف ═══════════════════════════════════════════════════════
+       ‏كان في الخطوة اللي بعدها، والرقم اللي بيحسبه (الهدف اليومي) في
+       الخطوة دي. يعني الدكتور يشوف رقم هنا، يعدّي، يختار هدف، والرقم
+       يتغيّر وهو مش شايفه.
+       ‏فبقى جنب الرقم اللي بيحرّكه -- وجوّه نفس الكارت، مش كارت تاني:
+       الصفحة بتتقلّل مش بتتزوّد. #}
+    <label class="form-label" style="margin-bottom:6px">
+      {{ 'الهدف من الخطة' if is_ar else 'Goal' }}
+    </label>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:9px">
+      {% for goal in [
+        ('weight_loss','🥗','تخسيس','Weight Loss','1200-1500 kcal'),
+        ('maintenance','🍽️','مكتنز','Maintenance','1800-2200 kcal'),
+        ('muscle_gain','💪','زيادة عضل','Muscle Gain','2200-2600 kcal'),
+        ('bulking','🔥','تضخيم','Bulking','3000-3500 kcal')
+      ] %}
+      <label class="nx-opt">
+        <input type="radio" name="goal_type" value="{{ goal[0] }}" class="nx-opt-in goal-radio"
+               {% if prev.goal_type == goal[0] or (not prev.goal_type and loop.first) %}checked{% endif %}>
+        <span class="nx-opt-b">
+          <span class="nx-opt-ic" aria-hidden="true">{{ goal[1] }}</span>
+          <span class="nx-opt-tx">
+            <span class="nx-opt-t">{{ goal[2] if is_ar else goal[3] }}</span>
+            <span class="nx-opt-s">{{ goal[4] }}</span>
+          </span>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+
     <div class="form-group">
       <label for="goalField" class="form-label">{{ 'الهدف اليومي (kcal)' if is_ar else 'Daily Target (kcal)' }}</label>
       <input class="form-input" type="number" name="goal_cal" step="any" id="goalField" value="{{ prev.goal_cal or 1400 }}">
@@ -283,36 +313,6 @@
 
 
   <div class="wz-step" data-step="2">
-  <!-- ═══════════ الهدف ═══════════ -->
-  <section class="wz-card">
-    <h2 class="wz-card-title"><i class="fa-solid fa-bullseye"></i>
-      {{ 'اختر الهدف من الخطة' if is_ar else 'Choose Goal' }}</h2>
-    <div class="wz-card-body">    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:9px">
-      {% for goal in [
-        ('weight_loss','🥗','تخسيس','Weight Loss','1200-1500 kcal'),
-        ('maintenance','🍽️','مكتنز','Maintenance','1800-2200 kcal'),
-        ('muscle_gain','💪','زيادة عضل','Muscle Gain','2200-2600 kcal'),
-        ('bulking','🔥','تضخيم','Bulking','3000-3500 kcal')
-      ] %}
-      <label class="nx-opt">
-        <input type="radio" name="goal_type" value="{{ goal[0] }}" class="nx-opt-in goal-radio"
-               {% if prev.goal_type == goal[0] or (not prev.goal_type and loop.first) %}checked{% endif %}>
-        <span class="nx-opt-b">
-          <span class="nx-opt-ic" aria-hidden="true">{{ goal[1] }}</span>
-          <span class="nx-opt-tx">
-            <span class="nx-opt-t">{{ goal[2] if is_ar else goal[3] }}</span>
-            <span class="nx-opt-s">{{ goal[4] }}</span>
-          </span>
-        </span>
-      </label>
-      {% endfor %}
-    </div>
-  
-    </div>
-  </section>
-
-
-
   <!-- ═══════════ المطبخ ═══════════ -->
   <section class="wz-card">
     <h2 class="wz-card-title"><i class="fa-solid fa-utensils"></i>
@@ -563,6 +563,7 @@
         ('قصور الغدة الدرقية','Hypothyroidism'),
         ('نشاط الغدة الدرقية','Hyperthyroidism'),
         ('ارتفاع الكوليسترول','High cholesterol'),
+        ('نحافة','Underweight'),
         ('اضطراب في الأكل','Eating Disorder'),('هشاشة العظام','Osteoporosis'),
         ('الوقاية من السرطان','Cancer Risk Reduction')
       ] %}

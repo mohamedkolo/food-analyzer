@@ -177,8 +177,12 @@ def test_the_form_is_four_steps_and_hidden_steps_still_submit():
     assert "remove()" not in html.split(".wz-step")[1][:2000], \
         "‏في كود بيشيل الخطوة من الصفحة -- البيانات هتضيع"
     # ‏الأقسام العشرة كلها لسه موجودة
-    assert html.count('class="wz-card"') == 10, (
-        "‏قسم ضاع في التقسيم: %d من 10" % html.count('class="wz-card"'))
+    # ‏العدد بقى ٩ بعد ما "الهدف من الخطة" اندمج جوّه كارت بيانات العميل:
+    # هو اللي بيحسب "الهدف اليومي (kcal)" اللي في نفس الكارت، وكان في
+    # خطوة تانية -- فالدكتور يشوف الرقم، يعدّي، يختار هدف، والرقم يتغيّر
+    # وهو مش شايفه. الدمج مقصود، والعدد بيتحرس عشان ما يضيعش قسم بالغلط.
+    assert html.count('class="wz-card"') == 9, (
+        "‏قسم ضاع في التقسيم: %d من 9" % html.count('class="wz-card"'))
 
 
 def test_every_step_lives_inside_the_form():

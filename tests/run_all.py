@@ -57,6 +57,7 @@ SUITES = [
     "test_deficit_note.py",
     "test_three_meals.py",
     "test_sheet_rules.py",
+    "test_underweight.py",
     "test_money.py",
 ]
 

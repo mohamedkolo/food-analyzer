@@ -1961,6 +1961,41 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
         if _gn:
             _note("info", _gn)
 
+    # ‏نحافة + عجز = تناقض. والـBMI بيقوله من غير ما حد يعلّم.
+    #
+    # ‏الحالة دي بتحصل بالغلط: الدكتور بيفتح خطة قديمة لعميل تاني،
+    # أو بيسيب الهدف على "تخسيس" وهو الافتراضي، والعميل أصلاً نحيف.
+    # الورقة بتطلع صح شكلاً وغلط في اتجاهها كله.
+    try:
+        _bmi_v = float(data.get("bmi") or 0)
+        if not _bmi_v:
+            _h_m = float(data.get("height") or 0) / 100.0
+            _w_v = float(data.get("weight") or 0)
+            _bmi_v = _w_v / (_h_m * _h_m) if (_h_m > 0 and _w_v > 0) else 0
+    except (TypeError, ValueError, ZeroDivisionError):
+        _bmi_v = 0
+    _thin_flag = "نحافة" in (symptoms or [])
+    _thin_bmi = 0 < _bmi_v < 18.5
+    if (_thin_flag or _thin_bmi) and _gap > 0:
+        _why_thin = (_L("مكتوب عليه نحافة", "underweight is ticked")
+                     if _thin_flag else
+                     _L("الـBMI %.1f (تحت ١٨.٥)" % _bmi_v,
+                        "BMI is %.1f (under 18.5)" % _bmi_v))
+        _note("warn", _L(
+            "%s والخطة فيها **عجز** %d سعرة. راجع الهدف -- دي خطة بتنزّل "
+            "وزن لحد محتاج يزوّد." % (_why_thin, round(_gap)),
+            "%s and the plan carries a %d kcal **deficit**. Check the goal - "
+            "this plan takes weight off someone who needs to put it on."
+            % (_why_thin, round(_gap))))
+    elif _thin_bmi and not _thin_flag:
+        _note("info", _L(
+            "الـBMI %.1f (تحت ١٨.٥). لو دي نحافة فعلاً، علّم عليها عشان "
+            "الخطة تقدّم الأكل الكثيف -- وأول خطوة استبعاد سبب طبي."
+            % _bmi_v,
+            "BMI is %.1f (under 18.5). If this is genuine underweight, tick "
+            "it so the plan favours energy-dense food - and rule out a "
+            "medical cause first." % _bmi_v))
+
     # ═══ العجز: قد إيه، ومعناه إيه بالكيلو ══════════════════════════
     #
     # ‏الدكتور بيكتب هدف السعرات بإيده، والرقم لوحده مابيقولش حاجة:

@@ -513,6 +513,22 @@ NUTRIENT_BOOST_NOTES = {
     "السمنة": (
         "⚖️ السمنة: عجز سعري معتدل ومستمر أفضل من الحرمان، مع بروتين كافي في كل وجبة للحفاظ على الكتلة العضلية، وألياف وخضار لزيادة الشبع، ونشاط يومي حتى لو مشي.",
         "⚖️ Obesity: a moderate, sustainable calorie deficit beats severe restriction. Keep protein adequate at every meal to protect muscle, use fibre and vegetables for satiety, and stay active daily even if only walking."),
+    # ‏النحافة مش "عكس السمنة" في التعامل: أول سؤال فيها طبي مش غذائي
+    # -- فيه سبب وراها (غدة، سوء امتصاص، سيلياك، سكري، اكتئاب، دواء)
+    # ولا لأ. والخطة بتتبني بعد ما ده يتسأل، مش قبله.
+    "نحافة": (
+        "🍚 النحافة: أول خطوة استبعاد سبب طبي (غدة، سوء امتصاص، سيلياك، "
+        "سكري، اكتئاب، دواء). وبعدها فائض معتدل ومستمر أحسن من كميات كبيرة "
+        "مرة واحدة: أكل كثيف السعرات (مكسرات، زيوت، لبن كامل، تمر)، ووجبات "
+        "أصغر وأكتر عدداً، والسوايل بعد الأكل مش معاه -- بتملا المعدة قبل "
+        "ما الأكل يدخل. وتمارين مقاومة عشان الزيادة تبقى عضل.",
+        "🍚 Underweight: first rule out a medical cause (thyroid, "
+        "malabsorption, coeliac, diabetes, depression, medication). Then a "
+        "moderate, steady surplus beats large one-off meals: energy-dense "
+        "food (nuts, oils, whole milk, dates), smaller and more frequent "
+        "meals, and fluids after food rather than with it - they fill the "
+        "stomach before the food goes in. Add resistance training so the "
+        "gain is muscle."),
     "نقص فيتامين D3": (
         "☀️ نقص فيتامين D: أكد على الأسماك الدهنية (سلمون، سردين، ماكريل)، صفار البيض والمنتجات المدعّمة، مع تعرض معتدل للشمس. النقص الشديد غالباً يحتاج مكمل بجرعة من الطبيب.",
         "☀️ Vitamin D deficiency: emphasise oily fish (salmon, sardines, mackerel), egg yolk and fortified products, alongside moderate sun exposure. Marked deficiency usually needs a supplement dosed by a doctor."),
