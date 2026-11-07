@@ -98,16 +98,92 @@ def reference_weight(height_cm, age):
     return round(bmi * metres * metres, 1)
 
 
-def target_grams(weight, height, age, per_kg):
+# ═══ البالغ البدين: البروتين بيتحسب على إيه ═════════════════════════
+#
+# ‏الجرام/كجم على **الوزن الفعلي** بيدّي أرقام مالهاش معنى في السمنة
+# المفرطة: عميل ١٥٠ كجم × ٢ جم = **٣٠٠ جم بروتين**. ده مش وصفة -- ده
+# ١٢٠٠ سعرة من خطة ٢٠٠٠، والماكروز كلها بتتلخبط وراه.
+#
+# ‏والسبب إن الدهن الزيادة **مش نسيج بيطلب بروتين**. فالحساب بيتعمل على
+# اللي بيطلبه فعلاً:
+#
+#   ١) الكتلة الخالية من الدهن، لو نسبة الدهون متسجّلة. ودي الأدق،
+#      والدكتور بيقيسها بالإنبودي أصلاً.
+#   ٢) ومن غيرها: الوزن المعدّل -- المعادلة الكلاسيكية في التغذية
+#      الإكلينيكية (الوزن المثالي + ربع الزيادة). الدهن الزيادة فيه
+#      نسيج داعم فعلاً، فمش بيتشال كله.
+#
+# ‏والرقم مابيتغيّرش في صمت: السبب بيترجّع ويتكتب للأخصائي.
+OBESE_BMI = 30          # ‏تحتها الوزن الفعلي زي ما هو
+IBW_BMI = 25            # ‏الوزن المثالي = أعلى النطاق الصحي لطوله
+ADJUSTED_FRACTION = 0.25
+
+
+def fat_free_mass(weight, fat_pct):
+    """‏الكتلة الخالية من الدهن بالكيلو، أو None لو الرقم ناقص."""
+    try:
+        w, f = float(weight or 0), float(fat_pct or 0)
+    except (TypeError, ValueError):
+        return None
+    if w <= 0 or not (0 < f < 70):
+        return None
+    return round(w * (1 - f / 100.0), 1)
+
+
+def adjusted_weight(weight, height):
+    """‏الوزن المعدّل: المثالي + ربع الزيادة عليه، أو None."""
+    try:
+        w, m = float(weight or 0), float(height or 0) / 100.0
+    except (TypeError, ValueError):
+        return None
+    if w <= 0 or m <= 0:
+        return None
+    ibw = IBW_BMI * m * m
+    if w <= ibw:
+        return None
+    return round(ibw + ADJUSTED_FRACTION * (w - ibw), 1)
+
+
+def protein_basis(weight, height, age, fat_pct=None, protect_lean=False):
+    """‏الوزن اللي البروتين يتحسب عليه، والسبب. (basis, why)
+
+    protect_lean: في حالة الأرضية اللي موجودة **عشان تحمي العضل**
+    (إبر GLP-1 مثلاً)، التخفيض ده بيلغي الغرض منها. على الإبرة ٢٠-٤٠٪
+    من الوزن النازل عضل، والأكل نفسه قليل -- فنقص الهدف هنا ضرر صافي.
+    ساعتها الحساب بيفضل على الوزن الفعلي.
+    """
+    if protect_lean:
+        return None, None
+    try:
+        w, m = float(weight or 0), float(height or 0) / 100.0
+    except (TypeError, ValueError):
+        return None, None
+    if w <= 0 or m <= 0:
+        return None, None
+    if w / (m * m) < OBESE_BMI:
+        return None, None          # ‏مش بدين: الوزن الفعلي زي ما هو
+
+    ffm = fat_free_mass(w, fat_pct)
+    if ffm:
+        return ffm, "ffm"
+    adj = adjusted_weight(w, height)
+    if adj:
+        return adj, "adjusted"
+    return None, None
+
+
+def target_grams(weight, height, age, per_kg, fat_pct=None,
+                 protect_lean=False):
     """‏هدف البروتين باليوم، ومعاه على إيه اتحسب.
 
     ‏بترجّع (جرامات, الوزن اللي اتحسب عليه, سبب, الجرام/كجم المستخدم).
     السبب بيتكتب على الورقة -- مافيش رقم بيتغيّر في صمت.
 
-      None          ‏بالغ، أو طفل الحساب ليه زي ما هو
+      None          ‏الحساب على الوزن الفعلي زي ما هو
       "rate"        ‏الجرام/كجم اتظبط على حدود سن النمو
-      "reference"   ‏الحساب على الوزن المرجعي لطوله وسنه
-      "rate+reference"  ‏الاتنين
+      "reference"   ‏الحساب على الوزن المرجعي لطوله وسنه (طفل)
+      "ffm"         ‏بالغ بدين: الحساب على الكتلة الخالية من الدهن
+      "adjusted"    ‏بالغ بدين من غير نسبة دهون: الوزن المعدّل
     """
     try:
         actual = float(weight or 0)
@@ -118,6 +194,10 @@ def target_grams(weight, height, age, per_kg):
         return 0, actual, None, rate
 
     if not is_child(age):
+        basis, why = protein_basis(actual, height, age, fat_pct,
+                                   protect_lean)
+        if basis:
+            return int(round(basis * rate)), basis, why, rate
         return int(round(actual * rate)), actual, None, rate
 
     # ‏طفل: الجرام/كجم مايقلّش عن التوصية وماي��دّيش السقف المطلق
@@ -138,24 +218,42 @@ def target_grams(weight, height, age, per_kg):
     return int(round(basis * used)), basis, why, used
 
 
-def note(age, height, weight, per_kg, is_ar=True):
+def note(age, height, weight, per_kg, is_ar=True, fat_pct=None,
+         protect_lean=False):
     """‏سطر يتكتب على الورقة لو الحساب اتغيّر، وإلا None.
 
     ‏السطر بيقول **الرقم اللي اتحسب بيه فعلاً**. أول نسخة كانت بتكتب
     توصية السن (٠.٩٥) والحساب ماشي على ١.٣، فالسطر بيقول رقم والحساب
     بيقول رقم تاني -- نفس العيب اللي الشغل كله بيتصلّح عشانه.
     """
-    grams, basis, why, used = target_grams(weight, height, age, per_kg)
+    grams, basis, why, used = target_grams(weight, height, age, per_kg,
+                                           fat_pct, protect_lean)
     if not why:
         return None
     parts = []
     if is_ar:
+        if "ffm" in why:
+            parts.append("اتحسب على الكتلة الخالية من الدهن (%s كجم) مش على "
+                         "الوزن الكلي -- الدهن الزيادة مش نسيج بيطلب بروتين"
+                         % _fmt(basis))
+        if "adjusted" in why:
+            parts.append("اتحسب على الوزن المعدّل (%s كجم) مش على الوزن الكلي. "
+                         "سجّل نسبة الدهون ويتحسب على الكتلة الخالية منه"
+                         % _fmt(basis))
         if "reference" in why:
             parts.append("اتحسب على الوزن المرجعي لطول وسن الطفل (%s كجم) "
                          "مش على الوزن الحالي" % _fmt(basis))
         if "rate" in why:
             parts.append("والجرام/كجم اتظبط على حدود سن النمو (%.2f)" % used)
         return "‏البروتين %s = **%d جم**." % ("، ".join(parts), grams)
+    if "ffm" in why:
+        parts.append("was computed on fat-free mass (%s kg), not total weight "
+                     "- excess fat is not tissue that demands protein"
+                     % _fmt(basis))
+    if "adjusted" in why:
+        parts.append("was computed on adjusted body weight (%s kg), not total "
+                     "weight. Record body fat and it will use fat-free mass"
+                     % _fmt(basis))
     if "reference" in why:
         parts.append("was computed on the reference weight for this child's "
                      "height and age (%s kg), not the current weight"

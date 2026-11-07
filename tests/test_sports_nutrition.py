@@ -379,7 +379,27 @@ def test_the_form_asks_for_what_the_calculation_needs():
     assert 'id="spFold"' in page, "‏الخانات مش مطوية -- بتكبّر الصفحة لكل عميل"
 
 
-# ── الجدول نفسه بيتبع أيام تمرينه ───────────────────────────────────
+def test_cycling_without_a_sport_says_why_it_may_not_belong():
+    """‏مبرّر التدوير استهلاك الجليكوجين في التمرين. العميل اللي مش
+    رياضي مالوش الطلب ده، فالتدوير بيبقى تعقيد زيادة على خطة لسه
+    بادئة -- والاختيار فضل مفتوح بطلب الدكتور، فالسطر عشان يقرّر وهو
+    شايف."""
+    notes = " ".join(_notes(zigzag_mode="classic"))
+    assert "مش مسجّل كرياضي" in notes, notes[:300]
+
+
+def test_an_athlete_cycling_is_not_second_guessed():
+    notes = " ".join(_notes(zigzag_mode="classic", sport="strength",
+                            training_days="4"))
+    assert "مش مسجّل كرياضي" not in notes, notes[:300]
+
+
+def test_no_cycling_no_note():
+    notes = " ".join(_notes(zigzag_mode="off"))
+    assert "مش مسجّل كرياضي" not in notes, notes[:300]
+
+
+# ── الجدول نفسه بيتبع أيام تمرينه ───────────────────────────────────# ── الجدول نفسه بيتبع أيام تمرينه ───────────────────────────────────
 
 def _zz(**over):
     import zigzag

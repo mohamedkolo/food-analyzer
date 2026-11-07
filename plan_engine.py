@@ -716,14 +716,16 @@ def generate_weekly_plan(data, seed=None):
     # وده بالظبط اللي كان بيحصل: الملاحظة بتقول "١.٢-١.٥ جم/كجم"
     # والهدف المطبوع ٩٥ جم (١.٠) لعميلة ٩٥ كجم خاملة على أوزمبيك.
     import protein_need as _pn_meds
-    _pf_ppk, _ = _pn_meds.rate_with_meds(_pf_ppk, symptoms, data.get("age"))
+    _pf_ppk, _pf_on_inj = _pn_meds.rate_with_meds(_pf_ppk, symptoms,
+                                                  data.get("age"))
     # ‏الهدف مش دايماً وزن العميل × جرام/كجم. ورقة نورة (١٠ سنين،
     # ١٠٨.٨ كجم، طول ١٥٢) كانت بتطبع ١٤١ جم بروتين -- تلات أضعاف
     # توصية سنها -- وزيادة البروتين كانت بتشتغل عشان توصّلها. التفاصيل
     # والحساب في protein_need.
     import protein_need
     _target_p, _pf_basis, _pf_why, _pf_used_rate = protein_need.target_grams(
-        _pf_w, data.get("height"), data.get("age"), _pf_ppk)
+        _pf_w, data.get("height"), data.get("age"), _pf_ppk,
+        data.get("fat_pct"), protect_lean=bool(_pf_on_inj))
     data["protein_basis"] = {"grams": _target_p, "weight": _pf_basis,
                              "why": _pf_why, "per_kg": _pf_used_rate}
 
@@ -1307,7 +1309,9 @@ def _protein_target(data, weight, per_kg):
     try:
         import protein_need
         grams, _basis, _why, _used = protein_need.target_grams(
-            weight, data.get("height"), data.get("age"), per_kg)
+            weight, data.get("height"), data.get("age"), per_kg,
+            data.get("fat_pct"),
+            protect_lean=protein_need.on_glp1(data.get("symptoms") or []))
         return grams
     except Exception:
         return round(float(weight or 0) * float(per_kg or 0))
@@ -1936,7 +1940,9 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
             # لو موجود، فالسطر كان يقول رقم والجدول متبني على غيره.
             _bn = protein_need.note(data.get("age"), data.get("height"),
                                     data.get("weight"), _ppk,
-                                    is_ar=_pdf_ar)
+                                    is_ar=_pdf_ar,
+                                    fat_pct=data.get("fat_pct"),
+                                    protect_lean=bool(_ppk_raised))
         except Exception:
             _bn = None
         if _bn:
@@ -1954,6 +1960,27 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
             _gn = None
         if _gn:
             _note("info", _gn)
+
+    # ‏تدوير الكارب لغير الرياضي: متاح، ومعاه السبب.
+    #
+    # ‏مبرّر التدوير هو **استهلاك الجليكوجين** في التمرين -- وده موجود
+    # عند عدّاء بيتمرن ساعتين، مش عند حد بيرفع حديد تلات مرات في
+    # الأسبوع. فالفرق بين أيامه صغير، والتعقيد الزيادة بياكل من
+    # الالتزام -- وهو العامل الأول في نجاح الخطة.
+    #
+    # ‏الاختيار فضل مفتوح بطلب الدكتور: هو اللي يقرّر، والسطر ده عشان
+    # يقرّر وهو شايف.
+    _zz_mode = (data.get("zigzag_mode") or "off").strip()
+    if _zz_mode not in ("off", "") and not (data.get("sport") or "").strip():
+        _note("info", _L(
+            "تدوير السعرات شغّال والعميل مش مسجّل كرياضي. مبرّر التدوير "
+            "استهلاك الجليكوجين في التمرين، ومن غيره الفرق بين الأيام "
+            "بيبقى تعقيد زيادة على خطة لسه بادئة. لو الالتزام قلّ، ده أول "
+            "حاجة تتشال.",
+            "Calorie cycling is on and the client is not recorded as an "
+            "athlete. Cycling is justified by training glycogen demand; "
+            "without it the day-to-day difference is added complexity on a "
+            "plan that is just starting. If adherence slips, drop this first."))
 
     # ═══ الرياضي: أهداف منشورة ومؤشر توفّر الطاقة ════════════════════
     #
