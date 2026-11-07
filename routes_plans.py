@@ -123,6 +123,8 @@ def generate():
             "diet_plan_type": request.form.get("diet_plan_type","standard"),
             # ‏الرياضي: فاضية لأغلب العملاء، ولو اتملت الأهداف بتتحسب
             # من بيانات منشورة بدل الرقم العام (sports_nutrition.py).
+            # ‏التعليمات تحت الجدول: اختيارية، والورقة الافتراضية من غيرها
+            "print_rules": request.form.get("print_rules",""),
             "sport": request.form.get("sport",""),
             "training_load": request.form.get("training_load","moderate"),
             "training_days": request.form.get("training_days",""),

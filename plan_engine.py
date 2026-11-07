@@ -2199,6 +2199,66 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
         "full": "",
     })
 
+    # ═══ التعليمات: اختيارية، ومطفية ══════════════════════════════════
+    #
+    # ‏الورقة بقت جدول ومسموح وممنوع وبس، بطلب الدكتور. والتعليمات دي
+    # اتعملت بالإيد لعميلة واحدة، واتطلبت تاني وتالت -- فبقت في
+    # التطبيق، **بزرار**: اللي عايزها يشوّلها، والورقة الافتراضية زي
+    # ما هي.
+    #
+    # ‏ستة سطور بالظبط، وكل واحد **نتيجة** مش شرح: الدكتور طلبها
+    # "مختصرة أكتر" مرتين.
+    _rules_html = ""
+    if str(data.get("print_rules") or "").strip() in ("1", "true", "on", "yes"):
+        try:
+            _r_w = float(data.get("weight") or 0)
+        except (TypeError, ValueError):
+            _r_w = 0
+        try:
+            _r_water = float(data.get("water_l") or 0)
+        except (TypeError, ValueError):
+            _r_water = 0
+        if not _r_water and _r_w > 0:
+            # ‏٣٣ مل لكل كيلو -- نفس الرقم المكتوب في ملاحظة سن النمو
+            _r_water = round(_r_w * 33 / 1000.0, 1)
+        _w_txt = ("%g" % _r_water) if _r_water else "—"
+
+        _sport_key = (data.get("sport") or "").strip()
+        if _sport_key:
+            _ex = _L("زوّد الحمل كل أسبوع — التقدّم هو المحفّز، مش عدد الأيام.",
+                     "Add load every week - progression is the stimulus, "
+                     "not the number of days.")
+        else:
+            _ex = _L("مشي ٢٠ دقيقة، ٥ أيام. زوّد ٥ دقايق كل أسبوع لحد ٤٥.",
+                     "Walk 20 minutes, 5 days. Add 5 minutes a week up to 45.")
+
+        _rules = [
+            (_L("النوم", "Sleep"),
+             _L("٨–٩ ساعات، ونفس الميعاد. آخر أكل قبل النوم بساعتين.",
+                "8-9 hours, same time daily. Last meal two hours before bed.")),
+            (_L("المياه", "Water"),
+             _L("%s لتر. مش مع الأكل — قبله بنص ساعة أو بعده بساعة." % _w_txt,
+                "%s litres. Not with meals - half an hour before or an hour "
+                "after." % _w_txt)),
+            (_L("الرياضة", "Training"), _ex),
+            (_L("من برّه", "Eating out"),
+             _L("مشويات وكشري وفول وطعمية عادي. شاورما وبرجر مرة في الأسبوع.",
+                "Grills, koshari, fava beans and falafel are fine. Shawarma "
+                "and burgers once a week.")),
+            (_L("الطبق", "The plate"),
+             _L("مش لازم مرة واحدة — نصّين بساعة.",
+                "It need not go down in one sitting - two halves an hour apart.")),
+            (_L("الوزن", "Weighing"),
+             _L("مرة في الأسبوع، نفس اليوم، الصبح.",
+                "Once a week, same day, in the morning.")),
+        ]
+        _rows = "".join(
+            '<tr><td class="k">%s</td><td>%s</td></tr>' % (k, v)
+            for k, v in _rules)
+        _rules_html = (
+            '<div class="rules"><h4>%s</h4><table>%s</table></div>'
+            % (_L("تعليمات", "Instructions"), _rows))
+
     html_string = f"""<!DOCTYPE html><html lang="{_L("ar", "en")}"><head><meta charset="utf-8">
 <style>
 @page {{ size: A4 {orientation}; margin: 9mm 10mm; }}
@@ -2233,6 +2293,16 @@ tr:nth-child(even) td {{ background:#fbfcfb; }}
 .fbox ul {{ margin:0; padding-inline-start:13px; color:#3f4744; }}
 .fbox li {{ margin-bottom:2px; }}
 /* ‏سطر المراجعة كان بيزحّف لصفحة تانية لوحده -- صفحة كاملة لسطر. */
+/* ‏التعليمات: نفس روح الورقة -- خط شعر فوقها ولون نص واحد، مش
+   صندوق ملوّن. وبتتطبع بس لو الدكتور طلبها. */
+.rules {{ margin-top:10px; border-top:1px solid #d6dbd9; padding-top:6px; }}
+.rules h4 {{ margin:0 0 4px; font-size:9px; color:#8a9391; font-weight:600;
+             letter-spacing:.3px; }}
+.rules table {{ width:100%; border-collapse:collapse; }}
+.rules td {{ border:0; padding:1.5px 0; font-size:8.5px; line-height:1.5;
+             vertical-align:top; }}
+.rules td.k {{ width:42px; color:#8a9391; font-weight:600; }}
+
 /* ‏سطر التنبيه: بيظهر لما الورقة مش اللي الدكتور طلبها. مابيقرّبش
    من شكل الجدول -- سطر رفيع فوق المسموح والممنوع. */
 .alert {{ margin-top:6px; font-size:8.5px; font-weight:700;
@@ -2245,6 +2315,7 @@ tr:nth-child(even) td {{ background:#fbfcfb; }}
   <div class="fbox ok"><h4>{_L("مسموح", "Allowed")}</h4><ul>{allowed_html}</ul></div>
   <div class="fbox no"><h4>{_L("ممنوع", "Avoid")}</h4><ul>{forbidden_html}</ul></div>
 </div>
+{_rules_html}
 </body></html>"""
 
     # ‏الأخصائي بيقراها في المعاينة -- الورقة مابتحملهاش

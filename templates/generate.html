@@ -669,6 +669,34 @@
 
 
 
+  <!-- ═══════════ التعليمات على الورقة ═══════════ -->
+  <section class="wz-card">
+    <h2 class="wz-card-title"><i class="fa-solid fa-list-check"></i>
+      {{ 'تعليمات على الورقة' if is_ar else 'Instructions on the sheet' }}</h2>
+    <div class="wz-card-body">
+    {# ‏مطفية بالافتراضي: الورقة بقت جدول ومسموح وممنوع وبس بطلب
+       الدكتور، والتعليمات دي زيادة بيختارها هو لما تنفع العميل. #}
+    <label class="nx-opt">
+      <input type="checkbox" name="print_rules" value="1" class="nx-opt-in"
+             {% if prev.print_rules %}checked{% endif %}>
+      <span class="nx-opt-b">
+        <span class="nx-opt-ic" aria-hidden="true">📋</span>
+        <span class="nx-opt-tx">
+          <span class="nx-opt-t">{{ 'اطبع التعليمات تحت الجدول' if is_ar else 'Print the instructions under the table' }}</span>
+          <span class="nx-opt-s">{{ 'النوم · المياه · الرياضة · الأكل من برّه · الطبق · الوزن — ستة سطور'
+                                     if is_ar else
+                                     'Sleep, water, training, eating out, the plate, weighing - six lines' }}</span>
+        </span>
+      </span>
+    </label>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">
+      {{ 'المياه بتتحسب من وزنه (٣٣ مل/كجم) أو من الرقم المسجّل في ورقة تحليله.'
+         if is_ar else
+         'Water follows body weight (33 ml/kg) or the number on his report.' }}
+    </div>
+    </div>
+  </section>
+
   <!-- ═══════════ ملاحظات ═══════════ -->
   <section class="wz-card">
     <h2 class="wz-card-title"><i class="fa-solid fa-note-sticky"></i> {{ 'ملاحظات إضافية' if is_ar else 'Additional Notes' }}</h2>
