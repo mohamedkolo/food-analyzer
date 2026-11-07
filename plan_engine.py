@@ -1961,6 +1961,54 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
         if _gn:
             _note("info", _gn)
 
+    # ═══ العجز: قد إيه، ومعناه إيه بالكيلو ══════════════════════════
+    #
+    # ‏الدكتور بيكتب هدف السعرات بإيده، والرقم لوحده مابيقولش حاجة:
+    # ناقص ٥٠٠ على حرق ٣٠٠٠ = ١٧٪ (مظبوط)، ونفس الـ٥٠٠ على حرق ١٨٠٠
+    # = ٢٨٪ (قاسي). فالنسبة هي اللي بتتقاس، مش الفرق.
+    #
+    # ‏والتاني: العجز ده معناه إيه بالكيلو في الأسبوع. ٧٧٠٠ سعرة ≈ كيلو
+    # دهون، والمعدل الآمن ٠.٥-١٪ من وزن الجسم في الأسبوع. أسرع من كده
+    # معناه إن جزء من النازل عضل -- ودي حاجة مابتبانش في الميزان، وبتتكشف
+    # بعد شهرين لما الحرق يكون نزل.
+    #
+    # ‏الاتنين **ملاحظة مش منع**: الدكتور ممكن يكون عارف وقاصد.
+    try:
+        _tdee_v = float(data.get("tdee") or 0)
+        _w_gap = float(data.get("weight") or 0)
+    except (TypeError, ValueError):
+        _tdee_v = _w_gap = 0
+    if _gap > 0 and _tdee_v > 0:
+        _pct = _gap / _tdee_v * 100.0
+        _kg_wk = _gap * 7 / 7700.0
+        _pct_wk = (_kg_wk / _w_gap * 100.0) if _w_gap > 0 else 0
+        _deep = _pct > 25
+        _fast = _pct_wk > 1.0
+        if _deep or _fast:
+            _bits_ar = []
+            _bits_en = []
+            if _deep:
+                _bits_ar.append("العجز %d%% من الحرق (المعتاد ١٥-٢٠%%)" % round(_pct))
+                _bits_en.append("the deficit is %d%% of TDEE (usual range 15-20%%)"
+                                % round(_pct))
+            if _fast:
+                _bits_ar.append("والمتوقع %.1f كجم في الأسبوع = %.1f%% من وزنه "
+                                "(الآمن ٠.٥-١%%)" % (_kg_wk, _pct_wk))
+                _bits_en.append("and the expected loss is %.1f kg a week = %.1f%% "
+                                "of body weight (safe range 0.5-1%%)"
+                                % (_kg_wk, _pct_wk))
+            _note("warn", _L(
+                "%s. أسرع من كده معناه إن جزء من النازل عضل، وده مابيبانش "
+                "في الميزان." % "، ".join(_bits_ar),
+                "%s. Faster than that means part of the loss is muscle, and "
+                "the scale does not show it." % ", ".join(_bits_en)))
+        else:
+            _note("info", _L(
+                "العجز %d%% من الحرق، والمتوقع %.1f كجم في الأسبوع."
+                % (round(_pct), _kg_wk),
+                "The deficit is %d%% of TDEE; expected loss %.1f kg a week."
+                % (round(_pct), _kg_wk)))
+
     # ‏تدوير الكارب لغير الرياضي: متاح، ومعاه السبب.
     #
     # ‏مبرّر التدوير هو **استهلاك الجليكوجين** في التمرين -- وده موجود
