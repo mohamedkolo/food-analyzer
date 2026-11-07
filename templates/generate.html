@@ -669,38 +669,26 @@
 
 
 
-  <!-- ═══════════ التعليمات على الورقة ═══════════ -->
+  <!-- ═══════════ ملاحظات ═══════════ -->
   <section class="wz-card">
-    <h2 class="wz-card-title"><i class="fa-solid fa-list-check"></i>
-      {{ 'تعليمات على الورقة' if is_ar else 'Instructions on the sheet' }}</h2>
-    <div class="wz-card-body">
-    {# ‏مطفية بالافتراضي: الورقة بقت جدول ومسموح وممنوع وبس بطلب
-       الدكتور، والتعليمات دي زيادة بيختارها هو لما تنفع العميل. #}
-    <label class="nx-opt">
+    <h2 class="wz-card-title"><i class="fa-solid fa-note-sticky"></i> {{ 'ملاحظات إضافية' if is_ar else 'Additional Notes' }}</h2>
+    <div class="wz-card-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'أي ملاحظة فيها كلمة "اشيل" أو "بدون" أو "تجنب" + اسم أكل، هيتم استثناء الأكل ده تلقائياً' if is_ar else 'Any note with a food name after "remove/without/avoid" will exclude that food automatically' }}</p>
+    {# ‏التعليمات تحت الجدول: اختيارية ومطفية. الورقة اتقلّمت بطلب
+       الدكتور، فالإضافة دي قراره هو لما تنفع العميل. وهي زرار واحد --
+       مايستاهلش قسم لوحده في صفحة إحنا بنقلّلها. #}
+    <label class="nx-opt" style="margin-bottom:12px">
       <input type="checkbox" name="print_rules" value="1" class="nx-opt-in"
              {% if prev.print_rules %}checked{% endif %}>
       <span class="nx-opt-b">
         <span class="nx-opt-ic" aria-hidden="true">📋</span>
         <span class="nx-opt-tx">
           <span class="nx-opt-t">{{ 'اطبع التعليمات تحت الجدول' if is_ar else 'Print the instructions under the table' }}</span>
-          <span class="nx-opt-s">{{ 'النوم · المياه · الرياضة · الأكل من برّه · الطبق · الوزن — ستة سطور'
+          <span class="nx-opt-s">{{ 'النوم · المياه · الرياضة · الأكل من برّه · الطبق · الوزن'
                                      if is_ar else
-                                     'Sleep, water, training, eating out, the plate, weighing - six lines' }}</span>
+                                     'Sleep · water · training · eating out · the plate · weighing' }}</span>
         </span>
       </span>
     </label>
-    <div style="font-size:11px;color:var(--muted);margin-top:8px">
-      {{ 'المياه بتتحسب من وزنه (٣٣ مل/كجم) أو من الرقم المسجّل في ورقة تحليله.'
-         if is_ar else
-         'Water follows body weight (33 ml/kg) or the number on his report.' }}
-    </div>
-    </div>
-  </section>
-
-  <!-- ═══════════ ملاحظات ═══════════ -->
-  <section class="wz-card">
-    <h2 class="wz-card-title"><i class="fa-solid fa-note-sticky"></i> {{ 'ملاحظات إضافية' if is_ar else 'Additional Notes' }}</h2>
-    <div class="wz-card-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'أي ملاحظة فيها كلمة "اشيل" أو "بدون" أو "تجنب" + اسم أكل، هيتم استثناء الأكل ده تلقائياً' if is_ar else 'Any note with a food name after "remove/without/avoid" will exclude that food automatically' }}</p>
     <textarea class="form-input" name="notes" rows="3"
       placeholder="{{ 'مثلاً: اشيل الموز، بدون فلفل حار، تجنب الجبن...' if is_ar else 'e.g. remove banana, without chili, avoid cheese...' }}"
       style="resize:vertical">{{ prev.notes or '' }}</textarea>
