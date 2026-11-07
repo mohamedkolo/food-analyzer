@@ -43,7 +43,7 @@ MIN_DAYS_TO_JUDGE = 7     # أقل من أسبوع بين الزيارتين = �
 # أقصى تعديل على السعرات في زيارة واحدة، عشان الخطة ما تتقلبش رأساً على عقب
 MAX_STEP_KCAL = 250
 
-GAIN_GOALS = ("muscle_gain", "bulking")
+GAIN_GOALS = ("muscle_gain", "bulking", "weight_gain")
 
 _AR_FOLD = str.maketrans({
     "أ": "ا", "إ": "ا", "آ": "ا", "ٱ": "ا", "ة": "ه", "ى": "ي",

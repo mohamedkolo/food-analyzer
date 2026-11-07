@@ -2044,6 +2044,26 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
                 "The deficit is %d%% of TDEE; expected loss %.1f kg a week."
                 % (round(_pct), _kg_wk)))
 
+    # ‏خطة زيادة بنمط تدوير بتاع عجز: أيام بتنزل تحت الحرق.
+    #
+    # ‏كل الأنماط المعتادة مبنية على خطة تخسيس -- بتنزّل أيام بـ١٥-٣٠٪.
+    # على خطة زيادة ده معناه يوم (أو يومين) **تحت الحرق**، يعني يوم مش
+    # بيزوّد أصلاً. والمجموع الأسبوعي بيفضل صح على الورق، والنتيجة لأ.
+    try:
+        _zz_obj = data.get("zigzag") or {}
+        _zz_low = float(_zz_obj.get("low") or 0)
+    except (TypeError, ValueError):
+        _zz_low = 0
+    if _gap < 0 and _zz_low and _tdee_v and _zz_low < _tdee_v:
+        _note("warn", _L(
+            "خطة زيادة، وأقل يوم في التدوير %d سعرة -- تحت حرقه (%d). "
+            "اليوم ده مش بيزوّد. استخدم نمط \"تدوير الزيادة\" أو سيبه "
+            "على بدون تدوير." % (round(_zz_low), round(_tdee_v)),
+            "This is a gain plan and the lowest cycling day is %d kcal - "
+            "below maintenance (%d). That day adds nothing. Use the gain "
+            "cycling pattern, or turn cycling off."
+            % (round(_zz_low), round(_tdee_v))))
+
     # ‏تدوير الكارب لغير الرياضي: متاح، ومعاه السبب.
     #
     # ‏مبرّر التدوير هو **استهلاك الجليكوجين** في التمرين -- وده موجود

@@ -1976,7 +1976,21 @@ DIET_PLAN_TYPES = {
 # Helpers
 # ═══════════════════════════════════════════════
 
+# ‏"زيادة وزن" (النحافة) بتاكل من نفس مخزن زيادة العضل.
+#
+# ‏الفرق بينهم **مش في الأكل، في الرقم**: النحيف محتاج فائض معتدل
+# (حوالي +٣٠٠ على حرقه) مش ٣٠٠٠-٣٥٠٠ سعرة بتاعة التضخيم. ونسخ
+# المخزن كان هيدّي نسختين من نفس الوجبات -- واحدة فيهم هتبقى قديمة.
+GOAL_ALIASES = {"weight_gain": "muscle_gain"}
+
+
+def pool_goal(goal):
+    """‏الهدف اللي بيتقرا منه المخزن. الأسماء المترادفة بترجع لأصلها."""
+    return GOAL_ALIASES.get(goal, goal)
+
+
 def get_meal_pool(goal, culture):
+    goal = pool_goal(goal)
     pools = {
         "weight_loss": WEIGHT_LOSS,
         "muscle_gain": MUSCLE_GAIN,
@@ -2002,6 +2016,7 @@ def get_snacks_for_goal(goal):
     # ‏فكلهم اتكتبوا بالجرامات، والسعرات **محسوبة من جدول الأكل**
     # (meal_macros) مش مكتوبة بالإيد -- وكل سطر اتفحص إن أصنافه كلها
     # بتتعرف قبل ما يتحط هنا.
+    goal = pool_goal(goal)
     if goal == "weight_loss":
         return [
         "🍎 تفاح 150جم - 78 kcal",

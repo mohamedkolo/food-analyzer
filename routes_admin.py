@@ -50,6 +50,7 @@ def admin_users_export():
     except Exception:
         rows = []
     goal_labels = {"weight_loss": "تخسيس", "muscle_gain": "زيادة عضل",
+                   "weight_gain": "زيادة وزن",
                    "bulking": "تضخيم", "cutting": "تنشيف", "maintain": "محافظة", "maintenance": "محافظة"}
     role_labels = {"client": "عميل", "nutritionist": "أخصائي", "admin": "أدمن"}
     buf = io.StringIO()

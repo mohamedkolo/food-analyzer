@@ -70,6 +70,22 @@ ZIGZAG_MODES = {
         "desc_en": "A deficit through the week with higher weekend days — the easiest socially.",
         "pattern": [-15, -15, -15, -15, -15, 35, 40],
     },
+    # ‏الأنماط اللي فوق كلها مبنية على خطة **عجز**: فيها أيام بتنزل
+    # تحت الهدف بـ١٥-٣٠٪. ولخطة **زيادة** ده بيلغي الفائض في اليوم ده
+    # خالص -- النحيف هدفه حرقه + ٣٠٠، فيوم ناقص ٢٠٪ بيوقّعه تحت حرقه
+    # أصلاً، يعني يوم مش بيزوّد.
+    #
+    # ‏فالنمط ده فرقه صغير بالقصد، ومعاه أرضية عند الـTDEE تحت (في
+    # build_zigzag): **مافيش يوم ينزل تحت الحرق في خطة زيادة**.
+    "gain": {
+        "ar": "تدوير الزيادة (أيام أعلى، ومفيش يوم تحت الحرق)",
+        "en": "Gain cycling (higher days, none below maintenance)",
+        "desc_ar": "فرق بسيط بين الأيام، وأقل يوم بيفضل فوق الحرق — "
+                   "عشان مايبقاش فيه يوم مش بيزوّد.",
+        "desc_en": "A small day-to-day swing, with the lowest day still "
+                   "above maintenance - so no day fails to add.",
+        "pattern": [10, -7.5, 10, -7.5, 10, -7.5, -7.5],
+    },
     "training": {
         "ar": "حسب أيام التمرين",
         "en": "Training-day based",
@@ -150,6 +166,16 @@ def build_zigzag(target_cal, mode=DEFAULT_MODE, gender="male", weight=None,
         pattern = list(ZIGZAG_MODES[mode_key]["pattern"])
 
     floor = _floor_for(gender)
+    # ‏في خطة زيادة، الأرضية هي **الحرق** مش الحد الآمن الأدنى: اليوم
+    # اللي تحت الحرق مش بيزوّد، فوجوده في خطة زيادة بيقلّل الناتج
+    # ومابيدّيش أي فايدة مقابله.
+    if mode_key == "gain":
+        try:
+            _m = float(tdee or 0)
+        except (TypeError, ValueError):
+            _m = 0.0
+        if _m > 0:
+            floor = max(floor, _m)
     floor_disabled = floor >= target
     if floor_disabled:
         # الهدف نفسه عند الحد الآمن أو تحته: مفيش مجال ننزّل يوم عنه، سيب الأيام ثابتة

@@ -136,6 +136,94 @@ def test_a_normal_client_hears_nothing_about_it():
                 or "تحت ١٨.٥" in n["short"]], _text(notes)[:300]
 
 
+# ── هدف "زيادة وزن" ─────────────────────────────────────────────────
+
+def test_the_form_offers_a_weight_gain_goal():
+    """‏كان فيه "زيادة عضل" و"تضخيم" -- الاتنين بأرقام رياضيين
+    (٢٢٠٠-٢٦٠٠ و٣٠٠٠-٣٥٠٠). والنحيف محتاج فائض معتدل على حرقه هو."""
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(here, "templates", "generate.html"),
+              encoding="utf-8") as fh:
+        page = fh.read()
+    assert "'weight_gain'" in page, "‏الهدف مش في الفورم"
+    assert "+300 kcal" in page, "‏الفائض المعتدل مش مكتوب"
+
+
+def test_the_target_is_a_surplus_on_his_own_burn_not_a_fixed_number():
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(here, "templates", "generate.html"),
+              encoding="utf-8") as fh:
+        page = fh.read()
+    assert "gt==='weight_gain') goal.value=Math.round(t+300)" in page, (
+        "‏الهدف اليومي مش متحسب من الـTDEE")
+
+
+def test_the_new_goal_has_food_to_build_from():
+    """‏هدف من غير مخزن وجبات = خطة فاضية. بياكل من مخزن زيادة العضل،
+    والفرق بينهم الرقم مش الأكل."""
+    import meal_database as md
+    pool = md.get_meal_pool("weight_gain", "مصري")
+    for slot in ("breakfast", "lunch", "dinner"):
+        assert pool.get(slot), slot
+    assert md.get_snacks_for_goal("weight_gain"), "‏مفيش سناك"
+    assert md.pool_goal("weight_gain") == "muscle_gain"
+
+
+def test_the_follow_up_board_knows_it_is_a_gain_goal():
+    """‏لوحة المتابعة بتحكم على الاتجاه. لو الهدف ده مش معدود زيادة،
+    العميل اللي بيزيد هيطلع "خارج المسار"."""
+    import followup
+    assert "weight_gain" in followup.GAIN_GOALS, followup.GAIN_GOALS
+
+
+# ── تدوير الزيادة ───────────────────────────────────────────────────
+
+def test_the_usual_cycling_drops_a_gain_plan_below_maintenance():
+    """‏كل الأنماط المعتادة مبنية على خطة عجز: بتنزّل أيام ١٥-٣٠٪.
+    على خطة زيادة ده يوم **تحت الحرق** -- يوم مش بيزوّد."""
+    import zigzag
+    z = zigzag.build_zigzag(target_cal=2100, mode="classic", gender="انثى",
+                            weight=48, tdee=1800)
+    assert min(d["kcal"] for d in z["days"]) < 1800, z["days"]
+
+
+def test_the_gain_pattern_keeps_every_day_above_maintenance():
+    import zigzag
+    for tdee, target in ((1800, 2100), (3000, 3300), (1500, 1800)):
+        z = zigzag.build_zigzag(target_cal=target, mode="gain",
+                                gender="انثى", weight=48, tdee=tdee)
+        low = min(d["kcal"] for d in z["days"])
+        assert low >= tdee, (tdee, target, low, [d["kcal"] for d in z["days"]])
+
+
+def test_the_gain_pattern_still_keeps_the_weekly_total():
+    import zigzag
+    z = zigzag.build_zigzag(target_cal=2100, mode="gain", gender="انثى",
+                            weight=48, tdee=1800)
+    assert abs(z["avg"] - 2100) <= 25, (z["avg"], [d["kcal"] for d in z["days"]])
+
+
+def test_a_gain_plan_on_deficit_cycling_is_flagged():
+    """‏المجموع الأسبوعي بيفضل صح على الورق، والنتيجة لأ."""
+    notes = _notes(goal_type="weight_gain", weight="48", goal_cal="2100",
+                   tdee="1800", zigzag_mode="classic")
+    warn = [n for n in notes if n["kind"] == "warn" and "تحت حرقه" in n["short"]]
+    assert warn, _text(notes)[:400]
+
+
+def test_the_gain_pattern_itself_is_not_flagged():
+    notes = _notes(goal_type="weight_gain", weight="48", goal_cal="2100",
+                   tdee="1800", zigzag_mode="gain")
+    assert not [n for n in notes if "تحت حرقه" in n["short"]], _text(notes)[:300]
+
+
+def test_a_weight_loss_plan_is_not_touched_by_this():
+    """‏خطة التخسيس المفروض فيها أيام أقل -- ده شغلها."""
+    notes = _notes(goal_type="weight_loss", weight="90", height="165",
+                   goal_cal="1500", tdee="2000", zigzag_mode="classic")
+    assert not [n for n in notes if "تحت حرقه" in n["short"]], _text(notes)[:300]
+
+
 def test_it_is_a_note_not_a_block():
     data = dict(_BASE, symptoms=["نحافة"])
     data["zigzag"] = zigzag.zigzag_from_data(data)

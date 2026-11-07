@@ -212,11 +212,15 @@
       {{ 'الهدف من الخطة' if is_ar else 'Goal' }}
     </label>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:9px">
+      {# ‏"زيادة وزن" للنحافة: فائض معتدل، مش تضخيم. الفرق مش في الأكل
+         (نفس مخزن زيادة العضل) -- في الرقم: +٣٠٠ على حرقه هو، مش ٣٠٠٠
+         سعرة ثابتة. #}
       {% for goal in [
         ('weight_loss','🥗','تخسيس','Weight Loss','1200-1500 kcal'),
         ('maintenance','🍽️','مكتنز','Maintenance','1800-2200 kcal'),
         ('muscle_gain','💪','زيادة عضل','Muscle Gain','2200-2600 kcal'),
-        ('bulking','🔥','تضخيم','Bulking','3000-3500 kcal')
+        ('bulking','🔥','تضخيم','Bulking','3000-3500 kcal'),
+        ('weight_gain','🌾','زيادة وزن','Weight gain','+300 kcal')
       ] %}
       <label class="nx-opt">
         <input type="radio" name="goal_type" value="{{ goal[0] }}" class="nx-opt-in goal-radio"
@@ -1323,6 +1327,9 @@ function calcGoal(){
     else if(gt==='maintenance') goal.value=Math.round(t);
     else if(gt==='muscle_gain') goal.value=Math.round(t+300);
     else if(gt==='bulking') goal.value=Math.round(t+600);
+    /* ‏زيادة الوزن للنحافة: فائض معتدل ومستمر. الفائض الكبير بيروح
+       دهون أسرع، والمعدة اللي بتشبع بدري مش هتاكله أصلاً. */
+    else if(gt==='weight_gain') goal.value=Math.round(t+300);
   }
 }
 h.addEventListener('input',calc);
