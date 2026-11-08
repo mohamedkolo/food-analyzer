@@ -53,6 +53,7 @@ SUITES = [
     "test_backup.py",
     "test_sports_nutrition.py",
     "test_form_simpler.py",
+    "test_form_contrast.py",
     "test_generate_button.py",
     "test_deficit_note.py",
     "test_three_meals.py",

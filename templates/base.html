@@ -55,10 +55,6 @@
 <link rel="apple-touch-icon" href="/static/icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-{# ‏أميري: خط عربي كلاسيكي للعناوين. الجسم بيفضل القاهرة -- أميري
-   للقراءة الطويلة أصعب على الشاشة، بس للعناوين بيدّي الورقة وزن
-   مطبعة بدل شكل التطبيق. #}
-<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" media="print" onload="this.media='all'"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/fontawesome.min.css">
 <link rel="stylesheet" media="print" onload="this.media='all'"
@@ -76,7 +72,15 @@
    text-align:start) بتتبع اتجاه الصفحة لوحدها. وtranslateX مالهاش
    نسخة منطقية، فالدرج على الموبايل محتاج سطر لكل اتجاه. */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--blue:#0F2A43;--blue-light:#2E8F9E;--blue-pale:#DDEBF1;--green:#1B6E80;--green-light:#1B6E80;--green-pale:#E4F0F4;--red:#8b0000;--red-pale:#fef2f2;--orange:#b34700;--gray:#f4f6fa;--gray-2:#D3E3EA;--text:#0f172a;--text-2:#374151;--muted:#55647a;--muted-2:#55647a;--blue-dark:#0B1F33;--gray-dark:#55647a;--white:#ffffff;--sidebar-w:240px;--header-h:60px}
+{# ‏آخر تلات توكنز في :root هما لغة الشكل الجديدة، ومكانهم هنا
+   بالقصد مش في صفحة واحدة: الظل القريب والبعيد (--sh-1/--sh-2)،
+   وتدرّج "ده المختار" (--pick). أي صفحة جاية تتعمل بنفس اللغة
+   بتاخدهم من هنا بدل ما تخترع ظل وتدرّج جداد.
+
+   ‏و--pick بالذات **مايفتّحش**: النص اللي فوقه أبيض، وتباين أفتح
+   نقطة فيه مع الأبيض ٥.٣٦:١ -- والحد الأدنى ٤.٥:١ عشان سطر
+   السعرات اللي حجمه ١١.٥ بكسل يتقرا. (tests/test_form_contrast.py) #}
+:root{--blue:#0F2A43;--blue-light:#2E8F9E;--blue-pale:#DDEBF1;--green:#1B6E80;--green-light:#1B6E80;--green-pale:#E4F0F4;--red:#8b0000;--red-pale:#fef2f2;--orange:#b34700;--gray:#f4f6fa;--gray-2:#D3E3EA;--text:#0f172a;--text-2:#374151;--muted:#55647a;--muted-2:#55647a;--blue-dark:#0B1F33;--gray-dark:#55647a;--white:#ffffff;--sidebar-w:240px;--header-h:60px;--sh-1:0 1px 2px rgba(16,26,51,.06);--sh-2:0 2px 5px rgba(16,26,51,.07), 0 14px 30px -12px rgba(16,26,51,.26);--pick:linear-gradient(135deg,#0E7490 0%,#0C5E78 100%)}
 body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min-height:100vh;-webkit-tap-highlight-color:transparent}
 .header{position:fixed;top:0;right:0;left:0;height:var(--header-h);background:var(--blue);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.15)}
 .header-logo{color:#fff;font-size:18px;font-weight:900;display:flex;align-items:center;gap:10px}
