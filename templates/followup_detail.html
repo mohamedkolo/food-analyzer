@@ -2,17 +2,20 @@
 {% block title %}{{ client_name }} — {{ t('المتابعة','Follow-up') }}{% endblock %}
 {% block content %}
 
+{# ‏نفس جدول الحالات اللي في صفحة المعاينة -- لازم يفضلوا متطابقين:
+   نفس الحكم بيتشاف في المكانين، ولو الأيقونة اختلفت الدكتور بيفتكرهم
+   حالتين. #}
 {% set VERDICT_STYLE = {
-  'on_track':      ('#1B6E80', '#E4F0F4', '✅'),
-  'gain_on_track': ('#1B6E80', '#E4F0F4', '✅'),
-  'too_fast':      ('#92400e', '#fffbeb', '⚠️'),
-  'gain_too_fast': ('#92400e', '#fffbeb', '⚠️'),
-  'too_slow':      ('#92400e', '#fffbeb', '🐢'),
-  'plateau':       ('#92400e', '#fffbeb', '⏸️'),
-  'gain_stalled':  ('#92400e', '#fffbeb', '⏸️'),
-  'regained':      ('#991b1b', '#fef2f2', '📈'),
-  'lost_on_gain':  ('#991b1b', '#fef2f2', '📉'),
-  'too_soon':      ('#55647a', '#f8fafc', '⏳'),
+  'on_track':      ('#3A4A5C', '#EDF0F3', 'fa-circle-check'),
+  'gain_on_track': ('#3A4A5C', '#EDF0F3', 'fa-circle-check'),
+  'too_fast':      ('#8A4B1C', '#FDF6EC', 'fa-triangle-exclamation'),
+  'gain_too_fast': ('#8A4B1C', '#FDF6EC', 'fa-triangle-exclamation'),
+  'too_slow':      ('#8A4B1C', '#FDF6EC', 'fa-gauge-simple-low'),
+  'plateau':       ('#8A4B1C', '#FDF6EC', 'fa-pause'),
+  'gain_stalled':  ('#8A4B1C', '#FDF6EC', 'fa-pause'),
+  'regained':      ('#8B2E2E', '#FBEDED', 'fa-arrow-trend-up'),
+  'lost_on_gain':  ('#8B2E2E', '#FBEDED', 'fa-arrow-trend-down'),
+  'too_soon':      ('#5A6472', '#F3F5F7', 'fa-hourglass-half'),
 } %}
 
 <a href="/followups" style="color:var(--muted);text-decoration:none;font-size:13.5px;font-weight:700">
@@ -42,9 +45,9 @@
 </div>
 
 {% if saved %}
-<div style="background:#f0f7f4;border:1px solid #cfe3d9;color:#1f5132;border-radius:10px;
+<div style="background:#F3F5F7;border:1px solid #D5DAE0;color:#2E4A3D;border-radius:10px;
             padding:10px 14px;margin-bottom:14px;font-size:13.5px">
-  ✓
+  <i class="fa-solid fa-circle-check"></i>
   {% if saved == 'visit' %}{{ t('أرقام الزيارة اتصلّحت، والتقدّم اتحسب تاني.','The visit is corrected and the progress recomputed.') }}
   {% elif saved == 'deleted' %}{{ t('الزيارة اتمسحت، والترقيم اترتّب تاني.','The visit is gone and the numbering was tidied.') }}
   {% elif saved == 'merged' %}{{ t('الملفين بقوا ملف واحد، والزيارات اترتّبت بتاريخها.','The two files are one, with the visits ordered by date.') }}
@@ -52,9 +55,9 @@
 </div>
 {% endif %}
 {% if err %}
-<div style="background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;border-radius:10px;
+<div style="background:#FBEDED;border:1px solid #E3B4B4;color:#8B2E2E;border-radius:10px;
             padding:10px 14px;margin-bottom:14px;font-size:13.5px">
-  ⚠️
+  <i class="fa-solid fa-triangle-exclamation"></i>
   {% if err == 'exists' %}
     {{ t('فيه ملف متابعة تاني بنفس الاسم والرقم. لو ده نفس العميل ومكرّر، استعمل زرار «دمج مع ملف تاني» فوق.',
          'Another follow-up file already has that name and phone. If it is the same client duplicated, use the "Merge into another file" button above.') }}
@@ -188,7 +191,7 @@
     </div>
     <div>
       <div style="font-size:12px;color:var(--muted);font-weight:700">{{ t('الإجمالي','Total change') }}</div>
-      <div style="font-size:24px;font-weight:900;color:{{ '#1B6E80' if summary.total_change < 0 else '#FF7A59' }}">
+      <div style="font-size:24px;font-weight:900;color:{{ '#3A4A5C' if summary.total_change < 0 else '#8A4B1C' }}">
         {{ '+' if summary.total_change > 0 }}{{ summary.total_change }}<span style="font-size:14px">{{ t('كجم','kg') }}</span>
       </div>
     </div>
@@ -214,7 +217,7 @@
   {% set pad = ((hi - lo) / 4) if (hi - lo) > 0 else 1 %}
   {% set y0 = lo - pad %}{% set span = (hi + pad) - y0 %}
   {% set W = 100 %}{% set H = 34 %}
-  <div style="margin-top:20px;padding-top:16px;border-top:1px solid #EDF4F7">
+  <div style="margin-top:20px;padding-top:16px;border-top:1px solid #EDF0F3">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div style="font-size:12px;color:var(--muted);font-weight:700">{{ t('خط الوزن','Weight over time') }}</div>
       <div style="font-size:11.5px;color:var(--muted)">
@@ -227,13 +230,13 @@
     <div style="position:relative;direction:ltr">
       <svg viewBox="0 0 {{ W }} {{ H }}" preserveAspectRatio="none"
            style="width:100%;height:110px;display:block;overflow:visible">
-        <polyline fill="none" stroke="#1B6E80" stroke-width="0.7"
+        <polyline fill="none" stroke="#3A4A5C" stroke-width="0.7"
                   stroke-linejoin="round" stroke-linecap="round"
                   points="{% for p in pts %}{{ (loop.index0 / (pts|length - 1) * W) | round(2) }},{{ (H - (p.weight - y0) / span * H) | round(2) }} {% endfor %}" />
         {% for p in pts %}
         <circle cx="{{ (loop.index0 / (pts|length - 1) * W) | round(2) }}"
                 cy="{{ (H - (p.weight - y0) / span * H) | round(2) }}"
-                r="1.1" fill="#fff" stroke="#1B6E80" stroke-width="0.7" />
+                r="1.1" fill="#fff" stroke="#3A4A5C" stroke-width="0.7" />
         {% endfor %}
       </svg>
       <div style="display:flex;justify-content:space-between;margin-top:4px">
@@ -266,18 +269,18 @@
   </div>
 
   {% if p %}
-  {% set col, bg, icon = VERDICT_STYLE.get(p.verdict, ('#55647a', '#f8fafc', '•')) %}
+  {% set col, bg, vicon = VERDICT_STYLE.get(p.verdict, ('#5A6472', '#F3F5F7', 'fa-circle-dot')) %}
   <div style="background:{{ bg }};border:1px solid {{ col }}33;border-radius:10px;
               padding:11px 14px;margin-top:11px">
     <div style="font-weight:800;color:{{ col }};font-size:13.5px">
-      {{ icon }}
+      <i class="fa-solid {{ vicon }}"></i>
       {% if p.delta < 0 %}{{ t('نزل','Down') }} {{ -p.delta }}{% elif p.delta > 0 %}{{ t('زاد','Up') }} {{ p.delta }}{% else %}{{ t('ثابت','No change') }}{% endif %}
       {%- if p.delta %} {{ t('كجم','kg') }}{% endif %}
       {{ t('في','over') }} {{ p.days }} {{ t('يوم','days') }}
       {%- if p.rate %} · {{ p.rate }} {{ t('كجم/أسبوع','kg/wk') }}{% endif %}
       {%- if p.fat_delta %} · {{ t('دهون','fat') }} {{ '+' if p.fat_delta > 0 }}{{ p.fat_delta }}%{% endif %}
     </div>
-    <div style="font-size:12.5px;color:#0f172a;margin-top:6px;line-height:1.8">
+    <div style="font-size:12.5px;color:#1E2630;margin-top:6px;line-height:1.8">
       {{ p.note_ar if is_ar else p.note_en }}
     </div>
     {% if p.tdee_drop and p.tdee_drop > 0 %}
@@ -297,7 +300,7 @@
 
   {% if v.saved_plan_id %}
   <div style="margin-top:10px">
-    <a href="/saved/{{ v.saved_plan_id }}/open" style="color:#1B6E80;font-weight:700;font-size:13px;text-decoration:none">
+    <a href="/saved/{{ v.saved_plan_id }}/open" style="color:#3A4A5C;font-weight:700;font-size:13px;text-decoration:none">
       {{ t('شوف جدول الزيارة دي','Open this visit’s plan') }} ›</a>
   </div>
   {% endif %}
@@ -315,7 +318,7 @@
           onsubmit="return confirm('{{ t('مسح الزيارة دي؟ مالوش رجوع.','Delete this visit? It cannot be undone.') }}')">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-outline"
-              style="font-size:12px;padding:5px 11px;color:#991b1b;border-color:#fca5a5">
+              style="font-size:12px;padding:5px 11px;color:#8B2E2E;border-color:#E3B4B4">
         <i class="fa-regular fa-trash-can"></i> {{ t('امسح الزيارة','Delete visit') }}
       </button>
     </form>
@@ -323,10 +326,10 @@
 
   <form id="visitForm{{ v.id }}" method="POST" hidden
         action="/followups/{{ client_key|urlencode }}/visit/{{ v.id }}/edit"
-        style="margin-top:12px;background:#FBF7F1;border:1px dashed #D9C9AE;
+        style="margin-top:12px;background:#FAF8F3;border:1px dashed #E5C9A1;
                border-radius:10px;padding:14px 16px">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div style="font-size:12.5px;color:#6b5a3e;margin-bottom:10px">
+    <div style="font-size:12.5px;color:#8A6B45;margin-bottom:10px">
       {{ t('صلّح اللي اتدخّل غلط. الـBMI بيتحسب من الوزن والطول، والتقدّم بيتحسب تاني لوحده.',
            'Correct what was entered wrong. BMI is computed from weight and height, and the progress recomputes itself.') }}
     </div>

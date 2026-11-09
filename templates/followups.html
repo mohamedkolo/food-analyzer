@@ -10,20 +10,43 @@
      اللي محتاج تدخّل من اللي تحت الملاحظة. */
   .pill{display:inline-block;border-radius:999px;padding:3px 11px;
         font-weight:800;font-size:12px;white-space:nowrap}
-  .pill.bad {background:var(--red-pale);  color:#7f1d1d;  border:1px solid #fca5a5}
-  .pill.warn{background:#FFF4E5;          color:#8a4b00;  border:1px solid #f5cf9a}
-  .pill.good{background:var(--green-pale);color:#0F2A43;  border:1px solid #B4D0DA}
+  .pill.bad {background:var(--red-pale);  color:#8B2E2E;  border:1px solid #E3B4B4}
+  .pill.warn{background:#FDF6EC;          color:#8A4B1C;  border:1px solid #E5C9A1}
+  .pill.good{background:var(--green-pale);color:#1E2630;  border:1px solid #D5DAE0}
   .pill.idle{background:var(--gray);      color:var(--muted);border:1px solid var(--gray-2)}
 
-  .tile{flex:1 1 130px;border:1px solid #EDF4F7;border-radius:12px;
+  /* ‏الجدول ٦ أعمدة بـmin-width 760 بكسل. على موبايل ٣٧٥ ده معناه إن
+     الدكتور لازم يسحب بالعرض عشان يوصل لزرار "الملف" -- وده سحب
+     مخفي، محدش بيعرف إنه موجود.
+
+     ‏فعلى الشاشة الضيقة كل صف بيبقى كارت: العنوان من data-l جنب
+     القيمة. نفس الجدول ونفس الـHTML، العرض بس اللي بيتغيّر. */
+  @media(max-width:760px){
+    .fu-wrap{overflow-x:visible}
+    .fu-table{min-width:0 !important;display:block}
+    .fu-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+    .fu-table tbody,.fu-table tr,.fu-table td{display:block;width:auto}
+    .fu-table tbody tr{border-top:1px solid var(--gray-2) !important;padding:4px 0 8px}
+    .fu-table td{padding:5px 15px !important;display:flex;align-items:baseline;
+      justify-content:space-between;gap:12px}
+    .fu-table td::before{content:attr(data-l);font-size:11.5px;font-weight:700;
+      color:var(--muted);flex:0 0 auto}
+    .fu-table td:not([data-l])::before{content:none}
+    .fu-table td[data-l]:first-child{display:block;padding-top:11px !important}
+    .fu-table td[data-l]:first-child::before{content:none}
+    .fu-table td.go{justify-content:flex-end;padding-bottom:10px !important}
+    .fu-table td.note{display:block;padding:0 15px 10px !important}
+  }
+
+  .tile{flex:1 1 130px;border:1px solid #EDF0F3;border-radius:12px;
         padding:12px 14px;text-decoration:none;display:block}
   .tile .n{font-size:22px;font-weight:800;line-height:1.2}
   .tile .c{font-size:12px;color:var(--muted);margin-top:2px}
-  .tile.on{border-color:#1B6E80;box-shadow:0 0 0 1px #1B6E80 inset}
+  .tile.on{border-color:#3A4A5C;box-shadow:0 0 0 1px #3A4A5C inset}
 
   /* ‏الكيلوهات: نازل أخضر، زايد أحمر. الإشارة لوحدها مش بتتقرا بسرعة
      في جدول فيه ستين صف. */
-  .dn{color:#1B6E80;font-weight:800}
+  .dn{color:#3A4A5C;font-weight:800}
   .up{color:var(--red);font-weight:800}
   td.note{color:var(--muted);font-size:12.5px;line-height:1.6;max-width:320px}
 </style>
@@ -43,7 +66,7 @@
 
 {% if not clients %}
 <div class="card" style="text-align:center;padding:44px 24px">
-  <div style="font-size:40px;margin-bottom:12px">📋</div>
+  <div style="font-size:28px;margin-bottom:12px;color:#9AA3AD"><i class="fa-solid fa-clipboard-list"></i></div>
   <div style="font-weight:800;color:var(--blue-dark);font-size:16px;margin-bottom:6px">
     {{ t('لسه مفيش متابعات','No follow-ups yet') }}
   </div>
@@ -69,29 +92,29 @@
     <div class="c">{{ t('محتاج تدخّل','Needs you') }}</div>
   </a>
   <a class="tile {{ 'on' if state == 'warn' }}" href="/followups?state=warn">
-    <div class="n" style="color:#b34700">{{ counts.watch }}</div>
+    <div class="n" style="color:#8A4B1C">{{ counts.watch }}</div>
     <div class="c">{{ t('تحت الملاحظة','Watch') }}</div>
   </a>
   <a class="tile {{ 'on' if state == 'good' }}" href="/followups?state=good">
-    <div class="n" style="color:#1B6E80">{{ counts.ok }}</div>
+    <div class="n" style="color:#3A4A5C">{{ counts.ok }}</div>
     <div class="c">{{ t('ماشي','On track') }}</div>
   </a>
 </div>
 
 <div class="card" style="padding:0;overflow:hidden">
-  <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:760px">
+  <div class="fu-wrap" style="overflow-x:auto">
+    <table class="fu-table" style="width:100%;border-collapse:collapse;font-size:14px;min-width:760px">
       <thead>
-        <tr style="background:#F4F9FB">
-          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:#475569;font-weight:800">
+        <tr style="background:#F3F5F7">
+          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:#5A6472;font-weight:800">
             {{ t('العميل','Client') }}</th>
-          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:#475569;font-weight:800">
+          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:#5A6472;font-weight:800">
             {{ t('الحالة','Status') }}</th>
-          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:#475569;font-weight:800">
+          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:#5A6472;font-weight:800">
             {{ t('آخر فترة','Last period') }}</th>
-          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:#475569;font-weight:800">
+          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:#5A6472;font-weight:800">
             {{ t('من أول زيارة','Since first visit') }}</th>
-          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:#475569;font-weight:800">
+          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:#5A6472;font-weight:800">
             {{ t('آخر زيارة','Last seen') }}</th>
           <th style="padding:12px 16px">
             <span class="sr-only-th">{{ t('فتح','Open') }}</span>
@@ -101,17 +124,17 @@
       <tbody>
         {% set shown = clients | selectattr('tone', 'equalto', state) | list if state else clients %}
         {% for c in shown %}
-        <tr style="border-top:1px solid #EDF4F7">
-          <td style="padding:13px 16px;font-weight:800;color:var(--blue-dark)">
+        <tr style="border-top:1px solid #EDF0F3">
+          <td data-l="{{ t('العميل','Client') }}" style="padding:13px 16px;font-weight:800;color:var(--blue-dark)">
             {{ c.client_name }}
             <div style="font-weight:600;color:var(--muted);font-size:12px;margin-top:2px">
               {{ c.visits }} {{ t('زيارة','visits') }}{% if c.weight %} · {{ c.weight }} {{ t('كجم','kg') }}{% endif %}
             </div>
           </td>
-          <td style="padding:13px 16px">
+          <td data-l="{{ t('الحالة','Status') }}" style="padding:13px 16px">
             <span class="pill {{ c.tone }}">{{ c.label }}</span>
           </td>
-          <td style="padding:13px 16px">
+          <td data-l="{{ t('آخر فترة','Last period') }}" style="padding:13px 16px">
             {% if c.last_delta is not none %}
               <span class="{{ 'dn' if c.last_delta < 0 else ('up' if c.last_delta > 0 else '') }}">
                 {{ '%+.1f'|format(c.last_delta) }} {{ t('كجم','kg') }}</span>
@@ -123,7 +146,7 @@
               <span style="color:var(--muted)">—</span>
             {% endif %}
           </td>
-          <td style="padding:13px 16px">
+          <td data-l="{{ t('من أول زيارة','Since first visit') }}" style="padding:13px 16px">
             {% if c.total_change is not none and c.visits > 2 %}
               <span class="{{ 'dn' if c.total_change < 0 else ('up' if c.total_change > 0 else '') }}">
                 {{ '%+.1f'|format(c.total_change) }} {{ t('كجم','kg') }}</span>
@@ -133,15 +156,15 @@
               <span style="color:var(--muted)">—</span>
             {% endif %}
           </td>
-          <td style="padding:13px 16px;color:var(--muted);font-size:13px">
+          <td data-l="{{ t('آخر زيارة','Last seen') }}" style="padding:13px 16px;color:var(--muted);font-size:13px">
             {# ‏"بقاله" مذكّر ونص العملاء ستات، فالعدّ من غير ضمير خالص #}
             {% if c.days_since == 0 %}{{ t('النهارده','Today') }}
             {% elif c.days_since == 1 %}{{ t('إمبارح','Yesterday') }}
             {% else %}{{ t('من','') }} {{ c.days_since }} {{ t('يوم','days ago') }}{% endif %}
           </td>
-          <td style="padding:13px 16px;text-align:end">
+          <td class="go" style="padding:13px 16px;text-align:end">
             <a href="/followups/{{ c.client_key|urlencode }}"
-               style="color:#1B6E80;font-weight:800;font-size:13px;text-decoration:none;white-space:nowrap">
+               style="color:#3A4A5C;font-weight:800;font-size:13px;text-decoration:none;white-space:nowrap">
               {{ t('الملف','Open') }} ›</a>
           </td>
         </tr>

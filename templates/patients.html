@@ -8,11 +8,11 @@
 .prog-table th:first-child{border-radius:0 10px 0 0}
 .prog-table th:last-child{border-radius:10px 0 0 0}
 .prog-table td{padding:12px 16px;border-bottom:1px solid var(--gray-2);vertical-align:middle}
-.prog-table tr:hover td{background:#f8faff}
+.prog-table tr:hover td{background:#F3F5F7}
 .prog-table tr:last-child td{border-bottom:none}
 .pid{font-size:12px;color:var(--muted);font-weight:700;background:var(--gray);padding:2px 8px;border-radius:6px}
-.badge-draft{background:#fffbeb;color:#92400e;border:1px solid #fcd34d;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
-.badge-pub{background:var(--green-pale);color:var(--green);border:1px solid #B4D0DA;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
+.badge-draft{background:#FDF6EC;color:#8A4B1C;border:1px solid #E5C9A1;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
+.badge-pub{background:var(--green-pale);color:var(--green);border:1px solid #D5DAE0;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
 .act-btn{padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;text-decoration:none;transition:all .2s}
 .act-view{background:var(--blue-pale);color:var(--blue)}
 .act-view:hover{background:var(--blue);color:#fff}
@@ -51,7 +51,7 @@
 <!-- Stats -->
 <div class="grid-3" style="margin-bottom:16px">
   <div class="stat-card">
-    <div class="stat-icon" style="background:#DDEBF1"><i class="fa-solid fa-users" style="color:var(--blue)"></i></div>
+    <div class="stat-icon" style="background:#EDF0F3"><i class="fa-solid fa-users" style="color:var(--blue)"></i></div>
     <div><div class="stat-val">{{ patients | length }}</div><div class="stat-lbl">{{ 'إجمالي المرضى' if is_ar else 'Total Patients' }}</div></div>
   </div>
   <div class="stat-card">
@@ -59,7 +59,7 @@
     <div><div class="stat-val">{{ patients | selectattr('status','equalto','published') | list | length }}</div><div class="stat-lbl">{{ 'منشور' if is_ar else 'Published' }}</div></div>
   </div>
   <div class="stat-card">
-    <div class="stat-icon" style="background:#fffbeb"><i class="fa-solid fa-pencil" style="color:#b34700"></i></div>
+    <div class="stat-icon" style="background:#FDF6EC"><i class="fa-solid fa-pencil" style="color:#8A4B1C"></i></div>
     <div><div class="stat-val">{{ patients | selectattr('status','equalto','draft') | list | length }}</div><div class="stat-lbl">{{ 'مسودة' if is_ar else 'Draft' }}</div></div>
   </div>
 </div>
@@ -193,7 +193,7 @@
 
 {% else %}
 <div style="text-align:center;padding:60px 20px;background:#fff;border:1.5px solid var(--gray-2);border-radius:14px">
-  <div style="font-size:60px;margin-bottom:16px">👥</div>
+  <div style="font-size:34px;margin-bottom:14px;color:#9AA3AD"><i class="fa-solid fa-users"></i></div>
   <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px">
     {{ 'لا يوجد مرضى بعد' if is_ar else 'No patients yet' }}
   </div>
