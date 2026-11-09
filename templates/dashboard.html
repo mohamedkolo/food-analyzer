@@ -121,62 +121,37 @@
 
 </div>
 
-<!-- مركز المتابعة / Follow-up center -->
-{% if (renewals_soon and renewals_soon|length > 0) or (at_risk_clients and at_risk_clients|length > 0) or (recently_lost and recently_lost|length > 0) %}
-<div class="card">
-  <div class="card-title"><i class="fa-solid fa-list-check"></i> {{ 'مركز المتابعة' if is_ar else 'Follow-up Center' }}</div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">
+{# ═══ المتابعة: سطر، مش قسم ══════════════════════════════════════
+   ‏كان تلات أعمدة فيهم لحد ١٥ اسم -- يعني **نسخة من صفحة المتابعات
+   كاملة** محطوطة في اللوحة. والصفحة دي موجودة أصلاً في القايمة
+   الجانبية (العملاء -> المتابعات).
 
-    <div>
-      {# ‏التلات عناوين كانوا كلهم برتقالي. البرتقالي محجوز للخطر، وتلات
-         حاجات برتقالي جنب بعض معناها إن مفيش حاجة فيهم عاجلة. فضل في
-         "محتاجين متابعة" بس. #}
-      <div class="nx-fu-h"><i class="fa-solid fa-rotate-right"></i>
-        <span>{{ 'تجديدات قريبة (7 أيام)' if is_ar else 'Renewals due (7 days)' }}</span></div>
-      {% if renewals_soon %}
-        {% for r in renewals_soon[:5] %}
-        <div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:12.5px;">
-          <span style="font-weight:700;">{{ r.name }}</span>
-          <span style="color:var(--muted);white-space:nowrap;">{{ r.days_left }} {{ 'يوم' if is_ar else 'days' }}</span>
-        </div>
-        {% endfor %}
-      {% else %}
-        <div style="color:var(--muted-2);font-size:12.5px;padding:8px 0;">{{ 'مفيش حالياً' if is_ar else 'None right now' }}</div>
-      {% endif %}
-    </div>
+   ‏اللوحة شغلتها تقول "فيه حاجة؟" مش "مين". فبقى سطر بالأرقام
+   ولينك. اللي عايز الأسامي بيدوس.
 
-    <div>
-      <div class="nx-fu-h warn"><i class="fa-solid fa-triangle-exclamation"></i>
-        <span>{{ 'محتاجين متابعة (التزام أقل من 40%)' if is_ar else 'Need follow-up (adherence under 40%)' }}</span></div>
-      {% if at_risk_clients %}
-        {% for c in at_risk_clients[:5] %}
-        <a href="/admin/users/{{ c.id }}" style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:12.5px;text-decoration:none;color:var(--text);">
-          <span style="font-weight:700;">{{ c.name }}</span>
-          <span style="color:#dc2626;white-space:nowrap;">{{ c.week_pct }}%</span>
-        </a>
-        {% endfor %}
-      {% else %}
-        <div style="color:var(--muted-2);font-size:12.5px;padding:8px 0;">{{ 'مفيش حالياً' if is_ar else 'None right now' }}</div>
-      {% endif %}
-    </div>
-
-    <div>
-      <div class="nx-fu-h"><i class="fa-solid fa-arrow-right-from-bracket"></i>
-        <span>{{ 'فقدوا الوصول مؤخراً' if is_ar else 'Recently lost access' }}</span></div>
-      {% if recently_lost %}
-        {% for r in recently_lost[:5] %}
-        <div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:12.5px;">
-          <span style="font-weight:700;">{{ r.name }}</span>
-          <span style="color:var(--muted);white-space:nowrap;">{{ r.reason }}</span>
-        </div>
-        {% endfor %}
-      {% else %}
-        <div style="color:var(--muted-2);font-size:12.5px;padding:8px 0;">{{ 'مفيش حالياً' if is_ar else 'None right now' }}</div>
-      {% endif %}
-    </div>
-
-  </div>
-</div>
+   ‏وزي ما كان: مابيظهرش خالص لو مفيش حاجة -- سطر بيقول "مفيش"
+   بياخد مساحة ومابيقولش حاجة. #}
+{% set n_ren  = renewals_soon|length if renewals_soon else 0 %}
+{% set n_risk = at_risk_clients|length if at_risk_clients else 0 %}
+{% set n_lost = recently_lost|length if recently_lost else 0 %}
+{% if n_ren or n_risk or n_lost %}
+<a href="/followups" class="nx-fu-bar{% if n_risk %} has-risk{% endif %}">
+  <span class="ic"><i class="fa-solid fa-list-check"></i></span>
+  <span class="tx">
+    <b>{{ 'المتابعة' if is_ar else 'Follow-up' }}</b>
+    {% if n_risk %}
+    <span class="bit risk">{{ n_risk }} {{ 'محتاجين متابعة' if is_ar else 'need follow-up' }}</span>
+    {% endif %}
+    {% if n_ren %}
+    <span class="bit">{{ n_ren }} {{ 'تجديدات قريبة' if is_ar else 'renewals due' }}</span>
+    {% endif %}
+    {% if n_lost %}
+    <span class="bit">{{ n_lost }} {{ 'فقدوا الوصول' if is_ar else 'lost access' }}</span>
+    {% endif %}
+  </span>
+  <span class="go">{{ 'كل المتابعات' if is_ar else 'All follow-ups' }}
+    <i class="fa-solid {{ 'fa-arrow-left' if is_ar else 'fa-arrow-right' }}"></i></span>
+</a>
 {% endif %}
 
 <!-- Recent Requests -->

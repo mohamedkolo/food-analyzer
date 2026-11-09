@@ -248,12 +248,30 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .nx-cell.is-alert .nx-ic{background:#F6EEE4}
 .nx-cell.is-alert .nx-ic i,.nx-cell.is-alert .nx-n,.nx-cell.is-alert a{color:var(--orange)}
 
-/* ‏عناوين مركز المتابعة */
-.nx-fu-h{font-weight:800;font-size:12.5px;color:var(--text);display:flex;
-  align-items:center;gap:7px;margin-bottom:8px;padding-bottom:7px;
-  border-bottom:1px solid var(--gray-2)}
-.nx-fu-h i{color:#8D96A1;font-size:13px}
-.nx-fu-h.warn i{color:var(--orange)}
+/* ‏سطر المتابعة: بيظهر بس لما يكون فيه حاجة فعلاً، وبيوصّل لصفحة
+   المتابعات بدل ما يكرّرها. والبرتقالي بيتلوّن بس لو فيه حد محتاج
+   متابعة -- التجديدات القريبة خبر، مش إنذار. */
+.nx-fu-bar{display:flex;align-items:center;gap:11px;text-decoration:none;
+  border:1px solid var(--gray-2);border-radius:8px;background:var(--white);
+  padding:11px 14px;margin-bottom:14px;transition:background .14s,border-color .14s}
+.nx-fu-bar:hover{background:#FAFBFC;border-color:#CFD5DB}
+.nx-fu-bar:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.nx-fu-bar .ic{flex:0 0 30px;height:30px;border-radius:7px;background:#F1F3F5;
+  display:flex;align-items:center;justify-content:center}
+.nx-fu-bar .ic i{color:#6E7885;font-size:13px}
+.nx-fu-bar.has-risk .ic{background:#F6EEE4}
+.nx-fu-bar.has-risk .ic i{color:var(--orange)}
+.nx-fu-bar .tx{flex:1;display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 10px;
+  font-size:12.5px;color:var(--muted)}
+.nx-fu-bar .tx b{font-size:13.5px;color:var(--text)}
+.nx-fu-bar .bit{font-weight:700}
+.nx-fu-bar .bit.risk{color:var(--orange)}
+.nx-fu-bar .go{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--green);
+  display:flex;align-items:center;gap:6px}
+@media(max-width:560px){
+  .nx-fu-bar{flex-wrap:wrap}
+  .nx-fu-bar .go{flex-basis:100%;justify-content:flex-end}
+}
 
 /* ‏الشريط لازم ينزل عمودين على الضيّق. القص هنا بيحصل **جوّه** الكارت
    (عنده overflow:hidden)، فمابيعملش تمرير أفقي في الصفحة -- يعني أي
