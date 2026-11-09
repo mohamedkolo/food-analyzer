@@ -1,6 +1,34 @@
 {% extends "base.html" %}
 {% block title %}{{ t('معاينة الخطة','Plan Preview') }}{% endblock %}
 {% block content %}
+<style>
+  /* ‏صف الوجبة: علامة الوجبة بقت أيقونة في مربع رمادي بدل إيموجي
+     ٢٠ بكسل. والسناك بيفضل بخلفية دافية خفيفة عشان يتفرز بالعين عن
+     الوجبات الرئيسية من غير ما ياخد لون. */
+  .meal-row{display:flex;align-items:center;gap:10px;padding:10px;
+    background:var(--gray);border:1px solid var(--gray-2);border-radius:8px}
+  .meal-row.is-snack{background:#FAF8F3;border-color:#EBE5DB}
+  .meal-ic{flex:0 0 30px;height:30px;border-radius:7px;background:#fff;
+    border:1px solid var(--gray-2);display:flex;align-items:center;justify-content:center}
+  .meal-ic i{font-size:13px;color:#6E7885}
+  .meal-row.is-snack .meal-ic{border-color:#EBE5DB}
+  .meal-row.is-snack .meal-ic i{color:#8A6B45}
+  .meal-slot{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.4px}
+
+  /* ‏الزراير اللي بتفضل ملزوقة تحت: على الموبايل دي الطريقة الوحيدة
+     المريحة للمشاركة، فبتفضل عرض كامل. على الديسكتوب كانت تلات بلوكات
+     بعرض الشاشة بتغطي الجدول اللي ورا -- ونفس الزراير موجودة في الشريط
+     فوق أصلاً. فبقت صف عادي على الجنب. */
+  .pv-sticky{position:sticky;bottom:10px;margin-top:20px;display:grid;gap:8px;z-index:5}
+  .pv-sticky .btn-full{font-size:16px;padding:14px;box-shadow:none}
+  @media(min-width:900px){
+    .pv-sticky{display:flex;flex-wrap:wrap;justify-content:flex-end;
+      background:rgba(246,247,248,.92);backdrop-filter:blur(4px);
+      border:1px solid var(--gray-2);border-radius:8px;padding:9px;gap:8px}
+    .pv-sticky .btn-full{width:auto;font-size:14px;padding:11px 20px;margin-top:0 !important}
+    .pv-sticky #planLinkBox{flex:1 0 100%;order:-1}
+  }
+</style>
 
 {# stored plan values are always Arabic; these maps render them in the admin's UI language #}
 {% set goal_names = {'weight_loss':t('تخسيس','Weight Loss'),'maintenance':t('مكتنز','Maintenance'),'muscle_gain':t('عضل','Muscle'),'bulking':t('تضخيم','Bulking')} %}
@@ -19,7 +47,7 @@
     </a>
     <form method="POST" action="/regenerate_plan" style="display:inline">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit" class="btn btn-outline" style="background:#fff3cd;border-color:#ffc107;color:#856404">
+      <button type="submit" class="btn btn-outline" style="background:#FDF6EC;border-color:#E5C9A1;color:#8A4B1C">
         <i class="fa-solid fa-shuffle"></i> {{ t('تجديد الخطة كاملة','Regenerate whole plan') }}
       </button>
     </form>
@@ -37,7 +65,7 @@
       <i class="fa-solid fa-share-nodes"></i> {{ t('إرسال الجدول','Send plan') }}
     </button>
     <button type="button" id="savePlanBtn" class="btn btn-outline"
-            style="background:#E4F0F4;border-color:#B4D0DA;color:#0F2A43">
+            style="background:#EDF0F3;border-color:#D5DAE0;color:#1E2630">
       <i class="fa-solid fa-floppy-disk"></i> {{ t('حفظ','Save') }}
     </button>
     <a href="/download_pdf" class="btn btn-success">
@@ -46,7 +74,7 @@
     {# ‏قايمة المشتريات مجموعة من جرامات نفس الجدول. العميل كان بيمسك
        الورقة ويروح السوق ويقف -- محتاج يشتري كام؟ #}
     <a href="/shopping" class="btn btn-outline"
-       style="background:#fff;border-color:#9CC3D0;color:#0F2A43">
+       style="background:#fff;border-color:#D5DAE0;color:#1E2630">
       <i class="fa-solid fa-basket-shopping"></i> {{ t('قايمة المشتريات','Shopping list') }}
     </a>
     {# ‏الدكتور بيشتغل في أكتر من عيادة. النسخة دي بتشيل اسم العيادة واسم
@@ -59,22 +87,22 @@
   </div>
 </div>
 
-<div style="background:#F4F9FB;border:1px solid #B4D0DA;border-radius:10px;
-            padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:#0F2A43">
-  💾 {{ t('الجدول ده لسه مش محفوظ. بيتحفظ لما تدوس حفظ، أو تعمل لينك، أو تحمّل الـPDF — عشان تقدر تظبّط وترجع من غير ما يتسجّل كل مرة.',
+<div style="background:#F3F5F7;border:1px solid #D5DAE0;border-radius:10px;
+            padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:#1E2630">
+  <i class="fa-solid fa-floppy-disk"></i> {{ t('الجدول ده لسه مش محفوظ. بيتحفظ لما تدوس حفظ، أو تعمل لينك، أو تحمّل الـPDF — عشان تقدر تظبّط وترجع من غير ما يتسجّل كل مرة.',
           'This plan is not saved yet. It is saved when you press Save, create a link, or download the PDF — so you can adjust and go back without it being recorded every time.') }}
 </div>
 
 
 {% if session.get('manual_mode') %}
-<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:3px solid #f97316;border-radius:14px;padding:20px;margin-bottom:16px">
+<div style="background:#FDF6EC;border:1px solid #E5C9A1;border-inline-start:4px solid #8A4B1C;border-radius:8px;padding:18px;margin-bottom:14px">
   <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-    <div style="font-size:42px">✍️</div>
+    <div style="font-size:30px;color:#8A4B1C"><i class="fa-solid fa-pen-to-square"></i></div>
     <div style="flex:1;min-width:200px">
-      <div style="font-weight:900;color:#9a3412;font-size:17px;margin-bottom:4px">
+      <div style="font-weight:900;color:#8A4B1C;font-size:17px;margin-bottom:4px">
         {{ t('وضع التوليد اليدوي','Manual build mode') }}
       </div>
-      <div style="font-size:13px;color:#9a3412">
+      <div style="font-size:13px;color:#8A4B1C">
         {{ t('كل الوجبات فاضية - اضغط على أي وجبة عشان تكتبها بنفسك','Every meal is empty — click any meal to write it yourself') }}
       </div>
     </div>
@@ -86,17 +114,17 @@
      شغله هو: "لازم يشوف الفرق ده قبل ما يسلّم الورقة". فبقت هنا،
      مختصرة، والتفصيل عند الطلب. -->
 {% if sheet_notes %}
-<div style="background:#f8fafc;border:1.5px solid #D3E3EA;border-radius:14px;padding:14px 16px;margin-bottom:16px">
-  <div style="font-weight:800;color:#0F2A43;font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+<div style="background:#F3F5F7;border:1.5px solid #D5DAE0;border-radius:14px;padding:14px 16px;margin-bottom:16px">
+  <div style="font-weight:800;color:#1E2630;font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
     <i class="fa-solid fa-clipboard-check"></i>
     {{ t('قبل ما تسلّم الورقة','Before you hand this over') }}
-    <span style="font-weight:600;font-size:11px;color:#55647a">{{ t('(دي ليك — مش بتتطبع للعميل)','(for you — not printed for the client)') }}</span>
+    <span style="font-weight:600;font-size:11px;color:#5A6472">{{ t('(دي ليك — مش بتتطبع للعميل)','(for you — not printed for the client)') }}</span>
   </div>
   {% for n in sheet_notes %}
-  <div style="display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid #eef2f5">
-    <span style="flex-shrink:0;font-size:13px">{{ '⚠️' if n.kind == 'warn' else 'ℹ️' }}</span>
-    <div style="flex:1;font-size:13px;line-height:1.7;color:{{ '#7f1d1d' if n.kind == 'warn' else '#1f2937' }};font-weight:{{ 700 if n.kind == 'warn' else 500 }}">
-      {{ n.short }}{% if n.full and n.full != n.short %}<details style="display:inline"><summary style="display:inline;cursor:pointer;color:#1B6E80;font-size:11px;font-weight:600"> {{ t('التفصيل','more') }}</summary><div style="font-weight:400;color:#374151;margin-top:5px;font-size:12px">{{ n.full }}</div></details>{% endif %}
+  <div style="display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid #E4E7EA">
+    <span style="flex-shrink:0;font-size:12px"><i class="fa-solid {{ 'fa-triangle-exclamation' if n.kind == 'warn' else 'fa-circle-info' }}"></i></span>
+    <div style="flex:1;font-size:13px;line-height:1.7;color:{{ '#8B2E2E' if n.kind == 'warn' else '#1E2630' }};font-weight:{{ 700 if n.kind == 'warn' else 500 }}">
+      {{ n.short }}{% if n.full and n.full != n.short %}<details style="display:inline"><summary style="display:inline;cursor:pointer;color:#3A4A5C;font-size:11px;font-weight:600"> {{ t('التفصيل','more') }}</summary><div style="font-weight:400;color:#5A6472;margin-top:5px;font-size:12px">{{ n.full }}</div></details>{% endif %}
     </div>
   </div>
   {% endfor %}
@@ -105,19 +133,19 @@
 
 <!-- ═══════ ⚠️ CLIENT NOTES - IMPORTANT ALERT ═══════ -->
 {% if data.notes %}
-<div style="background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border:3px solid #f59e0b;border-radius:14px;padding:18px;margin-bottom:16px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(245,158,11,0.2)">
+<div style="background:#FDF6EC;border:1px solid #E5C9A1;border-inline-start:4px solid #8A4B1C;border-radius:8px;padding:16px;margin-bottom:14px;position:relative;overflow:hidden">
   <div style="display:flex;align-items:flex-start;gap:14px">
-    <div style="font-size:36px;flex-shrink:0;line-height:1">⚠️</div>
+    <div style="font-size:26px;flex-shrink:0;line-height:1;color:#8A4B1C"><i class="fa-solid fa-triangle-exclamation"></i></div>
     <div style="flex:1">
-      <div style="font-weight:900;color:#78350f;font-size:16px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+      <div style="font-weight:900;color:#8A4B1C;font-size:16px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
         <i class="fa-solid fa-triangle-exclamation"></i>
         {{ t('ملاحظات مهمة من العميل - اقرأها قبل توليد الخطة','Important notes from the client — read before building the plan') }}
       </div>
-      <div style="background:white;padding:14px 16px;border-radius:10px;font-size:15px;color:#1a1a1a;line-height:1.8;border-inline-start:4px solid #f59e0b;font-weight:600">
+      <div style="background:white;padding:14px 16px;border-radius:10px;font-size:15px;color:#1E2630;line-height:1.8;border-inline-start:4px solid #8A4B1C;font-weight:600">
         "{{ data.notes }}"
       </div>
-      <div style="font-size:11px;color:#78350f;margin-top:8px">
-        💡 {{ t('راجع الجدول كويس وتأكد إنه متوافق مع ملاحظات العميل','Review the plan carefully and check it matches the client notes') }}
+      <div style="font-size:11px;color:#8A4B1C;margin-top:8px">
+        <i class="fa-solid fa-lightbulb"></i> {{ t('راجع الجدول كويس وتأكد إنه متوافق مع ملاحظات العميل','Review the plan carefully and check it matches the client notes') }}
       </div>
     </div>
   </div>
@@ -126,20 +154,20 @@
 
 <!-- ═══════ CLIENT CONDITIONS (if any) ═══════ -->
 {% if data.symptoms and data.symptoms|length > 0 %}
-<div style="background:#fee2e2;border:2px solid #fca5a5;border-radius:12px;padding:12px 16px;margin-bottom:16px">
-  <div style="font-weight:800;color:#991b1b;font-size:13px;margin-bottom:6px">
+<div style="background:#FBEDED;border:2px solid #E3B4B4;border-radius:12px;padding:12px 16px;margin-bottom:16px">
+  <div style="font-weight:800;color:#8B2E2E;font-size:13px;margin-bottom:6px">
     <i class="fa-solid fa-stethoscope"></i> {{ t('الحالات الصحية','Health conditions') }}:
   </div>
   <div style="display:flex;gap:6px;flex-wrap:wrap">
     {% for s in data.symptoms %}
-    <span style="background:white;color:#991b1b;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;border:1px solid #fca5a5">{{ s | cond_en }}</span>
+    <span style="background:white;color:#8B2E2E;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;border:1px solid #E3B4B4">{{ s | cond_en }}</span>
     {% endfor %}
   </div>
 </div>
 {% endif %}
 
 <!-- Summary -->
-<div class="card" style="background:linear-gradient(135deg,#0F2A43 0%,#1B6E80 100%);color:white">
+<div class="card" style="background:#2B3746;color:#fff;border-color:#2B3746">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
     <div>
       <div style="font-size:13px;opacity:0.8">{{ t('العميل','Client') }}</div>
@@ -179,15 +207,15 @@
 </div>
 
 <!-- Edit Tips -->
-<div style="background:linear-gradient(135deg,#F4F9FB 0%,#E4F0F4 100%);border:2px solid #B4D0DA;border-radius:12px;padding:14px 18px;margin-bottom:16px">
+<div style="background:#F3F5F7;border:1px solid #E4E7EA;border-radius:8px;padding:13px 16px;margin-bottom:14px">
   <div style="display:flex;align-items:flex-start;gap:12px">
-    <div style="font-size:22px">✏️</div>
+    <div style="font-size:18px;color:#5A6472"><i class="fa-solid fa-pen"></i></div>
     <div style="flex:1">
-      <div style="font-weight:800;color:#0F2A43;margin-bottom:6px">{{ t('3 طرق لتعديل الجدول:','3 ways to edit the plan:') }}</div>
-      <ul style="color:#166534;font-size:13px;margin:0;padding-inline-start:18px;line-height:1.8">
+      <div style="font-weight:800;color:#1E2630;margin-bottom:6px">{{ t('3 طرق لتعديل الجدول:','3 ways to edit the plan:') }}</div>
+      <ul style="color:#2E4A3D;font-size:13px;margin:0;padding-inline-start:18px;line-height:1.8">
         <li><strong>{{ t('اضغط على نص أي وجبة','Click any meal text') }}</strong> {{ t('عشان تعدلها بإيدك (تضيف جرامات أو تغير الكمية)','to edit it by hand (add grams or change the amount)') }}</li>
-        <li>{{ t('زرار','The') }} <i class="fa-solid fa-shuffle" style="color:#2E8F9E"></i> {{ t('= استبدال عشوائي من القاعدة','button swaps in a random meal from the database') }}</li>
-        <li>{{ t('زرار','The') }} <i class="fa-solid fa-list" style="color:#1B6E80"></i> {{ t('= اختر من قائمة وجبات بمزاجك','button lets you pick from a list of meals yourself') }}</li>
+        <li>{{ t('زرار','The') }} <i class="fa-solid fa-shuffle" style="color:#3A4A5C"></i> {{ t('= استبدال عشوائي من القاعدة','button swaps in a random meal from the database') }}</li>
+        <li>{{ t('زرار','The') }} <i class="fa-solid fa-list" style="color:#3A4A5C"></i> {{ t('= اختر من قائمة وجبات بمزاجك','button lets you pick from a list of meals yourself') }}</li>
       </ul>
     </div>
   </div>
@@ -195,63 +223,70 @@
 
 {% set fu = data.followup %}
 {% if fu %}
+{# ‏الإيموجي بقت أيقونات من مكتبة المشروع، والألوان اتكتمت: الأصفر
+   الفاقع والأحمر الفاقع كانوا بيصرّخوا على حاجة ملهاش لازمة تصرّخ. #}
 {% set VS = {
-  'on_track':      ('#1B6E80', '#E4F0F4', '✅'), 'gain_on_track': ('#1B6E80', '#E4F0F4', '✅'),
-  'too_fast':      ('#92400e', '#fffbeb', '⚠️'), 'gain_too_fast': ('#92400e', '#fffbeb', '⚠️'),
-  'too_slow':      ('#92400e', '#fffbeb', '🐢'), 'plateau':       ('#92400e', '#fffbeb', '⏸️'),
-  'gain_stalled':  ('#92400e', '#fffbeb', '⏸️'), 'regained':      ('#991b1b', '#fef2f2', '📈'),
-  'lost_on_gain':  ('#991b1b', '#fef2f2', '📉'), 'too_soon':      ('#55647a', '#f8fafc', '⏳'),
+  'on_track':      ('#3A4A5C', '#EDF0F3', 'fa-circle-check'),
+  'gain_on_track': ('#3A4A5C', '#EDF0F3', 'fa-circle-check'),
+  'too_fast':      ('#8A4B1C', '#FDF6EC', 'fa-triangle-exclamation'),
+  'gain_too_fast': ('#8A4B1C', '#FDF6EC', 'fa-triangle-exclamation'),
+  'too_slow':      ('#8A4B1C', '#FDF6EC', 'fa-gauge-simple-low'),
+  'plateau':       ('#8A4B1C', '#FDF6EC', 'fa-pause'),
+  'gain_stalled':  ('#8A4B1C', '#FDF6EC', 'fa-pause'),
+  'regained':      ('#8B2E2E', '#FBEDED', 'fa-arrow-trend-up'),
+  'lost_on_gain':  ('#8B2E2E', '#FBEDED', 'fa-arrow-trend-down'),
+  'too_soon':      ('#5A6472', '#F3F5F7', 'fa-hourglass-half'),
 } %}
-{% set col, bg, icon = VS.get(fu.verdict, ('#55647a', '#f8fafc', '•')) %}
+{% set col, bg, vicon = VS.get(fu.verdict, ('#5A6472', '#F3F5F7', 'fa-circle-dot')) %}
 <!-- المتابعة -->
 <div style="background:#fff;border:2px solid {{ col }};border-radius:12px;padding:16px 18px;margin-bottom:16px">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-    <div style="font-weight:800;color:#0F2A43;font-size:15px">
+    <div style="font-weight:800;color:#1E2630;font-size:15px">
       <i class="fa-solid fa-clock-rotate-left" style="color:{{ col }}"></i>
       {{ t('متابعة رقم','Follow-up visit') }} {{ data.visit_no }}
     </div>
     <a href="/followups/{{ data.client_key|urlencode }}"
-       style="font-size:12.5px;color:#1B6E80;font-weight:700;text-decoration:none">
+       style="font-size:12.5px;color:#3A4A5C;font-weight:700;text-decoration:none">
       {{ t('كل الزيارات','All visits') }} ›</a>
   </div>
 
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:14px">
     <div>
-      <div style="font-size:11.5px;color:#55647a;font-weight:700">{{ t('الوزن','Weight') }}</div>
-      <div style="font-size:19px;font-weight:900;color:#0F2A43">
+      <div style="font-size:11.5px;color:#5A6472;font-weight:700">{{ t('الوزن','Weight') }}</div>
+      <div style="font-size:19px;font-weight:900;color:#1E2630">
         {{ fu.old_weight }} → {{ fu.new_weight }}<span style="font-size:12px">{{ t('كجم','kg') }}</span>
       </div>
     </div>
     <div>
-      <div style="font-size:11.5px;color:#55647a;font-weight:700">{{ t('التغيّر','Change') }}</div>
+      <div style="font-size:11.5px;color:#5A6472;font-weight:700">{{ t('التغيّر','Change') }}</div>
       <div style="font-size:19px;font-weight:900;color:{{ col }}">
         {{ '+' if fu.delta > 0 }}{{ fu.delta }}<span style="font-size:12px">{{ t('كجم','kg') }}</span>
-        <span style="font-size:12px;color:#55647a">/ {{ fu.days }} {{ t('يوم','d') }}</span>
+        <span style="font-size:12px;color:#5A6472">/ {{ fu.days }} {{ t('يوم','d') }}</span>
       </div>
     </div>
     {% if fu.rate %}
     <div>
-      <div style="font-size:11.5px;color:#55647a;font-weight:700">{{ t('المعدل','Rate') }}</div>
-      <div style="font-size:19px;font-weight:900;color:#0F2A43">
+      <div style="font-size:11.5px;color:#5A6472;font-weight:700">{{ t('المعدل','Rate') }}</div>
+      <div style="font-size:19px;font-weight:900;color:#1E2630">
         {{ '+' if fu.rate > 0 }}{{ fu.rate }}<span style="font-size:12px">{{ t(' كجم/أسبوع',' kg/wk') }}</span>
       </div>
     </div>
     {% endif %}
     {% if fu.new_tdee %}
     <div>
-      <div style="font-size:11.5px;color:#55647a;font-weight:700">{{ t('TDEE على الوزن الجديد','TDEE on the new weight') }}</div>
-      <div style="font-size:19px;font-weight:900;color:#0F2A43">{{ fu.new_tdee }}<span style="font-size:12px"> kcal</span></div>
+      <div style="font-size:11.5px;color:#5A6472;font-weight:700">{{ t('TDEE على الوزن الجديد','TDEE on the new weight') }}</div>
+      <div style="font-size:19px;font-weight:900;color:#1E2630">{{ fu.new_tdee }}<span style="font-size:12px"> kcal</span></div>
     </div>
     {% endif %}
   </div>
 
   <div style="background:{{ bg }};border-radius:10px;padding:11px 14px;margin-top:14px;
-              font-size:13px;color:#0f172a;line-height:1.9">
-    {{ icon }} {{ fu.note_ar if is_ar else fu.note_en }}
+              font-size:13px;color:#1E2630;line-height:1.9">
+    <i class="fa-solid {{ vicon }}"></i> {{ fu.note_ar if is_ar else fu.note_en }}
   </div>
 
   {% if fu.tdee_drop and fu.tdee_drop > 0 %}
-  <div style="font-size:12.5px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;
+  <div style="font-size:12.5px;color:#8A4B1C;background:#FDF6EC;border:1px solid #E5C9A1;
               border-radius:9px;padding:10px 13px;margin-top:9px;line-height:1.8">
     {{ t('الـTDEE نزل','TDEE dropped') }} <b>{{ fu.tdee_drop }} kcal</b>
     {{ t('مع الوزن. يعني هدف الزيارة اللي فاتت','with the weight. That means last visit’s target of') }}
@@ -261,9 +296,9 @@
   {% endif %}
 
   {% if fu.suggested_goal_cal and data.goal_cal and fu.suggested_goal_cal|int != data.goal_cal|int %}
-  <div style="font-size:12.5px;color:#0F2A43;background:#E4F0F4;border-radius:9px;
+  <div style="font-size:12.5px;color:#1E2630;background:#EDF0F3;border-radius:9px;
               padding:10px 13px;margin-top:9px;line-height:1.8">
-    💡 {{ t('المقترح للزيارة دي','Suggested for this visit') }}: <b>{{ fu.suggested_goal_cal }} kcal</b>
+    <i class="fa-solid fa-lightbulb"></i> {{ t('المقترح للزيارة دي','Suggested for this visit') }}: <b>{{ fu.suggested_goal_cal }} kcal</b>
     {{ t('— انت مولّد الخطة على','— you generated this plan on') }} <b>{{ data.goal_cal }}</b> kcal.
     {{ t('لو عايز تجرّب المقترح، ارجع لصفحة التوليد وغيّر الهدف.',
          'To try the suggestion, go back to the generate page and change the target.') }}
@@ -271,7 +306,7 @@
   {% endif %}
 
   {% if data.avoid_meals %}
-  <div style="font-size:12px;color:#55647a;margin-top:10px">
+  <div style="font-size:12px;color:#5A6472;margin-top:10px">
     {{ t('الخطة دي اتبنت وهي بتتفادى','This plan was built avoiding') }}
     <b>{{ data.avoid_meals|length }}</b>
     {{ t('وجبة من خطة الزيارة اللي فاتت.','meals from last visit’s plan.') }}
@@ -284,26 +319,26 @@
    مش من قاعدة الأكل -- هو زيادة محسوبة عشان بروتين اليوم يوصل. #}
 {% set topups = plan | selectattr('protein_topup') | list if plan else [] %}
 {% if topups %}
-<div style="background:#f0f7f4;border:1px solid #B4D0DA;border-radius:12px;padding:14px 16px;margin-bottom:16px">
-  <div style="font-weight:800;color:#0F2A43;font-size:14px;margin-bottom:6px">
-    <i class="fa-solid fa-drumstick-bite" style="color:#1B6E80"></i>
+<div style="background:#F3F5F7;border:1px solid #D5DAE0;border-radius:12px;padding:14px 16px;margin-bottom:16px">
+  <div style="font-weight:800;color:#1E2630;font-size:14px;margin-bottom:6px">
+    <i class="fa-solid fa-drumstick-bite" style="color:#3A4A5C"></i>
     {{ t('بروتين زيادة','Added protein') }} —
     <b>{{ topups|length }}</b> {{ t('يوم','day(s)') }}
   </div>
-  <div style="font-size:12.5px;color:#55647a;line-height:1.9">
+  <div style="font-size:12.5px;color:#5A6472;line-height:1.9">
     {{ t('الأيام دي بروتينها كان أقل من المستهدف، فاتزوّد صنف بروتين ومقابله اتقلّلت النشوية — عشان الورقة ما تقولش رقم والأكل يدي غيره.',
          'These days fell short of the protein target, so a protein item was added and the starch cut to match — so the paper does not say one number while the food gives another.') }}
   </div>
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
     {% for d in topups %}
     {% set tu = d.protein_topup %}
-    <span style="background:#fff;border:1px solid #B4D0DA;border-radius:6px;
-                 padding:4px 10px;font-size:12px;color:#0F2A43">
+    <span style="background:#fff;border:1px solid #D5DAE0;border-radius:6px;
+                 padding:4px 10px;font-size:12px;color:#1E2630">
       <b>{{ d.day }}</b> ·
       {{ tu.grams }} {{ t('جم','g') }}
       {{ tu.source_ar if is_ar else tu.source_en }}
       {% if not tu.closed %}
-      <span style="color:#92400e">({{ t('سدّت جزء من الفرق','partly closed') }})</span>
+      <span style="color:#8A4B1C">({{ t('سدّت جزء من الفرق','partly closed') }})</span>
       {% endif %}
     </span>
     {% endfor %}
@@ -314,46 +349,46 @@
 {% set zz = data.zigzag %}
 {% if zz %}
 <!-- تدوير السعرات -->
-<div style="background:#fff;border:2px solid #B4D0DA;border-radius:12px;padding:16px 18px;margin-bottom:16px">
+<div style="background:#fff;border:2px solid #D5DAE0;border-radius:12px;padding:16px 18px;margin-bottom:16px">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:4px">
-    <div style="font-weight:800;color:#0F2A43;font-size:15px">
-      <i class="fa-solid fa-arrow-down-up-across-line" style="color:#1B6E80"></i>
+    <div style="font-weight:800;color:#1E2630;font-size:15px">
+      <i class="fa-solid fa-arrow-down-up-across-line" style="color:#3A4A5C"></i>
       {{ t('تدوير السعرات','Calorie cycling') }} — {{ zz.mode_ar if is_ar else zz.mode_en }}
     </div>
-    <div style="font-size:12.5px;color:#55647a;font-weight:700">
-      {{ t('المتوسط','Average') }} <b style="color:#0F2A43">{{ zz.avg }}</b> kcal ·
+    <div style="font-size:12.5px;color:#5A6472;font-weight:700">
+      {{ t('المتوسط','Average') }} <b style="color:#1E2630">{{ zz.avg }}</b> kcal ·
       {{ zz.low }}–{{ zz.high }} kcal
     </div>
   </div>
-  <div style="font-size:12px;color:#55647a;margin-bottom:12px">{{ zz.desc_ar if is_ar else zz.desc_en }}</div>
+  <div style="font-size:12px;color:#5A6472;margin-bottom:12px">{{ zz.desc_ar if is_ar else zz.desc_en }}</div>
 
   <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">
     {% for d in zz.days %}
-    {% set col = '#1B6E80' if d.level == 'high' else ('#FF7A59' if d.level == 'low' else '#55647a') %}
+    {% set col = '#3A4A5C' if d.level == 'high' else ('#8A4B1C' if d.level == 'low' else '#5A6472') %}
     <div style="text-align:center">
       <div style="height:52px;display:flex;align-items:flex-end;justify-content:center">
         <div style="width:100%;height:{{ (d.kcal / zz.high * 52) | round | int }}px;background:{{ col }};border-radius:4px 4px 0 0"></div>
       </div>
-      <div style="font-size:11px;font-weight:800;color:#0F2A43;margin-top:4px">{{ d.kcal }}</div>
-      <div style="font-size:10px;color:#55647a">{{ (d.day_ar if is_ar else d.day_en)[:3] }}{% if d.pct %} {{ '+' if d.pct > 0 }}{{ d.pct }}%{% endif %}</div>
+      <div style="font-size:11px;font-weight:800;color:#1E2630;margin-top:4px">{{ d.kcal }}</div>
+      <div style="font-size:10px;color:#5A6472">{{ (d.day_ar if is_ar else d.day_en)[:3] }}{% if d.pct %} {{ '+' if d.pct > 0 }}{{ d.pct }}%{% endif %}</div>
     </div>
     {% endfor %}
   </div>
 
   {% if zz.days[0].protein_g %}
-  <div style="font-size:12px;color:#55647a;margin-top:12px;padding-top:10px;border-top:1px solid #E4F0F4">
-    {{ t('البروتين ثابت','Protein is constant at') }} <b style="color:#0F2A43">{{ zz.days[0].protein_g }} {{ t('جم','g') }}</b>
+  <div style="font-size:12px;color:#5A6472;margin-top:12px;padding-top:10px;border-top:1px solid #EDF0F3">
+    {{ t('البروتين ثابت','Protein is constant at') }} <b style="color:#1E2630">{{ zz.days[0].protein_g }} {{ t('جم','g') }}</b>
     {{ t('كل يوم — الفرق في السعرات بيتحمّله الكارب.','every day — carbs carry the calorie swing.') }}
     {{ t('الكارب بيتراوح','Carbs range') }}
-    <b style="color:#0F2A43">{{ zz.days|map(attribute='carb_g')|min }}–{{ zz.days|map(attribute='carb_g')|max }} {{ t('جم','g') }}</b>.
+    <b style="color:#1E2630">{{ zz.days|map(attribute='carb_g')|min }}–{{ zz.days|map(attribute='carb_g')|max }} {{ t('جم','g') }}</b>.
   </div>
   {% endif %}
   {% if zz.capped_at_tdee %}
   {# ‏اليوم الأعلى في خطة عجز ما يعدّيش اللي العميل بيحرقه. السطر ده
      موجود عشان الدكتور لو طلب تدوير قوي ولقى اليوم العالي أقل من
      المتوقّع، يعرف السبب بدل ما يفتكرها غلطة حساب. #}
-  <div style="font-size:12px;color:#0F2A43;background:#E4F0F4;border:1px solid #B4D0DA;border-radius:8px;padding:9px 12px;margin-top:10px">
-    ℹ️ {{ t('دي خطة عجز، فاليوم الأعلى متسقّف عند اللي العميل بيحرقه',
+  <div style="font-size:12px;color:#1E2630;background:#EDF0F3;border:1px solid #D5DAE0;border-radius:8px;padding:9px 12px;margin-top:10px">
+    <i class="fa-solid fa-circle-info"></i> {{ t('دي خطة عجز، فاليوم الأعلى متسقّف عند اللي العميل بيحرقه',
             'This is a deficit plan, so the highest day is capped at what the client burns') }}
     (<b>{{ zz.ceiling }} kcal</b>)
     {{ t('— يوم ريفيد بيروح لحد التثبيت، مش فوقه.',
@@ -361,20 +396,20 @@
   </div>
   {% endif %}
   {% if zz.floor_disabled %}
-  <div style="font-size:12px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:9px 12px;margin-top:10px">
-    ⚠️ {{ t('السعرات المستهدفة عند الحد الآمن الأدنى، فمفيش مجال ننزّل أي يوم تحته — الأيام اتسابت متساوية.',
+  <div style="font-size:12px;color:#8A4B1C;background:#FDF6EC;border:1px solid #E5C9A1;border-radius:8px;padding:9px 12px;margin-top:10px">
+    <i class="fa-solid fa-triangle-exclamation"></i> {{ t('السعرات المستهدفة عند الحد الآمن الأدنى، فمفيش مجال ننزّل أي يوم تحته — الأيام اتسابت متساوية.',
             'The target is already at the safe floor, so no day can go below it — the days were left equal.') }}
   </div>
   {% endif %}
   {% if zz.fat_floor_applied %}
-  <div style="font-size:12px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:9px 12px;margin-top:10px">
-    ⚠️ {{ t('نسبة الدهون اللي اتكتبت أقل من الحد الصحي، فاترفعت لـ','The fat percentage entered was below the healthy minimum, so it was raised to') }}
+  <div style="font-size:12px;color:#8A4B1C;background:#FDF6EC;border:1px solid #E5C9A1;border-radius:8px;padding:9px 12px;margin-top:10px">
+    <i class="fa-solid fa-triangle-exclamation"></i> {{ t('نسبة الدهون اللي اتكتبت أقل من الحد الصحي، فاترفعت لـ','The fat percentage entered was below the healthy minimum, so it was raised to') }}
     <b>{{ zz.min_fat_g }} {{ t('جم','g') }}</b> ({{ '%.1f'|format(0.6) }} {{ t('جم/كجم','g/kg') }}).
   </div>
   {% endif %}
   {% if zz.macro_conflict %}
-  <div style="font-size:12px;color:#991b1b;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:9px 12px;margin-top:10px">
-    🚫 {{ t('البروتين المطلوب + أقل دهون آمنة أكبر من سعرات اليوم — الوصفة دي مش قابلة للتنفيذ. قلّل البروتين جم/كجم أو زوّد السعرات.',
+  <div style="font-size:12px;color:#8B2E2E;background:#FBEDED;border:1px solid #E3B4B4;border-radius:8px;padding:9px 12px;margin-top:10px">
+    <i class="fa-solid fa-ban"></i> {{ t('البروتين المطلوب + أقل دهون آمنة أكبر من سعرات اليوم — الوصفة دي مش قابلة للتنفيذ. قلّل البروتين جم/كجم أو زوّد السعرات.',
             'The requested protein plus the minimum safe fat exceeds the day\'s calories — this prescription cannot be met. Lower the protein g/kg or raise the calories.') }}
   </div>
   {% endif %}
@@ -385,13 +420,13 @@
    ضوضاء بتخفي اللي بيتغير فعلاً. مرة واحدة فوق، وباقي الأنظمة مابتشوفهاش
    لأنها بتظهر بس لو أول يوم فيه permanent_rules. #}
 {% if plan and plan[0].permanent_rules %}
-<div class="card" style="padding:16px;margin-bottom:12px;background:#f0f7f4;
-     border-inline-start:4px solid #1B6E80">
-  <div style="font-weight:800;font-size:14px;color:#0F2A43;margin-bottom:8px">
-    <i class="fa-solid fa-shield-halved" style="color:#1B6E80"></i>
+<div class="card" style="padding:16px;margin-bottom:12px;background:#F3F5F7;
+     border-inline-start:4px solid #3A4A5C">
+  <div style="font-weight:800;font-size:14px;color:#1E2630;margin-bottom:8px">
+    <i class="fa-solid fa-shield-halved" style="color:#3A4A5C"></i>
     {{ t('قواعد دايمة — في كل المراحل ومدى الحياة','Permanent rules — every phase, for life') }}
   </div>
-  <ul style="margin:0;padding-inline-start:18px;font-size:12.5px;color:#0F2A43;line-height:1.9">
+  <ul style="margin:0;padding-inline-start:18px;font-size:12.5px;color:#1E2630;line-height:1.9">
     {% for rule in (plan[0].permanent_rules if is_ar else (plan[0].permanent_rules_en or plan[0].permanent_rules)) %}
     <li>{{ rule }}</li>
     {% endfor %}
@@ -411,21 +446,21 @@
       <div style="display:flex;align-items:center;gap:6px">
         {% if day.target_cal %}
         {% set lv = day.zigzag_level %}
-        <div style="background:{{ '#1B6E80' if lv == 'high' else ('#FF7A59' if lv == 'low' else '#55647a') }};
+        <div style="background:{{ '#3A4A5C' if lv == 'high' else ('#8A4B1C' if lv == 'low' else '#5A6472') }};
                     color:#fff;padding:4px 12px;border-radius:100px;font-weight:800;font-size:13px"
              title="{{ t('السعرات المستهدفة لليوم ده','Target calories for this day') }}">
           {{ t('الهدف','Target') }} {{ day.target_cal }} kcal
           {%- if day.zigzag_pct %} ({{ '+' if day.zigzag_pct > 0 }}{{ day.zigzag_pct }}%){% endif %}
         </div>
         {% endif %}
-        <div style="background:#d8e2dc;color:#0F2A43;padding:4px 12px;border-radius:100px;font-weight:700;font-size:13px"
+        <div style="background:#D5DAE0;color:#1E2630;padding:4px 12px;border-radius:100px;font-weight:700;font-size:13px"
              title="{{ t('مجموع سعرات الوجبات المكتوبة','Total of the meals listed') }}">
           {{ day.total_cal }} kcal
         </div>
         {% if day.target_cal %}
         {% set gap = day.target_cal - day.total_cal %}
         {% if gap > 150 or gap < -150 %}
-        <div style="background:#fffbeb;border:1px solid #fcd34d;color:#92400e;padding:4px 10px;
+        <div style="background:#FDF6EC;border:1px solid #E5C9A1;color:#8A4B1C;padding:4px 10px;
                     border-radius:100px;font-weight:700;font-size:12px"
              title="{{ t('الفرق بين هدف اليوم ومجموع الوجبات — ظبّط الكميات','The gap between the day target and the meals listed — adjust the quantities') }}">
           {{ '+' if gap > 0 }}{{ gap }} kcal
@@ -439,59 +474,62 @@
        عند الجوع")، والأربع خانات لوحدها مش بتوصّلها. بتظهر للأيام اللي فيها
        note بس، فباقي الأنظمة ما بتتغيرش. #}
     {% if day.note %}
-    <div style="background:#f0f7f4;border-inline-start:3px solid #1B6E80;border-radius:8px;
-                padding:8px 12px;margin-bottom:10px;font-size:12px;color:#0F2A43">
+    <div style="background:#F3F5F7;border-inline-start:3px solid #3A4A5C;border-radius:8px;
+                padding:8px 12px;margin-bottom:10px;font-size:12px;color:#1E2630">
       <span style="font-weight:700">{{ t('المسموح','Allowed') }}:</span>
       {{ day.note if is_ar else (day.note_en or day.note) }}
       {% if day.forbidden %}
-      <div style="margin-top:4px;color:#92400e">
+      <div style="margin-top:4px;color:#8A4B1C">
         <span style="font-weight:700">{{ t('الممنوع','Not allowed') }}:</span>
         {{ (day.forbidden if is_ar else (day.forbidden_en or day.forbidden)) | join('، ' if is_ar else ', ') }}
       </div>
       {% endif %}
       {% for c in day.cautions or [] %}
-      <div style="margin-top:6px;padding-top:6px;border-top:1px dashed #cbd5e1;color:#92400e;font-weight:600">
-        ⚠️ {{ c.ar if is_ar else (c.en or c.ar) }}
+      <div style="margin-top:6px;padding-top:6px;border-top:1px dashed #D5DAE0;color:#8A4B1C;font-weight:600">
+        <i class="fa-solid fa-triangle-exclamation"></i> {{ c.ar if is_ar else (c.en or c.ar) }}
       </div>
       {% endfor %}
     </div>
     {% endif %}
 
     <div style="display:grid;gap:8px">
+      {# ‏علامات الوجبات كانت إيموجي. دي علامات القالب، **مش** أسامي
+         الأكل -- الإيموجي اللي جوّه اسم الوجبة (🥚 🍅 …) جاية من قاعدة
+         الأكل وبتروح للعميل على ورقته، فمالهاش دعوة بالتغيير ده. #}
       {% set meal_configs = [
-        ('breakfast', '🌅', t('الفطار','Breakfast')),
-        ('lunch', '☀️', t('الغداء','Lunch')),
-        ('dinner', '🌙', t('العشاء','Dinner')),
-        ('snack', '🍎', t('سناك','Snack')),
-        ('meal1', '🕛', t('الوجبة الأولى','First meal')),
-        ('meal2', '🕖', t('الوجبة الثانية','Second meal')),
-        ('iftar', '🌙', t('الفطار (رمضان)','Iftar (Ramadan)')),
-        ('suhoor', '🌄', t('السحور','Suhoor')),
-        ('snack1', '☕', t('سناك صباحي','Morning snack')),
-        ('snack2', '🍎', t('سناك عصر','Afternoon snack')),
-        ('pre_workout', '💪', t('قبل التمرين','Pre-workout')),
-        ('post_workout', '🏋️', t('بعد التمرين','Post-workout')),
+        ('breakfast', 'fa-mug-saucer', t('الفطار','Breakfast')),
+        ('lunch', 'fa-utensils', t('الغداء','Lunch')),
+        ('dinner', 'fa-moon', t('العشاء','Dinner')),
+        ('snack', 'fa-apple-whole', t('سناك','Snack')),
+        ('meal1', 'fa-clock', t('الوجبة الأولى','First meal')),
+        ('meal2', 'fa-clock', t('الوجبة الثانية','Second meal')),
+        ('iftar', 'fa-moon', t('الفطار (رمضان)','Iftar (Ramadan)')),
+        ('suhoor', 'fa-cloud-sun', t('السحور','Suhoor')),
+        ('snack1', 'fa-mug-hot', t('سناك صباحي','Morning snack')),
+        ('snack2', 'fa-apple-whole', t('سناك عصر','Afternoon snack')),
+        ('pre_workout', 'fa-dumbbell', t('قبل التمرين','Pre-workout')),
+        ('post_workout', 'fa-dumbbell', t('بعد التمرين','Post-workout')),
       ] %}
 
-      {% for key, emoji, label in meal_configs %}
+      {% for key, icon, label in meal_configs %}
         {% if day[key] %}
-        <div class="meal-row" style="display:flex;align-items:center;gap:10px;padding:10px;background:{% if 'snack' in key or key in ['pre_workout','post_workout'] %}#fff8e7{% else %}var(--gray){% endif %};border-radius:8px">
-          <div style="font-size:20px">{{ emoji }}</div>
+        <div class="meal-row{% if 'snack' in key or key in ['pre_workout','post_workout'] %} is-snack{% endif %}">
+          <span class="meal-ic"><i class="fa-solid {{ icon }}"></i></span>
           <div style="flex:1">
-            <div style="font-size:11px;color:#bc6c25;font-weight:700;letter-spacing:0.5px">{{ label }}</div>
+            <div class="meal-slot">{{ label }}</div>
             <div class="meal-text editable" data-day="{{ day_idx }}" data-type="{{ key }}" style="font-size:13px;font-weight:600;cursor:text">{{ day[key] | meal_en }}</div>
           </div>
           {% if key not in ['snack','snack1','snack2','pre_workout','post_workout'] %}
           <div style="display:flex;gap:4px">
             <button class="move-btn" data-day="{{ day_idx }}" data-type="{{ key }}" data-dir="up"
                     title="{{ t('بدّلها باللي فوقها','Swap with the one above') }}"
-                    style="background:#F4F9FB;color:#0F2A43;border-color:#B4D0DA">
+                    style="background:#F3F5F7;color:#1E2630;border-color:#D5DAE0">
               <i class="fa-solid fa-arrow-up"></i>
             </button>
             <button class="swap-btn" data-day="{{ day_idx }}" data-type="{{ key }}" title="{{ t('استبدال عشوائي','Random swap') }}">
               <i class="fa-solid fa-shuffle"></i>
             </button>
-            <button class="pick-btn" data-day="{{ day_idx }}" data-type="{{ key }}" data-label="{{ label }}" title="{{ t('اختر من قائمة','Pick from a list') }}" style="background:#F4F9FB;color:#1B6E80;border-color:#B4D0DA">
+            <button class="pick-btn" data-day="{{ day_idx }}" data-type="{{ key }}" data-label="{{ label }}" title="{{ t('اختر من قائمة','Pick from a list') }}" style="background:#F3F5F7;color:#3A4A5C;border-color:#D5DAE0">
               <i class="fa-solid fa-list"></i>
             </button>
           </div>
@@ -504,7 +542,7 @@
   {% endfor %}
 </div>
 
-<div style="position:sticky;bottom:10px;margin-top:20px;display:grid;gap:8px">
+<div class="pv-sticky">
   {# على الموبايل ده الزرار الرئيسي: بيفتح شير شيت النظام والملف متعلّق فيه،
      فالجدول بيروح لواتساب في ضغطة. على الديسكتوب مخفي والتحميل هو الأساس. #}
   {# لينك بدل ملف: مشاركة رابط شغالة على كل متصفح، ومشاركة الملفات لأ. #}
@@ -517,15 +555,15 @@
      قايمة المشاركة بتاعة النظام مش بتشتغل جوه تطبيق مثبّت على الشاشة
      الرئيسية، فلازم يبقى فيه طريق مايعتمدش عليها خالص: زرار واتساب
      (مجرد رابط، بيشتغل في أي مكان) واللينك نفسه ظاهر عشان ينسخه بإيده. #}
-  <div id="planLinkBox" style="display:none;background:#fff;border:2px solid #1B6E80;
+  <div id="planLinkBox" style="display:none;background:#fff;border:2px solid #3A4A5C;
        border-radius:13px;padding:14px;box-shadow:0 4px 20px rgba(0,0,0,.12)">
-    <div style="font-size:12.5px;color:#55647a;font-weight:700;margin-bottom:7px">
+    <div style="font-size:12.5px;color:#5A6472;font-weight:700;margin-bottom:7px">
       {{ t('لينك الجدول — ابعته للعميل','The plan link — send it to the client') }}
     </div>
     <input id="planLinkUrl" aria-label="{{ t('لينك الجدول','Plan link') }}" readonly onclick="this.select()"
-           style="width:100%;padding:11px;border:1px solid #D3E3EA;border-radius:9px;
+           style="width:100%;padding:11px;border:1px solid #D5DAE0;border-radius:9px;
                   font-size:13px;font-family:inherit;direction:ltr;text-align:left;
-                  background:#F4F9FB;color:#0F2A43;font-weight:600">
+                  background:#F3F5F7;color:#1E2630;font-weight:600">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px">
       <a id="planLinkWa" href="#" target="_blank" rel="noopener"
          style="background:#0B8043;color:#fff;text-align:center;padding:12px;
@@ -554,7 +592,7 @@
 </div>
 
 <!-- Save indicator -->
-<div id="saveIndicator" style="position:fixed;bottom:80px;inset-inline-end:20px;background:#1B6E80;color:white;padding:10px 18px;border-radius:100px;font-weight:700;font-size:13px;display:none;box-shadow:0 4px 16px rgba(22,163,74,0.4);z-index:1000">
+<div id="saveIndicator" style="position:fixed;bottom:80px;inset-inline-end:20px;background:#3A4A5C;color:white;padding:10px 18px;border-radius:100px;font-weight:700;font-size:13px;display:none;box-shadow:0 4px 16px rgba(22,163,74,0.4);z-index:1000">
   <i class="fa-solid fa-check-circle"></i> {{ t('تم الحفظ','Saved') }}
 </div>
 
@@ -577,36 +615,36 @@
       </div>
     </div>
     <div style="padding:14px 20px;border-top:1px solid var(--gray-2);text-align:center;font-size:11px;color:var(--muted)">
-      💡 {{ t('اضغط على أي وجبة عشان تستبدل بيها','Click any meal to swap it in') }}
+      <i class="fa-solid fa-lightbulb"></i> {{ t('اضغط على أي وجبة عشان تستبدل بيها','Click any meal to swap it in') }}
     </div>
   </div>
 </div>
 
 <style>
   .meal-text { transition: all 0.2s ease; padding:6px 10px;border-radius:6px;border:1.5px dashed transparent; }
-  .meal-text.editable:hover { background:rgba(37,99,235,0.05);border-color:#E4F0F4; }
-  .meal-text.editing { background:#F4F9FB !important;border:1.5px solid #2E8F9E !important;outline:none; }
+  .meal-text.editable:hover { background:rgba(37,99,235,0.05);border-color:#EDF0F3; }
+  .meal-text.editing { background:#F3F5F7 !important;border:1.5px solid #3A4A5C !important;outline:none; }
   .swap-btn, .pick-btn {
     background:white;border:1px solid var(--gray-2);border-radius:8px;
     padding:8px 10px;cursor:pointer;color:var(--green);
     font-family:inherit;font-size:14px;
   }
-  .swap-btn:hover { background: #1B6E80 !important; color: white !important; }
-  .pick-btn:hover { background: #1B6E80 !important; color: white !important; }
+  .swap-btn:hover { background: #3A4A5C !important; color: white !important; }
+  .pick-btn:hover { background: #3A4A5C !important; color: white !important; }
   .swap-btn:disabled, .pick-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .meal-edit-textarea {
-    width:100%;padding:8px 10px;border:1.5px solid #2E8F9E;border-radius:6px;
+    width:100%;padding:8px 10px;border:1.5px solid #3A4A5C;border-radius:6px;
     font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;
-    background:#F4F9FB;outline:none;resize:vertical;min-height:50px;
+    background:#F3F5F7;outline:none;resize:vertical;min-height:50px;
   }
   .option-card {
     background:var(--gray);border:2px solid var(--gray-2);border-radius:10px;
     padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.2s
   }
   .option-card:hover {
-    background:#F4F9FB;border-color:#1B6E80;transform:translateX(-2px);
+    background:#F3F5F7;border-color:#3A4A5C;transform:translateX(-2px);
   }
-  .option-card.selected { background:#E4F0F4;border-color:#1B6E80 }
+  .option-card.selected { background:#EDF0F3;border-color:#3A4A5C }
 </style>
 
 <script>
@@ -874,7 +912,7 @@ document.querySelectorAll('.pick-btn').forEach(btn => {
                 <div style="font-size:11px;color:var(--muted);font-weight:700">
                   ${emoji} ${source}
                 </div>
-                <div style="background:#d8e2dc;color:#0F2A43;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">
+                <div style="background:#D5DAE0;color:#1E2630;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">
                   ${opt.cal} kcal • ${opt.p}${PV.protein}
                 </div>
               </div>
@@ -899,7 +937,7 @@ document.querySelectorAll('.pick-btn').forEach(btn => {
       }
     } catch(e) {
       document.getElementById('pickerOptions').innerHTML = `
-        <div style="text-align:center;padding:30px;color:#dc2626">
+        <div style="text-align:center;padding:30px;color:#8B2E2E">
           <i class="fa-solid fa-triangle-exclamation" style="font-size:32px"></i>
           <div style="margin-top:10px">${PV.error}</div>
         </div>
