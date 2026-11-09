@@ -3,53 +3,120 @@
 {% block title %}{{ 'الرئيسية' if is_ar else 'Home' }}{% endblock %}
 {% block content %}
 
-<!-- Welcome Banner -->
-<div class="card" style="background:linear-gradient(135deg,#0F2A43 0%,#1B6E80 100%);color:white;padding:24px;margin-bottom:20px">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-    <div>
-      <div style="font-size:14px;opacity:0.85;margin-bottom:4px">{{ 'أهلا' if is_ar else 'Welcome' }}</div>
-      <h1 style="font-size:24px;font-weight:900;margin:0">{{ 'د.' if is_ar else 'Dr.' }} {{ user.name if user else '' }}</h1>
-      <div style="font-size:13px;opacity:0.85;margin-top:6px">
-        {% if role == 'admin' %}{{ 'مدير النظام' if is_ar else 'System Administrator' }}
-        {% elif role == 'nutritionist' %}{{ 'أخصائي تغذية' if is_ar else 'Nutritionist' }}
-        {% endif %}
-      </div>
-    </div>
-    <div style="font-size:50px">👨‍⚕️</div>
-  </div>
+{# ═══ اللوحة: بلوكين، مش ستة ════════════════════════════════════════
+   ‏كان فيها كارت ترحيب بتدرّج (١٢٠ بكسل أغلبها فاضي، وبيكرّر الاسم
+   والصفة اللي مكتوبين في القايمة الجانبية أصلاً)، وأربع كروت كل واحدة
+   بلون، وست إجراءات في شبكة بتسيب واحدة لوحدها في صف.
+
+   ‏بقت: **ابدأ** (تلات حاجات بس، والباقي في فولد مقفول)، وتحتها
+   **الوضع دلوقتي** (الأرقام في شريط واحد). ومركز المتابعة بيظهر لما
+   يكون فيه حاجة فعلاً.
+
+   ‏الإجراءات فوق الأرقام بالقصد: اللوحة دي مكان شغل، فأول حاجة تشوفها
+   هي اللي هتدوس عليه، مش رقم بتتفرج عليه. #}
+
+{% macro sec(title) %}
+<div class="nx-sec-h"><span>{{ title }}</span></div>
+{% endmacro %}
+
+{{ sec('ابدأ' if is_ar else 'Start') }}
+<div class="nx-main3">
+  <a href="/generate" class="nx-big">
+    <span class="ic"><i class="fa-solid fa-file-circle-plus"></i></span>
+    <span class="tx">
+      <span class="t">{{ 'توليد خطة جديدة' if is_ar else 'Generate New Plan' }}</span>
+      <span class="s">{{ 'ابدأ خطة لعميل' if is_ar else 'Start a plan for a client' }}</span>
+    </span>
+  </a>
+  <a href="/patients" class="nx-big">
+    <span class="ic"><i class="fa-solid fa-users"></i></span>
+    <span class="tx">
+      <span class="t">{{ 'المرضى' if is_ar else 'Patients' }}</span>
+      <span class="s">{{ 'ملفات العملاء والمتابعة' if is_ar else 'Client files and follow-up' }}</span>
+    </span>
+  </a>
+  <a href="/admin/requests" class="nx-big">
+    <span class="ic"><i class="fa-solid fa-inbox"></i></span>
+    <span class="tx">
+      <span class="t">{{ 'طلبات العملاء' if is_ar else 'Client Requests' }}</span>
+      <span class="s">
+        {% if pending_count and pending_count > 0 %}
+          <b class="alert">{{ pending_count }} {{ 'مستني ردّك' if is_ar else 'waiting on you' }}</b>
+        {% else %}{{ 'طلبات مستنية ردّك' if is_ar else 'Requests waiting on you' }}{% endif %}
+      </span>
+    </span>
+  </a>
 </div>
 
-<!-- Quick Stats -->
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px">
-
-  <div class="card" style="text-align:center;padding:18px;border-top:4px solid #f59e0b">
-    <div style="font-size:34px;margin-bottom:6px">🔔</div>
-    <div style="font-size:32px;font-weight:900;color:#f59e0b">{{ pending_count or 0 }}</div>
-    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">{{ 'طلبات جديدة' if is_ar else 'New Requests' }}</div>
-    {% if pending_count and pending_count > 0 %}
-    <a href="/admin/requests" style="display:block;margin-top:10px;font-size:12px;color:#f59e0b;font-weight:700">{{ 'شوف الطلبات ←' if is_ar else 'View requests →' }}</a>
+{# ‏الباقي مقفول: موجود لمّا يتطلب، ومش بياخد مساحة لمّا مايتطلبش. #}
+<details class="nx-rest">
+  <summary><i class="fa-solid fa-grip"></i>
+    <span>{{ 'كل الأدوات' if is_ar else 'All tools' }}</span></summary>
+  <div class="nx-rest-g">
+    <a href="/saved" class="quick-action">
+      <i class="fa-solid fa-bookmark"></i>
+      <span>{{ 'جداول محفوظة' if is_ar else 'Saved Plans' }}</span>
+    </a>
+    {% if role == 'admin' %}
+    <a href="/admin/users" class="quick-action">
+      <i class="fa-solid fa-user-gear"></i>
+      <span>{{ 'إدارة المستخدمين' if is_ar else 'Manage Users' }}</span>
+    </a>
     {% endif %}
+    <a href="/analyzer" class="quick-action">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <span>{{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}</span>
+    </a>
+    <a href="/clinical" class="quick-action">
+      <i class="fa-solid fa-book-medical"></i>
+      <span>{{ 'المرجع الكلينيكي' if is_ar else 'Clinical Reference' }}</span>
+    </a>
+  </div>
+</details>
+
+{{ sec('الوضع دلوقتي' if is_ar else 'Right now') }}
+{# ‏أربع كروت منفصلة كل واحدة بلون كانت قوس قزح، والإيموجي فيها كانت
+   **أكبر من الرقم نفسه**. بقت شريط واحد مقسوم بخطوط شعرة: الرقم هو
+   البطل، والأيقونة رمادية صغيرة. واللون البرتقالي فضل في خانة واحدة
+   بس -- الطلبات الجديدة، لأن دي اللي معناها "فيه حاجة مستنياك". #}
+<div class="nx-strip">
+
+  <div class="nx-cell{% if pending_count and pending_count > 0 %} is-alert{% endif %}">
+    <span class="nx-ic"><i class="fa-solid fa-bell"></i></span>
+    <span class="nx-tx">
+      <span class="nx-n">{{ pending_count or 0 }}</span>
+      <span class="nx-l">{{ 'طلبات جديدة' if is_ar else 'New Requests' }}</span>
+      {% if pending_count and pending_count > 0 %}
+      <a href="/admin/requests">{{ 'شوف الطلبات ←' if is_ar else 'View requests →' }}</a>
+      {% endif %}
+    </span>
   </div>
 
-  <div class="card" style="text-align:center;padding:18px;border-top:4px solid #2E8F9E">
-    <div style="font-size:34px;margin-bottom:6px">👥</div>
-    <div style="font-size:32px;font-weight:900;color:#2E8F9E">{{ total_clients or 0 }}</div>
-    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">{{ 'إجمالي العملاء' if is_ar else 'Total Clients' }}</div>
+  <div class="nx-cell">
+    <span class="nx-ic"><i class="fa-solid fa-users"></i></span>
+    <span class="nx-tx">
+      <span class="nx-n">{{ total_clients or 0 }}</span>
+      <span class="nx-l">{{ 'إجمالي العملاء' if is_ar else 'Total Clients' }}</span>
+    </span>
   </div>
 
-  <div class="card" style="text-align:center;padding:18px;border-top:4px solid #1B6E80">
-    <div style="font-size:34px;margin-bottom:6px">✅</div>
-    <div style="font-size:32px;font-weight:900;color:#1B6E80">{{ total_plans or 0 }}</div>
-    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">{{ 'خطط مكتملة' if is_ar else 'Completed Plans' }}</div>
+  <div class="nx-cell">
+    <span class="nx-ic"><i class="fa-solid fa-clipboard-check"></i></span>
+    <span class="nx-tx">
+      <span class="nx-n">{{ total_plans or 0 }}</span>
+      <span class="nx-l">{{ 'خطط مكتملة' if is_ar else 'Completed Plans' }}</span>
+    </span>
   </div>
 
-  <div class="card" style="text-align:center;padding:18px;border-top:4px solid #8b5cf6">
-    <div style="font-size:34px;margin-bottom:6px">💬</div>
-    <div style="font-size:32px;font-weight:900;color:#8b5cf6">{{ unread_messages or 0 }}</div>
-    <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:4px">{{ 'رسايل غير مقروءة' if is_ar else 'Unread Messages' }}</div>
-    {% if unread_messages and unread_messages > 0 %}
-    <a href="/messages" style="display:block;margin-top:10px;font-size:12px;color:#8b5cf6;font-weight:700">{{ 'شوف الرسايل ←' if is_ar else 'View messages →' }}</a>
-    {% endif %}
+  <div class="nx-cell">
+    <span class="nx-ic"><i class="fa-solid fa-comment"></i></span>
+    <span class="nx-tx">
+      <span class="nx-n">{{ unread_messages or 0 }}</span>
+      <span class="nx-l">{{ 'رسايل غير مقروءة' if is_ar else 'Unread Messages' }}</span>
+      {% if unread_messages and unread_messages > 0 %}
+      <a href="/messages">{{ 'شوف الرسايل ←' if is_ar else 'View messages →' }}</a>
+      {% endif %}
+    </span>
   </div>
 
 </div>
@@ -61,7 +128,11 @@
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">
 
     <div>
-      <div style="font-weight:800;font-size:13px;color:#b45309;margin-bottom:8px;">🔔 {{ 'تجديدات قريبة (7 أيام)' if is_ar else 'Renewals due (7 days)' }}</div>
+      {# ‏التلات عناوين كانوا كلهم برتقالي. البرتقالي محجوز للخطر، وتلات
+         حاجات برتقالي جنب بعض معناها إن مفيش حاجة فيهم عاجلة. فضل في
+         "محتاجين متابعة" بس. #}
+      <div class="nx-fu-h"><i class="fa-solid fa-rotate-right"></i>
+        <span>{{ 'تجديدات قريبة (7 أيام)' if is_ar else 'Renewals due (7 days)' }}</span></div>
       {% if renewals_soon %}
         {% for r in renewals_soon[:5] %}
         <div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:12.5px;">
@@ -75,7 +146,8 @@
     </div>
 
     <div>
-      <div style="font-weight:800;font-size:13px;color:#b45309;margin-bottom:8px;">⚠️ {{ 'محتاجين متابعة (التزام أقل من 40%)' if is_ar else 'Need follow-up (adherence under 40%)' }}</div>
+      <div class="nx-fu-h warn"><i class="fa-solid fa-triangle-exclamation"></i>
+        <span>{{ 'محتاجين متابعة (التزام أقل من 40%)' if is_ar else 'Need follow-up (adherence under 40%)' }}</span></div>
       {% if at_risk_clients %}
         {% for c in at_risk_clients[:5] %}
         <a href="/admin/users/{{ c.id }}" style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:12.5px;text-decoration:none;color:var(--text);">
@@ -84,12 +156,13 @@
         </a>
         {% endfor %}
       {% else %}
-        <div style="color:var(--muted-2);font-size:12.5px;padding:8px 0;">{{ 'مفيش حالياً 🎉' if is_ar else 'None right now 🎉' }}</div>
+        <div style="color:var(--muted-2);font-size:12.5px;padding:8px 0;">{{ 'مفيش حالياً' if is_ar else 'None right now' }}</div>
       {% endif %}
     </div>
 
     <div>
-      <div style="font-weight:800;font-size:13px;color:#b45309;margin-bottom:8px;">🚪 {{ 'فقدوا الوصول مؤخراً' if is_ar else 'Recently lost access' }}</div>
+      <div class="nx-fu-h"><i class="fa-solid fa-arrow-right-from-bracket"></i>
+        <span>{{ 'فقدوا الوصول مؤخراً' if is_ar else 'Recently lost access' }}</span></div>
       {% if recently_lost %}
         {% for r in recently_lost[:5] %}
         <div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:12.5px;">
@@ -105,51 +178,6 @@
   </div>
 </div>
 {% endif %}
-
-<!-- Quick Actions -->
-<div class="card">
-  <div class="card-title">
-    <i class="fa-solid fa-bolt"></i> {{ 'إجراءات سريعة' if is_ar else 'Quick Actions' }}
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
-
-    <a href="/admin/requests" class="quick-action">
-      <div style="font-size:28px;margin-bottom:6px">📋</div>
-      <div style="font-weight:700;color:var(--blue)">{{ 'طلبات العملاء' if is_ar else 'Client Requests' }}</div>
-      {% if pending_count and pending_count > 0 %}
-      <div style="font-size:11px;color:#dc2626;font-weight:800;margin-top:3px">⚠️ {{ pending_count }} {{ 'جديد' if is_ar else 'new' }}</div>
-      {% endif %}
-    </a>
-
-    <a href="/generate" class="quick-action">
-      <div style="font-size:28px;margin-bottom:6px">⚡</div>
-      <div style="font-weight:700;color:var(--blue)">{{ 'توليد خطة جديدة' if is_ar else 'Generate New Plan' }}</div>
-    </a>
-
-    <a href="/patients" class="quick-action">
-      <div style="font-size:28px;margin-bottom:6px">👥</div>
-      <div style="font-weight:700;color:var(--blue)">{{ 'المرضى' if is_ar else 'Patients' }}</div>
-    </a>
-
-    <a href="/saved" class="quick-action">
-      <div style="font-size:28px;margin-bottom:6px">🔖</div>
-      <div style="font-weight:700;color:var(--blue)">{{ 'جداول محفوظة' if is_ar else 'Saved Plans' }}</div>
-    </a>
-
-    {% if role == 'admin' %}
-    <a href="/admin/users" class="quick-action">
-      <div style="font-size:28px;margin-bottom:6px">⚙️</div>
-      <div style="font-weight:700;color:var(--blue)">{{ 'إدارة المستخدمين' if is_ar else 'Manage Users' }}</div>
-    </a>
-    {% endif %}
-
-    <a href="/clinical" class="quick-action">
-      <div style="font-size:28px;margin-bottom:6px">📚</div>
-      <div style="font-weight:700;color:var(--blue)">{{ 'المرجع الكلينيكي' if is_ar else 'Clinical Reference' }}</div>
-    </a>
-
-  </div>
-</div>
 
 <!-- Recent Requests -->
 {% if recent_requests and recent_requests|length > 0 %}

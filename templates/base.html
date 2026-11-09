@@ -72,49 +72,87 @@
    text-align:start) بتتبع اتجاه الصفحة لوحدها. وtranslateX مالهاش
    نسخة منطقية، فالدرج على الموبايل محتاج سطر لكل اتجاه. */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-{# ‏آخر تلات توكنز في :root هما لغة الشكل الجديدة، ومكانهم هنا
-   بالقصد مش في صفحة واحدة: الظل القريب والبعيد (--sh-1/--sh-2)،
-   وتدرّج "ده المختار" (--pick). أي صفحة جاية تتعمل بنفس اللغة
-   بتاخدهم من هنا بدل ما تخترع ظل وتدرّج جداد.
+{# ‏آخر تلات توكنز في :root هما لغة الشكل، ومكانهم هنا بالقصد مش في
+   صفحة واحدة: --sh-1/--sh-2 للظل، و--pick للون "ده المختار". كل صفحة
+   بتاخدهم من هنا بدل ما تخترع لنفسها.
 
-   ‏و--pick بالذات **مايفتّحش**: النص اللي فوقه أبيض، وتباين أفتح
-   نقطة فيه مع الأبيض ٥.٣٦:١ -- والحد الأدنى ٤.٥:١ عشان سطر
-   السعرات اللي حجمه ١١.٥ بكسل يتقرا. (tests/test_form_contrast.py) #}
-:root{--blue:#0F2A43;--blue-light:#2E8F9E;--blue-pale:#DDEBF1;--green:#1B6E80;--green-light:#1B6E80;--green-pale:#E4F0F4;--red:#8b0000;--red-pale:#fef2f2;--orange:#b34700;--gray:#f4f6fa;--gray-2:#D3E3EA;--text:#0f172a;--text-2:#374151;--muted:#55647a;--muted-2:#55647a;--blue-dark:#0B1F33;--gray-dark:#55647a;--white:#ffffff;--sidebar-w:240px;--header-h:60px;--sh-1:0 1px 2px rgba(16,26,51,.06);--sh-2:0 2px 5px rgba(16,26,51,.07), 0 14px 30px -12px rgba(16,26,51,.26);--pick:linear-gradient(135deg,#0E7490 0%,#0C5E78 100%)}
+   ‏و--sh-1/--sh-2 قيمتهم `none` بالقصد: الشكل ده بيفصل بإطار شعرة
+   ومساحة، مش بظل. سايبهم كتوكن عشان الصفحات اللي بتستعملهم ماتكسرش،
+   ولو حد عايز يرجّع الظل يرجّعه من مكان واحد.
+
+   ‏و--pick **لون صلب مش تدرّج**: التدرّج أول علامة بتقول إن الشكل
+   مولّد. وتباينه مع الأبيض ٩.٠٨:١ -- والنص اللي فوقه أبيض.
+   (tests/test_form_contrast.py) #}
+:root{--blue:#1E2630;--blue-light:#3A4A5C;--blue-pale:#EDF0F3;--green:#3A4A5C;--green-light:#3A4A5C;--green-pale:#EDF0F3;--red:#8B2E2E;--red-pale:#fdf4f4;--orange:#8A4B1C;--gray:#F6F7F8;--gray-2:#E4E7EA;--text:#1E2630;--text-2:#374250;--muted:#5A6472;--muted-2:#5A6472;--blue-dark:#161C24;--gray-dark:#5A6472;--white:#ffffff;--sidebar-w:240px;--header-h:60px;--sh-1:none;--sh-2:none;--pick:#3A4A5C}
 body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min-height:100vh;-webkit-tap-highlight-color:transparent}
-.header{position:fixed;top:0;right:0;left:0;height:var(--header-h);background:var(--blue);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.15)}
-.header-logo{color:#fff;font-size:18px;font-weight:900;display:flex;align-items:center;gap:10px}
-.header-btn{background:rgba(255,255,255,.15);color:#fff;border:none;padding:7px 14px;border-radius:8px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
-.user-badge{background:rgba(255,255,255,.1);color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.2);display:inline-flex;align-items:center;gap:6px}
-.menu-toggle{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:16px;cursor:pointer;width:36px;height:36px;border-radius:8px;display:none;align-items:center;justify-content:center}
+/* ‏الهيدر كان بلوك كحلي غامق بياخد انتباه ومش بيقول حاجة. بقى أبيض
+   بخط شعرة -- شكل برامج الشغل، والانتباه بيروح للمحتوى. */
+.header{position:fixed;top:0;right:0;left:0;height:var(--header-h);background:var(--white);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:100;border-bottom:1px solid var(--gray-2)}
+.header-logo{color:var(--text);font-size:18px;font-weight:900;display:flex;align-items:center;gap:10px}
+.header-btn{background:#F3F5F7;color:var(--text-2);border:1px solid var(--gray-2);padding:7px 14px;border-radius:7px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.header-btn i,.user-badge i,.notif-bell i{color:var(--muted)}
+.header-btn:hover{background:#EDF0F3}
+.user-badge{background:#F3F5F7;color:var(--text-2);font-size:12px;font-weight:700;padding:6px 12px;border-radius:7px;border:1px solid var(--gray-2);display:inline-flex;align-items:center;gap:6px}
+.menu-toggle{background:#F3F5F7;border:1px solid var(--gray-2);color:var(--text-2);font-size:16px;cursor:pointer;width:36px;height:36px;border-radius:7px;display:none;align-items:center;justify-content:center}
 .role-badge{font-size:10px;padding:2px 8px;border-radius:6px;font-weight:700;margin-inline-start:4px}
-.role-admin{background:#fee;color:#8b0000}
-.role-nutritionist{background:#E4F0F4;color:#0F2A43}
-.role-client{background:#E4F0F4;color:#0F2A43}
+.role-admin{background:#FBEDED;color:#8B2E2E}
+.role-nutritionist{background:var(--blue-pale);color:#2B3746}
+.role-client{background:var(--blue-pale);color:#2B3746}
 /* جرس الإشعارات */
 .notif-bell{position:relative;width:36px;height:36px;padding:0;justify-content:center}
 .notif-bell i{font-size:16px}
 .notif-bell-badge{position:absolute;top:-5px;inset-inline-end:-5px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;min-width:18px;height:18px;padding:0 4px;border-radius:20px;display:flex;align-items:center;justify-content:center;border:2px solid var(--blue);line-height:1}
 .notif-bell.ring i{animation:bellRing .7s ease}
 @keyframes bellRing{0%,100%{transform:rotate(0)}15%{transform:rotate(16deg)}30%{transform:rotate(-14deg)}45%{transform:rotate(10deg)}60%{transform:rotate(-7deg)}75%{transform:rotate(4deg)}}
-.sidebar{position:fixed;top:var(--header-h);inset-inline-start:0;bottom:0;width:var(--sidebar-w);background:var(--white);border-inline-end:1px solid var(--gray-2);overflow-y:auto;padding:16px 12px;z-index:90;transition:transform .3s}
+.sidebar{position:fixed;top:var(--header-h);inset-inline-start:0;bottom:0;width:var(--sidebar-w);background:var(--white);border-inline-end:1px solid var(--gray-2);overflow-y:auto;padding:14px 11px;z-index:90;transition:transform .3s}
 .sidebar-user{padding:8px 14px 16px;border-bottom:1px solid var(--gray-2);margin-bottom:12px}
 .sidebar-user .name{font-size:15px;font-weight:700;color:var(--text)}
 .sidebar-user .email{font-size:12px;color:var(--muted);margin-top:2px}
-.nav-section{font-size:11px;font-weight:700;color:var(--muted-2);letter-spacing:1px;padding:4px 14px;margin-bottom:4px;text-transform:uppercase}
-.nav-item{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;text-decoration:none;color:var(--text-2);font-size:14px;font-weight:600;margin-bottom:4px;transition:all .2s;border:none;background:none;width:100%;cursor:pointer;text-align:start;position:relative}
-.nav-item i{font-size:16px;min-width:20px;text-align:center;color:var(--muted)}
-.nav-item:hover{background:var(--gray);color:var(--blue)}
+.nav-section{font-size:10.5px;font-weight:700;color:#97A0AA;letter-spacing:.9px;padding:4px 12px;margin-bottom:3px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;text-decoration:none;color:var(--text-2);font-size:13.5px;font-weight:600;margin-bottom:1px;transition:background .14s,color .14s;border:none;background:none;width:100%;cursor:pointer;text-align:start;position:relative}
+/* ‏أيقونات القايمة كانت كل واحدة بلون: جرس أحمر، شات تركوازي، فيشة
+   برتقالي. ده قوس قزح بيخلي العين مش عارفة تبص فين. كلها رمادي،
+   واللون للنشط بس -- والخروج أحمر لأن ده معناه حاجة. */
+.nav-item i{font-size:14px;min-width:18px;text-align:center;color:#8D96A1}
+.nav-item[style] i,.nav-item i[style]{color:#8D96A1}
+.nav-item:hover{background:#F1F3F5;color:var(--blue)}
 .nav-item:hover i{color:var(--blue)}
-.nav-item.active{background:var(--blue-pale);color:var(--blue);border-inline-start:3px solid var(--blue)}
-.nav-item.active i{color:var(--blue)}
-.nav-item.danger{color:#991b1b}
-.nav-item.danger i{color:#991b1b}
+.nav-item.active{background:var(--blue-pale);color:#2B3746;font-weight:800;box-shadow:inset -3px 0 0 var(--green)}
+.nav-item:focus-visible{outline:2px solid var(--green);outline-offset:1px}
+.nav-item.active i{color:var(--green)}
+.nav-item.danger{color:#8B2E2E}
+.nav-item.danger i{color:#8B2E2E}
 .nav-more summary{list-style:none}
 .nav-more summary::-webkit-details-marker{display:none}
 .nav-more summary::after{content:'▾';margin-inline-start:auto;font-size:11px;color:var(--muted);transition:transform .2s}
 .nav-more[open] summary::after{transform:rotate(180deg)}
 .nav-more > a, .nav-more > button{margin-inline-start:14px;font-size:13px}
+/* ═══ المجموعات: ٣ بدل ١٣ ═══════════════════════════════════════════
+   ‏القايمة كانت ١٣ عنصر على مستوى واحد، والدكتور بيدوّر فيها بعينه كل
+   مرة. بقت تلات مجموعات بتتفتح: العملاء، الخطط، الإدارة -- ومفيش لينك
+   اتشال، كلهم اتلموا بس. والمجموعة اللي فيها الصفحة الحالية بتفتح
+   لوحدها (`open` من السيرفر)، فالدكتور مابيضيعش بعد ما يدوس. */
+.nav-grp{margin-bottom:2px}
+.nav-grp > summary{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border-radius:7px;font-size:14px;font-weight:800;color:var(--text);cursor:pointer;
+  list-style:none;transition:background .14s}
+.nav-grp > summary::-webkit-details-marker{display:none}
+/* ‏السهم أيقونة من مكتبة المشروع، مش مربع مرسوم بborder. الحيلة
+   بالborder محتاجة خاصية **فيزيائية** (border-right)، واللي بتتقلب
+   في العربي لو اتكتبت inline -- فالسهم كان بيطلع لجنب بدل تحت،
+   وده بيتقرا "روح لصفحة" مش "افتح القايمة". والأيقونة بتلف ١٨٠
+   درجة، فمفيش اتجاه أصلاً. */
+.nav-grp-x{margin-inline-start:auto;font-size:11px !important;color:#97A0AA !important;
+  min-width:auto !important;transition:transform .18s}
+.nav-grp[open] > summary .nav-grp-x{transform:rotate(180deg)}
+.nav-grp > summary:hover{background:#F1F3F5}
+.nav-grp > summary:focus-visible{outline:2px solid var(--green);outline-offset:1px}
+.nav-grp > summary i{font-size:14px;min-width:18px;text-align:center;color:var(--muted)}
+.nav-grp.has-active > summary i{color:var(--green)}
+.nav-grp-body{padding:2px 0 6px;margin-inline-start:13px;
+  border-inline-start:1px solid var(--gray-2)}
+.nav-grp-body .nav-item{font-size:13px;padding:7px 12px;margin-inline-start:5px;font-weight:600}
+.nav-grp-body .nav-item i{font-size:12.5px;min-width:16px}
 .nav-divider{height:1px;background:var(--gray-2);margin:12px 0}
 .nav-badge{position:absolute;inset-inline-end:12px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;min-width:20px;text-align:center}
 .main{margin-top:var(--header-h);margin-inline-start:var(--sidebar-w);padding:24px 20px;min-height:calc(100vh - var(--header-h))}
@@ -131,23 +169,109 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .alert-error{background:var(--red-pale);color:#7f1d1d;border:1px solid #fca5a5}
 .form-group{margin-bottom:14px}
 .form-label{display:block;font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:5px}
-.form-input,.form-select,.form-textarea{width:100%;padding:11px 14px;border:2px solid var(--gray-2);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;color:var(--text);background:var(--white);outline:none;text-align:start}
-.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--blue-light)}
-.btn{padding:11px 22px;border:none;border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none;justify-content:center}
-.btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue-light));color:#fff}
-.btn-success{background:linear-gradient(135deg,var(--green),var(--green-light));color:#fff}
-.btn-outline{background:transparent;color:var(--blue);border:2px solid var(--blue-pale)}
-.btn-danger{background:var(--red-pale);color:var(--red);border:1px solid #fca5a5}
+.form-input,.form-select,.form-textarea{width:100%;padding:11px 14px;border:1px solid var(--gray-2);border-radius:7px;font-family:'Cairo',sans-serif;font-size:14px;color:var(--text);background:var(--white);outline:none;text-align:start}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(58,74,92,.16)}
+.btn{padding:11px 22px;border:none;border-radius:7px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none;justify-content:center}
+/* ‏الزرارين دول كانوا تدرّجات. التدرّج أول علامة بتقول "ده شكل مولّد"،
+   وكمان: اللي بيشيل التدرّج من غير ما يحط لون صلب مكانه بيطلّع زرار
+   أبيض عليه نص أبيض -- حصل فعلاً مع "ولّد الخطة" وهو بيستعمل
+   .btn-success. */
+.btn-primary{background:#2B3746;color:#fff}
+.btn-primary:hover{background:#222C38}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover{background:#334152}
+.btn-outline{background:transparent;color:var(--blue);border:1px solid var(--gray-2)}
+.btn-danger{background:var(--red-pale);color:var(--red);border:1px solid #E3B4B4}
 .btn-full{width:100%}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:89}
 .sidebar-overlay.show{display:block}
 
+/* ═══ بلوكات اللوحة ════════════════════════════════════════════════ */
+/* ‏عنوان قسم: نص خفيف وخط بيكمّل لآخر السطر. أرخص من كارت، وبيقسّم
+   الصفحة من غير ما يزوّد إطارات. */
+.nx-sec-h{font-size:13px;font-weight:800;color:var(--muted);margin:0 2px 9px;
+  display:flex;align-items:center;gap:8px}
+.nx-sec-h::after{content:'';flex:1;height:1px;background:var(--gray-2)}
+.nx-sec-h:not(:first-child){margin-top:18px}
+
+.nx-main3{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:10px}
+.nx-big{border:1px solid var(--gray-2);border-radius:8px;background:var(--white);
+  padding:18px 16px;display:flex;align-items:center;gap:13px;text-decoration:none;
+  transition:background .14s,border-color .14s}
+.nx-big:hover{background:#FAFBFC;border-color:#CFD5DB}
+.nx-big:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.nx-big .ic{flex:0 0 40px;height:40px;border-radius:9px;background:var(--blue-pale);
+  display:flex;align-items:center;justify-content:center}
+.nx-big .ic i{color:var(--green);font-size:17px}
+.nx-big .tx{display:block}
+.nx-big .t{display:block;font-size:15px;font-weight:800;color:var(--text)}
+.nx-big .s{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+.nx-big .s .alert{color:var(--orange);font-weight:800}
+
+.nx-rest{border:1px solid var(--gray-2);border-radius:8px;background:var(--white);
+  margin-bottom:14px}
+.nx-rest > summary{list-style:none;cursor:pointer;padding:11px 15px;font-size:13px;
+  font-weight:700;color:var(--text-2);display:flex;align-items:center;gap:8px}
+.nx-rest > summary::-webkit-details-marker{display:none}
+.nx-rest > summary i{color:var(--muted);font-size:13px}
+.nx-rest > summary::after{content:'+';margin-inline-start:auto;color:var(--muted);font-weight:800}
+.nx-rest[open] > summary::after{content:'\2212'}
+.nx-rest > summary:focus-visible{outline:2px solid var(--green);outline-offset:-2px}
+.nx-rest-g{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:0 15px 14px}
+.nx-rest-g .quick-action{display:flex;flex-direction:column;align-items:center;gap:8px;
+  border:1px solid var(--gray-2);border-radius:8px;background:var(--white);
+  padding:14px 12px;text-decoration:none;transition:background .14s,border-color .14s}
+.nx-rest-g .quick-action:hover{background:#FAFBFC;border-color:#CFD5DB}
+.nx-rest-g .quick-action i{color:var(--green);font-size:17px}
+.nx-rest-g .quick-action span{font-size:13px;font-weight:700;color:var(--text)}
+
+/* ‏شريط الأرقام: كارت واحد مقسوم بخطوط شعرة بدل أربع كروت */
+.nx-strip{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--gray-2);
+  border-radius:8px;background:var(--white);overflow:hidden;margin-bottom:14px}
+.nx-cell{padding:14px 16px;display:flex;align-items:center;gap:11px;
+  border-inline-start:1px solid var(--gray-2)}
+.nx-cell:first-child{border-inline-start:none}
+.nx-cell .nx-ic{flex:0 0 32px;height:32px;border-radius:7px;background:#F1F3F5;
+  display:flex;align-items:center;justify-content:center}
+.nx-cell .nx-ic i{color:#6E7885;font-size:14px}
+.nx-cell .nx-tx{display:block;flex:1}
+.nx-cell .nx-n{display:block;font-size:25px;font-weight:900;color:var(--text);line-height:1}
+.nx-cell .nx-l{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-top:2px}
+.nx-cell a{display:block;font-size:11.5px;font-weight:700;color:var(--green);margin-top:3px}
+.nx-cell.is-alert .nx-ic{background:#F6EEE4}
+.nx-cell.is-alert .nx-ic i,.nx-cell.is-alert .nx-n,.nx-cell.is-alert a{color:var(--orange)}
+
+/* ‏عناوين مركز المتابعة */
+.nx-fu-h{font-weight:800;font-size:12.5px;color:var(--text);display:flex;
+  align-items:center;gap:7px;margin-bottom:8px;padding-bottom:7px;
+  border-bottom:1px solid var(--gray-2)}
+.nx-fu-h i{color:#8D96A1;font-size:13px}
+.nx-fu-h.warn i{color:var(--orange)}
+
+/* ‏الشريط لازم ينزل عمودين على الضيّق. القص هنا بيحصل **جوّه** الكارت
+   (عنده overflow:hidden)، فمابيعملش تمرير أفقي في الصفحة -- يعني أي
+   فحص بيدوّر على التمرير الأفقي بس بيعدّي على المشكلة دي. */
+@media(max-width:860px){
+  .nx-main3{grid-template-columns:1fr}
+  .nx-rest-g{grid-template-columns:repeat(2,1fr)}
+  .nx-strip{grid-template-columns:repeat(2,1fr)}
+  .nx-cell:nth-child(3){border-inline-start:none}
+  .nx-cell:nth-child(n+3){border-top:1px solid var(--gray-2)}
+}
+@media(max-width:420px){
+  .nx-cell{padding:12px 13px;gap:9px}
+  .nx-cell .nx-n{font-size:22px}
+}
+@media (prefers-reduced-motion: reduce){
+  .nx-big,.nx-rest-g .quick-action,.nav-item,.nav-grp > summary{transition:none}
+}
+
 /* ═══════════════════════════════════════════════════════ */
 /* NUTRAX FOOTER                                            */
 /* ═══════════════════════════════════════════════════════ */
-.nx-footer{background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#D3E3EA;padding:40px 24px 24px;margin-inline-start:var(--sidebar-w);margin-top:60px;font-family:'Cairo',sans-serif}
+.nx-footer{background:#242C36;color:#C4CAD2;padding:40px 24px 24px;margin-inline-start:var(--sidebar-w);margin-top:60px;font-family:'Cairo',sans-serif}
 /* ‏الصفحات العامة مالهاش سايدبار، فمالهاش تسيب مكانه فاضي. */
 body.public-chrome .main,body.public-chrome .nx-footer{margin-inline-start:0}
 .nx-footer-inner{max-width:1100px;margin:0 auto}
@@ -265,54 +389,92 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
   </div>
 
   {% if is_staff %}
-    <div class="nav-section">{{ 'القائمة الرئيسية' if is_ar else 'Main Menu' }}</div>
-    <a href="/dashboard" class="nav-item {% if request.endpoint=='dashboard' %}active{% endif %}">
+    {# ═══ القايمة: ٣ مجموعات ═══════════════════════════════════════
+       ‏كانت ١٣ عنصر على مستوى واحد -- الدكتور بيدوّر بعينه كل مرة.
+       بقت: الرئيسية لوحدها، وتحتها تلات مجموعات بتتفتح. **مفيش لينك
+       اتشال**، كلهم اتلموا بس، والمجموعة اللي فيها الصفحة الحالية
+       بتفتح من السيرفر عشان حد مايضيعش بعد ما يدوس. #}
+    <a href="/dashboard" class="nav-item {% if request.endpoint=='dashboard' %}active{% endif %}"
+       style="font-weight:800">
       <i class="fa-solid fa-house"></i> {{ 'الرئيسية' if is_ar else 'Dashboard' }}
     </a>
-    <a href="/admin/requests" class="nav-item {% if request.endpoint in ['admin_requests'] %}active{% endif %}">
-      <i class="fa-solid fa-bell" style="color:#FF7A59"></i> {{ 'طلبات العملاء' if is_ar else 'Client Requests' }}
-      {% if pending_count and pending_count > 0 %}<span class="nav-badge">{{ pending_count }}</span>{% endif %}
-    </a>
-    <a href="/messages" class="nav-item {% if request.endpoint in ['messages','chat'] %}active{% endif %}">
-      <i class="fa-solid fa-comments" style="color:#2E8F9E"></i> {{ 'الرسائل' if is_ar else 'Messages' }}
-      {% if unread_messages and unread_messages > 0 %}<span class="nav-badge">{{ unread_messages }}</span>{% endif %}
-    </a>
-    {% if is_admin %}
-    <a href="/admin/users" class="nav-item {% if request.endpoint in ['admin_users','admin_new_user','admin_user_profile'] %}active{% endif %}">
-      <i class="fa-solid fa-users" style="color:#1B6E80"></i> {{ 'العملاء' if is_ar else 'Clients' }}
-    </a>
-    {% endif %}
-    <a href="/generate" class="nav-item {% if request.endpoint in ['plans.generate','plans.preview','generate','preview'] %}active{% endif %}">
-      <i class="fa-solid fa-file-medical" style="color:var(--green-light)"></i> {{ 'توليد جدول' if is_ar else 'Generate' }}
-    </a>
-    <a href="/followups" class="nav-item {% if request.endpoint in ['plans.followups','plans.followup_detail'] %}active{% endif %}">
-      <i class="fa-solid fa-clock-rotate-left" style="color:#2E8F9E"></i> {{ 'المتابعات' if is_ar else 'Follow-ups' }}
-    </a>
-    <details class="nav-more" {% if request.endpoint in ['admin_notifications','analyzer','saved','clinical','admin_blocked_list'] %}open{% endif %}>
-      <summary class="nav-item"><i class="fa-solid fa-ellipsis"></i> {{ 'أدوات وإدارة' if is_ar else 'More' }}
-        {% if notif_unread and notif_unread > 0 %}<span class="nav-badge">{{ notif_unread }}</span>{% endif %}
+
+    {% set g_clients = request.endpoint in ['admin_users','admin_new_user','admin_user_profile','admin_requests','plans.followups','plans.followup_detail','messages','chat','admin_blocked_list'] %}
+    <details class="nav-grp {% if g_clients %}has-active{% endif %}" {% if g_clients %}open{% endif %}>
+      <summary><i class="fa-solid fa-users"></i> {{ 'العملاء' if is_ar else 'Clients' }}
+        {% set c_badge = (pending_count or 0) + (unread_messages or 0) %}
+        {% if c_badge > 0 %}<span class="nav-badge">{{ c_badge }}</span>{% endif %}
+      
+        <i class="fa-solid fa-chevron-down nav-grp-x"></i>
       </summary>
-      <a href="/admin/notifications" class="nav-item {% if request.endpoint=='admin_notifications' %}active{% endif %}">
-        <i class="fa-solid fa-bell-concierge" style="color:#FF7A59"></i> {{ 'الإشعارات' if is_ar else 'Notifications' }}
+      <div class="nav-grp-body">
+        {% if is_admin %}
+        <a href="/admin/users" class="nav-item {% if request.endpoint in ['admin_users','admin_new_user','admin_user_profile'] %}active{% endif %}">
+          <i class="fa-solid fa-users"></i> {{ 'العملاء' if is_ar else 'Clients' }}
+        </a>
+        {% endif %}
+        <a href="/admin/requests" class="nav-item {% if request.endpoint in ['admin_requests'] %}active{% endif %}">
+          <i class="fa-solid fa-inbox"></i> {{ 'طلبات العملاء' if is_ar else 'Client Requests' }}
+          {% if pending_count and pending_count > 0 %}<span class="nav-badge">{{ pending_count }}</span>{% endif %}
+        </a>
+        <a href="/followups" class="nav-item {% if request.endpoint in ['plans.followups','plans.followup_detail'] %}active{% endif %}">
+          <i class="fa-solid fa-clock-rotate-left"></i> {{ 'المتابعات' if is_ar else 'Follow-ups' }}
+        </a>
+        <a href="/messages" class="nav-item {% if request.endpoint in ['messages','chat'] %}active{% endif %}">
+          <i class="fa-solid fa-comments"></i> {{ 'الرسائل' if is_ar else 'Messages' }}
+          {% if unread_messages and unread_messages > 0 %}<span class="nav-badge">{{ unread_messages }}</span>{% endif %}
+        </a>
+        {% if is_admin %}
+        <a href="/admin/blocked" class="nav-item {% if request.endpoint=='admin_blocked_list' %}active{% endif %}">
+          <i class="fa-solid fa-ban"></i> {{ 'الحسابات المحظورة' if is_ar else 'Blocked Users' }}
+        </a>
+        {% endif %}
+      </div>
+    </details>
+
+    {% set g_plans = request.endpoint in ['plans.generate','plans.preview','generate','preview','saved','analyzer','clinical'] %}
+    <details class="nav-grp {% if g_plans %}has-active{% endif %}" {% if g_plans %}open{% endif %}>
+      <summary><i class="fa-solid fa-file-lines"></i> {{ 'الخطط' if is_ar else 'Plans' }}
+        <i class="fa-solid fa-chevron-down nav-grp-x"></i>
+      </summary>
+      <div class="nav-grp-body">
+        <a href="/generate" class="nav-item {% if request.endpoint in ['plans.generate','plans.preview','generate','preview'] %}active{% endif %}">
+          <i class="fa-solid fa-file-medical"></i> {{ 'توليد جدول' if is_ar else 'Generate' }}
+        </a>
+        <a href="/saved" class="nav-item {% if request.endpoint=='saved' %}active{% endif %}">
+          <i class="fa-solid fa-bookmark"></i> {{ 'جداولي المحفوظة' if is_ar else 'Saved Plans' }}
+        </a>
+        <a href="/analyzer" class="nav-item {% if request.endpoint=='analyzer' %}active{% endif %}">
+          <i class="fa-solid fa-magnifying-glass"></i> {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
+        </a>
+        <a href="/clinical" class="nav-item {% if request.endpoint=='clinical' %}active{% endif %}">
+          <i class="fa-solid fa-book-medical"></i> {{ 'المرجع الكلينيكي' if is_ar else 'Clinical Reference' }}
+        </a>
+      </div>
+    </details>
+
+    {% set g_admin = request.endpoint in ['admin_notifications','api_dashboard','developers_docs','settings'] %}
+    <details class="nav-grp {% if g_admin %}has-active{% endif %}" {% if g_admin %}open{% endif %}>
+      <summary><i class="fa-solid fa-gear"></i> {{ 'الإدارة' if is_ar else 'Admin' }}
         {% if notif_unread and notif_unread > 0 %}<span class="nav-badge">{{ notif_unread }}</span>{% endif %}
-      </a>
-      <a href="/analyzer" class="nav-item {% if request.endpoint=='analyzer' %}active{% endif %}">
-        <i class="fa-solid fa-magnifying-glass"></i> {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
-      </a>
-      <a href="/saved" class="nav-item {% if request.endpoint=='saved' %}active{% endif %}">
-        <i class="fa-solid fa-bookmark"></i> {{ 'جداولي المحفوظة' if is_ar else 'Saved Plans' }}
-      </a>
-      <a href="/clinical" class="nav-item {% if request.endpoint=='clinical' %}active{% endif %}">
-        <i class="fa-solid fa-book-medical"></i> {{ 'المرجع الكلينيكي' if is_ar else 'Clinical Reference' }}
-      </a>
-      {% if is_admin %}
-      <a href="/admin/blocked" class="nav-item {% if request.endpoint=='admin_blocked_list' %}active{% endif %}">
-        <i class="fa-solid fa-ban" style="color:#7f1d1d"></i> {{ 'الحسابات المحظورة' if is_ar else 'Blocked Users' }}
-      </a>
-      {% endif %}
-      <button type="button" id="nxPushBtn" class="nav-item" onclick="nxEnablePush()">
-        <i class="fa-solid fa-mobile-screen-button" style="color:#1B6E80"></i> {{ 'فعّل إشعارات الموبايل' if is_ar else 'Enable Phone Alerts' }}
-      </button>
+      
+        <i class="fa-solid fa-chevron-down nav-grp-x"></i>
+      </summary>
+      <div class="nav-grp-body">
+        <a href="/admin/notifications" class="nav-item {% if request.endpoint=='admin_notifications' %}active{% endif %}">
+          <i class="fa-solid fa-bell-concierge"></i> {{ 'الإشعارات' if is_ar else 'Notifications' }}
+          {% if notif_unread and notif_unread > 0 %}<span class="nav-badge">{{ notif_unread }}</span>{% endif %}
+        </a>
+        <a href="/dashboard/api" class="nav-item {% if request.endpoint in ['api_dashboard','developers_docs'] %}active{% endif %}">
+          <i class="fa-solid fa-plug"></i> {{ 'API للمطورين' if is_ar else 'Developer API' }}
+        </a>
+        <a href="/settings" class="nav-item {% if request.endpoint=='settings' %}active{% endif %}">
+          <i class="fa-solid fa-sliders"></i> {{ 'الإعدادات' if is_ar else 'Settings' }}
+        </a>
+        <button type="button" id="nxPushBtn" class="nav-item" onclick="nxEnablePush()">
+          <i class="fa-solid fa-mobile-screen-button"></i> {{ 'فعّل إشعارات الموبايل' if is_ar else 'Enable Phone Alerts' }}
+        </button>
+      </div>
     </details>
   {% else %}
     <div class="nav-section">{{ 'القائمة' if is_ar else 'Menu' }}</div>
@@ -350,14 +512,18 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
   {% endif %}
 
   <div class="nav-divider"></div>
+  {# ‏للطاقم: API والإعدادات بقوا جوّه مجموعة "الإدارة" فوق، فمايتكرروش
+     هنا -- اللي فضل الخروج بس. والعميل لسه محتاجهم في مكانهم. #}
+  {% if not is_staff %}
   <div class="nav-section">{{ 'الحساب' if is_ar else 'Account' }}</div>
   <a href="/dashboard/api" class="nav-item {% if request.endpoint in ['api_dashboard','developers_docs'] %}active{% endif %}">
-    <i class="fa-solid fa-plug" style="color:#FF7A59"></i> {{ 'API للمطورين' if is_ar else 'Developer API' }}
+    <i class="fa-solid fa-plug"></i> {{ 'API للمطورين' if is_ar else 'Developer API' }}
   </a>
   <a href="/settings" class="nav-item {% if request.endpoint=='settings' %}active{% endif %}">
     <i class="fa-solid fa-gear"></i> {{ 'الإعدادات' if is_ar else 'Settings' }}
   </a>
-  <a href="/logout" class="nav-item danger">
+  {% endif %}
+  <a href="/logout" class="nav-item danger" style="margin-top:8px">
     <i class="fa-solid fa-right-from-bracket"></i> {{ 'خروج' if is_ar else 'Logout' }}
   </a>
 </nav>
@@ -644,14 +810,14 @@ async function nxEnablePush(){
 <!-- ═══ زرار المحادثة العائم (للعملاء) ═══ -->
 {% if user is defined and user and not is_staff and not request.path.startswith('/messages') %}
 <a href="/messages" id="chatFab" title="{{ t('راسل د. محمد', 'Message Dr. Mohamed') }}"
-   style="position:fixed;bottom:20px;inset-inline-end:20px;z-index:990;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#0F2A43,#1B6E80);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 22px rgba(20,51,43,.4);text-decoration:none;border:2px solid #FF7A59;transition:transform .15s">
+   style="position:fixed;bottom:20px;inset-inline-end:20px;z-index:990;width:58px;height:58px;border-radius:50%;background:#3A4A5C;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(30,38,48,.26);text-decoration:none;border:none;transition:transform .15s">
   <i class="fa-solid fa-comment-dots" style="font-size:23px"></i>
 </a>
 <style>a#chatFab:hover{transform:scale(1.08)} @media(max-width:768px){ a#chatFab{bottom:16px;inset-inline-end:14px;width:54px;height:54px} }</style>
 {% endif %}
 
 <!-- ═══ زرار تثبيت التطبيق (PWA) ═══ -->
-<div id="pwaInstallBar" style="display:none;position:fixed;bottom:16px;left:12px;right:12px;z-index:9999;background:linear-gradient(135deg,#0F2A43,#1B6E80);color:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.25);align-items:center;gap:10px;">
+<div id="pwaInstallBar" style="display:none;position:fixed;bottom:16px;left:12px;right:12px;z-index:9999;background:#2B3746;color:#fff;border-radius:8px;padding:12px 14px;box-shadow:0 4px 16px rgba(0,0,0,.2);align-items:center;gap:10px;">
   <span style="font-size:26px;">📲</span>
   <div style="flex:1;min-width:0;">
     <div style="font-weight:800;font-size:14px;">{{ t('ثبّت تطبيق NutraX', 'Install the NutraX app') }}</div>

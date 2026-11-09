@@ -1048,130 +1048,99 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════
-     ‏طبقة الشكل: حديثة وملموسة
+     ‏طبقة الشكل: هادية ومنضبطة
      ═══════════════════════════════════════════════════════════════════
-     ‏الصفحة كانت شكلها **تطبيق إدارة**: إطارات رمادية، خط ١٣ بكسل،
-     كل حاجة مسطّحة وبنفس الوزن. وكانت قبلها اتجرّبت "كلاسيكي ورق"
-     (زوايا حادة ومفيش ظل) -- واتشالت، لأن اللي اتطلب عكسها بالظبط.
+     ‏الصفحة عدّت على تلات أشكال قبل ده، وكل واحد اتشال لسبب مكتوب:
 
-     ‏الطبقة دي بتغيّر ست حاجات:
+       ١) "كلاسيكي ورق" -- زوايا حادة ومفيش ظل. اتشال لأن المطلوب
+          كان عكسه.
+       ٢) "حديث ملموس" -- زوايا كبيرة وتدرّجات وهالات ملوّنة. اتشال
+          لأنه بيبان **مولّد**: التدرّج والهالة والظل الملوّن هما
+          أول تلات حاجات بتقول كده.
+       ٣) وده: لون واحد مكتوم، صفر تدرّج، إطار شعرة، والمساحة هي
+          اللي بتفصل.
 
-       ١) زوايا ١٢-٢٠ بكسل وظل طبقتين (واحد رفيع قريب + واحد واسع
-          بعيد). ده اللي بيدّي إحساس إن الكارت **فوق** الصفحة مش
-          مرسوم عليها.
-       ٢) الخط كبر: المدخلات ١٤ -> ١٥، واللابل بقى أغمق.
-       ٣) الإطارات خفّت لصالح الظل -- الاتنين مع بعض بيبقى دوشة.
-       ٤) الكارت المختار **بيتلوّن كله** بتدرّج، مش بعلامة ✓ صغيرة.
-          الفورم ده بيتملى عشرات المرات في اليوم، ولمحة واحدة لازم
-          تقول اخترت إيه.
-       ٥) الزرار الأساسي بقى تدرّج وتحته هالة بلونه -- بيبان إنه
-          الزرار المقصود من غير ما حد يدوّر.
-       ٦) الهيدر بقى تدرّج مايل بدل لون واحد مصمت.
+     ‏اللي بيتلوّن هنا حاجتين بس: **اللي مختار** و**اللي المفروض
+     تدوس عليه**. أي لون تالت بياخد من الاتنين دول.
 
-     ‏ورقم واحد اتقاس مش اتشاف:
+     ‏والتباين اتقاس: أبيض على --pick = ٩.٠٨:١، والنص الأساسي
+     ١٤.٢٤:١، والثانوي ٥.٥٩:١. (tests/test_form_contrast.py)
 
-     ‏التدرّج كان بيبدأ من #0891B2، والنص عليه أبيض. تباين الاتنين
-     **٣.٦٨:١** -- وسطر "kcal 1200-1500" حجمه ١١ بكسل ومحتاج ٤.٥:١
-     عشان يتقرا. فالتدرّج اتغمّق لـ#0E7490 -> #0C5E78: أفتح نقطة فيه
-     بقت **٥.٣٦:١**. اللون الفاتح فضل في الهالة والإطار بس -- هناك
-     مالوش نص فوقه.
+     ‏واللي **ماتغيّرش**: كل الـclass names وأماكن الحاجات والسلوك. */
 
-     ‏واللي **ماتغيّرش**: كل الـclass names وأماكن الحاجات والسلوك --
-     عشان الاختبارات والجافاسكريبت زي ما هما. */
+  .wz-card { border-radius:8px; border:1px solid var(--gray-2);
+             box-shadow:none; margin-bottom:12px; overflow:hidden }
+  .wz-card-title { font-size:15px; font-weight:800; color:var(--text);
+                   padding:13px 17px 11px; gap:10px; margin-bottom:0;
+                   border-bottom:1px solid var(--gray-2); background:var(--white) }
+  .wz-card-title i { color:#8D96A1; opacity:1; font-size:14px }
+  .wz-card-body { padding:14px 17px 16px }
 
-  :root{
-    --gray:#F1F5FB; --gray-2:#DFE7F2;
-    --blue:#13214A; --green:#0E7490; --green-pale:#E0F7FC;
-    --blue-pale:#E6EEFB; --text:#101A33; --text-2:#33415C;
-  }
-  /* ‏--sh-1 و--sh-2 و--pick مش هنا: هما في :root في base.html عشان
-     باقي الصفحات تاخد نفس الظل ونفس تدرّج الاختيار من مكان واحد. */
+  .page-title { font-size:22px !important; letter-spacing:-.3px; color:var(--text) }
 
-  body{ background:linear-gradient(180deg,#EAF2FB 0%,#F4F7FC 220px,#F4F7FC 100%) }
-
-  .wz-card { border-radius:20px; border:1px solid #E6EDF7; background:var(--white);
-             box-shadow:var(--sh-2); margin-bottom:14px; overflow:hidden }
-  .wz-card-title { font-size:16px; font-weight:800; color:var(--text);
-                   padding:15px 19px 12px; gap:10px;
-                   border-bottom:1px solid #EEF3FA; margin-bottom:0;
-                   background:linear-gradient(180deg,#FAFCFF 0%,#fff 100%) }
-  .wz-card-title i { color:#0891B2; opacity:1; font-size:15px }
-  .wz-card-body { padding:15px 19px 18px }
-
-  .page-title { font-size:24px !important; letter-spacing:-.5px; color:var(--text) }
-
-  /* ‏شريط الخطوات: الخطوة الحالية بتتلوّن زي الكارت المختار بالظبط --
-     نفس اللغة في كل مكان أرخص من لغتين. */
-  .wz-tab { border-radius:14px; border:1px solid #E6EDF7; background:var(--white);
-            box-shadow:var(--sh-1); padding:11px 14px;
-            transition:transform .12s, box-shadow .12s }
-  .wz-tab:active { transform:translateY(1px) }
-  .wz-tab.active { border-color:transparent; color:#fff; background:var(--pick);
-                   box-shadow:0 10px 22px -10px rgba(14,116,144,.85), var(--sh-1) }
-  .wz-tab.active .wz-label, .wz-tab.active i { color:#fff }
-  .wz-num { border-radius:10px; font-size:12px }
-  .wz-tab.active .wz-num { background:rgba(255,255,255,.22); color:#fff }
+  .wz-tab { border-radius:7px; border:1px solid var(--gray-2); background:var(--white);
+            box-shadow:none; padding:10px 13px }
+  .wz-tab.active { background:var(--blue-pale); border-color:#C3CCD5;
+                   color:#2B3746; box-shadow:inset 0 -3px 0 var(--green) }
+  .wz-tab.active .wz-label, .wz-tab.active i { color:#2B3746 }
+  .wz-num { border-radius:7px; font-size:12px }
+  .wz-tab.active .wz-num { background:var(--green); color:#fff }
   .wz-label { font-size:13.5px; font-weight:700 }
 
   .form-label { font-size:13px; font-weight:700; color:var(--text-2);
                 margin-bottom:5px }
   .form-input, .form-select, .form-textarea {
-      border-radius:12px; border:1px solid #DDE6F3; border-width:1px;
-      padding:11px 14px; font-size:15px; background:#FBFDFF;
-      box-shadow:var(--sh-1); transition:box-shadow .15s, border-color .15s }
+      border-radius:7px; border:1px solid var(--gray-2); border-width:1px;
+      padding:11px 13px; font-size:15px; background:var(--white);
+      box-shadow:none; transition:box-shadow .15s, border-color .15s }
   .form-input:focus, .form-select:focus, .form-textarea:focus {
-      border-color:#0891B2; background:var(--white);
-      box-shadow:0 0 0 4px rgba(8,145,178,.16) }
+      border-color:var(--green);
+      box-shadow:0 0 0 3px rgba(58,74,92,.16) }
   .form-group { margin-bottom:12px }
 
-  .nx-opt-b { border-radius:14px; border:1px solid #E3EAF5; background:var(--white);
-              box-shadow:var(--sh-1); padding:11px 13px;
-              transition:transform .12s, box-shadow .12s }
-  .nx-opt-b:active { transform:translateY(1px) }
-  .nx-opt-ic { border-radius:11px; background:#EEF5FC; flex-basis:32px;
-               height:32px; font-size:17px }
+  /* ‏الكارت المختار بيتملى باللون كله: الفورم ده بيتملى عشرات المرات
+     في اليوم، ولمحة واحدة لازم تقول اخترت إيه -- مش علامة ✓ صغيرة. */
+  .nx-opt-b { border-radius:8px; border:1px solid var(--gray-2);
+              background:var(--white); box-shadow:none; padding:11px 13px;
+              transition:background .14s, border-color .14s }
+  .nx-opt-ic { border-radius:7px; background:#F1F3F5; flex-basis:32px;
+               height:32px; font-size:16px }
   .nx-opt-t { font-size:14px }
   .nx-opt-s { font-size:11.5px }
+  .nx-opt-b:hover { border-color:#CFD5DB; background:#FAFBFC }
   .nx-opt-in:checked + .nx-opt-b {
-      border-color:transparent; color:#fff;
-      background-image:var(--pick); background-color:#0E7490;
-      box-shadow:0 10px 22px -10px rgba(14,116,144,.8) }
+      background:var(--pick); border-color:var(--pick); box-shadow:none;
+      color:#fff }
   .nx-opt-in:checked + .nx-opt-b .nx-opt-t,
   .nx-opt-in:checked + .nx-opt-b .nx-opt-s,
   .nx-opt-in:checked + .nx-opt-b::after { color:#fff }
-  .nx-opt-in:checked + .nx-opt-b .nx-opt-ic { background:rgba(255,255,255,.2) }
-  /* ‏سطر المرجع جوّه الكارت المختار: على التدرّج، فالفاصل لازم يفتح */
+  .nx-opt-in:checked + .nx-opt-b .nx-opt-ic { background:rgba(255,255,255,.18) }
   .nx-opt-in:checked + .nx-opt-b .nx-opt-src {
       color:rgba(255,255,255,.82); border-color:rgba(255,255,255,.28) }
   .nx-opt-in:checked + .nx-opt-b::after { top:10px; font-size:12px }
+  .nx-opt-in:focus-visible + .nx-opt-b { outline:2px solid var(--green);
+      outline-offset:2px }
 
-  .wz-fold { border-radius:14px; border:1px solid #E6EDF7; background:#FBFDFF;
-             box-shadow:var(--sh-1); padding:11px 14px }
+  .wz-fold { border-radius:8px; border:1px solid var(--gray-2);
+             background:#FBFCFD; box-shadow:none; padding:10px 13px }
   .wz-fold > summary { font-size:13.5px }
-  .wz-tool { border-radius:14px; padding:11px 13px; box-shadow:var(--sh-1) }
-  .wz-tool-btn { border-radius:11px; font-size:13.5px; padding:9px 15px;
-                 box-shadow:var(--sh-1) }
+  .wz-tool { border-radius:8px; padding:10px 13px; box-shadow:none }
+  .wz-tool-btn { border-radius:7px; font-size:13.5px; padding:9px 15px;
+                 box-shadow:none }
 
-  .wz-btn { border-radius:13px; padding:13px 26px; font-size:15px;
-            box-shadow:var(--sh-2);
-            transition:transform .12s, box-shadow .12s }
-  .wz-btn:active { transform:translateY(1px); box-shadow:var(--sh-1) }
-  .wz-btn-primary, .wz-btn.primary {
-      background:var(--pick); border:none; color:#fff;
-      box-shadow:0 2px 5px rgba(14,116,144,.25),
-                 0 14px 26px -10px rgba(14,116,144,.9) }
+  .wz-btn { border-radius:7px; padding:12px 24px; font-size:15px;
+            box-shadow:none; transition:background .14s, border-color .14s }
+  .wz-btn-go { background:var(--green); color:#fff; border-color:var(--green) }
+  .wz-btn-go:hover { background:#334152; border-color:#334152 }
 
-  /* ‏اللي بيتحرّك بيتقفل لمين طالب كده من نظام تشغيله */
   @media (prefers-reduced-motion: reduce){
     .wz-tab, .nx-opt-b, .wz-btn { transition:none }
-    .wz-tab:active, .nx-opt-b:active, .wz-btn:active { transform:none }
   }
 
   @media(max-width:768px){
-    .wz-card { border-radius:16px }
-    .wz-card-title { font-size:15px; padding:13px 15px 10px }
-    .wz-card-body { padding:13px 15px 15px }
-    .page-title { font-size:21px !important }
+    .wz-card-title { font-size:14.5px; padding:12px 14px 10px }
+    .wz-card-body { padding:12px 14px 14px }
+    .page-title { font-size:20px !important }
     .form-input, .form-select { font-size:15px; padding:11px 12px }
   }
 </style>

@@ -1,20 +1,24 @@
 # -*- coding: utf-8 -*-
-"""‏الكارت المختار اتلوّن -- والنص اللي فوقه بقى أبيض.
+"""‏اللي مختار بيتملى باللون -- والنص اللي فوقه أبيض.
 
-‏الفورم بقى فيه لغة واحدة: اللي مختار **بيتلوّن كله** بتدرّج، مش
-بعلامة ✓ صغيرة. ده اتعمل عشان الدكتور بيملا الفورم ده عشرات المرات
-في اليوم ولمحة واحدة لازم تقوله اختار إيه.
+‏الفورم فيه لغة واحدة: اللي مختار **بيتلوّن كله**، مش بعلامة ✓ صغيرة.
+ده اتعمل عشان الدكتور بيملا الفورم ده عشرات المرات في اليوم ولمحة
+واحدة لازم تقوله اختار إيه.
 
-‏بس أول نسخة منه كان التدرّج بيبدأ من ``#0891B2``، والنص عليه أبيض:
-تباين **٣.٦٨:١**. وسطر ``kcal 1200-1500`` حجمه ١١.٥ بكسل -- ومعيار
-WCAG AA للنص العادي ``٤.٥:١``. يعني الكارت كان بيبان حلو في الصورة
-وسطر السعرات فيه **مش مقروء** على موبايل في نور.
+‏وده بيحط نص أبيض على لون -- والرقم بيقرر لو ده شغّال ولا لأ:
 
-‏فالتدرّج اتغمّق. والاختبار ده بيقيس الرقم من الـCSS نفسه، عشان أي
-حد (أو أي ذكاء اصطناعي) يفتّح اللون تاني عشان "يبقى أحلى" يقع هنا
-بدل ما يقع على شاشة عميل.
+  ‏أول نسخة كان اللون تدرّج بيبدأ من ``#0891B2``. تباينه مع الأبيض
+  **٣.٦٨:١**، وسطر ``kcal 1200-1500`` حجمه ١١.٥ بكسل ومعيار WCAG AA
+  للنص العادي ``٤.٥:١``. يعني الكارت كان شكله حلو في الصورة وسطر
+  السعرات فيه **مش مقروء** على موبايل في نور.
 
-‏اللون الفاتح لسه موجود -- بس في الهالة والإطار، وهناك مفيش نص فوقه.
+‏والتدرّج نفسه اتشال بعد كده لسبب تاني: التدرّج والهالة الملوّنة
+والظل الملوّن هما أول تلات حاجات بتخلي الشكل يبان **مولّد**. فبقى
+``--pick`` لون صلب.
+
+‏الاختبار ده بيحسب التباين من الـCSS نفسه، عشان أي حد (أو أي ذكاء
+اصطناعي) يفتّح اللون عشان "يبقى أحلى" يقع هنا بدل ما يقع على شاشة
+عميل -- وعشان حد مايرجّعش التدرّج من غير ما ياخد باله.
 
 Run with:  python3 tests/test_form_contrast.py
 """
@@ -27,12 +31,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 _HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _FORM = os.path.join(_HERE, "templates", "generate.html")
-# ‏التدرّج نفسه معرّف في :root في base.html، عشان باقي الصفحات تاخده
-# من مكان واحد. القواعد اللي بتستعمله في صفحة الفورم.
+# ‏اللون معرّف في :root في base.html عشان باقي الصفحات تاخده من مكان
+# واحد. القواعد اللي بتستعمله في صفحة الفورم.
 _BASE = os.path.join(_HERE, "templates", "base.html")
 
-# ‏معيار WCAG AA: ٤.٥:١ للنص العادي، ٣:١ للكبير (١٨.٥ بكسل، أو ١٤
-# بكسل تخين). أصغر نص على التدرّج عندنا ١١.٥ -- فالعتبة ٤.٥.
+# ‏معيار WCAG AA: ٤.٥:١ للنص العادي. أصغر نص بيتكتب على اللون ده
+# ١١.٥ بكسل -- فالعتبة ٤.٥ مش ٣.
 MIN_RATIO = 4.5
 
 
@@ -57,46 +61,56 @@ def _ratio(a, b):
     return (hi + 0.05) / (lo + 0.05)
 
 
-def _pick_stops():
-    """‏ألوان تدرّج الاختيار زي ما هي مكتوبة في الـCSS."""
-    m = re.search(r"--pick:\s*linear-gradient\(([^;}]+)\)", _page(_BASE))
+def _pick_raw():
+    m = re.search(r"--pick:\s*([^;}]+)", _page(_BASE))
     assert m, "‏متغيّر --pick مش معرّف في base.html"
-    return re.findall(r"#[0-9a-fA-F]{3,6}", m.group(1))
+    return m.group(1).strip()
 
 
-# ── الرقم ───────────────────────────────────────────────────────────
+def _pick_colors():
+    """‏كل لون جوّه --pick. لون صلب = واحد؛ تدرّج = أكتر."""
+    return re.findall(r"#[0-9a-fA-F]{3,6}", _pick_raw())
 
-def test_the_gradient_is_actually_defined():
-    stops = _pick_stops()
-    assert len(stops) >= 2, stops
-
-
-def test_white_text_is_readable_on_every_point_of_it():
-    """‏مش على المتوسط -- على **أفتح** نقطة. دي اللي بتحدد."""
-    for stop in _pick_stops():
-        r = _ratio("#ffffff", stop)
-        assert r >= MIN_RATIO, (
-            "‏لون %s تباينه مع الأبيض %.2f:1 -- أقل من %.1f:1. "
-            "سطر السعرات ١١.٥ بكسل، هيبقى مش مقروء." % (stop, r, MIN_RATIO))
-
-
-def test_the_old_too_light_cyan_did_not_come_back():
-    """‏#0891B2 تباينه ٣.٦٨:١. ده اللي اتشال من التدرّج."""
-    assert _ratio("#ffffff", "#0891B2") < MIN_RATIO, "‏الحساب نفسه باظ"
-    assert "#0891B2" not in " ".join(_pick_stops()), "‏رجع تاني"
-
-
-# ── اللي النص بيتكتب عليه فعلاً ─────────────────────────────────────
 
 def _last_rule(selector_re):
-    """‏القاعدة الأخيرة هي اللي بتكسب -- نفس الـselector مكتوب أكتر من
-    مرة في الورقة، والمتصفح بياخد آخر واحدة."""
+    """‏القاعدة الأخيرة هي اللي بتكسب: نفس الـselector مكتوب أكتر من مرة
+    في الورقة، والمتصفح بياخد آخر واحدة."""
     hits = re.findall(selector_re + r"\s*\{(.*?)\}", _page(), re.S)
     assert hits, "‏القاعدة مش موجودة خالص"
     return hits[-1]
 
 
-def test_the_picked_card_uses_that_gradient_and_white_text():
+# ── الرقم ───────────────────────────────────────────────────────────
+
+def test_the_colour_is_actually_defined():
+    assert _pick_colors(), _pick_raw()
+
+
+def test_white_text_is_readable_on_it():
+    """‏لو بقى تدرّج تاني، ده بيتقاس على **أفتح** نقطة فيه."""
+    for colour in _pick_colors():
+        r = _ratio("#ffffff", colour)
+        assert r >= MIN_RATIO, (
+            "‏لون %s تباينه مع الأبيض %.2f:1 -- أقل من %.1f:1. "
+            "سطر السعرات ١١.٥ بكسل، هيبقى مش مقروء." % (colour, r, MIN_RATIO))
+
+
+def test_the_old_too_light_cyan_did_not_come_back():
+    """‏#0891B2 تباينه ٣.٦٨:١. ده اللي اتشال."""
+    assert _ratio("#ffffff", "#0891B2") < MIN_RATIO, "‏الحساب نفسه باظ"
+    assert "#0891B2" not in _pick_raw(), "‏رجع تاني"
+
+
+def test_it_is_a_flat_colour_not_a_gradient():
+    """‏التدرّج أول حاجة بتقول "ده شكل مولّد". ده قرار مقصود، مش صدفة --
+    فلو حد رجّعه لازم يكون عارف إنه بيرجّعه."""
+    assert "gradient" not in _pick_raw().lower(), _pick_raw()
+    assert len(_pick_colors()) == 1, _pick_raw()
+
+
+# ── اللي النص بيتكتب عليه فعلاً ─────────────────────────────────────
+
+def test_the_picked_card_uses_that_colour_and_white_text():
     """‏لو الكارت اتلوّن بحاجة تانية، الرقم اللي فوق مابيحميش حاجة."""
     body = _last_rule(r"\.nx-opt-in:checked \+ \.nx-opt-b")
     assert "var(--pick)" in body, body
@@ -105,17 +119,31 @@ def test_the_picked_card_uses_that_gradient_and_white_text():
 
 def test_the_active_step_speaks_the_same_language():
     body = _last_rule(r"\.wz-tab\.active")
-    assert "var(--pick)" in body, (
+    assert "var(--green)" in body or "var(--pick)" in body, (
         "‏الخطوة الحالية بتتلوّن بلون تاني -- لغتين في صفحة واحدة: " + body)
 
 
-# ── اللون الفاتح لسه موجود، بس في مكانه ─────────────────────────────
+# ── صفر تدرّجات ─────────────────────────────────────────────────────
 
-def test_the_bright_cyan_survives_where_nothing_is_written_on_it():
-    """‏الهالة والإطار -- مش خلفية نص."""
-    page = _page() + _page(_BASE)
-    assert "rgba(8,145,178" in page or "#0891B2" in page, (
-        "‏اللون الحيوي اتشال خالص -- الصفحة هتبقى باهتة")
+def test_no_gradient_survives_in_the_shared_chrome():
+    """‏base.html كان فيه ٦ تدرّجات: زرارين، الفوتر، زرار الواتساب
+    العايم، وشريط تثبيت التطبيق. واللي بيشيل تدرّج من غير ما يحط لون
+    صلب مكانه بيطلّع زرار **أبيض عليه نص أبيض** -- حصل فعلاً مع
+    "ولّد الخطة"."""
+    for name in ("base.html", "generate.html", "dashboard.html"):
+        text = _page(os.path.join(_HERE, "templates", name))
+        assert "linear-gradient" not in text, (
+            "‏%s لسه فيه تدرّج" % name)
+
+
+def test_the_generate_button_still_has_a_background():
+    """‏الزرار ده بيستعمل .btn-success، واللي كان تدرّج."""
+    base = _page(_BASE)
+    m = re.search(r"\.btn-success\{([^}]*)\}", base)
+    assert m, "‏.btn-success اختفى"
+    body = m.group(1)
+    assert "background:" in body, body
+    assert "none" not in body, body
 
 
 if __name__ == "__main__":
