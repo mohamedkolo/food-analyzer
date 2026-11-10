@@ -153,6 +153,20 @@ def tell_staff(appt_id, event):
                 % (who, B.money(row["price"], row["currency"], True),
                    row.get("pay_ref") or "-"),
                 link="/admin/payments", related_user_id=row["client_id"])
+        elif event == "cancelled":
+            note = " كان محوّل، فمحتاج استرداد." if B.owes_refund(row) else ""
+            add_notification(
+                db_run, "booking_request", "عميل لغى موعده",
+                "%s لغى %s يوم %s، والموعد اتفتح تاني.%s"
+                % (who, row.get("service_name") or "استشارة", at, note),
+                link="/admin/payments" if note else "/admin/calendar",
+                related_user_id=row["client_id"])
+        elif event == "moved":
+            add_notification(
+                db_run, "booking_request", "عميل أجّل موعده",
+                "%s نقل %s ليوم %s. الطلب مستني ردك."
+                % (who, row.get("service_name") or "استشارة", at),
+                link="/admin/calendar", related_user_id=row["client_id"])
         return True
     except Exception as exc:                      # noqa: BLE001
         print("[booking] tell_staff(%s, %s) failed: %s"

@@ -759,6 +759,7 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS availability (id SERIAL PRIMARY KEY, weekday INTEGER NOT NULL, start_min INTEGER NOT NULL, end_min INTEGER NOT NULL, CHECK (end_min > start_min))""",
             """CREATE TABLE IF NOT EXISTS appointments (id SERIAL PRIMARY KEY, client_id INTEGER NOT NULL, service_id INTEGER NOT NULL, start_at TIMESTAMP NOT NULL, end_at TIMESTAMP NOT NULL, status TEXT NOT NULL DEFAULT 'pending', slot_key TEXT, video_url TEXT, client_note TEXT, admin_note TEXT, price INTEGER NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT 'EGP', pay_status TEXT NOT NULL DEFAULT 'unpaid', pay_method TEXT, pay_ref TEXT, reminder_sent INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE (slot_key))""",
             """CREATE TABLE IF NOT EXISTS booking_settings (name TEXT PRIMARY KEY, value TEXT)""",
+            """CREATE TABLE IF NOT EXISTS availability_blocks (id SERIAL PRIMARY KEY, start_at TIMESTAMP NOT NULL, end_at TIMESTAMP NOT NULL, reason TEXT)""",
         ]
         for sql in tables_pg:
             try: db_run(sql)
@@ -784,6 +785,7 @@ def init_db():
         """CREATE TABLE IF NOT EXISTS availability (id INTEGER PRIMARY KEY AUTOINCREMENT, weekday INTEGER NOT NULL, start_min INTEGER NOT NULL, end_min INTEGER NOT NULL, CHECK (end_min > start_min))""",
         """CREATE TABLE IF NOT EXISTS appointments (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER NOT NULL, service_id INTEGER NOT NULL, start_at TIMESTAMP NOT NULL, end_at TIMESTAMP NOT NULL, status TEXT NOT NULL DEFAULT 'pending', slot_key TEXT, video_url TEXT, client_note TEXT, admin_note TEXT, price INTEGER NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT 'EGP', pay_status TEXT NOT NULL DEFAULT 'unpaid', pay_method TEXT, pay_ref TEXT, reminder_sent INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE (slot_key))""",
         """CREATE TABLE IF NOT EXISTS booking_settings (name TEXT PRIMARY KEY, value TEXT)""",
+        """CREATE TABLE IF NOT EXISTS availability_blocks (id INTEGER PRIMARY KEY AUTOINCREMENT, start_at TIMESTAMP NOT NULL, end_at TIMESTAMP NOT NULL, reason TEXT)""",
         ]
         for sql in tables_sq:
             try: db_run(sql)

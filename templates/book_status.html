@@ -20,6 +20,12 @@
 <div class="bs-wrap">
   <h1 class="page-title"><i class="fa-solid fa-calendar-check"></i> {{ t('حالة الحجز','Booking status') }}</h1>
 
+  {% if msg == 'cancelled' %}<div class="alert alert-info" role="status">{{ t('الموعد اتلغى.','The appointment was cancelled.') }}</div>
+  {% elif msg == 'moved' %}<div class="alert alert-success" role="status">{{ t('الموعد اتنقل، ومستني موافقة الأخصائي.','The appointment was moved and is waiting for the nutritionist.') }}</div>
+  {% elif msg == 'too_late' %}<div class="alert alert-warn" role="alert">{{ t('الموعد قرّب، ومبقاش ينفع يتلغي أو يتأجّل من هنا. كلّم الأخصائي.','The appointment is too close to cancel or move from here. Please contact the nutritionist.') }}</div>
+  {% elif msg == 'rated' %}<div class="alert alert-success" role="status">{{ t('شكرًا على تقييمك.','Thank you for your rating.') }}</div>
+  {% endif %}
+
   {% if just_sent and appt.status == 'pending' %}
     <div class="alert alert-success" role="status">{{ t('طلبك اتبعت.','Your request has been sent.') }}</div>
   {% endif %}
@@ -42,7 +48,7 @@
       <div><div class="h">{{ t('الجلسة تمّت','The session took place') }}</div></div>
     {% else %}
       <i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>
-      <div><div class="h">{{ t('الحجز ده مش قائم','This booking is no longer active') }}</div>
+      <div><div class="h">{% if appt.status == 'cancelled' %}{{ t('الموعد اتلغى','This appointment was cancelled') }}{% elif appt.status == 'expired' %}{{ t('الطلب انتهت مهلته','The request expired') }}{% else %}{{ t('الحجز ده مش قائم','This booking is no longer active') }}{% endif %}</div>
         <div class="s">{{ t('تقدر تختار موعد تاني.','You can pick another time.') }}</div></div>
     {% endif %}
   </div>
@@ -112,6 +118,22 @@
     <a class="btn btn-primary btn-full" href="{{ appt.video_url }}" target="_blank" rel="noopener noreferrer">
       <i class="fa-solid fa-video" aria-hidden="true"></i> {{ t('ادخل الجلسة','Join the session') }}
     </a>
+  {% endif %}
+
+  {% if can_change %}
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <a class="btn btn-outline" href="/book?move={{ appt.id }}"><i class="fa-solid fa-calendar-day" aria-hidden="true"></i> {{ t('تأجيل','Reschedule') }}</a>
+      <form method="post" action="/book/{{ appt.id }}/cancel" style="margin:0"
+            onsubmit="return confirm('{{ t('تلغي الموعد ده؟','Cancel this appointment?') }}')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-danger btn-full"><i class="fa-solid fa-xmark" aria-hidden="true"></i> {{ t('إلغاء الموعد','Cancel appointment') }}</button>
+      </form>
+    </div>
+    {% if appt.status == 'accepted' %}
+    <p style="font-size:12.5px;color:var(--muted);margin:10px 0 0">{{ t('الإلغاء والتأجيل متاحين لحد','You can cancel or reschedule up to') }} {{ change_hours }} {{ t('ساعة قبل الموعد.','hours before the appointment.') }}</p>
+    {% endif %}
+  </div>
   {% endif %}
 
   <p style="margin-top:14px;text-align:center">

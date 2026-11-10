@@ -177,16 +177,29 @@ def generate_slots(windows, duration_min, busy, start_utc, end_utc,
     return sorted(out)
 
 
-def _busy(db_rows, start_utc, end_utc):
+def _busy(db_rows, start_utc, end_utc, skip_id=None, with_blocks=True):
+    """Time already spoken for: active appointments, and days off.
+
+    skip_id leaves one appointment out -- the one being rescheduled, which
+    must not block its own move half an hour later.
+    """
     q = ",".join("?" * len(ACTIVE))
     rows = db_rows(
-        "SELECT start_at, end_at FROM appointments WHERE status IN (%s) "
+        "SELECT id, start_at, end_at FROM appointments WHERE status IN (%s) "
         "AND start_at < ? AND end_at > ?" % q,
         ACTIVE + (to_db(end_utc), to_db(start_utc)))
-    return [(from_db(r["start_at"]), from_db(r["end_at"])) for r in rows]
+    out = [(from_db(r["start_at"]), from_db(r["end_at"])) for r in rows
+           if r["id"] != skip_id]
+    if with_blocks:
+        out += [(from_db(r["start_at"]), from_db(r["end_at"]))
+                for r in db_rows(
+                    "SELECT start_at, end_at FROM availability_blocks "
+                    "WHERE start_at < ? AND end_at > ?",
+                    (to_db(end_utc), to_db(start_utc)))]
+    return out
 
 
-def open_slots(db_rows, service, start_utc, end_utc, now=None):
+def open_slots(db_rows, service, start_utc, end_utc, now=None, skip_id=None):
     """Bookable starts for one service, from the tables as they are now."""
     now = now or utcnow()
     earliest = max(start_utc, now + timedelta(minutes=MIN_LEAD_MIN))
@@ -198,7 +211,7 @@ def open_slots(db_rows, service, start_utc, end_utc, now=None):
                                 "FROM availability")]
     return generate_slots(windows, int(service["duration_min"]),
                           _busy(db_rows, earliest - timedelta(hours=5), latest
-                                + timedelta(hours=5)),
+                                + timedelta(hours=5), skip_id=skip_id),
                           earliest, latest)
 
 
@@ -513,3 +526,151 @@ def due_reminders(db_rows, db_run, now=None):
                (flags, r["id"]))
         out.append((r["id"], kind))
     return out
+
+
+# ── الإلغاء والتأجيل والحجز اليدوي والإجازات (M4) ───────────────────
+
+# ‏موعد اتأكد مايتلغيش ولا يتأجّل من العميل في آخر ١٢ ساعة: الأخصائي
+# حاجز الوقت ده ومش هيلحق يديه لحد تاني. الطلب المعلّق لسه مااتأكدش،
+# فيتلغي في أي وقت قبل ميعاده.
+CHANGE_LEAD_HOURS = 12
+OUTCOMES = ("completed", "no_show")
+
+
+def can_change(row, now=None):
+    """May the client still cancel or move this appointment?"""
+    now = now or utcnow()
+    start = from_db(row["start_at"])
+    if row["status"] == "pending":
+        return start > now
+    if row["status"] == "accepted":
+        return start - now >= timedelta(hours=CHANGE_LEAD_HOURS)
+    return False
+
+
+def cancel(db_row, db_run, appt_id, now=None):
+    """The client gives the slot back. False when it is too late."""
+    now = now or utcnow()
+    row = db_row("SELECT status, start_at FROM appointments WHERE id=?",
+                 (appt_id,))
+    if not row or not can_change(row, now):
+        return False
+    q = ",".join("?" * len(ACTIVE))
+    db_run("UPDATE appointments SET status='cancelled', slot_key=NULL, "
+           "updated_at=? WHERE id=? AND status IN (%s)" % q,
+           (to_db(now), appt_id) + ACTIVE)
+    return True
+
+
+def _clash(db_row, mine, start_utc, end_utc, only_earlier=True):
+    q = ",".join("?" * len(ACTIVE))
+    return db_row(
+        "SELECT id FROM appointments WHERE id %s ? AND status IN (%s) "
+        "AND start_at < ? AND end_at > ?" % ("<" if only_earlier else "<>", q),
+        (mine,) + ACTIVE + (to_db(end_utc), to_db(start_utc)))
+
+
+def reschedule(db_row, db_rows, db_run, appt_id, service, start_utc,
+               now=None):
+    """Move an appointment to another open slot. It goes back to pending.
+
+    The row is moved, not replaced: the payment already made, the note and
+    the id in the client's messages all stay with it. The UNIQUE constraint
+    decides a race here exactly as it does for a new booking.
+    """
+    now = now or utcnow()
+    row = db_row("SELECT * FROM appointments WHERE id=?", (appt_id,))
+    if not row or not can_change(row, now):
+        raise NotBookable("too_late")
+    if from_db(row["start_at"]) == start_utc:
+        raise NotBookable("same")
+    end_utc = start_utc + timedelta(minutes=int(service["duration_min"]))
+    if start_utc not in open_slots(db_rows, service, start_utc,
+                                   start_utc + timedelta(minutes=1), now=now,
+                                   skip_id=appt_id):
+        if _busy(db_rows, start_utc, end_utc, skip_id=appt_id,
+                 with_blocks=False):
+            raise SlotTaken()
+        raise NotBookable("closed")
+    try:
+        db_run("UPDATE appointments SET start_at=?, end_at=?, slot_key=?, "
+               "status='pending', video_url=NULL, reminder_sent=0, "
+               "created_at=?, updated_at=? WHERE id=?",
+               (to_db(start_utc), to_db(end_utc), slot_key(start_utc),
+                to_db(now), to_db(now), appt_id))
+    except Exception as exc:
+        if _is_unique_violation(exc):
+            raise SlotTaken()
+        raise
+    if _clash(db_row, appt_id, start_utc, end_utc, only_earlier=False):
+        # ‏حد دخل متداخل في نفس اللحظة: بنرجّع الموعد مكانه القديم.
+        db_run("UPDATE appointments SET start_at=?, end_at=?, slot_key=?, "
+               "status=?, video_url=?, created_at=? WHERE id=?",
+               (to_db(from_db(row["start_at"])), to_db(from_db(row["end_at"])),
+                row["slot_key"], row["status"], row["video_url"],
+                to_db(from_db(row["created_at"]) or now), appt_id))
+        raise SlotTaken()
+    return True
+
+
+def create_manual(db_row, db_rows, db_run, client_id, service, start_utc,
+                  video_url="", now=None):
+    """The nutritionist books a client in directly. Returns the id.
+
+    Already accepted -- there is nobody to ask. It may sit outside working
+    hours and on a day off (the nutritionist is choosing to work then), but
+    it stays on the grid and never overlaps another appointment.
+    """
+    now = now or utcnow()
+    if start_utc <= now or start_utc.minute % SLOT_MIN:
+        raise NotBookable("closed")
+    end_utc = start_utc + timedelta(minutes=int(service["duration_min"]))
+    if _busy(db_rows, start_utc, end_utc, with_blocks=False):
+        raise SlotTaken()
+    key = slot_key(start_utc)
+    try:
+        db_run(
+            "INSERT INTO appointments (client_id, service_id, start_at, "
+            "end_at, status, slot_key, video_url, price, currency, "
+            "created_at, updated_at) VALUES (?,?,?,?,'accepted',?,?,?,?,?,?)",
+            (client_id, service["id"], to_db(start_utc), to_db(end_utc), key,
+             video_url or None, int(service.get("price") or 0),
+             service.get("currency") or "EGP", to_db(now), to_db(now)))
+    except Exception as exc:
+        if _is_unique_violation(exc):
+            raise SlotTaken()
+        raise
+    mine = db_row("SELECT id FROM appointments WHERE slot_key=?", (key,))["id"]
+    if _clash(db_row, mine, start_utc, end_utc):
+        db_run("DELETE FROM appointments WHERE id=?", (mine,))
+        raise SlotTaken()
+    return mine
+
+
+def set_outcome(db_row, db_run, appt_id, outcome, now=None):
+    """After the hour: did the session happen, or did the client not come?"""
+    now = now or utcnow()
+    row = db_row("SELECT status, start_at FROM appointments WHERE id=?",
+                 (appt_id,))
+    if (outcome not in OUTCOMES or not row or row["status"] != "accepted"
+            or from_db(row["start_at"]) > now):
+        return False
+    db_run("UPDATE appointments SET status=?, updated_at=? "
+           "WHERE id=? AND status='accepted'", (outcome, to_db(now), appt_id))
+    return True
+
+
+def add_block(db_run, first_day, last_day, reason="", zone=None):
+    """Close whole days, first to last inclusive, on the nutritionist's clock.
+
+    Days off stop new bookings. Appointments already accepted inside them
+    are left alone -- cancelling a client is a decision, not a side effect.
+    """
+    zone = zone or pro_tz()
+    if last_day < first_day or (last_day - first_day).days > 366:
+        return False
+    start, _ = local_day_bounds(first_day, zone)
+    _, end = local_day_bounds(last_day, zone)
+    db_run("INSERT INTO availability_blocks (start_at, end_at, reason) "
+           "VALUES (?,?,?)", (to_db(start), to_db(end), (reason or "")[:120]))
+    return True

@@ -127,11 +127,22 @@ def book():
     service = _service(request.args.get("service")) or (services[0]
                                                         if services else None)
 
+    # ‏التأجيل بيستخدم نفس الصفحة: نفس الخدمة، والموعد القديم مابيقفلش
+    # على نفسه (skip_id)، والفورم بيتبعت لمسار التأجيل.
+    moving = _own_changeable(user, request.args.get("move"))
+    if moving:
+        service = db_row("SELECT * FROM services WHERE id=?",
+                         (moving["service_id"],)) or service
+        services = [s for s in services if service and s["id"] == service["id"]]
+
     days, slots, picked_day = [], [], None
     if service:
         horizon = now + timedelta(days=B.DAYS_AHEAD)
         by_day = {}
-        for start in B.open_slots(db_rows, service, now, horizon, now=now):
+        for start in B.open_slots(db_rows, service, now, horizon, now=now,
+                                  skip_id=moving["id"] if moving else None):
+            if moving and start == B.from_db(moving["start_at"]):
+                continue
             local = B.to_local(start, zone)
             by_day.setdefault(local.date(), []).append(
                 {"value": B.slot_key(start), "label": _clock(local)})
@@ -164,7 +175,20 @@ def book():
         service=service, days=days, slots=slots,
         picked_day=picked_day.isoformat() if picked_day else "",
         picked_slot=request.args.get("slot", ""), zone_label=_zone_label(zone),
-        mine=mine, msg=request.args.get("msg", ""), is_staff=_is_staff(user))
+        mine=mine, msg=request.args.get("msg", ""), is_staff=_is_staff(user),
+        moving=_show(moving, zone) if moving else None)
+
+
+def _own_changeable(user, appt_id):
+    """The appointment, when it is this client's and can still be changed."""
+    try:
+        row = db_row(_APPT_SQL + "WHERE a.id=?", (int(appt_id),))
+    except (TypeError, ValueError):
+        return None
+    if (not row or not user or row["client_id"] != user["id"]
+            or not B.can_change(row)):
+        return None
+    return row
 
 
 @bp.route("/book/slots")
@@ -232,6 +256,9 @@ def book_status(appt_id):
         appt=_show(row, B.viewer_tz(user)),
         zone_label=_zone_label(B.viewer_tz(user)), is_staff=staff,
         just_sent=request.args.get("new") == "1",
+        can_change=(not staff) and B.can_change(row),
+        change_hours=B.CHANGE_LEAD_HOURS,
+        can_rate=False,
         # ‏بيانات التحويل بتتعرض لصاحب الموعد بس، مش على الصفحة العامة.
         pay=B.pay_details(db_rows), msg=request.args.get("msg", ""))
 
@@ -252,6 +279,45 @@ def book_paid(appt_id):
         return redirect("/book/%d?msg=no_claim" % appt_id)
     N.tell_staff(appt_id, "claimed")
     return redirect("/book/%d?msg=claimed" % appt_id)
+
+
+@bp.route("/book/<int:appt_id>/cancel", methods=["POST"])
+@login_required
+def book_cancel(appt_id):
+    user = _current_user()
+    row = db_row("SELECT client_id FROM appointments WHERE id=?", (appt_id,))
+    if not row or not user or row["client_id"] != user["id"]:
+        return render_template("404.html", user=user, lang=cur_lang()), 404
+    if not B.cancel(db_row, db_run, appt_id):
+        return redirect("/book/%d?msg=too_late" % appt_id)
+    N.tell_staff(appt_id, "cancelled")
+    return redirect("/book/%d?msg=cancelled" % appt_id)
+
+
+@bp.route("/book/<int:appt_id>/reschedule", methods=["POST"])
+@login_required
+def book_reschedule(appt_id):
+    user = _current_user()
+    row = db_row("SELECT client_id, service_id FROM appointments WHERE id=?",
+                 (appt_id,))
+    if not row or not user or row["client_id"] != user["id"]:
+        return render_template("404.html", user=user, lang=cur_lang()), 404
+    service = db_row("SELECT * FROM services WHERE id=?", (row["service_id"],))
+    start = B.parse_slot(request.form.get("slot"))
+    back = "/book?" + urlencode({"move": appt_id,
+                                 "date": request.form.get("date", "")})
+    if not service or not start:
+        return redirect(back + "&msg=pick")
+    try:
+        B.reschedule(db_row, db_rows, db_run, appt_id, service, start)
+    except B.SlotTaken:
+        return redirect(back + "&msg=taken")
+    except B.NotBookable as why:
+        if str(why) == "too_late":
+            return redirect("/book/%d?msg=too_late" % appt_id)
+        return redirect(back + "&msg=closed")
+    N.tell_staff(appt_id, "moved")
+    return redirect("/book/%d?msg=moved" % appt_id)
 
 
 # ── الأخصائي ────────────────────────────────────────────────────────
@@ -282,6 +348,13 @@ def admin_calendar():
                      "items": [a for a in booked
                                if a["local_date"] == d.isoformat()]})
 
+    now = B.utcnow()
+    for a in booked:
+        a["past"] = (a["status"] == "accepted"
+                     and B.from_db(a["start_at"]) <= now)
+    clients = db_rows("SELECT id, name, email FROM users WHERE role='client' "
+                      "AND active=1 ORDER BY name LIMIT 500")
+
     ready = bool(db_row("SELECT id FROM services WHERE active=1 LIMIT 1")
                  and db_row("SELECT id FROM availability LIMIT 1"))
     return render_template(
@@ -290,7 +363,42 @@ def admin_calendar():
         prev_from=(first - timedelta(days=7)).isoformat(),
         next_from=(first + timedelta(days=7)).isoformat(),
         booking_link=site_origin() + "/book", msg=request.args.get("msg", ""),
-        is_admin=_is_admin(user))
+        is_admin=_is_admin(user), clients=clients, services=_services(),
+        today_iso=today.isoformat(), slot_min=B.SLOT_MIN)
+
+
+@bp.route("/admin/appointments/new", methods=["POST"])
+@staff_required
+def admin_appointment_new():
+    """The nutritionist books a client in by hand (a phone call, WhatsApp)."""
+    service = _service(request.form.get("service"))
+    client = db_row("SELECT id FROM users WHERE id=? AND role='client'",
+                    (request.form.get("client", type=int),))
+    day = B.parse_day(request.form.get("date"))
+    minutes = B.parse_hhmm(request.form.get("time"))
+    url = B.clean_video_url(request.form.get("video_url"))
+    if not service or not client or not day or minutes is None or url is None:
+        return redirect("/admin/calendar?msg=bad_manual")
+    from datetime import datetime as _dt
+    start = B.to_utc(_dt(day.year, day.month, day.day)
+                     + timedelta(minutes=minutes), B.pro_tz())
+    try:
+        appt_id = B.create_manual(db_row, db_rows, db_run, client["id"],
+                                  service, start, video_url=url)
+    except B.SlotTaken:
+        return redirect("/admin/calendar?msg=manual_taken")
+    except B.NotBookable:
+        return redirect("/admin/calendar?msg=bad_manual")
+    N.tell_client(appt_id, "accepted", actor_id=session["uid"])
+    return redirect("/admin/calendar?msg=accepted&from=%s" % day.isoformat())
+
+
+@bp.route("/admin/appointments/<int:appt_id>/status/<outcome>",
+          methods=["POST"])
+@staff_required
+def admin_appointment_outcome(appt_id, outcome):
+    done = B.set_outcome(db_row, db_run, appt_id, outcome)
+    return redirect("/admin/calendar?msg=" + ("saved" if done else "stale"))
 
 
 @bp.route("/admin/appointments/<int:appt_id>/accept", methods=["POST"])
@@ -359,6 +467,19 @@ def _settings_action(form):
                (form.get("id", type=int),))
         return "saved"
 
+    if action == "add_block":
+        first = B.parse_day(form.get("first"))
+        last = B.parse_day(form.get("last")) or first
+        if not first or not B.add_block(db_run, first, last,
+                                        form.get("reason", "").strip()):
+            return "bad_block"
+        return "saved"
+
+    if action == "delete_block":
+        db_run("DELETE FROM availability_blocks WHERE id=?",
+               (form.get("id", type=int),))
+        return "saved"
+
     if action == "save_pay":
         # ‏فين الفلوس بتتبعت: للأدمن بس، حتى لو الطلب جه من أخصائي.
         if not _is_admin(_current_user()):
@@ -382,8 +503,19 @@ def admin_booking_settings():
         h["day"] = _day_name(h["weekday"])
         h["from"] = B.hhmm(h["start_min"])
         h["to"] = B.hhmm(h["end_min"])
+    zone = B.pro_tz()
+    blocks = db_rows("SELECT * FROM availability_blocks WHERE end_at > ? "
+                     "ORDER BY start_at", (B.to_db(B.utcnow()),))
+    for b in blocks:
+        first = B.to_local(B.from_db(b["start_at"]), zone).date()
+        last = (B.to_local(B.from_db(b["end_at"]), zone)
+                - timedelta(minutes=1)).date()
+        b["label"] = "%d/%d/%d" % (first.day, first.month, first.year)
+        if last != first:
+            b["label"] += " – %d/%d/%d" % (last.day, last.month, last.year)
     return render_template(
         "admin_booking_settings.html", user=_current_user(), lang=cur_lang(),
+        blocks=blocks, today_iso=B.to_local(B.utcnow(), zone).date().isoformat(),
         services=_services(only_active=False), hours=hours,
         day_names=[_day_name(i) for i in range(7)],
         zone_label=_zone_label(B.pro_tz()), slot_min=B.SLOT_MIN,

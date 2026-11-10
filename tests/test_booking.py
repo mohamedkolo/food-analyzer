@@ -68,7 +68,8 @@ def _reset(hours=True):
     """‏قاعدة نضيفة لكل اختبار: خدمتين، وساعات عمل طول اليوم كل يوم --
     فالاختبار مابيعتمدش على اليوم ولا الساعة اللي اتشغّل فيهم."""
     for table in ("appointments", "services", "availability",
-                  "booking_settings", "messages", "notifications"):
+                  "booking_settings", "messages", "notifications",
+                  "availability_blocks"):
         A.db_run("DELETE FROM %s" % table)
     A.db_run("INSERT INTO services (name, duration_min, price) "
              "VALUES ('Follow-up', 30, 30000)")
@@ -879,6 +880,168 @@ def test_the_dashboard_shows_staff_the_next_confirmed_appointment():
     B.decide(A.db_row, A.db_run, appt, True)
     page = n.get("/dashboard").get_data(as_text=True)
     assert "Next appointment" in page and "alice" in page
+
+
+# ══ M4: الإلغاء والتأجيل والإجازات والحجز اليدوي ════════════════════
+
+def test_a_client_can_cancel_and_the_slot_opens_again():
+    half, _ = _reset()
+    start = _slot()
+    appt = _book(ALICE, half, start)
+    r = _as(ALICE).post("/book/%d/cancel" % appt)
+    assert "msg=cancelled" in r.headers["Location"]
+    row = _status(appt)
+    assert row["status"] == "cancelled" and row["slot_key"] is None, row
+    assert _status(_book(BASEM, half, start))["status"] == "pending"
+    assert [n["title"] for n in _bell()] == ["عميل لغى موعده"]
+
+
+def test_a_confirmed_appointment_cannot_be_dropped_at_the_last_minute():
+    """‏الأخصائي حاجز الوقت. قبل الموعد بأقل من ١٢ ساعة العميل مايلغيش ولا
+    يأجّل من الموقع -- والطلب المعلّق يتلغي لحد ميعاده."""
+    half, _ = _reset()
+    start = _slot(days=5)
+    appt = _book(ALICE, half, start)
+    B.decide(A.db_row, A.db_run, appt, True)
+    near = start - timedelta(hours=B.CHANGE_LEAD_HOURS - 1)
+    assert not B.cancel(A.db_row, A.db_run, appt, now=near)
+    assert _status(appt)["status"] == "accepted"
+    far = start - timedelta(hours=B.CHANGE_LEAD_HOURS + 1)
+    assert B.cancel(A.db_row, A.db_run, appt, now=far)
+    other = _book(BASEM, half, start)
+    assert B.cancel(A.db_row, A.db_run, other, now=start - timedelta(minutes=5))
+    assert not B.cancel(A.db_row, A.db_run, other), "cancelled twice"
+
+
+def test_nobody_cancels_or_moves_someone_elses_appointment():
+    half, _ = _reset()
+    appt = _book(ALICE, half, _slot())
+    for c in (_as(BASEM), _as(NUTRI)):
+        assert c.post("/book/%d/cancel" % appt).status_code == 404
+        assert c.post("/book/%d/reschedule" % appt,
+                      data={"slot": B.slot_key(_slot(hour=14))}).status_code == 404
+    row = _status(appt)
+    assert row["status"] == "pending" and row["slot_key"] == B.slot_key(_slot())
+    assert "moving your current" not in _as(BASEM).get(
+        "/book?move=%d" % appt).get_data(as_text=True)
+
+
+def test_cancelling_after_paying_leaves_a_refund_to_do():
+    half, _ = _reset()
+    appt = _book(ALICE, half, _slot())
+    B.confirm_payment(A.db_row, A.db_run, appt)
+    _as(ALICE).post("/book/%d/cancel" % appt)
+    assert B.owes_refund(_status(appt))
+    assert "Refund due" in _as(ADMIN).get("/admin/payments").get_data(as_text=True)
+
+
+def test_rescheduling_moves_the_same_appointment_and_asks_again():
+    """‏الموعد بيتنقل، مابيتعملش واحد جديد: الدفع والملاحظة بيفضلوا معاه،
+    والموعد القديم بيتفتح، والطلب بيرجع ينتظر الموافقة برابط جديد."""
+    half, _ = _reset()
+    old, new = _slot(hour=9), _slot(hour=14)
+    appt = _book(ALICE, half, old)
+    B.decide(A.db_row, A.db_run, appt, True, video_url="https://meet.google.com/old")
+    B.confirm_payment(A.db_row, A.db_run, appt)
+    c = _as(ALICE)
+    assert "moving your current" in c.get("/book?move=%d" % appt).get_data(as_text=True)
+    r = c.post("/book/%d/reschedule" % appt, data={"slot": B.slot_key(new)})
+    assert "msg=moved" in r.headers["Location"], r.headers["Location"]
+    row = _status(appt)
+    assert (row["status"], row["slot_key"], row["pay_status"], row["video_url"]) == (
+        "pending", B.slot_key(new), "paid", None), row
+    assert len(A.db_rows("SELECT id FROM appointments")) == 1
+    assert _status(_book(BASEM, half, old))["status"] == "pending"
+    assert _bell()[-1]["title"] == "عميل أجّل موعده"
+
+
+def test_rescheduling_onto_a_taken_slot_changes_nothing():
+    half, _ = _reset()
+    mine, theirs = _slot(hour=9), _slot(hour=14)
+    appt = _book(ALICE, half, mine)
+    _book(BASEM, half, theirs)
+    r = _as(ALICE).post("/book/%d/reschedule" % appt,
+                        data={"slot": B.slot_key(theirs)})
+    assert "msg=taken" in r.headers["Location"]
+    assert _status(appt)["slot_key"] == B.slot_key(mine)
+
+
+def test_an_appointment_does_not_block_its_own_move():
+    """‏ساعة من ٩:٠٠ عايزة تتنقل لـ٩:٣٠: الموعد الجديد متداخل مع القديم
+    نفسه. لو القديم اتحسب مشغول، التأجيل لنص ساعة بعده يبقى مستحيل."""
+    _, full = _reset()
+    appt = _book(ALICE, full, _slot(hour=9))
+    assert B.reschedule(A.db_row, A.db_rows, A.db_run, appt, full,
+                        _slot(hour=9, minute=30))
+    assert _status(appt)["slot_key"] == B.slot_key(_slot(hour=9, minute=30))
+
+
+def test_days_off_hide_slots_but_keep_what_was_confirmed():
+    half, _ = _reset()
+    start = _slot(days=4)
+    appt = _book(ALICE, half, start)
+    B.decide(A.db_row, A.db_run, appt, True)
+    day = B.to_local(start, DUBAI).date()
+    r = _as(NUTRI).post("/admin/booking-settings",
+                        data={"action": "add_block", "first": day.isoformat(),
+                              "last": day.isoformat(), "reason": "Conference"})
+    assert "msg=saved" in r.headers["Location"]
+    lo, hi = B.local_day_bounds(day, DUBAI)
+    assert B.open_slots(A.db_rows, half, lo, hi) == [], "slots on a day off"
+    assert B.open_slots(A.db_rows, half, hi, hi + timedelta(days=1)), \
+        "the next day was closed too"
+    assert _status(appt)["status"] == "accepted"
+    page = _as(NUTRI).get("/admin/booking-settings").get_data(as_text=True)
+    assert "Conference" in page
+    block = A.db_row("SELECT id FROM availability_blocks")["id"]
+    _as(NUTRI).post("/admin/booking-settings",
+                    data={"action": "delete_block", "id": block})
+    assert B.open_slots(A.db_rows, half, lo, hi)
+    r = _as(NUTRI).post("/admin/booking-settings",
+                        data={"action": "add_block", "first": "2027-03-10",
+                              "last": "2027-03-01"})
+    assert "msg=bad_block" in r.headers["Location"]
+
+
+def test_staff_can_book_a_client_in_by_hand():
+    """‏عميل اتفق على واتساب. الموعد بيتأكد على طول، والوقت اللي بيتكتب
+    بتوقيت الأخصائي، وممكن يكون برّه ساعات العمل -- بس مايتداخلش."""
+    half, _ = _reset(hours=False)
+    day = (B.to_local(B.utcnow(), DUBAI) + timedelta(days=3)).date()
+    form = {"client": ALICE, "service": half["id"], "date": day.isoformat(),
+            "time": "21:00", "video_url": "https://meet.google.com/xyz"}
+    n = _as(NUTRI)
+    r = n.post("/admin/appointments/new", data=form)
+    assert "msg=accepted" in r.headers["Location"], r.headers["Location"]
+    row = A.db_row("SELECT * FROM appointments")
+    assert row["status"] == "accepted" and row["client_id"] == ALICE, row
+    assert B.to_local(B.from_db(row["start_at"]), DUBAI).strftime(
+        "%Y-%m-%d %H:%M") == day.isoformat() + " 21:00"
+    assert any("اتأكد" in m for m in _inbox(ALICE))
+    assert "msg=manual_taken" in n.post(
+        "/admin/appointments/new", data=form).headers["Location"]
+    for bad in (dict(form, time="21:15"), dict(form, date="2020-01-01"),
+                dict(form, client=NUTRI), dict(form, video_url="http://x")):
+        assert "msg=bad_manual" in n.post(
+            "/admin/appointments/new", data=bad).headers["Location"], bad
+    assert len(A.db_rows("SELECT id FROM appointments")) == 1
+    _as(ALICE).post("/admin/appointments/new", data=dict(form, time="22:00"))
+    assert len(A.db_rows("SELECT id FROM appointments")) == 1
+
+
+def test_a_session_is_marked_done_or_missed_only_after_its_time():
+    half, _ = _reset()
+    appt = _book(ALICE, half, _slot())
+    B.decide(A.db_row, A.db_run, appt, True)
+    _as(NUTRI).post("/admin/appointments/%d/status/completed" % appt)
+    assert _status(appt)["status"] == "accepted", "marked done before it happened"
+    after = _slot() + timedelta(hours=1)
+    assert not B.set_outcome(A.db_row, A.db_run, appt, "paid", now=after)
+    assert B.set_outcome(A.db_row, A.db_run, appt, "no_show", now=after)
+    assert not B.set_outcome(A.db_row, A.db_run, appt, "completed", now=after)
+    assert _status(appt)["status"] == "no_show"
+    _as(ALICE).post("/admin/appointments/%d/status/completed" % appt)
+    assert _status(appt)["status"] == "no_show"
 
 
 if __name__ == "__main__":
