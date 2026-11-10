@@ -418,6 +418,14 @@ def _meal_reminders_loop():
             send_meal_time_reminders()
         except Exception as e:
             print(f"[meal reminders] loop error: {e}")
+        # ‏تذكيرات المواعيد وانتهاء الطلبات بيركبوا على نفس اللفة بالقصد:
+        # لفة تانية بتوقيتها هي كانت هتصحّي القاعدة في أوقات زيادة، وده
+        # اللي بيصرف الحصة (README بند ١).
+        try:
+            import booking_notify
+            booking_notify.tick()
+        except Exception as e:
+            print(f"[booking] tick error: {e}")
         time.sleep(30 * 60)
 
 threading.Thread(target=_meal_reminders_loop, daemon=True).start()

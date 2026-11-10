@@ -1,17 +1,25 @@
 # -*- coding: utf-8 -*-
 """Booking a consultation: the client's side and the clinic's calendar.
 
-M1 of replica/architecture.md -- services, working hours, the public booking
-page, the request a client sends, and the nutritionist accepting or rejecting
-it with a meeting link. Payment, reminders, cancelling and rescheduling are
-later milestones and deliberately not here.
+replica/architecture.md, milestones M1-M3: services, working hours, the
+public booking page, the request, accepting or rejecting it with a meeting
+link (M1); paying by transfer with the admin confirming it (M2); the "next
+appointment" card and the notices each side gets (M3). Cancelling and
+rescheduling are M4 and deliberately not here.
 
 Who reaches what:
-  /book, /book/slots          anyone, signed in or not
-  POST /book                  a signed-in client
-  /book/<id>                  the client who owns it, or staff
+  /book, /book/slots            anyone, signed in or not
+  POST /book                    a signed-in client
+  /book/<id>, /book/<id>/paid   the client who owns it (staff may view)
   /admin/calendar, accept,
-  reject, booking-settings    staff (admin and nutritionist)
+  reject, booking-settings      staff (admin and nutritionist)
+  confirm-payment, refund,
+  where the money is sent       admin only
+
+The last line follows the rule the rest of the site already keeps: a
+nutritionist builds plans and runs the calendar; they do not handle the
+money. Changing the InstaPay address is changing where every client's
+payment goes.
 
 Another client asking for /book/<id> gets the same 404 as an id that does
 not exist: the answer must not say whether the appointment is there.
@@ -24,19 +32,13 @@ from flask import (Blueprint, jsonify, redirect, render_template, request,
                    session)
 
 import booking as B
+import booking_notify as N
 from core import (
-    cur_lang, db_row, db_rows, db_run, get_user_by_id, login_required,
-    site_origin, staff_required,
+    admin_required, cur_lang, db_row, db_rows, db_run, get_user_by_id,
+    login_required, site_origin, staff_required,
 )
 
 bp = Blueprint("booking", __name__)
-
-_DAYS_AR = ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت",
-            "الأحد"]
-_DAYS_EN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
-            "Saturday", "Sunday"]
-_ZONE_NAMES = {"Africa/Cairo": ("القاهرة", "Cairo"),
-               "Asia/Dubai": ("دبي", "Dubai")}
 
 
 # ── عرض الوقت ───────────────────────────────────────────────────────
@@ -46,33 +48,19 @@ def _ar():
 
 
 def _day_name(weekday):
-    return (_DAYS_AR if _ar() else _DAYS_EN)[weekday]
+    return B.day_name(weekday, _ar())
 
 
 def _clock(local_dt):
-    hour = local_dt.hour % 12 or 12
-    if _ar():
-        half = "ص" if local_dt.hour < 12 else "م"
-    else:
-        half = "AM" if local_dt.hour < 12 else "PM"
-    return "%d:%02d %s" % (hour, local_dt.minute, half)
+    return B.clock(local_dt, _ar())
 
 
 def _zone_label(zone):
-    ar, en = _ZONE_NAMES.get(zone.key, (None, None))
-    if ar:
-        return ar if _ar() else en
-    return zone.key.split("/")[-1].replace("_", " ")
+    return B.zone_label(zone, _ar())
 
 
 def _money(piastres, currency):
-    if not piastres:
-        return "مجانًا" if _ar() else "Free"
-    amount = piastres / 100.0
-    text = ("%d" % amount) if amount == int(amount) else ("%.2f" % amount)
-    if currency == "EGP":
-        return "%s %s" % (text, "جنيه" if _ar() else "EGP")
-    return "%s %s" % (text, currency)
+    return B.money(piastres, currency, _ar())
 
 
 def _show(row, zone):
@@ -85,6 +73,7 @@ def _show(row, zone):
     out["time_label"] = "%s – %s" % (_clock(start), _clock(end))
     out["local_date"] = start.date().isoformat()
     out["price_label"] = _money(row.get("price"), row.get("currency"))
+    out["owes_refund"] = B.owes_refund(row)
     return out
 
 
@@ -95,6 +84,10 @@ def _current_user():
 def _is_staff(user):
     return bool(user and (user.get("is_admin")
                           or user.get("role") in ("admin", "nutritionist")))
+
+
+def _is_admin(user):
+    return bool(user and (user.get("is_admin") or user.get("role") == "admin"))
 
 
 def _services(only_active=True):
@@ -222,6 +215,7 @@ def book_create():
         return redirect("/book?" + urlencode(dict(back, msg="taken")))
     except B.NotBookable as why:
         return redirect("/book?" + urlencode(dict(back, msg=str(why))))
+    N.tell_staff(appt_id, "request")
     return redirect("/book/%d?new=1" % appt_id)
 
 
@@ -237,7 +231,27 @@ def book_status(appt_id):
         "book_status.html", user=user, lang=cur_lang(),
         appt=_show(row, B.viewer_tz(user)),
         zone_label=_zone_label(B.viewer_tz(user)), is_staff=staff,
-        just_sent=request.args.get("new") == "1")
+        just_sent=request.args.get("new") == "1",
+        # ‏بيانات التحويل بتتعرض لصاحب الموعد بس، مش على الصفحة العامة.
+        pay=B.pay_details(db_rows), msg=request.args.get("msg", ""))
+
+
+@bp.route("/book/<int:appt_id>/paid", methods=["POST"])
+@login_required
+def book_paid(appt_id):
+    """The client reports a transfer. This never marks anything as paid."""
+    user = _current_user()
+    row = db_row("SELECT client_id FROM appointments WHERE id=?", (appt_id,))
+    if not row or not user or row["client_id"] != user["id"]:
+        return render_template("404.html", user=user, lang=cur_lang()), 404
+    ref = B.clean_pay_ref(request.form.get("pay_ref"))
+    if not ref:
+        return redirect("/book/%d?msg=bad_ref" % appt_id)
+    if not B.claim_payment(db_row, db_run, appt_id,
+                           request.form.get("pay_method", ""), ref):
+        return redirect("/book/%d?msg=no_claim" % appt_id)
+    N.tell_staff(appt_id, "claimed")
+    return redirect("/book/%d?msg=claimed" % appt_id)
 
 
 # ── الأخصائي ────────────────────────────────────────────────────────
@@ -275,7 +289,8 @@ def admin_calendar():
         week=week, zone_label=_zone_label(zone), ready=ready,
         prev_from=(first - timedelta(days=7)).isoformat(),
         next_from=(first + timedelta(days=7)).isoformat(),
-        booking_link=site_origin() + "/book", msg=request.args.get("msg", ""))
+        booking_link=site_origin() + "/book", msg=request.args.get("msg", ""),
+        is_admin=_is_admin(user))
 
 
 @bp.route("/admin/appointments/<int:appt_id>/accept", methods=["POST"])
@@ -285,6 +300,8 @@ def admin_appointment_accept(appt_id):
     if url is None:
         return redirect("/admin/calendar?msg=bad_link")
     done = B.decide(db_row, db_run, appt_id, True, video_url=url)
+    if done:
+        N.tell_client(appt_id, "accepted", actor_id=session["uid"])
     return redirect("/admin/calendar?msg=" + ("accepted" if done else "stale"))
 
 
@@ -293,6 +310,8 @@ def admin_appointment_accept(appt_id):
 def admin_appointment_reject(appt_id):
     done = B.decide(db_row, db_run, appt_id, False,
                     reason=request.form.get("reason", "").strip())
+    if done:
+        N.tell_client(appt_id, "rejected", actor_id=session["uid"])
     return redirect("/admin/calendar?msg=" + ("rejected" if done else "stale"))
 
 
@@ -340,6 +359,15 @@ def _settings_action(form):
                (form.get("id", type=int),))
         return "saved"
 
+    if action == "save_pay":
+        # ‏فين الفلوس بتتبعت: للأدمن بس، حتى لو الطلب جه من أخصائي.
+        if not _is_admin(_current_user()):
+            return "admin_only"
+        for key in B.PAY_SETTING_KEYS:
+            limit = 300 if key == "pay_note" else 80
+            B.set_setting(db_run, key, form.get(key, "").strip()[:limit])
+        return "saved"
+
     return "unknown"
 
 
@@ -360,4 +388,91 @@ def admin_booking_settings():
         day_names=[_day_name(i) for i in range(7)],
         zone_label=_zone_label(B.pro_tz()), slot_min=B.SLOT_MIN,
         max_duration=B.MAX_DURATION_MIN, msg=request.args.get("msg", ""),
-        booking_link=site_origin() + "/book")
+        booking_link=site_origin() + "/book",
+        pay=B.get_settings(db_rows), is_admin=_is_admin(_current_user()))
+
+
+# ── الفلوس: للأدمن بس ───────────────────────────────────────────────
+
+@bp.route("/admin/appointments/<int:appt_id>/confirm-payment",
+          methods=["POST"])
+@admin_required
+def admin_appointment_confirm_payment(appt_id):
+    done = B.confirm_payment(db_row, db_run, appt_id)
+    if done:
+        N.tell_client(appt_id, "paid", actor_id=session["uid"])
+    return redirect("/admin/payments?msg=%s#consults"
+                    % ("pay_confirmed" if done else "pay_stale"))
+
+
+@bp.route("/admin/appointments/<int:appt_id>/refund", methods=["POST"])
+@admin_required
+def admin_appointment_refund(appt_id):
+    done = B.mark_refunded(db_row, db_run, appt_id)
+    if done:
+        N.tell_client(appt_id, "refunded", actor_id=session["uid"])
+    return redirect("/admin/payments?msg=%s#consults"
+                    % ("pay_refunded" if done else "pay_stale"))
+
+
+def consult_payments():
+    """What /admin/payments shows about consultations: rows and totals."""
+    zone = B.pro_tz()
+    rows = [_show(r, zone) for r in db_rows(
+        _APPT_SQL + "WHERE a.price > 0 ORDER BY a.start_at DESC LIMIT 200")]
+    paid = [r for r in rows if r["pay_status"] == "paid"
+            and not r["owes_refund"]]
+    return {
+        "rows": rows,
+        "received_label": _money(sum(r["price"] for r in paid) or 0, "EGP")
+        if paid else "0",
+        "to_confirm": sum(1 for r in rows if r["pay_status"] == "claimed"
+                          and not r["owes_refund"]),
+        "to_refund": sum(1 for r in rows if r["owes_refund"]),
+    }
+
+
+# ── اللي بيظهر في صفحات تانية ───────────────────────────────────────
+
+@bp.app_template_global("next_appointment")
+def next_appointment(user):
+    """The card on /my-plan and /dashboard. None when there is nothing ahead.
+
+    A template global, not a value each route passes in: the card sits on
+    pages owned by other modules, and a page that does not draw it pays
+    nothing.
+    """
+    try:
+        if not user:
+            return None
+        zone = B.viewer_tz(user)
+        now = B.to_db(B.utcnow())
+        if _is_staff(user):
+            row = db_row(_APPT_SQL + "WHERE a.status='accepted' "
+                         "AND a.end_at > ? ORDER BY a.start_at LIMIT 1",
+                         (now,))
+        else:
+            row = db_row(_APPT_SQL + "WHERE a.client_id=? AND a.status IN "
+                         "('pending','accepted') AND a.end_at > ? "
+                         "ORDER BY a.start_at LIMIT 1", (user["id"], now))
+        if not row:
+            return None
+        out = _show(row, zone)
+        out["zone_label"] = _zone_label(zone)
+        return out
+    except Exception as exc:                      # noqa: BLE001
+        print("[booking] next_appointment failed: %s" % exc)
+        return None
+
+
+@bp.app_context_processor
+def _booking_badge():
+    """Pending booking requests, for the red count beside the calendar link."""
+    try:
+        if session.get("role") in ("admin", "nutritionist"):
+            row = db_row("SELECT COUNT(*) AS c FROM appointments "
+                         "WHERE status='pending'")
+            return {"booking_pending": row["c"] if row else 0}
+    except Exception:                             # noqa: BLE001
+        pass
+    return {"booking_pending": 0}

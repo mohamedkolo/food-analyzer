@@ -328,6 +328,65 @@
   </div>
   {% endif %}
 
+  {# ═══ تحويلات الاستشارات ═══
+     ‏دي مش من Stripe: العميل بيحوّل InstaPay أو محفظة ويكتب رقم العملية،
+     وإنت اللي بتأكّد إن الفلوس وصلت. "بلّغ بالتحويل" مش "مدفوع". #}
+  <div class="stat-card" id="consults" style="--c:#3A4A5C;margin-bottom:16px;">
+    <h2 style="font-size:16px;font-weight:800;color:#1E2630;margin:0 0 6px">💵 {{ t('تحويلات الاستشارات','Consultation transfers') }}</h2>
+    {% if msg == 'pay_confirmed' %}<p class="badge badge-success" role="status">{{ t('اتسجّل إن المبلغ وصل.','Recorded as received.') }}</p>
+    {% elif msg == 'pay_refunded' %}<p class="badge badge-info" role="status">{{ t('اتسجّل إن المبلغ اترد.','Recorded as refunded.') }}</p>
+    {% elif msg == 'pay_stale' %}<p class="badge badge-warning" role="alert">{{ t('الحالة اتغيّرت قبل كده.','That was already updated.') }}</p>
+    {% endif %}
+    <p style="font-size:13px;color:#5A6472;margin:0 0 12px">
+      {{ t('وصل:','Received:') }} <strong>{{ consults.received_label }}</strong> ·
+      {{ t('محتاج تأكيد:','To confirm:') }} <strong>{{ consults.to_confirm }}</strong> ·
+      {{ t('محتاج استرداد:','To refund:') }} <strong>{{ consults.to_refund }}</strong>
+    </p>
+    {% if consults.rows %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>{{ t('العميل','Client') }}</th><th>{{ t('الموعد','Appointment') }}</th>
+          <th>{{ t('المبلغ','Amount') }}</th><th>{{ t('الحالة','Status') }}</th>
+          <th>{{ t('رقم العملية','Reference') }}</th><th>{{ t('إجراء','Action') }}</th>
+        </tr></thead>
+        <tbody>
+        {% for c in consults.rows %}
+          <tr>
+            <td>{{ c.client_name or '-' }}</td>
+            <td class="date-cell"><a href="/book/{{ c.id }}" style="color:inherit">{{ c.day_label }} · {{ c.time_label }}</a></td>
+            <td>{{ c.price_label }}</td>
+            <td>
+              {% if c.owes_refund %}<span class="badge badge-danger">{{ t('محتاج استرداد','Refund due') }}</span>
+              {% elif c.pay_status == 'paid' %}<span class="badge badge-success">{{ t('وصل','Received') }}</span>
+              {% elif c.pay_status == 'claimed' %}<span class="badge badge-warning">{{ t('بلّغ بالتحويل','Client says paid') }}</span>
+              {% elif c.pay_status == 'refunded' %}<span class="badge badge-gray">{{ t('اترد','Refunded') }}</span>
+              {% else %}<span class="badge badge-gray">{{ t('لم يُدفع','Unpaid') }}</span>{% endif %}
+            </td>
+            <td class="date-cell" dir="ltr">{% if c.pay_ref %}{{ c.pay_ref }}{% if c.pay_method %} ({{ c.pay_method }}){% endif %}{% else %}-{% endif %}</td>
+            <td>
+              {% if c.owes_refund %}
+              <form method="post" action="/admin/appointments/{{ c.id }}/refund" style="margin:0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="refresh-btn">{{ t('رجّعت المبلغ','I refunded it') }}</button>
+              </form>
+              {% elif c.pay_status in ['unpaid','claimed'] and c.status in ['pending','accepted','completed'] %}
+              <form method="post" action="/admin/appointments/{{ c.id }}/confirm-payment" style="margin:0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="refresh-btn">{{ t('المبلغ وصل','Money received') }}</button>
+              </form>
+              {% else %}-{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="font-size:13px;color:#5A6472;margin:0">{{ t('مفيش استشارات بمقابل لسه.','No paid consultations yet.') }}</p>
+    {% endif %}
+  </div>
+
   <!-- Tabs -->
   <div class="tabs">
     <button class="tab-btn active" onclick="showTab('subs')">📋 {{ t('الاشتراكات','Subscriptions') }} ({{ subscriptions|length }})</button>

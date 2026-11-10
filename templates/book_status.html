@@ -61,6 +61,53 @@
     {% endif %}
   </div>
 
+  {% if appt.price %}
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-money-bill-transfer"></i> {{ t('الدفع','Payment') }}</div>
+    {% if msg == 'claimed' %}<div class="alert alert-success" role="status">{{ t('وصلنا رقم العملية. هنأكّد أول ما المبلغ يظهر عندنا.','We have your reference. We will confirm as soon as the amount shows up.') }}</div>
+    {% elif msg == 'bad_ref' %}<div class="alert alert-error" role="alert">{{ t('اكتب رقم العملية زي ما ظهر لك بعد التحويل.','Enter the reference exactly as shown after the transfer.') }}</div>
+    {% elif msg == 'no_claim' %}<div class="alert alert-warn" role="alert">{{ t('الحجز ده مش محتاج تبليغ بدفع دلوقتي.','This booking does not need a payment report right now.') }}</div>
+    {% endif %}
+
+    {% if appt.pay_status == 'paid' and not appt.owes_refund %}
+      <div class="alert alert-success">{{ t('استلمنا المبلغ.','Payment received.') }} ({{ appt.price_label }})</div>
+    {% elif appt.pay_status == 'refunded' %}
+      <div class="alert alert-info">{{ t('المبلغ اترد لك.','Your payment was refunded.') }}</div>
+    {% elif appt.owes_refund %}
+      <div class="alert alert-info">{{ t('المبلغ اللي حوّلته هيترد لك.','The amount you transferred will be refunded.') }}</div>
+    {% elif appt.status in ['pending','accepted'] %}
+      {% if appt.pay_status == 'claimed' %}
+        <div class="alert alert-warn">{{ t('بلّغت بالتحويل، رقم العملية:','You reported a transfer, reference:') }} <span dir="ltr">{{ appt.pay_ref }}</span>. {{ t('في انتظار تأكيد الاستلام.','Waiting for it to be confirmed.') }}</div>
+      {% endif %}
+      {% if is_staff %}
+        <div class="bs-row"><span class="k">{{ t('حالة الدفع','Payment status') }}</span><span class="v">{% if appt.pay_status == 'claimed' %}{{ t('بلّغ بالتحويل','Client says paid') }}{% else %}{{ t('لم يُدفع','Unpaid') }}{% endif %}</span></div>
+      {% elif pay.instapay or pay.wallet %}
+        <p style="font-size:13.5px;line-height:1.8;margin:0 0 8px">{{ t('حوّل','Transfer') }} <strong>{{ appt.price_label }}</strong> {{ t('على:','to:') }}</p>
+        {% if pay.instapay %}<div class="bs-row"><span class="k">InstaPay</span><span class="v" dir="ltr">{{ pay.instapay }}</span></div>{% endif %}
+        {% if pay.wallet %}<div class="bs-row"><span class="k">{{ t('محفظة','Wallet') }}</span><span class="v" dir="ltr">{{ pay.wallet }}</span></div>{% endif %}
+        {% if pay.pay_note %}<p style="font-size:13px;color:var(--muted);margin:8px 0 0">{{ pay.pay_note }}</p>{% endif %}
+        <form method="post" action="/book/{{ appt.id }}/paid" style="margin-top:14px">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="grid-2">
+            <div class="form-group"><label class="form-label" for="payMethod">{{ t('حوّلت بـ','Paid with') }}</label>
+              <select class="form-select" id="payMethod" name="pay_method">
+                {% if pay.instapay %}<option value="instapay" {% if appt.pay_method == 'instapay' %}selected{% endif %}>InstaPay</option>{% endif %}
+                {% if pay.wallet %}<option value="wallet" {% if appt.pay_method == 'wallet' %}selected{% endif %}>{{ t('محفظة','Wallet') }}</option>{% endif %}
+              </select></div>
+            <div class="form-group"><label class="form-label" for="payRef">{{ t('رقم العملية','Transfer reference') }}</label>
+              <input class="form-input" id="payRef" name="pay_ref" dir="ltr" minlength="3" maxlength="60" required value="{{ appt.pay_ref or '' }}"></div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">{% if appt.pay_status == 'claimed' %}{{ t('صحّح رقم العملية','Correct the reference') }}{% else %}{{ t('حوّلت — سجّل رقم العملية','I have paid — save the reference') }}{% endif %}</button>
+        </form>
+      {% else %}
+        <p style="font-size:13.5px;color:var(--muted);margin:0">{{ t('الأخصائي هيبعت لك طريقة الدفع.','The nutritionist will send you how to pay.') }}</p>
+      {% endif %}
+    {% else %}
+      <p style="font-size:13.5px;color:var(--muted);margin:0">{{ t('مفيش دفع مطلوب على الحجز ده.','No payment is due on this booking.') }}</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {% if appt.status == 'accepted' and appt.video_url %}
     <a class="btn btn-primary btn-full" href="{{ appt.video_url }}" target="_blank" rel="noopener noreferrer">
       <i class="fa-solid fa-video" aria-hidden="true"></i> {{ t('ادخل الجلسة','Join the session') }}

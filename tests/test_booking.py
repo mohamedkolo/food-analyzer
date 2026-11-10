@@ -30,6 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import app as A        # noqa: E402
 import booking as B    # noqa: E402
+import booking_notify as N  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402
 
 A.app.config["WTF_CSRF_ENABLED"] = False
@@ -66,7 +67,8 @@ def _as(uid=None, lang="en"):
 def _reset(hours=True):
     """‏قاعدة نضيفة لكل اختبار: خدمتين، وساعات عمل طول اليوم كل يوم --
     فالاختبار مابيعتمدش على اليوم ولا الساعة اللي اتشغّل فيهم."""
-    for table in ("appointments", "services", "availability"):
+    for table in ("appointments", "services", "availability",
+                  "booking_settings", "messages", "notifications"):
         A.db_run("DELETE FROM %s" % table)
     A.db_run("INSERT INTO services (name, duration_min, price) "
              "VALUES ('Follow-up', 30, 30000)")
@@ -537,6 +539,346 @@ def test_the_price_is_frozen_on_the_appointment():
     A.db_run("UPDATE services SET price=99900 WHERE id=?", (half["id"],))
     assert _status(appt)["price"] == 30000
     assert "300 EGP" in _as(ALICE).get("/book/%d" % appt).get_data(as_text=True)
+
+
+# ══ M2: الدفع ═══════════════════════════════════════════════════════
+
+def _pay_setup():
+    half, full = _reset()
+    B.set_setting(A.db_run, "instapay", "doctor@instapay")
+    B.set_setting(A.db_run, "wallet", "01000000000")
+    return half, full
+
+
+def _pay(appt_id):
+    return _status(appt_id)["pay_status"]
+
+
+def test_the_client_sees_where_to_pay_only_on_their_own_booking():
+    """‏عنوان InstaPay مابيتعرضش على الصفحة العامة -- لصاحب الحجز بس."""
+    half, _ = _pay_setup()
+    appt = _book(ALICE, half, _slot())
+    page = _as(ALICE).get("/book/%d" % appt).get_data(as_text=True)
+    assert "doctor@instapay" in page and "01000000000" in page
+    assert "300 EGP" in page and 'name="pay_ref"' in page
+    for public in (_as().get("/book"), _as(BASEM).get("/book")):
+        assert "doctor@instapay" not in public.get_data(as_text=True)
+
+
+def test_saying_you_paid_is_not_the_same_as_having_paid():
+    """‏القاعدة اللي المرحلة كلها عليها: العميل بيوصّل الحالة لـclaimed
+    بس. لو أي مسار للعميل وصّلها لـpaid، أي حد يكتب رقم من دماغه ويبقى
+    دافع."""
+    half, _ = _pay_setup()
+    appt = _book(ALICE, half, _slot())
+    c = _as(ALICE)
+    r = c.post("/book/%d/paid" % appt,
+               data={"pay_method": "instapay", "pay_ref": " 9876 5432 "})
+    assert "msg=claimed" in r.headers["Location"]
+    row = _status(appt)
+    assert (row["pay_status"], row["pay_method"], row["pay_ref"]) == (
+        "claimed", "instapay", "9876 5432"), row
+    assert "Waiting for it to be confirmed" in c.get(
+        "/book/%d" % appt).get_data(as_text=True)
+    # ‏العميل بيحاول يأكّد لنفسه
+    c.post("/admin/appointments/%d/confirm-payment" % appt)
+    assert _pay(appt) == "claimed"
+
+
+def test_a_client_can_correct_a_mistyped_reference_until_it_is_confirmed():
+    half, _ = _pay_setup()
+    appt = _book(ALICE, half, _slot())
+    c = _as(ALICE)
+    c.post("/book/%d/paid" % appt, data={"pay_method": "wallet", "pay_ref": "111"})
+    c.post("/book/%d/paid" % appt, data={"pay_method": "wallet", "pay_ref": "222"})
+    assert _status(appt)["pay_ref"] == "222"
+    _as(ADMIN).post("/admin/appointments/%d/confirm-payment" % appt)
+    c.post("/book/%d/paid" % appt, data={"pay_method": "wallet", "pay_ref": "333"})
+    row = _status(appt)
+    assert row["pay_status"] == "paid" and row["pay_ref"] == "222", row
+
+
+def test_a_payment_report_needs_a_real_reference_and_a_known_method():
+    half, _ = _pay_setup()
+    appt = _book(ALICE, half, _slot())
+    c = _as(ALICE)
+    for bad in ({"pay_method": "instapay", "pay_ref": ""},
+                {"pay_method": "instapay", "pay_ref": "x"},
+                {"pay_method": "instapay", "pay_ref": "9" * 80},
+                {"pay_method": "paid", "pay_ref": "12345"}):
+        c.post("/book/%d/paid" % appt, data=bad)
+        assert _pay(appt) == "unpaid", bad
+
+
+def test_nobody_else_can_report_or_confirm_a_payment():
+    half, _ = _pay_setup()
+    appt = _book(ALICE, half, _slot())
+    r = _as(BASEM).post("/book/%d/paid" % appt,
+                        data={"pay_method": "instapay", "pay_ref": "12345"})
+    assert r.status_code == 404
+    r = _as().post("/book/%d/paid" % appt,
+                   data={"pay_method": "instapay", "pay_ref": "12345"})
+    assert r.status_code == 302 and "/login" in r.headers["Location"]
+    assert _pay(appt) == "unpaid"
+
+
+def test_only_the_admin_handles_the_money():
+    """‏الأخصائي بيشغّل التقويم؛ مابيأكّدش استلام ولا بيغيّر الفلوس بتتبعت
+    فين. تغيير عنوان InstaPay = تحويل فلوس كل العملاء لحساب تاني."""
+    half, _ = _pay_setup()
+    appt = _book(ALICE, half, _slot())
+    n = _as(NUTRI)
+    n.post("/admin/appointments/%d/confirm-payment" % appt)
+    assert _pay(appt) == "unpaid"
+    r = n.post("/admin/booking-settings",
+               data={"action": "save_pay", "instapay": "thief@instapay"})
+    assert "msg=admin_only" in r.headers["Location"]
+    assert B.get_settings(A.db_rows)["instapay"] == "doctor@instapay"
+    assert 'name="instapay"' not in n.get(
+        "/admin/booking-settings").get_data(as_text=True)
+
+    a = _as(ADMIN)
+    a.post("/admin/booking-settings",
+           data={"action": "save_pay", "instapay": "new@instapay", "wallet": ""})
+    saved = B.get_settings(A.db_rows)
+    assert saved.get("instapay") == "new@instapay" and "wallet" not in saved
+    a.post("/admin/appointments/%d/confirm-payment" % appt)
+    assert _pay(appt) == "paid"
+
+
+def test_a_confirmed_payment_shows_on_the_payments_page_and_to_the_client():
+    half, _ = _pay_setup()
+    appt = _book(ALICE, half, _slot())
+    _as(ALICE).post("/book/%d/paid" % appt,
+                    data={"pay_method": "instapay", "pay_ref": "REF-778"})
+    a = _as(ADMIN)
+    page = a.get("/admin/payments").get_data(as_text=True)
+    assert "REF-778" in page and "Client says paid" in page
+    assert "/admin/appointments/%d/confirm-payment" % appt in page
+    r = a.post("/admin/appointments/%d/confirm-payment" % appt)
+    assert "msg=pay_confirmed" in r.headers["Location"]
+    page = a.get("/admin/payments").get_data(as_text=True)
+    assert "300 EGP" in page and "Received" in page
+    assert "/admin/appointments/%d/confirm-payment" % appt not in page
+    assert "Payment received" in _as(ALICE).get(
+        "/book/%d" % appt).get_data(as_text=True)
+    # ‏مرة تانية: مافيش حاجة تتغيّر
+    r = a.post("/admin/appointments/%d/confirm-payment" % appt)
+    assert "msg=pay_stale" in r.headers["Location"]
+
+
+def test_rejecting_a_paid_booking_leaves_a_refund_to_do_and_records_it():
+    """‏الرفض بعد الدفع لازم يسيب أثر: الفلوس عند الأخصائي والعميل مالوش
+    موعد. بيظهر "محتاج استرداد" لحد ما الأدمن يسجّل إنه رجّعه."""
+    half, _ = _pay_setup()
+    appt = _book(ALICE, half, _slot())
+    a = _as(ADMIN)
+    a.post("/admin/appointments/%d/confirm-payment" % appt)
+    a.post("/admin/appointments/%d/reject" % appt, data={"reason": "Travelling"})
+    assert B.owes_refund(_status(appt))
+    assert "Refund due" in a.get("/admin/payments").get_data(as_text=True)
+    assert "will be refunded" in _as(ALICE).get(
+        "/book/%d" % appt).get_data(as_text=True)
+    r = a.post("/admin/appointments/%d/refund" % appt)
+    assert "msg=pay_refunded" in r.headers["Location"]
+    assert _pay(appt) == "refunded"
+    assert "was refunded" in _as(ALICE).get(
+        "/book/%d" % appt).get_data(as_text=True)
+    assert "Refund due" not in a.get("/admin/payments").get_data(as_text=True)
+
+
+def test_a_free_consultation_asks_for_no_payment():
+    half, _ = _pay_setup()
+    A.db_run("UPDATE services SET price=0 WHERE id=?", (half["id"],))
+    free = A.db_row("SELECT * FROM services WHERE id=?", (half["id"],))
+    appt = _book(ALICE, free, _slot())
+    c = _as(ALICE)
+    assert 'name="pay_ref"' not in c.get("/book/%d" % appt).get_data(as_text=True)
+    c.post("/book/%d/paid" % appt, data={"pay_method": "instapay", "pay_ref": "123"})
+    assert _pay(appt) == "unpaid"
+    _as(ADMIN).post("/admin/appointments/%d/confirm-payment" % appt)
+    assert _pay(appt) == "unpaid"
+
+
+# ══ M3: الربط والإشعارات ════════════════════════════════════════════
+
+def _inbox(uid):
+    return [r["message"] for r in A.db_rows(
+        "SELECT message FROM messages WHERE receiver_id=? ORDER BY id", (uid,))]
+
+
+def _bell():
+    return A.db_rows("SELECT * FROM notifications ORDER BY id")
+
+
+def test_staff_are_told_about_a_new_request_and_a_reported_payment():
+    half, _ = _pay_setup()
+    c = _as(ALICE)
+    c.post("/book", data={"service": half["id"], "date": "",
+                          "slot": B.slot_key(_slot())})
+    appt = A.db_row("SELECT id FROM appointments")["id"]
+    c.post("/book/%d/paid" % appt, data={"pay_method": "instapay",
+                                         "pay_ref": "REF-1"})
+    bell = _bell()
+    assert [n["type"] for n in bell] == ["booking_request", "booking_payment"], bell
+    assert bell[0]["link"] == "/admin/calendar" and "alice" in bell[0]["message"]
+    assert "REF-1" in bell[1]["message"] and bell[1]["link"] == "/admin/payments"
+
+
+def test_the_client_gets_a_message_when_the_request_is_answered():
+    half, _ = _reset()
+    first = _book(ALICE, half, _slot(hour=9))
+    second = _book(ALICE, half, _slot(hour=11))
+    _as(NUTRI).post("/admin/appointments/%d/accept" % first, data={})
+    _as(NUTRI).post("/admin/appointments/%d/reject" % second,
+                    data={"reason": "Clinic closed"})
+    got = _inbox(ALICE)
+    assert len(got) == 2, got
+    assert "اتأكد" in got[0] and "Follow-up" in got[0], got[0]
+    assert "اترفض" in got[1] and "Clinic closed" in got[1], got[1]
+    assert not _inbox(BASEM), "someone else was told"
+    # ‏ضغطة تانية على طلب اترد عليه مابتبعتش رسالة تانية
+    _as(NUTRI).post("/admin/appointments/%d/accept" % first, data={})
+    assert len(_inbox(ALICE)) == 2
+
+
+def test_messages_speak_the_clients_language_and_the_clients_clock():
+    """‏الأخصائي بيقبل وهو على توقيت دبي وواجهته عربي. الرسالة بتتكتب
+    بلغة العميل وساعته هو -- من صفّه في users، مش من جلسة اللي داس."""
+    half, _ = _reset()
+    start = datetime(2027, 7, 12, 6, 0)          # 10:00 Dubai, 09:00 Cairo
+    row = {"start_at": B.to_db(start), "service_name": "Follow-up",
+           "admin_note": None, "status": "accepted", "pay_status": "unpaid",
+           "client_lang": "en", "client_tz": "Africa/Cairo"}
+    subject, body = N.client_text(row, "accepted")
+    assert subject == "Appointment confirmed"
+    assert "9:00 AM Cairo time" in body and "Monday 12/7" in body, body
+    row.update(client_lang="ar")
+    assert "9:00 ص بتوقيت القاهرة" in N.client_text(row, "accepted")[1]
+
+
+def test_a_notice_that_fails_does_not_undo_the_action():
+    """‏السيرفر بتاع الإيميل واقع أو جدول الرسايل فيه مشكلة: الموعد اللي
+    اتقبل لازم يفضل مقبول."""
+    half, _ = _reset()
+    appt = _book(ALICE, half, _slot())
+    real = N.db_run
+
+    def broken(*a, **k):
+        raise RuntimeError("messages table is down")
+    N.db_run = broken
+    try:
+        r = _as(NUTRI).post("/admin/appointments/%d/accept" % appt, data={})
+    finally:
+        N.db_run = real
+    assert r.status_code == 302 and "msg=accepted" in r.headers["Location"]
+    assert _status(appt)["status"] == "accepted"
+
+
+def test_an_unanswered_request_expires_and_frees_its_slot():
+    half, _ = _reset()
+    start = _slot(days=5)
+    appt = _book(ALICE, half, start)
+    now = B.utcnow()
+    assert N.tick(now + timedelta(hours=47))["expired"] == [], "expired early"
+    done = N.tick(now + timedelta(hours=49))
+    assert done["expired"] == [appt], done
+    row = _status(appt)
+    assert row["status"] == "expired" and row["slot_key"] is None, row
+    assert any("انتهت مهلته" in m for m in _inbox(ALICE)), _inbox(ALICE)
+    assert _status(_book(BASEM, half, start))["status"] == "pending"
+    assert appt not in N.tick(now + timedelta(hours=50))["expired"], \
+        "expired twice"
+
+
+def test_a_pending_request_whose_time_has_passed_expires_too():
+    half, _ = _reset()
+    start = _slot(days=1)
+    appt = _book(ALICE, half, start)
+    assert N.tick(start + timedelta(minutes=1))["expired"] == [appt]
+
+
+def test_an_accepted_appointment_never_expires():
+    half, _ = _reset()
+    appt = _book(ALICE, half, _slot(days=5))
+    B.decide(A.db_row, A.db_run, appt, True)
+    assert N.tick(B.utcnow() + timedelta(days=4))["expired"] == []
+    assert _status(appt)["status"] == "accepted"
+
+
+def test_reminders_go_out_once_each_a_day_before_and_an_hour_before():
+    half, _ = _reset()
+    start = _slot(days=5)
+    appt = _book(ALICE, half, start)
+    B.decide(A.db_row, A.db_run, appt, True)
+
+    def at(**before):
+        return N.tick(start - timedelta(**before))["reminded"]
+
+    assert at(hours=30) == [], "reminded more than a day ahead"
+    assert at(hours=23) == [(appt, "day")]
+    assert at(hours=22) == [], "the day reminder was sent twice"
+    assert at(minutes=90) == [], "the hour reminder went out too early"
+    assert at(minutes=60) == [(appt, "hour")]
+    assert at(minutes=30) == [], "the hour reminder was sent twice"
+    assert N.tick(start + timedelta(minutes=5))["reminded"] == []
+
+
+def test_a_late_wake_up_sends_one_reminder_not_two():
+    """‏الاستضافة المجانية بتنام. لو صحيت والموعد فاضل عليه ٤٠ دقيقة،
+    العميل ياخد تذكير واحد ("كمان شوية")، مش تذكير "بكرة" وراه تذكير
+    "كمان شوية" في نفس اللحظة."""
+    half, _ = _reset()
+    start = _slot(days=5)
+    appt = _book(ALICE, half, start)
+    B.decide(A.db_row, A.db_run, appt, True)
+    assert N.tick(start - timedelta(minutes=40))["reminded"] == [(appt, "hour")]
+    assert N.tick(start - timedelta(minutes=10))["reminded"] == []
+
+
+def test_only_accepted_appointments_are_reminded():
+    half, _ = _reset()
+    start = _slot(days=5)
+    pending = _book(ALICE, half, start)
+    assert N.tick(start - timedelta(hours=2))["reminded"] == []
+    B.decide(A.db_row, A.db_run, pending, False)
+    assert N.tick(start - timedelta(minutes=30))["reminded"] == []
+
+
+def test_reminders_do_not_fill_the_chat():
+    half, _ = _reset()
+    start = _slot(days=5)
+    appt = _book(ALICE, half, start)
+    B.decide(A.db_row, A.db_run, appt, True)
+    N.tick(start - timedelta(hours=23))
+    N.tick(start - timedelta(minutes=50))
+    assert _inbox(ALICE) == []
+
+
+def test_the_next_appointment_card_shows_on_the_clients_plan_page():
+    half, _ = _reset()
+    c = _as(ALICE)
+    assert "Your next appointment" not in c.get(
+        "/my-plan", follow_redirects=True).get_data(as_text=True)
+    appt = _book(ALICE, half, _slot())
+    page = c.get("/my-plan", follow_redirects=True).get_data(as_text=True)
+    assert "Your next appointment" in page and "/book/%d" % appt in page
+    assert "Awaiting reply" in page and "Unpaid" in page
+    assert "Your next appointment" not in _as(BASEM).get(
+        "/my-plan", follow_redirects=True).get_data(as_text=True)
+    B.decide(A.db_row, A.db_run, appt, False)
+    assert "Your next appointment" not in c.get(
+        "/my-plan", follow_redirects=True).get_data(as_text=True)
+
+
+def test_the_dashboard_shows_staff_the_next_confirmed_appointment():
+    half, _ = _reset()
+    appt = _book(ALICE, half, _slot())
+    n = _as(NUTRI)
+    assert "Next appointment" not in n.get("/dashboard").get_data(as_text=True)
+    B.decide(A.db_row, A.db_run, appt, True)
+    page = n.get("/dashboard").get_data(as_text=True)
+    assert "Next appointment" in page and "alice" in page
 
 
 if __name__ == "__main__":

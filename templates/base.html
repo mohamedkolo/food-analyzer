@@ -425,7 +425,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
     {% set g_clients = request.endpoint in ['admin_users','admin_new_user','admin_user_profile','admin_requests','plans.followups','plans.followup_detail','messages','chat','admin_blocked_list','booking.admin_calendar','booking.admin_booking_settings'] %}
     <details class="nav-grp {% if g_clients %}has-active{% endif %}" {% if g_clients %}open{% endif %}>
       <summary><i class="fa-solid fa-users"></i> {{ 'العملاء' if is_ar else 'Clients' }}
-        {% set c_badge = (pending_count or 0) + (unread_messages or 0) %}
+        {% set c_badge = (pending_count or 0) + (unread_messages or 0) + (booking_pending or 0) %}
         {% if c_badge > 0 %}<span class="nav-badge">{{ c_badge }}</span>{% endif %}
       
         <i class="fa-solid fa-chevron-down nav-grp-x"></i>
@@ -442,6 +442,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
         </a>
         <a href="/admin/calendar" class="nav-item {% if request.endpoint in ['booking.admin_calendar','booking.admin_booking_settings'] %}active{% endif %}">
           <i class="fa-solid fa-calendar-days"></i> {{ 'التقويم والحجوزات' if is_ar else 'Calendar & bookings' }}
+          {% if booking_pending and booking_pending > 0 %}<span class="nav-badge">{{ booking_pending }}</span>{% endif %}
         </a>
         <a href="/followups" class="nav-item {% if request.endpoint in ['plans.followups','plans.followup_detail'] %}active{% endif %}">
           <i class="fa-solid fa-clock-rotate-left"></i> {{ 'المتابعات' if is_ar else 'Follow-ups' }}

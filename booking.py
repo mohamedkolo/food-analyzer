@@ -250,11 +250,13 @@ def create_request(db_row, db_rows, db_run, client_id, service, start_utc,
     try:
         db_run(
             "INSERT INTO appointments (client_id, service_id, start_at, "
-            "end_at, status, slot_key, client_note, price, currency) "
-            "VALUES (?,?,?,?,'pending',?,?,?,?)",
+            "end_at, status, slot_key, client_note, price, currency, "
+            "created_at, updated_at) VALUES (?,?,?,?,'pending',?,?,?,?,?,?)",
+            # ‏created_at بيتكتب من هنا بـUTC، مش من CURRENT_TIMESTAMP:
+            # مهلة الـ٤٨ ساعة بتتحسب منه، وساعة القاعدة مش مضمونة UTC.
             (client_id, service["id"], to_db(start_utc), to_db(end_utc), key,
              (note or "")[:500], int(service.get("price") or 0),
-             service.get("currency") or "EGP"))
+             service.get("currency") or "EGP", to_db(now), to_db(now)))
     except Exception as exc:
         if _is_unique_violation(exc):
             raise SlotTaken()
@@ -307,3 +309,207 @@ def clean_video_url(text):
             or any(c in url for c in " \"'<>\n\r\t"):
         return None
     return url
+
+
+# ── عرض الوقت والمبلغ ───────────────────────────────────────────────
+# ‏اللغة بتتبعت بارامتر، مش بتتقرا من الجلسة: نفس الدوال بتكتب الصفحة
+# (لغة اللي فاتحها) والرسالة والتذكير (لغة العميل، ومافيش جلسة أصلاً).
+
+_DAYS_AR = ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت",
+            "الأحد"]
+_DAYS_EN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
+            "Saturday", "Sunday"]
+_ZONE_NAMES = {"Africa/Cairo": ("القاهرة", "Cairo"),
+               "Asia/Dubai": ("دبي", "Dubai")}
+
+
+def day_name(weekday, ar=True):
+    return (_DAYS_AR if ar else _DAYS_EN)[weekday]
+
+
+def clock(local_dt, ar=True):
+    hour = local_dt.hour % 12 or 12
+    if ar:
+        half = "ص" if local_dt.hour < 12 else "م"
+    else:
+        half = "AM" if local_dt.hour < 12 else "PM"
+    return "%d:%02d %s" % (hour, local_dt.minute, half)
+
+
+def zone_label(zone, ar=True):
+    names = _ZONE_NAMES.get(zone.key)
+    if names:
+        return names[0] if ar else names[1]
+    return zone.key.split("/")[-1].replace("_", " ")
+
+
+def money(piastres, currency="EGP", ar=True):
+    if not piastres:
+        return "مجانًا" if ar else "Free"
+    amount = piastres / 100.0
+    text = ("%d" % amount) if amount == int(amount) else ("%.2f" % amount)
+    if (currency or "EGP") == "EGP":
+        return "%s %s" % (text, "جنيه" if ar else "EGP")
+    return "%s %s" % (text, currency)
+
+
+def when(start_utc, zone, ar=True):
+    """'الأربعاء 11/11 الساعة 10:00 ص بتوقيت القاهرة' -- for a message."""
+    local = to_local(from_db(start_utc), zone)
+    if ar:
+        return "%s %d/%d الساعة %s بتوقيت %s" % (
+            day_name(local.weekday(), True), local.day, local.month,
+            clock(local, True), zone_label(zone, True))
+    return "%s %d/%d at %s %s time" % (
+        day_name(local.weekday(), False), local.day, local.month,
+        clock(local, False), zone_label(zone, False))
+
+
+# ── الدفع (M2) ──────────────────────────────────────────────────────
+# ‏الدفع تحويل برّه التطبيق (InstaPay أو محفظة) بتأكيد يدوي. أهم حاجة:
+#
+#     claimed ≠ paid
+#
+# ‏"claimed" معناها العميل **قال** إنه حوّل وكتب رقم العملية. "paid"
+# معناها الأدمن **شاف** الفلوس في حسابه. مافيش أي مسار للعميل بيوصّل
+# لـpaid -- لو فيه، أي حد يكتب رقم من دماغه ويبقى "دافع".
+
+PAY_METHODS = ("instapay", "wallet")
+PAY_SETTING_KEYS = ("instapay", "wallet", "pay_note")
+
+
+def get_settings(db_rows):
+    try:
+        return {r["name"]: r["value"] or ""
+                for r in db_rows("SELECT name, value FROM booking_settings")}
+    except Exception:
+        return {}
+
+
+def set_setting(db_run, key, value):
+    db_run("DELETE FROM booking_settings WHERE name=?", (key,))
+    if value:
+        db_run("INSERT INTO booking_settings (name, value) VALUES (?,?)",
+               (key, value))
+
+
+def pay_details(db_rows):
+    """Where the client should send the money; {} when nothing is set."""
+    saved = get_settings(db_rows)
+    return {k: saved[k] for k in PAY_SETTING_KEYS if saved.get(k)}
+
+
+def clean_pay_ref(text):
+    """The transfer reference a client typed, or None when it is unusable."""
+    ref = " ".join((text or "").split())
+    return ref if 3 <= len(ref) <= 60 else None
+
+
+def claim_payment(db_row, db_run, appt_id, method, ref, now=None):
+    """The client says they have paid. False when there is nothing to claim.
+
+    Allowed again while still 'claimed', so a mistyped reference can be
+    corrected -- never once the admin has confirmed or refunded.
+    """
+    row = db_row("SELECT status, price, pay_status FROM appointments "
+                 "WHERE id=?", (appt_id,))
+    if (not row or row["status"] not in ACTIVE or not row["price"]
+            or row["pay_status"] not in ("unpaid", "claimed")
+            or method not in PAY_METHODS or not ref):
+        return False
+    db_run("UPDATE appointments SET pay_status='claimed', pay_method=?, "
+           "pay_ref=?, updated_at=? WHERE id=? AND pay_status IN "
+           "('unpaid','claimed')",
+           (method, ref, to_db(now or utcnow()), appt_id))
+    return True
+
+
+def confirm_payment(db_row, db_run, appt_id, now=None):
+    """The admin has seen the money. unpaid/claimed -> paid."""
+    row = db_row("SELECT price, pay_status FROM appointments WHERE id=?",
+                 (appt_id,))
+    if not row or not row["price"] \
+            or row["pay_status"] not in ("unpaid", "claimed"):
+        return False
+    db_run("UPDATE appointments SET pay_status='paid', updated_at=? "
+           "WHERE id=? AND pay_status IN ('unpaid','claimed')",
+           (to_db(now or utcnow()), appt_id))
+    return True
+
+
+def mark_refunded(db_row, db_run, appt_id, now=None):
+    """The admin sent the money back by hand; this records it."""
+    row = db_row("SELECT pay_status FROM appointments WHERE id=?", (appt_id,))
+    if not row or row["pay_status"] not in ("paid", "claimed"):
+        return False
+    db_run("UPDATE appointments SET pay_status='refunded', updated_at=? "
+           "WHERE id=? AND pay_status IN ('paid','claimed')",
+           (to_db(now or utcnow()), appt_id))
+    return True
+
+
+def owes_refund(row):
+    """Money came in (or the client says it did) for a slot they lost."""
+    return (row["status"] in ("rejected", "expired", "cancelled")
+            and row["pay_status"] in ("paid", "claimed"))
+
+
+# ── انتهاء الطلبات والتذكيرات (M3) ──────────────────────────────────
+
+EXPIRE_AFTER_HOURS = 48
+# ‏reminder_sent خانتين: ١ = تذكير اليوم اتبعت، ٢ = تذكير الساعة اتبعت.
+REMIND_DAY, REMIND_HOUR = 1, 2
+# ‏الفحص بيلف كل نص ساعة، فتذكير "قبلها بساعة" بيتبعت أول ما الموعد
+# يبقى على بعد ٧٥ دقيقة -- يعني بيوصل بين ٤٥ و٧٥ دقيقة قبله.
+REMIND_HOUR_WINDOW_MIN = 75
+REMIND_DAY_WINDOW_HOURS = 24
+
+
+def expire_stale(db_rows, db_run, now=None):
+    """Pending requests nobody answered: older than 48h, or already past.
+
+    Returns the ids that were expired. Their slots open again.
+    """
+    now = now or utcnow()
+    cutoff = now - timedelta(hours=EXPIRE_AFTER_HOURS)
+    rows = db_rows(
+        "SELECT id FROM appointments WHERE status='pending' "
+        "AND (created_at < ? OR start_at <= ?)", (to_db(cutoff), to_db(now)))
+    ids = [r["id"] for r in rows]
+    for appt_id in ids:
+        db_run("UPDATE appointments SET status='expired', slot_key=NULL, "
+               "updated_at=? WHERE id=? AND status='pending'",
+               (to_db(now), appt_id))
+    return ids
+
+
+def due_reminders(db_rows, db_run, now=None):
+    """[(appointment id, 'day' | 'hour')] to send now, each marked as sent.
+
+    Marked before it is returned: a reminder that fails to send is lost,
+    which is better than one that is sent every half hour until the session.
+    An appointment booked inside the last 75 minutes gets the hour reminder
+    only -- not both at once.
+    """
+    now = now or utcnow()
+    rows = db_rows(
+        "SELECT id, start_at, reminder_sent FROM appointments "
+        "WHERE status='accepted' AND start_at > ? AND start_at <= ?",
+        (to_db(now),
+         to_db(now + timedelta(hours=REMIND_DAY_WINDOW_HOURS))))
+    out = []
+    for r in rows:
+        sent = int(r["reminder_sent"] or 0)
+        minutes = (from_db(r["start_at"]) - now).total_seconds() / 60
+        if minutes <= REMIND_HOUR_WINDOW_MIN:
+            if sent & REMIND_HOUR:
+                continue
+            kind, flags = "hour", REMIND_DAY | REMIND_HOUR
+        else:
+            if sent & REMIND_DAY:
+                continue
+            kind, flags = "day", sent | REMIND_DAY
+        db_run("UPDATE appointments SET reminder_sent=? WHERE id=?",
+               (flags, r["id"]))
+        out.append((r["id"], kind))
+    return out

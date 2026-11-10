@@ -225,6 +225,16 @@ def cancel_subscription():
 # ADMIN PAYMENTS DASHBOARD
 # ═══════════════════════════════════════════════
 
+def _consult_payments():
+    """‏تحويلات الاستشارات (InstaPay/محفظة) -- بتيجي من الحجز، مش من Stripe."""
+    try:
+        from routes_booking import consult_payments
+        return consult_payments()
+    except Exception as e:
+        print(f"consult payments error: {e}")
+        return {"rows": [], "received_label": "0", "to_confirm": 0, "to_refund": 0}
+
+
 @bp.route("/admin/payments")
 @admin_required
 def admin_payments_view():
@@ -303,7 +313,9 @@ def admin_payments_view():
     return render_template("admin_payments.html",
                            user=user, lang=session.get("lang", "ar"),
                            payments=payments, subscriptions=subscriptions,
-                           stats=stats, analytics=analytics)
+                           stats=stats, analytics=analytics,
+                           consults=_consult_payments(),
+                           msg=request.args.get("msg", ""))
 
 
 @bp.route("/check-access")

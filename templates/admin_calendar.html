@@ -56,7 +56,8 @@
   <div class="cal-req">
     <div class="who">{{ a.client_name or t('عميل','Client') }}</div>
     <div class="meta">
-      {{ a.service_name }} · {{ a.price_label }}<br>
+      {{ a.service_name }} · {{ a.price_label }}
+      {% if a.price %}· {% if a.pay_status == 'paid' %}<strong>{{ t('مدفوع','Paid') }}</strong>{% elif a.pay_status == 'claimed' %}<strong>{{ t('بلّغ بالتحويل','Says paid') }}</strong>{% if is_admin %} (<a href="/admin/payments#consults" style="color:inherit">{{ t('راجع وأكّد','check and confirm') }}</a>){% endif %}{% else %}{{ t('لم يُدفع','Unpaid') }}{% endif %}{% endif %}<br>
       <strong>{{ a.day_label }}</strong> · {{ a.time_label }}
       {% if a.client_phone %}<br><span dir="ltr">{{ a.client_phone }}</span>{% endif %}
     </div>
@@ -98,7 +99,8 @@
       {% for a in d['items'] %}
       <a class="cal-item" href="/book/{{ a.id }}">
         <span><strong>{{ a.time_label }}</strong> · {{ a.client_name or t('عميل','Client') }} · {{ a.service_name }}</span>
-        {% if a.video_url %}<i class="fa-solid fa-video" aria-hidden="true"></i>{% endif %}
+        <span style="font-size:12px;font-weight:700;white-space:nowrap">{% if a.price %}{% if a.pay_status == 'paid' %}{{ t('مدفوع','Paid') }}{% elif a.pay_status == 'claimed' %}{{ t('بلّغ بالتحويل','Says paid') }}{% elif a.pay_status == 'refunded' %}{{ t('اترد','Refunded') }}{% else %}{{ t('لم يُدفع','Unpaid') }}{% endif %}{% endif %}
+        {% if a.video_url %}<i class="fa-solid fa-video" aria-hidden="true"></i>{% endif %}</span>
       </a>
       {% else %}
       <span class="cal-none">—</span>

@@ -102,7 +102,7 @@ gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1
 | `app.py` / `core.py` | التطبيق، القاعدة، الحارس، `/health` |
 | `routes_*.py` | الصفحات: الخطط، الأدمن، الدفع، العام |
 | `plan_engine.py` | توليد الأسبوع والورقة والـPDF |
-| `booking.py` / `routes_booking.py` | حجز الاستشارة: المواعيد المتاحة، الطلب، القبول والرفض (`replica/architecture.md`) |
+| `booking.py` / `routes_booking.py` / `booking_notify.py` | حجز الاستشارة: المواعيد، الطلب، القبول والرفض، الدفع بالتحويل، الإشعارات والتذكيرات (`replica/architecture.md`) |
 | `meal_database.py` / `meal_macros.py` / `food_data.py` | الأكل والماكروز |
 | `protein_need.py` / `portion_scale.py` / `zigzag.py` | الحسابات الإكلينيكية |
 | `lab_report.py` / `ocr_report.py` | قراءة ورق التحليل |
