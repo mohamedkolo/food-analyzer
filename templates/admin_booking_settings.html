@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ t('إعدادات الحجز','Booking settings') }}{% endblock %}
+{% block content %}
+
+<style>
+  .bset-row{display:grid;grid-template-columns:2fr 1fr 1fr auto auto;gap:8px;align-items:end;padding:10px 0;border-bottom:1px solid var(--gray-2)}
+  .bset-row.off{opacity:.6}
+  .bset-hours{display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:8px;align-items:end}
+  .bset-line{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--gray-2);font-size:14px}
+  .bset-hint{font-size:12.5px;color:var(--muted);line-height:1.7;margin:0 0 12px}
+  .bset-row .form-label,.bset-hours .form-label{font-size:12px}
+  @media(max-width:700px){.bset-row,.bset-hours{grid-template-columns:1fr 1fr}}
+</style>
+
+<h1 class="page-title"><i class="fa-solid fa-sliders"></i> {{ t('إعدادات الحجز','Booking settings') }}</h1>
+
+{% if msg == 'saved' %}<div class="alert alert-success" role="status">{{ t('اتحفظ.','Saved.') }}</div>
+{% elif msg == 'bad_service' %}<div class="alert alert-error" role="alert">{{ t('الخدمة محتاجة اسم، ومدة من مضاعفات','A service needs a name, and a duration in multiples of') }} {{ slot_min }} {{ t('دقيقة (بحد أقصى','minutes (up to') }} {{ max_duration }}){{ t('، وسعر صحيح.',', and a valid price.') }}</div>
+{% elif msg == 'bad_hours' %}<div class="alert alert-error" role="alert">{{ t('ساعات العمل لازم تبدأ وتنتهي على رأس الساعة أو نصها، والنهاية بعد البداية.','Working hours must start and end on the hour or half hour, with the end after the start.') }}</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-title"><i class="fa-solid fa-stethoscope"></i> {{ t('الخدمات','Services') }}</div>
+  <p class="bset-hint">{{ t('السعر بالجنيه المصري. الخدمة الموقوفة مابتظهرش للعملاء، والحجوزات اللي عليها بتفضل زي ما هي.','Prices are in Egyptian pounds. A paused service is hidden from clients; bookings already made on it stay as they are.') }}</p>
+
+  {% for s in services %}
+  <div class="bset-row {% if not s.active %}off{% endif %}">
+    <form method="post" action="/admin/booking-settings" style="display:contents">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="update_service">
+      <input type="hidden" name="id" value="{{ s.id }}">
+      <div><label class="form-label" for="sn{{ s.id }}">{{ t('الاسم','Name') }}</label>
+        <input class="form-input" id="sn{{ s.id }}" name="name" value="{{ s.name }}" maxlength="80" required></div>
+      <div><label class="form-label" for="sd{{ s.id }}">{{ t('المدة (دقيقة)','Minutes') }}</label>
+        <input class="form-input" id="sd{{ s.id }}" name="duration_min" type="number" min="{{ slot_min }}" max="{{ max_duration }}" step="{{ slot_min }}" value="{{ s.duration_min }}" required></div>
+      <div><label class="form-label" for="sp{{ s.id }}">{{ t('السعر','Price') }}</label>
+        <input class="form-input" id="sp{{ s.id }}" name="price" type="number" min="0" step="any" value="{{ (s.price / 100) | num(2) }}" required></div>
+      <button type="submit" class="btn btn-outline">{{ t('حفظ','Save') }}</button>
+    </form>
+    <form method="post" action="/admin/booking-settings">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="toggle_service">
+      <input type="hidden" name="id" value="{{ s.id }}">
+      <button type="submit" class="btn btn-outline">{% if s.active %}{{ t('إيقاف','Pause') }}{% else %}{{ t('تشغيل','Resume') }}{% endif %}</button>
+    </form>
+  </div>
+  {% endfor %}
+
+  <form method="post" action="/admin/booking-settings" class="bset-row" style="border-bottom:none">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="add_service">
+    <div><label class="form-label" for="snNew">{{ t('خدمة جديدة','New service') }}</label>
+      <input class="form-input" id="snNew" name="name" maxlength="80" required></div>
+    <div><label class="form-label" for="sdNew">{{ t('المدة (دقيقة)','Minutes') }}</label>
+      <input class="form-input" id="sdNew" name="duration_min" type="number" min="{{ slot_min }}" max="{{ max_duration }}" step="{{ slot_min }}" value="{{ slot_min }}" required></div>
+    <div><label class="form-label" for="spNew">{{ t('السعر','Price') }}</label>
+      <input class="form-input" id="spNew" name="price" type="number" min="0" step="any" value="0" required></div>
+    <button type="submit" class="btn btn-primary">{{ t('إضافة','Add') }}</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title"><i class="fa-solid fa-clock"></i> {{ t('ساعات العمل','Working hours') }}</div>
+  <p class="bset-hint">{{ t('الساعات هنا بتوقيتك إنت','These hours are on your own clock') }} ({{ zone_label }}){{ t('. العميل بيشوفها متحوّلة لتوقيته.','. Clients see them converted to their own time.') }}</p>
+
+  {% for h in hours %}
+  <div class="bset-line">
+    <span><strong>{{ h.day }}</strong> · <span dir="ltr">{{ h.from }} – {{ h.to }}</span></span>
+    <form method="post" action="/admin/booking-settings">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="delete_hours">
+      <input type="hidden" name="id" value="{{ h.id }}">
+      <button type="submit" class="btn btn-danger" style="padding:6px 12px">{{ t('حذف','Remove') }}</button>
+    </form>
+  </div>
+  {% else %}
+  <div class="bset-line" style="color:var(--muted)">{{ t('لسه مفيش ساعات عمل، فمفيش مواعيد بتظهر للعملاء.','No working hours yet, so clients see no times.') }}</div>
+  {% endfor %}
+
+  <form method="post" action="/admin/booking-settings" class="bset-hours" style="margin-top:14px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="add_hours">
+    <div><label class="form-label" for="hDay">{{ t('اليوم','Day') }}</label>
+      <select class="form-select" id="hDay" name="weekday">
+        {% for name in day_names %}<option value="{{ loop.index0 }}">{{ name }}</option>{% endfor %}
+      </select></div>
+    <div><label class="form-label" for="hFrom">{{ t('من','From') }}</label>
+      <input class="form-input" id="hFrom" name="start" type="time" step="1800" value="10:00" required></div>
+    <div><label class="form-label" for="hTo">{{ t('إلى','To') }}</label>
+      <input class="form-input" id="hTo" name="end" type="time" step="1800" value="14:00" required></div>
+    <button type="submit" class="btn btn-primary">{{ t('إضافة','Add') }}</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title"><i class="fa-solid fa-link"></i> {{ t('رابط الحجز','Booking link') }}</div>
+  <code style="direction:ltr;display:inline-block;word-break:break-all">{{ booking_link }}</code>
+</div>
+{% endblock %}

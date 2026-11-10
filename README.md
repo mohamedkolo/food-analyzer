@@ -55,6 +55,7 @@ gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | للإشعارات | Web Push |
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` / `ADMIN_EMAIL` | للإيميل | تنبيهات الأدمن |
 | `STRIPE_SECRET_KEY` / `STRIPE_PUBLIC_KEY` / `STRIPE_WEBHOOK_SECRET` | للدفع | الاشتراكات |
+| `BOOKING_TZ` | اختياري | توقيت الأخصائي لساعات العمل والتقويم. الافتراضي `Asia/Dubai` |
 
 ---
 
@@ -101,6 +102,7 @@ gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1
 | `app.py` / `core.py` | التطبيق، القاعدة، الحارس، `/health` |
 | `routes_*.py` | الصفحات: الخطط، الأدمن، الدفع، العام |
 | `plan_engine.py` | توليد الأسبوع والورقة والـPDF |
+| `booking.py` / `routes_booking.py` | حجز الاستشارة: المواعيد المتاحة، الطلب، القبول والرفض (`replica/architecture.md`) |
 | `meal_database.py` / `meal_macros.py` / `food_data.py` | الأكل والماكروز |
 | `protein_need.py` / `portion_scale.py` / `zigzag.py` | الحسابات الإكلينيكية |
 | `lab_report.py` / `ocr_report.py` | قراءة ورق التحليل |

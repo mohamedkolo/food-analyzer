@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ t('حالة الحجز','Booking status') }}{% endblock %}
+{% block content %}
+
+<style>
+  .bs-wrap{max-width:620px;margin:0 auto}
+  .bs-state{display:flex;gap:12px;align-items:flex-start;padding:16px;border-radius:12px;margin-bottom:16px;line-height:1.7}
+  .bs-state i{font-size:22px;margin-top:3px}
+  .bs-state .h{font-weight:900;font-size:16px}
+  .bs-state .s{font-size:13.5px}
+  .bs-state.pending{background:#FDF6EC;color:#8A4B1C}
+  .bs-state.accepted,.bs-state.completed{background:#E8F3EC;color:#1F5A36}
+  .bs-state.rejected,.bs-state.expired,.bs-state.cancelled,.bs-state.no_show{background:var(--red-pale);color:var(--red)}
+  .bs-row{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--gray-2);font-size:14px}
+  .bs-row:last-child{border-bottom:none}
+  .bs-row .k{color:var(--muted);font-weight:700}
+  .bs-row .v{font-weight:800;text-align:end}
+</style>
+
+<div class="bs-wrap">
+  <h1 class="page-title"><i class="fa-solid fa-calendar-check"></i> {{ t('حالة الحجز','Booking status') }}</h1>
+
+  {% if just_sent and appt.status == 'pending' %}
+    <div class="alert alert-success" role="status">{{ t('طلبك اتبعت.','Your request has been sent.') }}</div>
+  {% endif %}
+
+  <div class="bs-state {{ appt.status }}">
+    {% if appt.status == 'pending' %}
+      <i class="fa-solid fa-hourglass-half" aria-hidden="true"></i>
+      <div><div class="h">{{ t('في انتظار رد الأخصائي','Waiting for the nutritionist') }}</div>
+        <div class="s">{{ t('الموعد محجوز باسمك لحد ما يتم الرد. هتلاقي الحالة هنا أول ما تتغير.','The slot is held for you until there is an answer. This page will show it as soon as it changes.') }}</div></div>
+    {% elif appt.status == 'accepted' %}
+      <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+      <div><div class="h">{{ t('الموعد اتأكد','Your appointment is confirmed') }}</div>
+        <div class="s">{% if appt.video_url %}{{ t('ادخل الجلسة من الرابط تحت في ميعادها.','Join from the link below at the appointment time.') }}{% else %}{{ t('رابط الجلسة هيظهر هنا قبل الميعاد.','The session link will appear here before the appointment.') }}{% endif %}</div></div>
+    {% elif appt.status == 'rejected' %}
+      <i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>
+      <div><div class="h">{{ t('الطلب اترفض','The request was declined') }}</div>
+        <div class="s">{% if appt.admin_note %}{{ t('السبب:','Reason:') }} {{ appt.admin_note }}{% else %}{{ t('تقدر تختار موعد تاني.','You can pick another time.') }}{% endif %}</div></div>
+    {% elif appt.status == 'completed' %}
+      <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+      <div><div class="h">{{ t('الجلسة تمّت','The session took place') }}</div></div>
+    {% else %}
+      <i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>
+      <div><div class="h">{{ t('الحجز ده مش قائم','This booking is no longer active') }}</div>
+        <div class="s">{{ t('تقدر تختار موعد تاني.','You can pick another time.') }}</div></div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    {% if is_staff %}
+    <div class="bs-row"><span class="k">{{ t('العميل','Client') }}</span><span class="v">{{ appt.client_name }}</span></div>
+    {% endif %}
+    <div class="bs-row"><span class="k">{{ t('الاستشارة','Consultation') }}</span><span class="v">{{ appt.service_name }}</span></div>
+    <div class="bs-row"><span class="k">{{ t('اليوم','Day') }}</span><span class="v">{{ appt.day_label }}</span></div>
+    <div class="bs-row"><span class="k">{{ t('الساعة','Time') }}</span>
+      <span class="v">{{ appt.time_label }}<br><span style="font-weight:600;font-size:12.5px;color:var(--muted)">{{ t('بتوقيت','') }} {{ zone_label }} {{ t('','time') }}</span></span></div>
+    <div class="bs-row"><span class="k">{{ t('السعر','Price') }}</span><span class="v">{{ appt.price_label }}</span></div>
+    {% if appt.client_note %}
+    <div class="bs-row"><span class="k">{{ t('ملاحظتك','Your note') }}</span><span class="v">{{ appt.client_note }}</span></div>
+    {% endif %}
+  </div>
+
+  {% if appt.status == 'accepted' and appt.video_url %}
+    <a class="btn btn-primary btn-full" href="{{ appt.video_url }}" target="_blank" rel="noopener noreferrer">
+      <i class="fa-solid fa-video" aria-hidden="true"></i> {{ t('ادخل الجلسة','Join the session') }}
+    </a>
+  {% endif %}
+
+  <p style="margin-top:14px;text-align:center">
+    {% if is_staff %}
+      <a href="/admin/calendar" style="color:var(--blue);font-weight:700;font-size:13.5px">{{ t('رجوع للتقويم','Back to the calendar') }}</a>
+    {% else %}
+      <a href="/book" style="color:var(--blue);font-weight:700;font-size:13.5px">{{ t('حجز موعد تاني','Book another time') }}</a>
+    {% endif %}
+  </p>
+</div>
+{% endblock %}

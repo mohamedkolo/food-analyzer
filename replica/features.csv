@@ -1,0 +1,62 @@
+feature,area,priority,original,clone,notes
+Public booking page with service + day + time,booking,must,yes,no,S01
+New client sign-up during booking,booking,must,yes,partial,/register exists; not yet inside booking flow
+Returning client login during booking,booking,must,yes,partial,/login exists; not yet inside booking flow
+Prepayment at booking,payments,must,yes,partial,Stripe + manual InstaPay activation exist for subscriptions; not for appointments
+Booking request statuses (pending/accepted/rejected/expired),booking,must,yes,no,S04
+Email notification on request status change,booking,must,yes,partial,SMTP admin alerts exist
+Professional accepts or rejects requests,booking,must,yes,no,S20
+Refund on reject or expiry,payments,should,yes,no,manual refund acceptable in v1
+Service types with duration and price,booking,must,yes,no,S21
+Working hours / availability setup,booking,must,yes,no,S21
+Prevent double booking of a slot,booking,must,yes,no,database constraint
+Time zone handling (UAE professional / Egypt clients),booking,must,yes,no,
+Professional calendar view,booking,must,yes,no,S20
+Professional creates appointment manually,booking,should,yes,no,S20
+External video link on appointment (Google Meet),sessions,must,yes,no,
+In-house video calls,sessions,could,yes,skip,use external Meet link instead of building a calling service
+Google Calendar sync,sessions,could,yes,no,
+Client reschedules or cancels appointment,booking,should,yes,no,S05
+Appointment reminders,notifications,should,yes,no,
+Client list with search,clients,must,yes,yes,/patients /admin/users
+Client profile (details + history + files),clients,must,yes,partial,profile + visits exist; file attachments to verify
+Invite client to the app,clients,must,yes,yes,/admin/users/new
+Per-client feature permissions,clients,should,yes,no,S28
+Meal plan editor (meals + times + foods + quantities),meal-plan,must,yes,yes,/generate /planner /edit_meal
+Different plans for different days,meal-plan,should,yes,yes,weekly plan
+Publish plan to client,meal-plan,must,yes,yes,/my-plan /p/<token>
+Client views meal plan meal by meal,meal-plan,must,yes,yes,/my-plan
+Recipes attached to plan,meal-plan,should,yes,no,S15 - recipes written fresh
+Nutritional analysis of plans,meal-plan,could,yes,yes,meal_macros
+Built-in food database,meal-plan,could,yes,yes,own database: meal_database / food_data
+Recommendations: goals + foods to avoid + notes,recommendations,must,yes,partial,allowed/forbidden on plan sheet
+Client dashboard (today's meals + water + next appointment),home,must,yes,partial,/dashboard exists; no water or appointment
+Food diary: mark meal as planned / skipped,diary,must,yes,partial,meal_checks marks done only
+Food diary: edit foods + add meal outside plan,diary,should,yes,no,S11
+Food diary: photo + comment per meal,diary,should,yes,no,S11
+Edit previous days in diary,diary,could,yes,no,
+Professional reviews client diary,diary,must,yes,partial,to verify what admin sees of meal_checks
+AI meal logging (image / text / voice),diary,could,yes,no,later phase
+Water log with quick-add and custom amount,tracking,should,yes,no,S12
+Water goal progress,tracking,should,yes,no,
+Weight log + progress chart,tracking,must,yes,partial,weight_log exists; chart to verify
+Other body measurements,tracking,could,yes,no,
+Physical activity manual log,tracking,could,yes,no,S14
+Apple Health / Google Fit sync,tracking,could,yes,skip,later phase
+Quick record (+) from any screen,tracking,should,yes,no,S07
+Chat client <-> professional,messages,must,yes,yes,/messages
+Photo attachments in chat,messages,should,yes,no,
+Automated messages on plan / appointment change,messages,should,yes,no,
+Unread badge,messages,should,yes,partial,is_read exists; badge to verify
+Shopping list auto-generated from plan,shopping,could,yes,yes,/shopping
+Manual shopping lists,shopping,could,yes,no,S16
+Meal reminders,notifications,should,yes,yes,push + meal_reminders_sent
+Water reminders,notifications,could,yes,no,
+Notification + units settings,settings,should,yes,no,S19
+Client profile + photo,settings,should,yes,partial,/settings; photo no
+Appointment rating 1-10 with aspects,feedback,could,yes,no,S18
+Payments overview for professional,payments,should,yes,yes,/admin/payments
+Multi-professional / multi-workplace,practice,could,yes,skip,roles exist; single professional in v1
+Professional personal website,practice,could,yes,yes,landing page
+Arabic RTL interface,localization,must,no,yes,ar/en
+Egyptian payment methods,payments,must,no,partial,manual InstaPay activation; gateway to verify

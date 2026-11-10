@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}{{ t('احجز استشارة','Book a consultation') }}{% endblock %}
+{% block content %}
+
+<style>
+  .bk-wrap{max-width:760px;margin:0 auto}
+  .bk-step{font-size:14px;font-weight:800;color:var(--text);margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .bk-step b{flex:0 0 24px;height:24px;border-radius:50%;background:var(--green);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center}
+  .bk-services{display:grid;gap:8px}
+  .bk-service{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border:1.5px solid var(--gray-2);border-radius:10px;text-decoration:none;color:var(--text);background:var(--white)}
+  .bk-service.on{border-color:var(--green);background:var(--blue-pale)}
+  .bk-service .n{font-weight:800;font-size:14.5px}
+  .bk-service .m{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .bk-service .p{font-weight:800;font-size:14px;white-space:nowrap}
+  .bk-days{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
+  .bk-day{flex:0 0 auto;min-width:74px;text-align:center;padding:9px 8px;border:1.5px solid var(--gray-2);border-radius:10px;text-decoration:none;color:var(--text);background:var(--white);font-size:12.5px;font-weight:700}
+  .bk-day .d{display:block;font-size:14px;font-weight:800;margin-top:2px}
+  .bk-day.on{border-color:var(--green);background:var(--green);color:#fff}
+  .bk-day.off{color:#6B7480;background:var(--gray);border-style:dashed}
+  .bk-slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+  .bk-slot{position:relative}
+  .bk-slot input{position:absolute;opacity:0;inset:0;width:100%;height:100%;cursor:pointer;margin:0}
+  .bk-slot span{display:block;text-align:center;padding:11px 6px;border:1.5px solid var(--gray-2);border-radius:10px;font-weight:800;font-size:14px;background:var(--white)}
+  .bk-slot input:checked + span{border-color:var(--green);background:var(--green);color:#fff}
+  .bk-slot input:focus-visible + span{outline:2px solid var(--green);outline-offset:2px}
+  .bk-tz{font-size:12.5px;color:var(--muted);margin:10px 0 0;display:flex;align-items:center;gap:6px}
+  .bk-empty{text-align:center;padding:28px 16px;color:var(--muted);font-size:14px;line-height:1.8}
+  .bk-mine{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--gray-2);text-decoration:none;color:var(--text);font-size:13.5px}
+  .bk-mine:last-child{border-bottom:none}
+  .bk-chip{font-size:11.5px;font-weight:800;padding:3px 10px;border-radius:999px;white-space:nowrap}
+  .bk-chip.pending{background:#FDF6EC;color:#8A4B1C}
+  .bk-chip.accepted,.bk-chip.completed{background:#E8F3EC;color:#1F5A36}
+  .bk-chip.rejected,.bk-chip.expired,.bk-chip.cancelled,.bk-chip.no_show{background:var(--red-pale);color:var(--red)}
+</style>
+
+{% set status_names = {
+  'pending': t('في انتظار الرد','Awaiting reply'), 'accepted': t('مؤكَّد','Confirmed'),
+  'rejected': t('مرفوض','Declined'), 'expired': t('انتهت مهلته','Expired'),
+  'cancelled': t('ملغي','Cancelled'), 'completed': t('تمّ','Completed'),
+  'no_show': t('لم يحضر','No-show')} %}
+
+<div class="bk-wrap">
+  <h1 class="page-title"><i class="fa-solid fa-calendar-check"></i> {{ t('احجز استشارة','Book a consultation') }}</h1>
+
+  {% if msg == 'taken' %}
+    <div class="alert alert-warn" role="alert">{{ t('الموعد ده اتحجز قبل ما تأكّد. اختار موعد غيره.','That slot was just taken. Please pick another one.') }}</div>
+  {% elif msg == 'closed' %}
+    <div class="alert alert-warn" role="alert">{{ t('الموعد ده مبقاش متاح. اختار موعد غيره.','That slot is no longer available. Please pick another one.') }}</div>
+  {% elif msg == 'too_many' %}
+    <div class="alert alert-warn" role="alert">{{ t('عندك طلبات حجز لسه في انتظار الرد. استنى الرد عليها قبل ما تحجز تاني.','You already have requests awaiting a reply. Please wait for an answer before booking again.') }}</div>
+  {% elif msg == 'pick' %}
+    <div class="alert alert-warn" role="alert">{{ t('اختار الموعد الأول.','Please choose a time first.') }}</div>
+  {% endif %}
+
+  {% if not services %}
+    <div class="card bk-empty">
+      {{ t('الحجز الأونلاين مش مفتوح دلوقتي. جرّب تاني قريب.','Online booking is not open right now. Please check back soon.') }}
+    </div>
+  {% else %}
+
+  <div class="card">
+    <h2 class="bk-step"><b>1</b> {{ t('نوع الاستشارة','Type of consultation') }}</h2>
+    <div class="bk-services">
+      {% for s in services %}
+      <a class="bk-service {% if service and s.id == service.id %}on{% endif %}" href="/book?service={{ s.id }}"
+         {% if service and s.id == service.id %}aria-current="true"{% endif %}>
+        <span>
+          <span class="n">{{ s.name }}</span>
+          <span class="m" style="display:block">{{ s.duration_min }} {{ t('دقيقة','min') }}{% if s.is_online %} · {{ t('أونلاين','Online') }}{% endif %}</span>
+        </span>
+        <span class="p">{{ s.price_label }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="bk-step"><b>2</b> {{ t('اليوم','Day') }}</h2>
+    <div class="bk-days">
+      {% for d in days %}
+        {% if d.open %}
+        <a class="bk-day {% if d.picked %}on{% endif %}" href="/book?service={{ service.id }}&date={{ d.iso }}"
+           {% if d.picked %}aria-current="date"{% endif %}>{{ d.name }}<span class="d">{{ d.num }}</span></a>
+        {% else %}
+        <span class="bk-day off" aria-disabled="true">{{ d.name }}<span class="d">{{ d.num }}</span></span>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <form method="post" action="/book" class="card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="service" value="{{ service.id }}">
+    <input type="hidden" name="date" value="{{ picked_day }}">
+    <h2 class="bk-step"><b>3</b> {{ t('الساعة','Time') }}</h2>
+    {% if slots %}
+      <div class="bk-slots" role="radiogroup" aria-label="{{ t('المواعيد المتاحة','Available times') }}">
+        {% for s in slots %}
+        <label class="bk-slot">
+          <input type="radio" name="slot" value="{{ s.value }}" required {% if s.value == picked_slot %}checked{% endif %}>
+          <span>{{ s.label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <p class="bk-tz"><i class="fa-solid fa-clock" aria-hidden="true"></i>
+        {{ t('المواعيد بتوقيت','All times are in') }} {{ zone_label }} {{ t('','time') }}</p>
+
+      <div class="form-group" style="margin-top:16px">
+        <label class="form-label" for="bkNote">{{ t('حاجة تحب الأخصائي يعرفها قبل الجلسة (اختياري)','Anything the nutritionist should know beforehand (optional)') }}</label>
+        <textarea class="form-textarea" id="bkNote" name="note" rows="2" maxlength="500"></textarea>
+      </div>
+
+      {% if is_staff %}
+        <div class="alert alert-info">{{ t('دي الصفحة زي ما العميل بيشوفها. الحجز من حساب عميل.','This is the page as a client sees it. Bookings are made from a client account.') }}</div>
+      {% else %}
+        <button type="submit" class="btn btn-primary btn-full">
+          <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+          {% if user %}{{ t('ابعت طلب الحجز','Send booking request') }}{% else %}{{ t('سجّل دخول وابعت الطلب','Sign in and send request') }}{% endif %}
+        </button>
+        <p class="bk-tz">{{ t('الطلب بيتأكد بعد ما الأخصائي يوافق عليه.','Your request is confirmed once the nutritionist accepts it.') }}</p>
+      {% endif %}
+    {% else %}
+      <div class="bk-empty">{{ t('مفيش مواعيد متاحة دلوقتي. جرّب تاني قريب.','No times are available right now. Please check back soon.') }}</div>
+    {% endif %}
+  </form>
+  {% endif %}
+
+  {% if mine %}
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-list"></i> {{ t('حجوزاتي','My bookings') }}</div>
+    {% for a in mine %}
+    <a class="bk-mine" href="/book/{{ a.id }}">
+      <span><strong>{{ a.day_label }}</strong> · {{ a.time_label }}<br>
+        <span style="color:var(--muted);font-size:12.5px">{{ a.service_name }}</span></span>
+      <span class="bk-chip {{ a.status }}">{{ status_names.get(a.status, a.status) }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
