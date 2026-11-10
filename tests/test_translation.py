@@ -71,14 +71,29 @@ if not A.db_row("SELECT id FROM plan_requests WHERE client_id=?", (CLIENT,)):
              (CLIENT, "Client", "approved", json.dumps(_d, ensure_ascii=False),
               json.dumps({"data": _d, "plan": []}, ensure_ascii=False)))
 
+# ‏الحجز: من غير خدمة وساعات عمل صفحة /book بتعرض "مش مفتوح" بس، والمسح
+# مايشوفش باقي الصفحة. فبنحط خدمة وساعات وطلب معلّق.
+if not A.db_row("SELECT id FROM services"):
+    A.db_run("INSERT INTO services (name, duration_min, price) VALUES ('Consult', 30, 30000)")
+    for _wd in range(7):
+        A.db_run("INSERT INTO availability (weekday, start_min, end_min) VALUES (?,0,1440)", (_wd,))
+    _at = (datetime.now() + timedelta(days=2)).replace(minute=0, second=0, microsecond=0)
+    A.db_run("INSERT INTO appointments (client_id, service_id, start_at, end_at, slot_key) "
+             "VALUES (?,1,?,?,?)",
+             (CLIENT, _at.strftime("%Y-%m-%d %H:%M:%S"),
+              (_at + timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S"),
+              _at.strftime("%Y-%m-%dT%H:%M")))
+
 ADMIN_PAGES = ["/dashboard", "/admin/requests", "/admin/users", "/admin/payments",
                "/admin/blocked", "/admin/notifications", "/patients", "/generate",
                "/saved", "/settings", "/clinical", "/knowledge", "/analyzer",
-               "/history", "/daily-tips", "/change-password"]
+               "/history", "/daily-tips", "/change-password",
+               "/admin/calendar", "/admin/booking-settings"]
 CLIENT_PAGES = ["/my-plan", "/request-plan", "/my-plans-history", "/settings",
-                "/analyzer", "/knowledge", "/daily-tips", "/pricing"]
+                "/analyzer", "/knowledge", "/daily-tips", "/pricing", "/book",
+                "/book/1"]
 PUBLIC_PAGES = ["/", "/login", "/foods", "/foods/chicken-breast", "/pricing",
-                "/terms", "/privacy"]
+                "/terms", "/privacy", "/book"]
 
 
 def visible_arabic(html):

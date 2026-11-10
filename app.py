@@ -29,6 +29,10 @@ app.register_blueprint(routes_plans.bp)
 import routes_admin
 app.register_blueprint(routes_admin.bp)
 
+# ── الحجز: صفحة العميل وتقويم الأخصائي ──
+import routes_booking
+app.register_blueprint(routes_booking.bp)
+
 # how a plan is actually built -- pure logic, no routes
 from plan_engine import (              # noqa: F401
     ALLERGY_KEYWORDS, parse_user_exclusions, filter_meals_by_exclusions,
@@ -65,7 +69,10 @@ def login():
                     session["uid"] = u["id"]
                     session["lang"] = u["lang"] or "ar"
                     session["role"] = get_user_role(u)
-                    return redirect("/dashboard")
+                    # ‏لو جه من صفحة الحجز وهو مش داخل، بيرجع لموعده اللي
+                    # اختاره. القيمة بيكتبها routes_booking بس، من عنده.
+                    return redirect(session.pop("after_login", None)
+                                    or "/dashboard")
             else:
                 _record_failed_login(check_email)
                 error = _login_msg("bad_creds", lang)

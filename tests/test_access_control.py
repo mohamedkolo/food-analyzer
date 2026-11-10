@@ -52,11 +52,13 @@ if not A.db_row("SELECT id FROM payments WHERE user_id=?", (CLIENT,)):
 # admin only -- a nutritionist must not manage users, payments or subscriptions
 ADMIN_ONLY = ["/admin/users", "/admin/blocked", "/admin/payments", "/admin/users/new"]
 # staff -- admin and nutritionist, never a client
-STAFF_ONLY = ["/admin/requests", "/generate", "/patients", "/saved", "/clinical", "/planner"]
+STAFF_ONLY = ["/admin/requests", "/generate", "/patients", "/saved", "/clinical", "/planner",
+              "/admin/calendar", "/admin/booking-settings"]
 # any signed-in user
 CLIENT_PAGES = ["/my-plan", "/settings", "/analyzer", "/knowledge", "/daily-tips"]
 # no login at all
-PUBLIC = ["/", "/login", "/foods", "/pricing", "/terms", "/privacy", "/robots.txt", "/sitemap.xml"]
+PUBLIC = ["/", "/login", "/foods", "/pricing", "/terms", "/privacy", "/robots.txt", "/sitemap.xml",
+          "/book"]
 
 
 def client_as(uid=None, role=None, lang="ar"):

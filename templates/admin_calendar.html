@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}{{ t('التقويم','Calendar') }}{% endblock %}
+{% block content %}
+
+<style>
+  .cal-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .cal-top .page-title{margin:0}
+  .cal-link{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+  .cal-link code{background:var(--gray);border:1px solid var(--gray-2);border-radius:7px;padding:7px 10px;font-size:12.5px;direction:ltr;word-break:break-all}
+  .cal-req{border:1.5px solid #E7C99A;background:#FDF6EC;border-radius:12px;padding:14px;margin-bottom:10px}
+  .cal-req .who{font-weight:900;font-size:15px}
+  .cal-req .meta{font-size:13px;color:var(--text-2);margin-top:3px;line-height:1.7}
+  .cal-req .note{font-size:13px;background:var(--white);border-radius:8px;padding:8px 10px;margin-top:8px}
+  .cal-acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .cal-acts form{display:flex;flex-direction:column;gap:6px}
+  .cal-day{border-bottom:1px solid var(--gray-2);padding:12px 0;display:grid;grid-template-columns:110px 1fr;gap:12px}
+  .cal-day:last-child{border-bottom:none}
+  .cal-day .dn{font-weight:800;font-size:13.5px}
+  .cal-day .dd{font-size:12.5px;color:var(--muted)}
+  .cal-day.today .dn{color:var(--orange)}
+  .cal-item{display:flex;justify-content:space-between;gap:10px;align-items:center;background:var(--blue-pale);border-radius:9px;padding:9px 12px;margin-bottom:6px;font-size:13.5px;text-decoration:none;color:var(--text)}
+  .cal-none{font-size:13px;color:var(--muted)}
+  .cal-nav{display:flex;gap:8px}
+  @media(max-width:640px){.cal-acts{grid-template-columns:1fr}.cal-day{grid-template-columns:1fr;gap:6px}}
+</style>
+
+<div class="cal-top">
+  <h1 class="page-title"><i class="fa-solid fa-calendar-days"></i> {{ t('التقويم','Calendar') }}</h1>
+  <a href="/admin/booking-settings" class="btn btn-outline"><i class="fa-solid fa-sliders" aria-hidden="true"></i> {{ t('إعدادات الحجز','Booking settings') }}</a>
+</div>
+
+{% if msg == 'accepted' %}<div class="alert alert-success" role="status">{{ t('الموعد اتأكد.','Appointment confirmed.') }}</div>
+{% elif msg == 'rejected' %}<div class="alert alert-info" role="status">{{ t('الطلب اترفض والموعد اتفتح تاني.','Request declined; the slot is open again.') }}</div>
+{% elif msg == 'stale' %}<div class="alert alert-warn" role="alert">{{ t('الطلب ده اترد عليه قبل كده.','That request was already answered.') }}</div>
+{% elif msg == 'bad_link' %}<div class="alert alert-error" role="alert">{{ t('رابط الجلسة لازم يبدأ بـ https://','The session link must start with https://') }}</div>
+{% endif %}
+
+{% if not ready %}
+<div class="alert alert-warn">
+  {{ t('الحجز لسه مش مفتوح للعملاء: محتاج خدمة واحدة على الأقل وساعات عمل.','Booking is not open to clients yet: it needs at least one service and working hours.') }}
+  <a href="/admin/booking-settings" style="color:inherit;font-weight:800">{{ t('افتح الإعدادات','Open settings') }}</a>
+</div>
+{% else %}
+<div class="card">
+  <div class="cal-link">
+    <strong>{{ t('رابط الحجز للعملاء:','Booking link for clients:') }}</strong>
+    <code>{{ booking_link }}</code>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-title"><i class="fa-solid fa-hourglass-half"></i> {{ t('طلبات في انتظار ردك','Requests awaiting your reply') }}
+    {% if pending %}<span class="role-badge role-client">{{ pending|length }}</span>{% endif %}</div>
+  {% for a in pending %}
+  <div class="cal-req">
+    <div class="who">{{ a.client_name or t('عميل','Client') }}</div>
+    <div class="meta">
+      {{ a.service_name }} · {{ a.price_label }}<br>
+      <strong>{{ a.day_label }}</strong> · {{ a.time_label }}
+      {% if a.client_phone %}<br><span dir="ltr">{{ a.client_phone }}</span>{% endif %}
+    </div>
+    {% if a.client_note %}<div class="note">{{ a.client_note }}</div>{% endif %}
+    <div class="cal-acts">
+      <form method="post" action="/admin/appointments/{{ a.id }}/accept">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input class="form-input" type="url" name="video_url" dir="ltr" maxlength="300"
+               aria-label="{{ t('رابط الجلسة','Session link') }}" placeholder="https://meet.google.com/...">
+        <button type="submit" class="btn btn-success"><i class="fa-solid fa-check" aria-hidden="true"></i> {{ t('قبول','Accept') }}</button>
+      </form>
+      <form method="post" action="/admin/appointments/{{ a.id }}/reject">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input class="form-input" type="text" name="reason" maxlength="500"
+               aria-label="{{ t('سبب الرفض','Reason for declining') }}" placeholder="{{ t('سبب الرفض (اختياري)','Reason (optional)') }}">
+        <button type="submit" class="btn btn-danger"><i class="fa-solid fa-xmark" aria-hidden="true"></i> {{ t('رفض','Decline') }}</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="cal-none">{{ t('مفيش طلبات معلّقة.','No pending requests.') }}</div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="card-title" style="justify-content:space-between">
+    <span><i class="fa-solid fa-calendar-week"></i> {{ t('المواعيد المؤكدة','Confirmed appointments') }}
+      <span style="font-weight:600;font-size:12.5px;color:var(--muted)">({{ t('بتوقيت','') }} {{ zone_label }} {{ t('','time') }})</span></span>
+    <span class="cal-nav">
+      <a class="btn btn-outline" style="padding:6px 12px" href="/admin/calendar?from={{ prev_from }}">{{ t('السابق','Previous') }}</a>
+      <a class="btn btn-outline" style="padding:6px 12px" href="/admin/calendar">{{ t('اليوم','Today') }}</a>
+      <a class="btn btn-outline" style="padding:6px 12px" href="/admin/calendar?from={{ next_from }}">{{ t('التالي','Next') }}</a>
+    </span>
+  </div>
+  {% for d in week %}
+  <div class="cal-day {% if d.today %}today{% endif %}">
+    <div><div class="dn">{{ d.name }}</div><div class="dd">{{ d.num }}</div></div>
+    <div>
+      {% for a in d['items'] %}
+      <a class="cal-item" href="/book/{{ a.id }}">
+        <span><strong>{{ a.time_label }}</strong> · {{ a.client_name or t('عميل','Client') }} · {{ a.service_name }}</span>
+        {% if a.video_url %}<i class="fa-solid fa-video" aria-hidden="true"></i>{% endif %}
+      </a>
+      {% else %}
+      <span class="cal-none">—</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

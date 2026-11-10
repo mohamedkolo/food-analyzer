@@ -501,9 +501,16 @@ else:
     def db_rows(sql, params=()):
         conn = get_db(); r = conn.execute(sql, params).fetchall(); conn.close(); return r
     def db_run(sql, params=(), commit=True):
-        conn = get_db(); conn.execute(sql, params)
-        if commit: conn.commit()
-        conn.close()
+        # ‏finally مقصودة. إدراج بيترفض (قيد UNIQUE على موعد محجوز مثلاً)
+        # كان بيرمي الغلطة قبل close()، فالاتصال يفضل مفتوح وماسك قفل
+        # الكتابة لحد ما البايثون يلمّه -- وكل كتابة بعده ترجع
+        # "database is locked". ظهرت مع اختبارات الحجز المزدوج.
+        conn = get_db()
+        try:
+            conn.execute(sql, params)
+            if commit: conn.commit()
+        finally:
+            conn.close()
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -745,6 +752,12 @@ def init_db():
             # حده ٤٠٩٣ بايت في كل المتصفحات -- وخطة التكميم ٤٧٠٧ بايت. المتصفح
             # كان بيرمي الكوكي بالهدوء، فالتوليد يلف ويرجّع للفورم من غير جدول.
             """CREATE TABLE IF NOT EXISTS plan_drafts (id TEXT PRIMARY KEY, user_id INTEGER, data_json TEXT, plan_json TEXT, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            # ‏الحجز (replica/architecture.md، M1). الأوقات UTC، والمبالغ بالقرش.
+            # slot_key عليه UNIQUE: ده اللي بيمنع الحجز المزدوج، مش الواجهة
+            # -- والسبب مكتوب في booking.py.
+            """CREATE TABLE IF NOT EXISTS services (id SERIAL PRIMARY KEY, name TEXT NOT NULL, duration_min INTEGER NOT NULL, price INTEGER NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT 'EGP', is_online INTEGER NOT NULL DEFAULT 1, active INTEGER NOT NULL DEFAULT 1, sort_order INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS availability (id SERIAL PRIMARY KEY, weekday INTEGER NOT NULL, start_min INTEGER NOT NULL, end_min INTEGER NOT NULL, CHECK (end_min > start_min))""",
+            """CREATE TABLE IF NOT EXISTS appointments (id SERIAL PRIMARY KEY, client_id INTEGER NOT NULL, service_id INTEGER NOT NULL, start_at TIMESTAMP NOT NULL, end_at TIMESTAMP NOT NULL, status TEXT NOT NULL DEFAULT 'pending', slot_key TEXT, video_url TEXT, client_note TEXT, admin_note TEXT, price INTEGER NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT 'EGP', pay_status TEXT NOT NULL DEFAULT 'unpaid', pay_method TEXT, pay_ref TEXT, reminder_sent INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE (slot_key))""",
         ]
         for sql in tables_pg:
             try: db_run(sql)
@@ -766,6 +779,9 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS meal_reminders_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, UNIQUE(user_id, check_date, meal_key))""",
             """CREATE TABLE IF NOT EXISTS weekly_summary_sent (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, week_key TEXT NOT NULL, UNIQUE(user_id, week_key))""",
             """CREATE TABLE IF NOT EXISTS plan_drafts (id TEXT PRIMARY KEY, user_id INTEGER, data_json TEXT, plan_json TEXT, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+        """CREATE TABLE IF NOT EXISTS services (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, duration_min INTEGER NOT NULL, price INTEGER NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT 'EGP', is_online INTEGER NOT NULL DEFAULT 1, active INTEGER NOT NULL DEFAULT 1, sort_order INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+        """CREATE TABLE IF NOT EXISTS availability (id INTEGER PRIMARY KEY AUTOINCREMENT, weekday INTEGER NOT NULL, start_min INTEGER NOT NULL, end_min INTEGER NOT NULL, CHECK (end_min > start_min))""",
+        """CREATE TABLE IF NOT EXISTS appointments (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER NOT NULL, service_id INTEGER NOT NULL, start_at TIMESTAMP NOT NULL, end_at TIMESTAMP NOT NULL, status TEXT NOT NULL DEFAULT 'pending', slot_key TEXT, video_url TEXT, client_note TEXT, admin_note TEXT, price INTEGER NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT 'EGP', pay_status TEXT NOT NULL DEFAULT 'unpaid', pay_method TEXT, pay_ref TEXT, reminder_sent INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE (slot_key))""",
         ]
         for sql in tables_sq:
             try: db_run(sql)
@@ -785,9 +801,18 @@ def init_db():
         "ALTER TABLE users ADD COLUMN lifestyle_data TEXT",
         "ALTER TABLE subscriptions ADD COLUMN reminder_sent INTEGER DEFAULT 0",
         "ALTER TABLE payments ADD COLUMN reminder_sent INTEGER DEFAULT 0",
+        # ‏الساعة اللي المواعيد بتتعرض بيها للعميل. العملاء في مصر.
+        "ALTER TABLE users ADD COLUMN timezone TEXT DEFAULT 'Africa/Cairo'",
     ]:
         try: db_run(col_sql)
         except: pass
+
+    for idx_sql in [
+        "CREATE INDEX IF NOT EXISTS idx_appt_client ON appointments (client_id, start_at)",
+        "CREATE INDEX IF NOT EXISTS idx_appt_start ON appointments (start_at)",
+    ]:
+        try: db_run(idx_sql)
+        except Exception as e: print(f"Index create warning: {e}")
 
     # حساب الأدمن: يتعمل مرة واحدة فقط من متغير بيئة — ولا يتم إعادة تعيين الباسورد أبداً
     admin = db_row("SELECT id FROM users WHERE email='admin@nutrax.com'")
