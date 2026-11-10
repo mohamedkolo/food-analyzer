@@ -52,6 +52,14 @@
     <div class="alert alert-warn" role="alert">{{ t('اختار الموعد الأول.','Please choose a time first.') }}</div>
   {% endif %}
 
+  {% if moving %}
+    <div class="alert alert-info">
+      {{ t('بتأجّل موعدك الحالي:','You are moving your current appointment:') }}
+      <strong>{{ moving.day_label }} · {{ moving.time_label }}</strong>.
+      {{ t('اختار الموعد الجديد. الطلب هيرجع ينتظر موافقة الأخصائي.','Pick the new time. The request will wait for the nutritionist again.') }}
+    </div>
+  {% endif %}
+
   {% if not services %}
     <div class="card bk-empty">
       {{ t('الحجز الأونلاين مش مفتوح دلوقتي. جرّب تاني قريب.','Online booking is not open right now. Please check back soon.') }}
@@ -62,7 +70,7 @@
     <h2 class="bk-step"><b>1</b> {{ t('نوع الاستشارة','Type of consultation') }}</h2>
     <div class="bk-services">
       {% for s in services %}
-      <a class="bk-service {% if service and s.id == service.id %}on{% endif %}" href="/book?service={{ s.id }}"
+      <a class="bk-service {% if service and s.id == service.id %}on{% endif %}" href="/book?{% if moving %}move={{ moving.id }}{% else %}service={{ s.id }}{% endif %}"
          {% if service and s.id == service.id %}aria-current="true"{% endif %}>
         <span>
           <span class="n">{{ s.name }}</span>
@@ -79,7 +87,7 @@
     <div class="bk-days">
       {% for d in days %}
         {% if d.open %}
-        <a class="bk-day {% if d.picked %}on{% endif %}" href="/book?service={{ service.id }}&date={{ d.iso }}"
+        <a class="bk-day {% if d.picked %}on{% endif %}" href="/book?{% if moving %}move={{ moving.id }}{% else %}service={{ service.id }}{% endif %}&date={{ d.iso }}"
            {% if d.picked %}aria-current="date"{% endif %}>{{ d.name }}<span class="d">{{ d.num }}</span></a>
         {% else %}
         <span class="bk-day off" aria-disabled="true">{{ d.name }}<span class="d">{{ d.num }}</span></span>
@@ -88,7 +96,7 @@
     </div>
   </div>
 
-  <form method="post" action="/book" class="card">
+  <form method="post" action="{% if moving %}/book/{{ moving.id }}/reschedule{% else %}/book{% endif %}" class="card">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="service" value="{{ service.id }}">
     <input type="hidden" name="date" value="{{ picked_day }}">
@@ -105,17 +113,19 @@
       <p class="bk-tz"><i class="fa-solid fa-clock" aria-hidden="true"></i>
         {{ t('المواعيد بتوقيت','All times are in') }} {{ zone_label }} {{ t('','time') }}</p>
 
+      {% if not moving %}
       <div class="form-group" style="margin-top:16px">
         <label class="form-label" for="bkNote">{{ t('حاجة تحب الأخصائي يعرفها قبل الجلسة (اختياري)','Anything the nutritionist should know beforehand (optional)') }}</label>
         <textarea class="form-textarea" id="bkNote" name="note" rows="2" maxlength="500"></textarea>
       </div>
+      {% endif %}
 
       {% if is_staff %}
         <div class="alert alert-info">{{ t('دي الصفحة زي ما العميل بيشوفها. الحجز من حساب عميل.','This is the page as a client sees it. Bookings are made from a client account.') }}</div>
       {% else %}
         <button type="submit" class="btn btn-primary btn-full">
           <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
-          {% if user %}{{ t('ابعت طلب الحجز','Send booking request') }}{% else %}{{ t('سجّل دخول وابعت الطلب','Sign in and send request') }}{% endif %}
+          {% if moving %}{{ t('انقل الموعد','Move the appointment') }}{% elif user %}{{ t('ابعت طلب الحجز','Send booking request') }}{% else %}{{ t('سجّل دخول وابعت الطلب','Sign in and send request') }}{% endif %}
         </button>
         <p class="bk-tz">{{ t('الطلب بيتأكد بعد ما الأخصائي يوافق عليه.','Your request is confirmed once the nutritionist accepts it.') }}</p>
       {% endif %}

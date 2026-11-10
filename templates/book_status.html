@@ -15,10 +15,21 @@
   .bs-row:last-child{border-bottom:none}
   .bs-row .k{color:var(--muted);font-weight:700}
   .bs-row .v{font-weight:800;text-align:end}
+  .bs-score{position:relative}
+  .bs-score input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+  .bs-score span{display:block;text-align:center;padding:9px 0;border:1.5px solid var(--gray-2);border-radius:8px;font-weight:800;font-size:13.5px}
+  .bs-score input:checked + span{background:var(--green);border-color:var(--green);color:#fff}
+  .bs-score input:focus-visible + span{outline:2px solid var(--green);outline-offset:2px}
 </style>
 
 <div class="bs-wrap">
   <h1 class="page-title"><i class="fa-solid fa-calendar-check"></i> {{ t('حالة الحجز','Booking status') }}</h1>
+
+  {% if msg == 'cancelled' %}<div class="alert alert-info" role="status">{{ t('الموعد اتلغى.','The appointment was cancelled.') }}</div>
+  {% elif msg == 'moved' %}<div class="alert alert-success" role="status">{{ t('الموعد اتنقل، ومستني موافقة الأخصائي.','The appointment was moved and is waiting for the nutritionist.') }}</div>
+  {% elif msg == 'too_late' %}<div class="alert alert-warn" role="alert">{{ t('الموعد قرّب، ومبقاش ينفع يتلغي أو يتأجّل من هنا. كلّم الأخصائي.','The appointment is too close to cancel or move from here. Please contact the nutritionist.') }}</div>
+  {% elif msg == 'rated' %}<div class="alert alert-success" role="status">{{ t('شكرًا على تقييمك.','Thank you for your rating.') }}</div>
+  {% endif %}
 
   {% if just_sent and appt.status == 'pending' %}
     <div class="alert alert-success" role="status">{{ t('طلبك اتبعت.','Your request has been sent.') }}</div>
@@ -42,7 +53,7 @@
       <div><div class="h">{{ t('الجلسة تمّت','The session took place') }}</div></div>
     {% else %}
       <i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>
-      <div><div class="h">{{ t('الحجز ده مش قائم','This booking is no longer active') }}</div>
+      <div><div class="h">{% if appt.status == 'cancelled' %}{{ t('الموعد اتلغى','This appointment was cancelled') }}{% elif appt.status == 'expired' %}{{ t('الطلب انتهت مهلته','The request expired') }}{% else %}{{ t('الحجز ده مش قائم','This booking is no longer active') }}{% endif %}</div>
         <div class="s">{{ t('تقدر تختار موعد تاني.','You can pick another time.') }}</div></div>
     {% endif %}
   </div>
@@ -61,10 +72,91 @@
     {% endif %}
   </div>
 
+  {% if appt.price %}
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-money-bill-transfer"></i> {{ t('الدفع','Payment') }}</div>
+    {% if msg == 'claimed' %}<div class="alert alert-success" role="status">{{ t('وصلنا رقم العملية. هنأكّد أول ما المبلغ يظهر عندنا.','We have your reference. We will confirm as soon as the amount shows up.') }}</div>
+    {% elif msg == 'bad_ref' %}<div class="alert alert-error" role="alert">{{ t('اكتب رقم العملية زي ما ظهر لك بعد التحويل.','Enter the reference exactly as shown after the transfer.') }}</div>
+    {% elif msg == 'no_claim' %}<div class="alert alert-warn" role="alert">{{ t('الحجز ده مش محتاج تبليغ بدفع دلوقتي.','This booking does not need a payment report right now.') }}</div>
+    {% endif %}
+
+    {% if appt.pay_status == 'paid' and not appt.owes_refund %}
+      <div class="alert alert-success">{{ t('استلمنا المبلغ.','Payment received.') }} ({{ appt.price_label }})</div>
+    {% elif appt.pay_status == 'refunded' %}
+      <div class="alert alert-info">{{ t('المبلغ اترد لك.','Your payment was refunded.') }}</div>
+    {% elif appt.owes_refund %}
+      <div class="alert alert-info">{{ t('المبلغ اللي حوّلته هيترد لك.','The amount you transferred will be refunded.') }}</div>
+    {% elif appt.status in ['pending','accepted'] %}
+      {% if appt.pay_status == 'claimed' %}
+        <div class="alert alert-warn">{{ t('بلّغت بالتحويل، رقم العملية:','You reported a transfer, reference:') }} <span dir="ltr">{{ appt.pay_ref }}</span>. {{ t('في انتظار تأكيد الاستلام.','Waiting for it to be confirmed.') }}</div>
+      {% endif %}
+      {% if is_staff %}
+        <div class="bs-row"><span class="k">{{ t('حالة الدفع','Payment status') }}</span><span class="v">{% if appt.pay_status == 'claimed' %}{{ t('بلّغ بالتحويل','Client says paid') }}{% else %}{{ t('لم يُدفع','Unpaid') }}{% endif %}</span></div>
+      {% elif pay.instapay or pay.wallet %}
+        <p style="font-size:13.5px;line-height:1.8;margin:0 0 8px">{{ t('حوّل','Transfer') }} <strong>{{ appt.price_label }}</strong> {{ t('على:','to:') }}</p>
+        {% if pay.instapay %}<div class="bs-row"><span class="k">InstaPay</span><span class="v" dir="ltr">{{ pay.instapay }}</span></div>{% endif %}
+        {% if pay.wallet %}<div class="bs-row"><span class="k">{{ t('محفظة','Wallet') }}</span><span class="v" dir="ltr">{{ pay.wallet }}</span></div>{% endif %}
+        {% if pay.pay_note %}<p style="font-size:13px;color:var(--muted);margin:8px 0 0">{{ pay.pay_note }}</p>{% endif %}
+        <form method="post" action="/book/{{ appt.id }}/paid" style="margin-top:14px">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="grid-2">
+            <div class="form-group"><label class="form-label" for="payMethod">{{ t('حوّلت بـ','Paid with') }}</label>
+              <select class="form-select" id="payMethod" name="pay_method">
+                {% if pay.instapay %}<option value="instapay" {% if appt.pay_method == 'instapay' %}selected{% endif %}>InstaPay</option>{% endif %}
+                {% if pay.wallet %}<option value="wallet" {% if appt.pay_method == 'wallet' %}selected{% endif %}>{{ t('محفظة','Wallet') }}</option>{% endif %}
+              </select></div>
+            <div class="form-group"><label class="form-label" for="payRef">{{ t('رقم العملية','Transfer reference') }}</label>
+              <input class="form-input" id="payRef" name="pay_ref" dir="ltr" minlength="3" maxlength="60" required value="{{ appt.pay_ref or '' }}"></div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">{% if appt.pay_status == 'claimed' %}{{ t('صحّح رقم العملية','Correct the reference') }}{% else %}{{ t('حوّلت — سجّل رقم العملية','I have paid — save the reference') }}{% endif %}</button>
+        </form>
+      {% else %}
+        <p style="font-size:13.5px;color:var(--muted);margin:0">{{ t('الأخصائي هيبعت لك طريقة الدفع.','The nutritionist will send you how to pay.') }}</p>
+      {% endif %}
+    {% else %}
+      <p style="font-size:13.5px;color:var(--muted);margin:0">{{ t('مفيش دفع مطلوب على الحجز ده.','No payment is due on this booking.') }}</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {% if appt.status == 'accepted' and appt.video_url %}
     <a class="btn btn-primary btn-full" href="{{ appt.video_url }}" target="_blank" rel="noopener noreferrer">
       <i class="fa-solid fa-video" aria-hidden="true"></i> {{ t('ادخل الجلسة','Join the session') }}
     </a>
+  {% endif %}
+
+  {% if can_rate %}
+  <form method="post" action="/book/{{ appt.id }}/rate" class="card" id="rate">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="card-title"><i class="fa-solid fa-star"></i> {{ t('قيّم الاستشارة','Rate the consultation') }}</div>
+    <div role="radiogroup" aria-label="{{ t('التقييم من 1 إلى 10','Rating from 1 to 10') }}" style="display:grid;grid-template-columns:repeat(10,1fr);gap:4px">
+      {% for n in range(1, 11) %}
+      <label class="bs-score"><input type="radio" name="score" value="{{ n }}" required><span>{{ n }}</span></label>
+      {% endfor %}
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin:4px 0 12px"><span>{{ t('مش راضي','Not satisfied') }}</span><span>{{ t('ممتازة','Excellent') }}</span></div>
+    <div class="form-group"><label class="form-label" for="rateNote">{{ t('تحب تقول حاجة؟ (اختياري)','Anything to add? (optional)') }}</label>
+      <textarea class="form-textarea" id="rateNote" name="comment" rows="2" maxlength="500"></textarea></div>
+    <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:12px">
+      <input type="checkbox" name="anonymous" value="1"> {{ t('ابعته من غير اسمي','Send it without my name') }}</label>
+    <button type="submit" class="btn btn-primary btn-full">{{ t('ابعت التقييم','Send rating') }}</button>
+  </form>
+  {% endif %}
+
+  {% if can_change %}
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <a class="btn btn-outline" href="/book?move={{ appt.id }}"><i class="fa-solid fa-calendar-day" aria-hidden="true"></i> {{ t('تأجيل','Reschedule') }}</a>
+      <form method="post" action="/book/{{ appt.id }}/cancel" style="margin:0"
+            onsubmit="return confirm('{{ t('تلغي الموعد ده؟','Cancel this appointment?') }}')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-danger btn-full"><i class="fa-solid fa-xmark" aria-hidden="true"></i> {{ t('إلغاء الموعد','Cancel appointment') }}</button>
+      </form>
+    </div>
+    {% if appt.status == 'accepted' %}
+    <p style="font-size:12.5px;color:var(--muted);margin:10px 0 0">{{ t('الإلغاء والتأجيل متاحين لحد','You can cancel or reschedule up to') }} {{ change_hours }} {{ t('ساعة قبل الموعد.','hours before the appointment.') }}</p>
+    {% endif %}
+  </div>
   {% endif %}
 
   <p style="margin-top:14px;text-align:center">

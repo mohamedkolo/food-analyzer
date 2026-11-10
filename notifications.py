@@ -41,6 +41,8 @@ NOTIF_TYPES = {
     "plan_request":  {"icon": "📋", "label": "طلب خطة"},
     "new_message":   {"icon": "💬", "label": "رسالة جديدة"},
     "payment_click": {"icon": "💰", "label": "ضغط دفع واتساب"},
+    "booking_request": {"icon": "📅", "label": "طلب حجز"},
+    "booking_payment": {"icon": "💵", "label": "تحويل استشارة"},
 }
 
 
@@ -265,4 +267,36 @@ def send_plan_pdf_email(to_email, client_name, pdf_bytes, filename="meal_plan.pd
         return True
     except Exception as e:
         print(f"[notif] plan PDF SMTP error: {e}")
+        return False
+
+
+# ═══════════════════════════════════════════════
+# إيميل قصير للعميل (حالة الحجز، التذكير بالموعد)
+# ═══════════════════════════════════════════════
+def send_client_email(to_email, subject, message, link=None, lang="ar"):
+    """‏إيميل نصّي بسيط للعميل. بيرجّع True لو اتبعت.
+
+    ‏نصّي بالقصد: ده تنبيه من سطرين ولينك، والنص العادي بيوصل في أي
+    برنامج بريد ومابيتحطش في الـspam زي قالب مليان ألوان.
+    """
+    if not (SMTP_HOST and SMTP_USER and SMTP_PASS) or not to_email:
+        return False
+    body = message
+    if link:
+        full = link if link.startswith("http") else DOMAIN.rstrip("/") + link
+        body += "\n\n" + full
+    body += "\n\n— NutraX"
+    msg = MIMEText(body, "plain", "utf-8")
+    msg["From"] = SMTP_FROM
+    msg["To"] = to_email
+    msg["Subject"] = "NutraX — %s" % subject
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+            server.ehlo()
+            server.starttls(context=ssl.create_default_context())
+            server.login(SMTP_USER, SMTP_PASS)
+            server.sendmail(SMTP_FROM, [to_email], msg.as_string())
+        return True
+    except Exception as e:
+        print(f"[notif] client email error: {e}")
         return False

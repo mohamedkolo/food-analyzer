@@ -32,6 +32,9 @@
 {% if msg == 'accepted' %}<div class="alert alert-success" role="status">{{ t('الموعد اتأكد.','Appointment confirmed.') }}</div>
 {% elif msg == 'rejected' %}<div class="alert alert-info" role="status">{{ t('الطلب اترفض والموعد اتفتح تاني.','Request declined; the slot is open again.') }}</div>
 {% elif msg == 'stale' %}<div class="alert alert-warn" role="alert">{{ t('الطلب ده اترد عليه قبل كده.','That request was already answered.') }}</div>
+{% elif msg == 'saved' %}<div class="alert alert-success" role="status">{{ t('اتحفظ.','Saved.') }}</div>
+{% elif msg == 'manual_taken' %}<div class="alert alert-warn" role="alert">{{ t('الوقت ده عليه موعد تاني.','There is already an appointment at that time.') }}</div>
+{% elif msg == 'bad_manual' %}<div class="alert alert-error" role="alert">{{ t('اختار عميل وخدمة ووقت جاي على رأس الساعة أو نصها.','Choose a client, a service, and a future time on the hour or half hour.') }}</div>
 {% elif msg == 'bad_link' %}<div class="alert alert-error" role="alert">{{ t('رابط الجلسة لازم يبدأ بـ https://','The session link must start with https://') }}</div>
 {% endif %}
 
@@ -56,7 +59,8 @@
   <div class="cal-req">
     <div class="who">{{ a.client_name or t('عميل','Client') }}</div>
     <div class="meta">
-      {{ a.service_name }} · {{ a.price_label }}<br>
+      {{ a.service_name }} · {{ a.price_label }}
+      {% if a.price %}· {% if a.pay_status == 'paid' %}<strong>{{ t('مدفوع','Paid') }}</strong>{% elif a.pay_status == 'claimed' %}<strong>{{ t('بلّغ بالتحويل','Says paid') }}</strong>{% if is_admin %} (<a href="/admin/payments#consults" style="color:inherit">{{ t('راجع وأكّد','check and confirm') }}</a>){% endif %}{% else %}{{ t('لم يُدفع','Unpaid') }}{% endif %}{% endif %}<br>
       <strong>{{ a.day_label }}</strong> · {{ a.time_label }}
       {% if a.client_phone %}<br><span dir="ltr">{{ a.client_phone }}</span>{% endif %}
     </div>
@@ -96,10 +100,28 @@
     <div><div class="dn">{{ d.name }}</div><div class="dd">{{ d.num }}</div></div>
     <div>
       {% for a in d['items'] %}
-      <a class="cal-item" href="/book/{{ a.id }}">
+      {% if a.past %}
+      <div class="cal-item" style="flex-wrap:wrap">
         <span><strong>{{ a.time_label }}</strong> · {{ a.client_name or t('عميل','Client') }} · {{ a.service_name }}</span>
-        {% if a.video_url %}<i class="fa-solid fa-video" aria-hidden="true"></i>{% endif %}
+        <span style="display:flex;gap:6px">
+          <form method="post" action="/admin/appointments/{{ a.id }}/status/completed" style="margin:0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-success" style="padding:5px 11px;font-size:12.5px">{{ t('تمّت','Done') }}</button>
+          </form>
+          <form method="post" action="/admin/appointments/{{ a.id }}/status/no_show" style="margin:0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline" style="padding:5px 11px;font-size:12.5px">{{ t('لم يحضر','No-show') }}</button>
+          </form>
+        </span>
+      </div>
+      {% else %}
+      <a class="cal-item" href="/book/{{ a.id }}"{% if a.status != 'accepted' %} style="opacity:.65"{% endif %}>
+        <span><strong>{{ a.time_label }}</strong> · {{ a.client_name or t('عميل','Client') }} · {{ a.service_name }}</span>
+        <span style="font-size:12px;font-weight:700;white-space:nowrap">{% if a.price %}{% if a.pay_status == 'paid' %}{{ t('مدفوع','Paid') }}{% elif a.pay_status == 'claimed' %}{{ t('بلّغ بالتحويل','Says paid') }}{% elif a.pay_status == 'refunded' %}{{ t('اترد','Refunded') }}{% else %}{{ t('لم يُدفع','Unpaid') }}{% endif %}{% endif %}
+        {% if a.status == 'completed' %}· {{ t('تمّت','Done') }}{% elif a.status == 'no_show' %}· {{ t('لم يحضر','No-show') }}{% endif %}
+        {% if a.video_url %}<i class="fa-solid fa-video" aria-hidden="true"></i>{% endif %}</span>
       </a>
+      {% endif %}
       {% else %}
       <span class="cal-none">—</span>
       {% endfor %}
@@ -107,4 +129,44 @@
   </div>
   {% endfor %}
 </div>
+
+{% if ratings.rows %}
+<div class="card">
+  <div class="card-title"><i class="fa-solid fa-star"></i> {{ t('تقييمات العملاء','Client ratings') }}
+    <span class="role-badge role-client">{{ ratings.average }} / 10</span></div>
+  {% for r in ratings.rows %}
+  <div style="padding:8px 0;border-bottom:1px solid var(--gray-2);font-size:13.5px">
+    <strong>{{ r.score }}/10</strong> · {{ r.client_name or t('من غير اسم','Anonymous') }}{% if r.service_name %} · {{ r.service_name }}{% endif %}
+    {% if r.comment %}<div style="color:var(--text-2);margin-top:3px">{{ r.comment }}</div>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if services and clients %}
+<details class="card">
+  <summary class="card-title" style="cursor:pointer;margin:0;border:none;padding:0"><i class="fa-solid fa-plus"></i> {{ t('حجز يدوي لعميل','Book a client in by hand') }}</summary>
+  <p style="font-size:12.5px;color:var(--muted);margin:12px 0">{{ t('لعميل اتفق معاك برّه الموقع. الموعد بيتأكد على طول، والوقت بتوقيتك','For a client who arranged it with you directly. The appointment is confirmed at once; the time is on your clock') }} ({{ zone_label }}).</p>
+  <form method="post" action="/admin/appointments/new">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label" for="mClient">{{ t('العميل','Client') }}</label>
+        <select class="form-select" id="mClient" name="client" required>
+          {% for c in clients %}<option value="{{ c.id }}">{{ c.name or c.email }}</option>{% endfor %}
+        </select></div>
+      <div class="form-group"><label class="form-label" for="mService">{{ t('الخدمة','Service') }}</label>
+        <select class="form-select" id="mService" name="service" required>
+          {% for s in services %}<option value="{{ s.id }}">{{ s.name }} ({{ s.duration_min }} {{ t('دقيقة','min') }})</option>{% endfor %}
+        </select></div>
+      <div class="form-group"><label class="form-label" for="mDate">{{ t('اليوم','Day') }}</label>
+        <input class="form-input" id="mDate" name="date" type="date" min="{{ today_iso }}" value="{{ today_iso }}" required></div>
+      <div class="form-group"><label class="form-label" for="mTime">{{ t('الساعة','Time') }}</label>
+        <input class="form-input" id="mTime" name="time" type="time" step="1800" value="10:00" required></div>
+    </div>
+    <div class="form-group"><label class="form-label" for="mUrl">{{ t('رابط الجلسة (اختياري)','Session link (optional)') }}</label>
+      <input class="form-input" id="mUrl" name="video_url" type="url" dir="ltr" maxlength="300" placeholder="https://meet.google.com/..."></div>
+    <button type="submit" class="btn btn-primary">{{ t('احجز','Book') }}</button>
+  </form>
+</details>
+{% endif %}
 {% endblock %}

@@ -61,6 +61,104 @@
 </style>
 
 <div class="mp-wrap">
+  {# ‏ترتيب الرئيسية: الموعد، وجبات النهارده، المياه -- اللي العميل بيفتح
+     التطبيق عشانه كل يوم فوق، والترحيب والأرقام تحت. #}
+  {% include "_next_appointment.html" %}
+    {% if tracking and tracking.has_plan %}
+    <!-- ═══ وجبات النهارده والتتبع (فوق خالص) ═══ -->
+    <div style="background:#fff;border:2px solid #D5DAE0;border-radius:16px;padding:16px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-weight:900;font-size:15px;color:#1E2630;">✅ {{ t('وجبات النهارده','Today\'s meals') }} ({{ tracking.day_name }})</div>
+        <div id="todayCount" style="font-size:12px;font-weight:800;color:#3A4A5C;background:#F3F5F7;padding:4px 12px;border-radius:999px;">{{ tracking.today_done }}/{{ tracking.today_total }}</div>
+      </div>
+      {% if streak and streak.current_streak > 0 %}
+      <div style="display:flex;align-items:center;gap:8px;background:#fff7ed;border:1.5px solid #f3d98a;border-radius:12px;padding:10px 14px;margin-bottom:12px;">
+        <span style="font-size:22px;">🔥</span>
+        <div style="flex:1;">
+          <div style="font-weight:900;font-size:14px;color:#8A4B1C;">{% if is_ar %}{{ streak.current_streak }} يوم متتالي من الالتزام الكامل!{% else %}{{ streak.current_streak }} consecutive days of full adherence!{% endif %}</div>
+          {% if streak.badge %}
+          <div style="font-size:12px;font-weight:700;color:#b45309;">{{ streak.badge.emoji }} {{ streak.badge.label }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% set mnotes = meal_notes_today(user) %}
+      {% for m in tracking.today_meals %}
+      {% set mn = mnotes.get(m.key) %}
+      <div class="track-meal" data-key="{{ m.key }}" style="display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:12px;cursor:pointer;transition:all .15s;{% if m.checked %}background:#F3F5F7;{% endif %}border:1.5px solid {% if m.checked %}#FF7A59{% else %}#D5DAE0{% endif %};margin-bottom:8px;">
+        <div class="track-box" style="width:24px;height:24px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;background:{% if m.checked %}#3A4A5C{% else %}#D5DAE0{% endif %};margin-top:2px;">{% if m.checked %}✓{% endif %}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:800;font-size:13px;color:#1E2630;">{{ m.emoji }} {{ m.label }}</div>
+          <div style="font-size:12px;color:#5A6472;line-height:1.6;{% if m.checked %}text-decoration:line-through;opacity:.6;{% endif %}">{{ m.text | meal_en }}</div>
+        </div>
+      </div>
+      {# ‏تحت كل وجبة: "ماكلتهاش" وتعليق. برّه الكارت اللي فوق بالقصد --
+         الدوسة على الكارت معناها "اتاكلت"، ودول مايتلخبطوش بيها. #}
+      <div class="meal-note" data-key="{{ m.key }}" data-skipped="{{ 1 if mn and mn.skipped else 0 }}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-2px 0 12px;font-size:12px">
+        <button type="button" class="mn-skip" aria-pressed="{{ 'true' if mn and mn.skipped else 'false' }}" style="border:1px solid {% if mn and mn.skipped %}#8B2E2E{% else %}#D5DAE0{% endif %};background:{% if mn and mn.skipped %}#fdf4f4{% else %}#fff{% endif %};color:{% if mn and mn.skipped %}#8B2E2E{% else %}#5A6472{% endif %};border-radius:999px;padding:4px 12px;font-family:inherit;font-weight:700;font-size:12px;cursor:pointer">{{ t('ماكلتهاش','Skipped it') }}</button>
+        <input class="mn-comment" maxlength="300" value="{{ mn.comment if mn and mn.comment else '' }}" aria-label="{{ t('تعليق على','Comment on') }} {{ m.label }}" placeholder="{{ t('تعليق للأخصائي (اختياري)','Note for your nutritionist (optional)') }}" style="flex:1;min-width:150px;border:1px solid #D5DAE0;border-radius:999px;padding:5px 12px;font-family:inherit;font-size:12px">
+        <span class="mn-saved" role="status" style="color:#1F5A36;font-weight:800;display:none">{{ t('اتحفظ','Saved') }}</span>
+      </div>
+      {% endfor %}
+      {% if tracking.week_pct is not none %}
+      <div style="margin-top:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:#5A6472;margin-bottom:4px;"><span>{{ t('التزامك آخر 7 أيام','Your adherence, last 7 days') }}</span><span>{{ tracking.week_pct }}%</span></div>
+        <div style="height:8px;background:#D5DAE0;border-radius:99px;overflow:hidden;"><div style="height:100%;width:{{ tracking.week_pct }}%;background:#3A4A5C;border-radius:99px;"></div></div>
+      </div>
+      {% endif %}
+    </div>
+    <script>
+    document.querySelectorAll('.meal-note').forEach(el => {
+      const skip = el.querySelector('.mn-skip'), box = el.querySelector('.mn-comment'), ok = el.querySelector('.mn-saved');
+      const save = async () => {
+        const fd = new FormData();
+        fd.append('meal_key', el.dataset.key);
+        fd.append('skipped', el.dataset.skipped);
+        fd.append('comment', box.value);
+        try {
+          const d = await (await fetch('/track/meal-note', {method:'POST', body: fd})).json();
+          if (!d.ok) return;
+          ok.style.display = 'inline'; setTimeout(() => ok.style.display = 'none', 1500);
+          if (d.skipped) location.reload();   // ‏التخطّي بيشيل علامة "اتاكلت"، فالعدّاد لازم يتحسب من جديد
+        } catch(e) {}
+      };
+      skip.addEventListener('click', () => {
+        const on = el.dataset.skipped !== '1';
+        el.dataset.skipped = on ? '1' : '0';
+        skip.setAttribute('aria-pressed', on ? 'true' : 'false');
+        skip.style.borderColor = on ? '#8B2E2E' : '#D5DAE0';
+        skip.style.background = on ? '#fdf4f4' : '#fff';
+        skip.style.color = on ? '#8B2E2E' : '#5A6472';
+        save();
+      });
+      box.addEventListener('change', save);
+    });
+    document.querySelectorAll('.track-meal').forEach(el => {
+      el.addEventListener('click', async () => {
+        const box = el.querySelector('.track-box');
+        const nowChecked = box.textContent.trim() !== '✓';
+        try {
+          const fd = new FormData();
+          fd.append('meal_key', el.dataset.key);
+          fd.append('checked', nowChecked ? '1' : '0');
+          fd.append('csrf_token', document.querySelector('input[name=csrf_token]') ? document.querySelector('input[name=csrf_token]').value : '');
+          const r = await fetch('/track/meal', {method:'POST', body: fd});
+          if (!(await r.json()).ok) return;
+          box.textContent = nowChecked ? '✓' : '';
+          box.style.background = nowChecked ? '#3A4A5C' : '#D5DAE0';
+          el.style.background = nowChecked ? '#F3F5F7' : '#fff';
+          el.style.borderColor = nowChecked ? '#FF7A59' : '#D5DAE0';
+          const txt = el.querySelector('div[style*="line-height"]');
+          txt.style.textDecoration = nowChecked ? 'line-through' : 'none';
+          txt.style.opacity = nowChecked ? '.6' : '1';
+          const done = document.querySelectorAll('.track-box').length ? [...document.querySelectorAll('.track-box')].filter(b=>b.textContent.trim()==='✓').length : 0;
+          document.getElementById('todayCount').textContent = done + '/' + document.querySelectorAll('.track-box').length;
+        } catch(e) {}
+      });
+    });
+    </script>
+    {% endif %}
+  {% include "_client_home_cards.html" %}
 
   {% if request.args.get('welcome') %}
   <div class="celebration">
@@ -129,66 +227,6 @@
     </div>
   {% endif %}
 
-    {% if tracking and tracking.has_plan %}
-    <!-- ═══ وجبات النهارده والتتبع (فوق خالص) ═══ -->
-    <div style="background:#fff;border:2px solid #D5DAE0;border-radius:16px;padding:16px;margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-weight:900;font-size:15px;color:#1E2630;">✅ {{ t('وجبات النهارده','Today\'s meals') }} ({{ tracking.day_name }})</div>
-        <div id="todayCount" style="font-size:12px;font-weight:800;color:#3A4A5C;background:#F3F5F7;padding:4px 12px;border-radius:999px;">{{ tracking.today_done }}/{{ tracking.today_total }}</div>
-      </div>
-      {% if streak and streak.current_streak > 0 %}
-      <div style="display:flex;align-items:center;gap:8px;background:#fff7ed;border:1.5px solid #f3d98a;border-radius:12px;padding:10px 14px;margin-bottom:12px;">
-        <span style="font-size:22px;">🔥</span>
-        <div style="flex:1;">
-          <div style="font-weight:900;font-size:14px;color:#8A4B1C;">{% if is_ar %}{{ streak.current_streak }} يوم متتالي من الالتزام الكامل!{% else %}{{ streak.current_streak }} consecutive days of full adherence!{% endif %}</div>
-          {% if streak.badge %}
-          <div style="font-size:12px;font-weight:700;color:#b45309;">{{ streak.badge.emoji }} {{ streak.badge.label }}</div>
-          {% endif %}
-        </div>
-      </div>
-      {% endif %}
-      {% for m in tracking.today_meals %}
-      <div class="track-meal" data-key="{{ m.key }}" style="display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:12px;cursor:pointer;transition:all .15s;{% if m.checked %}background:#F3F5F7;{% endif %}border:1.5px solid {% if m.checked %}#FF7A59{% else %}#D5DAE0{% endif %};margin-bottom:8px;">
-        <div class="track-box" style="width:24px;height:24px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;background:{% if m.checked %}#3A4A5C{% else %}#D5DAE0{% endif %};margin-top:2px;">{% if m.checked %}✓{% endif %}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:800;font-size:13px;color:#1E2630;">{{ m.emoji }} {{ m.label }}</div>
-          <div style="font-size:12px;color:#5A6472;line-height:1.6;{% if m.checked %}text-decoration:line-through;opacity:.6;{% endif %}">{{ m.text | meal_en }}</div>
-        </div>
-      </div>
-      {% endfor %}
-      {% if tracking.week_pct is not none %}
-      <div style="margin-top:10px;">
-        <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:#5A6472;margin-bottom:4px;"><span>{{ t('التزامك آخر 7 أيام','Your adherence, last 7 days') }}</span><span>{{ tracking.week_pct }}%</span></div>
-        <div style="height:8px;background:#D5DAE0;border-radius:99px;overflow:hidden;"><div style="height:100%;width:{{ tracking.week_pct }}%;background:#3A4A5C;border-radius:99px;"></div></div>
-      </div>
-      {% endif %}
-    </div>
-    <script>
-    document.querySelectorAll('.track-meal').forEach(el => {
-      el.addEventListener('click', async () => {
-        const box = el.querySelector('.track-box');
-        const nowChecked = box.textContent.trim() !== '✓';
-        try {
-          const fd = new FormData();
-          fd.append('meal_key', el.dataset.key);
-          fd.append('checked', nowChecked ? '1' : '0');
-          fd.append('csrf_token', document.querySelector('input[name=csrf_token]') ? document.querySelector('input[name=csrf_token]').value : '');
-          const r = await fetch('/track/meal', {method:'POST', body: fd});
-          if (!(await r.json()).ok) return;
-          box.textContent = nowChecked ? '✓' : '';
-          box.style.background = nowChecked ? '#3A4A5C' : '#D5DAE0';
-          el.style.background = nowChecked ? '#F3F5F7' : '#fff';
-          el.style.borderColor = nowChecked ? '#FF7A59' : '#D5DAE0';
-          const txt = el.querySelector('div[style*="line-height"]');
-          txt.style.textDecoration = nowChecked ? 'line-through' : 'none';
-          txt.style.opacity = nowChecked ? '.6' : '1';
-          const done = document.querySelectorAll('.track-box').length ? [...document.querySelectorAll('.track-box')].filter(b=>b.textContent.trim()==='✓').length : 0;
-          document.getElementById('todayCount').textContent = done + '/' + document.querySelectorAll('.track-box').length;
-        } catch(e) {}
-      });
-    });
-    </script>
-    {% endif %}
 
   <!-- ═══════════ تقدّم الوزن ═══════════ -->
   <div class="card">

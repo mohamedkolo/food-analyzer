@@ -55,7 +55,8 @@ ADMIN_ONLY = ["/admin/users", "/admin/blocked", "/admin/payments", "/admin/users
 STAFF_ONLY = ["/admin/requests", "/generate", "/patients", "/saved", "/clinical", "/planner",
               "/admin/calendar", "/admin/booking-settings"]
 # any signed-in user
-CLIENT_PAGES = ["/my-plan", "/settings", "/analyzer", "/knowledge", "/daily-tips"]
+CLIENT_PAGES = ["/my-plan", "/settings", "/analyzer", "/knowledge", "/daily-tips",
+                "/recommendations"]
 # no login at all
 PUBLIC = ["/", "/login", "/foods", "/pricing", "/terms", "/privacy", "/robots.txt", "/sitemap.xml",
           "/book"]

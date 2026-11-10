@@ -16,6 +16,8 @@
 
 {% if msg == 'saved' %}<div class="alert alert-success" role="status">{{ t('اتحفظ.','Saved.') }}</div>
 {% elif msg == 'bad_service' %}<div class="alert alert-error" role="alert">{{ t('الخدمة محتاجة اسم، ومدة من مضاعفات','A service needs a name, and a duration in multiples of') }} {{ slot_min }} {{ t('دقيقة (بحد أقصى','minutes (up to') }} {{ max_duration }}){{ t('، وسعر صحيح.',', and a valid price.') }}</div>
+{% elif msg == 'admin_only' %}<div class="alert alert-error" role="alert">{{ t('بيانات التحويل بيعدّلها الأدمن بس.','Only the admin can change payment details.') }}</div>
+{% elif msg == 'bad_block' %}<div class="alert alert-error" role="alert">{{ t('اختار يوم البداية، ويوم النهاية يكون بعده أو نفسه.','Choose a start day, with the end day on or after it.') }}</div>
 {% elif msg == 'bad_hours' %}<div class="alert alert-error" role="alert">{{ t('ساعات العمل لازم تبدأ وتنتهي على رأس الساعة أو نصها، والنهاية بعد البداية.','Working hours must start and end on the hour or half hour, with the end after the start.') }}</div>
 {% endif %}
 
@@ -90,6 +92,55 @@
       <input class="form-input" id="hTo" name="end" type="time" step="1800" value="14:00" required></div>
     <button type="submit" class="btn btn-primary">{{ t('إضافة','Add') }}</button>
   </form>
+</div>
+
+<div class="card">
+  <div class="card-title"><i class="fa-solid fa-umbrella-beach"></i> {{ t('الإجازات','Days off') }}</div>
+  <p class="bset-hint">{{ t('الأيام دي مابيظهرش فيها مواعيد للعملاء. المواعيد اللي اتأكدت فيها قبل كده بتفضل زي ما هي.','Clients see no times on these days. Appointments already confirmed on them stay as they are.') }}</p>
+  {% for b in blocks %}
+  <div class="bset-line">
+    <span><strong dir="ltr">{{ b.label }}</strong>{% if b.reason %} · {{ b.reason }}{% endif %}</span>
+    <form method="post" action="/admin/booking-settings">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="delete_block">
+      <input type="hidden" name="id" value="{{ b.id }}">
+      <button type="submit" class="btn btn-danger" style="padding:6px 12px">{{ t('حذف','Remove') }}</button>
+    </form>
+  </div>
+  {% endfor %}
+  <form method="post" action="/admin/booking-settings" class="bset-hours" style="margin-top:14px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="add_block">
+    <div><label class="form-label" for="bReason">{{ t('السبب (اختياري)','Reason (optional)') }}</label>
+      <input class="form-input" id="bReason" name="reason" maxlength="120"></div>
+    <div><label class="form-label" for="bFirst">{{ t('من يوم','From') }}</label>
+      <input class="form-input" id="bFirst" name="first" type="date" min="{{ today_iso }}" required></div>
+    <div><label class="form-label" for="bLast">{{ t('إلى يوم','To') }}</label>
+      <input class="form-input" id="bLast" name="last" type="date" min="{{ today_iso }}"></div>
+    <button type="submit" class="btn btn-primary">{{ t('إضافة','Add') }}</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title"><i class="fa-solid fa-money-bill-transfer"></i> {{ t('بيانات التحويل','Where clients pay') }}</div>
+  <p class="bset-hint">{{ t('دي اللي العميل بيشوفها في صفحة حجزه عشان يحوّل. بتظهر لصاحب الحجز بس بعد ما يسجّل دخول، مش على الصفحة العامة.','This is what a client sees on their booking page so they can pay. It is shown only to the signed-in client who owns the booking, never on the public page.') }}</p>
+  {% if is_admin %}
+  <form method="post" action="/admin/booking-settings">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="save_pay">
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label" for="pInsta">{{ t('عنوان InstaPay','InstaPay address') }}</label>
+        <input class="form-input" id="pInsta" name="instapay" dir="ltr" maxlength="80" value="{{ pay.instapay or '' }}"></div>
+      <div class="form-group"><label class="form-label" for="pWallet">{{ t('رقم المحفظة','Wallet number') }}</label>
+        <input class="form-input" id="pWallet" name="wallet" dir="ltr" maxlength="80" value="{{ pay.wallet or '' }}"></div>
+    </div>
+    <div class="form-group"><label class="form-label" for="pNote">{{ t('ملاحظة للعميل (اختياري)','Note to the client (optional)') }}</label>
+      <input class="form-input" id="pNote" name="pay_note" maxlength="300" value="{{ pay.pay_note or '' }}"></div>
+    <button type="submit" class="btn btn-primary">{{ t('حفظ','Save') }}</button>
+  </form>
+  {% else %}
+  <div class="bset-line" style="color:var(--muted)">{{ t('بيانات التحويل بيعدّلها الأدمن بس.','Only the admin can change payment details.') }}</div>
+  {% endif %}
 </div>
 
 <div class="card">

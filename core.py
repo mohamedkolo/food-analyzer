@@ -758,6 +758,16 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS services (id SERIAL PRIMARY KEY, name TEXT NOT NULL, duration_min INTEGER NOT NULL, price INTEGER NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT 'EGP', is_online INTEGER NOT NULL DEFAULT 1, active INTEGER NOT NULL DEFAULT 1, sort_order INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS availability (id SERIAL PRIMARY KEY, weekday INTEGER NOT NULL, start_min INTEGER NOT NULL, end_min INTEGER NOT NULL, CHECK (end_min > start_min))""",
             """CREATE TABLE IF NOT EXISTS appointments (id SERIAL PRIMARY KEY, client_id INTEGER NOT NULL, service_id INTEGER NOT NULL, start_at TIMESTAMP NOT NULL, end_at TIMESTAMP NOT NULL, status TEXT NOT NULL DEFAULT 'pending', slot_key TEXT, video_url TEXT, client_note TEXT, admin_note TEXT, price INTEGER NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT 'EGP', pay_status TEXT NOT NULL DEFAULT 'unpaid', pay_method TEXT, pay_ref TEXT, reminder_sent INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE (slot_key))""",
+            """CREATE TABLE IF NOT EXISTS booking_settings (name TEXT PRIMARY KEY, value TEXT)""",
+            """CREATE TABLE IF NOT EXISTS availability_blocks (id SERIAL PRIMARY KEY, start_at TIMESTAMP NOT NULL, end_at TIMESTAMP NOT NULL, reason TEXT)""",
+            # ‏متابعة العميل اليومية: المياه، ملاحظات الوجبات، التوصيات، وتقييم
+            # الاستشارة. meal_notes جدول لوحده بالقصد، مش أعمدة في meal_checks:
+            # "صف موجود في meal_checks" معناها "الوجبة اتاكلت" في حساب الالتزام
+            # والتتابع والتذكير -- ووجبة متخطّية هناك كانت هتتحسب التزام.
+            """CREATE TABLE IF NOT EXISTS water_log (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, amount_ml INTEGER NOT NULL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS appointment_ratings (id SERIAL PRIMARY KEY, appointment_id INTEGER NOT NULL UNIQUE, score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 10), comment TEXT, anonymous INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS recommendations (id SERIAL PRIMARY KEY, client_id INTEGER NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS meal_notes (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, skipped INTEGER DEFAULT 0, comment TEXT, UNIQUE(user_id, check_date, meal_key))""",
         ]
         for sql in tables_pg:
             try: db_run(sql)
@@ -782,6 +792,12 @@ def init_db():
         """CREATE TABLE IF NOT EXISTS services (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, duration_min INTEGER NOT NULL, price INTEGER NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT 'EGP', is_online INTEGER NOT NULL DEFAULT 1, active INTEGER NOT NULL DEFAULT 1, sort_order INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         """CREATE TABLE IF NOT EXISTS availability (id INTEGER PRIMARY KEY AUTOINCREMENT, weekday INTEGER NOT NULL, start_min INTEGER NOT NULL, end_min INTEGER NOT NULL, CHECK (end_min > start_min))""",
         """CREATE TABLE IF NOT EXISTS appointments (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER NOT NULL, service_id INTEGER NOT NULL, start_at TIMESTAMP NOT NULL, end_at TIMESTAMP NOT NULL, status TEXT NOT NULL DEFAULT 'pending', slot_key TEXT, video_url TEXT, client_note TEXT, admin_note TEXT, price INTEGER NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT 'EGP', pay_status TEXT NOT NULL DEFAULT 'unpaid', pay_method TEXT, pay_ref TEXT, reminder_sent INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE (slot_key))""",
+        """CREATE TABLE IF NOT EXISTS booking_settings (name TEXT PRIMARY KEY, value TEXT)""",
+        """CREATE TABLE IF NOT EXISTS availability_blocks (id INTEGER PRIMARY KEY AUTOINCREMENT, start_at TIMESTAMP NOT NULL, end_at TIMESTAMP NOT NULL, reason TEXT)""",
+        """CREATE TABLE IF NOT EXISTS water_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, amount_ml INTEGER NOT NULL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+        """CREATE TABLE IF NOT EXISTS appointment_ratings (id INTEGER PRIMARY KEY AUTOINCREMENT, appointment_id INTEGER NOT NULL UNIQUE, score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 10), comment TEXT, anonymous INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+        """CREATE TABLE IF NOT EXISTS recommendations (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+        """CREATE TABLE IF NOT EXISTS meal_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, skipped INTEGER DEFAULT 0, comment TEXT, UNIQUE(user_id, check_date, meal_key))""",
         ]
         for sql in tables_sq:
             try: db_run(sql)
@@ -803,6 +819,7 @@ def init_db():
         "ALTER TABLE payments ADD COLUMN reminder_sent INTEGER DEFAULT 0",
         # ‏الساعة اللي المواعيد بتتعرض بيها للعميل. العملاء في مصر.
         "ALTER TABLE users ADD COLUMN timezone TEXT DEFAULT 'Africa/Cairo'",
+        "ALTER TABLE users ADD COLUMN water_goal_ml INTEGER DEFAULT 2000",
     ]:
         try: db_run(col_sql)
         except: pass
@@ -810,6 +827,8 @@ def init_db():
     for idx_sql in [
         "CREATE INDEX IF NOT EXISTS idx_appt_client ON appointments (client_id, start_at)",
         "CREATE INDEX IF NOT EXISTS idx_appt_start ON appointments (start_at)",
+        "CREATE INDEX IF NOT EXISTS idx_water_user ON water_log (user_id, logged_at)",
+        "CREATE INDEX IF NOT EXISTS idx_recs_client ON recommendations (client_id)",
     ]:
         try: db_run(idx_sql)
         except Exception as e: print(f"Index create warning: {e}")

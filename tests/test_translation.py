@@ -77,6 +77,7 @@ if not A.db_row("SELECT id FROM services"):
     A.db_run("INSERT INTO services (name, duration_min, price) VALUES ('Consult', 30, 30000)")
     for _wd in range(7):
         A.db_run("INSERT INTO availability (weekday, start_min, end_min) VALUES (?,0,1440)", (_wd,))
+    A.db_run("INSERT INTO booking_settings (name, value) VALUES ('instapay', 'doc@instapay')")
     _at = (datetime.now() + timedelta(days=2)).replace(minute=0, second=0, microsecond=0)
     A.db_run("INSERT INTO appointments (client_id, service_id, start_at, end_at, slot_key) "
              "VALUES (?,1,?,?,?)",
@@ -91,7 +92,7 @@ ADMIN_PAGES = ["/dashboard", "/admin/requests", "/admin/users", "/admin/payments
                "/admin/calendar", "/admin/booking-settings"]
 CLIENT_PAGES = ["/my-plan", "/request-plan", "/my-plans-history", "/settings",
                 "/analyzer", "/knowledge", "/daily-tips", "/pricing", "/book",
-                "/book/1"]
+                "/book/1", "/recommendations"]
 PUBLIC_PAGES = ["/", "/login", "/foods", "/foods/chicken-breast", "/pricing",
                 "/terms", "/privacy", "/book"]
 
