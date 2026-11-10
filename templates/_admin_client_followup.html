@@ -1,0 +1,48 @@
+{# ‏على ملف العميل: اللي سجّله النهارده، والتوصيات اللي الأخصائي بيكتبها له.
+   ‏الصفحة دي بتبعت العميل نفسه في user. #}
+{% set cd = client_day(user.id) %}
+{% set rc = client_recs(user.id) %}
+{% set meal_names = {} %}
+{% if tracking and tracking.today_meals %}{% for m in tracking.today_meals %}{% set _ = meal_names.update({m.key: m.label}) %}{% endfor %}{% endif %}
+<div class="section" id="recs">
+  <h2 class="section-title">🎯 {{ t('التوصيات ويوميات النهارده','Advice and today\'s diary') }}</h2>
+
+  {% if cd %}
+  <p style="font-size:13.5px;margin:0 0 10px"><strong>{{ t('مياه النهارده:','Water today:') }}</strong> {{ cd.water.total }} / {{ cd.water.goal }} {{ t('مل','ml') }}</p>
+  {% for n in cd.notes %}
+  <p style="font-size:13px;margin:0 0 6px;color:#374250">
+    <strong>{{ meal_names.get(n.meal_key, n.meal_key) }}</strong>{% if n.skipped %} · <span style="color:#8B2E2E;font-weight:800">{{ t('اتخطّت','Skipped') }}</span>{% endif %}{% if n.comment %} · {{ n.comment }}{% endif %}
+  </p>
+  {% endfor %}
+  {% endif %}
+
+  <form method="post" action="/admin/users/{{ user.id }}/recommendations" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin:12px 0 16px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="water_goal">
+    <div><label for="rcWater" style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">{{ t('هدف المياه (مل/يوم)','Water goal (ml/day)') }}</label>
+      <input id="rcWater" type="number" name="water_goal_ml" min="500" max="6000" step="any" value="{{ cd.water.goal if cd else 2000 }}" style="padding:9px 12px;border:1px solid #D5DAE0;border-radius:8px;width:130px;font-family:inherit"></div>
+    <button type="submit" style="padding:9px 16px;border:1px solid #D5DAE0;border-radius:8px;background:#fff;font-family:inherit;font-weight:700;cursor:pointer">{{ t('حفظ','Save') }}</button>
+  </form>
+
+  {% for kind, title in [('goal', t('أهداف','Goals')), ('avoid', t('أكل يبعد عنه','Foods to avoid')), ('note', t('ملاحظات','Notes'))] %}
+  <div style="margin-bottom:12px">
+    <div style="font-size:13px;font-weight:800;margin-bottom:6px">{{ title }}</div>
+    {% for r in rc[kind] %}
+    <form method="post" action="/admin/users/{{ user.id }}/recommendations" style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid #E4E7EA;margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="id" value="{{ r.id }}">
+      <span style="font-size:13.5px">{{ r.body }}</span>
+      <button type="submit" aria-label="{{ t('حذف','Remove') }}" style="border:none;background:none;color:#8B2E2E;cursor:pointer;font-weight:800">✕</button>
+    </form>
+    {% endfor %}
+    <form method="post" action="/admin/users/{{ user.id }}/recommendations" style="display:flex;gap:8px;margin-top:6px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="add">
+      <input type="hidden" name="kind" value="{{ kind }}">
+      <input name="body" maxlength="300" required aria-label="{{ title }}" placeholder="{{ t('اكتب وأضف','Type and add') }}" style="flex:1;padding:9px 12px;border:1px solid #D5DAE0;border-radius:8px;font-family:inherit">
+      <button type="submit" style="padding:9px 16px;border:none;border-radius:8px;background:#2B3746;color:#fff;font-family:inherit;font-weight:700;cursor:pointer">{{ t('أضف','Add') }}</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>

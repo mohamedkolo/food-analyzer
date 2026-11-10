@@ -15,6 +15,11 @@
   .bs-row:last-child{border-bottom:none}
   .bs-row .k{color:var(--muted);font-weight:700}
   .bs-row .v{font-weight:800;text-align:end}
+  .bs-score{position:relative}
+  .bs-score input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+  .bs-score span{display:block;text-align:center;padding:9px 0;border:1.5px solid var(--gray-2);border-radius:8px;font-weight:800;font-size:13.5px}
+  .bs-score input:checked + span{background:var(--green);border-color:var(--green);color:#fff}
+  .bs-score input:focus-visible + span{outline:2px solid var(--green);outline-offset:2px}
 </style>
 
 <div class="bs-wrap">
@@ -118,6 +123,24 @@
     <a class="btn btn-primary btn-full" href="{{ appt.video_url }}" target="_blank" rel="noopener noreferrer">
       <i class="fa-solid fa-video" aria-hidden="true"></i> {{ t('ادخل الجلسة','Join the session') }}
     </a>
+  {% endif %}
+
+  {% if can_rate %}
+  <form method="post" action="/book/{{ appt.id }}/rate" class="card" id="rate">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="card-title"><i class="fa-solid fa-star"></i> {{ t('قيّم الاستشارة','Rate the consultation') }}</div>
+    <div role="radiogroup" aria-label="{{ t('التقييم من 1 إلى 10','Rating from 1 to 10') }}" style="display:grid;grid-template-columns:repeat(10,1fr);gap:4px">
+      {% for n in range(1, 11) %}
+      <label class="bs-score"><input type="radio" name="score" value="{{ n }}" required><span>{{ n }}</span></label>
+      {% endfor %}
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin:4px 0 12px"><span>{{ t('مش راضي','Not satisfied') }}</span><span>{{ t('ممتازة','Excellent') }}</span></div>
+    <div class="form-group"><label class="form-label" for="rateNote">{{ t('تحب تقول حاجة؟ (اختياري)','Anything to add? (optional)') }}</label>
+      <textarea class="form-textarea" id="rateNote" name="comment" rows="2" maxlength="500"></textarea></div>
+    <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:12px">
+      <input type="checkbox" name="anonymous" value="1"> {{ t('ابعته من غير اسمي','Send it without my name') }}</label>
+    <button type="submit" class="btn btn-primary btn-full">{{ t('ابعت التقييم','Send rating') }}</button>
+  </form>
   {% endif %}
 
   {% if can_change %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ t('التوصيات والأهداف','Advice & goals') }}{% endblock %}
+{% block content %}
+<style>
+  .rc-wrap{max-width:680px;margin:0 auto}
+  .rc-item{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--gray-2);font-size:14px;line-height:1.7}
+  .rc-item:last-child{border-bottom:none}
+  .rc-item i{margin-top:5px;font-size:13px}
+  .rc-empty{font-size:13.5px;color:var(--muted);margin:0}
+</style>
+<div class="rc-wrap">
+  <h1 class="page-title"><i class="fa-solid fa-bullseye"></i> {{ t('التوصيات والأهداف','Advice & goals') }}</h1>
+
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-flag-checkered"></i> {{ t('أهدافك','Your goals') }}</div>
+    <div class="rc-item"><i class="fa-solid fa-glass-water" style="color:#2E8F9E" aria-hidden="true"></i>
+      <span>{{ t('مياه:','Water:') }} <strong>{{ water_goal }} {{ t('مل في اليوم','ml a day') }}</strong></span></div>
+    {% for r in recs.goal %}
+    <div class="rc-item"><i class="fa-solid fa-check" style="color:#1F5A36" aria-hidden="true"></i><span>{{ r.body }}</span></div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-ban"></i> {{ t('أكل تبعد عنه','Foods to avoid') }}</div>
+    {% for r in recs.avoid %}
+    <div class="rc-item"><i class="fa-solid fa-xmark" style="color:var(--red)" aria-hidden="true"></i><span>{{ r.body }}</span></div>
+    {% else %}
+    <p class="rc-empty">{{ t('الأخصائي ماكتبش حاجة هنا لسه.','Your nutritionist has not added anything here yet.') }}</p>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-note-sticky"></i> {{ t('ملاحظات الأخصائي','Notes from your nutritionist') }}</div>
+    {% for r in recs.note %}
+    <div class="rc-item"><i class="fa-solid fa-circle" style="font-size:7px;margin-top:10px;color:var(--muted)" aria-hidden="true"></i><span>{{ r.body }}</span></div>
+    {% else %}
+    <p class="rc-empty">{{ t('مفيش ملاحظات لسه.','No notes yet.') }}</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

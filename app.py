@@ -33,6 +33,10 @@ app.register_blueprint(routes_admin.bp)
 import routes_booking
 app.register_blueprint(routes_booking.bp)
 
+# ── يوميات العميل: المياه، ملاحظات الوجبات، التوصيات، التقييم ──
+import client_app
+app.register_blueprint(client_app.bp)
+
 # how a plan is actually built -- pure logic, no routes
 from plan_engine import (              # noqa: F401
     ALLERGY_KEYWORDS, parse_user_exclusions, filter_meals_by_exclusions,

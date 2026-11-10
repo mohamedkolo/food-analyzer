@@ -1,0 +1,34 @@
+{# ‏كروت الرئيسية اللي حوالين الخطة: تقييم آخر استشارة، والمياه. #}
+{% set pr = pending_rating(user) %}
+{% if pr %}
+<a href="/book/{{ pr.id }}#rate" style="display:flex;align-items:center;gap:12px;background:#FDF6EC;border:1.5px solid #E7C99A;border-radius:14px;padding:14px 18px;margin-bottom:16px;text-decoration:none;color:#8A4B1C;font-family:'Cairo',sans-serif">
+  <i class="fa-solid fa-star" style="font-size:20px" aria-hidden="true"></i>
+  <span><strong style="display:block;font-size:14.5px">{{ t('إيه رأيك في استشارتك؟','How was your consultation?') }}</strong>
+    <span style="font-size:12.5px">{{ pr.service_name }} · {{ t('قيّمها في دقيقة','Rate it in a minute') }}</span></span>
+</a>
+{% endif %}
+
+{% set w = water_today(user) %}
+{% if w %}
+<div id="water" style="background:#fff;border:1.5px solid #D5DAE0;border-radius:16px;padding:16px;margin-bottom:16px;font-family:'Cairo',sans-serif">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div style="font-weight:900;font-size:15px;color:#1E2630"><i class="fa-solid fa-glass-water" aria-hidden="true"></i> {{ t('مياه النهارده','Water today') }}</div>
+    <div id="waterNow" role="status" style="font-size:12.5px;font-weight:800;color:#3A4A5C;background:#F3F5F7;padding:4px 12px;border-radius:999px">{{ w.total }} / {{ w.goal }} {{ t('مل','ml') }}</div>
+  </div>
+  <div style="height:10px;background:#D5DAE0;border-radius:99px;overflow:hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ w.pct }}" aria-label="{{ t('تقدّم المياه','Water progress') }}">
+    <div id="waterBar" style="height:100%;width:{{ w.pct }}%;background:#2E8F9E;border-radius:99px;transition:width .25s"></div>
+  </div>
+  <div id="waterDone" style="display:{% if w.pct >= 100 %}block{% else %}none{% endif %};font-size:12.5px;font-weight:800;color:#1F5A36;margin-top:8px">{{ t('وصلت لهدف النهارده','You reached today\'s goal') }}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:12px">
+    <button type="button" class="btn btn-outline" onclick="nxWater(200)">+ {{ t('كوب','Glass') }} 200</button>
+    <button type="button" class="btn btn-outline" onclick="nxWater(500)">+ {{ t('زجاجة','Bottle') }} 500</button>
+    <button type="button" class="btn btn-outline" onclick="nxWater(0,true)" aria-label="{{ t('تراجع عن آخر إضافة','Undo the last one') }}"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>
+  </div>
+  <form method="post" action="/water" style="display:flex;gap:8px;margin-top:8px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input class="form-input" type="number" name="amount_ml" min="50" max="2000" step="any" inputmode="numeric"
+           aria-label="{{ t('كمية مخصصة بالملّي','Custom amount in ml') }}" placeholder="{{ t('كمية تانية (مل)','Other amount (ml)') }}" required>
+    <button type="submit" class="btn btn-primary">{{ t('أضف','Add') }}</button>
+  </form>
+</div>
+{% endif %}

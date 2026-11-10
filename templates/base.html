@@ -511,6 +511,9 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
     <a href="/request-plan" class="nav-item {% if request.endpoint=='request_plan' %}active{% endif %}">
       <i class="fa-solid fa-paper-plane"></i> {{ 'طلب خطة جديدة' if is_ar else 'Request Plan' }}
     </a>
+    <a href="/recommendations" class="nav-item {% if request.endpoint=='clientapp.recommendations' %}active{% endif %}">
+      <i class="fa-solid fa-bullseye"></i> {{ 'التوصيات والأهداف' if is_ar else 'Advice & goals' }}
+    </a>
     <a href="/book" class="nav-item {% if request.endpoint in ['booking.book','booking.book_status'] %}active{% endif %}">
       <i class="fa-solid fa-calendar-check"></i> {{ 'احجز استشارة' if is_ar else 'Book a consultation' }}
     </a>
@@ -836,6 +839,12 @@ async function nxEnablePush(){
   }, true);
 })();
 </script>
+
+{# ‏الشريط السفلي للعميل نفسه بس: صفحة ملف العميل عند الأدمن بتبعت
+   العميل في user، فالشرط على صاحب الجلسة مش على user لوحده. #}
+{% if user is defined and user and not is_staff and session.get('uid') == user.id %}
+{% include "_client_bar.html" %}
+{% endif %}
 
 <!-- ═══ زرار المحادثة العائم (للعملاء) ═══ -->
 {% if user is defined and user and not is_staff and not request.path.startswith('/messages') %}

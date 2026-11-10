@@ -179,6 +179,20 @@ def book():
         moving=_show(moving, zone) if moving else None)
 
 
+def _rateable(row, user):
+    from client_app import rateable
+    return rateable(row, user)
+
+
+def _ratings():
+    try:
+        from client_app import ratings_overview
+        return ratings_overview()
+    except Exception as exc:                      # noqa: BLE001
+        print("[booking] ratings failed: %s" % exc)
+        return {"rows": [], "average": None}
+
+
 def _own_changeable(user, appt_id):
     """The appointment, when it is this client's and can still be changed."""
     try:
@@ -258,7 +272,7 @@ def book_status(appt_id):
         just_sent=request.args.get("new") == "1",
         can_change=(not staff) and B.can_change(row),
         change_hours=B.CHANGE_LEAD_HOURS,
-        can_rate=False,
+        can_rate=(not staff) and _rateable(row, user),
         # ‏بيانات التحويل بتتعرض لصاحب الموعد بس، مش على الصفحة العامة.
         pay=B.pay_details(db_rows), msg=request.args.get("msg", ""))
 
@@ -364,6 +378,7 @@ def admin_calendar():
         next_from=(first + timedelta(days=7)).isoformat(),
         booking_link=site_origin() + "/book", msg=request.args.get("msg", ""),
         is_admin=_is_admin(user), clients=clients, services=_services(),
+        ratings=_ratings(),
         today_iso=today.isoformat(), slot_min=B.SLOT_MIN)
 
 

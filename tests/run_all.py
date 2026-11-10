@@ -61,6 +61,7 @@ SUITES = [
     "test_underweight.py",
     "test_money.py",
     "test_booking.py",
+    "test_client_app.py",
 ]
 
 

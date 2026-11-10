@@ -92,7 +92,7 @@ ADMIN_PAGES = ["/dashboard", "/admin/requests", "/admin/users", "/admin/payments
                "/admin/calendar", "/admin/booking-settings"]
 CLIENT_PAGES = ["/my-plan", "/request-plan", "/my-plans-history", "/settings",
                 "/analyzer", "/knowledge", "/daily-tips", "/pricing", "/book",
-                "/book/1"]
+                "/book/1", "/recommendations"]
 PUBLIC_PAGES = ["/", "/login", "/foods", "/foods/chicken-breast", "/pricing",
                 "/terms", "/privacy", "/book"]
 

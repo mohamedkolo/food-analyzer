@@ -1,0 +1,98 @@
+{# ‏الشريط السفلي وزرار (+) للعميل على الموبايل.
+
+   ‏على الموبايل القايمة كانت كلها ورا زرار ☰: العميل بيفتح الدرج عشان
+   يوصل لأي حاجة، حتى اللي بيعملها كل يوم. الشريط بيحط الأربع حاجات
+   اليومية تحت الإبهام، و(+) في النص بيسجّل من أي صفحة.
+
+   ‏"المزيد" بتفتح نفس الدرج القديم -- مفيش لينك اتشال ولا قايمة تانية
+   تتصان. وعلى الشاشة الكبيرة الشريط مابيظهرش؛ السايدبار كافي. #}
+{% set ep = request.endpoint %}
+<nav class="cbar" aria-label="{{ t('التنقل الرئيسي','Main navigation') }}">
+  <a href="/my-plan" class="{% if ep in ['my_plan','dashboard'] %}on{% endif %}"><i class="fa-solid fa-house" aria-hidden="true"></i><span>{{ t('الرئيسية','Home') }}</span></a>
+  <a href="/plan" class="{% if ep in ['view_old_plan','my_plans_history'] %}on{% endif %}"><i class="fa-solid fa-utensils" aria-hidden="true"></i><span>{{ t('الخطة','Plan') }}</span></a>
+  <button type="button" class="cbar-plus" onclick="nxSheet(true)" aria-label="{{ t('تسجيل سريع','Quick record') }}" aria-haspopup="dialog"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>
+  <a href="/recommendations" class="{% if ep == 'clientapp.recommendations' %}on{% endif %}"><i class="fa-solid fa-bullseye" aria-hidden="true"></i><span>{{ t('التوصيات','Advice') }}</span></a>
+  <button type="button" onclick="toggleSidebar()"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i><span>{{ t('المزيد','More') }}</span>
+    {% if unread_messages and unread_messages > 0 %}<b class="cbar-dot" aria-label="{{ t('رسائل جديدة','New messages') }}"></b>{% endif %}</button>
+</nav>
+
+<div class="csheet-bg" id="csheetBg" onclick="nxSheet(false)"></div>
+<div class="csheet" id="csheet" role="dialog" aria-modal="true" aria-label="{{ t('تسجيل سريع','Quick record') }}">
+  <div class="csheet-h">
+    <strong>{{ t('تسجيل سريع','Quick record') }}</strong>
+    <button type="button" onclick="nxSheet(false)" aria-label="{{ t('إغلاق','Close') }}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+  </div>
+  <div class="csheet-lbl"><i class="fa-solid fa-glass-water" aria-hidden="true"></i> {{ t('مياه','Water') }}
+    <span id="csheetWater" role="status"></span></div>
+  <div class="csheet-row">
+    <button type="button" onclick="nxWater(200)">{{ t('كوب','Glass') }} <small>200 {{ t('مل','ml') }}</small></button>
+    <button type="button" onclick="nxWater(500)">{{ t('زجاجة','Bottle') }} <small>500 {{ t('مل','ml') }}</small></button>
+  </div>
+  <div class="csheet-row">
+    <a href="/history"><i class="fa-solid fa-weight-scale" aria-hidden="true"></i> {{ t('وزني','My weight') }}</a>
+    <a href="/messages"><i class="fa-solid fa-comments" aria-hidden="true"></i> {{ t('رسالة','Message') }}
+      {% if unread_messages and unread_messages > 0 %}<b class="cbar-count">{{ unread_messages }}</b>{% endif %}</a>
+  </div>
+  <div class="csheet-row">
+    <a href="/book" style="grid-column:1/-1"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> {{ t('احجز استشارة','Book a consultation') }}</a>
+  </div>
+</div>
+
+<style>
+.cbar,.csheet,.csheet-bg{display:none}
+@media(max-width:768px){
+  .cbar{display:grid;grid-template-columns:repeat(5,1fr);align-items:center;position:fixed;inset-inline:0;bottom:0;z-index:95;
+        height:62px;background:#fff;border-top:1px solid var(--gray-2);padding-bottom:env(safe-area-inset-bottom)}
+  .cbar a,.cbar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:100%;
+        border:none;background:none;font-family:'Cairo',sans-serif;font-size:11px;font-weight:700;color:var(--muted);
+        text-decoration:none;cursor:pointer;position:relative;padding:0}
+  .cbar i{font-size:17px}
+  .cbar a.on{color:#1E2630}
+  .cbar a.on i{color:#FF7A59}
+  .cbar a:focus-visible,.cbar button:focus-visible{outline:2px solid var(--green);outline-offset:-3px}
+  .cbar .cbar-plus{width:52px;height:52px;border-radius:50%;background:#2B3746;color:#fff;justify-self:center;
+        transform:translateY(-12px);box-shadow:0 4px 12px rgba(30,38,48,.28)}
+  .cbar .cbar-plus i{font-size:21px;color:#fff}
+  .cbar-dot{position:absolute;top:9px;inset-inline-end:26%;width:9px;height:9px;border-radius:50%;background:#ef4444}
+  .cbar-count{background:#ef4444;color:#fff;font-size:10.5px;border-radius:999px;padding:1px 7px}
+  /* ‏الشريط واخد مكان زرار الشات العايم، والرسالة بقت في (+). */
+  a#chatFab{display:none !important}
+  .main{padding-bottom:96px !important}
+  .nx-footer{padding-bottom:86px !important}
+  .csheet-bg.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:96}
+  .csheet.open{display:block;position:fixed;inset-inline:0;bottom:0;z-index:97;background:#fff;border-radius:18px 18px 0 0;
+        padding:16px 16px calc(18px + env(safe-area-inset-bottom));font-family:'Cairo',sans-serif}
+  .csheet-h{display:flex;justify-content:space-between;align-items:center;font-size:16px;margin-bottom:12px;color:#1E2630}
+  .csheet-h button{border:none;background:var(--gray);width:34px;height:34px;border-radius:50%;cursor:pointer;color:var(--text-2)}
+  .csheet-lbl{font-size:13px;font-weight:800;color:var(--text-2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .csheet-lbl span{margin-inline-start:auto;font-weight:700;color:var(--muted)}
+  .csheet-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .csheet-row button,.csheet-row a{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 10px;border-radius:12px;
+        border:1.5px solid var(--gray-2);background:#fff;font-family:inherit;font-size:14px;font-weight:800;color:#1E2630;
+        text-decoration:none;cursor:pointer}
+  .csheet-row button:active,.csheet-row a:active{background:var(--blue-pale)}
+  .csheet-row small{font-weight:600;color:var(--muted)}
+}
+</style>
+<script>
+function nxSheet(open){
+  document.getElementById('csheet').classList.toggle('open', open);
+  document.getElementById('csheetBg').classList.toggle('open', open);
+  if(open){ var b=document.querySelector('#csheet .csheet-row button'); if(b) b.focus(); }
+}
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') nxSheet(false); });
+/* ‏كوب مياه من أي صفحة. لو كارت المياه معروض (الرئيسية) بيتحدّث معاه. */
+async function nxWater(ml, undo){
+  try{
+    var fd=new FormData(); if(!undo) fd.append('amount_ml', ml);
+    var r=await fetch(undo ? '/water/undo' : '/water', {method:'POST', body:fd, headers:{'X-Requested-With':'fetch'}});
+    var d=await r.json();
+    if(d.total === undefined) return;
+    var txt=d.total+' / '+d.goal+' {{ t('مل','ml') }}';
+    var s=document.getElementById('csheetWater'); if(s) s.textContent=txt;
+    var n=document.getElementById('waterNow'); if(n) n.textContent=txt;
+    var bar=document.getElementById('waterBar'); if(bar) bar.style.width=d.pct+'%';
+    var ok=document.getElementById('waterDone'); if(ok) ok.style.display=(d.pct>=100)?'block':'none';
+  }catch(e){}
+}
+</script>
