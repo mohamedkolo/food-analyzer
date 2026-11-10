@@ -14,7 +14,7 @@
   }
 
   .back-link {
-    color: #55647a;
+    color: #5A6472;
     text-decoration: none;
     font-size: 14px;
     margin-bottom: 14px;
@@ -23,11 +23,11 @@
     gap: 6px;
     transition: color 0.2s;
   }
-  .back-link:hover { color: #1B6E80; }
+  .back-link:hover { color: #3A4A5C; }
 
   /* Header card */
   .plan-header {
-    background: linear-gradient(135deg, #1B6E80, #1B6E80);
+    background: #3A4A5C;
     color: #fff;
     border-radius: 20px;
     padding: 28px 24px;
@@ -68,8 +68,8 @@
     cursor: pointer;
   }
   .h-btn:hover { background: rgba(255, 255, 255, 0.3); }
-  .h-btn-primary { background: #fff; color: #1B6E80; border-color: #fff; }
-  .h-btn-primary:hover { background: #F4F9FB; }
+  .h-btn-primary { background: #fff; color: #3A4A5C; border-color: #fff; }
+  .h-btn-primary:hover { background: #F3F5F7; }
 
   /* Snapshot section */
   .snapshot {
@@ -83,7 +83,7 @@
   .snapshot-title {
     font-size: 17px;
     font-weight: 800;
-    color: #0f172a;
+    color: #1E2630;
     margin: 0 0 14px;
     display: flex;
     align-items: center;
@@ -97,24 +97,24 @@
   }
   .snap-item {
     padding: 12px;
-    background: #F4F9FB;
+    background: #F3F5F7;
     border-radius: 10px;
     text-align: center;
   }
-  .snap-val { font-size: 22px; font-weight: 800; color: #0f172a; line-height: 1; }
-  .snap-lbl { font-size: 12px; color: #55647a; margin-top: 4px; font-weight: 600; }
+  .snap-val { font-size: 22px; font-weight: 800; color: #1E2630; line-height: 1; }
+  .snap-lbl { font-size: 12px; color: #5A6472; margin-top: 4px; font-weight: 600; }
 
   .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .tag {
     padding: 5px 12px;
     background: #E9F2F6;
-    color: #475569;
+    color: #5A6472;
     border-radius: 999px;
     font-size: 13px;
     font-weight: 600;
   }
-  .tag-medical { background: #fee2e2; color: #991b1b; }
-  .tag-allergy { background: #fef3c7; color: #92400e; }
+  .tag-medical { background: #FBEDED; color: #8B2E2E; }
+  .tag-allergy { background: #FDF6EC; color: #8A4B1C; }
 
   /* Days */
   .days-section {
@@ -126,11 +126,11 @@
   }
 
   .day-card {
-    background: #F4F9FB;
+    background: #F3F5F7;
     border-radius: 14px;
     padding: 18px;
     margin-bottom: 12px;
-    border: 1px solid #D3E3EA;
+    border: 1px solid #D5DAE0;
   }
 
   .day-head {
@@ -139,16 +139,16 @@
     align-items: center;
     margin-bottom: 14px;
     padding-bottom: 10px;
-    border-bottom: 2px solid #D3E3EA;
+    border-bottom: 2px solid #D5DAE0;
   }
   .day-name {
     font-size: 18px;
     font-weight: 800;
-    color: #0f172a;
+    color: #1E2630;
   }
   .day-cals {
-    background: #DDEBF1;
-    color: #0F2A43;
+    background: #EDF0F3;
+    color: #1E2630;
     padding: 6px 14px;
     border-radius: 999px;
     font-size: 13px;
@@ -161,19 +161,19 @@
     gap: 12px;
     padding: 10px 0;
     align-items: center;
-    border-bottom: 1px dashed #D3E3EA;
+    border-bottom: 1px dashed #D5DAE0;
   }
   .meal-row:last-child { border-bottom: 0; }
   .meal-label {
     font-weight: 700;
-    color: #475569;
+    color: #5A6472;
     font-size: 14px;
     display: flex;
     align-items: center;
     gap: 4px;
   }
   .meal-text {
-    color: #0f172a;
+    color: #1E2630;
     font-size: 14px;
     line-height: 1.6;
   }
@@ -181,7 +181,7 @@
   .empty-meals {
     text-align: center;
     padding: 40px 20px;
-    color: #55647a;
+    color: #5A6472;
   }
 
   @media (max-width: 640px) {
@@ -254,7 +254,7 @@
 
     {% if plan_data.get('symptoms') %}
     <div style="margin-top: 16px;">
-      <strong style="color: #475569; font-size: 14px;">⚕️ {{ t('حالات طبية وقتها:','Medical conditions then:') }}</strong>
+      <strong style="color: #5A6472; font-size: 14px;">⚕️ {{ t('حالات طبية وقتها:','Medical conditions then:') }}</strong>
       <div class="tags">
         {% for s in plan_data.get('symptoms', []) %}
         <span class="tag tag-medical">{{ s | cond_en }}</span>
@@ -265,7 +265,7 @@
 
     {% if plan_data.get('allergies') %}
     <div style="margin-top: 12px;">
-      <strong style="color: #475569; font-size: 14px;">⚠️ {{ t('حساسية:','Allergies:') }}</strong>
+      <strong style="color: #5A6472; font-size: 14px;">⚠️ {{ t('حساسية:','Allergies:') }}</strong>
       <div class="tags">
         {% for a in plan_data.get('allergies', []) %}
         <span class="tag tag-allergy">{{ a }}</span>
@@ -275,9 +275,9 @@
     {% endif %}
 
     {% if plan_data.get('notes') %}
-    <div style="margin-top: 12px; padding: 12px; background: #F4F9FB; border-radius: 10px; border-inline-start: 4px solid #1B6E80;">
-      <strong style="color: #0F2A43; font-size: 13px;">📝 {{ t('ملاحظات:','Notes:') }}</strong>
-      <p style="margin: 6px 0 0; color: #0f172a; font-size: 14px;">{{ plan_data.get('notes') }}</p>
+    <div style="margin-top: 12px; padding: 12px; background: #F3F5F7; border-radius: 10px; border-inline-start: 4px solid #3A4A5C;">
+      <strong style="color: #1E2630; font-size: 13px;">📝 {{ t('ملاحظات:','Notes:') }}</strong>
+      <p style="margin: 6px 0 0; color: #1E2630; font-size: 14px;">{{ plan_data.get('notes') }}</p>
     </div>
     {% endif %}
   </div>

@@ -16,7 +16,7 @@
 </noscript>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(135deg,#0F2A43 0%,#2E8F9E 100%);display:flex;align-items:center;justify-content:center;padding:20px}
+body{font-family:'Cairo',sans-serif;min-height:100vh;background:#1E2630;display:flex;align-items:center;justify-content:center;padding:20px}
 .container{max-width:480px;width:100%}
 .logo{text-align:center;margin-bottom:24px;color:#fff}
 .logo i{font-size:42px;color:#FF7A59;margin-bottom:8px;display:block}
@@ -25,38 +25,38 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:linear-gradient(
 .card{background:#fff;border-radius:20px;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 .tabs{display:flex;background:#f4f6fa;border-radius:10px;padding:4px;margin-bottom:20px}
 .tab{flex:1;padding:10px;text-align:center;font-size:14px;font-weight:700;color:#5b6b82;cursor:pointer;border-radius:8px;transition:all .2s;border:none;background:none;font-family:'Cairo',sans-serif}
-.tab.active{background:#fff;color:#0F2A43;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.tab.active{background:#fff;color:#1E2630;box-shadow:0 2px 6px rgba(0,0,0,.08)}
 .form-group{margin-bottom:12px}
 .form-label{display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:5px}
 .form-label .req{color:#dc2626}
-.form-input,.form-select{width:100%;padding:11px 14px;border:2px solid #D3E3EA;border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;color:#0f172a;outline:none;transition:border .2s;background:#fff}
-.form-input:focus,.form-select:focus{border-color:#2E8F9E}
+.form-input,.form-select{width:100%;padding:11px 14px;border:2px solid #D5DAE0;border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;color:#1E2630;outline:none;transition:border .2s;background:#fff}
+.form-input:focus,.form-select:focus{border-color:#3A4A5C}
 .form-input.with-icon{padding-inline-start:40px}
 .input-wrap{position:relative}
-.input-icon{position:absolute;inset-inline-start:12px;top:50%;transform:translateY(-50%);color:#55647a;font-size:14px;pointer-events:none}
+.input-icon{position:absolute;inset-inline-start:12px;top:50%;transform:translateY(-50%);color:#5A6472;font-size:14px;pointer-events:none}
 /* زرار إظهار كلمة المرور -- على الجهة المقابلة للأيقونة */
 .form-input.has-eye{padding-inline-end:44px}
 .pw-eye{position:absolute;inset-inline-end:6px;top:50%;transform:translateY(-50%);background:none;border:0;
-        color:#55647a;font-size:15px;cursor:pointer;padding:8px 10px;line-height:1;border-radius:8px}
-.pw-eye:hover{color:#1B6E80}
-.pw-eye:focus-visible{outline:2px solid #1B6E80;outline-offset:1px}
-.pw-eye.on{color:#1B6E80}
+        color:#5A6472;font-size:15px;cursor:pointer;padding:8px 10px;line-height:1;border-radius:8px}
+.pw-eye:hover{color:#3A4A5C}
+.pw-eye:focus-visible{outline:2px solid #3A4A5C;outline-offset:1px}
+.pw-eye.on{color:#3A4A5C}
 /* الباسورد لاتيني دايماً. من غير كده الصفحة RTL بتقلبه، وأول ما تدوس العين
    بيبان "!Test12345" بدل "Test12345!" -- وده بيلغي فايدة الإظهار أصلاً. */
 input[type="password"], input.has-eye{direction:ltr;text-align:left}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.btn{width:100%;padding:13px;border:none;border-radius:10px;font-family:'Cairo',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:10px;background:linear-gradient(135deg,#0F2A43,#2E8F9E);color:#fff;transition:all .2s}
+.btn{width:100%;padding:13px;border:none;border-radius:10px;font-family:'Cairo',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:10px;background:#1E2630;color:#fff;transition:all .2s}
 .btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(37,99,235,.3)}
-.btn-success{background:linear-gradient(135deg,#0F2A43,#1B6E80)}
+.btn-success{background:#1E2630}
 .msg{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px}
-.msg-error{background:#fee;color:#8b0000;border:1px solid #fca5a5}
-.msg-success{background:#E4F0F4;color:#0F2A43;border:1px solid #B4D0DA}
-.info{padding:10px 14px;border-radius:8px;font-size:12px;margin-top:14px;background:#E4F0F4;color:#0F2A43;border:1px solid #B4D0DA;text-align:center;line-height:1.6}
+.msg-error{background:#fee;color:#8B2E2E;border:1px solid #E3B4B4}
+.msg-success{background:#EDF0F3;color:#1E2630;border:1px solid #D5DAE0}
+.info{padding:10px 14px;border-radius:8px;font-size:12px;margin-top:14px;background:#EDF0F3;color:#1E2630;border:1px solid #D5DAE0;text-align:center;line-height:1.6}
 .lang-switch{text-align:center;margin-top:18px}
 .lang-switch a{color:#fff;font-size:13px;text-decoration:none;opacity:0.9}
-.hint{font-size:11px;color:#55647a;margin-top:4px}
-.section-divider{height:1px;background:#D3E3EA;margin:14px 0}
-.section-title{font-size:12px;font-weight:800;color:#0F2A43;margin-bottom:10px;letter-spacing:0.5px;text-transform:uppercase}
+.hint{font-size:11px;color:#5A6472;margin-top:4px}
+.section-divider{height:1px;background:#D5DAE0;margin:14px 0}
+.section-title{font-size:12px;font-weight:800;color:#1E2630;margin-bottom:10px;letter-spacing:0.5px;text-transform:uppercase}
 </style>
 </head>
 <body>
@@ -118,7 +118,7 @@ input[type="password"], input.has-eye{direction:ltr;text-align:left}
         {{ 'تسجيل الدخول' if is_ar else 'Sign In' }}
       </button>
 
-      <div style="text-align:center;margin-top:14px;font-size:13px;color:#55647a;">
+      <div style="text-align:center;margin-top:14px;font-size:13px;color:#5A6472;">
         {{ 'نسيت كلمة السر؟ كلمنا واتساب ونظبطهالك:' if is_ar else 'Forgot your password? Message us on WhatsApp:' }}
         <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap;">
           <a href="https://wa.me/201004294521?text=%D9%86%D8%B3%D9%8A%D8%AA%20%D9%83%D9%84%D9%85%D8%A9%20%D8%A7%D9%84%D8%B3%D8%B1%20%D8%A8%D8%AA%D8%A7%D8%B9%D8%AA%20%D8%AD%D8%B3%D8%A7%D8%A8%D9%8A%20%D9%81%D9%8A%20NutraX"

@@ -4,29 +4,29 @@
 
 <style>
   .paywall-wrap { max-width: 700px; margin: 30px auto; padding: 20px 16px; font-family: 'Cairo', 'Tajawal', system-ui, sans-serif; }
-  .paywall-card { background: #fff; border-radius: 24px; padding: 40px 32px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.08); position: relative; overflow: hidden; border: 2px solid #fef3c7; }
-  .paywall-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px; background: linear-gradient(90deg, #f59e0b, #fbbf24, #fcd34d); }
-  .lock-icon { width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 20px; background: linear-gradient(135deg, #f59e0b, #d97706); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 36px; box-shadow: 0 8px 20px rgba(245,158,11,0.4); }
-  .paywall-title { font-size: 28px; font-weight: 800; color: #0f172a; margin: 0 0 10px; }
-  .paywall-msg { font-size: 16px; color: #475569; line-height: 1.7; margin: 0 0 24px; }
-  .reason-box { background: #fffbeb; border-inline-start: 4px solid #f59e0b; border-radius: 12px; padding: 16px 20px; margin: 20px 0; text-align: start; font-size: 14px; color: #78350f; }
+  .paywall-card { background: #fff; border-radius: 24px; padding: 40px 32px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.08); position: relative; overflow: hidden; border: 2px solid #FDF6EC; }
+  .paywall-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px; background: #f59e0b; }
+  .lock-icon { width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 20px; background: #f59e0b; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 36px; box-shadow: 0 8px 20px rgba(245,158,11,0.4); }
+  .paywall-title { font-size: 28px; font-weight: 800; color: #1E2630; margin: 0 0 10px; }
+  .paywall-msg { font-size: 16px; color: #5A6472; line-height: 1.7; margin: 0 0 24px; }
+  .reason-box { background: #FDF6EC; border-inline-start: 4px solid #f59e0b; border-radius: 12px; padding: 16px 20px; margin: 20px 0; text-align: start; font-size: 14px; color: #8A4B1C; }
   .quick-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin: 30px 0 20px; }
-  .quick-plan { background: #F4F9FB; border: 2px solid #D3E3EA; border-radius: 16px; padding: 20px 16px; text-align: center; transition: all 0.25s; position: relative; }
-  .quick-plan:hover { border-color: #1B6E80; transform: translateY(-4px); box-shadow: 0 8px 20px rgba(16,185,129,0.15); }
-  .quick-plan.recommended { background: linear-gradient(180deg, #fffbeb, #fff); border-color: #f59e0b; }
-  .recommended-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .quick-plan { background: #F3F5F7; border: 2px solid #D5DAE0; border-radius: 16px; padding: 20px 16px; text-align: center; transition: all 0.25s; position: relative; }
+  .quick-plan:hover { border-color: #3A4A5C; transform: translateY(-4px); box-shadow: 0 8px 20px rgba(16,185,129,0.15); }
+  .quick-plan.recommended { background: #FDF6EC; border-color: #f59e0b; }
+  .recommended-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #f59e0b; color: #fff; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
   .qp-icon { font-size: 32px; margin-bottom: 8px; }
-  .qp-name { font-size: 15px; font-weight: 700; color: #0f172a; margin: 6px 0; }
-  .qp-price { font-size: 20px; font-weight: 800; color: #1B6E80; }
-  .qp-period { font-size: 12px; color: #55647a; }
+  .qp-name { font-size: 15px; font-weight: 700; color: #1E2630; margin: 6px 0; }
+  .qp-price { font-size: 20px; font-weight: 800; color: #3A4A5C; }
+  .qp-period { font-size: 12px; color: #5A6472; }
   .wa-buttons { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
   .wa-btn { padding: 10px 12px; border-radius: 10px; font-size: 12px; font-weight: 700; text-decoration: none; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 4px; }
   .wa-btn-egypt { background: #0B8043; color: #fff; }
   .wa-btn-uae { background: #075E54; color: #fff; }
   .wa-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
-  .main-cta { display: inline-block; padding: 16px 36px; background: linear-gradient(135deg, #1B6E80, #1B6E80); color: #fff; border-radius: 14px; font-weight: 800; font-size: 17px; text-decoration: none; box-shadow: 0 8px 20px rgba(16,185,129,0.35); transition: all 0.25s; margin-top: 16px; }
+  .main-cta { display: inline-block; padding: 16px 36px; background: #3A4A5C; color: #fff; border-radius: 14px; font-weight: 800; font-size: 17px; text-decoration: none; box-shadow: 0 8px 20px rgba(16,185,129,0.35); transition: all 0.25s; margin-top: 16px; }
   .main-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(16,185,129,0.45); }
-  .features-strip { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; margin: 24px 0 12px; font-size: 13px; color: #55647a; }
+  .features-strip { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; margin: 24px 0 12px; font-size: 13px; color: #5A6472; }
   .features-strip span { display: flex; align-items: center; gap: 4px; }
 </style>
 

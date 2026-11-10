@@ -16,7 +16,7 @@
     padding: 48px 32px;
     text-align: center;
     box-shadow: 0 8px 30px rgba(16, 185, 129, 0.12);
-    border: 2px solid #DDEBF1;
+    border: 2px solid #EDF0F3;
     position: relative;
     overflow: hidden;
   }
@@ -28,7 +28,7 @@
     left: 0;
     right: 0;
     height: 6px;
-    background: linear-gradient(90deg, #1B6E80, #FF7A59, #FF7A59);
+    background: #3A4A5C;
   }
 
   .success-icon {
@@ -36,7 +36,7 @@
     height: 100px;
     margin: 0 auto 24px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #1B6E80, #1B6E80);
+    background: #3A4A5C;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -55,20 +55,20 @@
   .success-title {
     font-size: 32px;
     font-weight: 800;
-    color: #0F2A43;
+    color: #1E2630;
     margin: 0 0 12px;
   }
 
   .success-msg {
     font-size: 17px;
-    color: #475569;
+    color: #5A6472;
     line-height: 1.7;
     margin: 0 0 28px;
   }
 
   .info-box {
-    background: #F4F9FB;
-    border: 1px solid #B4D0DA;
+    background: #F3F5F7;
+    border: 1px solid #D5DAE0;
     border-radius: 14px;
     padding: 20px;
     margin: 24px 0;
@@ -79,13 +79,13 @@
     display: flex;
     justify-content: space-between;
     padding: 8px 0;
-    border-bottom: 1px dashed #DDEBF1;
+    border-bottom: 1px dashed #EDF0F3;
     font-size: 15px;
   }
 
   .info-row:last-child { border-bottom: 0; }
-  .info-label { color: #55647a; font-weight: 600; }
-  .info-value { color: #0f172a; font-weight: 700; }
+  .info-label { color: #5A6472; font-weight: 600; }
+  .info-value { color: #1E2630; font-weight: 700; }
 
   .actions {
     display: flex;
@@ -109,7 +109,7 @@
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, #1B6E80, #1B6E80);
+    background: #3A4A5C;
     color: #fff;
     box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
   }
@@ -121,10 +121,10 @@
 
   .btn-secondary {
     background: #E9F2F6;
-    color: #475569;
+    color: #5A6472;
   }
 
-  .btn-secondary:hover { background: #D3E3EA; }
+  .btn-secondary:hover { background: #D5DAE0; }
 
   .confetti {
     position: absolute;
@@ -196,7 +196,7 @@
 <script>
 // Confetti effect
 (function() {
-  const colors = ['#1B6E80', '#FF7A59', '#FF7A59', '#f59e0b', '#2E8F9E'];
+  const colors = ['#3A4A5C', '#FF7A59', '#FF7A59', '#f59e0b', '#3A4A5C'];
   const container = document.getElementById('confetti');
   if (!container) return;
   for (let i = 0; i < 30; i++) {

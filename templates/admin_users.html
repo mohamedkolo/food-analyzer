@@ -22,7 +22,7 @@
   .page-title {
     font-size: 26px;
     font-weight: 800;
-    color: #0f172a;
+    color: #1E2630;
     margin: 0;
     display: flex;
     align-items: center;
@@ -30,7 +30,7 @@
   }
 
   .add-btn {
-    background: linear-gradient(135deg, #1B6E80, #1B6E80);
+    background: #3A4A5C;
     color: #fff;
     padding: 10px 20px;
     border-radius: 10px;
@@ -60,8 +60,8 @@
   }
   .qstat::before { content: ''; position: absolute; top: 0; right: 0; left: 0; height: 4px; background: var(--c); }
   .qstat-icon { font-size: 22px; margin-bottom: 4px; }
-  .qstat-val { font-size: 26px; font-weight: 800; color: #0f172a; line-height: 1; }
-  .qstat-lbl { font-size: 12px; color: #55647a; margin-top: 4px; font-weight: 600; }
+  .qstat-val { font-size: 26px; font-weight: 800; color: #1E2630; line-height: 1; }
+  .qstat-lbl { font-size: 12px; color: #5A6472; margin-top: 4px; font-weight: 600; }
 
   /* Filters */
   .filters-bar {
@@ -73,7 +73,7 @@
   }
   .filter-input {
     padding: 10px 14px;
-    border: 1px solid #D3E3EA;
+    border: 1px solid #D5DAE0;
     border-radius: 10px;
     font-family: inherit;
     font-size: 14px;
@@ -83,12 +83,12 @@
   }
   .filter-input:focus {
     outline: none;
-    border-color: #1B6E80;
+    border-color: #3A4A5C;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   }
   .filter-select {
     padding: 10px 14px;
-    border: 1px solid #D3E3EA;
+    border: 1px solid #D5DAE0;
     border-radius: 10px;
     font-family: inherit;
     font-size: 14px;
@@ -106,23 +106,23 @@
   }
 
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  thead { background: #F4F9FB; }
+  thead { background: #F3F5F7; }
   th {
     text-align: start;
     padding: 14px 12px;
     font-weight: 700;
-    color: #475569;
+    color: #5A6472;
     font-size: 13px;
-    border-bottom: 2px solid #D3E3EA;
+    border-bottom: 2px solid #D5DAE0;
     white-space: nowrap;
   }
   td {
     padding: 12px;
     border-bottom: 1px solid #E9F2F6;
-    color: #0f172a;
+    color: #1E2630;
     white-space: nowrap;
   }
-  tbody tr:hover { background: #F4F9FB; }
+  tbody tr:hover { background: #F3F5F7; }
 
   /* User cell */
   .user-cell {
@@ -134,7 +134,7 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #1B6E80, #1B6E80);
+    background: #3A4A5C;
     color: #fff;
     display: flex;
     align-items: center;
@@ -144,21 +144,21 @@
     flex-shrink: 0;
   }
   .user-name-link {
-    color: #0f172a;
+    color: #1E2630;
     text-decoration: none;
     font-weight: 700;
     transition: color 0.2s;
   }
-  .user-name-link:hover { color: #1B6E80; }
-  .user-email-sm { font-size: 12px; color: #55647a; }
+  .user-name-link:hover { color: #3A4A5C; }
+  .user-email-sm { font-size: 12px; color: #5A6472; }
 
   /* Badges */
   .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
-  .b-success { background: #DDEBF1; color: #0F2A43; }
-  .b-info { background: #E4F0F4; color: #0F2A43; }
-  .b-warn { background: #fef3c7; color: #92400e; }
-  .b-danger { background: #fee2e2; color: #991b1b; }
-  .b-gray { background: #E9F2F6; color: #475569; }
+  .b-success { background: #EDF0F3; color: #1E2630; }
+  .b-info { background: #EDF0F3; color: #1E2630; }
+  .b-warn { background: #FDF6EC; color: #8A4B1C; }
+  .b-danger { background: #FBEDED; color: #8B2E2E; }
+  .b-gray { background: #E9F2F6; color: #5A6472; }
   .b-purple { background: #ede9fe; color: #5b21b6; }
 
   /* Actions */
@@ -173,7 +173,7 @@
     border-radius: 8px;
     border: 0;
     background: #E9F2F6;
-    color: #475569;
+    color: #5A6472;
     cursor: pointer;
     font-size: 14px;
     display: flex;
@@ -182,18 +182,18 @@
     text-decoration: none;
     transition: all 0.2s;
   }
-  .act-icon-btn:hover { background: #D3E3EA; transform: translateY(-1px); }
-  .act-view { background: #DDEBF1; color: #0F2A43; }
-  .act-view:hover { background: #B4D0DA; }
-  .act-toggle { background: #fef3c7; color: #92400e; }
-  .act-block { background: #fee2e2; color: #991b1b; }
-  .act-delete { background: #fee2e2; color: #991b1b; }
+  .act-icon-btn:hover { background: #D5DAE0; transform: translateY(-1px); }
+  .act-view { background: #EDF0F3; color: #1E2630; }
+  .act-view:hover { background: #D5DAE0; }
+  .act-toggle { background: #FDF6EC; color: #8A4B1C; }
+  .act-block { background: #FBEDED; color: #8B2E2E; }
+  .act-delete { background: #FBEDED; color: #8B2E2E; }
 
   /* Empty state */
   .empty-state {
     text-align: center;
     padding: 60px 24px;
-    color: #55647a;
+    color: #5A6472;
   }
   .empty-state .icon { font-size: 64px; margin-bottom: 12px; opacity: 0.5; }
 
@@ -212,12 +212,12 @@
 
   <!-- Quick Stats -->
   <div class="quick-stats">
-    <div class="qstat" style="--c: #1B6E80">
+    <div class="qstat" style="--c: #3A4A5C">
       <div class="qstat-icon">👥</div>
       <div class="qstat-val">{{ users|length }}</div>
       <div class="qstat-lbl">{{ t('إجمالي المستخدمين','Total Users') }}</div>
     </div>
-    <div class="qstat" style="--c: #2E8F9E">
+    <div class="qstat" style="--c: #3A4A5C">
       <div class="qstat-icon">✅</div>
       <div class="qstat-val">{{ users|selectattr('active', 'eq', 1)|list|length }}</div>
       <div class="qstat-lbl">{{ t('حسابات نشطة','Active Accounts') }}</div>
@@ -249,7 +249,7 @@
       <option value="blocked">{{ t('محظور','Blocked') }}</option>
     </select>
     <a href="/admin/users/export"
-       style="display:inline-flex;align-items:center;gap:6px;background:#0F2A43;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;white-space:nowrap;">
+       style="display:inline-flex;align-items:center;gap:6px;background:#1E2630;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;white-space:nowrap;">
       📥 {{ t('تصدير Excel','Export Excel') }}
     </a>
     {# ‏النسخة الاحتياطية جنب التصدير بالقصد: التصدير ده **جدول العملاء
@@ -259,7 +259,7 @@
     <a href="/admin/backup"
        title="{{ t('كل القاعدة: العملاء والمتابعات والخطط والروابط',
                    'The whole database: clients, follow-ups, plans and links') }}"
-       style="display:inline-flex;align-items:center;gap:6px;background:#fff;color:#0F2A43;border:1.5px solid #0F2A43;padding:9px 18px;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;white-space:nowrap;">
+       style="display:inline-flex;align-items:center;gap:6px;background:#fff;color:#1E2630;border:1.5px solid #1E2630;padding:9px 18px;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;white-space:nowrap;">
       {# ‏💾 مش 🗄️: التاني مش موجود في كل الخطوط وبيطلع مربع فاضي --
          اتشاف في الرندر. والأول نفس عيلة 📥 اللي جنبه وبيتعرض في كل مكان. #}
       💾 {{ t('نسخة احتياطية كاملة','Full backup') }}
@@ -268,8 +268,8 @@
 
   {# ‏الملف فيه بيانات صحية لكل العملاء، فالتنبيه جنب الزرار مش في
      صفحة توثيق محدش بيفتحها. #}
-  <p style="font-size:12.5px;color:#8a4b00;background:#FFF4E5;
-            border:1px solid #f5cf9a;border-radius:9px;padding:9px 13px;
+  <p style="font-size:12.5px;color:#8A4B1C;background:#FDF6EC;
+            border:1px solid #E5C9A1;border-radius:9px;padding:9px 13px;
             margin:0 0 16px;line-height:1.8">
     {{ t('ملف النسخة فيه أسماء وتليفونات وأوزان وأمراض كل العملاء. خزّنه مشفّر، ومتبعتهوش في واتساب أو إيميل.',
          'The backup file holds every client’s name, phone, weight and conditions. Keep it encrypted, and do not send it over WhatsApp or email.') }}
@@ -326,7 +326,7 @@
             {% else %}<span class="badge b-danger">🚫 {{ t('محظور','Blocked') }}</span>{% endif %}
           </td>
 
-          <td style="font-size: 13px; color: #55647a">
+          <td style="font-size: 13px; color: #5A6472">
             {% if u.created_at %}
               {{ u.created_at.strftime('%Y-%m-%d') if u.created_at.__class__.__name__ != 'str' else (u.created_at[:10]) }}
             {% else %}-{% endif %}
@@ -347,7 +347,7 @@
 
               <!-- Change role dropdown via select -->
               <select aria-label="{{ t('تغيير دور العميل','Change client role') }}" onchange="if(this.value){window.location.href='/admin/users/{{ u.id }}/role/'+this.value}"
-                      style="padding: 5px 8px; border-radius: 7px; border: 1px solid #D3E3EA; font-size: 12px; background: #fff;">
+                      style="padding: 5px 8px; border-radius: 7px; border: 1px solid #D5DAE0; font-size: 12px; background: #fff;">
                 <option value="">📝 {{ t('دور','Role') }}</option>
                 <option value="client">{{ t('عميل','Client') }}</option>
                 <option value="nutritionist">{{ t('أخصائي','Nutritionist') }}</option>
@@ -376,7 +376,7 @@
               </form>
             </div>
             {% else %}
-            <span style="color: #55647a; font-size: 12px;">- Admin -</span>
+            <span style="color: #5A6472; font-size: 12px;">- Admin -</span>
             {% endif %}
           </td>
         </tr>

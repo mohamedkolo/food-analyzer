@@ -136,6 +136,38 @@ def test_no_gradient_survives_in_the_shared_chrome():
             "‏%s لسه فيه تدرّج" % name)
 
 
+def test_no_gradient_or_glow_survives_anywhere_on_the_site():
+    """‏مش الصفحات التلاتة الأساسية بس -- الموقع كله. ٨٤ تدرّج اتسطّحوا في
+    ٤١ قالب، وتوهّجين (radial) في هيرو الصفحة الرئيسية اتشالوا."""
+    import glob
+    left = []
+    for path in sorted(glob.glob(os.path.join(_HERE, "templates", "*.html"))):
+        if "gradient" in _page(path):
+            left.append(os.path.basename(path))
+    assert not left, "‏لسه فيه تدرّج في: %s" % ", ".join(left)
+
+
+def test_the_public_header_is_readable_on_a_white_bar():
+    """‏الهيدر بقى أبيض، وهيدر الصفحات العامة كان مكتوب لهيدر كحلي غامق:
+    اللوجو ``color:#fff`` واللينكات ``#cbd5e1``. فـ"NutraX" بقت **أبيض
+    على أبيض** على الصفحة الرئيسية والأسعار والتسجيل -- واتنشرت كده،
+    لأن الطقم كله عدّى: مفيش اختبار كان بيشوف الصفحة بعينه.
+
+    ‏اللي مسكها فحص تباين على الصفحة المرندرة. والاختبار ده بيقفل نفس
+    الباب من الـHTML."""
+    head = _page(os.path.join(_HERE, "templates", "_public_header.html"))
+    logo = re.search(r'class="header-logo"[^>]*>', head)
+    assert logo, "‏اللوجو مش موجود في الهيدر العام"
+    assert "#fff" not in logo.group(0).lower(), (
+        "‏اللوجو أبيض على هيدر أبيض: " + logo.group(0))
+    assert "#cbd5e1" not in head.lower(), (
+        "‏لينكات الهيدر رمادي فاتح (١.٤٨:١ على الأبيض)")
+    base = _page(_BASE)
+    m = re.search(r"\.header\{[^}]*background:([^;}]+)", base)
+    assert m and "var(--white)" in m.group(1), (
+        "‏لو الهيدر رجع غامق، ألوان الهيدر العام لازم تتراجع معاه")
+
+
 def test_the_generate_button_still_has_a_background():
     """‏الزرار ده بيستعمل .btn-success، واللي كان تدرّج."""
     base = _page(_BASE)

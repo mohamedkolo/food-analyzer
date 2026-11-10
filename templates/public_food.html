@@ -13,49 +13,49 @@
 <style>
   .fd-wrap { max-width: 780px; margin: 0 auto; padding: 28px 20px 60px;
              font-family: 'Cairo','Tajawal',system-ui,sans-serif; }
-  .fd-crumb { font-size: 13px; color: #55647a; margin-bottom: 18px; }
-  .fd-crumb a { color: #55647a; text-decoration: none; }
-  .fd-crumb a:hover { color: #1B6E80; text-decoration: underline; }
-  .fd-title { font-size: 30px; font-weight: 900; color: #0f172a; margin: 0 0 4px; }
-  .fd-alt { color: #55647a; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-  .fd-cat { display: inline-block; background: #E4F0F4; color: #0F2A43;
+  .fd-crumb { font-size: 13px; color: #5A6472; margin-bottom: 18px; }
+  .fd-crumb a { color: #5A6472; text-decoration: none; }
+  .fd-crumb a:hover { color: #3A4A5C; text-decoration: underline; }
+  .fd-title { font-size: 30px; font-weight: 900; color: #1E2630; margin: 0 0 4px; }
+  .fd-alt { color: #5A6472; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .fd-cat { display: inline-block; background: #EDF0F3; color: #1E2630;
             border-radius: 999px; padding: 5px 14px; font-size: 12.5px;
             font-weight: 700; margin-top: 10px; text-decoration: none; }
   .fd-macros { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr));
                gap: 12px; margin: 26px 0; }
-  .fd-m { background: #fff; border: 1px solid #D3E3EA; border-radius: 14px;
+  .fd-m { background: #fff; border: 1px solid #D5DAE0; border-radius: 14px;
           padding: 18px; text-align: center; }
-  .fd-m .v { font-size: 26px; font-weight: 900; color: #0f172a; line-height: 1.1; }
-  .fd-m .l { font-size: 12.5px; color: #55647a; font-weight: 700; margin-top: 5px; }
-  .fd-basis { text-align: center; color: #55647a; font-size: 13px; margin-top: -12px; }
-  .fd-portion { background: #0F2A43; color: #fff; border-radius: 14px;
+  .fd-m .v { font-size: 26px; font-weight: 900; color: #1E2630; line-height: 1.1; }
+  .fd-m .l { font-size: 12.5px; color: #5A6472; font-weight: 700; margin-top: 5px; }
+  .fd-basis { text-align: center; color: #5A6472; font-size: 13px; margin-top: -12px; }
+  .fd-portion { background: #1E2630; color: #fff; border-radius: 14px;
                 padding: 16px 20px; margin: 18px 0 20px; }
   .fd-portion strong { display: block; font-size: 14.5px; font-weight: 800; margin-bottom: 10px; }
   .fd-pnote { font-weight: 600; opacity: .75; font-size: 13px; }
   .fd-prow { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13.5px; opacity: .95; }
   .fd-prow b { font-size: 17px; font-weight: 900; }
-  .fd-box { background: #F4F9FB; border: 1px solid #B4D0DA; border-radius: 14px;
+  .fd-box { background: #F3F5F7; border: 1px solid #D5DAE0; border-radius: 14px;
             padding: 18px 20px; margin-bottom: 14px; }
-  .fd-box strong { display: block; color: #0F2A43; font-size: 14px; margin-bottom: 6px; }
-  .fd-box p { margin: 0; color: #0f172a; font-size: 14.5px; line-height: 1.9; }
+  .fd-box strong { display: block; color: #1E2630; font-size: 14px; margin-bottom: 6px; }
+  .fd-box p { margin: 0; color: #1E2630; font-size: 14.5px; line-height: 1.9; }
   .fd-safe { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-  .fd-tag { background: #DDEBF1; color: #0F2A43; border-radius: 999px;
+  .fd-tag { background: #EDF0F3; color: #1E2630; border-radius: 999px;
             padding: 6px 14px; font-size: 12.5px; font-weight: 700; }
   .fd-rel { margin-top: 34px; }
-  .fd-rel h2 { font-size: 18px; font-weight: 900; color: #0f172a;
-               margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid #D3E3EA; }
+  .fd-rel h2 { font-size: 18px; font-weight: 900; color: #1E2630;
+               margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid #D5DAE0; }
   .fd-rel-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap: 8px; }
-  .fd-rel-list a { background: #fff; border: 1px solid #D3E3EA; border-radius: 11px;
-                   padding: 11px 14px; text-decoration: none; color: #0F2A43;
+  .fd-rel-list a { background: #fff; border: 1px solid #D5DAE0; border-radius: 11px;
+                   padding: 11px 14px; text-decoration: none; color: #1E2630;
                    font-size: 13.5px; font-weight: 700; display: flex;
                    justify-content: space-between; gap: 8px; }
-  .fd-rel-list a:hover { border-color: #1B6E80; }
-  .fd-rel-list span { color: #55647a; font-weight: 600; }
-  .fd-cta { background: linear-gradient(135deg,#1B6E80,#0F2A43); color: #fff;
+  .fd-rel-list a:hover { border-color: #3A4A5C; }
+  .fd-rel-list span { color: #5A6472; font-weight: 600; }
+  .fd-cta { background: #3A4A5C; color: #fff;
             border-radius: 16px; padding: 26px; margin-top: 36px; text-align: center; }
   .fd-cta h3 { margin: 0 0 8px; font-size: 19px; font-weight: 900; }
   .fd-cta p { margin: 0 0 18px; opacity: .92; font-size: 14px; line-height: 1.8; }
-  .fd-cta a { background: #FF7A59; color: #0F2A43; padding: 12px 26px; border-radius: 11px;
+  .fd-cta a { background: #FF7A59; color: #1E2630; padding: 12px 26px; border-radius: 11px;
               font-weight: 800; text-decoration: none; display: inline-block; font-size: 14px; }
   @media (max-width: 640px) { .fd-title { font-size: 24px; } }
 </style>
@@ -123,7 +123,7 @@
     <div class="fd-safe">
       {% for lbl in safe_labels %}<span class="fd-tag">{{ lbl }}</span>{% endfor %}
     </div>
-    <p style="margin-top:10px;font-size:13px;color:#55647a">{{ t(
+    <p style="margin-top:10px;font-size:13px;color:#5A6472">{{ t(
       'ده إرشاد عام لكل 100 جرام، مش بديل عن استشارة. الكمية المناسبة لك بتعتمد على حالتك وتحاليلك.',
       'This is general guidance per 100g, not a substitute for advice. The right amount for you depends on your condition and your labs.') }}</p>
   </div>

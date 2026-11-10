@@ -12,28 +12,25 @@
 
 {% block extra_style %}
 <style>
-  .fx { --ink:#0F2A43; --brand:#1B6E80; --brand-2:#2E8F9E; --accent:#FF7A59;
-        --line:#D3E3EA; --soft:#F4F9FB; --muted:#55647a;
+  .fx { --ink:#1E2630; --brand:#3A4A5C; --brand-2:#3A4A5C; --accent:#FF7A59;
+        --line:#D5DAE0; --soft:#F3F5F7; --muted:#5A6472;
         font-family:'Cairo','Tajawal',system-ui,sans-serif; }
 
   /* search band */
-  .fx-band { background:linear-gradient(135deg,#0F2A43 0%,#1B6E80 100%);
+  .fx-band { background:#1E2630;
              padding:44px 20px 52px; color:#fff; position:relative; overflow:hidden; }
-  .fx-band::after { content:''; position:absolute; inset:0;
-    background:radial-gradient(circle at 80% -20%, rgba(255,122,89,.30), transparent 55%);
-    pointer-events:none; }
   .fx-band-in { max-width:760px; margin:0 auto; position:relative; text-align:center; }
   .fx-band h1 { font-size:32px; font-weight:900; margin:0 0 10px; line-height:1.35; }
   .fx-band p { margin:0 0 24px; opacity:.92; font-size:15.5px; line-height:1.8; }
   .fx-search { position:relative; }
   .fx-search input {
     width:100%; padding:17px 54px 17px 20px; border-radius:14px; border:0;
-    font-size:16px; font-family:inherit; font-weight:600; color:#0F2A43;
+    font-size:16px; font-family:inherit; font-weight:600; color:#1E2630;
     box-shadow:0 10px 30px rgba(0,0,0,.18); outline:none;
   }
   html[dir="ltr"] .fx-search input { padding:17px 20px 17px 54px; }
   .fx-search .ic { position:absolute; top:50%; transform:translateY(-50%);
-                   inset-inline-end:20px; color:#55647a; font-size:17px; pointer-events:none; }
+                   inset-inline-end:20px; color:#5A6472; font-size:17px; pointer-events:none; }
   html[dir="ltr"] .fx-search .ic { inset-inline-end:auto; inset-inline-start:20px; }
 
   /* live results */
@@ -42,11 +39,11 @@
              box-shadow:0 14px 40px rgba(15,42,67,.13); overflow:hidden; display:none; }
   .fx-hits.on { display:block; }
   .fx-hit { display:flex; align-items:center; justify-content:space-between; gap:12px;
-            padding:13px 18px; text-decoration:none; border-bottom:1px solid #EDF4F7; }
+            padding:13px 18px; text-decoration:none; border-bottom:1px solid #EDF0F3; }
   .fx-hit:last-child { border-bottom:0; }
   .fx-hit:hover, .fx-hit:focus { background:var(--soft); }
   .fx-hit .nm { font-weight:800; color:var(--ink); font-size:14.5px; }
-  .fx-hit .alt { color:#55647a; font-size:12px; font-weight:600; }
+  .fx-hit .alt { color:#5A6472; font-size:12px; font-weight:600; }
   .fx-hit .kc { color:var(--brand); font-weight:800; font-size:13.5px; white-space:nowrap; }
   .fx-none { padding:22px; text-align:center; color:var(--muted); font-size:14px; }
 
@@ -87,21 +84,21 @@
                   border-radius:15px; background:#fff; }
   table.fx-t { width:100%; border-collapse:collapse; font-size:14px; min-width:540px; }
   table.fx-t th, table.fx-t td { padding:12px 14px; text-align:start;
-                                 border-bottom:1px solid #EDF4F7; }
+                                 border-bottom:1px solid #EDF0F3; }
   table.fx-t tr:last-child td { border-bottom:0; }
-  table.fx-t th { background:var(--soft); font-weight:800; color:#475569;
+  table.fx-t th { background:var(--soft); font-weight:800; color:#5A6472;
                   font-size:12.5px; white-space:nowrap; }
   table.fx-t tr:hover td { background:var(--soft); }
   table.fx-t a { color:var(--brand); font-weight:800; text-decoration:none; }
   table.fx-t a:hover { text-decoration:underline; }
-  .fx-alt { color:#55647a; font-size:12px; display:block; }
+  .fx-alt { color:#5A6472; font-size:12px; display:block; }
   .fx-n { font-variant-numeric:tabular-nums; white-space:nowrap; }
 
-  .fx-cta { background:linear-gradient(135deg,var(--brand),var(--ink));
+  .fx-cta { background:var(--ink);
             color:#fff; border-radius:18px; padding:30px; margin-top:44px; text-align:center; }
   .fx-cta h3 { margin:0 0 8px; font-size:21px; font-weight:900; }
   .fx-cta p { margin:0 0 20px; opacity:.93; font-size:14.5px; line-height:1.8; }
-  .fx-cta a { background:var(--accent); color:#fff; padding:13px 28px;
+  .fx-cta a { background:var(--accent); color:#1E2630; padding:13px 28px;
               border-radius:12px; font-weight:800; text-decoration:none;
               display:inline-block; font-size:15px; }
 

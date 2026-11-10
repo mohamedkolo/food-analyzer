@@ -7,15 +7,15 @@
      ورقة واحدة. */
   .sl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
            gap:14px}
-  .sl-box{border:1px solid #D3E3EA;border-radius:12px;padding:13px 15px;
+  .sl-box{border:1px solid #D5DAE0;border-radius:12px;padding:13px 15px;
           background:#fff;break-inside:avoid}
   .sl-box h3{font-size:14px;font-weight:900;color:var(--blue-dark);
-             margin:0 0 9px;padding-bottom:7px;border-bottom:1px solid #EDF4F7}
+             margin:0 0 9px;padding-bottom:7px;border-bottom:1px solid #EDF0F3}
   .sl-row{display:flex;justify-content:space-between;gap:10px;
           padding:5px 0;font-size:13.5px;align-items:baseline}
-  .sl-row .q{font-weight:800;color:#1B6E80;white-space:nowrap}
+  .sl-row .q{font-weight:800;color:#3A4A5C;white-space:nowrap}
   .sl-row .d{font-size:11px;color:var(--muted);font-weight:600}
-  .sl-note{background:#F4F9FB;border:1px dashed #9CC3D0;border-radius:11px;
+  .sl-note{background:#F3F5F7;border:1px dashed #9CC3D0;border-radius:11px;
            padding:12px 15px;font-size:13px;line-height:1.9;color:#456b61}
   @media print{
     .sidebar,.topbar,footer,.no-print{display:none !important}
@@ -91,7 +91,7 @@
 {% if items.unknown %}
 {# ‏اللي القايمة معرفتوش. مابيتشالش من غير ما يتقال -- الأخصائي لازم
    يشوفه عشان يزوّده بإيده بدل ما العميل يكتشفه في السوق. #}
-<div class="sl-note no-print" style="margin-top:12px;border-color:#f5cf9a;background:#FFF4E5;color:#8a4b00">
+<div class="sl-note no-print" style="margin-top:12px;border-color:#E5C9A1;background:#FDF6EC;color:#8A4B1C">
   <b>{{ t('مش في جدول الأكل','Not in the food table') }}</b> —
   {{ t('الأصناف دي مااتحسبتش. زوّدها بإيدك على القايمة قبل ما تسلّمها.',
        'These were not counted. Add them to the list by hand before handing it over.') }}

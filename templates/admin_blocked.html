@@ -5,7 +5,7 @@
 {% set is_ar = (lang or 'ar') == 'ar' %}
 
 <h1 class="page-title">
-  <i class="fa-solid fa-ban" style="color:#7f1d1d"></i> {{ 'الحسابات المحظورة' if is_ar else 'Blocked Accounts' }}
+  <i class="fa-solid fa-ban" style="color:#8B2E2E"></i> {{ 'الحسابات المحظورة' if is_ar else 'Blocked Accounts' }}
 </h1>
 
 <div class="alert alert-warn" style="margin-bottom:16px">
@@ -24,7 +24,7 @@
 <div class="card" style="padding:0">
   {% for b in blocked %}
   <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--gray-2)">
-    <div style="width:42px;height:42px;border-radius:50%;background:#fef2f2;color:#7f1d1d;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
+    <div style="width:42px;height:42px;border-radius:50%;background:#FBEDED;color:#8B2E2E;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
       <i class="fa-solid fa-ban"></i>
     </div>
     <div style="flex:1;min-width:0">
@@ -42,7 +42,7 @@
     </div>
     <form method="POST" action="/admin/blocked/{{ b.id }}/remove" onsubmit="return confirm('{{ 'فك الحظر عن هذا الإيميل؟' if is_ar else 'Unblock this email?' }}');" style="margin:0">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit" class="btn" style="background:#1B6E80;color:white;font-size:12px;padding:7px 14px">
+      <button type="submit" class="btn" style="background:#3A4A5C;color:white;font-size:12px;padding:7px 14px">
         <i class="fa-solid fa-unlock"></i> {{ 'فك الحظر' if is_ar else 'Unblock' }}
       </button>
     </form>

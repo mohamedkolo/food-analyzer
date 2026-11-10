@@ -6,19 +6,19 @@
   <i class="fa-solid fa-clock"></i> {{ t('طلب خطة جديدة','Request New Plan') }}
 </h1>
 
-<div class="card" style="background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border:2px solid #f59e0b">
+<div class="card" style="background:#FDF6EC;border:2px solid #f59e0b">
   <div style="text-align:center;padding:30px 20px">
     <div style="font-size:64px;margin-bottom:16px">🔒</div>
-    <h2 style="color:#78350f;margin-bottom:12px;font-weight:800">{{ t('مينفعش تطلب خطة جديدة دلوقتي','You cannot request a new plan yet') }}</h2>
-    <p style="color:#92400e;font-size:15px;margin-bottom:24px;max-width:500px;margin-inline-start:auto;margin-inline-end:auto;line-height:1.7">
+    <h2 style="color:#8A4B1C;margin-bottom:12px;font-weight:800">{{ t('مينفعش تطلب خطة جديدة دلوقتي','You cannot request a new plan yet') }}</h2>
+    <p style="color:#8A4B1C;font-size:15px;margin-bottom:24px;max-width:500px;margin-inline-start:auto;margin-inline-end:auto;line-height:1.7">
       {% if is_ar %}الخطط الغذائية بتتعمل أسبوعياً لضمان أفضل نتيجة.<br>
       تقدر تطلب خطة جديدة كل <strong>7 أيام</strong> بس.{% else %}Meal plans are built weekly to give the best results.<br>
       You can request a new plan only every <strong>7 days</strong>.{% endif %}
     </p>
 
     <div style="background:white;border-radius:16px;padding:24px;display:inline-block;min-width:300px;box-shadow:0 8px 24px rgba(0,0,0,0.1)">
-      <div style="font-size:13px;color:#92400e;font-weight:700;margin-bottom:12px">⏰ {{ t('متبقي على الطلب الجديد:','Time left until your next request:') }}</div>
-      <div style="font-size:36px;font-weight:900;color:#78350f;margin-bottom:8px">
+      <div style="font-size:13px;color:#8A4B1C;font-weight:700;margin-bottom:12px">⏰ {{ t('متبقي على الطلب الجديد:','Time left until your next request:') }}</div>
+      <div style="font-size:36px;font-weight:900;color:#8A4B1C;margin-bottom:8px">
         {% if days_left > 0 %}
           {{ days_left }} {{ t('يوم','days') }}
         {% endif %}

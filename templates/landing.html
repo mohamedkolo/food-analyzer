@@ -18,31 +18,21 @@
     font-weight: 800; font-size: 15px; transition: all .2s; border: 2px solid transparent;
     cursor: pointer; font-family: inherit;
   }
-  .lp-btn-primary { background: #FF7A59; color: #0F2A43; }
+  .lp-btn-primary { background: #FF7A59; color: #1E2630; }
   .lp-btn-primary:hover { background: #FF9A80; transform: translateY(-2px); }
-  .lp-btn-ghost { background: transparent; color: #1B6E80; border-color: #1B6E80; }
-  .lp-btn-ghost:hover { background: #1B6E80; color: #fff; }
+  .lp-btn-ghost { background: transparent; color: #3A4A5C; border-color: #3A4A5C; }
+  .lp-btn-ghost:hover { background: #3A4A5C; color: #fff; }
   .lp-btn-light { background: rgba(255,255,255,.15); color: #fff; border-color: rgba(255,255,255,.4); }
   .lp-btn-light:hover { background: rgba(255,255,255,.28); }
 
   /* hero */
+  /* ‏الهيرو كان عليه توهّجين في الأركان (مرجاني وتركوازي) وشبكة باهتة
+     فوقهم. التوهّج والتدرّج والشبكة هما بالظبط اللي بيخلّوا الصفحة تبان
+     مولّدة -- فبقى لون واحد مصمت، والكلام هو اللي بيشيل الصفحة. */
   .lp-hero {
-    background:
-      radial-gradient(1100px 520px at 78% -12%, rgba(255,122,89,.34), transparent 60%),
-      radial-gradient(760px 420px at 8% 108%, rgba(46,143,158,.42), transparent 62%),
-      linear-gradient(135deg, #0F2A43 0%, #14405F 55%, #1B6E80 100%);
+    background: #1E2630;
     color: #fff; padding: 88px 20px 96px; text-align: center; position: relative;
     overflow: hidden;
-  }
-  /* faint grid, so the block is not a flat slab of colour */
-  .lp-hero::before {
-    content:''; position:absolute; inset:0; opacity:.5;
-    background-image:
-      linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
-    background-size: 56px 56px;
-    mask-image: radial-gradient(circle at 50% 30%, #000 20%, transparent 72%);
-    -webkit-mask-image: radial-gradient(circle at 50% 30%, #000 20%, transparent 72%);
   }
   .lp-hero > * { position: relative; }
   .lp-eyebrow {
@@ -58,8 +48,7 @@
     line-height: 1.22; max-width: 900px; letter-spacing: -.5px;
   }
   .lp-hero h1 .hl {
-    background: linear-gradient(120deg, #FF9A80, #FF7A59);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
+    color: #FF9A80;
   }
   .lp-hero p.sub {
     margin: 0 auto 34px; font-size: 18.5px; line-height: 1.85;
@@ -81,11 +70,11 @@
   /* sections */
   .lp-sec { max-width: 1080px; margin: 0 auto; padding: 68px 20px; }
   .lp-sec h2 {
-    font-size: 30px; font-weight: 900; color: #0f172a;
+    font-size: 30px; font-weight: 900; color: #1E2630;
     margin: 0 0 12px; text-align: center;
   }
   .lp-sec .lead {
-    text-align: center; color: #55647a; font-size: 16px;
+    text-align: center; color: #5A6472; font-size: 16px;
     max-width: 640px; margin: 0 auto 40px; line-height: 1.8;
   }
   .lp-grid {
@@ -93,20 +82,20 @@
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   }
   .lp-card {
-    background: #fff; border: 1px solid #D3E3EA; border-radius: 16px;
+    background: #fff; border: 1px solid #D5DAE0; border-radius: 16px;
     padding: 26px; transition: all .25s;
   }
   .lp-card:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(20,51,43,.10); }
   .lp-card .ic { font-size: 34px; margin-bottom: 12px; }
-  .lp-card h3 { margin: 0 0 8px; font-size: 17px; font-weight: 800; color: #0f172a; }
-  .lp-card p { margin: 0; color: #55647a; font-size: 14px; line-height: 1.8; }
+  .lp-card h3 { margin: 0 0 8px; font-size: 17px; font-weight: 800; color: #1E2630; }
+  .lp-card p { margin: 0; color: #5A6472; font-size: 14px; line-height: 1.8; }
 
   /* conditions */
-  .lp-conds { background: #F4F9FB; }
+  .lp-conds { background: #F3F5F7; }
   .lp-chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
   .lp-chip {
-    background: #fff; border: 1px solid #B4D0DA; border-radius: 999px;
-    padding: 9px 18px; font-size: 14px; font-weight: 700; color: #0F2A43;
+    background: #fff; border: 1px solid #D5DAE0; border-radius: 999px;
+    padding: 9px 18px; font-size: 14px; font-weight: 700; color: #1E2630;
   }
 
   /* steps */
@@ -117,16 +106,16 @@
     counter-increment: s; content: counter(s);
     position: absolute; top: 0; inset-inline-start: 0;
     width: 40px; height: 40px; border-radius: 50%;
-    background: #1B6E80; color: #fff;
+    background: #3A4A5C; color: #fff;
     display: flex; align-items: center; justify-content: center;
     font-weight: 900; font-size: 17px;
   }
-  .lp-step h3 { margin: 0 0 6px; font-size: 16px; font-weight: 800; color: #0f172a; }
-  .lp-step p { margin: 0; color: #55647a; font-size: 14px; line-height: 1.8; }
+  .lp-step h3 { margin: 0 0 6px; font-size: 16px; font-weight: 800; color: #1E2630; }
+  .lp-step p { margin: 0; color: #5A6472; font-size: 14px; line-height: 1.8; }
 
   /* closing call to action */
   .lp-cta {
-    background: linear-gradient(135deg, #1B6E80, #0F2A43);
+    background: #3A4A5C;
     color: #fff; text-align: center; padding: 64px 20px;
   }
   .lp-cta h2 { color: #fff; font-size: 30px; font-weight: 900; margin: 0 0 12px; }
