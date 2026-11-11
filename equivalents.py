@@ -126,18 +126,31 @@ _GLUTEN_FREE = ("ارز", "ذره", "بطاط", "كينوا")
 #
 # ‏الكلى -- [خ] ص ١٩٢-١٩٨، [CN] p.243-245
 #   - البروتين محدد (٠٫٦ جم/كجم): البديل مايزودش بروتين عن الأصل.
-#   - البوتاسيوم محدد (٢-٣ جم/يوم). جدول ص ١٩٦: وحدة الألبان ٣٤٠ ملجم،
-#     الخضروات ٢٤٠، الفواكه ١٢٠، اللحوم ١٢٠، الخبز ٢٥، الدهن صفر. والكتاب
-#     بيقول إن الفروق جوّه المجموعة الواحدة كبيرة -- وجدول الأكل عندنا
-#     مافيهوش بوتاسيوم. فمجموعات الفواكه والخضروات والألبان **مابيتعرضش
-#     فيها بديل** لمريض الكلى: مانقدرش نقول أنهي فاكهة أقل من أنهي.
+#   - البوتاسيوم محدد (٢-٣ جم/يوم، [خ] ص ١٩٤). جدول [خ] ص ١٩٦: وحدة الألبان
+#     ٣٤٠ ملجم، الخضروات ٢٤٠، الفواكه ١٢٠، اللحوم ١٢٠، الخبز ٢٥، الدهن صفر.
+#     الألبان مقفولة كمجموعة (بوتاسيوم وفوسفور مع بعض).
+#     الفواكه والخضروات: [UN] p.885 بيسمّي اللي بوتاسيومه عالي لدرجة إن
+#     "regular use is discouraged": avocados, bananas, beets, brussels
+#     sprouts, chard, dates, dried beans and peas, dried fruit, honeydew
+#     melon, nectarines, oranges, potatoes, spinach, sweet potatoes,
+#     tomatoes, winter squash, zucchini -- ومعاهم milk products, molasses,
+#     nuts. وبيقول إن مريض الكلى "can consume most fruits and vegetables in
+#     limited amounts". فالمسمّين دول مقفولين، والباقي بيتعرض بشرطين مع بعض:
+#     مش في القايمة، **و**متعلّم عليه "آمن للكلى" في جدول الأكل. البديل
+#     بنفس الكمية بتاعة الأصل، فمابيزودش اللي الخطة سمحت بيه.
 #   - الفوسفور (ص ١٩٨): "اللبن، الجبن، البقول الجافة، الكولا، المكسرات
 #     وزبدة الفول السوداني" -- يجب الإقلال. فمايتعرضوش كبديل.
 #   - الصوديوم (ص ١٩٧): "معظم الأطعمة المعلبة والمجمدة والمصنعة".
-KIDNEY_CLOSED_GROUPS = (FRUIT, VEG, MILK)
+KIDNEY_CLOSED_GROUPS = (MILK,)
 KIDNEY_PROTEIN_SLACK_G = 1.0
 _KIDNEY_BANNED = ("جبن", "معلب", "مجمد", "مكسرات", "سوداني", "لوز", "كاجو",
-                  "بندق", "فستق", "عين جمل", "جوز", "لب ", "سمسم", "طحينه")
+                  "بندق", "فستق", "عين جمل", "جوز", "لب ", "سمسم", "طحينه",
+                  # ‏[UN] p.885 -- بوتاسيوم عالي
+                  "افوكادو", "موز", "بنجر", "شمندر", "بروكسل", "سلق", "تمر",
+                  "بلح", "زبيب", "مشمشيه", "قراصيا", "تين", "شمام",
+                  "كانتالوب", "نكتارين", "برتقال", "بطاطس", "بطاطا", "سبانخ",
+                  "طماطم", "قرع", "كوسه", "عسل اسود", "فول", "عدس",
+                  "فاصوليا", "لوبيا", "حمص", "بسله")
 
 # ‏القلب والكوليسترول -- [خ] ص ١٧٨، جدول "الأطعمة الممنوعة / المسموح بها".
 #   ممنوع: الضأن، المخ، الكلاوي، الكبد، الريش؛ البط والحمام والأوز وجلد
@@ -167,8 +180,12 @@ _SODIUM_BANNED = ("معلب", "مخلل", "زيتون", "صوص", "صلصه", "�
 # ‏السكري -- [خ] ص ١٥٤-١٦٠. "تمنع الأطعمة العالية في محتواها من السكر".
 #   الفواكه طازجة، مش "العصائر ... أو المعلبة في عصيرها أو المجففة"
 #   (ص ١٥٩)؛ والقليل من "النشويات العالية الدهن والمحمرة" (ص ١٥٨).
+#   والنشويات: [خ] ص ١٥٧ "مفيدة وضرورية لجميع الأفراد بما فيهم مريض البول
+#   السكري"، والحبوب الكاملة أحسن (ص ١٥٨)؛ و[UN] p.821-822: الأكل العالي
+#   الألياف وقليل التصنيع أثره أهدى من النشا المكرر. فالأبيض المكرر مقفول.
 _DIABETES_BANNED = ("عصير", "تمر", "زبيب", "قراصيا", "مشمشيه", "عسل", "مربي",
-                    "سكر", "شراب", "محمر", "مقلي", "فطير", "كيك", "بسكويت")
+                    "سكر", "شراب", "محمر", "مقلي", "فطير", "كيك", "بسكويت",
+                    " ابيض ", "فينو", "بقسماط", "شابوره")
 
 # ‏الحمل -- [UN] p.499.
 #   الزئبق: "Avoid shark, swordfish, king mackerel, and tilefish"، وحدّ
@@ -181,7 +198,45 @@ _DIABETES_BANNED = ("عصير", "تمر", "زبيب", "قراصيا", "مشمش�
 _PREGNANCY_BANNED = ("فيتا", " بري ", "كاممبير", "كامامبير", "روكفور",
                      "ريكفور", "ازرق", "ابو سيف", "قرش", "ماكريل", "تونه")
 
-_BOOK_RULES = {"حامل": _PREGNANCY_BANNED, "كلوي": _KIDNEY_BANNED, "قلب": _HEART_BANNED,
+# ‏النقرس -- [UN] p.890، Table 28-8 "Foods High in Purines":
+#   brains, kidney, liver, sweetbreads; game meat, gravies, meat extracts;
+#   anchovies, herring, mackerel, sardines, scallops.
+_GOUT_BANNED = (" مخ ", "كلاوي", "كبد", "مرق", "شوربه", "انشوجه", "رنجه",
+                "ماكريل", "سردين", "اسكالوب")
+
+# ‏الارتجاع -- [UN] p.736، Table 23-3 "Substances That Weaken Lower
+#   Esophageal Sphincter Pressure": caffeine, chocolate, garlic, high-fat
+#   foods, onions, peppermint and spearmint. والدهن: البديل مايزودش دهن.
+_REFLUX_BANNED = ("شوكولات", "كاكاو", "ثوم", "بصل", "نعناع", "قهوه",
+                  "كافيين")
+REFLUX_FAT_SLACK_G = 2.0
+
+# ‏القولون العصبي -- [UN] p.775: "avoid dietary substances that produce
+#   excessive gas unless they can tolerate these foods"، وTable 24-2 p.758:
+#   apples, broccoli, brussels sprouts, cabbage, cauliflower, corn, dried
+#   beans and peas, fruit juices, leeks, onions, peanuts, pears, potatoes,
+#   turnips. مانعرفش العميل بيستحمل إيه، فمايتعرضوش كبديل.
+_GAS_BANNED = ("تفاح", "بروكلي", "بروكسل", "كرنب", "قرنبيط", "ذره", "فول",
+               "عدس", "فاصوليا", "لوبيا", "حمص", "بسله", "عصير", "كرات",
+               "بصل", "سوداني", "كمثري", "بطاطس", "لفت")
+
+# ‏المرارة -- [UN] p.801: "a low-fat diet (with less than 30 percent of
+#   total kcalories from fat) may be prescribed". البديل مايزودش دهن.
+GALLBLADDER_FAT_SLACK_G = 1.0
+
+# ‏تليف الكبد -- [UN] p.795-796: "restrict sodium as necessary to control
+#   ascites; 2000 mg sodium per day". فبيتقفل عليه نفس قايمة الصوديوم.
+
+# ‏السكري، تكملة -- [UN] p.821: "The amount of carbohydrate ingested has the
+#   greatest influence on blood glucose levels after meals ... the
+#   carbohydrate intake must be fairly consistent at meals and snacks".
+#   فهامش الكارب للسكري أضيق من هامش الماكروز العام.
+DIABETES_CARB_ABS_G = 3.0
+DIABETES_CARB_REL = 0.10
+
+_BOOK_RULES = {"حامل": _PREGNANCY_BANNED, "نقرس": _GOUT_BANNED,
+               "ارتجاع": _REFLUX_BANNED, "قولون": _GAS_BANNED,
+               "تليف": _SODIUM_BANNED, "كلوي": _KIDNEY_BANNED, "قلب": _HEART_BANNED,
                "كوليسترول": _HEART_BANNED, "ضغط": _SODIUM_BANNED,
                "سكري": _DIABETES_BANNED}
 
@@ -202,8 +257,14 @@ def _banned_by_book(food, key):
     plain = meal_macros._norm(food.get("n")) + " "
     if any(_has(plain, w) for w in _BOOK_RULES.get(key, ())):
         return True
-    if key in ("قلب", "كوليسترول", "ضغط") and "جبن" in plain:
-        return not any(meal_macros._norm(w) in plain for w in _HEART_CHEESE_OK)
+    if "جبن" in plain:
+        if key in ("ضغط", "تليف"):
+            # ‏الصوديوم مش الدسم: الفيتا اللايت والشيدر قليل الدسم لسه مالحين
+            # ([خ] ص ١٧٢: ٣٠ جم شيدر = ٤٠٠ ملجم). القريش بس.
+            return "قريش" not in plain
+        if key in ("قلب", "كوليسترول"):
+            return not any(meal_macros._norm(w) in plain
+                           for w in _HEART_CHEESE_OK)
     return False
 
 
@@ -216,7 +277,8 @@ _NOT_A_SWAP = ("نئ", "نيء", "ني ", "طحين", "دقيق", "مدخن", "�
                "محمر", "محلى", "بالسكر", "مجفف", "لانشون", "سجق", "بسطرمه",
                "مقدد", "قوانص", "لسان", "قلوب", "كوارع", "ممبار", "مخ ",
                "كرشه", "فشه", "بيتزا", "برياني", "بشاميل", "محشي", "كشري",
-               "ساندوتش", "برجر", "نودلز", "سيريلاك", "كورن فليكس")
+               "ساندوتش", "برجر", "نودلز", "سيريلاك", "كورن فليكس", "سلامي",
+               "مرتديلا", "هوت دوج", "نقانق", "بيبروني")
 _DISH = re.compile(r"(?:^|\s)بال\S+|(?:^|\s)مع\s")
 
 CAL_TOLERANCE = 0.10          # ‏السعرات بعد تقريب الكمية
@@ -292,11 +354,23 @@ def allowed_for(food, profile):
             return False
         wanted = SAFE_KEY.get(key)
         if wanted and wanted not in safe:
-            return False
+            # ‏استثناء واحد: نشويات مريض السكري. جدول الأكل مافيهوش علامة
+            # "آمن للسكري" على **ولا صنف** نشوي، فكان مريض السكر مابيتعرضلوش
+            # بديل للخبز والأرز خالص -- والكتابين بيقولوا العكس ([خ] ص ١٥٧،
+            # [UN] p.821). اللي بيحمي هنا مش العلامة: الكارب مطابق في حدود
+            # ٣ جم، والأبيض المكرر مقفول، وقايمة الممنوعات لسه شغالة.
+            if not (key == "سكري" and group_of(food) == BREAD):
+                return False
     if profile.get("keto") and "keto" not in safe:
         return False
     plain = meal_macros._norm(name)
     words = [meal_macros._norm(w) for w in profile["exclusions"]]
+    # ‏الجلوتين واللاكتوز بييجوا حساسية أو حالة؛ في الاتنين نفس القفل.
+    # [UN] p.768، Table 24-6 "Gluten-Free Diet": القمح والشعير والبرغل
+    # والسميد ممنوعين، والشوفان "questionable"؛ والمسموح الذرة والأرز
+    # والبطاطس والكينوا.
+    words += [meal_macros._norm(k) for k in ("جلوتين", "لاكتوز")
+              if k in profile["conditions"]]
     for word in words:
         if word and word in plain:
             return False
@@ -406,6 +480,15 @@ def alternatives(text, profile, ar=True):
             continue
         if kidney and got["p"] > want["p"] + KIDNEY_PROTEIN_SLACK_G:
             continue                      # ‏[خ] ص ١٩٢: البروتين محدد
+        conds = profile["conditions"]
+        if "سكري" in conds and abs(got["c"] - want["c"]) > max(
+                DIABETES_CARB_ABS_G, DIABETES_CARB_REL * want["c"]):
+            continue                      # ‏[UN] p.821: الكارب ثابت
+        if "ارتجاع" in conds and got["f"] > want["f"] + REFLUX_FAT_SLACK_G:
+            continue                      # ‏[UN] p.736: high-fat foods
+        if "مراره" in conds or "مرارة" in conds:
+            if got["f"] > want["f"] + GALLBLADDER_FAT_SLACK_G:
+                continue                  # ‏[UN] p.801: low-fat diet
         if not allowed_for(food, profile):
             continue
         name = food["n"] if ar else (food.get("en") or food["n"])
