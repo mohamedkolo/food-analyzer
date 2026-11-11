@@ -1,0 +1,84 @@
+{# ‏بدائل الأصناف للعميل.
+
+   ‏أي عنصر في الصفحة عليه data-swap="نص الوجبة المخزّن" بياخد تحته زرار
+   "بدائل". الزرار بيفتح أصناف الوجبة، والدوسة على صنف بتجيب بدائله من
+   السيرفر -- محسوبة ومفلترة على حالة العميل هناك، مش هنا.
+
+   ‏data-swap لازم يكون النص **العربي المخزّن**، مش المترجم: المطابقة مع
+   جدول الأكل وفحص الممنوعات ماشيين على العربي. #}
+{% if user and (user.allow_swaps is none or user.allow_swaps) %}
+<div id="swapBg" onclick="nxSwapClose()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1998"></div>
+<div id="swapBox" role="dialog" aria-modal="true" aria-labelledby="swapTitle"
+     style="display:none;position:fixed;inset-inline:0;bottom:0;z-index:1999;background:#fff;border-radius:18px 18px 0 0;max-height:82vh;overflow-y:auto;padding:16px 16px 26px;font-family:'Cairo',sans-serif;max-width:640px;margin:0 auto">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <strong id="swapTitle" style="font-size:16px;color:#1E2630">{{ t('بدائل','Swaps') }}</strong>
+    <button type="button" onclick="nxSwapClose()" aria-label="{{ t('إغلاق','Close') }}" style="border:none;background:#F6F7F8;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:15px">✕</button>
+  </div>
+  <p style="font-size:12.5px;color:#5A6472;margin:0 0 10px;line-height:1.7">{{ t('اختار الصنف اللي عايز تبدّله:','Pick the item you want to swap:') }}</p>
+  <div id="swapItems" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
+  <div id="swapOut" role="status" aria-live="polite"></div>
+  <p style="font-size:11.5px;color:#5A6472;margin:12px 0 0;line-height:1.7;border-top:1px solid #E4E7EA;padding-top:10px">
+    {{ t('البدائل بنفس السعرات والبروتين والكارب والدهون تقريبًا، ومتراجعة على حالتك الصحية المسجّلة عندنا. بدّل صنف واحد بصنف واحد بالكمية المكتوبة. لو مش متأكد، اسأل الأخصائي.','Swaps have about the same calories, protein, carbs and fat, and are checked against the health conditions we have on file for you. Swap one item for one item, in the amount shown. If unsure, ask your nutritionist.') }}</p>
+</div>
+<script>
+(function(){
+  const T = {
+    btn: {{ t('بدائل','Swaps')|tojson }},
+    loading: {{ t('بندوّر...','Looking…')|tojson }},
+    none: {{ t('مفيش بديل مناسب لحالتك للصنف ده. التزم بيه زي ما هو، أو اسأل الأخصائي.','No swap suits your condition for this item. Keep it as written, or ask your nutritionist.')|tojson }},
+    unread: {{ t('الصنف ده مش مكتوب بكمية محددة، فمانقدرش نحسب له بديل مضبوط. اسأل الأخصائي.','This item has no exact amount, so we cannot work out a precise swap. Ask your nutritionist.')|tojson }},
+    error: {{ t('حصل خطأ. جرّب تاني.','Something went wrong. Try again.')|tojson }},
+    instead: {{ t('بدل','Instead of')|tojson }},
+    kcal: {{ t('سعرة','kcal')|tojson }}, p: {{ t('بروتين','protein')|tojson }},
+    c: {{ t('كارب','carbs')|tojson }}, f: {{ t('دهون','fat')|tojson }}, g: {{ t('جم','g')|tojson }}
+  };
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const line = m => `${m.cal} ${T.kcal} · ${T.p} ${m.p}${T.g} · ${T.c} ${m.c}${T.g} · ${T.f} ${m.f}${T.g}`;
+
+  window.nxSwapClose = function(){
+    document.getElementById('swapBox').style.display = 'none';
+    document.getElementById('swapBg').style.display = 'none';
+  };
+  async function load(item, chip){
+    const out = document.getElementById('swapOut');
+    document.querySelectorAll('#swapItems button').forEach(b => { b.style.background = '#fff'; b.setAttribute('aria-pressed','false'); });
+    chip.style.background = '#EDF0F3'; chip.setAttribute('aria-pressed','true');
+    out.textContent = T.loading;
+    try {
+      const d = await (await fetch('/api/alternatives?item=' + encodeURIComponent(item))).json();
+      if (!d.ok) { out.textContent = T.error; return; }
+      if (!d.readable) { out.textContent = T.unread; return; }
+      if (!d.options.length) { out.textContent = T.none; return; }
+      out.innerHTML =
+        `<div style="font-size:12.5px;color:#5A6472;margin-bottom:8px">${T.instead} <strong style="color:#1E2630">${esc(item)}</strong><br>${esc(line(d.original))}</div>` +
+        d.options.map(o => `<div style="border:1.5px solid #D5DAE0;border-radius:12px;padding:10px 12px;margin-bottom:8px">
+          <div style="font-weight:800;font-size:14.5px;color:#1E2630">${esc(o.name)} — <span dir="auto">${esc(o.amount)}</span></div>
+          <div style="font-size:12px;color:#5A6472;margin-top:3px">${esc(line(o))}</div></div>`).join('');
+    } catch(e) { out.textContent = T.error; }
+  }
+  function open(text){
+    const box = document.getElementById('swapItems'); box.innerHTML = '';
+    document.getElementById('swapOut').textContent = '';
+    text.split(' + ').map(s => s.trim()).filter(Boolean).forEach(item => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = item; b.setAttribute('aria-pressed','false');
+      b.style.cssText = "border:1.5px solid #D5DAE0;background:#fff;border-radius:999px;padding:7px 13px;font-family:inherit;font-size:13px;font-weight:700;color:#1E2630;cursor:pointer";
+      b.addEventListener('click', () => load(item, b));
+      box.appendChild(b);
+    });
+    document.getElementById('swapBg').style.display = 'block';
+    document.getElementById('swapBox').style.display = 'block';
+    const first = box.querySelector('button'); if (first) first.focus();
+  }
+  document.querySelectorAll('[data-swap]').forEach(el => {
+    const text = el.getAttribute('data-swap'); if (!text) return;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'swap-open'; b.textContent = '⇄ ' + T.btn;
+    b.style.cssText = "margin-top:6px;border:1px solid #D5DAE0;background:#fff;border-radius:999px;padding:4px 12px;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;color:#3A4A5C;cursor:pointer";
+    b.addEventListener('click', ev => { ev.stopPropagation(); open(text); });
+    el.insertAdjacentElement('afterend', b);
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') nxSwapClose(); });
+})();
+</script>
+{% endif %}

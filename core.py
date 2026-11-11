@@ -822,6 +822,9 @@ def init_db():
         # ‏الساعة اللي المواعيد بتتعرض بيها للعميل. العملاء في مصر.
         "ALTER TABLE users ADD COLUMN timezone TEXT DEFAULT 'Africa/Cairo'",
         "ALTER TABLE users ADD COLUMN water_goal_ml INTEGER DEFAULT 2000",
+        # ‏بدائل الأصناف للعميل: شغّالة لكل عميل، والأخصائي يقفلها لعميل
+        # بعينه من ملفه لو حالته محتاجة التزام حرفي بالخطة.
+        "ALTER TABLE users ADD COLUMN allow_swaps INTEGER DEFAULT 1",
     ]:
         try: db_run(col_sql)
         except: pass

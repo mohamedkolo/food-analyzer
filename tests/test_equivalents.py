@@ -1,0 +1,372 @@
+# -*- coding: utf-8 -*-
+"""‏بدائل الأصناف للعميل: إيه اللي ينفع يتاكل بدل صنف في الخطة.
+
+‏الميزة دي بتدّي العميل إذن ياكل حاجة الأخصائي ماكتبهاش بإيده، فكل
+اختبار هنا على سؤال من اتنين:
+
+  ‏١) **هل البديل آمن للعميل ده؟** حالته المرضية، حساسيته، واللي طلب
+     يبعد عنه -- ولو الحالة مسجّلة في مكان واحد بس من الاتنين.
+  ‏٢) **هل البديل فعلاً بديل؟** نفس السعرات ونفس البروتين والكارب
+     والدهون، مش السعرات لوحدها.
+
+‏ولما مانقدرش نتأكد، الإجابة الصح هي "مفيش بديل" -- مش بديل بالتخمين.
+
+Run with:  python3 tests/test_equivalents.py
+"""
+
+import json
+import os
+import sys
+from datetime import datetime
+
+os.environ.setdefault("SECRET_KEY", "test-key")
+os.environ.setdefault("NUTRAX_DB", "/tmp/nutrax_equivalents.db")
+if os.path.exists(os.environ["NUTRAX_DB"]):
+    os.remove(os.environ["NUTRAX_DB"])
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import app as A              # noqa: E402
+import equivalents as E      # noqa: E402
+import food_data             # noqa: E402
+import meal_database as md   # noqa: E402
+from werkzeug.security import generate_password_hash  # noqa: E402
+
+A.app.config["WTF_CSRF_ENABLED"] = False
+
+
+def _cond(key):
+    return next(c for c, k in md.CONDITION_MAP.items() if k == key)
+
+
+DIABETES, PRESSURE, KIDNEY, COLON, HEART = (
+    _cond("سكري"), _cond("ضغط"), _cond("كلوي"), _cond("قولون"), _cond("قلب"))
+
+# ‏أصناف بتتكتب في الخطط فعلاً، بكميات محددة.
+ITEMS = ["ارز بني 140جم", "صدر دجاج مشوي 150جم", "بيض مسلوق 3",
+         "خبز اسمر 100جم", "تفاح 230جم", "تونة بالماء 215جم",
+         "زبادي يوناني 150جم", "لوز 30جم", "خيار 100جم", "فول مدمس 200جم",
+         "بطاطس مسلوقة 200جم", "شوفان 50جم", "موز 1", "جبن قريش 100جم",
+         "سمك مشوي 200جم", "عدس 150جم", "برتقال 200جم"]
+
+
+def _alts(text, **data):
+    return E.alternatives(text, E.profile_from(data))
+
+
+def _names(text, **data):
+    got = _alts(text, **data)
+    return [o["name"] for o in (got or {}).get("options", [])]
+
+
+def _food(name):
+    return next(f for f in food_data.FOODS if f["n"] == name)
+
+
+def _all_options(**data):
+    """Every option offered for every item, with the food row behind it."""
+    out = []
+    for item in ITEMS:
+        for name in _names(item, **data):
+            out.append((item, _food(name)))
+    return out
+
+
+# ── ٢) البديل فعلاً بديل ────────────────────────────────────────────
+
+def test_every_swap_matches_calories_and_all_three_macros():
+    checked = 0
+    for item in ITEMS:
+        got = _alts(item)
+        if not got:
+            continue
+        want = got["original"]
+        for o in got["options"]:
+            checked += 1
+            assert abs(o["cal"] - want["cal"]) <= E.CAL_TOLERANCE * want["cal"] + 1, (item, o)
+            for key in ("p", "c", "f"):
+                allowed = max(E.MACRO_ABS_G, E.MACRO_REL * want[key]) + 0.1
+                assert abs(o[key] - want[key]) <= allowed, (item, key, want, o)
+    assert checked >= 30, "almost nothing was offered (%d) -- the test proves nothing" % checked
+
+
+def test_matching_calories_alone_is_not_enough():
+    """‏١٥٠جم صدر دجاج = ٢٤٨ سعرة. نفس السعرات من لحم مفروم دهني أو من
+    مكسرات موجودة في الجدول -- بس بنص البروتين وأضعاف الدهون."""
+    names = _names("صدر دجاج مشوي 150جم")
+    assert names, "nothing offered for chicken breast"
+    for name in names:
+        food = _food(name)
+        assert food["p"] / max(food["cal"], 1) > 0.12, (name, "is not lean protein")
+        assert E.FAMILY[food["cat"]] == "protein", name
+
+
+def test_a_swap_stays_in_the_same_kind_of_food():
+    for item, food in _all_options():
+        source = E.read_item(item)["food"]
+        assert E.FAMILY[food["cat"]] == E.FAMILY[source["cat"]], (item, food["n"])
+
+
+def test_the_same_food_is_not_offered_as_its_own_swap():
+    assert not any("ارز" in md.normalize_ar(n) for n in _names("ارز بني 140جم"))
+    assert not any("بيض" in md.normalize_ar(n) for n in _names("بيض مسلوق 3"))
+    assert "صدر دجاج" not in " ".join(_names("صدر دجاج مشوي 150جم"))
+
+
+def test_processed_and_raw_foods_are_never_offered():
+    for item, food in _all_options():
+        plain = md.normalize_ar(food["n"]) + " "
+        for word in E._NOT_A_SWAP:
+            assert md.normalize_ar(word) not in plain, (item, food["n"])
+
+
+def test_an_item_with_no_exact_amount_gets_no_swap():
+    """‏"سلطة" من غير جرامات: الكمية تخمين، فبديل محسوب عليها رقم واثق
+    فوق كمية غلط."""
+    for vague in ("سلطة", "خضار مشكل", "وجبة حرة", "", "شاي"):
+        assert _alts(vague) is None, vague
+    assert _alts("تفاح 230جم") is not None
+
+
+def test_half_of_a_composite_dish_is_not_read_as_an_item():
+    """‏"🥗 سلطة تونة كبيرة (تونة 150جم + خضار 230جم)" بتتقسم على " + " من
+    نص القوس. القطعة الأولى كانت بتتقرا "سلطة 150جم" -- والـ١٥٠ بتاعة
+    التونة."""
+    meal = "🥗 سلطة تونة كبيرة (تونة 150جم + خضار 230جم) + 🍞 خبز اسمر 100جم"
+    parts = [p.strip() for p in meal.split(" + ")]
+    assert _alts(parts[0]) is None, parts[0]
+    assert _alts(parts[1]) is None, parts[1]
+    assert _alts(parts[2]) is not None, parts[2]
+    assert _alts("🍎 تفاح 230جم - 119 kcal") is not None
+
+
+def test_amounts_are_ones_a_person_can_measure():
+    for item in ITEMS:
+        for o in (_alts(item) or {}).get("options", []):
+            assert "جم" in o["amount"], o
+            assert not o["amount"].startswith("0 "), o
+    assert "جم)" in next(o["amount"] for o in _alts("زبادي يوناني 150جم")["options"]
+                         if "(" in o["amount"])
+
+
+# ── ١) البديل آمن ───────────────────────────────────────────────────
+
+def test_no_swap_breaks_a_condition_on_either_list():
+    """‏الفحص مرتين من قايمتين اتكتبوا لوحدهم: UNSAFE_FOODS (بتاعة
+    المولّد) وعلامة "آمن لـ" في جدول الأكل. البديل لازم يعدّي الاتنين."""
+    for condition in (DIABETES, PRESSURE, KIDNEY, COLON, HEART):
+        key = md.CONDITION_MAP[condition]
+        offered = _all_options(symptoms=[condition])
+        for item, food in offered:
+            assert not md._contains_unsafe(food["n"], key), (condition, item, food["n"])
+            assert E.SAFE_KEY[key] in (food.get("safe") or []), \
+                (condition, item, food["n"], food.get("safe"))
+
+
+def test_a_food_nobody_reviewed_is_not_offered_to_a_patient():
+    """‏١٨٧ صنف في الجدول مالهمش علامات "آمن لـ" خالص. السكوت مش موافقة:
+    لمريض سكر مايتعرضوش، حتى لو مافيش حاجة بتقول إنهم ممنوعين."""
+    unreviewed = [f for f in food_data.FOODS if not f.get("safe")
+                  and E.FAMILY.get(f.get("cat"))]
+    assert len(unreviewed) > 50
+    profile = E.profile_from({"symptoms": [DIABETES]})
+    assert not any(E.allowed_for(f, profile) for f in unreviewed)
+    healthy = E.profile_from({})
+    assert any(E.allowed_for(f, healthy) for f in unreviewed)
+
+
+def test_two_conditions_must_both_be_satisfied():
+    both = _all_options(symptoms=[DIABETES, PRESSURE])
+    for item, food in both:
+        assert {"dm", "htn"} <= set(food.get("safe") or []), (item, food["n"])
+    smoked = _food("صدور فراخ مدخنة")
+    assert "htn" not in smoked["safe"]
+    assert not E.allowed_for(smoked, E.profile_from({"symptoms": [PRESSURE]}))
+
+
+def test_a_condition_shrinks_the_list_and_never_grows_it():
+    for item in ITEMS:
+        for condition in (DIABETES, KIDNEY):
+            profile = E.profile_from({"symptoms": [condition]})
+            for name in _names(item, symptoms=[condition]):
+                assert E.allowed_for(_food(name), profile)
+            # ‏الحالة ماتضيفش صنف ماكانش معروض من غيرها إلا لو اللي قبله اتشال
+            assert len(_names(item, symptoms=[condition])) <= E.MAX_RESULTS
+    assert len(_all_options(symptoms=[DIABETES])) < len(_all_options())
+
+
+def test_an_allergy_closes_the_whole_category_not_just_matching_names():
+    """‏"مابياكلش سمك" لازم تمنع البلطي والباسا والجمبري -- ومافيش واحد
+    فيهم اسمه فيه كلمة "سمك"."""
+    free = [_food(n)["cat"] for n in _names("صدر دجاج مشوي 150جم")]
+    assert "fish" in free, "the test needs fish to be on offer without the allergy"
+    for data in ({"allergies": ["الأسماك"]}, {"disliked_foods": "سمك"},
+                 {"notes": "بدون سمك"}):
+        cats = [_food(n)["cat"] for n in _names("صدر دجاج مشوي 150جم", **data)]
+        assert cats and "fish" not in cats, (data, cats)
+    assert _names("لوز 30جم", allergies=["المكسرات"]) == []
+    assert _names("تونة بالماء 215جم", allergies=["الأسماك"]) == [] or all(
+        _food(n)["cat"] != "fish" for n in _names("تونة بالماء 215جم",
+                                                  allergies=["الأسماك"]))
+
+
+def test_lactose_does_not_ban_eggs_and_gluten_does_not_ban_rice():
+    profile = E.profile_from({"allergies": ["اللاكتوز"]})
+    assert E.allowed_for(_food("بيضة كاملة"), profile)
+    assert not E.allowed_for(_food("جبن قريش"), profile)
+    assert not E.allowed_for(_food("زبادي يوناني"), profile)
+    gluten = E.profile_from({"allergies": ["الجلوتين"]})
+    assert E.allowed_for(_food("أرز أبيض مطبوخ"), gluten)
+    for wheat in ("عيش بلدي", "مكرونة مسلوقة", "توست أسمر", "برغل مطبوخ"):
+        assert not E.allowed_for(_food(wheat), gluten), wheat
+    egg = E.profile_from({"allergies": ["البيض"]})
+    assert not E.allowed_for(_food("بيضة كاملة"), egg)
+
+
+def test_a_keto_client_only_gets_keto_foods():
+    for item, food in _all_options(diet_plan_type="keto"):
+        assert "keto" in (food.get("safe") or []), (item, food["n"])
+
+
+# ── المسار ──────────────────────────────────────────────────────────
+
+def _mk(email, role="client", **cols):
+    keys = ["name", "email", "password", "role", "active",
+            "onboarded_at"] + list(cols)
+    vals = [email.split("@")[0], email, generate_password_hash("pw123456"),
+            role, 1, datetime.now()] + list(cols.values())
+    A.db_run("INSERT INTO users (%s) VALUES (%s)"
+             % (",".join(keys), ",".join("?" * len(keys))), tuple(vals))
+    return A.db_row("SELECT id FROM users WHERE email=?", (email,))["id"]
+
+
+ADMIN = _mk("boss@e.test", "admin", is_admin=1)
+HEALTHY = _mk("healthy@e.test")
+SICK = _mk("sick@e.test")
+
+
+def _as(uid=None, lang="ar"):
+    c = A.app.test_client()
+    with c.session_transaction() as s:
+        s["lang"] = lang
+        if uid:
+            s["uid"] = uid
+    return c
+
+
+def _plan_for(uid, **data):
+    A.db_run("DELETE FROM plan_requests WHERE client_id=?", (uid,))
+    week = [{"day": "الاحد", "lunch": "صدر دجاج مشوي 150جم + ارز بني 140جم"}]
+    A.db_run("INSERT INTO plan_requests (client_id, client_name, status, "
+             "request_data, plan_data) VALUES (?,?,?,?,?)",
+             (uid, "x", "approved", "{}",
+              json.dumps({"data": data, "plan": week}, ensure_ascii=False)))
+
+
+def _ask(c, item):
+    return c.get("/api/alternatives", query_string={"item": item})
+
+
+def test_the_api_answers_with_the_askers_own_conditions():
+    _plan_for(HEALTHY)
+    _plan_for(SICK, symptoms=[DIABETES, PRESSURE])
+    free = _ask(_as(HEALTHY), "خبز اسمر 100جم").get_json()
+    sick = _ask(_as(SICK), "خبز اسمر 100جم").get_json()
+    assert free["ok"] and free["readable"] and free["options"], free
+    for o in sick["options"]:
+        assert {"dm", "htn"} <= set(_food(o["name"])["safe"]), o
+    assert len(sick["options"]) < len(free["options"]) or sick["options"] == []
+
+
+def test_a_condition_on_the_account_counts_even_when_the_plan_has_none():
+    """‏الحالة ممكن تكون مسجّلة في بيانات الخطة أو في حساب العميل (استبيان
+    التسجيل). واحدة منهم كفاية -- لو اتاخدت الخطة بس، عميل كتب في
+    الاستبيان إنه مريض كلى وخطته اتعملت من غير الحالة ياخد بدائل مش ليه."""
+    uid = _mk("kidney@e.test", conditions=json.dumps([KIDNEY], ensure_ascii=False))
+    _plan_for(uid)                               # the plan knows nothing
+    user = A.get_user_by_id(uid)
+    import client_app
+    assert "كلوي" in client_app.swap_profile(user)["conditions"]
+    got = _ask(_as(uid), "تفاح 230جم").get_json()
+    for o in got["options"]:
+        assert "ckd" in _food(o["name"])["safe"], o
+    # ‏والعكس: الحالة في الخطة بس
+    uid2 = _mk("kidney2@e.test")
+    _plan_for(uid2, symptoms=[KIDNEY])
+    assert "كلوي" in client_app.swap_profile(A.get_user_by_id(uid2))["conditions"]
+
+
+def test_an_allergy_on_the_account_reaches_the_swaps():
+    uid = _mk("fish@e.test", allergies=json.dumps(["الأسماك"], ensure_ascii=False))
+    _plan_for(uid)
+    got = _ask(_as(uid), "صدر دجاج مشوي 150جم").get_json()
+    assert got["options"], got
+    assert all(_food(o["name"])["cat"] != "fish" for o in got["options"])
+
+
+def test_the_api_is_for_signed_in_clients_only():
+    assert _ask(_as(), "تفاح 230جم").status_code == 302
+    assert _ask(_as(ADMIN), "تفاح 230جم").status_code == 403
+    assert _ask(_as(HEALTHY), "").status_code == 400
+
+
+def test_the_nutritionist_can_turn_swaps_off_for_one_client():
+    _plan_for(HEALTHY)
+    c = _as(HEALTHY)
+    assert _ask(c, "تفاح 230جم").get_json()["options"]
+    assert 'id="swapBox"' in c.get("/my-plan").get_data(as_text=True)
+    _as(ADMIN).post("/admin/users/%d/recommendations" % HEALTHY,
+                    data={"action": "swaps", "allow": "0"})
+    assert _ask(c, "تفاح 230جم").get_json() == {"ok": False, "reason": "off"}
+    assert 'id="swapBox"' not in c.get("/my-plan").get_data(as_text=True)
+    # ‏العميل مايقدرش يرجّعها لنفسه
+    c.post("/admin/users/%d/recommendations" % HEALTHY,
+           data={"action": "swaps", "allow": "1"})
+    assert _ask(c, "تفاح 230جم").get_json()["ok"] is False
+    _as(ADMIN).post("/admin/users/%d/recommendations" % HEALTHY,
+                    data={"action": "swaps", "allow": "1"})
+    assert _ask(c, "تفاح 230جم").get_json()["ok"] is True
+
+
+def test_an_unreadable_item_says_so_instead_of_guessing():
+    got = _ask(_as(HEALTHY), "سلطة").get_json()
+    assert got == {"ok": True, "readable": False, "options": []}, got
+
+
+def test_the_plan_page_marks_each_meal_with_its_stored_text():
+    """‏data-swap لازم يشيل العربي المخزّن حتى والصفحة إنجليزي: المطابقة
+    وفحص الممنوعات ماشيين على العربي."""
+    _plan_for(HEALTHY)
+    pid = A.db_row("SELECT id FROM plan_requests WHERE client_id=?", (HEALTHY,))["id"]
+    for lang in ("ar", "en"):
+        page = _as(HEALTHY, lang).get("/my-plans-history/%d" % pid).get_data(as_text=True)
+        assert 'data-swap="صدر دجاج مشوي 150جم + ارز بني 140جم"' in page, lang
+        assert 'id="swapBox"' in page
+
+
+def test_english_swaps_carry_english_names():
+    got = E.alternatives("تفاح 230جم", E.profile_from({}), ar=False)
+    assert got["options"]
+    with_units = E.alternatives("زبادي يوناني 150جم", E.profile_from({}), ar=False)
+    for o in got["options"] + with_units["options"]:
+        assert not E._ARABIC.search(o["name"]), o
+        assert not E._ARABIC.search(o["amount"]), o
+
+
+if __name__ == "__main__":
+    passed = failed = 0
+    for name, fn in sorted(globals().items()):
+        if not name.startswith("test_") or not callable(fn):
+            continue
+        try:
+            fn()
+            print(f"  PASS  {name}")
+            passed += 1
+        except AssertionError as e:
+            print(f"  FAIL  {name}\n        {e}")
+            failed += 1
+        except Exception as e:
+            print(f"  FAIL  {name}\n        {type(e).__name__}: {e}")
+            failed += 1
+    print(f"\n{passed} passed, {failed} failed")
+    raise SystemExit(1 if failed else 0)

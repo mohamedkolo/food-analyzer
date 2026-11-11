@@ -12,6 +12,7 @@ The nutritionist reads it from the client's profile, and writes the
 recommendations and the water goal there.
 """
 
+import json
 from datetime import datetime, timedelta
 
 from flask import (Blueprint, jsonify, redirect, render_template, request,
@@ -203,6 +204,9 @@ def admin_recommendations(uid):
         # ‏client_id في الشرط: رقم توصية بتاعة عميل تاني مايتمسحش من هنا.
         db_run("DELETE FROM recommendations WHERE id=? AND client_id=?",
                (request.form.get("id", type=int), uid))
+    elif client and action == "swaps":
+        db_run("UPDATE users SET allow_swaps=? WHERE id=?",
+               (1 if request.form.get("allow") == "1" else 0, uid))
     elif client and action == "water_goal":
         goal = request.form.get("water_goal_ml", type=int)
         if goal and WATER_GOAL_MIN <= goal <= WATER_GOAL_MAX:
@@ -303,6 +307,82 @@ def ratings_overview(limit=30):
                     "client_name": None if r["anonymous"] else r["client_name"]})
     avg = round(sum(r["score"] for r in out) / len(out), 1) if out else None
     return {"rows": out, "average": avg}
+
+
+# ── بدائل الأصناف ───────────────────────────────────────────────────
+
+def _json_list(value):
+    if isinstance(value, list):
+        return value
+    try:
+        got = json.loads(value or "[]")
+        return got if isinstance(got, list) else []
+    except (TypeError, ValueError):
+        return []
+
+
+def swap_profile(user):
+    """Everything known about what this client must not eat.
+
+    Two places hold it and they are filled in at different times: the data
+    the current plan was built from, and the client's own account (the
+    onboarding answers). A condition recorded in either one counts -- the
+    union, never one or the other. Missing a condition here is the one
+    mistake this feature cannot afford.
+    """
+    import equivalents
+    data = {}
+    latest = db_row("SELECT plan_data FROM plan_requests WHERE client_id=? AND "
+                    "status='approved' ORDER BY updated_at DESC LIMIT 1",
+                    (user["id"],))
+    if latest and latest.get("plan_data"):
+        try:
+            data = dict((json.loads(latest["plan_data"]) or {}).get("data") or {})
+        except (TypeError, ValueError):
+            data = {}
+    merged = dict(data)
+    merged["symptoms"] = list(dict.fromkeys(
+        list(data.get("symptoms") or []) + _json_list(user.get("conditions"))))
+    merged["allergies"] = list(dict.fromkeys(
+        (data.get("allergies") if isinstance(data.get("allergies"), list) else [])
+        + _json_list(user.get("allergies"))))
+    merged["disliked_foods"] = ",".join(
+        x for x in (data.get("disliked_foods") or "",
+                    ",".join(_json_list(user.get("disliked_foods")))
+                    if str(user.get("disliked_foods") or "").startswith("[")
+                    else (user.get("disliked_foods") or "")) if x)
+    return equivalents.profile_from(merged)
+
+
+@bp.route("/api/alternatives")
+@login_required
+def api_alternatives():
+    """Swaps for one item on the client's plan, checked against the client.
+
+    The item comes from the page, so it could be anything -- that is fine.
+    What comes back is built only from the food table and filtered by the
+    asker's own conditions; there is nothing here to read about anyone else.
+    """
+    import equivalents
+    user = get_user_by_id(session["uid"])
+    if user.get("is_admin") or user.get("role") in ("admin", "nutritionist"):
+        return jsonify({"ok": False, "reason": "staff"}), 403
+    if not int(user.get("allow_swaps") if user.get("allow_swaps") is not None else 1):
+        return jsonify({"ok": False, "reason": "off"})
+    item = (request.args.get("item") or "").strip()[:120]
+    if not item:
+        return jsonify({"ok": False, "reason": "empty"}), 400
+    try:
+        found = equivalents.alternatives(item, swap_profile(user),
+                                         ar=cur_lang() == "ar")
+    except Exception as exc:                      # noqa: BLE001
+        # ‏أي غلطة هنا = مفيش بدائل. مش "بدائل من غير فحص".
+        print("[client] alternatives failed: %s" % exc)
+        return jsonify({"ok": False, "reason": "error"}), 500
+    if found is None:
+        return jsonify({"ok": True, "readable": False, "options": []})
+    return jsonify({"ok": True, "readable": True,
+                    "original": found["original"], "options": found["options"]})
 
 
 @bp.route("/plan")
