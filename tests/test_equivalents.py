@@ -63,6 +63,17 @@ def _food(name):
     return next(f for f in food_data.FOODS if f["n"] == name)
 
 
+def _flag_required(food, key):
+    """Must this food carry the table's "safe for" flag for this condition?
+
+    Always -- with one exception the books forced: a diabetic's starches.
+    The table marks no starch at all as safe for diabetes, and both books
+    say starch is necessary for diabetics; there the carbohydrate match and
+    the refined-white ban do the protecting instead.
+    """
+    return not (key == "سكري" and E.group_of(food) == E.BREAD)
+
+
 def _all_options(**data):
     """Every option offered for every item, with the food row behind it."""
     out = []
@@ -159,8 +170,9 @@ def test_no_swap_breaks_a_condition_on_either_list():
         offered = _all_options(symptoms=[condition])
         for item, food in offered:
             assert not md._contains_unsafe(food["n"], key), (condition, item, food["n"])
-            assert E.SAFE_KEY[key] in (food.get("safe") or []), \
-                (condition, item, food["n"], food.get("safe"))
+            if _flag_required(food, key):
+                assert E.SAFE_KEY[key] in (food.get("safe") or []), \
+                    (condition, item, food["n"], food.get("safe"))
 
 
 def test_a_food_nobody_reviewed_is_not_offered_to_a_patient():
@@ -170,7 +182,11 @@ def test_a_food_nobody_reviewed_is_not_offered_to_a_patient():
                   and E.group_of(f)]
     assert len(unreviewed) > 50
     profile = E.profile_from({"symptoms": [DIABETES]})
-    assert not any(E.allowed_for(f, profile) for f in unreviewed)
+    assert not any(E.allowed_for(f, profile) for f in unreviewed
+                   if _flag_required(f, "سكري"))
+    for condition in (KIDNEY, PRESSURE, HEART, COLON):
+        strict = E.profile_from({"symptoms": [condition]})
+        assert not any(E.allowed_for(f, strict) for f in unreviewed), condition
     healthy = E.profile_from({})
     assert any(E.allowed_for(f, healthy) for f in unreviewed)
 
@@ -178,7 +194,8 @@ def test_a_food_nobody_reviewed_is_not_offered_to_a_patient():
 def test_two_conditions_must_both_be_satisfied():
     both = _all_options(symptoms=[DIABETES, PRESSURE])
     for item, food in both:
-        assert {"dm", "htn"} <= set(food.get("safe") or []), (item, food["n"])
+        need = {"dm", "htn"} if _flag_required(food, "سكري") else {"htn"}
+        assert need <= set(food.get("safe") or []), (item, food["n"])
     smoked = _food("صدور فراخ مدخنة")
     assert "htn" not in smoked["safe"]
     assert not E.allowed_for(smoked, E.profile_from({"symptoms": [PRESSURE]}))
@@ -247,17 +264,30 @@ def test_the_groups_are_the_books_six_exchange_groups():
         "egg and cheese are one exchange group and did not swap"
 
 
-def test_a_kidney_patient_gets_no_fruit_vegetable_or_milk_swaps():
-    """‏[خ] ص ١٩٦: وحدة الألبان ٣٤٠ ملجم بوتاسيوم، الخضروات ٢٤٠، الفواكه
-    ١٢٠ -- والبوتاسيوم محدد بـ٢-٣ جم في اليوم. وص ٣٥-٣٦: نظام الوحدات
-    التبادلية مابيتعرضش للأملاح المعدنية "لأن هناك فروق واختلافات كبيرة
-    بين أنواع المجموعة الواحدة". جدول الأكل عندنا مافيهوش بوتاسيوم، فمانقدرش
-    نقول أنهي فاكهة أأمن. الإجابة: مفيش بديل."""
-    for item in ("تفاح 230جم", "موز 1", "برتقال 200جم", "خيار 100جم",
-                 "زبادي يوناني 150جم"):
-        got = _alts(item, symptoms=[KIDNEY])
-        assert got is not None and got["options"] == [], (item, got)
-        assert _names(item), "%s has swaps for a healthy client" % item
+def test_a_kidney_patient_gets_no_high_potassium_swap_and_no_milk_swap():
+    """‏[خ] ص ١٩٤-١٩٦: البوتاسيوم محدد، ووحدة الألبان أعلى مجموعة (٣٤٠ ملجم).
+    ‏[UN] p.885 بيسمّي الفواكه والخضروات اللي "regular use is discouraged":
+    الموز والبرتقال والتمر والفواكه المجففة والشمام والطماطم والسبانخ
+    والبطاطس والبطاطا والكوسة والبقول... وبيقول إن الباقي مسموح بكميات
+    محدودة. فالألبان مقفولة كمجموعة، والمسمّين مقفولين، والباقي لازم يكون
+    متعلّم عليه "آمن للكلى" كمان."""
+    assert _alts("زبادي يوناني 150جم", symptoms=[KIDNEY])["options"] == []
+    kidney = E.profile_from({"symptoms": [KIDNEY]})
+    for name in ("موز", "برتقال", "تمر جاف", "زبيب", "طماطم", "سبانخ",
+                 "بطاطس مسلوقة", "بطاطا حلوة", "كوسة", "فول مدمس"):
+        assert not E.allowed_for(_food(name), kidney), name
+    offered = 0
+    for item in ("تفاح 230جم", "خيار 100جم", "برتقال 200جم", "موز 1",
+                 "بطاطس مسلوقة 200جم"):
+        for name in _names(item, symptoms=[KIDNEY]):
+            offered += 1
+            food = _food(name)
+            assert "ckd" in food["safe"], (item, name)
+            assert not E._banned_by_book(food, "كلوي"), (item, name)
+    assert offered, "no fruit or vegetable swap at all for a kidney patient"
+    # ‏قبل الكتاب التالت الموز كان ممكن يطلع؛ وقبل التاني العنب والتين
+    assert "موز" not in " ".join(_names("تفاح 230جم", symptoms=[KIDNEY]))
+    assert "تين" not in " ".join(_names("تفاح 230جم", symptoms=[KIDNEY]))
 
 
 def test_a_kidney_patient_never_gets_more_protein_than_the_plan_gave():
@@ -343,6 +373,98 @@ def test_a_pregnant_client_is_not_offered_feta_tuna_or_mackerel():
                    _names("بيض مسلوق 3", symptoms=[_cond("حامل")]))
 
 
+def test_a_diabetic_gets_starch_swaps_with_the_carbohydrate_held_steady():
+    """‏الكتابين بيقولوا النشويات لمريض السكر مفيدة وضرورية ([خ] ص ١٥٧)،
+    واللي بيحكم سكر الدم هو **كمية** الكارب، ولازم تبقى ثابتة من وجبة
+    لوجبة ([UN] p.821). جدول الأكل ماكانش معلّم على ولا نشا إنه آمن للسكري،
+    فمريض السكر ماكانش بيطلعله بديل للخبز خالص."""
+    checked = 0
+    for item in ("خبز اسمر 100جم", "ارز بني 140جم", "فول مدمس 200جم",
+                 "شوفان 50جم", "تفاح 230جم"):
+        got = _alts(item, symptoms=[DIABETES])
+        for o in got["options"]:
+            checked += 1
+            want = got["original"]["c"]
+            assert abs(o["c"] - want) <= max(E.DIABETES_CARB_ABS_G,
+                                             E.DIABETES_CARB_REL * want) + 0.1, (item, o)
+            food = _food(o["name"])
+            assert not md._contains_unsafe(food["n"], "سكري"), (item, o)
+            assert not E._banned_by_book(food, "سكري"), (item, o)
+    assert _names("خبز اسمر 100جم", symptoms=[DIABETES]), "still no bread swap"
+    assert checked >= 8, checked
+    diabetic = E.profile_from({"symptoms": [DIABETES]})
+    for refined in ("توست أبيض", "أرز أبيض مطبوخ", "عيش فينو", "خبز أبيض",
+                    "مكرونة مسلوقة"):
+        assert not E.allowed_for(_food(refined), diabetic), refined
+    # ‏المولّد بيمنع "مكرونة بيضاء" لمريض السكر؛ المسلوقة العادية هي نفسها.
+    assert E.allowed_for(_food("مكرونة قمح كامل"), diabetic)
+    # ‏الاستثناء للنشويات بس: صنف من مجموعة تانية من غير علامة لسه مقفول
+    assert not E.allowed_for(_food("جبنة بارميزان"), diabetic)
+
+
+def test_gout_closes_the_high_purine_foods():
+    """‏[UN] p.890، Table 28-8."""
+    gout = E.profile_from({"symptoms": [_cond("نقرس")]})
+    for name in ("كبدة بقري", "كبدة دجاج", "سردين", "ماكريل"):
+        assert not E.allowed_for(_food(name), gout), name
+    assert E.allowed_for(_food("صدر دجاج"), gout)
+    for item, food in _all_options(symptoms=[_cond("نقرس")]):
+        assert not E._banned_by_book(food, "نقرس"), (item, food["n"])
+
+
+def test_reflux_and_gallbladder_never_get_a_fattier_swap():
+    """‏الارتجاع: [UN] p.736، Table 23-3 (high-fat foods، والشوكولاتة والثوم
+    والبصل والنعناع والكافيين). المرارة: [UN] p.801، نظام قليل الدهن."""
+    for key, slack in (("ارتجاع", E.REFLUX_FAT_SLACK_G),
+                       ("مرارة", E.GALLBLADDER_FAT_SLACK_G)):
+        checked = 0
+        for item in ITEMS:
+            got = _alts(item, symptoms=[_cond(key)])
+            for o in (got or {}).get("options", []):
+                checked += 1
+                assert o["f"] <= got["original"]["f"] + slack + 0.05, (key, item, o)
+        assert checked >= 10, (key, checked)
+    reflux = E.profile_from({"symptoms": [_cond("ارتجاع")]})
+    for name in ("بصل", "ثوم"):
+        assert not E.allowed_for(_food(name), reflux), name
+
+
+def test_irritable_bowel_is_not_offered_the_gas_forming_foods():
+    """‏[UN] p.775 وTable 24-2 p.758: تتجنب "unless they can tolerate these
+    foods" -- ومانعرفش العميل ده بيستحمل إيه."""
+    names = _names("تفاح 230جم", symptoms=[COLON]) + _names(
+        "خيار 100جم", symptoms=[COLON]) + _names("خبز اسمر 100جم", symptoms=[COLON])
+    assert names
+    for name in names:
+        for word in ("كمثر", "بروكلي", "قرنبيط", "كرنب", "ذرة", "بصل", "فول"):
+            assert word not in name, name
+    assert "كمثرى" in _names("تفاح 230جم"), "the test needs pear on offer otherwise"
+
+
+def test_gluten_and_lactose_work_as_conditions_not_only_as_allergies():
+    """‏[UN] p.768، Table 24-6. نفس القفل سواء اتسجّلت حساسية أو حالة."""
+    gluten = E.profile_from({"symptoms": [_cond("جلوتين")]})
+    for wheat in ("عيش بلدي", "مكرونة مسلوقة", "برغل مطبوخ", "توست أسمر"):
+        assert not E.allowed_for(_food(wheat), gluten), wheat
+    for ok in ("أرز بسمتي مطبوخ", "كينوا مطبوخة"):
+        assert E.allowed_for(_food(ok), gluten), ok
+    lactose = E.profile_from({"symptoms": [_cond("لاكتوز")]})
+    assert not E.allowed_for(_food("زبادي يوناني"), lactose)
+    assert not E.allowed_for(_food("جبن قريش"), lactose)
+    assert E.allowed_for(_food("بيضة كاملة"), lactose)
+
+
+def test_salt_restricted_conditions_get_cottage_cheese_only():
+    """‏الضغط ([خ] ص ١٧٢) وتليف الكبد بالاستسقاء ([UN] p.795-796، ٢٠٠٠ ملجم
+    صوديوم). "لايت" معناها دسم أقل مش ملح أقل: الفيتا اللايت لسه مالحة."""
+    for key in ("ضغط", "تليف"):
+        profile = E.profile_from({"symptoms": [_cond(key)]})
+        for salty in ("جبنة فيتا لايت", "جبن شيدر قليل الدسم", "جبنة رومي",
+                      "تونة معلبة بالماء"):
+            assert not E.allowed_for(_food(salty), profile), (key, salty)
+        assert not E._banned_by_book(_food("جبن قريش"), key)
+
+
 def test_a_cooked_dish_is_never_offered_as_a_swap_for_one_food():
     """‏"مكرونة بالصلصة" و"بيتزا" أطباق، مش أصناف: مكوّناتها مابتتفحصش
     واحد واحد على حالة العميل."""
@@ -400,8 +522,13 @@ def test_the_api_answers_with_the_askers_own_conditions():
     sick = _ask(_as(SICK), "خبز اسمر 100جم").get_json()
     assert free["ok"] and free["readable"] and free["options"], free
     for o in sick["options"]:
-        assert {"dm", "htn"} <= set(_food(o["name"])["safe"]), o
-    assert len(sick["options"]) < len(free["options"]) or sick["options"] == []
+        food = _food(o["name"])
+        need = {"dm", "htn"} if _flag_required(food, "سكري") else {"htn"}
+        assert need <= set(food["safe"]), o
+    assert [o["name"] for o in sick["options"]] != [o["name"] for o in free["options"]], \
+        "the sick client was answered as if healthy"
+    assert "توست أبيض" in [o["name"] for o in free["options"]]
+    assert "توست أبيض" not in [o["name"] for o in sick["options"]]
 
 
 def test_a_condition_on_the_account_counts_even_when_the_plan_has_none():
@@ -417,8 +544,10 @@ def test_a_condition_on_the_account_counts_even_when_the_plan_has_none():
     assert got["options"], got
     for o in got["options"]:
         assert "ckd" in _food(o["name"])["safe"], o
-    # ‏والفاكهة مقفولة لمريض الكلى من الأصل (البوتاسيوم)
-    assert _ask(_as(uid), "تفاح 230جم").get_json()["options"] == []
+    fruit = _ask(_as(uid), "تفاح 230جم").get_json()["options"]
+    for o in fruit:
+        assert "ckd" in _food(o["name"])["safe"], o
+    assert "موز" not in " ".join(o["name"] for o in fruit)
     # ‏والعكس: الحالة في الخطة بس
     uid2 = _mk("kidney2@e.test")
     _plan_for(uid2, symptoms=[KIDNEY])

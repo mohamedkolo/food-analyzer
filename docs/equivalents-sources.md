@@ -8,7 +8,7 @@
 - **[خ]** د. منى خليل عبد القادر، «التغذية العلاجية»، مجموعة النيل العربية، الطبعة الثانية ٢٠٠٤.
 - **[CN]** Elia, Ljungqvist, Stratton & Lanham-New (eds), *Clinical Nutrition*, The Nutrition Society Textbook Series, 2nd edition.
 
-- **[UN]** Rolfes, Pinna & Whitney, *Understanding Normal and Clinical Nutrition*, 8th edition. (الجزء الأول، فصول ١–١٧: التغذية العادية. الفصول الإكلينيكية في الجزء التاني ولسه ماتقراش.)
+- **[UN]** Rolfes, Pinna & Whitney, *Understanding Normal and Clinical Nutrition*, 8th edition. (الجزئين: فصول ١–١٧ التغذية العادية، و١٨–٢٩ الإكلينيكية.)
 
 ‏الكتب نفسها **مش في الريبو** (حقوق نشر). اللي هنا أرقام الصفحات بس.
 
@@ -47,7 +47,8 @@
 | القاعدة في الكود | المصدر |
 |---|---|
 | البديل مايزودش بروتين عن الأصل (هامش ١ جم) | البروتين محدد ٠٫٦ جم/كجم — [خ] ص ١٩٢؛ ٠٫٦–٠٫٨ — [CN] p.243, 245 |
-| مفيش بدائل في الفواكه والخضروات والألبان | جدول بوتاسيوم المجموعات [خ] ص ١٩٦: ألبان ٣٤٠ ملجم، خضروات ٢٤٠، فواكه ١٢٠، لحوم ١٢٠، خبز ٢٥، دهن صفر؛ والبوتاسيوم محدد ٢–٣ جم/يوم (ص ١٩٤). جدول الأكل مافيهوش بوتاسيوم لكل صنف، فمانقدرش نرتّب |
+| مفيش بدائل في مجموعة الألبان | أعلى مجموعة بوتاسيوم ([خ] ص ١٩٦: ٣٤٠ ملجم/وحدة) وغنية بالفوسفور ([خ] ص ١٩٨)؛ و[UN] p.885: "milk and milk products ... must limit" |
+| الفواكه والخضروات: المسمّين عالي البوتاسيوم مقفولين، والباقي لازم عليه علامة "آمن للكلى" | [UN] p.885: avocados, bananas, beets, brussels sprouts, chard, dates, dried beans and peas, dried fruit, honeydew melon, nectarines, oranges, potatoes, spinach, sweet potatoes, tomatoes, winter squash, zucchini؛ و"can consume most fruits and vegetables in limited amounts". البديل بنفس كمية الأصل |
 | الجبن والمكسرات والسمسم والطحينة مايتعرضوش | الفوسفور [خ] ص ١٩٨: "اللبن، الجبن، البقول الجافة، الكولا، المكسرات وزبدة الفول السوداني" |
 | المعلّب والمجمّد مايتعرضش | الصوديوم [خ] ص ١٩٧ |
 
@@ -72,7 +73,35 @@
 - ‏الفواكه طازجة، مش "العصائر... أو المعلبة في عصيرها أو المجففة" (ص ١٥٩).
 - ‏القليل من "النشويات العالية الدهن والمحمرة" (ص ١٥٨).
 
-‏في الكود: العصير والتمر والزبيب والقراصيا والعسل والمربى والمحمّر والفطير.
+‏في الكود: العصير والتمر والزبيب والقراصيا والعسل والمربى والمحمّر والفطير، والأبيض المكرر. والمكرونة العادية مقفولة زي "مكرونة بيضاء" في `UNSAFE_FOODS`؛ القمح الكامل مسموح.
+
+‏**هامش الكارب أضيق** (٣ جم أو ١٠٪): [UN] p.821 — "The amount of carbohydrate ingested has the greatest influence on blood glucose levels after meals … the carbohydrate intake must be fairly consistent at meals and snacks".
+
+‏**استثناء النشويات.** جدول الأكل مافيهوش علامة "آمن للسكري" على **ولا صنف** نشوي، فمريض السكر ماكانش بيطلعله بديل للخبز والأرز خالص. الكتابين بيقولوا العكس: [خ] ص ١٥٧ "النشويات مفيدة وضرورية لجميع الأفراد بما فيهم مريض البول السكري"، و[UN] p.821 إن اللي بيحكم هو كمية الكارب. فلمجموعة الخبز بس، العلامة مش شرط؛ اللي بيحمي: الكارب المطابق، قفل الأبيض المكرر، و`UNSAFE_FOODS`. ده **المكان الوحيد** اللي قاعدة اتفتحت فيه بدل ما تتقفل.
+
+## النقرس — [UN] p.890، Table 28-8
+
+‏"Foods High in Purines": brains, kidney, liver, sweetbreads؛ game meat, gravies, meat extracts؛ anchovies, herring, mackerel, sardines, scallops.
+
+## الارتجاع — [UN] p.736، Table 23-3
+
+‏"Substances That Weaken Lower Esophageal Sphincter Pressure": caffeine, chocolate, garlic, high-fat foods, onions, peppermint and spearmint. في الكود: القايمة دي، والبديل مايزودش دهن عن الأصل (هامش ٢ جم).
+
+## القولون العصبي — [UN] p.775 وTable 24-2 p.758
+
+‏"avoid dietary substances that produce excessive gas unless they can tolerate these foods": apples, broccoli, brussels sprouts, cabbage, cauliflower, corn, dried beans and peas, fruit juices, leeks, onions, peanuts, pears, potatoes, turnips. مانعرفش العميل بيستحمل إيه، فمايتعرضوش كبديل.
+
+## المرارة — [UN] p.801
+
+‏"a low-fat diet (with less than 30 percent of total kcalories from fat)". في الكود: البديل مايزودش دهن عن الأصل (هامش ١ جم).
+
+## تليف الكبد — [UN] p.795–796
+
+‏"Restrict sodium as necessary to control ascites; 2000 mg sodium per day". في الكود: نفس قايمة الصوديوم بتاعة الضغط، والجبن القريش بس.
+
+## الجلوتين واللاكتوز — [UN] p.768، Table 24-6
+
+‏ممنوع: القمح والشعير والبرغل والسميد؛ الشوفان "questionable"؛ المسموح: الذرة والأرز والبطاطس والكينوا. نفس القفل سواء اتسجّلت حساسية أو حالة.
 
 ## الحمل — [UN] p.499
 
@@ -85,6 +114,5 @@
 
 ## اللي الكتاب **مابيغطّيهوش** هنا
 
-- **٣٤ حالة من ٤٠** في `CONDITION_MAP` (نقرس، غدة، كبد دهني…) مالهاش قواعد مأخودة من الكتاب في الملف ده. بتتفحص بـ`UNSAFE_FOODS` بس.
-- **النشويات لمريض السكري:** الكتاب بيقول إنها "مفيدة وضرورية لجميع الأفراد بما فيهم مريض البول السكري" (ص ١٥٧)، بس علامات `safe` في جدول الأكل مافيهاش `dm` على أي صنف نشوي — فمريض السكر مابيتعرضلوش بديل للخبز والأرز. ده أشدّ من الكتاب، ومتساب كده بالقصد لحد ما العلامات تتراجع.
+- **٢٧ حالة من ٤٠** في `CONDITION_MAP` (غدة، كبد دهني، تكيس، روماتويد، بعد التكميم…) مالهاش قواعد مأخودة من الكتب في الملف ده. بتتفحص بـ`UNSAFE_FOODS` بس. المتغطّي: السكري، الضغط، القلب، الكوليسترول، الكلى، الحمل، النقرس، الارتجاع، القولون، المرارة، تليف الكبد، الجلوتين، اللاكتوز.
 - **علامات `safe` في `food_data.py`** كانت موجودة قبل الملف ده وماتراجعتش على الكتاب صنف صنف. قواعد الكتاب فوق بتقفل اللي الكتاب بيمنعه حتى لو العلامة سامحة.
