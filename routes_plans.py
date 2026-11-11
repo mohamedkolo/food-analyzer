@@ -26,13 +26,14 @@ from core import (
     all_visits,
     visits_by_phone,
     search_clients,
-    DIET_PLAN_TYPES, bump_plan_link, create_plan_link, cur_lang, db_row,
+    DIET_PLAN_TYPES, ENGLISH_CONDITIONS, bump_plan_link, create_plan_link, cur_lang, db_row,
     db_rows, db_run, filter_by_conditions, get_meal_pool, get_plan_link,
     get_user_by_id, last_visit, last_visit_id, log_error, record_visit,
     recent_clients, site_origin, staff_required, translate_meal, update_visit,
     visits_for,
 )
 import followup
+import plan_tools
 from plan_engine import (
     build_pdf, filter_carbs, filter_meals_by_exclusions,
     generate_weekly_plan, parse_user_exclusions,
@@ -48,7 +49,10 @@ _L_VISIT_AR = "متابعة"
 def saved():
     u = get_user_by_id(session["uid"])
     plans = db_rows("SELECT * FROM saved_plans WHERE user_id=? ORDER BY created_at DESC", (session["uid"],))
-    return render_template("saved.html", user=u, lang=session.get("lang","ar"), plans=plans)
+    templates = db_rows("SELECT id, name, diet_type, goal_cal, created_at FROM plan_templates "
+                        "WHERE user_id=? ORDER BY id DESC", (session["uid"],))
+    return render_template("saved.html", user=u, lang=session.get("lang","ar"), plans=plans,
+                           templates=templates)
 
 @bp.route("/save_plan", methods=["POST"])
 @staff_required
@@ -865,9 +869,91 @@ def preview():
         sheet_notes = data.get("sheet_notes") or []
     except Exception as e:
         log_error("preview_notes", e)
+    # ‏وجبات بتتصادم مع حالة العميل أو مع اللي طلب يبعد عنه. المولّد
+    # مابيطلّعهاش، بس التعديل بالإيد والقالب المستورد ممكن يدخّلوها.
+    problems = {}
+    try:
+        problems = {"%d:%s" % k: _problem_text(v)
+                    for k, v in plan_tools.plan_problems(data, plan).items()}
+    except Exception as e:
+        log_error("preview_problems", e, critical=True)
+    templates = db_rows("SELECT id, name, diet_type, goal_cal FROM plan_templates "
+                        "WHERE user_id=? ORDER BY id DESC", (session["uid"],))
     return render_template("preview.html", user=u, lang=session.get("lang","ar"),
                            data=data, plan=plan, current_request_id=current_request_id,
-                           sheet_notes=sheet_notes, diet_plans=DIET_PLAN_TYPES)
+                           sheet_notes=sheet_notes, diet_plans=DIET_PLAN_TYPES,
+                           problems=problems, templates=templates,
+                           gap_alert=plan_tools.GAP_ALERT_KCAL,
+                           tpl_msg=request.args.get("tpl", ""),
+                           tpl_replaced=request.args.get("replaced", type=int) or 0,
+                           tpl_kept=request.args.get("kept", type=int) or 0)
+
+
+# ── القوالب: أسبوع وجبات يتحفظ ويتحط لعميل تاني ─────────────────────
+
+@bp.route("/templates/save", methods=["POST"])
+@staff_required
+def template_save():
+    data = draft_store.draft_data()
+    plan = draft_store.draft_plan()
+    name = " ".join((request.form.get("name") or "").split())[:80]
+    if not data or not plan or not name:
+        return redirect("/preview?tpl=bad_name")
+    db_run("INSERT INTO plan_templates (user_id, name, diet_type, goal_cal, "
+           "plan_json) VALUES (?,?,?,?,?)",
+           (session["uid"], name, data.get("diet_plan_type", "standard"),
+            _int_or_none(data.get("goal_cal")),
+            json.dumps(plan_tools.template_from(plan), ensure_ascii=False)))
+    return redirect("/preview?tpl=saved")
+
+
+@bp.route("/templates/<int:tid>/apply", methods=["POST"])
+@staff_required
+def template_apply(tid):
+    data = draft_store.draft_data()
+    plan = draft_store.draft_plan()
+    row = db_row("SELECT * FROM plan_templates WHERE id=? AND user_id=?",
+                 (tid, session["uid"]))
+    if not data or not plan or not row:
+        return redirect("/preview?tpl=missing")
+    try:
+        template = json.loads(row["plan_json"] or "[]")
+    except ValueError:
+        template = []
+    if not plan_tools.template_fits(plan, template):
+        return redirect("/preview?tpl=misfit")
+    done = plan_tools.apply_template(
+        data, plan, template, lambda key: _filtered_meals(data, _pool_key(key)))
+    draft_store.set_draft(plan=plan)
+    return redirect("/preview?tpl=applied&replaced=%d&kept=%d"
+                    % (len(done["replaced"]), len(done["kept"])))
+
+
+@bp.route("/templates/<int:tid>/delete", methods=["POST"])
+@staff_required
+def template_delete(tid):
+    db_run("DELETE FROM plan_templates WHERE id=? AND user_id=?",
+           (tid, session["uid"]))
+    return redirect(request.form.get("back") if request.form.get("back")
+                    in ("/saved", "/preview") else "/saved")
+
+
+def _int_or_none(value):
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _pool_key(meal_type):
+    """Which meal pool feeds a slot -- the mapping swap_meal already uses."""
+    if meal_type in ("meal1", "iftar", "post_workout"):
+        return "lunch"
+    if meal_type in ("meal2", "suhoor"):
+        return "dinner"
+    if meal_type in ("snack1", "snack2", "pre_workout"):
+        return "breakfast"
+    return meal_type
 
 @bp.route("/shopping")
 @staff_required
@@ -930,6 +1016,37 @@ def _filtered_meals(data, pool_key, culture=None):
         meals = filter_carbs(meals, False) or meals
     return meals
 
+def _problem_text(problems):
+    """What the page says about a meal that clashes with this client."""
+    if not problems:
+        return ""
+    ar = cur_lang() == "ar"
+    parts = []
+    for p in problems:
+        if p["kind"] == "condition":
+            name = p["what"] if ar else ENGLISH_CONDITIONS.get(p["what"], p["what"])
+            parts.append(("ممنوع مع: %s" if ar else "Not allowed with: %s") % name)
+        else:
+            parts.append(("العميل طلب يبعد عن: %s" if ar
+                          else "The client asked to avoid: %s") % p["what"])
+    return " · ".join(dict.fromkeys(parts))
+
+
+def _change_meal(data, plan, day_idx, meal_type, new_text):
+    """Write one meal into the draft and report what that did to the day.
+
+    Every route that changes a meal goes through here, so none of them can
+    forget the check: the day's new total, its gap from the target, and
+    whether the new text clashes with this client's conditions.
+    """
+    day = plan[day_idx]
+    check = plan_tools.apply_change(data, day, day.get(meal_type, ""), new_text)
+    day[meal_type] = new_text
+    draft_store.set_draft(plan=plan)
+    check["warning"] = _problem_text(check.pop("problems"))
+    return check
+
+
 def _meal_display(text):
     """The meal as the current user should read it -- stored Arabic, or English."""
     if cur_lang() == "ar":
@@ -958,10 +1075,10 @@ def swap_meal():
         options = [m for m in meals if m["meal"] != current]
         if options:
             new_meal = random.choice(options)
-            plan[day_idx][meal_type] = new_meal["meal"]
-            draft_store.set_draft(plan=plan)
+            check = _change_meal(data, plan, day_idx, meal_type, new_meal["meal"])
             return jsonify({"ok": True, "new_meal": new_meal["meal"],
-                            "display": _meal_display(new_meal["meal"])})
+                            "display": _meal_display(new_meal["meal"]),
+                            "check": check})
     return jsonify({"ok": False}), 400
 
 @bp.route("/get_meal_options", methods=["POST"])
@@ -1004,10 +1121,10 @@ def replace_meal():
         new_meal = request.form.get("new_meal", "").strip()
         if not new_meal or not meal_type: return jsonify({"ok": False, "error": "missing data"}), 400
         if day_idx < 0 or day_idx >= len(plan): return jsonify({"ok": False, "error": "invalid day"}), 400
-        plan[day_idx][meal_type] = new_meal
-        draft_store.set_draft(plan=plan)
+        check = _change_meal(draft_store.draft_data() or {}, plan, day_idx,
+                             meal_type, new_meal)
         return jsonify({"ok": True, "new_meal": new_meal,
-                        "display": _meal_display(new_meal)})
+                        "display": _meal_display(new_meal), "check": check})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -1052,9 +1169,9 @@ def edit_meal():
         new_text = request.form.get("new_text", "").strip()
         if not new_text or not meal_type: return jsonify({"ok": False, "error": "missing data"}), 400
         if day_idx < 0 or day_idx >= len(plan): return jsonify({"ok": False, "error": "invalid day"}), 400
-        plan[day_idx][meal_type] = new_text
-        draft_store.set_draft(plan=plan)
-        return jsonify({"ok": True, "saved_text": new_text})
+        check = _change_meal(draft_store.draft_data() or {}, plan, day_idx,
+                             meal_type, new_text)
+        return jsonify({"ok": True, "saved_text": new_text, "check": check})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

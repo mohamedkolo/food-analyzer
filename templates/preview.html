@@ -434,6 +434,56 @@
 </div>
 {% endif %}
 
+{# ‏الصفحة دي بتترندر من أكتر من مسار (المعاينة، فتح خطة قديمة، طلب عميل)،
+   ومش كلهم بيبعتوا متغيّرات الفحص والقوالب. من غير القيم دي الصفحة كانت
+   بتقع بـ500 على المسارات التانية. #}
+{% set gap_alert = gap_alert | default(150) %}
+{% set problems = problems | default({}) %}
+{% set templates = templates | default([]) %}
+{% set tpl_msg = tpl_msg | default('') %}
+{% set tpl_replaced = tpl_replaced | default(0) %}
+{% set tpl_kept = tpl_kept | default(0) %}
+
+{# ═══ القوالب ═══
+   ‏القالب وجبات الأسبوع بس -- من غير اسم العميل ولا قياساته. ولما يتحط
+   لعميل تاني، كل وجبة بتتفحص على حالته هو، واللي ماتنفعش بتتبدّل. #}
+{% if tpl_msg == 'saved' %}<div class="alert alert-success" role="status">{{ t('القالب اتحفظ.','Template saved.') }}</div>
+{% elif tpl_msg == 'applied' %}<div class="alert alert-success" role="status">
+  {{ t('القالب اتحط على الأسبوع.','The template was applied to the week.') }}
+  {% if tpl_replaced %}<strong>{{ tpl_replaced }}</strong> {{ t('وجبة ماكانتش تنفع العميل ده واتبدّلت بوجبات مسموحة له.','meal(s) did not suit this client and were swapped for ones that do.') }}{% endif %}
+  {% if tpl_kept %}<strong>{{ tpl_kept }}</strong> {{ t('وجبة فضلت زي ما كانت لأن مفيش بديل آمن في القالب.','meal(s) were left as they were because the template had no safe alternative.') }}{% endif %}
+  {{ t('راجع السعرات: القالب معمول لعميل تاني.','Check the calories: the template was built for another client.') }}</div>
+{% elif tpl_msg == 'misfit' %}<div class="alert alert-warn" role="alert">{{ t('القالب ده وجباته مختلفة عن نظام الخطة دي (عدد الوجبات أو نوعها)، فماتحطش.','That template has different meal slots from this plan, so it was not applied.') }}</div>
+{% elif tpl_msg == 'bad_name' %}<div class="alert alert-warn" role="alert">{{ t('اكتب اسم للقالب.','Give the template a name.') }}</div>
+{% elif tpl_msg == 'missing' %}<div class="alert alert-warn" role="alert">{{ t('القالب مش موجود.','That template was not found.') }}</div>
+{% endif %}
+{% if problems %}
+<div class="alert alert-error" role="alert"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+  {{ t('فيه','There are') }} <strong>{{ problems|length }}</strong> {{ t('وجبة في الأسبوع ماتنفعش العميل ده — متعلّم عليها بالأحمر تحت.','meal(s) this week that do not suit this client — marked in red below.') }}</div>
+{% endif %}
+<details class="card" style="padding:14px 16px">
+  <summary style="cursor:pointer;font-weight:800;font-size:14px;color:var(--blue)"><i class="fa-solid fa-layer-group"></i> {{ t('القوالب','Templates') }}</summary>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:12px">
+    <form method="post" action="/templates/save" style="display:flex;gap:8px;align-items:flex-end">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div style="flex:1"><label class="form-label" for="tplName">{{ t('احفظ الأسبوع ده كقالب','Save this week as a template') }}</label>
+        <input class="form-input" id="tplName" name="name" maxlength="80" required placeholder="{{ t('مثال: تخسيس 1500','e.g. Weight loss 1500') }}"></div>
+      <button type="submit" class="btn btn-outline">{{ t('حفظ','Save') }}</button>
+    </form>
+    {% if templates %}
+    <form method="post" id="tplApply" style="display:flex;gap:8px;align-items:flex-end"
+          onsubmit="this.action='/templates/'+document.getElementById('tplPick').value+'/apply';return confirm('{{ t('وجبات الأسبوع الحالية هتتبدّل بوجبات القالب. تكمّل؟','This replaces the current week with the template. Continue?') }}')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div style="flex:1"><label class="form-label" for="tplPick">{{ t('حط قالب على الأسبوع ده','Apply a template to this week') }}</label>
+        <select class="form-select" id="tplPick">
+          {% for tp in templates %}<option value="{{ tp.id }}">{{ tp.name }}{% if tp.goal_cal %} — {{ tp.goal_cal }} kcal{% endif %}</option>{% endfor %}
+        </select></div>
+      <button type="submit" class="btn btn-primary">{{ t('حط','Apply') }}</button>
+    </form>
+    {% endif %}
+  </div>
+</details>
+
 <!-- Days -->
 <div style="display:grid;gap:12px">
   {% for day in plan %}
@@ -453,20 +503,22 @@
           {%- if day.zigzag_pct %} ({{ '+' if day.zigzag_pct > 0 }}{{ day.zigzag_pct }}%){% endif %}
         </div>
         {% endif %}
-        <div style="background:#D5DAE0;color:#1E2630;padding:4px 12px;border-radius:100px;font-weight:700;font-size:13px"
+        {# ‏المجموع والفرق بيتحدّثوا مع كل تعديل (applyCheck تحت). كانوا
+           بيتحسبوا مرة وقت التوليد ويفضلوا زي ما هم مهما اتغيّرت الوجبات. #}
+        <div class="day-total" data-day="{{ day_idx }}" role="status" dir="ltr"
+             style="background:#D5DAE0;color:#1E2630;padding:4px 12px;border-radius:100px;font-weight:700;font-size:13px"
              title="{{ t('مجموع سعرات الوجبات المكتوبة','Total of the meals listed') }}">
-          {{ day.total_cal }} kcal
+          <span class="v">{{ day.total_cal }}</span> kcal
         </div>
-        {% if day.target_cal %}
-        {% set gap = day.target_cal - day.total_cal %}
-        {% if gap > 150 or gap < -150 %}
-        <div style="background:#FDF6EC;border:1px solid #E5C9A1;color:#8A4B1C;padding:4px 10px;
+        {% set day_target = (day.target_cal or data.goal_cal or 0) | int %}
+        {% set gap = day_target - (day.total_cal or 0) %}
+        {% set show_gap = day_target and (gap > gap_alert or gap < -gap_alert) %}
+        <div class="day-gap" data-day="{{ day_idx }}" role="status" dir="ltr"
+             style="display:{{ 'block' if show_gap else 'none' }};background:#FDF6EC;border:1px solid #E5C9A1;color:#8A4B1C;padding:4px 10px;
                     border-radius:100px;font-weight:700;font-size:12px"
              title="{{ t('الفرق بين هدف اليوم ومجموع الوجبات — ظبّط الكميات','The gap between the day target and the meals listed — adjust the quantities') }}">
-          {{ '+' if gap > 0 }}{{ gap }} kcal
+          <span class="v">{{ '+' if gap > 0 }}{{ gap }}</span> kcal
         </div>
-        {% endif %}
-        {% endif %}
       </div>
     </div>
 
@@ -518,6 +570,10 @@
           <div style="flex:1">
             <div class="meal-slot">{{ label }}</div>
             <div class="meal-text editable" data-day="{{ day_idx }}" data-type="{{ key }}" style="font-size:13px;font-weight:600;cursor:text">{{ day[key] | meal_en }}</div>
+            {% set warn = problems.get(day_idx ~ ':' ~ key, '') %}
+            <div class="meal-warn" data-day="{{ day_idx }}" data-type="{{ key }}" role="alert"
+                 style="display:{{ 'block' if warn else 'none' }};margin-top:5px;background:#fdf4f4;border:1px solid #E3B4B4;color:#8B2E2E;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:800">
+              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span class="v">{{ warn }}</span></div>
           </div>
           {% if key not in ['snack','snack1','snack2','pre_workout','post_workout'] %}
           <div style="display:flex;gap:4px">
@@ -771,6 +827,24 @@ document.addEventListener('click', async function(ev){
 </script>
 
 <script>
+// ‏بعد أي تعديل على وجبة: مجموع اليوم، الفرق عن الهدف، وتحذير لو الوجبة
+// الجديدة بتتصادم مع حالة العميل. السيرفر هو اللي بيحسب؛ هنا عرض بس.
+function applyCheck(day, type, check) {
+  if (!check) return;
+  const total = document.querySelector(`.day-total[data-day="${day}"] .v`);
+  if (total) total.textContent = (check.estimated ? '~' : '') + check.total_cal;
+  const gap = document.querySelector(`.day-gap[data-day="${day}"]`);
+  if (gap) {
+    gap.style.display = check.alert ? 'block' : 'none';
+    if (check.gap !== null) gap.querySelector('.v').textContent = (check.gap > 0 ? '+' : '') + check.gap;
+  }
+  const warn = document.querySelector(`.meal-warn[data-day="${day}"][data-type="${type}"]`);
+  if (warn) {
+    warn.style.display = check.warning ? 'block' : 'none';
+    warn.querySelector('.v').textContent = check.warning || '';
+  }
+}
+
 function showSaveIndicator() {
   const ind = document.getElementById('saveIndicator');
   ind.style.display = 'block';
@@ -806,6 +880,7 @@ document.querySelectorAll('.meal-text.editable').forEach(el => {
         const data = await res.json();
         if (data.ok) {
           el.textContent = newText;
+          applyCheck(day, type, data.check);
           showSaveIndicator();
         }
       } catch (e) {}
@@ -845,6 +920,7 @@ document.querySelectorAll('.swap-btn').forEach(btn => {
           textEl.style.opacity = '0';
           setTimeout(() => { textEl.textContent = data.display || data.new_meal; textEl.style.opacity = '1'; }, 150);
         }
+        applyCheck(day, type, data.check);
         showSaveIndicator();
       }
     } catch(e) {}
@@ -970,6 +1046,7 @@ async function selectMeal(card, mealText, displayText) {
         textEl.style.opacity = '0';
         setTimeout(() => { textEl.textContent = displayText || mealText; textEl.style.opacity = '1'; }, 150);
       }
+      applyCheck(currentPickDay, currentPickType, data.check);
       showSaveIndicator();
       setTimeout(closePicker, 500);
     }
