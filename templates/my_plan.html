@@ -33,12 +33,6 @@
   .tip-icon { font-size: 36px; flex-shrink: 0; }
   .tip-content strong { display: block; color: #1E2630; font-size: 16px; margin-bottom: 4px; }
   .tip-content p { margin: 0; color: #1E2630; font-size: 14px; line-height: 1.6; }
-  .actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
-  .action-card { background: #fff; border: 2px solid #D5DAE0; border-radius: 16px; padding: 20px; text-decoration: none; transition: all 0.25s; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
-  .action-card:hover { transform: translateY(-3px); border-color: #3A4A5C; box-shadow: 0 8px 20px rgba(16, 185, 129, 0.12); }
-  .action-icon { font-size: 38px; }
-  .action-name { font-weight: 800; color: #1E2630; font-size: 15px; }
-  .action-desc { color: #5A6472; font-size: 12px; }
   .plan-box { background: #F3F5F7; border: 2px solid #3A4A5C; border-radius: 14px; padding: 20px; }
   .plan-box h3 { margin: 0 0 8px; color: #1E2630; font-size: 18px; }
   .plan-box-meta { color: #5A6472; font-size: 14px; margin-bottom: 14px; }
@@ -356,47 +350,10 @@
     {% endif %}
   </div>
 
-  <!-- Quick Actions -->
-  <div class="card">
-    <h2 class="card-title">⚡ {{ t('إجراءات سريعة','Quick Actions') }}</h2>
-    <div class="actions-grid">
-      <a href="/my-plans-history" class="action-card">
-        <div class="action-icon">📚</div>
-        <div class="action-name">{{ t('خططي السابقة','My Previous Plans') }}</div>
-        <div class="action-desc">{{ t('شوف كل الخطط اللي اتعملت ليك','See every plan made for you') }}</div>
-      </a>
-
-      <a href="/messages" class="action-card">
-        <div class="action-icon">💬</div>
-        <div class="action-name">{{ t('شات مع د. محمد','Chat with Dr. Mohamed') }}</div>
-        <div class="action-desc">{% if unread_messages > 0 %}<strong style="color:#dc2626">{{ unread_messages }} {{ t('جديد','new') }}</strong>{% else %}{{ t('محادثة جديدة','New conversation') }}{% endif %}</div>
-      </a>
-
-      <a href="/history" class="action-card">
-        <div class="action-icon">⚖️</div>
-        <div class="action-name">{{ t('تطور الوزن','Weight Progress') }}</div>
-        <div class="action-desc">{{ t('سجّل وزنك وشوف التطور','Log your weight and see progress') }}</div>
-      </a>
-
-      <a href="/knowledge" class="action-card">
-        <div class="action-icon">📖</div>
-        <div class="action-name">{{ t('مكتبة المعرفة','Knowledge Library') }}</div>
-        <div class="action-desc">{{ t('معلومات + كتب + فيديوهات','Articles + books + videos') }}</div>
-      </a>
-
-      <a href="/daily-tips" class="action-card">
-        <div class="action-icon">💡</div>
-        <div class="action-name">{{ t('نصائح يومية','Daily Tips') }}</div>
-        <div class="action-desc">{{ t('نصائح مخصصة لحالتك','Tips tailored to your condition') }}</div>
-      </a>
-
-      <a href="/settings" class="action-card">
-        <div class="action-icon">⚙️</div>
-        <div class="action-name">{{ t('إعداداتي','My Settings') }}</div>
-        <div class="action-desc">{{ t('عدّل بياناتك','Edit your details') }}</div>
-      </a>
-    </div>
-  </div>
+  {# ‏كارت "إجراءات سريعة" اتشال. الست لينكات اللي كانوا فيه (خططي السابقة،
+     الشات، الوزن، المعرفة، النصايح، الإعدادات) كلهم في القايمة، والشات
+     والوزن في زرار (+) كمان. على الموبايل كان بياخد شاشتين كاملتين تحت
+     الخطة عشان يكرر اللي في الشريط السفلي. #}
 
 </div>
 
