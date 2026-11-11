@@ -334,6 +334,16 @@ def test_the_bottom_bar_is_the_clients_and_only_the_clients():
     assert 'class="cbar"' not in _as().get("/book").get_data(as_text=True)
 
 
+def test_the_home_page_does_not_repeat_the_menu_as_cards():
+    """‏كارت "إجراءات سريعة" كان ست كروت كبيرة بتكرر لينكات القايمة، وعلى
+    الموبايل بياخد شاشتين. اتشال -- بس كل لينك فيه لازم يفضل له طريق."""
+    page = _as(ALICE).get("/my-plan").get_data(as_text=True)
+    assert "Quick Actions" not in page and "action-card" not in page
+    for href in ("/my-plans-history", "/messages", "/history", "/knowledge",
+                 "/daily-tips", "/settings"):
+        assert 'href="%s"' % href in page, "%s is no longer reachable" % href
+
+
 def test_the_plan_tab_goes_to_the_plan_in_force():
     _reset()
     A.db_run("DELETE FROM plan_requests WHERE client_id=?", (ALICE,))
