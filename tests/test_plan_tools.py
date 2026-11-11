@@ -171,6 +171,19 @@ def test_the_preview_page_carries_the_live_hooks():
     assert page.count("applyCheck(") >= 4, "an edit path does not call applyCheck"
 
 
+def test_the_send_buttons_stay_at_the_end_of_the_page():
+    """‏زراير الإرسال كانت ملزوقة تحت الشاشة. على الموبايل أربع زراير
+    بعرض الشاشة غطّوا نص الصفحة، والوجبات اللي بتتعدّل بقت ورا الزراير.
+    الدكتور بعت صورة بيها."""
+    page = _generate(_staff()).get("/preview").get_data(as_text=True)
+    css = page[page.index(".pv-sticky{"):]
+    rule = css[:css.index("}")]
+    assert "sticky" not in rule.split("{", 1)[1] and "fixed" not in rule, rule
+    assert 'class="pv-sticky"' in page, "the buttons are gone"
+    assert page.index('class="pv-sticky"') > page.rindex('class="day-total"'), \
+        "the buttons are no longer after the week"
+
+
 # ── القوالب ─────────────────────────────────────────────────────────
 
 def _save_template(c, name="Weight loss 1750"):
