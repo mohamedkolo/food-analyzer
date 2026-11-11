@@ -33,6 +33,25 @@ client back to the plan as written, which the nutritionist approved.
 The cost of a missing suggestion is a message; the cost of a wrong one is
 on the client's plate.
 
+Where the rules come from
+-------------------------
+The groups, and what each condition closes, are not this file's opinion.
+They are taken from the two textbooks the clinic works from, and every rule
+below carries its page:
+
+  [خ]  د. منى خليل عبد القادر، «التغذية العلاجية»، مجموعة النيل العربية،
+       الطبعة الثانية ٢٠٠٤.
+  [CN] Elia, Ljungqvist, Stratton & Lanham-New (eds), «Clinical Nutrition»,
+       The Nutrition Society Textbook Series, 2nd edition.
+
+The exchange system itself ([خ] ص ٢٩-٣٦) is why a second check is needed at
+all. The book says it in so many words (ص ٣٥-٣٦): the exchange units reflect
+energy, protein, fat and carbohydrate **only**, and say nothing about
+vitamins and minerals, "because there are large differences between the
+foods of one group". Two fruits that are one exchange each can be far apart
+in potassium. So macros decide *how much*, and the condition rules decide
+*whether at all*.
+
 Nothing here knows about Flask or the database.
 """
 
@@ -42,12 +61,39 @@ import food_data
 import meal_macros
 from meal_database import CONDITION_MAP, _contains_unsafe
 
-# ‏العائلة: الصنف مايتبدّلش غير بصنف من عيلته.
-FAMILY = {
-    "poultry": "protein", "meat": "protein", "fish": "protein",
-    "dairy": "dairy", "grain": "grain", "legume": "legume",
-    "veg": "veg", "fruit": "fruit", "nut": "nut",
-}
+# ‏المجموعات الست التبادلية -- [خ] ص ٢٩-٣٥. الصنف مايتبدّلش غير بصنف من
+# مجموعته. وهي **مش** فئات جدول الأكل، والفرق في تلات حتت:
+#
+#   - البيض والجبن في مجموعة **اللحوم** (ص ٣٤-٣٥)، مش الألبان. مجموعة
+#     الألبان لبن وزبادي بس (ص ٣٠).
+#   - البقول الناشفة والبطاطس والذرة والبسلة في مجموعة **الخبز** (ص ٣٣).
+#   - المكسرات والزيتون والزبدة والقشدة في مجموعة **الدهن** (ص ٣٥).
+MILK, VEG, FRUIT, BREAD, MEAT, FAT = (
+    "milk", "veg", "fruit", "bread", "meat", "fat")
+_CAT_GROUP = {"poultry": MEAT, "meat": MEAT, "fish": MEAT, "grain": BREAD,
+              "legume": BREAD, "veg": VEG, "fruit": FRUIT, "nut": FAT}
+_MILK_WORDS = ("حليب", "لبن", "زبادي", "رايب")
+_DAIRY_FAT_WORDS = ("زبده", "زبد", "قشده", "قشطه", "كريمه", "سمن")
+_STARCHY_VEG = ("بطاطس", "بطاطا", "ذره", "بسله", "بازلاء")
+
+
+def group_of(food):
+    """The exchange group a food belongs to, or None when it has none."""
+    cat = food.get("cat")
+    name = meal_macros._norm(food.get("n"))
+    if cat == "dairy":
+        if any(meal_macros._norm(w) in name for w in _DAIRY_FAT_WORDS):
+            return FAT
+        if "جبن" in name or "بيض" in name or "صفار" in name:
+            return MEAT
+        if any(meal_macros._norm(w) in name for w in _MILK_WORDS):
+            return MILK
+        return None
+    if cat == "veg" and any(meal_macros._norm(w) in name for w in _STARCHY_VEG):
+        return BREAD
+    return _CAT_GROUP.get(cat)
+
+
 # ‏الحالات اللي جدول الأكل بيقول عليها "آمن" صراحة. للحالات دي الصنف
 # لازم يكون متعلّم عليه؛ السكوت مش موافقة.
 SAFE_KEY = {"سكري": "dm", "ضغط": "htn", "كلوي": "ckd", "قولون": "ibs",
@@ -74,11 +120,91 @@ _EGG = "بيض"
 # ‏من النشويات، دول اللي مافيهمش جلوتين. أي حاجة تانية بتتمنع مع القمح.
 _GLUTEN_FREE = ("ارز", "ذره", "بطاط", "كينوا")
 
-# ‏مش بدائل تتقال لعميل على نظام: نيّ ودقيق، والمصنّع والمدخّن والمقلي
-# والمجفف. الأرقام بتاعتهم ممكن تطابق، بس محدش بيكتبهم في خطة.
+# ══ قواعد الحالات من الكتاب ══════════════════════════════════════════
+#
+# ‏الكلى -- [خ] ص ١٩٢-١٩٨، [CN] p.243-245
+#   - البروتين محدد (٠٫٦ جم/كجم): البديل مايزودش بروتين عن الأصل.
+#   - البوتاسيوم محدد (٢-٣ جم/يوم). جدول ص ١٩٦: وحدة الألبان ٣٤٠ ملجم،
+#     الخضروات ٢٤٠، الفواكه ١٢٠، اللحوم ١٢٠، الخبز ٢٥، الدهن صفر. والكتاب
+#     بيقول إن الفروق جوّه المجموعة الواحدة كبيرة -- وجدول الأكل عندنا
+#     مافيهوش بوتاسيوم. فمجموعات الفواكه والخضروات والألبان **مابيتعرضش
+#     فيها بديل** لمريض الكلى: مانقدرش نقول أنهي فاكهة أقل من أنهي.
+#   - الفوسفور (ص ١٩٨): "اللبن، الجبن، البقول الجافة، الكولا، المكسرات
+#     وزبدة الفول السوداني" -- يجب الإقلال. فمايتعرضوش كبديل.
+#   - الصوديوم (ص ١٩٧): "معظم الأطعمة المعلبة والمجمدة والمصنعة".
+KIDNEY_CLOSED_GROUPS = (FRUIT, VEG, MILK)
+KIDNEY_PROTEIN_SLACK_G = 1.0
+_KIDNEY_BANNED = ("جبن", "معلب", "مجمد", "مكسرات", "سوداني", "لوز", "كاجو",
+                  "بندق", "فستق", "عين جمل", "جوز", "لب ", "سمسم", "طحينه")
+
+# ‏القلب والكوليسترول -- [خ] ص ١٧٨، جدول "الأطعمة الممنوعة / المسموح بها".
+#   ممنوع: الضأن، المخ، الكلاوي، الكبد، الريش؛ البط والحمام والأوز وجلد
+#   الدجاج؛ الأسماك العالية الدهن والجمبري والسردين والتونة والكابوريا؛
+#   صفار البيض (٣ مرات في الأسبوع بس)؛ الألبان والجبن كاملة الدسم والآيس
+#   كريم؛ السمن والزبد والمهدرج؛ البسكويت والكيك.
+#   مسموح: البتلو والعجالي خالي الدهن؛ الدجاج والرومي بدون جلد؛ السمك
+#   الخالي من الدهن (البلطي، قشر البياض)؛ بياض البيض؛ اللبن والزبادي منزوع
+#   الدسم والجبن القريش؛ الزيوت النباتية؛ الخضروات والفواكه الطازجة.
+_HEART_BANNED = (
+    "ضان", " مخ ", "كلاوي", "كبد", " ريش ", " بط ", "حمام", " اوز ", " وز ",
+    "جلد",
+    "جمبري", "سردين", "تونه", "كابوريا", "سلمون", "ماكريل", "صفار",
+    "بيضه كامله", "كامل الدسم", "كامله الدسم", "ايس كريم", "سمن", "زبد",
+    "مارجرين", "مهدرج", "قشده", "قشطه", "كريمه", "بسكويت", "كيك", "بيتي فور",
+    "مسبك")
+# ‏الجبن للقلب: القريش بس (ص ١٧٨). أي جبن تاني كامل الدسم لحد ما يثبت غير كده.
+_HEART_CHEESE_OK = ("قريش", "خالي الدسم", "منزوع الدسم", "قليل الدسم", "لايت")
+
+# ‏الضغط -- [خ] ص ١٦٩-١٧٢. جدول ص ١٧١: الأكل الطازج صوديومه قليل (خضار ٩
+#   ملجم، فاكهة ٢، خبز ٥)، و"جزء كبير من الصوديوم يأتي من مركبات الصوديوم
+#   المضافة للطعام أثناء عمليات الإنتاج والحفظ". أمثلة ص ١٧٢: ٣٠ جم جبنة
+#   شيدر = ٤٠٠ ملجم، زيتونة كبيرة = ١٣٠، فنجان شوربة معلبة = ١١٠٠.
+_SODIUM_BANNED = ("معلب", "مخلل", "زيتون", "صوص", "صلصه", "شوربه", "مرق",
+                  "شيبسي", "مملح")
+
+# ‏السكري -- [خ] ص ١٥٤-١٦٠. "تمنع الأطعمة العالية في محتواها من السكر".
+#   الفواكه طازجة، مش "العصائر ... أو المعلبة في عصيرها أو المجففة"
+#   (ص ١٥٩)؛ والقليل من "النشويات العالية الدهن والمحمرة" (ص ١٥٨).
+_DIABETES_BANNED = ("عصير", "تمر", "زبيب", "قراصيا", "مشمشيه", "عسل", "مربي",
+                    "سكر", "شراب", "محمر", "مقلي", "فطير", "كيك", "بسكويت")
+
+_BOOK_RULES = {"كلوي": _KIDNEY_BANNED, "قلب": _HEART_BANNED,
+               "كوليسترول": _HEART_BANNED, "ضغط": _SODIUM_BANNED,
+               "سكري": _DIABETES_BANNED}
+
+
+def _has(plain, word):
+    """Is `word` in the name? A word written with spaces around it must
+    stand alone: " ريش " (لحم الريش) is not the end of "قريش", and the
+    cottage cheese the book allows a heart patient must not be caught by
+    the cut of lamb it forbids."""
+    core = meal_macros._norm(word.strip())
+    if word != word.strip():
+        return (" " + core + " ") in (" " + plain + " ")
+    return core in plain
+
+
+def _banned_by_book(food, key):
+    """Does the textbook close this food to a client with this condition?"""
+    plain = meal_macros._norm(food.get("n")) + " "
+    if any(_has(plain, w) for w in _BOOK_RULES.get(key, ())):
+        return True
+    if key in ("قلب", "كوليسترول", "ضغط") and "جبن" in plain:
+        return not any(meal_macros._norm(w) in plain for w in _HEART_CHEESE_OK)
+    return False
+
+
+# ‏مش بدائل تتقال لعميل على نظام، لأي حد (ده ذوق الخطة مش حكم طبي):
+#   - نيّ ودقيق، ومدخّن ومقلي ومصنّع ومجفف؛
+#   - أحشاء (قوانص، لسان، كوارع...) -- أرقامها بتطابق ومحدش بيكتبها؛
+#   - أطباق مركّبة ("مكرونة بالصلصة"، "بيتزا"): الطبق مش صنف، ومكوّناته
+#     مابتتفحصش واحد واحد.
 _NOT_A_SWAP = ("نئ", "نيء", "ني ", "طحين", "دقيق", "مدخن", "مملح", "مقلي",
                "محمر", "محلى", "بالسكر", "مجفف", "لانشون", "سجق", "بسطرمه",
-               "مقدد", "معلب بالزيت")
+               "مقدد", "قوانص", "لسان", "قلوب", "كوارع", "ممبار", "مخ ",
+               "كرشه", "فشه", "بيتزا", "برياني", "بشاميل", "محشي", "كشري",
+               "ساندوتش", "برجر", "نودلز", "سيريلاك", "كورن فليكس")
+_DISH = re.compile(r"(?:^|\s)بال\S+|(?:^|\s)مع\s")
 
 CAL_TOLERANCE = 0.10          # ‏السعرات بعد تقريب الكمية
 MACRO_ABS_G = 4.0             # ‏كل ماكرو: في حدود ٤ جرام...
@@ -120,7 +246,7 @@ def read_item(text):
     grams, how = meal_macros.item_grams(text, food)
     if how not in _CERTAIN or grams <= 0:
         return None
-    if FAMILY.get(food.get("cat")) is None:
+    if group_of(food) is None:
         return None
     return {"food": food, "grams": grams, "macros": _portion(food, grams)}
 
@@ -149,7 +275,7 @@ def allowed_for(food, profile):
     name = food.get("n") or ""
     safe = food.get("safe") or []
     for key in profile["conditions"]:
-        if _contains_unsafe(name, key):
+        if _contains_unsafe(name, key) or _banned_by_book(food, key):
             return False
         wanted = SAFE_KEY.get(key)
         if wanted and wanted not in safe:
@@ -234,16 +360,25 @@ def alternatives(text, profile, ar=True):
     if item is None:
         return None
     source, want = item["food"], item["macros"]
-    family = FAMILY[source["cat"]]
+    group = group_of(source)
+    kidney = "كلوي" in profile["conditions"]
+    original = {
+        "name": source["n"] if ar else (source.get("en") or source["n"]),
+        "cal": int(round(want["cal"])), "p": round(want["p"], 1),
+        "c": round(want["c"], 1), "f": round(want["f"], 1)}
+    if kidney and group in KIDNEY_CLOSED_GROUPS:
+        # ‏[خ] ص ١٩٦ وص ٣٥-٣٦: بوتاسيوم المجموعات دي عالي ومتفاوت، وماعندناش
+        # رقمه لكل صنف.
+        return {"original": original, "options": []}
 
     found = []
     for food in food_data.FOODS:
-        if food is source or FAMILY.get(food.get("cat")) != family:
+        if food is source or group_of(food) != group:
             continue
         if not _ARABIC.search(food.get("n") or ""):
             continue                      # ‏أصناف مستوردة من غير اسم عربي
         padded = meal_macros._norm(food["n"]) + " "
-        if _same_food(source, food) or any(
+        if _same_food(source, food) or _DISH.search(padded) or any(
                 meal_macros._norm(w) in padded for w in _NOT_A_SWAP):
             continue
         per_100 = _num(food.get("cal"))
@@ -256,6 +391,8 @@ def alternatives(text, profile, ar=True):
         got = _portion(food, real_grams)
         if not _close(want, got):
             continue
+        if kidney and got["p"] > want["p"] + KIDNEY_PROTEIN_SLACK_G:
+            continue                      # ‏[خ] ص ١٩٢: البروتين محدد
         if not allowed_for(food, profile):
             continue
         name = food["n"] if ar else (food.get("en") or food["n"])
@@ -282,10 +419,4 @@ def alternatives(text, profile, ar=True):
         options.append(option)
         if len(options) == MAX_RESULTS:
             break
-    return {
-        "original": {
-            "name": source["n"] if ar else (source.get("en") or source["n"]),
-            "cal": int(round(want["cal"])), "p": round(want["p"], 1),
-            "c": round(want["c"], 1), "f": round(want["f"], 1)},
-        "options": options,
-    }
+    return {"original": original, "options": options}
