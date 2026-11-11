@@ -307,7 +307,7 @@
             <span>{{ meal_emojis.get(mk, '🍽️') }}</span>
             {{ meal_labels.get(mk, mk) }}
           </div>
-          <div class="meal-text">{{ day.get(mk) | meal_en }}</div>
+          <div><div class="meal-text" data-swap="{{ day.get(mk) }}">{{ day.get(mk) | meal_en }}</div></div>
         </div>
         {% endif %}
         {% endfor %}
@@ -324,4 +324,5 @@
 
 </div>
 
+{% include "_swap_sheet.html" %}
 {% endblock %}

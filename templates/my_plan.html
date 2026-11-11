@@ -92,6 +92,7 @@
           <div style="font-size:12px;color:#5A6472;line-height:1.6;{% if m.checked %}text-decoration:line-through;opacity:.6;{% endif %}">{{ m.text | meal_en }}</div>
         </div>
       </div>
+      <span data-swap="{{ m.text }}" hidden></span>
       {# ‏تحت كل وجبة: "ماكلتهاش" وتعليق. برّه الكارت اللي فوق بالقصد --
          الدوسة على الكارت معناها "اتاكلت"، ودول مايتلخبطوش بيها. #}
       <div class="meal-note" data-key="{{ m.key }}" data-skipped="{{ 1 if mn and mn.skipped else 0 }}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-2px 0 12px;font-size:12px">
@@ -399,4 +400,5 @@
 
 </div>
 
+{% include "_swap_sheet.html" %}
 {% endblock %}
