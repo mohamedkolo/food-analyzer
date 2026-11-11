@@ -257,6 +257,11 @@ def _banned_by_book(food, key):
     plain = meal_macros._norm(food.get("n")) + " "
     if any(_has(plain, w) for w in _BOOK_RULES.get(key, ())):
         return True
+    if key == "سكري" and "مكرون" in plain and not any(
+            meal_macros._norm(w) in plain for w in ("قمح كامل", "اسمر")):
+        # ‏قايمة الممنوعات بتاعة المولّد بتمنع "مكرونة بيضاء" لمريض السكر.
+        # "مكرونة مسلوقة" في جدول الأكل هي نفسها باسم تاني، فكانت بتعدّي.
+        return True
     if "جبن" in plain:
         if key in ("ضغط", "تليف"):
             # ‏الصوديوم مش الدسم: الفيتا اللايت والشيدر قليل الدسم لسه مالحين

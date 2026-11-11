@@ -393,8 +393,11 @@ def test_a_diabetic_gets_starch_swaps_with_the_carbohydrate_held_steady():
     assert _names("خبز اسمر 100جم", symptoms=[DIABETES]), "still no bread swap"
     assert checked >= 8, checked
     diabetic = E.profile_from({"symptoms": [DIABETES]})
-    for refined in ("توست أبيض", "أرز أبيض مطبوخ", "عيش فينو", "خبز أبيض"):
+    for refined in ("توست أبيض", "أرز أبيض مطبوخ", "عيش فينو", "خبز أبيض",
+                    "مكرونة مسلوقة"):
         assert not E.allowed_for(_food(refined), diabetic), refined
+    # ‏المولّد بيمنع "مكرونة بيضاء" لمريض السكر؛ المسلوقة العادية هي نفسها.
+    assert E.allowed_for(_food("مكرونة قمح كامل"), diabetic)
     # ‏الاستثناء للنشويات بس: صنف من مجموعة تانية من غير علامة لسه مقفول
     assert not E.allowed_for(_food("جبنة بارميزان"), diabetic)
 
