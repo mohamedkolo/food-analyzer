@@ -15,11 +15,13 @@
   .meal-row.is-snack .meal-ic i{color:#8A6B45}
   .meal-slot{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.4px}
 
-  /* ‏الزراير اللي بتفضل ملزوقة تحت: على الموبايل دي الطريقة الوحيدة
-     المريحة للمشاركة، فبتفضل عرض كامل. على الديسكتوب كانت تلات بلوكات
-     بعرض الشاشة بتغطي الجدول اللي ورا -- ونفس الزراير موجودة في الشريط
-     فوق أصلاً. فبقت صف عادي على الجنب. */
-  .pv-sticky{position:sticky;bottom:10px;margin-top:20px;display:grid;gap:8px;z-index:5}
+  /* ‏زراير الإرسال والتحميل في آخر الصفحة، **ثابتة مكانها**.
+     ‏كانت ملزوقة تحت الشاشة وبتتحرك مع السكرول. على الموبايل الأربع
+     زراير بعرض الشاشة كانوا بياخدوا نص الشاشة ويغطّوا الوجبات اللي
+     الدكتور بيعدّل فيها: النص بيبان من ورا الزراير ومايتقراش ولا يتداس
+     عليه. نفس الزراير موجودة في الشريط فوق، فاللي عايز يبعت من غير ما
+     ينزل لآخر الصفحة عنده طريق. */
+  .pv-sticky{margin-top:20px;display:grid;gap:8px}
   .pv-sticky .btn-full{font-size:16px;padding:14px;box-shadow:none}
   @media(min-width:900px){
     .pv-sticky{display:flex;flex-wrap:wrap;justify-content:flex-end;
