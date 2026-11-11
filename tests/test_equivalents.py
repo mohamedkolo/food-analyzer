@@ -327,6 +327,22 @@ def test_a_diabetic_gets_fresh_fruit_not_dried_fruit_or_juice():
         "the test needs raisins to be on offer without diabetes"
 
 
+def test_a_pregnant_client_is_not_offered_feta_tuna_or_mackerel():
+    """‏[UN] p.499: الفيتا والأجبان الزرقاء (ليستيريا)، والتونة والماكريل
+    (زئبق، وليهم حد أسبوعي مانقدرش نعدّه من هنا)."""
+    pregnant = E.profile_from({"symptoms": [_cond("حامل")]})
+    for name in ("جبنة فيتا", "جبنة فيتا لايت", "ماكريل",
+                 "تونة طازجة (ستيك)", "تونة معلبة بالماء"):
+        assert not E.allowed_for(_food(name), pregnant), name
+    for name in ("صدر دجاج", "بلطي فيليه", "جبن قريش", "بيضة كاملة"):
+        assert E.allowed_for(_food(name), pregnant), name
+    offered = _names("بيض مسلوق 3")
+    assert any("فيتا" in n for n in offered), \
+        "the test needs feta to be on offer when not pregnant"
+    assert not any("فيتا" in n for n in
+                   _names("بيض مسلوق 3", symptoms=[_cond("حامل")]))
+
+
 def test_a_cooked_dish_is_never_offered_as_a_swap_for_one_food():
     """‏"مكرونة بالصلصة" و"بيتزا" أطباق، مش أصناف: مكوّناتها مابتتفحصش
     واحد واحد على حالة العميل."""

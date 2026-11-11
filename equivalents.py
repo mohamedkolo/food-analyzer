@@ -43,6 +43,8 @@ below carries its page:
        الطبعة الثانية ٢٠٠٤.
   [CN] Elia, Ljungqvist, Stratton & Lanham-New (eds), «Clinical Nutrition»,
        The Nutrition Society Textbook Series, 2nd edition.
+  [UN] Rolfes, Pinna & Whitney, «Understanding Normal and Clinical
+       Nutrition», 8th edition.
 
 The exchange system itself ([خ] ص ٢٩-٣٦) is why a second check is needed at
 all. The book says it in so many words (ص ٣٥-٣٦): the exchange units reflect
@@ -168,7 +170,18 @@ _SODIUM_BANNED = ("معلب", "مخلل", "زيتون", "صوص", "صلصه", "�
 _DIABETES_BANNED = ("عصير", "تمر", "زبيب", "قراصيا", "مشمشيه", "عسل", "مربي",
                     "سكر", "شراب", "محمر", "مقلي", "فطير", "كيك", "بسكويت")
 
-_BOOK_RULES = {"كلوي": _KIDNEY_BANNED, "قلب": _HEART_BANNED,
+# ‏الحمل -- [UN] p.499.
+#   الزئبق: "Avoid shark, swordfish, king mackerel, and tilefish"، وحدّ
+#   أسبوعي للمأكولات البحرية (١٢ أونصة) وللتونة البيضاء (٦ أونصات). البديل
+#   بيتعرض كل مرة ومانعرفش العميلة كلت كام الأسبوع ده، فالتونة والماكريل
+#   مايتعرضوش خالص.
+#   الليستيريا: "avoid ... feta cheese, brie, Camembert, and blue-veined
+#   cheeses such as Roquefort"، واللانشون واللحوم المقددة (دول مقفولين
+#   للكل أصلاً في _NOT_A_SWAP).
+_PREGNANCY_BANNED = ("فيتا", " بري ", "كاممبير", "كامامبير", "روكفور",
+                     "ريكفور", "ازرق", "ابو سيف", "قرش", "ماكريل", "تونه")
+
+_BOOK_RULES = {"حامل": _PREGNANCY_BANNED, "كلوي": _KIDNEY_BANNED, "قلب": _HEART_BANNED,
                "كوليسترول": _HEART_BANNED, "ضغط": _SODIUM_BANNED,
                "سكري": _DIABETES_BANNED}
 
