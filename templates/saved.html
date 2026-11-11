@@ -102,4 +102,21 @@
   {{ 'ولّد خطة جديدة' if is_ar else 'Generate a Plan' }}
 </a>
 {% endif %}
+
+{# ‏القوالب: أسابيع وجبات محفوظة من غير بيانات عميل، بتتحط من صفحة المعاينة. #}
+{% if templates %}
+<div class="card" style="margin-top:18px">
+  <div class="card-title"><i class="fa-solid fa-layer-group"></i> {{ t('قوالبي','My templates') }}</div>
+  <p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">{{ t('القالب بيتحط على خطة عميل من صفحة المعاينة، وكل وجبة فيه بتتفحص على حالة العميل ده.','A template is applied to a client\'s plan from the preview page, and each meal in it is checked against that client.') }}</p>
+  {% for tp in templates %}
+  <form method="post" action="/templates/{{ tp.id }}/delete" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--gray-2);margin:0"
+        onsubmit="return confirm('{{ t('تمسح القالب ده؟','Delete this template?') }}')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="back" value="/saved">
+    <span style="font-size:14px"><strong>{{ tp.name }}</strong>{% if tp.goal_cal %} <span style="color:var(--muted)">— {{ tp.goal_cal }} kcal</span>{% endif %}</span>
+    <button type="submit" class="btn btn-danger" style="padding:6px 12px">{{ t('حذف','Delete') }}</button>
+  </form>
+  {% endfor %}
+</div>
+{% endif %}
 {% endblock %}

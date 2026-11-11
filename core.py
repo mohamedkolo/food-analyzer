@@ -768,6 +768,7 @@ def init_db():
             """CREATE TABLE IF NOT EXISTS appointment_ratings (id SERIAL PRIMARY KEY, appointment_id INTEGER NOT NULL UNIQUE, score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 10), comment TEXT, anonymous INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS recommendations (id SERIAL PRIMARY KEY, client_id INTEGER NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS meal_notes (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, skipped INTEGER DEFAULT 0, comment TEXT, UNIQUE(user_id, check_date, meal_key))""",
+            """CREATE TABLE IF NOT EXISTS plan_templates (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, name TEXT NOT NULL, diet_type TEXT, goal_cal INTEGER, plan_json TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         ]
         for sql in tables_pg:
             try: db_run(sql)
@@ -798,6 +799,7 @@ def init_db():
         """CREATE TABLE IF NOT EXISTS appointment_ratings (id INTEGER PRIMARY KEY AUTOINCREMENT, appointment_id INTEGER NOT NULL UNIQUE, score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 10), comment TEXT, anonymous INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         """CREATE TABLE IF NOT EXISTS recommendations (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         """CREATE TABLE IF NOT EXISTS meal_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, skipped INTEGER DEFAULT 0, comment TEXT, UNIQUE(user_id, check_date, meal_key))""",
+        """CREATE TABLE IF NOT EXISTS plan_templates (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, name TEXT NOT NULL, diet_type TEXT, goal_cal INTEGER, plan_json TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         ]
         for sql in tables_sq:
             try: db_run(sql)
