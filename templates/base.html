@@ -368,12 +368,15 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
 <body class="{% block body_class %}{% if not user %}public-chrome{% endif %}{% endblock %}">
 
 {% set is_ar = (lang or 'ar') == 'ar' %}
-{% set user_role = user.role if (user and user.role) else ('admin' if (user and user.is_admin) else 'client') %}
+{# ‏me = اللي فاتح الصفحة. مش دايمًا user: ملف العميل عند الأدمن بيبعت
+   العميل في user، والقايمة الجانبية كانت بتطلع باسمه وقايمته هو. #}
+{% set me = viewer if (viewer is defined and viewer) else user %}
+{% set user_role = me.role if (me and me.role) else ('admin' if (me and me.is_admin) else 'client') %}
 {% set is_staff = user_role in ['admin', 'nutritionist'] %}
 {% set is_admin = user_role == 'admin' %}
 
 {% block chrome %}
-{% if not user %}
+{% if not me %}
 {% include "_public_header.html" %}
 {% else %}
 <header class="header">
@@ -392,7 +395,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
       <i class="fa-solid fa-globe"></i> {{ 'English' if is_ar else 'العربية' }}
     </a>
     <span class="user-badge">
-      <i class="fa-solid fa-user"></i> {{ user.name if user else '' }}
+      <i class="fa-solid fa-user"></i> {{ me.name if me else '' }}
       {% if user_role == 'admin' %}<span class="role-badge role-admin">Admin</span>
       {% elif user_role == 'nutritionist' %}<span class="role-badge role-nutritionist">{{ 'أخصائي' if is_ar else 'Specialist' }}</span>
       {% else %}<span class="role-badge role-client">{{ 'عميل' if is_ar else 'Client' }}</span>{% endif %}
@@ -407,8 +410,8 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
 
 <nav class="sidebar" id="sidebar">
   <div class="sidebar-user">
-    <div class="name">{{ user.name if user else '' }}</div>
-    <div class="email">{{ user.email if user else '' }}</div>
+    <div class="name">{{ me.name if me else '' }}</div>
+    <div class="email">{{ me.email if me else '' }}</div>
   </div>
 
   {% if is_staff %}
@@ -422,7 +425,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
       <i class="fa-solid fa-house"></i> {{ 'الرئيسية' if is_ar else 'Dashboard' }}
     </a>
 
-    {% set g_clients = request.endpoint in ['admin_users','admin_new_user','admin_user_profile','admin_requests','plans.followups','plans.followup_detail','messages','chat','admin_blocked_list','booking.admin_calendar','booking.admin_booking_settings'] %}
+    {% set g_clients = request.endpoint in ['admin.admin_users','admin.admin_new_user','admin.admin_user_profile','admin.admin_requests','plans.followups','plans.followup_detail','messages','chat','admin.admin_blocked_list','booking.admin_calendar','booking.admin_booking_settings'] %}
     <details class="nav-grp {% if g_clients %}has-active{% endif %}" {% if g_clients %}open{% endif %}>
       <summary><i class="fa-solid fa-users"></i> {{ 'العملاء' if is_ar else 'Clients' }}
         {% set c_badge = (pending_count or 0) + (unread_messages or 0) + (booking_pending or 0) %}
@@ -432,11 +435,11 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
       </summary>
       <div class="nav-grp-body">
         {% if is_admin %}
-        <a href="/admin/users" class="nav-item {% if request.endpoint in ['admin_users','admin_new_user','admin_user_profile'] %}active{% endif %}">
+        <a href="/admin/users" class="nav-item {% if request.endpoint in ['admin.admin_users','admin.admin_new_user','admin.admin_user_profile'] %}active{% endif %}">
           <i class="fa-solid fa-users"></i> {{ 'العملاء' if is_ar else 'Clients' }}
         </a>
         {% endif %}
-        <a href="/admin/requests" class="nav-item {% if request.endpoint in ['admin_requests'] %}active{% endif %}">
+        <a href="/admin/requests" class="nav-item {% if request.endpoint in ['admin.admin_requests'] %}active{% endif %}">
           <i class="fa-solid fa-inbox"></i> {{ 'طلبات العملاء' if is_ar else 'Client Requests' }}
           {% if pending_count and pending_count > 0 %}<span class="nav-badge">{{ pending_count }}</span>{% endif %}
         </a>
@@ -452,23 +455,23 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
           {% if unread_messages and unread_messages > 0 %}<span class="nav-badge">{{ unread_messages }}</span>{% endif %}
         </a>
         {% if is_admin %}
-        <a href="/admin/blocked" class="nav-item {% if request.endpoint=='admin_blocked_list' %}active{% endif %}">
+        <a href="/admin/blocked" class="nav-item {% if request.endpoint=='admin.admin_blocked_list' %}active{% endif %}">
           <i class="fa-solid fa-ban"></i> {{ 'الحسابات المحظورة' if is_ar else 'Blocked Users' }}
         </a>
         {% endif %}
       </div>
     </details>
 
-    {% set g_plans = request.endpoint in ['plans.generate','plans.preview','generate','preview','saved','analyzer','clinical'] %}
+    {% set g_plans = request.endpoint in ['plans.generate','plans.preview','plans.generate','plans.preview','plans.saved','analyzer','clinical'] %}
     <details class="nav-grp {% if g_plans %}has-active{% endif %}" {% if g_plans %}open{% endif %}>
       <summary><i class="fa-solid fa-file-lines"></i> {{ 'الخطط' if is_ar else 'Plans' }}
         <i class="fa-solid fa-chevron-down nav-grp-x"></i>
       </summary>
       <div class="nav-grp-body">
-        <a href="/generate" class="nav-item {% if request.endpoint in ['plans.generate','plans.preview','generate','preview'] %}active{% endif %}">
+        <a href="/generate" class="nav-item {% if request.endpoint in ['plans.generate','plans.preview','plans.generate','plans.preview'] %}active{% endif %}">
           <i class="fa-solid fa-file-medical"></i> {{ 'توليد جدول' if is_ar else 'Generate' }}
         </a>
-        <a href="/saved" class="nav-item {% if request.endpoint=='saved' %}active{% endif %}">
+        <a href="/saved" class="nav-item {% if request.endpoint=='plans.saved' %}active{% endif %}">
           <i class="fa-solid fa-bookmark"></i> {{ 'جداولي المحفوظة' if is_ar else 'Saved Plans' }}
         </a>
         <a href="/analyzer" class="nav-item {% if request.endpoint=='analyzer' %}active{% endif %}">
@@ -480,7 +483,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
       </div>
     </details>
 
-    {% set g_admin = request.endpoint in ['admin_notifications','api_dashboard','developers_docs','settings'] %}
+    {% set g_admin = request.endpoint in ['admin.admin_notifications','api_dashboard','developers_docs','settings'] %}
     <details class="nav-grp {% if g_admin %}has-active{% endif %}" {% if g_admin %}open{% endif %}>
       <summary><i class="fa-solid fa-gear"></i> {{ 'الإدارة' if is_ar else 'Admin' }}
         {% if notif_unread and notif_unread > 0 %}<span class="nav-badge">{{ notif_unread }}</span>{% endif %}
@@ -488,7 +491,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
         <i class="fa-solid fa-chevron-down nav-grp-x"></i>
       </summary>
       <div class="nav-grp-body">
-        <a href="/admin/notifications" class="nav-item {% if request.endpoint=='admin_notifications' %}active{% endif %}">
+        <a href="/admin/notifications" class="nav-item {% if request.endpoint=='admin.admin_notifications' %}active{% endif %}">
           <i class="fa-solid fa-bell-concierge"></i> {{ 'الإشعارات' if is_ar else 'Notifications' }}
           {% if notif_unread and notif_unread > 0 %}<span class="nav-badge">{{ notif_unread }}</span>{% endif %}
         </a>

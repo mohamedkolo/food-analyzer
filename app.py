@@ -75,8 +75,12 @@ def login():
                     session["role"] = get_user_role(u)
                     # ‏لو جه من صفحة الحجز وهو مش داخل، بيرجع لموعده اللي
                     # اختاره. القيمة بيكتبها routes_booking بس، من عنده.
-                    return redirect(session.pop("after_login", None)
-                                    or "/dashboard")
+                    # ‏وحساب لسه ماعدّاش على الاستبيان بيتحوّل له الأول، فالموعد
+                    # بيفضل محفوظ لحد ما الاستبيان يخلص (شوف onboarding).
+                    if u.get("onboarded_at"):
+                        return redirect(session.pop("after_login", None)
+                                        or "/dashboard")
+                    return redirect("/dashboard")
             else:
                 _record_failed_login(check_email)
                 error = _login_msg("bad_creds", lang)
@@ -305,7 +309,7 @@ def get_meal_streak(user_id, max_days=90):
             done = done_by_date.get(d.strftime("%Y-%m-%d"), set())
             return all(k in done for k in expected)
 
-        today = datetime.now().date()
+        today = client_now(user_id).date()
         current, run, best, counting_current = 0, 0, 0, True
         for back in range(1, max_days + 1):
             complete = is_complete(today - timedelta(days=back))
@@ -364,16 +368,17 @@ def get_at_risk_clients(threshold=40, limit=10):
 
 def send_meal_time_reminders():
     """يفحص وجبات النهاردة لكل عميل عنده خطة معتمدة، ويبعت تذكير لأي وجبة فات وقتها ومتسجلتش (مرة واحدة بس لكل وجبة/يوم)."""
-    now = datetime.now()
-    today = now.strftime("%Y-%m-%d")
     try:
-        clients = db_rows("SELECT id FROM users WHERE role='client' AND active=1")
+        clients = db_rows("SELECT id, timezone FROM users WHERE role='client' AND active=1")
     except Exception as e:
         print(f"[meal reminders] users query error: {e}")
         return
 
     for c in (clients or []):
         uid = c["id"]
+        # ‏ساعة العميل هو، مش السيرفر: الفطار الساعة ٨ يعني ٨ في القاهرة.
+        now = client_now(c)
+        today = now.strftime("%Y-%m-%d")
         try:
             latest = db_row("""SELECT plan_data FROM plan_requests
                                WHERE client_id=? AND status='approved'
@@ -514,7 +519,7 @@ def track_meal():
     """العميل بيعلّم ✅ أو يشيل العلامة من وجبة النهارده"""
     meal_key = (request.form.get("meal_key") or "").strip()[:30]
     checked = 1 if request.form.get("checked") == "1" else 0
-    day_date = datetime.now().strftime("%Y-%m-%d")
+    day_date = client_now(session["uid"]).strftime("%Y-%m-%d")
     if not meal_key:
         return jsonify({"ok": False}), 400
     try:
@@ -1454,7 +1459,9 @@ def register_wizard():
                 except Exception as _e:
                     print(f"notif new_client error: {_e}")
 
-                return redirect("/my-plan?welcome=1")
+                # ‏زائر اختار موعد وبعدين عمل حساب: يرجع لموعده.
+                return redirect(session.pop("after_login", None)
+                                or "/my-plan?welcome=1")
             else:
                 return render_template("register.html",
                                        lang=session.get("lang", "ar"),
@@ -1518,7 +1525,8 @@ def onboarding():
                        (session["uid"], float(weight)))
             except: pass
 
-            return redirect("/dashboard?welcome=1")
+            return redirect(session.pop("after_login", None)
+                            or "/dashboard?welcome=1")
         except Exception as e:
             import traceback; traceback.print_exc()
             _lang = session.get("lang", "ar")

@@ -1557,6 +1557,9 @@ def inject_globals():
         try:
             ctx["unread_messages"] = get_unread_messages_count(session["uid"])
             user = get_user_by_id(session["uid"])
+            # ‏صاحب الجلسة. صفحة ملف العميل بتبعت **العميل** في user، فالقايمة
+            # الجانبية كانت بتطلع باسمه وقايمته هو. base.html بيقرا ده.
+            ctx["viewer"] = user
             if user and (user.get("is_admin") or user.get("role") in ["admin", "nutritionist"]):
                 ctx["pending_count"] = get_pending_requests_count()
                 # عدد الإشعارات غير المقروءة (للجرس الأحمر في الـ navbar)
@@ -1687,9 +1690,25 @@ def build_whatsapp_link(phone, country=None):
             digits = code + digits
     return f"https://wa.me/{digits}"
 
+def client_now(user=None):
+    """‏دلوقتي على ساعة العميل، من غير منطقة زمنية (naive).
+
+    ‏السيرفر شغّال UTC والعملاء في القاهرة. يوم الوجبات كان بيتحسب
+    بـdatetime.now() -- ساعة السيرفر -- فعميل بيعلّم على فطاره ١٢:٣٠ بعد
+    نص الليل كانت العلامة بتروح لإمبارح، والتذكير بيوصل متأخر ساعتين.
+    ‏بياخد صف المستخدم (أو رقمه). من غير منطقة مسجّلة: القاهرة.
+    """
+    import booking
+    if user is not None and not isinstance(user, dict):
+        user = get_user_by_id(user)
+    zone = booking.tz((user or {}).get("timezone"))
+    return booking.to_local(booking.utcnow(), zone).replace(tzinfo=None)
+
+
 def get_meal_tracking(user_id):
     """بيرجّع وجبات النهارده من خطة العميل المعتمدة + حالة التعليم + نسبة التزام الأسبوع"""
-    out = {"has_plan": False, "today_meals": [], "today_date": datetime.now().strftime("%Y-%m-%d"),
+    now = client_now(user_id)
+    out = {"has_plan": False, "today_meals": [], "today_date": now.strftime("%Y-%m-%d"),
            "day_name": "", "week_pct": None, "today_done": 0, "today_total": 0}
     try:
         latest = db_row("SELECT plan_data FROM plan_requests WHERE client_id=? AND status='approved' ORDER BY updated_at DESC LIMIT 1", (user_id,))
@@ -1700,7 +1719,7 @@ def get_meal_tracking(user_id):
         if not plan:
             return out
         # اليوم الحالي: الخطة بتبدأ بالأحد — Python: Monday=0..Sunday=6
-        idx = (datetime.now().weekday() + 1) % 7
+        idx = (now.weekday() + 1) % 7
         idx = min(idx, len(plan) - 1)
         day = plan[idx]
         labels = day.get("meal_labels") or {}
@@ -1728,7 +1747,7 @@ def get_meal_tracking(user_id):
         out["today_done"] = sum(1 for m in out["today_meals"] if m["checked"])
         # التزام آخر 7 أيام
         try:
-            week_ago = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d")
+            week_ago = (now - timedelta(days=6)).strftime("%Y-%m-%d")
             r = db_row("SELECT COUNT(*) as c FROM meal_checks WHERE user_id=? AND check_date>=?", (user_id, week_ago))
             done = (r or {}).get("c", 0)
             expected = max(len(meal_keys) * 7, 1)

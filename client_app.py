@@ -42,14 +42,14 @@ def _today_bounds(user):
     return B.local_day_bounds(B.to_local(B.utcnow(), zone).date(), zone)
 
 
-def _meal_day():
-    """The date meal_checks files today's meals under.
+def _meal_day(user):
+    """The date meal_checks files today's meals under, on the client's clock.
 
-    Deliberately the same expression /track/meal uses (the server's date),
-    not the client's clock: a note has to land on the same day as the tick
-    it belongs to, or the two disagree for the hours either side of midnight.
+    The same call /track/meal makes: a note has to land on the same day as
+    the tick it belongs to, or the two disagree around midnight.
     """
-    return datetime.now().strftime("%Y-%m-%d")
+    from core import client_now
+    return client_now(user).strftime("%Y-%m-%d")
 
 
 def _goal(user):
@@ -130,7 +130,7 @@ def meal_notes_today(user):
             return {}
         rows = db_rows("SELECT meal_key, skipped, comment FROM meal_notes "
                        "WHERE user_id=? AND check_date=?",
-                       (user["id"], _meal_day()))
+                       (user["id"], _meal_day(user)))
         return {r["meal_key"]: r for r in rows}
     except Exception as exc:                      # noqa: BLE001
         print("[client] meal_notes_today failed: %s" % exc)
@@ -147,7 +147,7 @@ def track_meal_note():
         return jsonify({"ok": False}), 400
     skipped = 1 if request.form.get("skipped") == "1" else 0
     comment = " ".join((request.form.get("comment") or "").split())[:300]
-    day = _meal_day()
+    day = _meal_day(user)
     db_run("DELETE FROM meal_notes WHERE user_id=? AND check_date=? "
            "AND meal_key=?", (user["id"], day, key))
     if skipped or comment:

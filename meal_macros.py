@@ -72,6 +72,11 @@ _NOISE = ("مشوي", "مشوية", "مسلوق", "مسلوقة", "مطبوخ", 
 # الأرز أبيض مطبوخ مش بني، والجبن قريش لأنه الأكتر في جداول التخسيس.
 # وكل سطر منهم بيتأكّد إنه موجود في الجدول باختبار.
 GENERIC = {
+    # ‏"ارز بني" قبل "ارز": الجدول فيه "أرز بني مطبوخ"، بس أسماء الجدول
+    # بتتلاقى لما تكون **جوّه** نص الصنف، و"مطبوخ" مش مكتوبة في الوجبة.
+    # فـ"ارز بني 140جم" كان بيقع على "ارز" العام ويتحسب أرز أبيض.
+    "ارز بني": "أرز بني مطبوخ",
+    "رز بني": "أرز بني مطبوخ",
     "ارز": "أرز أبيض مطبوخ",
     "رز": "أرز أبيض مطبوخ",
     "خبز": "خبز أسمر",
@@ -274,6 +279,10 @@ def item_grams(item, food=None):
         except ValueError:
             pass
 
+    named = _named_unit(text, food)
+    if named:
+        return named, "count"
+
     unit = _unit_grams(text, food)
     count = _COUNT.search(text)
     if count and unit:
@@ -287,6 +296,36 @@ def item_grams(item, food=None):
         if _norm(key) in text:
             return float(grams), "default"
     return 0.0, None
+
+
+def _named_unit(text, food):
+    """‏"زيت زيتون 1 ملعقة صغيرة" -> ٥ جم: الرقم والوحدة المكتوبين في الصنف.
+
+    ‏من غيرها الوحدة كانت بتتاخد أول واحدة في جدول الصنف -- الملعقة الكبيرة
+    (١٤ جم) -- والرقم اللي قبلها ماكانش بيتقري أصلاً، لأن العدد كان
+    بيتدوّر عليه في آخر الصنف بس. ملعقة زيت صغيرة كانت بتطلع ٨٠ سعرة زيادة
+    على يوم العميل.
+
+    ‏الأطول الأول: "ملعقة صغيرة" قبل "ملعقة" لو الجدول فيه الاتنين.
+    """
+    if not food:
+        return None
+    rows = []
+    for row in (food.get("units") or []):
+        try:
+            name, grams = _norm(row[0]), float(row[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        if name and grams > 0:
+            rows.append((name, grams))
+    for name, grams in sorted(rows, key=lambda r: -len(r[0])):
+        found = re.search(r"(\d+(?:[.,]\d+)?)\s*" + re.escape(name), text)
+        if found:
+            try:
+                return float(found.group(1).replace(",", ".")) * grams
+            except ValueError:
+                return None
+    return None
 
 
 def _unit_grams(text, food=None):

@@ -64,6 +64,7 @@ SUITES = [
     "test_client_app.py",
     "test_plan_tools.py",
     "test_equivalents.py",
+    "test_daily_fixes.py",
 ]
 
 
