@@ -14,7 +14,9 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # ‏قاعدة الاختبارات: منفصلة عن /tmp/nutrax.db بتاعة التشغيل المحلي
-RESULT = re.compile(r"\b(PASS|FAIL)\s+test_\w+")
+# ‏من غير \b: print من thread الإيميل ساعات بينزل لازق في PASS من غير مسافة
+# ("...skippedPASS test_x")، و\b بين حرفين مابيتعدّش حد كلمة.
+RESULT = re.compile(r"(PASS|FAIL)\s+test_\w+")
 TEST_DB = os.environ.get("NUTRAX_TEST_DB", "/tmp/nutrax_suite.db")
 SUITES = [
     "test_db_connection.py",
@@ -69,6 +71,8 @@ SUITES = [
     "test_daily_fixes.py",
     "test_login_afo.py",
     "test_email_codes.py",
+    "test_new_client_notice.py",
+    "test_admin_dashboard.py",
 ]
 
 

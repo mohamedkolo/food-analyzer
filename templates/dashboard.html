@@ -3,25 +3,206 @@
 {% block title %}{{ 'الرئيسية' if is_ar else 'Home' }}{% endblock %}
 {% block content %}
 
-{# ═══ اللوحة: بلوكين، مش ستة ════════════════════════════════════════
-   ‏كان فيها كارت ترحيب بتدرّج (١٢٠ بكسل أغلبها فاضي، وبيكرّر الاسم
-   والصفة اللي مكتوبين في القايمة الجانبية أصلاً)، وأربع كروت كل واحدة
-   بلون، وست إجراءات في شبكة بتسيب واحدة لوحدها في صف.
+{# ═══ اللوحة: تحية وتابين ═════════════════════════════════════════
+   ‏الشكل جاي من داشبورد بنكي (رصيد كبير، أربع أرقام، رسم الشهر، آخر
+   العمليات، وتاب للإدارة). اتنقل لعيادة: "الرصيد" بقى العملاء اللي
+   علّموا على وجبة النهارده، والرسم بقى التزامهم آخر ٧ أيام، و"آخر
+   العمليات" بقت آخر وجبات اتعلّم عليها. كل رقم من الجداول؛ مفيش وهمي.
 
-   ‏بقت: **ابدأ** (تلات حاجات بس، والباقي في فولد مقفول)، وتحتها
-   **الوضع دلوقتي** (الأرقام في شريط واحد). ومركز المتابعة بيظهر لما
-   يكون فيه حاجة فعلاً.
-
-   ‏الإجراءات فوق الأرقام بالقصد: اللوحة دي مكان شغل، فأول حاجة تشوفها
-   هي اللي هتدوس عليه، مش رقم بتتفرج عليه. #}
+   ‏مفيش حاجة من اللوحة القديمة اتشالت: نفس الأرقام الأربعة وشريط
+   المتابعة في "نظرة عامة"، ونفس الإجراءات والأدوات وآخر الطلبات في
+   "الإدارة". من غير JS التابين بيبانوا تحت بعض. #}
 
 {% macro sec(title) %}
 <div class="nx-sec-h"><span>{{ title }}</span></div>
 {% endmacro %}
+{% set days_ar = ['إتنين','تلات','أربع','خميس','جمعة','سبت','حد'] %}
+{% set days_en = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}
 
+<div class="dash" data-tz="{{ tz_name }}">
 {% include "_next_appointment.html" %}
-{{ sec('ابدأ' if is_ar else 'Start') }}
-<div class="nx-main3">
+
+<header class="dash-head">
+  <div>
+    <h1 class="page-title dash-hi">{{ greeting }}{{ '، ' if is_ar else ', ' }}{{ (user.name if user and user.name else ('دكتور' if is_ar else 'Doctor')) }}</h1>
+    <p class="dash-date">{{ today.strftime('%Y-%m-%d') if today else '' }}</p>
+  </div>
+  <div class="dash-tabs" role="tablist" aria-label="{{ 'أقسام اللوحة' if is_ar else 'Dashboard sections' }}">
+    <button type="button" role="tab" id="tabBtnOverview" aria-controls="tabOverview" aria-selected="true">{{ 'نظرة عامة' if is_ar else 'Overview' }}</button>
+    <button type="button" role="tab" id="tabBtnManage" aria-controls="tabManage" aria-selected="false" tabindex="-1">{{ 'الإدارة' if is_ar else 'Manage' }}</button>
+    <button type="button" role="tab" id="tabBtnStreaks" aria-controls="tabStreaks" aria-selected="false" tabindex="-1">{{ 'أبطال الالتزام' if is_ar else 'Streaks' }}</button>
+  </div>
+</header>
+
+<section class="dash-panel" id="tabOverview" role="tabpanel" aria-labelledby="tabBtnOverview">
+
+  {% set total = total_clients or 0 %}
+  {% set pct = ((active_today or 0) * 100 / total)|round|int if total else 0 %}
+  <div class="dash-hero" data-active-today="{{ active_today or 0 }}">
+    <div class="dash-hero-l">
+      <span class="dash-hero-k">{{ 'عملاء علّموا على وجبة النهارده' if is_ar else 'Clients who logged a meal today' }}</span>
+      <span class="dash-hero-n"><b>{{ active_today or 0 }}</b><small>/ {{ total }}</small></span>
+      <span class="dash-bar" aria-hidden="true"><span style="inline-size:{{ [pct,100]|min }}%"></span></span>
+      <span class="dash-hero-s">{{ pct }}% {{ 'من العملاء' if is_ar else 'of clients' }}</span>
+    </div>
+    <a class="dash-hero-go" href="/followups">{{ 'المتابعات' if is_ar else 'Follow-ups' }}
+      <i class="fa-solid {{ 'fa-arrow-left' if is_ar else 'fa-arrow-right' }}"></i></a>
+  </div>
+
+  <div class="nx-strip">
+
+  <div class="nx-cell{% if pending_count and pending_count > 0 %} is-alert{% endif %}">
+    <span class="nx-ic"><i class="fa-solid fa-bell"></i></span>
+    <span class="nx-tx">
+      <span class="nx-n">{{ pending_count or 0 }}</span>
+      <span class="nx-l">{{ 'طلبات جديدة' if is_ar else 'New Requests' }}</span>
+      {% if pending_count and pending_count > 0 %}
+      <a href="/admin/requests">{{ 'شوف الطلبات ←' if is_ar else 'View requests →' }}</a>
+      {% endif %}
+    </span>
+  </div>
+
+  <div class="nx-cell">
+    <span class="nx-ic"><i class="fa-solid fa-users"></i></span>
+    <span class="nx-tx">
+      <span class="nx-n">{{ total_clients or 0 }}</span>
+      <span class="nx-l">{{ 'إجمالي العملاء' if is_ar else 'Total Clients' }}</span>
+    </span>
+  </div>
+
+  <div class="nx-cell">
+    <span class="nx-ic"><i class="fa-solid fa-clipboard-check"></i></span>
+    <span class="nx-tx">
+      <span class="nx-n">{{ total_plans or 0 }}</span>
+      <span class="nx-l">{{ 'خطط مكتملة' if is_ar else 'Completed Plans' }}</span>
+    </span>
+  </div>
+
+  <div class="nx-cell">
+    <span class="nx-ic"><i class="fa-solid fa-comment"></i></span>
+    <span class="nx-tx">
+      <span class="nx-n">{{ unread_messages or 0 }}</span>
+      <span class="nx-l">{{ 'رسايل غير مقروءة' if is_ar else 'Unread Messages' }}</span>
+      {% if unread_messages and unread_messages > 0 %}
+      <a href="/messages">{{ 'شوف الرسايل ←' if is_ar else 'View messages →' }}</a>
+      {% endif %}
+    </span>
+  </div>
+
+</div>
+
+
+  {% set n_ren  = renewals_soon|length if renewals_soon else 0 %}
+{% set n_risk = at_risk_clients|length if at_risk_clients else 0 %}
+{% set n_lost = recently_lost|length if recently_lost else 0 %}
+{% if n_ren or n_risk or n_lost %}
+<a href="/followups" class="nx-fu-bar{% if n_risk %} has-risk{% endif %}">
+  <span class="ic"><i class="fa-solid fa-list-check"></i></span>
+  <span class="tx">
+    <b>{{ 'المتابعة' if is_ar else 'Follow-up' }}</b>
+    {% if n_risk %}
+    <span class="bit risk">{{ n_risk }} {{ 'محتاجين متابعة' if is_ar else 'need follow-up' }}</span>
+    {% endif %}
+    {% if n_ren %}
+    <span class="bit">{{ n_ren }} {{ 'تجديدات قريبة' if is_ar else 'renewals due' }}</span>
+    {% endif %}
+    {% if n_lost %}
+    <span class="bit">{{ n_lost }} {{ 'فقدوا الوصول' if is_ar else 'lost access' }}</span>
+    {% endif %}
+  </span>
+  <span class="go">{{ 'كل المتابعات' if is_ar else 'All follow-ups' }}
+    <i class="fa-solid {{ 'fa-arrow-left' if is_ar else 'fa-arrow-right' }}"></i></span>
+</a>
+{% endif %}
+
+
+  <div class="dash-grid">
+    <div class="dash-card">
+      <h2 class="dash-h">{{ 'الالتزام آخر ٧ أيام' if is_ar else 'Last 7 days' }}</h2>
+      <p class="dash-sub">{{ 'عدد العملاء اللي علّموا على وجبة كل يوم' if is_ar else 'Clients who logged at least one meal each day' }}</p>
+      <div class="dash-bars" role="img" aria-label="{% for d in week %}{{ (days_ar if is_ar else days_en)[d.dow] }} {{ d.count }}{{ '، ' if is_ar and not loop.last else (', ' if not loop.last else '') }}{% endfor %}">
+        {% for d in week %}
+        <div class="dash-col{% if loop.last %} is-today{% endif %}">
+          <span class="dash-v">{{ d.count }}</span>
+          <span class="dash-stick"><span style="block-size:{{ (d.count * 100 / week_max)|round|int }}%"></span></span>
+          <span class="dash-d">{{ (days_ar if is_ar else days_en)[d.dow] }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="dash-card">
+      <h2 class="dash-h">{{ 'آخر النشاط' if is_ar else 'Recent activity' }}</h2>
+      {% if recent_ticks %}
+      <ul class="dash-feed">
+        {% for r in recent_ticks %}
+        <li>
+          <span class="dash-dot" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+          <span class="dash-feed-t"><a href="/admin/users/{{ r.user_id }}">{{ r.name }}</a>
+            <span>{{ 'علّم على' if is_ar else 'logged' }} {{ r.meal }}</span></span>
+          <time datetime="{{ r.date.isoformat() }}">{{ r.date.strftime('%m/%d') }}</time>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="dash-empty">{{ 'لسه مفيش عميل علّم على وجبة.' if is_ar else 'No client has logged a meal yet.' }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="dash-card">
+    <h2 class="dash-h">{{ 'الإيرادات آخر ١٤ يوم' if is_ar else 'Revenue, last 14 days' }} <small>{{ 'ج.م' if is_ar else 'EGP' }}</small></h2>
+    {% set rev_total = revenue_chart|sum(attribute='amount') if revenue_chart else 0 %}
+    {% if rev_total %}
+    <div class="dash-bars is-wide" role="img" aria-label="{{ 'إجمالي' if is_ar else 'Total' }} {{ rev_total }}">
+      {% for d in revenue_chart %}
+      <div class="dash-col{% if loop.last %} is-today{% endif %}">
+        <span class="dash-stick"><span style="block-size:{{ (d.amount * 100 / revenue_max)|round|int }}%"></span></span>
+        <span class="dash-d">{{ d.label }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="dash-sub">{{ 'الإجمالي:' if is_ar else 'Total:' }} <b>{{ rev_total }}</b></p>
+    {% else %}
+    <p class="dash-empty">{{ 'مفيش مدفوعات بالجنيه آخر ١٤ يوم.' if is_ar else 'No EGP payments in the last 14 days.' }}</p>
+    {% endif %}
+  </div>
+  {# ‏مكان "Macro breakdown" في البرونت: تقسيمة العملاء حسب الهدف. شريط
+     واحد متقسّم بدل دايرة -- الدايرة محتاجة تدرّج دائري (conic) والموقع
+     مافيهوش تدرّجات بالقصد. #}
+  <div class="dash-card" id="goalMix">
+    <h2 class="dash-h">{{ 'العملاء حسب الهدف' if is_ar else 'Clients by goal' }}</h2>
+    {% set gt = goal_mix.total if goal_mix and goal_mix.total else 0 %}
+    {% if gt %}
+    <div class="dash-mix" role="img" aria-label="{{ ('تخسيس' if is_ar else 'Lose') }} {{ goal_mix.lose }}, {{ ('ثبات' if is_ar else 'Maintain') }} {{ goal_mix.keep }}, {{ ('زيادة' if is_ar else 'Gain') }} {{ goal_mix.gain }}">
+      {% for k in ['lose','keep','gain'] %}{% if goal_mix[k] %}<span class="mix-{{ k }}" style="flex:{{ goal_mix[k] }}"></span>{% endif %}{% endfor %}
+    </div>
+    <ul class="dash-legend">
+      {% for k, ar, en in [('lose','تخسيس','Lose weight'),('keep','ثبات','Maintain'),('gain','زيادة','Gain')] %}
+      <li><i class="mix-{{ k }}" aria-hidden="true"></i>{{ ar if is_ar else en }}
+        <b>{{ goal_mix[k] }}</b><span>{{ (goal_mix[k] * 100 / gt)|round|int }}%</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="dash-empty">{{ 'لسه مفيش عملاء.' if is_ar else 'No clients yet.' }}</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="dash-panel" id="tabManage" role="tabpanel" aria-labelledby="tabBtnManage">
+  {# ‏مكان "Your cards": كل باقة، وكام واحد معاه وصول ليها النهارده. #}
+  {{ sec('الباقات' if is_ar else 'Plans') }}
+  <div class="dash-plans" id="planCards">
+    {% set lead = (plan_cards|map(attribute='count')|max) if plan_cards else 0 %}
+    {% for c in plan_cards %}
+    <div class="dash-plan{% if lead and c.count == lead %} is-lead{% endif %}">
+      <span class="dash-plan-n">{{ c.name if is_ar else c.name_en }}</span>
+      <span class="dash-plan-c"><b>{{ c.count }}</b> {{ 'مشترك دلوقتي' if is_ar else 'with access now' }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {{ sec('ابدأ' if is_ar else 'Start') }}
+  <div class="nx-main3">
   <a href="/generate" class="nx-big">
     <span class="ic"><i class="fa-solid fa-file-circle-plus"></i></span>
     <span class="tx">
@@ -75,87 +256,31 @@
   </div>
 </details>
 
-{{ sec('الوضع دلوقتي' if is_ar else 'Right now') }}
-{# ‏أربع كروت منفصلة كل واحدة بلون كانت قوس قزح، والإيموجي فيها كانت
-   **أكبر من الرقم نفسه**. بقت شريط واحد مقسوم بخطوط شعرة: الرقم هو
-   البطل، والأيقونة رمادية صغيرة. واللون البرتقالي فضل في خانة واحدة
-   بس -- الطلبات الجديدة، لأن دي اللي معناها "فيه حاجة مستنياك". #}
-<div class="nx-strip">
 
-  <div class="nx-cell{% if pending_count and pending_count > 0 %} is-alert{% endif %}">
-    <span class="nx-ic"><i class="fa-solid fa-bell"></i></span>
-    <span class="nx-tx">
-      <span class="nx-n">{{ pending_count or 0 }}</span>
-      <span class="nx-l">{{ 'طلبات جديدة' if is_ar else 'New Requests' }}</span>
-      {% if pending_count and pending_count > 0 %}
-      <a href="/admin/requests">{{ 'شوف الطلبات ←' if is_ar else 'View requests →' }}</a>
-      {% endif %}
-    </span>
+  {% if at_risk_clients or renewals_soon or recently_lost %}
+  {{ sec('المتابعة' if is_ar else 'Follow-up') }}
+  <div class="dash-grid three">
+    <div class="dash-card">
+      <h2 class="dash-h">{{ 'محتاجين متابعة' if is_ar else 'Need follow-up' }}</h2>
+      {% if at_risk_clients %}<ul class="dash-list">{% for c in at_risk_clients %}
+        <li><a href="/admin/users/{{ c.id }}">{{ c.name }}</a><span class="dash-pill risk">{{ c.week_pct }}%</span></li>{% endfor %}</ul>
+      {% else %}<p class="dash-empty">{{ 'مفيش.' if is_ar else 'None.' }}</p>{% endif %}
+    </div>
+    <div class="dash-card">
+      <h2 class="dash-h">{{ 'تجديدات قريبة' if is_ar else 'Renewals due' }}</h2>
+      {% if renewals_soon %}<ul class="dash-list">{% for c in renewals_soon %}
+        <li><span>{{ c.name }}</span><span class="dash-pill">{{ c.days_left }} {{ 'يوم' if is_ar else 'd' }}</span></li>{% endfor %}</ul>
+      {% else %}<p class="dash-empty">{{ 'مفيش.' if is_ar else 'None.' }}</p>{% endif %}
+    </div>
+    <div class="dash-card">
+      <h2 class="dash-h">{{ 'فقدوا الوصول' if is_ar else 'Lost access' }}</h2>
+      {% if recently_lost %}<ul class="dash-list">{% for c in recently_lost %}
+        <li><span>{{ c.name }}</span><span class="dash-pill">{{ c.plan_name }}</span></li>{% endfor %}</ul>
+      {% else %}<p class="dash-empty">{{ 'مفيش.' if is_ar else 'None.' }}</p>{% endif %}
+    </div>
   </div>
-
-  <div class="nx-cell">
-    <span class="nx-ic"><i class="fa-solid fa-users"></i></span>
-    <span class="nx-tx">
-      <span class="nx-n">{{ total_clients or 0 }}</span>
-      <span class="nx-l">{{ 'إجمالي العملاء' if is_ar else 'Total Clients' }}</span>
-    </span>
-  </div>
-
-  <div class="nx-cell">
-    <span class="nx-ic"><i class="fa-solid fa-clipboard-check"></i></span>
-    <span class="nx-tx">
-      <span class="nx-n">{{ total_plans or 0 }}</span>
-      <span class="nx-l">{{ 'خطط مكتملة' if is_ar else 'Completed Plans' }}</span>
-    </span>
-  </div>
-
-  <div class="nx-cell">
-    <span class="nx-ic"><i class="fa-solid fa-comment"></i></span>
-    <span class="nx-tx">
-      <span class="nx-n">{{ unread_messages or 0 }}</span>
-      <span class="nx-l">{{ 'رسايل غير مقروءة' if is_ar else 'Unread Messages' }}</span>
-      {% if unread_messages and unread_messages > 0 %}
-      <a href="/messages">{{ 'شوف الرسايل ←' if is_ar else 'View messages →' }}</a>
-      {% endif %}
-    </span>
-  </div>
-
-</div>
-
-{# ═══ المتابعة: سطر، مش قسم ══════════════════════════════════════
-   ‏كان تلات أعمدة فيهم لحد ١٥ اسم -- يعني **نسخة من صفحة المتابعات
-   كاملة** محطوطة في اللوحة. والصفحة دي موجودة أصلاً في القايمة
-   الجانبية (العملاء -> المتابعات).
-
-   ‏اللوحة شغلتها تقول "فيه حاجة؟" مش "مين". فبقى سطر بالأرقام
-   ولينك. اللي عايز الأسامي بيدوس.
-
-   ‏وزي ما كان: مابيظهرش خالص لو مفيش حاجة -- سطر بيقول "مفيش"
-   بياخد مساحة ومابيقولش حاجة. #}
-{% set n_ren  = renewals_soon|length if renewals_soon else 0 %}
-{% set n_risk = at_risk_clients|length if at_risk_clients else 0 %}
-{% set n_lost = recently_lost|length if recently_lost else 0 %}
-{% if n_ren or n_risk or n_lost %}
-<a href="/followups" class="nx-fu-bar{% if n_risk %} has-risk{% endif %}">
-  <span class="ic"><i class="fa-solid fa-list-check"></i></span>
-  <span class="tx">
-    <b>{{ 'المتابعة' if is_ar else 'Follow-up' }}</b>
-    {% if n_risk %}
-    <span class="bit risk">{{ n_risk }} {{ 'محتاجين متابعة' if is_ar else 'need follow-up' }}</span>
-    {% endif %}
-    {% if n_ren %}
-    <span class="bit">{{ n_ren }} {{ 'تجديدات قريبة' if is_ar else 'renewals due' }}</span>
-    {% endif %}
-    {% if n_lost %}
-    <span class="bit">{{ n_lost }} {{ 'فقدوا الوصول' if is_ar else 'lost access' }}</span>
-    {% endif %}
-  </span>
-  <span class="go">{{ 'كل المتابعات' if is_ar else 'All follow-ups' }}
-    <i class="fa-solid {{ 'fa-arrow-left' if is_ar else 'fa-arrow-right' }}"></i></span>
-</a>
-{% endif %}
-
-<!-- Recent Requests -->
+  {% endif %}
+  <!-- Recent Requests -->
 {% if recent_requests and recent_requests|length > 0 %}
 <div class="card">
   <div class="card-title">
@@ -181,6 +306,42 @@
 </div>
 {% endif %}
 
+
+</section>
+
+{# ‏مكان "Rewards Program" في البرونت. من غير نقاط (قرار صاحب المشروع):
+   العدد هو الأيام ورا بعض اللي العميل علّم فيها على كل وجبات خطته. #}
+<section class="dash-panel" id="tabStreaks" role="tabpanel" aria-labelledby="tabBtnStreaks">
+  {% set top = leaders[0] if leaders else None %}
+  <div class="dash-hero is-accent">
+    <div class="dash-hero-l">
+      <span class="dash-hero-k">{{ 'أطول التزام ماشي دلوقتي' if is_ar else 'Longest streak running now' }}</span>
+      {% if top %}
+      <span class="dash-hero-n"><b>{{ top.current }}</b><small>{{ 'يوم' if is_ar else 'days' }}</small></span>
+      <span class="dash-hero-s"><a href="/admin/users/{{ top.id }}">{{ top.name }}</a></span>
+      {% else %}
+      <span class="dash-hero-s">{{ 'لسه مفيش عميل كمّل يوم كامل.' if is_ar else 'No client has completed a full day yet.' }}</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="dash-card" id="streakBoard">
+    <h2 class="dash-h">{{ 'الترتيب' if is_ar else 'Leaderboard' }}</h2>
+    <p class="dash-sub">{{ 'أيام ورا بعض بالتزام كامل بكل وجبات الخطة' if is_ar else 'Days in a row with every planned meal logged' }}</p>
+    {% if leaders %}
+    <ol class="dash-list dash-rank">
+      {% for r in leaders %}
+      <li><span class="dash-rank-i">{{ loop.index }}</span><a href="/admin/users/{{ r.id }}">{{ r.name }}</a>
+        <span class="dash-pill{% if loop.first %} hot{% endif %}">{{ r.current }} {{ 'يوم' if is_ar else 'd' }}</span>
+        <span class="dash-best">{{ 'الأطول' if is_ar else 'best' }} {{ r.best }}</span></li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <p class="dash-empty">{{ 'الترتيب بيظهر أول ما عميل يكمّل يوم بكل وجباته.' if is_ar else 'The board fills in once a client logs every meal of a day.' }}</p>
+    {% endif %}
+  </div>
+</section>
+</div><!-- /dash -->
+
 <style>
 .quick-action {
   display: block;
@@ -198,6 +359,151 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(37,99,235,0.15);
 }
+
+{# ‏ألوان البرونت: معرض أسود، كروت بيضا، وبرتقالي واحد للحاجات المهمة.
+   البرتقالي للمساحات بس، مش للنص -- نص برتقالي على أبيض تباينه ٢.٩. #}
+.dash{--dx-ink:#0B0B0C;--dx-ink-2:#1A1A1D;--dx-card:#FFFFFF;--dx-accent:#FF6A1A;--dx-accent-ink:#1F0D00;
+  --dx-soft:#FFF1E8;--dx-line:#ECECEE;--dx-mute:#5F5F66;--dx-mute-dk:#A6A6AE;--dx-bar:#E4E4E8;
+  background:var(--dx-ink);color:var(--dx-card);border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.dash .next-appt{margin:0}
+.dash-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.dash-hi{font-size:26px;margin:0;color:var(--dx-card)}
+.dash-date{font-size:12px;color:var(--dx-mute-dk);margin-top:2px;font-variant-numeric:tabular-nums}
+.dash-tabs{display:inline-flex;background:var(--dx-ink-2);border:1px solid #2A2A2E;border-radius:999px;padding:4px;gap:2px}
+.dash-tabs button{border:0;background:none;font:inherit;font-size:13px;font-weight:800;color:var(--dx-mute-dk);
+  padding:8px 16px;border-radius:999px;cursor:pointer;white-space:nowrap;transition:background .2s,color .2s}
+.dash-tabs button:hover{color:var(--dx-card)}
+.dash-tabs button[aria-selected="true"]{background:var(--dx-card);color:var(--dx-ink)}
+.dash-tabs button:focus-visible{outline:2px solid var(--dx-accent);outline-offset:2px}
+.dash-panel{display:flex;flex-direction:column;gap:14px}
+.dash-panel[hidden]{display:none}
+.dash-panel.is-in{animation:dash-in .4s cubic-bezier(.3,1.2,.5,1)}
+@keyframes dash-in{from{opacity:0;transform:translateY(10px) scale(.99)}}
+.dash .nx-sec-h{color:var(--dx-mute-dk)}
+.dash .nx-sec-h::after{background:#2A2A2E}
+.dash-hero{background:var(--dx-card);color:var(--dx-ink);border-radius:20px;padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.dash-hero.is-accent{background:var(--dx-accent);color:var(--dx-accent-ink)}
+.dash-hero-l{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.dash-hero-k{font-size:13px;font-weight:700;color:var(--dx-mute)}
+.dash-hero.is-accent .dash-hero-k,.dash-hero.is-accent .dash-hero-s,.dash-hero.is-accent a{color:var(--dx-accent-ink)}
+.dash-hero-n{display:flex;align-items:baseline;gap:8px;font-variant-numeric:tabular-nums}
+.dash-hero-n b{font-size:46px;font-weight:900;line-height:1}
+.dash-hero-n small{font-size:18px;font-weight:700;opacity:.7}
+.dash-bar{display:block;block-size:10px;max-width:380px;background:var(--dx-bar);border-radius:99px;overflow:hidden}
+.dash-bar span{display:block;block-size:100%;background:var(--dx-accent);border-radius:99px;transform-origin:var(--from,left);animation:dash-grow .9s cubic-bezier(.5,0,.3,1) .1s backwards}
+[dir="rtl"] .dash-bar span{--from:right}
+@keyframes dash-grow{from{transform:scaleX(0)}}
+.dash-hero-s{font-size:12px;color:var(--dx-mute)}
+.dash-hero-s a{font-weight:800;color:inherit}
+.dash-hero-go{color:var(--dx-card);background:var(--dx-ink);font-size:13px;font-weight:800;text-decoration:none;border-radius:999px;padding:10px 18px;display:inline-flex;gap:8px;align-items:center;transition:transform .2s}
+.dash-hero-go:hover{transform:translateY(-1px)}
+.dash-hero-go:focus-visible{outline:2px solid var(--dx-accent);outline-offset:2px}
+.dash .nx-strip{border-color:var(--dx-line);border-radius:18px;overflow:hidden;background:var(--dx-card)}
+.dash .nx-cell.is-alert .nx-ic{background:var(--dx-accent)}
+.dash .nx-cell.is-alert .nx-ic i{color:var(--dx-accent-ink)}
+.dash .nx-fu-bar{border-radius:16px}
+.dash-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}
+.dash-grid.three{grid-template-columns:repeat(3,1fr)}
+.dash-grid > *{min-width:0}
+.dash-card{background:var(--dx-card);color:var(--dx-ink);border-radius:20px;padding:18px 20px;transition:transform .25s}
+.dash-h{font-size:15px;font-weight:800;color:var(--dx-ink);margin:0 0 2px}
+.dash-h small{font-size:12px;color:var(--dx-mute);font-weight:700}
+.dash-sub{font-size:12px;color:var(--dx-mute);margin:0 0 12px}
+.dash-empty{font-size:13px;color:var(--dx-mute);padding:12px 0}
+.dash-bars{display:flex;align-items:flex-end;gap:10px;block-size:150px;padding-block-start:6px}
+.dash-bars.is-wide{gap:6px;block-size:120px}
+.dash-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;block-size:100%;min-width:0}
+.dash-v{font-size:12px;font-weight:800;color:var(--dx-ink);font-variant-numeric:tabular-nums}
+.dash-stick{flex:1;inline-size:100%;max-inline-size:34px;display:flex;align-items:flex-end;background:#F4F4F6;border-radius:10px;overflow:hidden}
+.dash-stick span{display:block;inline-size:100%;background:var(--dx-ink);border-radius:10px;transform-origin:bottom;animation:dash-rise .7s cubic-bezier(.3,1.2,.5,1) backwards}
+.dash-col:nth-child(2) .dash-stick span{animation-delay:.04s}.dash-col:nth-child(3) .dash-stick span{animation-delay:.08s}
+.dash-col:nth-child(4) .dash-stick span{animation-delay:.12s}.dash-col:nth-child(5) .dash-stick span{animation-delay:.16s}
+.dash-col:nth-child(6) .dash-stick span{animation-delay:.2s}.dash-col:nth-child(7) .dash-stick span{animation-delay:.24s}
+.dash-col.is-today .dash-stick span{background:var(--dx-accent)}
+@keyframes dash-rise{from{transform:scaleY(0)}}
+.dash-d{font-size:11px;color:var(--dx-mute);white-space:nowrap}
+.dash-feed,.dash-list{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column}
+.dash-feed li,.dash-list li{display:flex;align-items:center;gap:10px;padding:10px 0;border-block-end:1px solid var(--dx-line)}
+.dash-feed li:last-child,.dash-list li:last-child{border-block-end:0}
+.dash-dot{flex:0 0 30px;block-size:30px;border-radius:50%;background:var(--dx-soft);color:#B8460A;display:grid;place-items:center;font-size:12px}
+.dash-feed-t{flex:1;min-width:0;font-size:13px;display:flex;flex-direction:column}
+.dash-feed-t a,.dash-list a{color:var(--dx-ink);font-weight:800;text-decoration:none}
+.dash-feed-t a:hover,.dash-list a:hover{text-decoration:underline}
+.dash-feed-t span{color:var(--dx-mute);font-size:12px}
+.dash-feed time{font-size:12px;color:var(--dx-mute);font-variant-numeric:tabular-nums}
+.dash-list li{justify-content:space-between;font-size:13px}
+.dash-pill{font-size:11.5px;font-weight:800;background:#F4F4F6;border:1px solid var(--dx-line);border-radius:99px;padding:3px 10px;white-space:nowrap;color:var(--dx-ink)}
+.dash-pill.risk,.dash-pill.hot{background:var(--dx-accent);border-color:var(--dx-accent);color:var(--dx-accent-ink)}
+.dash-mix{display:flex;gap:4px;block-size:14px;border-radius:99px;overflow:hidden;margin-block:12px}
+.dash-mix span{border-radius:99px;animation:dash-grow .8s cubic-bezier(.5,0,.3,1) backwards}
+.mix-lose{background:var(--dx-accent)}.mix-keep{background:var(--dx-ink)}.mix-gain{background:#B9B9C0}
+.dash-legend{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dash-legend li{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--dx-mute)}
+.dash-legend i{display:inline-block;inline-size:10px;block-size:10px;border-radius:3px;margin-inline-end:6px}
+.dash-legend b{font-size:20px;color:var(--dx-ink);font-variant-numeric:tabular-nums}
+.dash-plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.dash-plan{background:var(--dx-card);color:var(--dx-ink);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:18px;min-block-size:120px;justify-content:space-between;transition:transform .25s}
+.dash-plan.is-lead{background:var(--dx-accent);color:var(--dx-accent-ink)}
+.dash-plan:hover,.dash-card:hover{transform:translateY(-2px)}
+.dash-plan-n{font-size:14px;font-weight:800}
+.dash-plan-c{font-size:12px;opacity:.8}
+.dash-plan-c b{font-size:30px;font-weight:900;display:block;opacity:1;font-variant-numeric:tabular-nums}
+.dash-rank li{justify-content:flex-start}
+.dash-rank a{flex:1}
+.dash-rank-i{inline-size:26px;block-size:26px;border-radius:50%;background:#F4F4F6;display:grid;place-items:center;font-size:12px;font-weight:900}
+.dash-best{font-size:11.5px;color:var(--dx-mute);min-inline-size:56px;text-align:end}
+@media (max-width:900px){.dash-grid,.dash-grid.three{grid-template-columns:1fr}}
+@media (max-width:520px){.dash-bars.is-wide .dash-col:not(:first-child):not(:last-child) .dash-d{visibility:hidden}}
+@media (max-width:520px){.dash{padding:14px;border-radius:18px}.dash-hero-n b{font-size:38px}.dash-head{align-items:stretch}
+  .dash-tabs{align-self:stretch}.dash-tabs button{flex:1;padding:8px 10px}.dash-legend{grid-template-columns:1fr 1fr 1fr}}
+@media (prefers-reduced-motion:reduce){
+  .dash-panel.is-in,.dash-bar span,.dash-stick span,.dash-mix span{animation:none}
+  .dash-tabs button,.dash-card,.dash-plan,.dash-hero-go{transition:none}
+  .dash-plan:hover,.dash-card:hover,.dash-hero-go:hover{transform:none}
+}
 </style>
+
+<script>
+(function(){
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.dash-tabs [role="tab"]'));
+  if (!tabs.length) return;
+  var pick = function(btn, focus){
+    tabs.forEach(function(t){
+      var on = t === btn, panel = document.getElementById(t.getAttribute("aria-controls"));
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.tabIndex = on ? 0 : -1;
+      panel.hidden = !on;
+      panel.classList.toggle("is-in", on);
+    });
+    if (focus) btn.focus();
+    var hash = {tabBtnManage: "#manage", tabBtnStreaks: "#streaks"}[btn.id];
+    try { history.replaceState(null, "", hash || location.pathname); } catch (e) {}
+  };
+  tabs.forEach(function(t, i){
+    t.addEventListener("click", function(){ pick(t, false); });
+    t.addEventListener("keydown", function(e){
+      var rtl = document.dir === "rtl";
+      var step = {ArrowRight: rtl ? -1 : 1, ArrowLeft: rtl ? 1 : -1}[e.key];
+      if (step){ e.preventDefault(); pick(tabs[(i + step + tabs.length) % tabs.length], true); }
+    });
+  });
+  pick({"#manage": tabs[1], "#streaks": tabs[2]}[location.hash] || tabs[0], false);
+
+  {# ‏التوقيت على البلد اللي الأدمن فيها: المتصفح عارف منطقته، فلو مختلفة عن
+     المحفوظة في الحساب بنحفظها ونعيد التحميل مرة واحدة، فالتحية و"النهارده"
+     والأرقام يمشوا عليها. sessionStorage بيمنع إعادة التحميل تتكرر لو الحفظ فشل. #}
+  try {
+    var dash = document.querySelector(".dash");
+    var here = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    var key = "nx-tz-sync";
+    if (here && dash && here !== dash.dataset.tz && sessionStorage.getItem(key) !== here){
+      sessionStorage.setItem(key, here);
+      fetch("/me/timezone", {method: "POST", headers: {"Content-Type": "application/json"},
+                             body: JSON.stringify({tz: here})})
+        .then(function(r){ if (r.ok) location.reload(); });
+    }
+  } catch (e) {}
+})();
+</script>
 
 {% endblock %}

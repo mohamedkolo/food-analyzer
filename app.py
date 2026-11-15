@@ -108,6 +108,17 @@ def login():
                 except: age_int = None
                 r = register(name, email, pw, country, age_int, phone)
                 if r == "ok":
+                    # ‏الاستبيان الطويل (/register) كان بيبلّغ الدكتور، والتبويب ده لأ،
+                    # فعميل يسجّل من هنا كان بيدخل من غير ما حد يعرف.
+                    try:
+                        new_u = db_row("SELECT id FROM users WHERE email=?", (email,))
+                        add_notification(
+                            db_run, "new_client", f"عميل جديد سجّل: {name}",
+                            f"الاسم: {name}\nالبلد: {country}\nالتليفون: {phone}\nالإيميل: {email}",
+                            link="/admin/users",
+                            related_user_id=new_u["id"] if new_u else None)
+                    except Exception as _e:
+                        print(f"notif new_client error: {_e}")
                     error = _login_msg("registered", lang)
                     is_success = True
                     tab = "login"
@@ -153,12 +164,48 @@ def dashboard():
     analytics = build_admin_analytics(db_rows)
     at_risk = get_at_risk_clients()
 
+    # ‏أرقام اللوحة الجديدة: كلها من الجداول، على ساعة القاهرة.
+    import dashboard_data as DD
+    now_local = client_now(u)
+    lang = session.get("lang", "ar")
+    week = DD.clients_logging_week(db_rows, now_local.date())
+    goal_mix = DD.goal_breakdown(db_rows)
+    plans_now = DD.plan_cards(db_rows, datetime.now())
+    leaders = DD.streak_leaders(db_rows, get_meal_streak)
+    recent = DD.recent_ticks(db_rows)
+    for r in recent:
+        r["meal"] = DD.meal_name(r["meal_key"], lang == "ar")
+
     return render_template("dashboard.html", user=u, lang=session.get("lang","ar"),
+                           greeting=DD.greeting(now_local, lang == "ar"), today=now_local.date(),
+                           week=week, week_max=max([d["count"] for d in week] + [1]),
+                           active_today=week[-1]["count"], recent_ticks=recent,
+                           revenue_chart=analytics["revenue_chart"],
+                           revenue_max=analytics["revenue_max"] or 1,
+                           tz_name=(u.get("timezone") or "Africa/Cairo"), goal_mix=goal_mix,
+                           plan_cards=plans_now, leaders=leaders,
                            role=role, pending_count=pending_count, total_clients=total_clients,
                            total_plans=total_plans, recent_requests=recent_requests,
                            unread_messages=unread_messages, renewals_soon=analytics["renewals_soon"],
                            recently_lost=analytics["recently_lost"], at_risk_clients=at_risk)
 
+
+
+@app.route("/me/timezone", methods=["POST"])
+@login_required
+def save_my_timezone():
+    """‏المتصفح بيبعت منطقته الزمنية، فاللوحة تمشي على البلد اللي إنت فيه
+    (مصر، الإمارات...) من غير ما حد يختارها بإيده."""
+    from zoneinfo import ZoneInfo
+    name = ((request.get_json(silent=True) or {}).get("tz") or "").strip()
+    try:
+        if not name or "/" not in name:
+            raise ValueError(name)
+        ZoneInfo(name)
+    except Exception:
+        return jsonify({"ok": False}), 400
+    db_run("UPDATE users SET timezone=? WHERE id=?", (name, session["uid"]))
+    return jsonify({"ok": True, "tz": name})
 
 
 def build_weight_progress(user_id, user=None):
