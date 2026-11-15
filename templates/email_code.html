@@ -11,6 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
 <title>NutraX - {{ ('تغيير كلمة السر' if is_ar else 'Reset password') if purpose == 'reset' or step != 'code' else ('تأكيد الإيميل' if is_ar else 'Confirm email') }}</title>
+<script>document.documentElement.classList.add("js")</script>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -28,13 +29,44 @@ label{display:block;font-size:13px;font-weight:800;margin-block-end:6px;color:#3
 .input:focus{border-color:#3A4A5C}
 .input.ltr{direction:ltr;text-align:start}
 .code{direction:ltr;text-align:center;font-size:30px;font-weight:900;letter-spacing:.5em;padding-inline-start:.5em;font-variant-numeric:tabular-nums}
-.trace{display:block;width:100%;height:56px;margin-block:4px 6px}
-.trace .track{stroke:#EDF0F3}
-.trace .ink{stroke:#3F6E33;stroke-dasharray:6 6;stroke-dashoffset:6;transition:stroke-dashoffset .25s ease}
-.trace .ink.bad{stroke:#B3261E;stroke-dashoffset:0}
-.done .trace .track{opacity:0}
-.done .trace .ink{stroke-dashoffset:0;d:path("M72 30 L104 48 L168 10");animation:bend .6s cubic-bezier(.5,0,.3,1.4) .15s backwards}
-@keyframes bend{from{d:path("M20 30 L120 30 L220 30")}}
+{# ‏الخانات الست للشكل بس. الحقل الحقيقي واحد (#code) متفرود فوقهم وشفاف،
+   علشان الملء التلقائي من رسالة الإيميل وقارئ الشاشة يشتغلوا. من غير JS
+   الكلاس "js" مابيتحطش، فالحقل بيبان عادي والخانات مستخبية. #}
+.cells{display:none}
+.js .entry{position:relative}
+.js .cells{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;direction:ltr;max-width:340px;margin-inline:auto}
+.js .entry .code{position:absolute;inset:0;opacity:0;font-size:16px;letter-spacing:0;padding:0;cursor:text}
+.cell{height:58px;border-radius:14px;border:2px solid #D5DAE0;background:#F7F8FA;display:grid;place-items:center;
+  font-size:24px;font-weight:900;color:#1E2630;font-variant-numeric:tabular-nums;
+  transition:border-color .2s,box-shadow .2s,background .2s;will-change:transform}
+.cell.filled{background:#EDF0F3;border-color:#B9C3CE}
+.cell.on{border-color:#3F6E33;box-shadow:0 0 0 4px rgba(63,110,51,.16)}
+.cell.on:empty::after{content:"";width:2px;height:24px;background:#3F6E33;animation:caret 1s steps(1) infinite}
+@keyframes caret{50%{opacity:0}}
+.cells.bad .cell{border-color:#B3261E;background:#FDECEA}
+.cells.bad{animation:shake .45s ease}
+@keyframes shake{20%,60%{translate:-6px 0}40%,80%{translate:6px 0}}
+.stage{position:relative;height:170px;display:grid;place-items:center;margin-block:4px 14px}
+.stage .cells{position:absolute;inset-inline:0;top:calc(50% - 29px)}
+.ring{width:132px;height:132px;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .track{stroke:#E3EBDD}
+.ring .fill{stroke:#3F6E33;stroke-dasharray:1;stroke-dashoffset:0}
+.check{position:absolute;inset:26px;border-radius:50%;background:#3F6E33;display:grid;place-items:center}
+.check svg{width:44px;height:44px;transform:none}
+.badge{display:inline-flex;align-items:center;gap:6px;background:#EAF2E6;color:#2F5426;border:1px solid #C9DCBF;
+  border-radius:999px;padding:7px 16px;font-size:13px;font-weight:800;margin-block-end:16px}
+.badge-row{text-align:center}
+{# ‏الترتيب على صفحة النجاح: الخانات بالأرقام -> بتلف -> بتختفي -> الدايرة بتتملي
+   والعلامة بتطلع. كل ده لو فيه JS ومن غير تقليل حركة؛ غير كده الدايرة جاهزة على طول. #}
+.orbiting .ring,.orbiting .badge{visibility:hidden}
+.card:not(.orbiting) .stage .cells{display:none}
+.play .ring .fill{stroke-dashoffset:1;animation:fill .9s cubic-bezier(.6,0,.3,1) .1s forwards}
+@keyframes fill{to{stroke-dashoffset:0}}
+.play .check{transform:scale(0);animation:pop .5s cubic-bezier(.3,1.7,.5,1) .9s forwards}
+@keyframes pop{to{transform:scale(1)}}
+.play .badge{opacity:0;animation:rise .4s ease 1.25s forwards}
+@keyframes rise{from{transform:translateY(8px)}to{opacity:1;transform:none}}
 .btn{display:block;width:100%;padding:13px;border:0;border-radius:12px;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;background:#1E2630;color:#fff;text-align:center;text-decoration:none}
 .btn:focus-visible,.link:focus-visible,.input:focus-visible{outline:3px solid #5A9447;outline-offset:2px}
 .link{background:none;border:0;font-family:inherit;font-size:13px;font-weight:700;color:#3A4A5C;text-decoration:underline;cursor:pointer;padding:6px}
@@ -46,8 +78,8 @@ label{display:block;font-size:13px;font-weight:800;margin-block-end:6px;color:#3
 .wa a{display:inline-flex;align-items:center;gap:6px;background:#0B8043;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:800;font-size:13px}
 .back{display:block;text-align:center;margin-block-start:16px;color:#fff;font-size:13px;opacity:.9}
 @media (prefers-reduced-motion:reduce){
-  .trace .ink{transition:none}
-  .done .trace .ink{animation:none}
+  .cell{transition:none}
+  .cells.bad,.cell.on:empty::after{animation:none}
 }
 </style>
 </head>
@@ -94,13 +126,19 @@ label{display:block;font-size:13px;font-weight:800;margin-block-end:6px;color:#3
     {% if error %}<div class="msg err" role="alert">{{ error }}</div>{% endif %}
     {% if note %}<div class="msg note" role="status">{{ note }}</div>{% endif %}
 
-    <svg class="trace" viewBox="0 0 240 56" aria-hidden="true" focusable="false">
-      <path class="track" d="M20 30 L120 30 L220 30" fill="none" stroke-width="6" stroke-linecap="round" pathLength="6"/>
-      <path class="ink{% if error %} bad{% endif %}" id="ink" d="M20 30 L120 30 L220 30" fill="none" stroke-width="6"
-            stroke-linecap="round" stroke-linejoin="round" pathLength="6"/>
-    </svg>
 
     {% if done %}
+      <div class="stage" id="stage">
+        <div class="cells{{ ' bad' if error else '' }}" id="cells" aria-hidden="true">{% for i in range(6) %}<span class="cell{{ ' filled' if digits[i:i+1] else '' }}" data-cell>{{ digits[i:i+1] }}</span>{% endfor %}</div>
+        <div class="ring">
+          <svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+            <circle class="track" cx="50" cy="50" r="44" fill="none" stroke-width="7"/>
+            <circle class="fill" cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" pathLength="1"/>
+          </svg>
+          <div class="check"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </div>
+      <div class="badge-row"><span class="badge">✓ {{ 'اتأكّد ومتأمّن' if is_ar else 'Verified & secured' }}</span></div>
       {% if purpose == 'reset' %}
         <a class="btn" href="/login">{{ 'سجّل دخول بكلمة السر الجديدة' if is_ar else 'Sign in with your new password' }}</a>
       {% else %}
@@ -111,9 +149,12 @@ label{display:block;font-size:13px;font-weight:800;margin-block-end:6px;color:#3
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="field">
         <label for="code">{{ 'الكود (٦ أرقام)' if is_ar else 'Code (6 digits)' }}</label>
+        <div class="entry">
+        <div class="cells{{ ' bad' if error else '' }}" id="cells" aria-hidden="true">{% for i in range(6) %}<span class="cell{{ ' filled' if digits[i:i+1] else '' }}" data-cell>{{ digits[i:i+1] }}</span>{% endfor %}</div>
         <input class="input code" type="text" name="code" id="code" required
                inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6"
                {% if not error %}autofocus{% endif %}>
+        </div>
       </div>
       {% if purpose == 'reset' %}
       <div class="field">
@@ -138,21 +179,80 @@ label{display:block;font-size:13px;font-weight:800;margin-block-end:6px;color:#3
 </main>
 <script>
 (function(){
-  var ink = document.getElementById("ink");
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   var code = document.getElementById("code");
-  if (ink && code){
+  var cells = Array.prototype.slice.call(document.querySelectorAll("#cells [data-cell]"));
+  var box = document.getElementById("cells");
+
+  {# ‏الكتابة: الحقل الحقيقي هو اللي بيستقبل، والخانات بترسم اللي فيه. #}
+  if (code && cells.length){
+    var paint = function(){
+      var d = code.value.replace(/\D/g, "").slice(0, 6);
+      if (d !== code.value) code.value = d;
+      var focused = document.activeElement === code;
+      cells.forEach(function(c, i){
+        c.textContent = d[i] || "";
+        c.classList.toggle("filled", !!d[i]);
+        c.classList.toggle("on", focused && i === Math.min(d.length, 5));
+      });
+      return d;
+    };
     code.addEventListener("input", function(){
-      var digits = code.value.replace(/\D/g, "").slice(0, 6);
-      if (digits !== code.value) code.value = digits;
-      ink.classList.remove("bad");
-      ink.style.strokeDashoffset = String(6 - digits.length);
+      box.classList.remove("bad");
+      var d = paint();
+      if (d.length === 6){
+        var pw = document.getElementById("password");
+        {# ‏التأكيد بيتبعت لوحده أول ما الست أرقام تكمل. في تغيير كلمة السر لسه فيه خانة كلمة السر. #}
+        if (pw){ if (!pw.value) pw.focus(); }
+        else { var f = document.getElementById("codeForm"); f.requestSubmit ? f.requestSubmit() : f.submit(); }
+      }
     });
+    code.addEventListener("focus", paint);
+    code.addEventListener("blur", paint);
+    paint();
   }
+
+  {# ‏صفحة النجاح: الخانات تطلع حوالين النص، تلف لفة، تتلم وتختفي، والدايرة تتملي. #}
+  var stage = document.getElementById("stage");
   var go = document.getElementById("goNext");
-  if (go){
-    var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setTimeout(function(){ location.href = go.getAttribute("href"); }, reduce ? 600 : 1500);
+  var next = function(wait){ if (go) setTimeout(function(){ location.href = go.getAttribute("href"); }, wait); };
+  if (!stage){ return; }
+  var orbs = Array.prototype.slice.call(stage.querySelectorAll("[data-cell]"));
+  if (reduce || orbs.length !== 6 || !orbs[0].textContent){ next(900); return; }
+  var card = document.getElementById("codeCard");
+  card.classList.add("orbiting");
+  var ease = function(t){ return 1 - Math.pow(1 - t, 3); };
+  var back = function(t){ var c = 1.7; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+  var row = stage.querySelector(".cells").getBoundingClientRect();
+  var cx = row.left + row.width / 2, cy = row.top + row.height / 2;
+  var start = orbs.map(function(b){ var r = b.getBoundingClientRect(); return [r.left + r.width / 2 - cx, r.top + r.height / 2 - cy]; });
+  var R = 68, HOLD = 350, OUT = 380, TURN = 1200, IN = 380, t0 = performance.now();
+  function frame(now){
+    var t = now - t0 - HOLD;
+    if (t < 0){ requestAnimationFrame(frame); return; }
+    orbs.forEach(function(b, i){
+      var base = i * Math.PI / 3 - Math.PI / 2, x, y, rot = 0, s = 1, o = 1;
+      if (t < OUT){
+        var k = back(t / OUT);
+        x = start[i][0] + (R * Math.cos(base) - start[i][0]) * k;
+        y = start[i][1] + (R * Math.sin(base) - start[i][1]) * k;
+        s = 1 - .25 * Math.min(1, t / OUT);
+      } else if (t < OUT + TURN){
+        var k2 = ease((t - OUT) / TURN), a = base + k2 * Math.PI * 2;
+        x = R * Math.cos(a); y = R * Math.sin(a); rot = k2 * 360; s = .75;
+      } else {
+        var k3 = Math.min(1, (t - OUT - TURN) / IN), r = R * (1 - ease(k3));
+        x = r * Math.cos(base); y = r * Math.sin(base); s = .75 - .5 * k3; o = 1 - k3; rot = 360;
+      }
+      b.style.transform = "translate(" + (x - start[i][0]).toFixed(1) + "px," + (y - start[i][1]).toFixed(1) + "px) rotate(" + rot.toFixed(1) + "deg) scale(" + s.toFixed(3) + ")";
+      b.style.opacity = o;
+    });
+    if (t < OUT + TURN + IN){ requestAnimationFrame(frame); return; }
+    card.classList.remove("orbiting");
+    card.classList.add("play");
+    next(1900);
   }
+  requestAnimationFrame(frame);
 })();
 </script>
 </body>

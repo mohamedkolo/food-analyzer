@@ -299,6 +299,47 @@ def test_code_page_is_accessible():
     assert "prefers-reduced-motion" in html
 
 
+# ═══ شكل صفحة الكود: ٦ خانات بتلف حوالين النص لما الكود يعدّي ═══
+
+def _cells(html):
+    return re.findall(r'<span class="cell[^"]*"[^>]*data-cell', html)
+
+
+def test_code_page_shows_six_cells_over_one_real_field():
+    # ‏الخانات الست للشكل بس؛ الحقل الحقيقي واحد علشان الملء التلقائي
+    # من رسالة الإيميل وقارئ الشاشة يشتغلوا.
+    _reset(); _smtp(True)
+    c = _client()
+    c.post("/forgot", data={"email": "ghost@x.test"})
+    html = c.get("/forgot/code").get_data(as_text=True)
+    assert len(_cells(html)) == 6
+    assert html.count('name="code"') == 1
+    assert re.search(r'class="cells"[^>]*aria-hidden="true"', html)
+
+
+def test_success_replays_the_digits_then_the_ring():
+    _reset(); _smtp(True)
+    c = _client()
+    _register(c, "orbit1@x.test")
+    _login(c, "orbit1@x.test", "newpass1")
+    code = SENT[-1][1]
+    html = c.post("/verify", data={"code": code}).get_data(as_text=True)
+    assert len(_cells(html)) == 6
+    shown = "".join(re.findall(r'data-cell>(\d)</span>', html))
+    assert shown == code, shown
+    assert 'class="ring"' in html and 'class="badge"' in html
+
+
+def test_a_wrong_code_marks_the_cells():
+    _reset(); _smtp(True)
+    c = _client()
+    _register(c, "orbit2@x.test")
+    _login(c, "orbit2@x.test", "newpass1")
+    wrong = "000000" if SENT[-1][1] != "000000" else "111111"
+    html = c.post("/verify", data={"code": wrong}).get_data(as_text=True)
+    assert 'class="cells bad"' in html
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in list(globals().items())
              if n.startswith("test_") and callable(f)]
