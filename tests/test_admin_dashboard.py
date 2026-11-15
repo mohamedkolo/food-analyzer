@@ -230,6 +230,15 @@ def test_the_orange_plan_card_is_the_busiest_plan():
     assert lead == ["خطة واحدة"], cards
 
 
+def test_the_dashboard_sits_on_the_page_not_on_black():
+    # ‏صاحب المشروع اختار الشفاف (A) بدل المعرض الأسود: الكروت البيضا
+    # قاعدة على رمادي الموقع، واللوحة شبه باقي الصفحات.
+    html = _as(ADMIN).get("/dashboard").get_data(as_text=True)
+    rule = re.search(r"\.dash\{--dx-ink[^}]*\}", html).group(0)
+    assert "background:transparent" in rule, rule
+    assert "background:var(--dx-ink)" not in rule
+
+
 def test_dashboard_uses_the_prompt_colours():
     html = _as(ADMIN).get("/dashboard").get_data(as_text=True)
     assert "--dx-ink:#0B0B0C" in html and "--dx-accent:#FF6A1A" in html

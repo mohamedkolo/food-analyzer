@@ -360,27 +360,28 @@
   box-shadow: 0 4px 12px rgba(37,99,235,0.15);
 }
 
-{# ‏ألوان البرونت: معرض أسود، كروت بيضا، وبرتقالي واحد للحاجات المهمة.
+{# ‏ألوان البرونت: كروت بيضا وبرتقالي واحد للحاجات المهمة. الخلفية كانت معرض
+   أسود، وصاحب المشروع اختار الشفاف بدلها: الكروت قاعدة على رمادي الموقع.
    البرتقالي للمساحات بس، مش للنص -- نص برتقالي على أبيض تباينه ٢.٩. #}
-.dash{--dx-ink:#0B0B0C;--dx-ink-2:#1A1A1D;--dx-card:#FFFFFF;--dx-accent:#FF6A1A;--dx-accent-ink:#1F0D00;
-  --dx-soft:#FFF1E8;--dx-line:#ECECEE;--dx-mute:#5F5F66;--dx-mute-dk:#A6A6AE;--dx-bar:#E4E4E8;
-  background:var(--dx-ink);color:var(--dx-card);border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.dash{--dx-ink:#0B0B0C;--dx-card:#FFFFFF;--dx-accent:#FF6A1A;--dx-accent-ink:#1F0D00;
+  --dx-soft:#FFF1E8;--dx-line:#ECECEE;--dx-mute:#5F5F66;--dx-bar:#E4E4E8;
+  background:transparent;color:var(--dx-ink);display:flex;flex-direction:column;gap:14px}
 .dash .next-appt{margin:0}
 .dash-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.dash-hi{font-size:26px;margin:0;color:var(--dx-card)}
-.dash-date{font-size:12px;color:var(--dx-mute-dk);margin-top:2px;font-variant-numeric:tabular-nums}
-.dash-tabs{display:inline-flex;background:var(--dx-ink-2);border:1px solid #2A2A2E;border-radius:999px;padding:4px;gap:2px}
-.dash-tabs button{border:0;background:none;font:inherit;font-size:13px;font-weight:800;color:var(--dx-mute-dk);
+.dash-hi{font-size:26px;margin:0;color:var(--dx-ink)}
+.dash-date{font-size:12px;color:var(--dx-mute);margin-top:2px;font-variant-numeric:tabular-nums}
+.dash-tabs{display:inline-flex;background:var(--dx-card);border:1px solid var(--dx-line);border-radius:999px;padding:4px;gap:2px}
+.dash-tabs button{border:0;background:none;font:inherit;font-size:13px;font-weight:800;color:var(--dx-mute);
   padding:8px 16px;border-radius:999px;cursor:pointer;white-space:nowrap;transition:background .2s,color .2s}
-.dash-tabs button:hover{color:var(--dx-card)}
-.dash-tabs button[aria-selected="true"]{background:var(--dx-card);color:var(--dx-ink)}
+.dash-tabs button:hover{color:var(--dx-ink)}
+.dash-tabs button[aria-selected="true"]{background:var(--dx-ink);color:var(--dx-card)}
 .dash-tabs button:focus-visible{outline:2px solid var(--dx-accent);outline-offset:2px}
 .dash-panel{display:flex;flex-direction:column;gap:14px}
 .dash-panel[hidden]{display:none}
 .dash-panel.is-in{animation:dash-in .4s cubic-bezier(.3,1.2,.5,1)}
 @keyframes dash-in{from{opacity:0;transform:translateY(10px) scale(.99)}}
-.dash .nx-sec-h{color:var(--dx-mute-dk)}
-.dash .nx-sec-h::after{background:#2A2A2E}
+.dash .nx-sec-h{color:var(--dx-mute)}
+.dash .nx-sec-h::after{background:var(--dx-line)}
 .dash-hero{background:var(--dx-card);color:var(--dx-ink);border-radius:20px;padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .dash-hero.is-accent{background:var(--dx-accent);color:var(--dx-accent-ink)}
 .dash-hero-l{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
@@ -405,6 +406,7 @@
 .dash-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}
 .dash-grid.three{grid-template-columns:repeat(3,1fr)}
 .dash-grid > *{min-width:0}
+.dash-card,.dash-hero,.dash-plan,.dash .nx-strip{box-shadow:0 1px 2px rgba(20,20,20,.04),0 8px 24px rgba(20,20,20,.05)}
 .dash-card{background:var(--dx-card);color:var(--dx-ink);border-radius:20px;padding:18px 20px;transition:transform .25s}
 .dash-h{font-size:15px;font-weight:800;color:var(--dx-ink);margin:0 0 2px}
 .dash-h small{font-size:12px;color:var(--dx-mute);font-weight:700}
@@ -454,7 +456,7 @@
 .dash-best{font-size:11.5px;color:var(--dx-mute);min-inline-size:56px;text-align:end}
 @media (max-width:900px){.dash-grid,.dash-grid.three{grid-template-columns:1fr}}
 @media (max-width:520px){.dash-bars.is-wide .dash-col:not(:first-child):not(:last-child) .dash-d{visibility:hidden}}
-@media (max-width:520px){.dash{padding:14px;border-radius:18px}.dash-hero-n b{font-size:38px}.dash-head{align-items:stretch}
+@media (max-width:520px){.dash-hero-n b{font-size:38px}.dash-head{align-items:stretch}
   .dash-tabs{align-self:stretch}.dash-tabs button{flex:1;padding:8px 10px}.dash-legend{grid-template-columns:1fr 1fr 1fr}}
 @media (prefers-reduced-motion:reduce){
   .dash-panel.is-in,.dash-bar span,.dash-stick span,.dash-mix span{animation:none}
