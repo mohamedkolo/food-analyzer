@@ -1,0 +1,169 @@
+{#- ‏أفو: أفوكادو صغير فوق كارت الدخول. بيبص على الإيميل، ويغطّي عينه وإنت
+    بتكتب كلمة السر، ويزعل لو السيرفر رجّع خطأ.
+    ‏أفو زينة بس (aria-hidden): رسالة الخطأ الحقيقية فاضلة في .msg، وقارئ
+    الشاشة مش محتاج يسمع "بقرا إيميلك…" مع كل حرف.
+    ‏مزاجه الأول بيتكتب من السيرفر، فالوش بيبان صح حتى قبل ما الـJS يحمّل أو
+    لو مااشتغلش خالص. والـJS ماعندوش دعوة بإرسال الفورم. -#}
+{%- set afo_mood = ('happy' if is_success else 'sad') if error else 'idle' -%}
+{%- if is_ar -%}
+  {%- set afo_first = {'idle': 'أهلًا! أنا أفو.', 'sad': 'أوبس، فيه حاجة مش مظبوطة.',
+                       'happy': 'حسابك جاهز! ادخل بقى.'}[afo_mood] -%}
+{%- else -%}
+  {%- set afo_first = {'idle': 'Hi! I’m Afo.', 'sad': 'Oops, something’s not right.',
+                       'happy': 'Your account is ready! Sign in.'}[afo_mood] -%}
+{%- endif %}
+<style>
+.afo{display:flex;align-items:center;justify-content:center;gap:14px;margin-block-end:-6px;position:relative;z-index:1}
+.afo-svg{width:112px;height:auto;overflow:visible;flex:none;animation:afo-bob 3.6s ease-in-out infinite}
+@keyframes afo-bob{50%{translate:0 -4px}}
+.afo-say{position:relative;max-width:220px;background:#fff;color:#1E2630;border-radius:16px;
+  padding:9px 14px;font-size:14px;font-weight:800;line-height:1.5;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+{# ‏السهم ناحية أفو: هو قبل الفقاعة في الترتيب، فيمين في العربي وشمال في الإنجليزي #}
+.afo-say::before{content:"";position:absolute;inset-inline-start:-6px;inset-block-start:calc(50% - 6px);
+  width:12px;height:12px;background:#fff;rotate:45deg}
+#afoArmL,#afoArmR{transform-box:view-box;transition:transform .45s cubic-bezier(.3,1.3,.5,1)}
+#afoArmL{transform-origin:58px 172px}
+#afoArmR{transform-origin:202px 172px}
+.afo[data-mood="cover"] #afoArmL,.afo[data-mood="peek"] #afoArmL{transform:rotate(-132.6deg)}
+.afo[data-mood="cover"] #afoArmR{transform:rotate(132.6deg)}
+{# ‏البصّة: إيد واحدة بتنزل تحت العين بشوية، فالعين بتبان من فوقها #}
+.afo[data-mood="peek"] #afoArmR{transform:rotate(118deg)}
+#afoPupils{transition:transform .18s ease}
+.afo-eyes{transform-box:fill-box;transform-origin:center}
+.afo.blink .afo-eyes{animation:afo-blink .2s ease}
+@keyframes afo-blink{50%{transform:scaleY(.08)}}
+.afo[data-mood="sad"] .afo-svg{animation:afo-shake .6s ease}
+@keyframes afo-shake{20%,60%{translate:-8px 0}40%,80%{translate:8px 0}}
+.afo[data-mood="happy"] .afo-svg,.afo[data-mood="go"] .afo-svg{animation:afo-hop .75s cubic-bezier(.3,1.5,.5,1)}
+@keyframes afo-hop{40%{translate:0 -22px}}
+#afoHearts{opacity:0;transition:opacity .3s ease}
+.afo[data-mood="happy"] #afoHearts,.afo[data-mood="go"] #afoHearts{opacity:1}
+@media (max-width:420px){.afo-svg{width:92px}.afo-say{font-size:13px}}
+@media (prefers-reduced-motion:reduce){
+  .afo-svg,.afo .afo-eyes{animation:none !important}
+  #afoArmL,#afoArmR,#afoPupils,#afoHearts{transition:none}
+}
+</style>
+<div class="afo" id="afo" data-mood="{{ afo_mood }}" aria-hidden="true">
+  <svg class="afo-svg" viewBox="0 0 260 300" focusable="false">
+    <g id="afoHearts" fill="#F2A0A0">
+      <path d="M40 60 c-6 -10 -20 -2 -12 8 l12 12 l12 -12 c8 -10 -6 -18 -12 -8 z"/>
+      <path d="M214 44 c-5 -8 -16 -2 -10 6 l10 10 l10 -10 c6 -8 -5 -14 -10 -6 z"/>
+      <path d="M226 110 c-4 -6 -12 -1 -7 5 l7 7 l7 -7 c5 -6 -3 -11 -7 -5 z"/>
+    </g>
+    <ellipse cx="106" cy="283" rx="20" ry="9" fill="#5A9447"/>
+    <ellipse cx="154" cy="283" rx="20" ry="9" fill="#5A9447"/>
+    <path d="M130 20 C90 20 70 70 66 120 C40 160 34 210 60 250 C82 282 178 282 200 250 C226 210 220 160 194 120 C190 70 170 20 130 20 Z" fill="#5A9447"/>
+    <path transform="translate(130 160) scale(.86) translate(-130 -160)" d="M130 20 C90 20 70 70 66 120 C40 160 34 210 60 250 C82 282 178 282 200 250 C226 210 220 160 194 120 C190 70 170 20 130 20 Z" fill="#EEF5C9"/>
+    <path transform="translate(130 162) scale(.8) translate(-130 -160)" d="M130 20 C90 20 70 70 66 120 C40 160 34 210 60 250 C82 282 178 282 200 250 C226 210 220 160 194 120 C190 70 170 20 130 20 Z" fill="#D9EA9F"/>
+    <circle cx="130" cy="210" r="40" fill="#9A6235"/>
+    <circle cx="117" cy="196" r="10" fill="#C08451"/>
+    <ellipse cx="94" cy="152" rx="10" ry="6" fill="#F2A0A0" opacity=".7"/>
+    <ellipse cx="166" cy="152" rx="10" ry="6" fill="#F2A0A0" opacity=".7"/>
+    <g class="afo-eyes">
+      <ellipse cx="108" cy="126" rx="13" ry="14" fill="#fff"/>
+      <ellipse cx="152" cy="126" rx="13" ry="14" fill="#fff"/>
+      <g id="afoPupils">
+        <circle cx="108" cy="128" r="6.5" fill="#1E2630"/>
+        <circle cx="152" cy="128" r="6.5" fill="#1E2630"/>
+        <circle cx="110.5" cy="125" r="2" fill="#fff"/>
+        <circle cx="154.5" cy="125" r="2" fill="#fff"/>
+      </g>
+    </g>
+    {%- set afo_mouths = {'idle': ('M118 150 Q130 160 142 150', 'none'),
+                          'sad': ('M118 158 Q130 147 142 158', 'none'),
+                          'happy': ('M113 147 Q130 174 147 147 Z', '#1E2630')} %}
+    <path id="afoMouth" d="{{ afo_mouths[afo_mood][0] }}" fill="{{ afo_mouths[afo_mood][1] }}"
+          stroke="#1E2630" stroke-width="4" stroke-linecap="round"/>
+    {#- ‏الإيدين بعد الوش في الرسم، فلما يتلفّوا بيغطّوا العينين -#}
+    <g id="afoArmL">
+      <path d="M58 172 L58 232" stroke="#5A9447" stroke-width="12" stroke-linecap="round"/>
+      <ellipse cx="58" cy="241" rx="18" ry="17" fill="#5A9447"/>
+      <ellipse cx="52" cy="236" rx="5" ry="3.5" fill="#EEF5C9" opacity=".5"/>
+    </g>
+    <g id="afoArmR">
+      <path d="M202 172 L202 232" stroke="#5A9447" stroke-width="12" stroke-linecap="round"/>
+      <ellipse cx="202" cy="241" rx="18" ry="17" fill="#5A9447"/>
+      <ellipse cx="208" cy="236" rx="5" ry="3.5" fill="#EEF5C9" opacity=".5"/>
+    </g>
+  </svg>
+  <p class="afo-say" id="afoSay">{{ afo_first }}</p>
+</div>
+<script>
+(function(){
+  var afo = document.getElementById("afo");
+  if (!afo) return;
+  var say = document.getElementById("afoSay");
+  var mouth = document.getElementById("afoMouth");
+  var pupils = document.getElementById("afoPupils");
+  var afoLines = {% if is_ar %}{
+    idle: "أهلًا! أنا أفو.", look: "بقرا إيميلك…", cover: "مش باصص، والله!",
+    peek: "بصّة صغيرة بس…", sad: "أوبس، فيه حاجة مش مظبوطة.",
+    happy: "حسابك جاهز! ادخل بقى.", go: "يلا بينا على خطتك!"
+  }{% else %}{
+    idle: "Hi! I’m Afo.", look: "Reading your email…", cover: "Not looking, promise!",
+    peek: "Just a tiny peek…", sad: "Oops, something’s not right.",
+    happy: "Your account is ready! Sign in.", go: "Off to your plan!"
+  }{% endif %};
+  var MOUTH = {
+    idle:  ["M118 150 Q130 160 142 150", "none"],
+    look:  ["M123 152 Q130 157 137 152", "none"],
+    cover: ["M125 154 a5 5 0 1 0 10 0 a5 5 0 1 0 -10 0", "#1E2630"],
+    sad:   ["M118 158 Q130 147 142 158", "none"],
+    happy: ["M113 147 Q130 174 147 147 Z", "#1E2630"]
+  };
+  {# ‏لو السيرفر رجّع خطأ أو نجاح، الوش بيفضل على رد فعله لحد أول لمسة. من غيرها أول blur كان بيرجّعه "أهلًا" والعميل مالحقش يشوف إنه زعل. #}
+  var holding = afo.dataset.mood !== "idle";
+
+  function mood(m){
+    if (afo.dataset.mood === m) return;
+    afo.dataset.mood = m;
+    var shape = MOUTH[m === "peek" ? "cover" : (m === "go" ? "happy" : m)] || MOUTH.idle;
+    mouth.setAttribute("d", shape[0]);
+    mouth.setAttribute("fill", shape[1]);
+    say.textContent = afoLines[m];
+    if (m !== "look") pupils.style.transform = "";
+  }
+  function pwInput(el){
+    if (!el) return null;
+    if (el.matches && el.matches("input.has-eye")) return el;
+    var wrap = el.closest && el.closest("[data-pw-toggle]") && el.closest(".input-wrap");
+    return wrap ? wrap.querySelector("input.has-eye") : null;
+  }
+  function follow(el){
+    {# ‏الإيميل بيتكتب من الشمال لليمين، فالعين بتمشي يمين مع ما يطول.  #}
+    var n = Math.min(el.value.length, 30);
+    pupils.style.transform = "translate(" + (-6 + n / 30 * 12).toFixed(1) + "px,4px)";
+  }
+  function settle(){
+    if (holding) return;
+    var a = document.activeElement;
+    var pw = pwInput(a);
+    if (pw) mood(pw.type === "text" ? "peek" : "cover");
+    else if (a && a.type === "email"){ mood("look"); follow(a); }
+    else mood("idle");
+  }
+  document.addEventListener("focusin", function(){ holding = false; settle(); });
+  document.addEventListener("focusout", function(){ setTimeout(settle, 0); });
+  document.addEventListener("input", function(e){
+    holding = false;
+    if (e.target.type === "email"){ mood("look"); follow(e.target); } else settle();
+  });
+  {# ‏زرار العين بيغيّر نوع الحقل من غير ما التركيز يتحرك، فنستنى التغيير ونبص تاني.  #}
+  document.addEventListener("click", function(e){
+    if (e.target.closest && e.target.closest("[data-pw-toggle]")) setTimeout(settle, 0);
+  });
+  {# ‏الإرسال نفسه ماحدش بيلمسه: أفو بينطّ بس والصفحة بتكمل عادي.  #}
+  document.querySelectorAll("form").forEach(function(f){
+    f.addEventListener("submit", function(){ holding = true; mood("go"); });
+  });
+  if (!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)){
+    setInterval(function(){
+      var m = afo.dataset.mood;
+      if (m === "cover" || m === "peek") return;
+      afo.classList.add("blink");
+      setTimeout(function(){ afo.classList.remove("blink"); }, 220);
+    }, 3800);
+  }
+})();
+</script>

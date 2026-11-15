@@ -735,6 +735,7 @@ def init_db():
     if DATABASE_URL:
         tables_pg = [
             """CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, conditions TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS email_codes (id SERIAL PRIMARY KEY, email TEXT NOT NULL, purpose TEXT NOT NULL, code_hash TEXT NOT NULL, expires_at TIMESTAMP NOT NULL, attempts INTEGER DEFAULT 0, used INTEGER DEFAULT 0, created_at TIMESTAMP NOT NULL)""",
             """CREATE TABLE IF NOT EXISTS weight_log (id SERIAL PRIMARY KEY, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS saved_plans (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS patients (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, age INTEGER, gender TEXT, height REAL, weight REAL, fat_pct REAL, bmi REAL, tdee INTEGER, goal_cal INTEGER, conditions TEXT, notes TEXT, status TEXT DEFAULT 'draft', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
@@ -799,6 +800,7 @@ def init_db():
         """CREATE TABLE IF NOT EXISTS appointment_ratings (id INTEGER PRIMARY KEY AUTOINCREMENT, appointment_id INTEGER NOT NULL UNIQUE, score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 10), comment TEXT, anonymous INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         """CREATE TABLE IF NOT EXISTS recommendations (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         """CREATE TABLE IF NOT EXISTS meal_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, skipped INTEGER DEFAULT 0, comment TEXT, UNIQUE(user_id, check_date, meal_key))""",
+        """CREATE TABLE IF NOT EXISTS email_codes (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, purpose TEXT NOT NULL, code_hash TEXT NOT NULL, expires_at TIMESTAMP NOT NULL, attempts INTEGER DEFAULT 0, used INTEGER DEFAULT 0, created_at TIMESTAMP NOT NULL)""",
         """CREATE TABLE IF NOT EXISTS plan_templates (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, name TEXT NOT NULL, diet_type TEXT, goal_cal INTEGER, plan_json TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         ]
         for sql in tables_sq:
@@ -825,6 +827,9 @@ def init_db():
         # ‏بدائل الأصناف للعميل: شغّالة لكل عميل، والأخصائي يقفلها لعميل
         # بعينه من ملفه لو حالته محتاجة التزام حرفي بالخطة.
         "ALTER TABLE users ADD COLUMN allow_swaps INTEGER DEFAULT 1",
+        # ‏الإيميل متأكّد ولا لأ. الافتراضي ١ علشان كل الحسابات اللي قبل الميزة
+        # تفضل تدخل زي ما هي؛ الحساب الجديد بس بيتسجّل بـ ٠ (شوف register).
+        "ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 1",
     ]:
         try: db_run(col_sql)
         except: pass
@@ -1248,7 +1253,7 @@ def register(name, email, pw, country, age=None, phone=None):
     # نفس التطبيع المستخدم في الدخول، عشان الحساب يتخزن بالصيغة اللي هيتدوّر بيها
     email = normalize_email(email)
     try:
-        db_run("""INSERT INTO users (name,email,password,country,age,phone,role,active) VALUES (?,?,?,?,?,?,'client',1)""",
+        db_run("""INSERT INTO users (name,email,password,country,age,phone,role,active,email_verified) VALUES (?,?,?,?,?,?,'client',1,0)""",
                (name, email, hp(pw), country, age, phone))
         return "ok"
     except:
