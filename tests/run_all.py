@@ -8,11 +8,13 @@ importing the app twice in one process would collide.
 """
 
 import os
+import re
 import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # ‏قاعدة الاختبارات: منفصلة عن /tmp/nutrax.db بتاعة التشغيل المحلي
+RESULT = re.compile(r"\b(PASS|FAIL)\s+test_\w+")
 TEST_DB = os.environ.get("NUTRAX_TEST_DB", "/tmp/nutrax_suite.db")
 SUITES = [
     "test_db_connection.py",
@@ -65,6 +67,8 @@ SUITES = [
     "test_plan_tools.py",
     "test_equivalents.py",
     "test_daily_fixes.py",
+    "test_login_afo.py",
+    "test_email_codes.py",
 ]
 
 
@@ -108,15 +112,22 @@ def main():
             os.remove(TEST_DB)
         r = subprocess.run([sys.executable, os.path.join(HERE, suite)],
                            capture_output=True, text=True, env=env)
+        # ‏السطر بيتقرا بـ regex مش startswith: التسجيل بيبعت إيميل الأدمن من
+        # thread في الخلفية، والـprint بتاعه ("[notif] SMTP not configured")
+        # ساعات بيتكتب في نص سطر PASS. الاختبار كان بيعدّي والطقم يقول
+        # "suite crashed" لأن العدّاد ماشافوش.
+        results = []
         for line in r.stdout.splitlines():
-            if line.strip().startswith(("PASS", "FAIL")) or " passed," in line:
+            m = RESULT.search(line)
+            if m:
+                results.append(m.group(1))
+                print("  " + line[m.start():].strip())
+            elif " passed," in line:
                 print("  " + line.strip())
-                if line.strip().startswith("FAIL"):
-                    total_fail += 1
-                elif line.strip().startswith("PASS"):
-                    total_pass += 1
             elif line.startswith("        "):
                 print(line)
+        total_pass += results.count("PASS")
+        total_fail += results.count("FAIL")
         if r.returncode != 0 and total_fail == 0:
             broken.append(suite)
             print(f"  suite crashed:\n{(r.stderr or '')[-600:]}")
@@ -128,8 +139,7 @@ def main():
         declared = sum(1 for line in
                        open(os.path.join(HERE, suite), encoding="utf-8")
                        if line.startswith("def test_"))
-        ran = sum(1 for line in r.stdout.splitlines()
-                  if line.strip().startswith(("PASS", "FAIL")))
+        ran = len(results)
         if declared != ran:
             broken.append(f"{suite} ({declared} معرّفة، {ran} اشتغلت)")
             print(f"  ⚠️  {declared} اختبار معرّف في الملف و{ran} بس اشتغل"

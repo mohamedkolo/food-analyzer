@@ -36,6 +36,8 @@ app.register_blueprint(routes_booking.bp)
 # ── يوميات العميل: المياه، ملاحظات الوجبات، التوصيات، التقييم ──
 import client_app
 app.register_blueprint(client_app.bp)
+import email_codes  # noqa: E402
+app.register_blueprint(email_codes.bp)
 
 # how a plan is actually built -- pure logic, no routes
 from plan_engine import (              # noqa: F401
@@ -67,6 +69,11 @@ def login():
             if u:
                 if not u.get("active", 1):
                     error = _login_msg("inactive", lang)
+                elif email_codes.needs_verification(u):
+                    # ‏حساب جديد لسه ماأكّدش إيميله: كود الأول، والجلسة بعده.
+                    _clear_login_attempts(check_email)
+                    nxt = (session.pop("after_login", None) if u.get("onboarded_at") else None)
+                    return email_codes.start_verification(u, nxt or "/dashboard")
                 else:
                     _clear_login_attempts(check_email)
                     session.permanent = True
@@ -1426,9 +1433,9 @@ def register_wizard():
 
             db_run("""INSERT INTO users 
                       (name, email, password, country, age, gender, height, weight, 
-                       goal, activity, phone, role, active,
+                       goal, activity, phone, role, active, email_verified,
                        liked_foods, disliked_foods, allergies, conditions, onboarded_at, lifestyle_data)
-                      VALUES (?,?,?,?,?,?,?,?,?,?,?,'client',1,?,?,?,?,?,?)""",
+                      VALUES (?,?,?,?,?,?,?,?,?,?,?,'client',1,0,?,?,?,?,?,?)""",
                    (name, email, hp(password), country, age_v, gender,
                     height_v, weight_v, goal, activity_v, phone,
                     liked_foods, disliked_foods, allergies, conditions, datetime.now(),
@@ -1460,8 +1467,12 @@ def register_wizard():
                     print(f"notif new_client error: {_e}")
 
                 # ‏زائر اختار موعد وبعدين عمل حساب: يرجع لموعده.
-                return redirect(session.pop("after_login", None)
-                                or "/my-plan?welcome=1")
+                nxt = session.pop("after_login", None) or "/my-plan?welcome=1"
+                if email_codes.needs_verification(new_user):
+                    for k in ("uid", "role"):
+                        session.pop(k, None)
+                    return email_codes.start_verification(new_user, nxt)
+                return redirect(nxt)
             else:
                 return render_template("register.html",
                                        lang=session.get("lang", "ar"),

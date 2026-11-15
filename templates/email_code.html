@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+{%- set is_ar = (lang or 'ar') == 'ar' %}
+{#- ‏صفحة الكود: "نسيت كلمة السر" و"أكّد إيميلك". step بييجي من email_codes.py:
+    no_smtp (الإيميل مش متظبّط -> واتساب)، email (اكتب إيميلك)، code (اكتب الكود).
+    ‏الخط اللي تحت خانة الكود بيتملي مع كل رقم، ولما الكود يعدّي بيتلوي ويبقى ✓.
+    التلات نقط بتوع الخط هما نفس التلات نقط بتوع العلامة، فالمتصفح بيحرّك من
+    واحد للتاني. Safari مابيحرّكش "d" فبيقلب على طول -- والنتيجة واحدة. #}
+<html lang="{{ 'ar' if is_ar else 'en' }}" dir="{{ 'rtl' if is_ar else 'ltr' }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>NutraX - {{ ('تغيير كلمة السر' if is_ar else 'Reset password') if purpose == 'reset' or step != 'code' else ('تأكيد الإيميل' if is_ar else 'Confirm email') }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Cairo',sans-serif;min-height:100vh;background:#1E2630;display:flex;align-items:center;justify-content:center;padding:20px;color:#1E2630}
+.wrap{max-width:440px;width:100%}
+.brand{color:#fff;text-align:center;font-size:26px;font-weight:900;margin-block-end:16px;letter-spacing:1px}
+.brand a{color:inherit;text-decoration:none}
+.card{background:#fff;border-radius:20px;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+h1{font-size:21px;font-weight:900;margin-block-end:6px}
+.lede{font-size:14px;color:#3A4A5C;line-height:1.7;margin-block-end:18px}
+.lede bdi{font-weight:800;color:#1E2630}
+.field{margin-block-end:14px}
+label{display:block;font-size:13px;font-weight:800;margin-block-end:6px;color:#374151}
+.input{width:100%;padding:12px 14px;border:2px solid #D5DAE0;border-radius:12px;font-family:inherit;font-size:15px;color:#1E2630;background:#fff;outline:none}
+.input:focus{border-color:#3A4A5C}
+.input.ltr{direction:ltr;text-align:start}
+.code{direction:ltr;text-align:center;font-size:30px;font-weight:900;letter-spacing:.5em;padding-inline-start:.5em;font-variant-numeric:tabular-nums}
+.trace{display:block;width:100%;height:56px;margin-block:4px 6px}
+.trace .track{stroke:#EDF0F3}
+.trace .ink{stroke:#3F6E33;stroke-dasharray:6 6;stroke-dashoffset:6;transition:stroke-dashoffset .25s ease}
+.trace .ink.bad{stroke:#B3261E;stroke-dashoffset:0}
+.done .trace .track{opacity:0}
+.done .trace .ink{stroke-dashoffset:0;d:path("M72 30 L104 48 L168 10");animation:bend .6s cubic-bezier(.5,0,.3,1.4) .15s backwards}
+@keyframes bend{from{d:path("M20 30 L120 30 L220 30")}}
+.btn{display:block;width:100%;padding:13px;border:0;border-radius:12px;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;background:#1E2630;color:#fff;text-align:center;text-decoration:none}
+.btn:focus-visible,.link:focus-visible,.input:focus-visible{outline:3px solid #5A9447;outline-offset:2px}
+.link{background:none;border:0;font-family:inherit;font-size:13px;font-weight:700;color:#3A4A5C;text-decoration:underline;cursor:pointer;padding:6px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-block-start:12px;flex-wrap:wrap}
+.msg{padding:10px 14px;border-radius:10px;font-size:13px;margin-block-end:14px;line-height:1.6}
+.msg.err{background:#FDECEA;color:#8B2E2E;border:1px solid #E3B4B4}
+.msg.note{background:#EDF0F3;border:1px solid #D5DAE0}
+.wa{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-block-start:12px}
+.wa a{display:inline-flex;align-items:center;gap:6px;background:#0B8043;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:800;font-size:13px}
+.back{display:block;text-align:center;margin-block-start:16px;color:#fff;font-size:13px;opacity:.9}
+@media (prefers-reduced-motion:reduce){
+  .trace .ink{transition:none}
+  .done .trace .ink{animation:none}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="brand"><a href="/login">NutraX</a></div>
+  <div class="card{% if done %} done{% endif %}" id="codeCard" data-done="{{ '1' if done else '0' }}">
+
+  {% if step == 'no_smtp' %}
+    <h1>{{ 'نسيت كلمة السر؟' if is_ar else 'Forgot your password?' }}</h1>
+    <p class="lede">{{ 'كلّمنا واتساب ونظبطهالك في دقايق.' if is_ar else 'Message us on WhatsApp and we will reset it within minutes.' }}</p>
+    <div class="wa">
+      <a href="https://wa.me/201004294521" target="_blank" rel="noopener">{{ 'واتساب مصر' if is_ar else 'WhatsApp Egypt' }}</a>
+      <a href="https://wa.me/971501038664" target="_blank" rel="noopener">{{ 'واتساب الإمارات' if is_ar else 'WhatsApp UAE' }}</a>
+    </div>
+
+  {% elif step == 'email' %}
+    <h1>{{ 'نسيت كلمة السر؟' if is_ar else 'Forgot your password?' }}</h1>
+    <p class="lede">{{ 'اكتب إيميل حسابك وهنبعتلك كود من ٦ أرقام تغيّر بيه كلمة السر.' if is_ar else 'Enter your account email and we will send you a 6-digit code to reset your password.' }}</p>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="email">{{ 'البريد الإلكتروني' if is_ar else 'Email' }}</label>
+        <input class="input ltr" type="email" name="email" id="email" required autocomplete="email"
+               inputmode="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com">
+      </div>
+      <button type="submit" class="btn">{{ 'ابعتلي الكود' if is_ar else 'Send me the code' }}</button>
+    </form>
+
+  {% else %}
+    {% if done %}
+      <h1>{{ ('تمام، كلمة السر اتغيّرت' if is_ar else 'Done. Your password is changed') if purpose == 'reset' else ('تمام، إيميلك اتأكّد' if is_ar else 'Done. Your email is confirmed') }}</h1>
+    {% elif purpose == 'reset' %}
+      <h1>{{ 'اكتب الكود' if is_ar else 'Enter your code' }}</h1>
+      <p class="lede">
+        {% if email %}{{ 'لو الإيميل ده عليه حساب، بعتنا عليه كود من ٦ أرقام:' if is_ar else 'If this email has an account, we sent it a 6-digit code:' }} <bdi dir="ltr">{{ email }}</bdi>
+        {% else %}{{ 'اكتب الكود اللي وصلك على الإيميل.' if is_ar else 'Enter the code we emailed you.' }}{% endif %}
+      </p>
+    {% else %}
+      <h1>{{ 'أكّد إيميلك' if is_ar else 'Confirm your email' }}</h1>
+      <p class="lede">{{ 'آخر خطوة: بعتنا كود من ٦ أرقام على' if is_ar else 'One last step: we sent a 6-digit code to' }} <bdi dir="ltr">{{ email }}</bdi></p>
+    {% endif %}
+
+    {% if error %}<div class="msg err" role="alert">{{ error }}</div>{% endif %}
+    {% if note %}<div class="msg note" role="status">{{ note }}</div>{% endif %}
+
+    <svg class="trace" viewBox="0 0 240 56" aria-hidden="true" focusable="false">
+      <path class="track" d="M20 30 L120 30 L220 30" fill="none" stroke-width="6" stroke-linecap="round" pathLength="6"/>
+      <path class="ink{% if error %} bad{% endif %}" id="ink" d="M20 30 L120 30 L220 30" fill="none" stroke-width="6"
+            stroke-linecap="round" stroke-linejoin="round" pathLength="6"/>
+    </svg>
+
+    {% if done %}
+      {% if purpose == 'reset' %}
+        <a class="btn" href="/login">{{ 'سجّل دخول بكلمة السر الجديدة' if is_ar else 'Sign in with your new password' }}</a>
+      {% else %}
+        <a class="btn" href="{{ next_url }}" id="goNext">{{ 'كمّل' if is_ar else 'Continue' }}</a>
+      {% endif %}
+    {% else %}
+    <form method="POST" id="codeForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="code">{{ 'الكود (٦ أرقام)' if is_ar else 'Code (6 digits)' }}</label>
+        <input class="input code" type="text" name="code" id="code" required
+               inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6"
+               {% if not error %}autofocus{% endif %}>
+      </div>
+      {% if purpose == 'reset' %}
+      <div class="field">
+        <label for="password">{{ 'كلمة السر الجديدة' if is_ar else 'New password' }}</label>
+        <input class="input ltr" type="password" name="password" id="password" required minlength="6"
+               autocomplete="new-password" autocapitalize="off" spellcheck="false">
+      </div>
+      {% endif %}
+      <button type="submit" class="btn">{{ ('غيّر كلمة السر' if is_ar else 'Change password') if purpose == 'reset' else ('أكّد' if is_ar else 'Confirm') }}</button>
+    </form>
+    {% if email %}
+    <form method="POST" class="row">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <span style="font-size:13px;color:#3A4A5C">{{ 'ماوصلكش؟ بُص في الـSpam.' if is_ar else "Didn't get it? Check spam." }}</span>
+      <button type="submit" name="resend" value="1" class="link">{{ 'ابعت كود تاني' if is_ar else 'Send another code' }}</button>
+    </form>
+    {% endif %}
+    {% endif %}
+  {% endif %}
+  </div>
+  <a class="back" href="/login">{{ 'رجوع لتسجيل الدخول' if is_ar else 'Back to sign in' }}</a>
+</main>
+<script>
+(function(){
+  var ink = document.getElementById("ink");
+  var code = document.getElementById("code");
+  if (ink && code){
+    code.addEventListener("input", function(){
+      var digits = code.value.replace(/\D/g, "").slice(0, 6);
+      if (digits !== code.value) code.value = digits;
+      ink.classList.remove("bad");
+      ink.style.strokeDashoffset = String(6 - digits.length);
+    });
+  }
+  var go = document.getElementById("goNext");
+  if (go){
+    var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setTimeout(function(){ location.href = go.getAttribute("href"); }, reduce ? 600 : 1500);
+  }
+})();
+</script>
+</body>
+</html>
