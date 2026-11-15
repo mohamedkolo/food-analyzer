@@ -133,6 +133,12 @@ def send_code(email, code, purpose, lang):
         return False
 
 
+def _digits(code):
+    # ‏صفحة النجاح بتعرض الأرقام اللي اتكتبت تاني علشان الخانات تلف بيها.
+    # الكود ده خلاص اتستخدم، فعرضه مابيفتحش حاجة.
+    return "".join(ch for ch in (code or "") if ch.isdigit())[:6]
+
+
 def _lang():
     return session.get("lang", "ar")
 
@@ -161,6 +167,7 @@ def _page(**kw):
     kw.setdefault("error", "")
     kw.setdefault("note", "")
     kw.setdefault("done", False)
+    kw.setdefault("digits", "")
     return render_template("email_code.html", **kw)
 
 
@@ -215,7 +222,8 @@ def forgot_code():
         db_run("UPDATE users SET password=?, email_verified=1 WHERE email=?", (hp(pw), email))
         _clear_login_attempts(email)
         session.pop("reset_email", None)
-        return _page(step="code", purpose="reset", email=email, done=True)
+        return _page(step="code", purpose="reset", email=email, done=True,
+                     digits=_digits(request.form.get("code", "")))
     return _page(step="code", purpose="reset", email=email)
 
 
@@ -257,5 +265,6 @@ def verify():
         session["lang"] = u.get("lang") or _lang()
         from core import get_user_role
         session["role"] = get_user_role(u)
-        return _page(step="code", purpose="verify", email=u["email"], done=True, next_url=nxt)
+        return _page(step="code", purpose="verify", email=u["email"], done=True, next_url=nxt,
+                     digits=_digits(request.form.get("code", "")))
     return _page(step="code", purpose="verify", email=u["email"])
