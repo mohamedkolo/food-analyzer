@@ -45,7 +45,7 @@
 </div>
 
 {% if saved %}
-<div style="background:var(--nx-surface-2);border:1px solid var(--nx-line);color:#2E4A3D;border-radius:10px;
+<div style="background:var(--nx-surface-2);border:1px solid var(--nx-line);color:var(--nx-ok-ink);border-radius:10px;
             padding:10px 14px;margin-bottom:14px;font-size:13.5px">
   <i class="fa-solid fa-circle-check"></i>
   {% if saved == 'visit' %}{{ t('أرقام الزيارة اتصلّحت، والتقدّم اتحسب تاني.','The visit is corrected and the progress recomputed.') }}
@@ -326,7 +326,7 @@
 
   <form id="visitForm{{ v.id }}" method="POST" hidden
         action="/followups/{{ client_key|urlencode }}/visit/{{ v.id }}/edit"
-        style="margin-top:12px;background:#FAF8F3;border:1px dashed var(--nx-warn-line);
+        style="margin-top:12px;background:var(--nx-warn-bg);border:1px dashed var(--nx-warn-line);
                border-radius:10px;padding:14px 16px">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div style="font-size:12.5px;color:#8A6B45;margin-bottom:10px">

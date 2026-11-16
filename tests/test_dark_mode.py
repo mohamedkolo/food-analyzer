@@ -178,6 +178,51 @@ def test_text_on_dark_buttons_stays_white():
     assert _lum(dark["--nx-solid"]) < 0.2 and _lum(dark["--nx-solid-2"]) < 0.25
 
 
+# ‏خلفية فاتحة مكتوبة بالإيد = كارت أبيض في نص الصفحة الغامقة، ولو الكلام
+# اللي عليها جاي من الثيم (فاتح في الغامق) بيختفي. ده اللي صاحب المشروع
+# شافه في "طلب خطة": الكارت المختار #e8f4fd والكلام عليه أبيض تقريبًا.
+# ‏المسموح بس: شارات صغيرة لونها ولون كلامها الاتنين مكتوبين بالإيد (زوج
+# ثابت، مقروء في الوضعين).
+PAIRED_CHIPS = {"#ede9fe", "#ddd6fe", "#fffbeb", "#e0e7ff", "#fce7f3", "#fdeaea", "#eaf2e6"}
+
+
+def _light(h):
+    return _lum(h if len(h) == 7 else "#" + "".join(ch * 2 for ch in h[1:])) > 0.6
+
+
+def test_no_page_paints_a_light_background_that_the_theme_cannot_turn():
+    decl = re.compile(r'(?<![\w-])(background(?:-color)?)\s*:\s*([^;"}]*)', re.I)
+    js = re.compile(r"\.style\.(background|backgroundColor)\s*=\s*([^;\n]+)")
+    left = []
+    for path in sorted(glob.glob(os.path.join(T, "*.html"))):
+        name = os.path.basename(path)
+        if name in KEEP_LIGHT or name == "_theme.html":
+            continue
+        s = open(path, encoding="utf-8").read()
+        for m in list(decl.finditer(s)) + list(js.finditer(s)):
+            for c in re.findall(r"#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b", m.group(2)):
+                if _light(c.lower()) and c.lower() not in PAIRED_CHIPS:
+                    left.append("%s %s" % (name, c))
+    assert not left, "%d left: %s" % (len(left), left[:12])
+
+
+def test_no_dark_hard_coded_text_sits_on_a_theme_background():
+    # ‏الخلفية اتقلبت غامقة في الغامق، والكلام اللي عليها لو لونه مكتوب
+    # بالإيد غامق بيختفي (لقيناها في لوحة الشرح: بني على "فيه شغل").
+    themed = re.compile(r"background(?:-color)?\s*:\s*var\(--(?:nx-(?:surface|surface-2|tint|warn-bg|bad-bg|ok-bg|info-bg|bg)|white|gray|blue-pale|green-pale)\)")
+    left = []
+    for path in sorted(glob.glob(os.path.join(T, "*.html"))):
+        name = os.path.basename(path)
+        if name in KEEP_LIGHT or name == "_theme.html":
+            continue
+        s = open(path, encoding="utf-8").read()
+        for body in re.findall(r"\{([^{}]*)\}", s) + re.findall(r'style="([^"]*)"', s):
+            col = re.search(r"(?<![\w-])color\s*:\s*(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})\b", body)
+            if themed.search(body) and col and _lum(col.group(1) if len(col.group(1)) == 7 else "#" + "".join(ch * 2 for ch in col.group(1)[1:])) < 0.25:
+                left.append("%s %s" % (name, col.group(1)))
+    assert not left, left
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in list(globals().items())
              if n.startswith("test_") and callable(f)]

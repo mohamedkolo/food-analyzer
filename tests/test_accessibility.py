@@ -228,17 +228,41 @@ def test_no_template_calls_a_jinja_filter_that_does_not_exist():
 # ‏لوحة شرح الفحص فيها ألوان خاصة بها (أخضر للتمام، عنبري للشغل،
 # رمادي للي مالوش حكم) مش جاية من التوكنز، فمحتاجة تتقاس بالاسم.
 # الدكتور بيقرا منها والعميل قاعد قدامه، وساعات من تليفون في نور شمس.
+# ‏الألوان بقت أسامي من _theme.html (الوضع الفاتح والغامق)، فالاختبار بيقيس
+# كل زوج في الوضعين. "شارة خطر" لسه زوج مكتوب بالإيد، ثابت في الاتنين.
 EXPLAIN_PANEL_COLORS = (
-    ("عنوان «اللي تمام»", "#1b5e38", "#f4faf6"),
-    ("عنوان «اللي فيه شغل»", "#8a5a00", "#fffaf0"),
-    ("عنوان «مالوش حكم»", "#55647a", "#f7f9fb"),
-    ("نص الحكم", "#374151", "#f4faf6"),
-    ("شارة كويسة", "#1b5e38", "#e7f4ec"),
-    ("شارة تحذير", "#8a5a00", "#fdf3dd"),
+    ("عنوان «اللي تمام»", "var(--nx-ok-ink)", "var(--nx-ok-bg)"),
+    ("عنوان «اللي فيه شغل»", "var(--nx-warn-ink)", "var(--nx-warn-bg)"),
+    ("عنوان «مالوش حكم»", "var(--muted)", "var(--nx-surface-2)"),
+    ("نص الحكم", "var(--nx-ink-2)", "var(--nx-ok-bg)"),
+    ("شارة كويسة", "var(--nx-ok-ink)", "var(--nx-ok-bg)"),
+    ("شارة تحذير", "var(--nx-warn-ink)", "var(--nx-warn-bg)"),
     ("شارة خطر", "#8b1f1f", "#fdeaea"),
-    ("الجملة المقولة", "#0f172a", "#f7fafc"),
-    ("فعل التركيز", "#1b5e38", "#fffdf7"),
+    ("الجملة المقولة", "var(--nx-ink)", "var(--nx-surface-2)"),
+    ("فعل التركيز", "var(--nx-ok-ink)", "var(--nx-surface-2)"),
 )
+
+
+def _theme_values(mode):
+    """قيم الأسامي في الوضع ده، من _theme.html وbase.html."""
+    theme = _read(os.path.join(TPL, "_theme.html"))
+    base = _read(os.path.join(TPL, "base.html"))
+    vals = {}
+    root = base[base.index(":root{"):base.index("}", base.index(":root{"))]
+    vals.update(re.findall(r"(--[a-z0-9-]+):(#[0-9A-Fa-f]{6})", root))
+    light = theme[theme.index(":root{"):theme.index("}", theme.index(":root{"))]
+    vals.update(re.findall(r"(--[a-z0-9-]+):(#[0-9A-Fa-f]{6})", light))
+    if mode == "dark":
+        dark = theme[theme.index('html[data-theme="dark"]{'):]
+        dark = dark[:dark.index("}")]
+        vals.update(re.findall(r"(--[a-z0-9-]+):(#[0-9A-Fa-f]{6})", dark))
+    return vals
+
+
+def _resolve(colour, vals):
+    m = re.fullmatch(r"var\((--[a-z0-9-]+)\)", colour)
+    return vals[m.group(1)] if m else colour
+
 
 
 def _relative_luminance(hex_color):
@@ -265,12 +289,14 @@ def test_the_explain_panel_colors_pass_on_their_own_backgrounds():
     weak = []
     for name, foreground, background in EXPLAIN_PANEL_COLORS:
         # ‏اللون لازم يبقى لسه موجود في الصفحة، وإلا الاختبار بيقيس وهم
-        assert foreground in page or background in page, \
-            "‏%s: اللون %s مش في الصفحة خلاص" % (name, foreground)
-        ratio = _contrast(foreground, background)
-        if ratio < 4.5:
-            weak.append("%s: %s على %s = %.2f:1" % (name, foreground,
-                                                     background, ratio))
+        assert foreground in page and background in page, \
+            "‏%s: اللون %s أو %s مش في الصفحة خلاص" % (name, foreground, background)
+        for mode in ("light", "dark"):
+            vals = _theme_values(mode)
+            fg, bg = _resolve(foreground, vals), _resolve(background, vals)
+            ratio = _contrast(fg, bg)
+            if ratio < 4.5:
+                weak.append("%s (%s): %s على %s = %.2f:1" % (name, mode, fg, bg, ratio))
     assert not weak, "‏ألوان تحت 4.5:1:\n  " + "\n  ".join(weak)
 
 

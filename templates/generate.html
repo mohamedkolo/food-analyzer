@@ -484,7 +484,7 @@
     {# ‏بروتوكول التكميم مالوش معنى من غير الرقم ده: المرحلة بتتحدد بعدد
        الأسابيع، ومن غيره الملف بيعرض البروتوكول كله بدل خطة أسبوع فعلي.
        الخانة بتظهر بس لما النظام ده يتختار. #}
-    <div id="sleeveWeeksBox" style="display:none;background:#e6f1f5;border:1.5px solid var(--nx-info-line);border-radius:10px;padding:12px;margin-top:10px">
+    <div id="sleeveWeeksBox" style="display:none;background:var(--nx-info-bg);border:1.5px solid var(--nx-info-line);border-radius:10px;padding:12px;margin-top:10px">
       <label class="form-label" for="sleeveWeeks">
         <i class="fa-solid fa-calendar-day" style="color:#1B6E80"></i>
         {{ 'عدّ الأسابيع اللي فاتت على العملية' if is_ar else 'Weeks elapsed since surgery' }}
@@ -836,7 +836,7 @@
   .ac-tx { min-width:0; flex:1 }
   .ac-nm { font-size:13.5px; font-weight:700; color:var(--text);
            white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-  .ac-nm mark { background:#fde68a; color:inherit; border-radius:3px;
+  .ac-nm mark { background:var(--nx-warn-bg); color:inherit; border-radius:3px;
                 padding:0 1px }
   .ac-sub { font-size:11px; color:var(--gray-dark); margin-top:1px }
   .ac-meta { flex:0 0 auto; font-size:10.5px; font-weight:700;
@@ -962,11 +962,11 @@
             gap:7px; margin-bottom:7px }
   .ex-j-n { font-size:10.5px; font-weight:800; border-radius:20px;
             padding:1px 7px; background:rgba(15,42,67,.09) }
-  .ex-j.good   { border-color:#bcdfcd; background:#f4faf6 }
+  .ex-j.good   { border-color:#bcdfcd; background:var(--nx-ok-bg) }
   .ex-j.good   .ex-j-h { color:var(--nx-ok-ink) }
-  .ex-j.work   { border-color:#f0d9a8; background:#fffaf0 }
-  .ex-j.work   .ex-j-h { color:#8a5a00 }
-  .ex-j.unsure { border-color:var(--gray-2); background:#f7f9fb }
+  .ex-j.work   { border-color:#f0d9a8; background:var(--nx-warn-bg) }
+  .ex-j.work   .ex-j-h { color:var(--nx-warn-ink) }
+  .ex-j.unsure { border-color:var(--gray-2); background:var(--nx-surface-2) }
   .ex-j.unsure .ex-j-h { color:var(--muted) }
   .ex-j-i { padding:6px 0; font-size:12.5px; line-height:1.8;
             color:var(--text-2) }
@@ -990,14 +990,14 @@
   .ex-pill { grid-column:1/-1; justify-self:start; font-size:11px;
              font-weight:800; border-radius:20px; padding:2px 10px;
              margin-top:2px }
-  .ex-pill.good  { background:#e7f4ec; color:var(--nx-ok-ink) }
-  .ex-pill.watch { background:#fdf3dd; color:#8a5a00 }
+  .ex-pill.good  { background:var(--nx-ok-bg); color:var(--nx-ok-ink) }
+  .ex-pill.watch { background:var(--nx-warn-bg); color:var(--nx-warn-ink) }
   .ex-pill.high, .ex-pill.low { background:#fdeaea; color:#8b1f1f }
 
   .ex-goal { font-size:13px; line-height:2; color:var(--text-2) }
   .ex-goal b { color:var(--nx-ink) }
   .ex-focus { border-inline-start:3px solid #C89B3C; border-radius:0 8px 8px 0;
-              background:#fffdf7; padding:9px 12px; margin-bottom:8px }
+              background:var(--nx-surface-2); padding:9px 12px; margin-bottom:8px }
   .ex-focus-t { font-size:13px; font-weight:800; color:var(--text) }
   .ex-focus-w { font-size:12.5px; color:var(--muted); line-height:1.8;
                 margin-top:3px }
@@ -1016,7 +1016,7 @@
   .ex-step-l { font-size:11.5px; font-weight:800; color:var(--nx-ink-2);
                letter-spacing:.2px; margin-bottom:4px }
   .ex-say { font-size:14.5px; font-weight:600; color:var(--text);
-            line-height:2.05; background:#f7fafc;
+            line-height:2.05; background:var(--nx-surface-2);
             border-inline-start:3px solid var(--blue-light);
             border-radius:0 9px 9px 0; padding:8px 12px }
   .ex-note { font-size:11.5px; color:var(--muted); line-height:1.8;
@@ -1027,7 +1027,7 @@
   .ex-more-s { list-style:none; cursor:pointer; padding:11px 15px;
                font-size:12.5px; font-weight:700; color:var(--nx-ink-2);
                display:flex; align-items:center; gap:8px;
-               background:#f8fafb; user-select:none }
+               background:var(--nx-surface-2); user-select:none }
   .ex-more-s::-webkit-details-marker { display:none }
   .ex-more-s:hover { background:var(--green-pale) }
   .ex-more-s i { font-size:10px; transition:transform .2s }
@@ -1035,7 +1035,7 @@
   .ex-more[open] > .ex-more-s i { transform:rotate(180deg) }
   .ex-more-s:focus-visible { outline:2px solid var(--blue-light);
                              outline-offset:-2px }
-  .ex-foot { background:#f8fafb; border-top:1px solid var(--gray-2);
+  .ex-foot { background:var(--nx-surface-2); border-top:1px solid var(--gray-2);
              padding:11px 15px }
   .ex-caveat { font-size:11.5px; color:var(--muted); line-height:1.8;
                margin-bottom:5px }
@@ -1498,16 +1498,16 @@ function renderFollowup(d){
     ? `${s.total_change>0?'+':''}${s.total_change} ${T('كجم من أول زيارة','kg since the first visit')}` : '';
 
   fuBox.innerHTML=`
-  <div style="background:#F4F9FB;border:2px solid #1B6E80;border-radius:12px;padding:14px 16px;margin:4px 0 14px">
+  <div style="background:var(--nx-info-bg);border:2px solid #1B6E80;border-radius:12px;padding:14px 16px;margin:4px 0 14px">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <div style="font-weight:800;color:var(--nx-ink);font-size:15px">
         <i class="fa-solid fa-clock-rotate-left" style="color:#1B6E80"></i>
         ${T('متابعة رقم','Follow-up visit')} ${d.next_visit_no} — ${d.name||''}
-        <span style="font-size:11px;font-weight:700;color:#1B6E80;background:var(--nx-info-bg);border-radius:6px;padding:2px 7px;margin-inline-start:6px">${d.matched_by==='pick' ? T('اخترته من القايمة','picked from the list')
+        <span style="font-size:11px;font-weight:700;color:var(--nx-ink-2);background:var(--nx-info-bg);border-radius:6px;padding:2px 7px;margin-inline-start:6px">${d.matched_by==='pick' ? T('اخترته من القايمة','picked from the list')
           : (d.matched_by==='phone' ? T('اتعرف عليه بالرقم','matched by number')
                                     : T('اتعرف عليه بالاسم','matched by name'))}</span>
       </div>
-      <div style="font-size:12.5px;color:#55647a;font-weight:700">
+      <div style="font-size:12.5px;color:var(--nx-muted);font-weight:700">
         ${T('آخر زيارة من','Last visit')} <b style="color:var(--nx-ink)">${d.days_since}</b> ${T('يوم','days ago')}
         ${totalTxt?' · '+totalTxt:''}
       </div>
@@ -1524,7 +1524,7 @@ function renderFollowup(d){
         ${T('إعادة ملء الفاضي','Re-fill what is empty')}
       </button>
       <button type="button" id="fuSkip"
-        style="background:var(--nx-surface);color:#55647a;border:1px solid #D3E3EA;border-radius:9px;
+        style="background:var(--nx-surface);color:var(--nx-muted);border:1px solid var(--nx-line);border-radius:9px;
                padding:8px 15px;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer">
         ${T('ده شخص تاني','This is a different person')}
       </button>
@@ -2546,14 +2546,14 @@ function renderZigzag(){
   zzSay(zzName + (zzMode.value==='off' ? '' : ' · ' + zzMean + ' kcal'));
   zzBars.innerHTML=d.map((v,i)=>{
     const pct=Math.round((v-target)/target*100);
-    const col=pct>=5?'#1B6E80':(pct<=-5?'#FF7A59':'#55647a');
+    const col=pct>=5?'#1B6E80':(pct<=-5?'#FF7A59':'var(--nx-muted)');
     const hgt=Math.max(14,Math.round(v/hi*54));
     return `<div style="text-align:center">
       <div style="height:56px;display:flex;align-items:flex-end;justify-content:center">
         <div style="width:100%;height:${hgt}px;background:${col};border-radius:4px 4px 0 0"></div>
       </div>
       <div style="font-size:10.5px;font-weight:800;color:var(--nx-ink);margin-top:3px">${v}</div>
-      <div style="font-size:10px;color:#55647a">${DAY_LBL[i]}${pct?' '+(pct>0?'+':'')+pct+'%':''}</div>
+      <div style="font-size:10px;color:var(--nx-muted)">${DAY_LBL[i]}${pct?' '+(pct>0?'+':'')+pct+'%':''}</div>
     </div>`;
   }).join('');
 }
