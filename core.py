@@ -758,6 +758,7 @@ def init_db():
     if DATABASE_URL:
         tables_pg = [
             """CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, country TEXT, lang TEXT DEFAULT 'ar', height REAL, weight REAL, age INTEGER, gender TEXT DEFAULT 'male', goal TEXT DEFAULT 'maintain', activity REAL DEFAULT 1.55, is_admin INTEGER DEFAULT 0, role TEXT DEFAULT 'client', active INTEGER DEFAULT 1, phone TEXT, conditions TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+            """CREATE TABLE IF NOT EXISTS food_log (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, log_date DATE NOT NULL, slug TEXT NOT NULL, food_name TEXT NOT NULL, grams INTEGER NOT NULL, cal INTEGER NOT NULL, p REAL, c REAL, f REAL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS email_codes (id SERIAL PRIMARY KEY, email TEXT NOT NULL, purpose TEXT NOT NULL, code_hash TEXT NOT NULL, expires_at TIMESTAMP NOT NULL, attempts INTEGER DEFAULT 0, used INTEGER DEFAULT 0, created_at TIMESTAMP NOT NULL)""",
             """CREATE TABLE IF NOT EXISTS weight_log (id SERIAL PRIMARY KEY, user_id INTEGER, weight REAL, logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
             """CREATE TABLE IF NOT EXISTS saved_plans (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, plan_data TEXT, plan_type TEXT DEFAULT 'personal', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
@@ -823,6 +824,7 @@ def init_db():
         """CREATE TABLE IF NOT EXISTS appointment_ratings (id INTEGER PRIMARY KEY AUTOINCREMENT, appointment_id INTEGER NOT NULL UNIQUE, score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 10), comment TEXT, anonymous INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         """CREATE TABLE IF NOT EXISTS recommendations (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         """CREATE TABLE IF NOT EXISTS meal_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, check_date DATE NOT NULL, meal_key TEXT NOT NULL, skipped INTEGER DEFAULT 0, comment TEXT, UNIQUE(user_id, check_date, meal_key))""",
+        """CREATE TABLE IF NOT EXISTS food_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, log_date DATE NOT NULL, slug TEXT NOT NULL, food_name TEXT NOT NULL, grams INTEGER NOT NULL, cal INTEGER NOT NULL, p REAL, c REAL, f REAL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         """CREATE TABLE IF NOT EXISTS email_codes (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, purpose TEXT NOT NULL, code_hash TEXT NOT NULL, expires_at TIMESTAMP NOT NULL, attempts INTEGER DEFAULT 0, used INTEGER DEFAULT 0, created_at TIMESTAMP NOT NULL)""",
         """CREATE TABLE IF NOT EXISTS plan_templates (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, name TEXT NOT NULL, diet_type TEXT, goal_cal INTEGER, plan_json TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         ]
@@ -861,6 +863,7 @@ def init_db():
         "CREATE INDEX IF NOT EXISTS idx_appt_client ON appointments (client_id, start_at)",
         "CREATE INDEX IF NOT EXISTS idx_appt_start ON appointments (start_at)",
         "CREATE INDEX IF NOT EXISTS idx_water_user ON water_log (user_id, logged_at)",
+        "CREATE INDEX IF NOT EXISTS idx_food_log_user ON food_log (user_id, log_date)",
         "CREATE INDEX IF NOT EXISTS idx_recs_client ON recommendations (client_id)",
     ]:
         try: db_run(idx_sql)
