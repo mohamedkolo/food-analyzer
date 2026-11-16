@@ -512,6 +512,29 @@ else:
         finally:
             conn.close()
 
+# ═══ المستخدم بيتجاب مرة واحدة في الطلب ═══
+# ‏كل صفحة كانت بتقرا نفس صف المستخدم ٣-٤ مرات: login_required، وفحص
+# الاستبيان، والصفحة نفسها، وinject_globals. على Neon كل مرة رحلة شبكة.
+# ‏الكاش في flask.g بس -- يعني جوّه الطلب الواحد، وبيتمسح لوحده لما الطلب
+# يخلص. ولفّات الخلفية (التذكيرات) مالهاش طلب، فبتقرا من القاعدة كل مرة.
+# ‏أي كتابة على جدول users بتمسحه، فالصفحة اللي بتعدّل الاسم وبعدين
+# تعرضه بتشوف الجديد.
+_raw_db_run = db_run
+
+
+def _forget_users():
+    from flask import g, has_request_context
+    if has_request_context():
+        g.pop("_nx_users", None)
+
+
+def db_run(sql, params=(), commit=True):
+    try:
+        return _raw_db_run(sql, params, commit)
+    finally:
+        if "users" in sql.lower():
+            _forget_users()
+
 from werkzeug.security import generate_password_hash, check_password_hash
 
 def hp(p):
@@ -928,7 +951,16 @@ def get_user(email, pw):
         except Exception as _e:
             print(f"hash upgrade error: {_e}")
     return u
-def get_user_by_id(uid): return db_row("SELECT * FROM users WHERE id=?", (uid,))
+def get_user_by_id(uid):
+    from flask import g, has_request_context
+    if not has_request_context():
+        return db_row("SELECT * FROM users WHERE id=?", (uid,))
+    cache = g.setdefault("_nx_users", {})
+    if uid not in cache:
+        cache[uid] = db_row("SELECT * FROM users WHERE id=?", (uid,))
+    row = cache[uid]
+    # ‏نسخة: لو صفحة عدّلت في القاموس، الكاش مايتغيّرش من وراها.
+    return dict(row) if row is not None else None
 
 # ── المتابعة: زيارات العميل عبر الوقت ──────────────────────────────────
 # الخطط بتتحفظ تحت user_id بتاع الدكتور مش العميل، فمفيش هوية بتربط زيارة
