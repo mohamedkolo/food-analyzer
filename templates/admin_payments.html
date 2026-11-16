@@ -22,7 +22,7 @@
   .page-title {
     font-size: 28px;
     font-weight: 800;
-    color: #1E2630;
+    color: var(--nx-ink);
     margin: 0;
     display: flex;
     align-items: center;
@@ -30,18 +30,18 @@
   }
 
   .refresh-btn {
-    background: #E9F2F6;
-    border: 1px solid #D5DAE0;
+    background: var(--nx-info-bg);
+    border: 1px solid var(--nx-line);
     padding: 8px 16px;
     border-radius: 10px;
-    color: #5A6472;
+    color: var(--nx-muted);
     text-decoration: none;
     font-size: 14px;
     font-weight: 600;
     transition: all 0.2s;
   }
 
-  .refresh-btn:hover { background: #D5DAE0; }
+  .refresh-btn:hover { background: var(--nx-line); }
 
   /* Stats Grid */
   .stats-grid {
@@ -52,11 +52,11 @@
   }
 
   .stat-card {
-    background: #fff;
+    background: var(--nx-surface);
     border-radius: 16px;
     padding: 22px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-    border: 1px solid #E9F2F6;
+    border: 1px solid var(--nx-info-line);
     position: relative;
     overflow: hidden;
   }
@@ -71,7 +71,7 @@
 
   .stat-label {
     font-size: 13px;
-    color: #5A6472;
+    color: var(--nx-muted);
     margin-bottom: 8px;
     font-weight: 600;
   }
@@ -79,13 +79,13 @@
   .stat-value {
     font-size: 32px;
     font-weight: 800;
-    color: #1E2630;
+    color: var(--nx-ink);
     line-height: 1;
   }
 
   .stat-trend {
     font-size: 12px;
-    color: #5A6472;
+    color: var(--nx-muted);
     margin-top: 6px;
   }
 
@@ -93,7 +93,7 @@
   .tabs {
     display: flex;
     gap: 4px;
-    background: #E9F2F6;
+    background: var(--nx-info-bg);
     padding: 4px;
     border-radius: 12px;
     margin-bottom: 20px;
@@ -108,14 +108,14 @@
     font-family: inherit;
     font-size: 14px;
     font-weight: 700;
-    color: #5A6472;
+    color: var(--nx-muted);
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .tab-btn.active {
-    background: #fff;
-    color: #3A4A5C;
+    background: var(--nx-surface);
+    color: var(--nx-ink-2);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
@@ -130,28 +130,28 @@
 
   .filter-input {
     padding: 10px 14px;
-    border: 1px solid #D5DAE0;
+    border: 1px solid var(--nx-line);
     border-radius: 10px;
     font-family: inherit;
     font-size: 14px;
-    background: #fff;
-    color: #1E2630;
+    background: var(--nx-surface);
+    color: var(--nx-ink);
     min-width: 180px;
   }
 
   .filter-input:focus {
     outline: none;
-    border-color: #3A4A5C;
+    border-color: var(--nx-ink-2);
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   }
 
   /* Table */
   .table-wrap {
-    background: #fff;
+    background: var(--nx-surface);
     border-radius: 16px;
     overflow-x: auto;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-    border: 1px solid #E9F2F6;
+    border: 1px solid var(--nx-info-line);
   }
 
   table {
@@ -160,26 +160,26 @@
     font-size: 14px;
   }
 
-  thead { background: #F3F5F7; }
+  thead { background: var(--nx-surface-2); }
 
   th {
     text-align: start;
     padding: 14px 16px;
     font-weight: 700;
-    color: #5A6472;
+    color: var(--nx-muted);
     font-size: 13px;
-    border-bottom: 2px solid #D5DAE0;
+    border-bottom: 2px solid var(--nx-line);
     white-space: nowrap;
   }
 
   td {
     padding: 14px 16px;
-    color: #1E2630;
-    border-bottom: 1px solid #E9F2F6;
+    color: var(--nx-ink);
+    border-bottom: 1px solid var(--nx-info-line);
     white-space: nowrap;
   }
 
-  tbody tr:hover { background: #F3F5F7; }
+  tbody tr:hover { background: var(--nx-surface-2); }
   tbody tr:last-child td { border-bottom: 0; }
 
   /* Badges */
@@ -192,21 +192,21 @@
     letter-spacing: 0.2px;
   }
 
-  .badge-success { background: #EDF0F3; color: #1E2630; }
-  .badge-warning { background: #FDF6EC; color: #8A4B1C; }
-  .badge-danger { background: #FBEDED; color: #8B2E2E; }
-  .badge-info { background: #EDF0F3; color: #1E2630; }
-  .badge-gray { background: #E9F2F6; color: #5A6472; }
+  .badge-success { background: var(--nx-tint); color: var(--nx-ink); }
+  .badge-warning { background: var(--nx-warn-bg); color: var(--nx-warn-ink); }
+  .badge-danger { background: var(--nx-bad-bg); color: var(--nx-bad-ink); }
+  .badge-info { background: var(--nx-tint); color: var(--nx-ink); }
+  .badge-gray { background: var(--nx-info-bg); color: var(--nx-muted); }
 
   /* Plan colors */
-  .plan-consultation { color: #3A4A5C; font-weight: 700; }
-  .plan-single_plan { color: #3A4A5C; font-weight: 700; }
+  .plan-consultation { color: var(--nx-ink-2); font-weight: 700; }
+  .plan-single_plan { color: var(--nx-ink-2); font-weight: 700; }
   .plan-monthly_subscription { color: #f59e0b; font-weight: 700; }
 
   .empty-state {
     text-align: center;
     padding: 60px 20px;
-    color: #5A6472;
+    color: var(--nx-muted);
   }
 
   .empty-state .icon {
@@ -216,12 +216,12 @@
   }
 
   .user-cell { display: flex; flex-direction: column; gap: 2px; }
-  .user-name { font-weight: 700; color: #1E2630; }
-  .user-email { font-size: 12px; color: #5A6472; }
+  .user-name { font-weight: 700; color: var(--nx-ink); }
+  .user-email { font-size: 12px; color: var(--nx-muted); }
 
-  .amount-cell { font-weight: 700; color: #3A4A5C; }
+  .amount-cell { font-weight: 700; color: var(--nx-ink-2); }
 
-  .date-cell { font-size: 13px; color: #5A6472; }
+  .date-cell { font-size: 13px; color: var(--nx-muted); }
 
   .hidden { display: none !important; }
 
@@ -284,12 +284,12 @@
         </rect>
       {% endfor %}
     </svg>
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:#5A6472;margin-top:4px;">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--nx-muted);margin-top:4px;">
       <span>{{ analytics.revenue_chart[0].label }}</span>
       <span>{{ analytics.revenue_chart[-1].label }}</span>
     </div>
     {% else %}
-    <div style="color:#5A6472;font-size:13px;padding:20px 0;">{{ t('مفيش دفعات جنيه مصري مكتملة في الفترة دي','No completed EGP payments in this period') }}</div>
+    <div style="color:var(--nx-muted);font-size:13px;padding:20px 0;">{{ t('مفيش دفعات جنيه مصري مكتملة في الفترة دي','No completed EGP payments in this period') }}</div>
     {% endif %}
   </div>
 
@@ -300,14 +300,14 @@
       {% if analytics.renewals_soon %}
       <div style="margin-top:10px;">
         {% for r in analytics.renewals_soon %}
-        <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #E9F2F6;font-size:13px;">
-          <span style="font-weight:700;color:#1E2630;">{{ r.name }}{% if r.is_trial %} <span style="color:#f59e0b;">({{ t('تجربة','trial') }})</span>{% endif %}</span>
-          <span style="color:#5A6472;white-space:nowrap;">{{ r.plan_name }} · {{ r.days_left }} {{ t('يوم','days') }}</span>
+        <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--nx-info-line);font-size:13px;">
+          <span style="font-weight:700;color:var(--nx-ink);">{{ r.name }}{% if r.is_trial %} <span style="color:#f59e0b;">({{ t('تجربة','trial') }})</span>{% endif %}</span>
+          <span style="color:var(--nx-muted);white-space:nowrap;">{{ r.plan_name }} · {{ r.days_left }} {{ t('يوم','days') }}</span>
         </div>
         {% endfor %}
       </div>
       {% else %}
-      <div style="color:#5A6472;font-size:13px;padding:16px 0;">{{ t('مفيش تجديدات قريبة','No renewals due soon') }}</div>
+      <div style="color:var(--nx-muted);font-size:13px;padding:16px 0;">{{ t('مفيش تجديدات قريبة','No renewals due soon') }}</div>
       {% endif %}
     </div>
     <div class="stat-card" style="--c:#dc2626;">
@@ -315,14 +315,14 @@
       {% if analytics.recently_lost %}
       <div style="margin-top:10px;">
         {% for r in analytics.recently_lost %}
-        <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #E9F2F6;font-size:13px;">
-          <span style="font-weight:700;color:#1E2630;">{{ r.name }}</span>
-          <span style="color:#5A6472;white-space:nowrap;">{{ r.plan_name }} · {{ r.reason }}</span>
+        <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--nx-info-line);font-size:13px;">
+          <span style="font-weight:700;color:var(--nx-ink);">{{ r.name }}</span>
+          <span style="color:var(--nx-muted);white-space:nowrap;">{{ r.plan_name }} · {{ r.reason }}</span>
         </div>
         {% endfor %}
       </div>
       {% else %}
-      <div style="color:#5A6472;font-size:13px;padding:16px 0;">{{ t('مفيش حد فقد الوصول مؤخراً','Nobody has lost access recently') }} 🎉</div>
+      <div style="color:var(--nx-muted);font-size:13px;padding:16px 0;">{{ t('مفيش حد فقد الوصول مؤخراً','Nobody has lost access recently') }} 🎉</div>
       {% endif %}
     </div>
   </div>
@@ -332,12 +332,12 @@
      ‏دي مش من Stripe: العميل بيحوّل InstaPay أو محفظة ويكتب رقم العملية،
      وإنت اللي بتأكّد إن الفلوس وصلت. "بلّغ بالتحويل" مش "مدفوع". #}
   <div class="stat-card" id="consults" style="--c:#3A4A5C;margin-bottom:16px;">
-    <h2 style="font-size:16px;font-weight:800;color:#1E2630;margin:0 0 6px">💵 {{ t('تحويلات الاستشارات','Consultation transfers') }}</h2>
+    <h2 style="font-size:16px;font-weight:800;color:var(--nx-ink);margin:0 0 6px">💵 {{ t('تحويلات الاستشارات','Consultation transfers') }}</h2>
     {% if msg == 'pay_confirmed' %}<p class="badge badge-success" role="status">{{ t('اتسجّل إن المبلغ وصل.','Recorded as received.') }}</p>
     {% elif msg == 'pay_refunded' %}<p class="badge badge-info" role="status">{{ t('اتسجّل إن المبلغ اترد.','Recorded as refunded.') }}</p>
     {% elif msg == 'pay_stale' %}<p class="badge badge-warning" role="alert">{{ t('الحالة اتغيّرت قبل كده.','That was already updated.') }}</p>
     {% endif %}
-    <p style="font-size:13px;color:#5A6472;margin:0 0 12px">
+    <p style="font-size:13px;color:var(--nx-muted);margin:0 0 12px">
       {{ t('وصل:','Received:') }} <strong>{{ consults.received_label }}</strong> ·
       {{ t('محتاج تأكيد:','To confirm:') }} <strong>{{ consults.to_confirm }}</strong> ·
       {{ t('محتاج استرداد:','To refund:') }} <strong>{{ consults.to_refund }}</strong>
@@ -383,7 +383,7 @@
       </table>
     </div>
     {% else %}
-    <p style="font-size:13px;color:#5A6472;margin:0">{{ t('مفيش استشارات بمقابل لسه.','No paid consultations yet.') }}</p>
+    <p style="font-size:13px;color:var(--nx-muted);margin:0">{{ t('مفيش استشارات بمقابل لسه.','No paid consultations yet.') }}</p>
     {% endif %}
   </div>
 

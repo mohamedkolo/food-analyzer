@@ -7,22 +7,22 @@
      ورقة واحدة. */
   .sl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
            gap:14px}
-  .sl-box{border:1px solid #D5DAE0;border-radius:12px;padding:13px 15px;
-          background:#fff;break-inside:avoid}
-  .sl-box h3{font-size:14px;font-weight:900;color:var(--blue-dark);
-             margin:0 0 9px;padding-bottom:7px;border-bottom:1px solid #EDF0F3}
+  .sl-box{border:1px solid var(--nx-line);border-radius:12px;padding:13px 15px;
+          background:var(--nx-surface);break-inside:avoid}
+  .sl-box h3{font-size:14px;font-weight:900;color:var(--nx-ink);
+             margin:0 0 9px;padding-bottom:7px;border-bottom:1px solid var(--nx-line)}
   .sl-row{display:flex;justify-content:space-between;gap:10px;
           padding:5px 0;font-size:13.5px;align-items:baseline}
-  .sl-row .q{font-weight:800;color:#3A4A5C;white-space:nowrap}
+  .sl-row .q{font-weight:800;color:var(--nx-ink-2);white-space:nowrap}
   .sl-row .d{font-size:11px;color:var(--muted);font-weight:600}
-  .sl-note{background:#F3F5F7;border:1px dashed #9CC3D0;border-radius:11px;
+  .sl-note{background:var(--nx-surface-2);border:1px dashed #9CC3D0;border-radius:11px;
            padding:12px 15px;font-size:13px;line-height:1.9;color:#456b61}
   @media print{
     .sidebar,.topbar,footer,.no-print{display:none !important}
     .main{margin:0 !important}
     .sl-grid{grid-template-columns:1fr 1fr;gap:8px}
     .sl-box{border-color:#000;padding:8px 10px}
-    body{background:#fff}
+    body{background:var(--nx-surface)}
   }
 </style>
 
@@ -82,7 +82,7 @@
   <b>{{ t('حسب الحاجة','As needed') }}</b> —
   {{ t('الجدول مابيحددش كمية ليهم، فمكتوبين بأسمهم بس.',
        'The plan does not set a quantity for these, so they are listed by name only.') }}
-  <div style="margin-top:7px;font-weight:700;color:var(--blue-dark)">
+  <div style="margin-top:7px;font-weight:700;color:var(--nx-ink)">
     {% for x in items.loose %}{{ x.name }}{% if not loop.last %} · {% endif %}{% endfor %}
   </div>
 </div>
@@ -91,7 +91,7 @@
 {% if items.unknown %}
 {# ‏اللي القايمة معرفتوش. مابيتشالش من غير ما يتقال -- الأخصائي لازم
    يشوفه عشان يزوّده بإيده بدل ما العميل يكتشفه في السوق. #}
-<div class="sl-note no-print" style="margin-top:12px;border-color:#E5C9A1;background:#FDF6EC;color:#8A4B1C">
+<div class="sl-note no-print" style="margin-top:12px;border-color:var(--nx-warn-line);background:var(--nx-warn-bg);color:var(--nx-warn-ink)">
   <b>{{ t('مش في جدول الأكل','Not in the food table') }}</b> —
   {{ t('الأصناف دي مااتحسبتش. زوّدها بإيدك على القايمة قبل ما تسلّمها.',
        'These were not counted. Add them to the list by hand before handing it over.') }}

@@ -10,9 +10,9 @@
      اللي محتاج تدخّل من اللي تحت الملاحظة. */
   .pill{display:inline-block;border-radius:999px;padding:3px 11px;
         font-weight:800;font-size:12px;white-space:nowrap}
-  .pill.bad {background:var(--red-pale);  color:#8B2E2E;  border:1px solid #E3B4B4}
-  .pill.warn{background:#FDF6EC;          color:#8A4B1C;  border:1px solid #E5C9A1}
-  .pill.good{background:var(--green-pale);color:#1E2630;  border:1px solid #D5DAE0}
+  .pill.bad {background:var(--red-pale);  color:var(--nx-bad-ink);  border:1px solid var(--nx-bad-line)}
+  .pill.warn{background:var(--nx-warn-bg);          color:var(--nx-warn-ink);  border:1px solid var(--nx-warn-line)}
+  .pill.good{background:var(--green-pale);color:var(--nx-ink);  border:1px solid var(--nx-line)}
   .pill.idle{background:var(--gray);      color:var(--muted);border:1px solid var(--gray-2)}
 
   /* ‏الجدول ٦ أعمدة بـmin-width 760 بكسل. على موبايل ٣٧٥ ده معناه إن
@@ -38,15 +38,15 @@
     .fu-table td.note{display:block;padding:0 15px 10px !important}
   }
 
-  .tile{flex:1 1 130px;border:1px solid #EDF0F3;border-radius:12px;
+  .tile{flex:1 1 130px;border:1px solid var(--nx-line);border-radius:12px;
         padding:12px 14px;text-decoration:none;display:block}
   .tile .n{font-size:22px;font-weight:800;line-height:1.2}
   .tile .c{font-size:12px;color:var(--muted);margin-top:2px}
-  .tile.on{border-color:#3A4A5C;box-shadow:0 0 0 1px #3A4A5C inset}
+  .tile.on{border-color:var(--nx-ink-2);box-shadow:0 0 0 1px #3A4A5C inset}
 
   /* ‏الكيلوهات: نازل أخضر، زايد أحمر. الإشارة لوحدها مش بتتقرا بسرعة
      في جدول فيه ستين صف. */
-  .dn{color:#3A4A5C;font-weight:800}
+  .dn{color:var(--nx-ink-2);font-weight:800}
   .up{color:var(--red);font-weight:800}
   td.note{color:var(--muted);font-size:12.5px;line-height:1.6;max-width:320px}
 </style>
@@ -67,7 +67,7 @@
 {% if not clients %}
 <div class="card" style="text-align:center;padding:44px 24px">
   <div style="font-size:28px;margin-bottom:12px;color:#9AA3AD"><i class="fa-solid fa-clipboard-list"></i></div>
-  <div style="font-weight:800;color:var(--blue-dark);font-size:16px;margin-bottom:6px">
+  <div style="font-weight:800;color:var(--nx-ink);font-size:16px;margin-bottom:6px">
     {{ t('لسه مفيش متابعات','No follow-ups yet') }}
   </div>
   <p style="color:var(--muted);font-size:13.5px;margin:0 0 18px;line-height:1.9">
@@ -84,7 +84,7 @@
    فالضغط على "محتاج تدخّل" بيوريه دول بس. #}
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
   <a class="tile {{ 'on' if not state }}" href="/followups">
-    <div class="n" style="color:var(--blue-dark)">{{ counts.total }}</div>
+    <div class="n" style="color:var(--nx-ink)">{{ counts.total }}</div>
     <div class="c">{{ t('كل العملاء','All clients') }}</div>
   </a>
   <a class="tile {{ 'on' if state == 'bad' }}" href="/followups?state=bad">
@@ -92,11 +92,11 @@
     <div class="c">{{ t('محتاج تدخّل','Needs you') }}</div>
   </a>
   <a class="tile {{ 'on' if state == 'warn' }}" href="/followups?state=warn">
-    <div class="n" style="color:#8A4B1C">{{ counts.watch }}</div>
+    <div class="n" style="color:var(--nx-warn-ink)">{{ counts.watch }}</div>
     <div class="c">{{ t('تحت الملاحظة','Watch') }}</div>
   </a>
   <a class="tile {{ 'on' if state == 'good' }}" href="/followups?state=good">
-    <div class="n" style="color:#3A4A5C">{{ counts.ok }}</div>
+    <div class="n" style="color:var(--nx-ink-2)">{{ counts.ok }}</div>
     <div class="c">{{ t('ماشي','On track') }}</div>
   </a>
 </div>
@@ -105,16 +105,16 @@
   <div class="fu-wrap" style="overflow-x:auto">
     <table class="fu-table" style="width:100%;border-collapse:collapse;font-size:14px;min-width:760px">
       <thead>
-        <tr style="background:#F3F5F7">
-          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:#5A6472;font-weight:800">
+        <tr style="background:var(--nx-surface-2)">
+          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:var(--nx-muted);font-weight:800">
             {{ t('العميل','Client') }}</th>
-          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:#5A6472;font-weight:800">
+          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:var(--nx-muted);font-weight:800">
             {{ t('الحالة','Status') }}</th>
-          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:#5A6472;font-weight:800">
+          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:var(--nx-muted);font-weight:800">
             {{ t('آخر فترة','Last period') }}</th>
-          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:#5A6472;font-weight:800">
+          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:var(--nx-muted);font-weight:800">
             {{ t('من أول زيارة','Since first visit') }}</th>
-          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:#5A6472;font-weight:800">
+          <th style="padding:12px 16px;text-align:start;font-size:12.5px;color:var(--nx-muted);font-weight:800">
             {{ t('آخر زيارة','Last seen') }}</th>
           <th style="padding:12px 16px">
             <span class="sr-only-th">{{ t('فتح','Open') }}</span>
@@ -124,8 +124,8 @@
       <tbody>
         {% set shown = clients | selectattr('tone', 'equalto', state) | list if state else clients %}
         {% for c in shown %}
-        <tr style="border-top:1px solid #EDF0F3">
-          <td data-l="{{ t('العميل','Client') }}" style="padding:13px 16px;font-weight:800;color:var(--blue-dark)">
+        <tr style="border-top:1px solid var(--nx-line)">
+          <td data-l="{{ t('العميل','Client') }}" style="padding:13px 16px;font-weight:800;color:var(--nx-ink)">
             {{ c.client_name }}
             <div style="font-weight:600;color:var(--muted);font-size:12px;margin-top:2px">
               {{ c.visits }} {{ t('زيارة','visits') }}{% if c.weight %} · {{ c.weight }} {{ t('كجم','kg') }}{% endif %}
@@ -164,7 +164,7 @@
           </td>
           <td class="go" style="padding:13px 16px;text-align:end">
             <a href="/followups/{{ c.client_key|urlencode }}"
-               style="color:#3A4A5C;font-weight:800;font-size:13px;text-decoration:none;white-space:nowrap">
+               style="color:var(--nx-ink-2);font-weight:800;font-size:13px;text-decoration:none;white-space:nowrap">
               {{ t('الملف','Open') }} ›</a>
           </td>
         </tr>

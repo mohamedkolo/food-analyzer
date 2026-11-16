@@ -5,16 +5,16 @@
 <style>
   .anlz-wrap { max-width: 900px; margin: 0 auto; padding: 20px 16px 60px; font-family: 'Cairo', 'Tajawal', system-ui, sans-serif; }
   .anlz-hero { text-align: center; padding: 20px 0 24px; }
-  .anlz-hero h1 { font-size: 28px; font-weight: 800; color: #1E2630; margin: 0 0 8px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-  .anlz-hero p { color: #5A6472; font-size: 15px; margin: 0; }
+  .anlz-hero h1 { font-size: 28px; font-weight: 800; color: var(--nx-ink); margin: 0 0 8px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .anlz-hero p { color: var(--nx-muted); font-size: 15px; margin: 0; }
 
   .search-box {
     position: relative;
-    background: #fff;
+    background: var(--nx-surface);
     border-radius: 18px;
     padding: 18px 20px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-    border: 2px solid #D5DAE0;
+    border: 2px solid var(--nx-line);
     margin-bottom: 16px;
   }
   .search-input {
@@ -25,9 +25,9 @@
     font-family: inherit;
     background: transparent;
     padding: 4px 0;
-    color: #1E2630;
+    color: var(--nx-ink);
   }
-  .search-input::placeholder { color: #5A6472; }
+  .search-input::placeholder { color: var(--nx-muted); }
 
   .cat-strip {
     display: flex;
@@ -39,26 +39,26 @@
   .cat-chip {
     flex-shrink: 0;
     padding: 8px 14px;
-    background: #fff;
-    border: 1.5px solid #D5DAE0;
+    background: var(--nx-surface);
+    border: 1.5px solid var(--nx-line);
     border-radius: 999px;
     font-size: 13px;
     font-weight: 600;
-    color: #5A6472;
+    color: var(--nx-muted);
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
   }
-  .cat-chip:hover { border-color: #3A4A5C; }
+  .cat-chip:hover { border-color: var(--nx-ink-2); }
   .cat-chip.active {
-    background: #3A4A5C;
+    background: var(--nx-solid-2);
     color: #fff;
-    border-color: #3A4A5C;
+    border-color: var(--nx-ink-2);
   }
 
   .results-count {
     text-align: center;
-    color: #5A6472;
+    color: var(--nx-muted);
     font-size: 13px;
     margin: 8px 0 16px;
   }
@@ -66,30 +66,30 @@
   .empty-state {
     text-align: center;
     padding: 60px 20px;
-    color: #5A6472;
+    color: var(--nx-muted);
   }
   .empty-state .emoji { font-size: 60px; margin-bottom: 12px; }
-  .empty-state h2 { font-size: 18px; color: #5A6472; margin: 0 0 6px; font-weight: 700; }
+  .empty-state h2 { font-size: 18px; color: var(--nx-muted); margin: 0 0 6px; font-weight: 700; }
   .empty-state p { margin: 0; font-size: 14px; }
 
   .food-card {
-    background: #fff;
+    background: var(--nx-surface);
     border-radius: 16px;
     padding: 20px;
     margin-bottom: 14px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-    border: 1px solid #E9F2F6;
+    border: 1px solid var(--nx-info-line);
     transition: all 0.2s;
   }
   .food-card:hover {
     box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-    border-color: #3A4A5C;
+    border-color: var(--nx-ink-2);
   }
 
   .food-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
-  .food-name { font-size: 19px; font-weight: 800; color: #1E2630; margin: 0; }
+  .food-name { font-size: 19px; font-weight: 800; color: var(--nx-ink); margin: 0; }
   .food-cal {
-    background: #3A4A5C;
+    background: var(--nx-solid-2);
     color: #fff;
     padding: 8px 14px;
     border-radius: 12px;
@@ -110,12 +110,12 @@
     align-items: center;
     gap: 4px;
   }
-  .m-prot { background: #EDF0F3; color: #1E2630; }
-  .m-carb { background: #FDF6EC; color: #8A4B1C; }
-  .m-fat { background: #FBEDED; color: #8B2E2E; }
+  .m-prot { background: var(--nx-tint); color: var(--nx-ink); }
+  .m-carb { background: var(--nx-warn-bg); color: var(--nx-warn-ink); }
+  .m-fat { background: var(--nx-bad-bg); color: var(--nx-bad-ink); }
 
   .qty-section {
-    background: #F3F5F7;
+    background: var(--nx-surface-2);
     border-radius: 12px;
     padding: 14px;
     display: grid;
@@ -123,18 +123,18 @@
     gap: 12px;
     align-items: center;
   }
-  .qty-label { font-size: 13px; font-weight: 700; color: #5A6472; }
+  .qty-label { font-size: 13px; font-weight: 700; color: var(--nx-muted); }
   .qty-input {
     width: 90px;
     padding: 8px 12px;
-    border: 1.5px solid #D5DAE0;
+    border: 1.5px solid var(--nx-line);
     border-radius: 8px;
     font-size: 15px;
     font-family: inherit;
     font-weight: 600;
     text-align: center;
   }
-  .qty-input:focus { outline: 0; border-color: #3A4A5C; }
+  .qty-input:focus { outline: 0; border-color: var(--nx-ink-2); }
 
   .qty-result {
     display: grid;
@@ -144,51 +144,51 @@
     font-size: 12px;
   }
   .qty-result > div { padding: 4px; }
-  .qty-result strong { display: block; font-size: 15px; color: #1E2630; }
-  .qty-result span { color: #5A6472; font-size: 10px; }
+  .qty-result strong { display: block; font-size: 15px; color: var(--nx-ink); }
+  .qty-result span { color: var(--nx-muted); font-size: 10px; }
 
   .food-note {
     margin-top: 12px;
     padding: 10px 14px;
-    background: #FDF6EC;
+    background: var(--nx-warn-bg);
     border-inline-start: 3px solid #f59e0b;
     border-radius: 8px;
     font-size: 13px;
-    color: #8A4B1C;
+    color: var(--nx-warn-ink);
     line-height: 1.6;
   }
   .food-tip {
     margin-top: 8px;
     padding: 10px 14px;
-    background: #EDF0F3;
-    border-inline-start: 3px solid #3A4A5C;
+    background: var(--nx-tint);
+    border-inline-start: 3px solid var(--nx-ink-2);
     border-radius: 8px;
     font-size: 13px;
-    color: #1E2630;
+    color: var(--nx-ink);
     line-height: 1.6;
   }
 
   /* ── مقارنة أكلتين ── */
   .cmp-btn {
     margin-top: 10px;
-    background: #F3F5F7;
-    border: 1.5px solid #D5DAE0;
+    background: var(--nx-surface-2);
+    border: 1.5px solid var(--nx-line);
     border-radius: 10px;
     padding: 8px 14px;
     font-family: inherit;
     font-size: 12.5px;
     font-weight: 700;
-    color: #3A4A5C;
+    color: var(--nx-ink-2);
     cursor: pointer;
     transition: all 0.15s;
   }
-  .cmp-btn:hover { border-color: #3A4A5C; }
-  .cmp-btn.active { background: #3A4A5C; color: #fff; border-color: #3A4A5C; }
+  .cmp-btn:hover { border-color: var(--nx-ink-2); }
+  .cmp-btn.active { background: var(--nx-solid-2); color: #fff; border-color: var(--nx-ink-2); }
 
   .cmp-bar {
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    background: #1E2630;
+    background: var(--nx-solid);
     color: #fff;
     padding: 12px 16px;
     display: none;
@@ -208,20 +208,20 @@
     border: 0; border-radius: 8px; padding: 8px 16px;
     font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
   }
-  .cmp-go { background: #FF7A59; color: #1E2630; }
+  .cmp-go { background: #FF7A59; color: var(--nx-ink); }
   .cmp-go:disabled { opacity: 0.45; cursor: not-allowed; }
-  .cmp-clear { background: transparent; color: #D5DAE0; border: 1.5px solid #3A4A5C !important; }
+  .cmp-clear { background: transparent; color: #D5DAE0; border: 1.5px solid var(--nx-ink-2) !important; }
 
   .cmp-table-wrap {
-    background: #fff; border: 2px solid #3A4A5C; border-radius: 16px;
+    background: var(--nx-surface); border: 2px solid var(--nx-ink-2); border-radius: 16px;
     padding: 18px; margin-bottom: 16px; overflow-x: auto;
   }
   .cmp-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  .cmp-table th, .cmp-table td { padding: 10px 12px; text-align: center; border-bottom: 1px solid #E9F2F6; }
-  .cmp-table th { background: #F3F5F7; font-weight: 800; color: #1E2630; font-size: 13px; }
-  .cmp-table td:first-child, .cmp-table th:first-child { text-align: start; font-weight: 700; color: #5A6472; }
-  .cmp-win { background: #EDF0F3; font-weight: 800; color: #1E2630; border-radius: 6px; }
-  .cmp-legend { font-size: 11.5px; color: #5A6472; margin-top: 10px; line-height: 1.7; }
+  .cmp-table th, .cmp-table td { padding: 10px 12px; text-align: center; border-bottom: 1px solid var(--nx-info-line); }
+  .cmp-table th { background: var(--nx-surface-2); font-weight: 800; color: var(--nx-ink); font-size: 13px; }
+  .cmp-table td:first-child, .cmp-table th:first-child { text-align: start; font-weight: 700; color: var(--nx-muted); }
+  .cmp-win { background: var(--nx-tint); font-weight: 800; color: var(--nx-ink); border-radius: 6px; }
+  .cmp-legend { font-size: 11.5px; color: var(--nx-muted); margin-top: 10px; line-height: 1.7; }
 
   @media (max-width: 600px) {
     .qty-section { grid-template-columns: 1fr; }
@@ -247,9 +247,9 @@
   <div class="search-box" style="display:flex;gap:8px;align-items:center;padding:14px 16px;">
     <input type="text" inputmode="numeric" id="barcodeInput"
            placeholder="{{ t('📦 أو اكتب باركود منتج معلّب (الرقم اللي تحت الخطوط)','📦 Or enter a packaged product barcode (the number under the lines)') }}"
-           style="flex:1;border:1.5px solid #D5DAE0;border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;">
+           style="flex:1;border:1.5px solid var(--nx-line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;">
     <button id="barcodeBtn" type="button"
-            style="background:#3A4A5C;color:#fff;border:0;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;">
+            style="background:var(--nx-solid-2);color:#fff;border:0;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;">
       {{ t('بحث','Search') }}
     </button>
   </div>
@@ -262,7 +262,7 @@
     {% endfor %}
   </div>
 
-  <div style="font-size:12px;font-weight:700;color:#5A6472;padding:2px 4px;">🩺 {{ t('فلترة حسب الحالة الصحية:','Filter by health condition:') }}</div>
+  <div style="font-size:12px;font-weight:700;color:var(--nx-muted);padding:2px 4px;">🩺 {{ t('فلترة حسب الحالة الصحية:','Filter by health condition:') }}</div>
   <div class="cat-strip" id="medStrip" tabindex="0" role="group" aria-label="{{ t('فلترة حسب الحالة','Filter by condition') }}" style="padding-top:4px;">
     <span class="med-chip cat-chip active" data-med="">{{ t('الكل','All') }}</span>
     {% for key, icon, ar, en in [('dm','🩸','آمن للسكري','Diabetes-safe'), ('htn','❤️','آمن للضغط','Blood-pressure-safe'), ('ckd','🫘','آمن للكلى','Kidney-safe'), ('ibs','🌀','لطيف على القولون','Gut-gentle'), ('heart','❤️‍🩹','صديق للقلب','Heart-friendly'), ('keto','🥑','كيتو','Keto')] %}
@@ -361,7 +361,7 @@ function makeCard(food) {
   return `
     <div class="food-card">
       <div class="food-head">
-        <h3 class="food-name">${IS_AR ? food.n : (food.en || food.n)}${(IS_AR ? food.en : food.n) ? `<span style="display:block;font-size:11px;color:#5A6472;font-weight:600;direction:${IS_AR ? 'ltr' : 'rtl'};text-align:start;">${IS_AR ? food.en : food.n}</span>` : ''}</h3>
+        <h3 class="food-name">${IS_AR ? food.n : (food.en || food.n)}${(IS_AR ? food.en : food.n) ? `<span style="display:block;font-size:11px;color:var(--nx-muted);font-weight:600;direction:${IS_AR ? 'ltr' : 'rtl'};text-align:start;">${IS_AR ? food.en : food.n}</span>` : ''}</h3>
         <div class="food-cal">${food.cal} <small>kcal/100g</small></div>
       </div>
       <div class="macros">
@@ -373,7 +373,7 @@ function makeCard(food) {
         <div>
           <div class="qty-label">${AZ.qtyLabel}</div>
           <input type="number" class="qty-input" aria-label="${IS_AR ? 'الكمية' : 'Quantity'}" value="100" min="0.5" max="2000" step="0.5" data-food='${JSON.stringify(food)}' style="width:70px;">
-          ${food.units && food.units.length ? `<select class="unit-select" aria-label="${IS_AR ? 'الوحدة' : 'Unit'}" style="padding:6px 8px;border:1.5px solid #D5DAE0;border-radius:8px;font-family:inherit;font-size:12px;background:#fff;max-width:130px;">
+          ${food.units && food.units.length ? `<select class="unit-select" aria-label="${IS_AR ? 'الوحدة' : 'Unit'}" style="padding:6px 8px;border:1.5px solid var(--nx-line);border-radius:8px;font-family:inherit;font-size:12px;background:var(--nx-surface);max-width:130px;">
             <option value="1" selected>${AZ.gramUnit}</option>
             ${food.units.map(u => `<option value="${u[1]}">${UNIT_NAMES[u[0]] || u[0]} (${u[1]}${AZ.grams})</option>`).join('')}
           </select>` : ''}
@@ -385,7 +385,7 @@ function makeCard(food) {
           <div><strong class="r-f">${macroVal(food.f)}</strong><span>${AZ.fats} g</span></div>
         </div>
       </div>
-      ${food.safe && food.safe.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">${food.safe.map(s => `<span style="font-size:10px;background:#F3F5F7;color:#1E2630;border:1px solid #D5DAE0;padding:2px 8px;border-radius:999px;font-weight:700;">✓ ${MED_NAMES[s]}</span>`).join('')}</div>` : ''}
+      ${food.safe && food.safe.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">${food.safe.map(s => `<span style="font-size:10px;background:var(--nx-surface-2);color:var(--nx-ink);border:1px solid var(--nx-line);padding:2px 8px;border-radius:999px;font-weight:700;">✓ ${MED_NAMES[s]}</span>`).join('')}</div>` : ''}
       ${noteOf(food) ? `<div class="food-note">ℹ️ ${noteOf(food)}</div>` : ''}
       ${tipOf(food) ? `<div class="food-tip">${tipOf(food)}</div>` : ''}
       <button type="button" class="cmp-btn">${AZ.addCmp}</button>
@@ -544,7 +544,7 @@ function cmpRow(label, a, b, unit, lowerIsHighlighted) {
       <td>${label}</td>
       <td>${missA ? NOTSAID : a + unit}</td>
       <td>${missB ? NOTSAID : b + unit}</td>
-      <td style="color:#5A6472;font-size:12px;">${AZ.noCmp}</td>
+      <td style="color:var(--nx-muted);font-size:12px;">${AZ.noCmp}</td>
     </tr>`;
   }
   const av = Number(a), bv = Number(b);
@@ -559,7 +559,7 @@ function cmpRow(label, a, b, unit, lowerIsHighlighted) {
     <td>${label}</td>
     <td class="${aCls}">${a}${unit}</td>
     <td class="${bCls}">${b}${unit}</td>
-    <td style="color:#5A6472;font-size:12px;">${diff === '0' ? AZ.equal : AZ.diffPrefix + ' ' + diff + unit}</td>
+    <td style="color:var(--nx-muted);font-size:12px;">${diff === '0' ? AZ.equal : AZ.diffPrefix + ' ' + diff + unit}</td>
   </tr>`;
 }
 
@@ -568,7 +568,7 @@ function showComparison() {
   const [a, b] = cmpList;
   cmpResult.innerHTML = `
     <div class="cmp-table-wrap">
-      <div style="font-weight:900;font-size:16px;color:#1E2630;margin-bottom:12px;">${AZ.cmpTitle}</div>
+      <div style="font-weight:900;font-size:16px;color:var(--nx-ink);margin-bottom:12px;">${AZ.cmpTitle}</div>
       <table class="cmp-table">
         <thead><tr><th></th><th>${IS_AR ? a.n : (a.en || a.n)}</th><th>${IS_AR ? b.n : (b.en || b.n)}</th><th>${AZ.diffCol}</th></tr></thead>
         <tbody>

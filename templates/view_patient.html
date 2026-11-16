@@ -43,7 +43,7 @@
   </div>
   <div class="card">
     <div class="card-title"><i class="fa-solid fa-fire"></i> {{ 'الأهداف الغذائية' if is_ar else 'Nutrition Goals' }}</div>
-    <div class="metric" style="margin-bottom:12px"><div class="metric-label">TDEE</div><div class="metric-value" style="color:var(--green)">{{ patient.tdee }}</div><div class="metric-unit">kcal</div></div>
+    <div class="metric" style="margin-bottom:12px"><div class="metric-label">TDEE</div><div class="metric-value" style="color:var(--nx-ink-2)">{{ patient.tdee }}</div><div class="metric-unit">kcal</div></div>
     <div class="metric"><div class="metric-label">{{ 'الهدف اليومي' if is_ar else 'Daily Target' }}</div><div class="metric-value" style="color:var(--green-light)">{{ patient.goal_cal }}</div><div class="metric-unit">kcal</div></div>
     {% if patient.conditions and patient.conditions != '[]' %}
     <div style="margin-top:12px">
@@ -57,7 +57,7 @@
     {% endif %}
     {% if patient.notes %}
     <div style="margin-top:12px;background:var(--gray);border-radius:10px;padding:10px;font-size:13px;color:var(--text-2)">
-      <i class="fa-solid fa-note-sticky" style="color:var(--blue)"></i> {{ patient.notes }}
+      <i class="fa-solid fa-note-sticky" style="color:var(--nx-ink)"></i> {{ patient.notes }}
     </div>
     {% endif %}
   </div>

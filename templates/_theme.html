@@ -1,0 +1,91 @@
+{#- ‏الوضع الفاتح والغامق للموقع كله. بيتحط أول حاجة في <head> لكل صفحة،
+    قبل أي CSS، علشان الصفحة ماتترسمش أبيض وبعدين تقلب (وميض أبيض).
+
+    ‏الألوان أسامي بمعنى، مش قيم: سطح، كلام، حدود، تحذير... كل اسم له قيمة
+    فاتحة وقيمة غامقة. قبل كده كان فيه ~٢٠٠٠ لون مكتوب بالإيد في ٦٦ صفحة،
+    والشائع منهم اتحوّل للأسامي دي (tests/test_dark_mode.py بيمنع رجوعه).
+
+    ‏أول زيارة بتمشي على إعداد الجهاز. زرار الشمس/القمر بيحفظ اختيارك في
+    المتصفح، ومن ساعتها بيغلب على إعداد الجهاز.
+
+    ‏solid = خلفية الأزرار والأشرطة الكحلي اللي كلامها أبيض. في الغامق بتفضل
+    غامقة (أفتح شوية من الأرضية) علشان الأبيض اللي عليها يفضل مقروء. -#}
+<script>
+(function(){
+  var d = document.documentElement, saved = null;
+  try { saved = localStorage.getItem("nx-theme"); } catch (e) {}
+  var mq = window.matchMedia && matchMedia("(prefers-color-scheme: dark)");
+  function apply(t){ d.setAttribute("data-theme", t); }
+  apply(saved || (mq && mq.matches ? "dark" : "light"));
+  if (!saved && mq && mq.addEventListener) mq.addEventListener("change", function(e){
+    try { if (localStorage.getItem("nx-theme")) return; } catch (x) {}
+    apply(e.matches ? "dark" : "light");
+  });
+  window.nxToggleTheme = function(){
+    var t = d.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    apply(t);
+    try { localStorage.setItem("nx-theme", t); } catch (e) {}
+    var bs = document.querySelectorAll("[data-theme-toggle]");
+    for (var i = 0; i < bs.length; i++) bs[i].setAttribute("aria-pressed", t === "dark" ? "true" : "false");
+  };
+  document.addEventListener("DOMContentLoaded", function(){
+    var on = d.getAttribute("data-theme") === "dark" ? "true" : "false";
+    var bs = document.querySelectorAll("[data-theme-toggle]");
+    for (var i = 0; i < bs.length; i++) bs[i].setAttribute("aria-pressed", on);
+  });
+})();
+</script>
+<style>
+:root{
+  --nx-bg:#F6F7F8;--nx-surface:#FFFFFF;--nx-surface-2:#F3F5F7;--nx-tint:#EDF0F3;
+  --nx-ink:#1E2630;--nx-ink-2:#3A4A5C;--nx-muted:#5A6472;--nx-line:#D5DAE0;
+  --nx-warn-bg:#FDF6EC;--nx-warn-ink:#8A4B1C;--nx-warn-line:#E5C9A1;
+  --nx-bad-bg:#FBEDED;--nx-bad-ink:#8B2E2E;--nx-bad-line:#E3B4B4;--nx-red:#C81E1E;
+  --nx-info-bg:#E9F2F6;--nx-info-line:#B4D0DA;
+  --nx-solid:#1E2630;--nx-solid-2:#3A4A5C;--nx-on-solid:#FFFFFF;--nx-hero:#1E2630;
+  --nx-ok-bg:#F0F7F4;--nx-ok-ink:#1F5132;--nx-ok-line:#CFE3D9;--nx-on-warm:#1E2630;
+  color-scheme:light;
+}
+html[data-theme="dark"]{
+  --nx-bg:#0F141A;--nx-surface:#171D25;--nx-surface-2:#1D242E;--nx-tint:#232B36;
+  --nx-ink:#E8ECF1;--nx-ink-2:#C9D2DC;--nx-muted:#9AA6B4;--nx-line:#2E3844;
+  --nx-warn-bg:#2C2214;--nx-warn-ink:#F0C28E;--nx-warn-line:#5A4526;
+  --nx-bad-bg:#2F1A1C;--nx-bad-ink:#F2AAAA;--nx-bad-line:#5C2F33;--nx-red:#F87171;
+  --nx-info-bg:#172C36;--nx-info-line:#2A4E5C;
+  --nx-solid:#3A4A5E;--nx-solid-2:#4A5C72;--nx-on-solid:#FFFFFF;--nx-hero:#0B0F14;
+  --nx-ok-bg:#15291F;--nx-ok-ink:#8FD9AE;--nx-ok-line:#2B4D3A;--nx-on-warm:#1E2630;
+  /* ‏توكنز base.html القديمة، علشان اللي لسه بيستخدمها يقلب معاها */
+  --white:#171D25;--gray:#1D242E;--gray-2:#2E3844;--text:#E8ECF1;--text-2:#C9D2DC;
+  --muted:#9AA6B4;--muted-2:#9AA6B4;--blue-pale:#232B36;--green-pale:#232B36;--red-pale:#2F1A1C;
+  --blue:#3A4A5E;--blue-light:#9FB0C4;--blue-dark:#E8ECF1;--green:#4A5C72;--green-light:#C9D2DC;
+  --gray-dark:#9AA6B4;--orange:#F0C28E;--red:#F2AAAA;--pick:#4A5C72;
+  color-scheme:dark;
+}
+/* ‏الطباعة فاتحة دايمًا: محدش بيطبع خطة على ورق أسود. */
+@media print{
+  :root,html[data-theme="dark"]{
+    --nx-bg:#FFFFFF;--nx-surface:#FFFFFF;--nx-surface-2:#F3F5F7;--nx-tint:#EDF0F3;
+    --nx-ink:#1E2630;--nx-ink-2:#3A4A5C;--nx-muted:#5A6472;--nx-line:#D5DAE0;
+    --nx-warn-bg:#FDF6EC;--nx-warn-ink:#8A4B1C;--nx-warn-line:#E5C9A1;
+    --nx-bad-bg:#FBEDED;--nx-bad-ink:#8B2E2E;--nx-bad-line:#E3B4B4;--nx-red:#C81E1E;
+    --nx-info-bg:#E9F2F6;--nx-info-line:#B4D0DA;
+    --nx-solid:#1E2630;--nx-solid-2:#3A4A5C;--nx-on-solid:#FFFFFF;--nx-hero:#1E2630;
+    --nx-ok-bg:#F0F7F4;--nx-ok-ink:#1F5132;--nx-ok-line:#CFE3D9;--nx-on-warm:#1E2630;
+    --white:#ffffff;--gray:#F6F7F8;--gray-2:#E4E7EA;--text:#1E2630;--text-2:#374250;
+    --muted:#5A6472;--muted-2:#5A6472;--blue-pale:#EDF0F3;--green-pale:#EDF0F3;--red-pale:#fdf4f4;
+    --blue:#1E2630;--blue-light:#3A4A5C;--blue-dark:#161C24;--green:#3A4A5C;--green-light:#3A4A5C;
+    --gray-dark:#5A6472;--orange:#8A4B1C;--red:#8B2E2E;--pick:#3A4A5C;
+    color-scheme:light;
+  }
+}
+.nx-theme-btn{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;
+  border-radius:10px;border:1px solid var(--nx-line);background-color:var(--nx-surface);color:var(--nx-ink);cursor:pointer;
+  transition:background-color .2s,transform .2s}
+.nx-theme-btn:hover{background-color:var(--nx-tint)}
+.nx-theme-btn:focus-visible{outline:2px solid var(--nx-ink-2);outline-offset:2px}
+.nx-theme-btn svg{width:18px;height:18px}
+.nx-theme-btn .nx-sun{display:none}
+html[data-theme="dark"] .nx-theme-btn .nx-sun{display:block}
+html[data-theme="dark"] .nx-theme-btn .nx-moon{display:none}
+@media (prefers-reduced-motion:reduce){.nx-theme-btn{transition:none}}
+</style>

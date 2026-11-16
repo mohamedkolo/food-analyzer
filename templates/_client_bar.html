@@ -42,15 +42,15 @@
 .cbar,.csheet,.csheet-bg{display:none}
 @media(max-width:768px){
   .cbar{display:grid;grid-template-columns:repeat(5,1fr);align-items:center;position:fixed;inset-inline:0;bottom:0;z-index:95;
-        height:62px;background:#fff;border-top:1px solid var(--gray-2);padding-bottom:env(safe-area-inset-bottom)}
+        height:62px;background:var(--nx-surface);border-top:1px solid var(--gray-2);padding-bottom:env(safe-area-inset-bottom)}
   .cbar a,.cbar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:100%;
         border:none;background:none;font-family:'Cairo',sans-serif;font-size:11px;font-weight:700;color:var(--muted);
         text-decoration:none;cursor:pointer;position:relative;padding:0}
   .cbar i{font-size:17px}
-  .cbar a.on{color:#1E2630}
+  .cbar a.on{color:var(--nx-ink)}
   .cbar a.on i{color:#FF7A59}
   .cbar a:focus-visible,.cbar button:focus-visible{outline:2px solid var(--green);outline-offset:-3px}
-  .cbar .cbar-plus{width:52px;height:52px;border-radius:50%;background:#2B3746;color:#fff;justify-self:center;
+  .cbar .cbar-plus{width:52px;height:52px;border-radius:50%;background:var(--nx-solid-2);color:#fff;justify-self:center;
         transform:translateY(-12px);box-shadow:0 4px 12px rgba(30,38,48,.28)}
   .cbar .cbar-plus i{font-size:21px;color:#fff}
   .cbar-dot{position:absolute;top:9px;inset-inline-end:26%;width:9px;height:9px;border-radius:50%;background:#ef4444}
@@ -60,15 +60,15 @@
   .main{padding-bottom:96px !important}
   .nx-footer{padding-bottom:86px !important}
   .csheet-bg.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:96}
-  .csheet.open{display:block;position:fixed;inset-inline:0;bottom:0;z-index:97;background:#fff;border-radius:18px 18px 0 0;
+  .csheet.open{display:block;position:fixed;inset-inline:0;bottom:0;z-index:97;background:var(--nx-surface);border-radius:18px 18px 0 0;
         padding:16px 16px calc(18px + env(safe-area-inset-bottom));font-family:'Cairo',sans-serif}
-  .csheet-h{display:flex;justify-content:space-between;align-items:center;font-size:16px;margin-bottom:12px;color:#1E2630}
+  .csheet-h{display:flex;justify-content:space-between;align-items:center;font-size:16px;margin-bottom:12px;color:var(--nx-ink)}
   .csheet-h button{border:none;background:var(--gray);width:34px;height:34px;border-radius:50%;cursor:pointer;color:var(--text-2)}
   .csheet-lbl{font-size:13px;font-weight:800;color:var(--text-2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
   .csheet-lbl span{margin-inline-start:auto;font-weight:700;color:var(--muted)}
   .csheet-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
   .csheet-row button,.csheet-row a{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 10px;border-radius:12px;
-        border:1.5px solid var(--gray-2);background:#fff;font-family:inherit;font-size:14px;font-weight:800;color:#1E2630;
+        border:1.5px solid var(--gray-2);background:var(--nx-surface);font-family:inherit;font-size:14px;font-weight:800;color:var(--nx-ink);
         text-decoration:none;cursor:pointer}
   .csheet-row button:active,.csheet-row a:active{background:var(--blue-pale)}
   .csheet-row small{font-weight:600;color:var(--muted)}

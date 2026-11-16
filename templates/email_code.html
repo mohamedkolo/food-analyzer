@@ -8,6 +8,7 @@
 <html lang="{{ 'ar' if is_ar else 'en' }}" dir="{{ 'rtl' if is_ar else 'ltr' }}">
 <head>
 <meta charset="UTF-8">
+{% include "_theme.html" %}
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
 <title>NutraX - {{ ('تغيير كلمة السر' if is_ar else 'Reset password') if purpose == 'reset' or step != 'code' else ('تأكيد الإيميل' if is_ar else 'Confirm email') }}</title>
@@ -15,18 +16,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Cairo',sans-serif;min-height:100vh;background:#1E2630;display:flex;align-items:center;justify-content:center;padding:20px;color:#1E2630}
+body{font-family:'Cairo',sans-serif;min-height:100vh;background:var(--nx-hero);display:flex;align-items:center;justify-content:center;padding:20px;color:var(--nx-ink)}
 .wrap{max-width:440px;width:100%}
 .brand{color:#fff;text-align:center;font-size:26px;font-weight:900;margin-block-end:16px;letter-spacing:1px}
 .brand a{color:inherit;text-decoration:none}
-.card{background:#fff;border-radius:20px;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.card{background:var(--nx-surface);border-radius:20px;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 h1{font-size:21px;font-weight:900;margin-block-end:6px}
-.lede{font-size:14px;color:#3A4A5C;line-height:1.7;margin-block-end:18px}
-.lede bdi{font-weight:800;color:#1E2630}
+.lede{font-size:14px;color:var(--nx-ink-2);line-height:1.7;margin-block-end:18px}
+.lede bdi{font-weight:800;color:var(--nx-ink)}
 .field{margin-block-end:14px}
-label{display:block;font-size:13px;font-weight:800;margin-block-end:6px;color:#374151}
-.input{width:100%;padding:12px 14px;border:2px solid #D5DAE0;border-radius:12px;font-family:inherit;font-size:15px;color:#1E2630;background:#fff;outline:none}
-.input:focus{border-color:#3A4A5C}
+label{display:block;font-size:13px;font-weight:800;margin-block-end:6px;color:var(--nx-ink-2)}
+.input{width:100%;padding:12px 14px;border:2px solid var(--nx-line);border-radius:12px;font-family:inherit;font-size:15px;color:var(--nx-ink);background:var(--nx-surface);outline:none}
+.input:focus{border-color:var(--nx-ink-2)}
 .input.ltr{direction:ltr;text-align:start}
 .code{direction:ltr;text-align:center;font-size:30px;font-weight:900;letter-spacing:.5em;padding-inline-start:.5em;font-variant-numeric:tabular-nums}
 {# ‏الخانات الست للشكل بس. الحقل الحقيقي واحد (#code) متفرود فوقهم وشفاف،
@@ -36,10 +37,10 @@ label{display:block;font-size:13px;font-weight:800;margin-block-end:6px;color:#3
 .js .entry{position:relative}
 .js .cells{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;direction:ltr;max-width:340px;margin-inline:auto}
 .js .entry .code{position:absolute;inset:0;opacity:0;font-size:16px;letter-spacing:0;padding:0;cursor:text}
-.cell{height:58px;border-radius:14px;border:2px solid #D5DAE0;background:#F7F8FA;display:grid;place-items:center;
-  font-size:24px;font-weight:900;color:#1E2630;font-variant-numeric:tabular-nums;
+.cell{height:58px;border-radius:14px;border:2px solid var(--nx-line);background:var(--nx-surface-2);display:grid;place-items:center;
+  font-size:24px;font-weight:900;color:var(--nx-ink);font-variant-numeric:tabular-nums;
   transition:border-color .2s,box-shadow .2s,background .2s;will-change:transform}
-.cell.filled{background:#EDF0F3;border-color:#B9C3CE}
+.cell.filled{background:var(--nx-tint);border-color:#B9C3CE}
 .cell.on{border-color:#3F6E33;box-shadow:0 0 0 4px rgba(63,110,51,.16)}
 .cell.on:empty::after{content:"";width:2px;height:24px;background:#3F6E33;animation:caret 1s steps(1) infinite}
 @keyframes caret{50%{opacity:0}}
@@ -67,13 +68,13 @@ label{display:block;font-size:13px;font-weight:800;margin-block-end:6px;color:#3
 @keyframes pop{to{transform:scale(1)}}
 .play .badge{opacity:0;animation:rise .4s ease 1.25s forwards}
 @keyframes rise{from{transform:translateY(8px)}to{opacity:1;transform:none}}
-.btn{display:block;width:100%;padding:13px;border:0;border-radius:12px;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;background:#1E2630;color:#fff;text-align:center;text-decoration:none}
+.btn{display:block;width:100%;padding:13px;border:0;border-radius:12px;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;background:var(--nx-solid);color:#fff;text-align:center;text-decoration:none}
 .btn:focus-visible,.link:focus-visible,.input:focus-visible{outline:3px solid #5A9447;outline-offset:2px}
-.link{background:none;border:0;font-family:inherit;font-size:13px;font-weight:700;color:#3A4A5C;text-decoration:underline;cursor:pointer;padding:6px}
+.link{background:none;border:0;font-family:inherit;font-size:13px;font-weight:700;color:var(--nx-ink-2);text-decoration:underline;cursor:pointer;padding:6px}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-block-start:12px;flex-wrap:wrap}
 .msg{padding:10px 14px;border-radius:10px;font-size:13px;margin-block-end:14px;line-height:1.6}
-.msg.err{background:#FDECEA;color:#8B2E2E;border:1px solid #E3B4B4}
-.msg.note{background:#EDF0F3;border:1px solid #D5DAE0}
+.msg.err{background:#FDECEA;color:var(--nx-bad-ink);border:1px solid var(--nx-bad-line)}
+.msg.note{background:var(--nx-tint);border:1px solid var(--nx-line)}
 .wa{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-block-start:12px}
 .wa a{display:inline-flex;align-items:center;gap:6px;background:#0B8043;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:800;font-size:13px}
 .back{display:block;text-align:center;margin-block-start:16px;color:#fff;font-size:13px;opacity:.9}
@@ -168,7 +169,7 @@ label{display:block;font-size:13px;font-weight:800;margin-block-end:6px;color:#3
     {% if email %}
     <form method="POST" class="row">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <span style="font-size:13px;color:#3A4A5C">{{ 'ماوصلكش؟ بُص في الـSpam.' if is_ar else "Didn't get it? Check spam." }}</span>
+      <span style="font-size:13px;color:var(--nx-ink-2)">{{ 'ماوصلكش؟ بُص في الـSpam.' if is_ar else "Didn't get it? Check spam." }}</span>
       <button type="submit" name="resend" value="1" class="link">{{ 'ابعت كود تاني' if is_ar else 'Send another code' }}</button>
     </form>
     {% endif %}

@@ -4,54 +4,54 @@
 
 <style>
   .mp-wrap { max-width: 1100px; margin: 20px auto; padding: 16px; font-family: 'Cairo', 'Tajawal', system-ui, sans-serif; }
-  .welcome-banner { background: #1E2630; color: #fff; border-radius: 20px; padding: 24px 28px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .welcome-banner { background: var(--nx-solid); color: #fff; border-radius: 20px; padding: 24px 28px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
   .welcome-banner h1 { margin: 0 0 4px; font-size: 24px; font-weight: 800; }
   .welcome-banner p { margin: 0; opacity: 0.95; font-size: 14px; }
   .welcome-emoji { font-size: 48px; line-height: 1; }
-  .celebration { background: #FDF6EC; border: 2px solid #f59e0b; border-radius: 16px; padding: 16px 20px; margin-bottom: 20px; color: #8A4B1C; text-align: center; font-weight: 700; animation: slideDown 0.6s ease; }
+  .celebration { background: var(--nx-warn-bg); border: 2px solid #f59e0b; border-radius: 16px; padding: 16px 20px; margin-bottom: 20px; color: var(--nx-warn-ink); text-align: center; font-weight: 700; animation: slideDown 0.6s ease; }
   @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   .quick-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .qstat { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border: 1px solid #E9F2F6; text-align: center; position: relative; overflow: hidden; }
+  .qstat { background: var(--nx-surface); border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border: 1px solid var(--nx-info-line); text-align: center; position: relative; overflow: hidden; }
   .qstat::before { content: ''; position: absolute; top: 0; right: 0; left: 0; height: 4px; background: var(--c); }
   .qstat-icon { font-size: 26px; margin-bottom: 6px; }
-  .qstat-val { font-size: 26px; font-weight: 800; color: #1E2630; line-height: 1; }
-  .qstat-lbl { font-size: 12px; color: #5A6472; margin-top: 4px; font-weight: 600; }
-  .card { background: #fff; border-radius: 16px; padding: 22px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border: 1px solid #E9F2F6; }
-  .card-title { font-size: 18px; font-weight: 800; color: #1E2630; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
+  .qstat-val { font-size: 26px; font-weight: 800; color: var(--nx-ink); line-height: 1; }
+  .qstat-lbl { font-size: 12px; color: var(--nx-muted); margin-top: 4px; font-weight: 600; }
+  .card { background: var(--nx-surface); border-radius: 16px; padding: 22px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border: 1px solid var(--nx-info-line); }
+  .card-title { font-size: 18px; font-weight: 800; color: var(--nx-ink); margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
   .sub-banner { border-radius: 14px; padding: 18px; margin-bottom: 16px; }
-  .sub-active { background: #EDF0F3; border: 2px solid #3A4A5C; }
-  .sub-trial { background: #EDF0F3; border: 2px solid #3A4A5C; }
-  .sub-none { background: #FDF6EC; border: 2px solid #f59e0b; }
+  .sub-active { background: var(--nx-tint); border: 2px solid var(--nx-ink-2); }
+  .sub-trial { background: var(--nx-tint); border: 2px solid var(--nx-ink-2); }
+  .sub-none { background: var(--nx-warn-bg); border: 2px solid #f59e0b; }
   .sub-status-line { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-  .sub-info strong { display: block; font-size: 16px; color: #1E2630; margin-bottom: 4px; }
-  .sub-info span { color: #5A6472; font-size: 14px; }
-  .sub-btn { background: #fff; color: #3A4A5C; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 14px; border: 2px solid #3A4A5C; transition: all 0.2s; }
-  .sub-btn:hover { background: #3A4A5C; color: #fff; }
-  .sub-btn-warn { color: #8A4B1C; border-color: #f59e0b; }
+  .sub-info strong { display: block; font-size: 16px; color: var(--nx-ink); margin-bottom: 4px; }
+  .sub-info span { color: var(--nx-muted); font-size: 14px; }
+  .sub-btn { background: var(--nx-surface); color: var(--nx-ink-2); padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 14px; border: 2px solid var(--nx-ink-2); transition: all 0.2s; }
+  .sub-btn:hover { background: var(--nx-solid-2); color: #fff; }
+  .sub-btn-warn { color: var(--nx-warn-ink); border-color: #f59e0b; }
   .sub-btn-warn:hover { background: #f59e0b; color: #fff; }
-  .tip-card { background: #F3F5F7; border: 1px solid #D5DAE0; border-radius: 14px; padding: 18px 22px; display: flex; gap: 14px; align-items: center; }
+  .tip-card { background: var(--nx-surface-2); border: 1px solid var(--nx-line); border-radius: 14px; padding: 18px 22px; display: flex; gap: 14px; align-items: center; }
   .tip-icon { font-size: 36px; flex-shrink: 0; }
-  .tip-content strong { display: block; color: #1E2630; font-size: 16px; margin-bottom: 4px; }
-  .tip-content p { margin: 0; color: #1E2630; font-size: 14px; line-height: 1.6; }
-  .plan-box { background: #F3F5F7; border: 2px solid #3A4A5C; border-radius: 14px; padding: 20px; }
-  .plan-box h3 { margin: 0 0 8px; color: #1E2630; font-size: 18px; }
-  .plan-box-meta { color: #5A6472; font-size: 14px; margin-bottom: 14px; }
+  .tip-content strong { display: block; color: var(--nx-ink); font-size: 16px; margin-bottom: 4px; }
+  .tip-content p { margin: 0; color: var(--nx-ink); font-size: 14px; line-height: 1.6; }
+  .plan-box { background: var(--nx-surface-2); border: 2px solid var(--nx-ink-2); border-radius: 14px; padding: 20px; }
+  .plan-box h3 { margin: 0 0 8px; color: var(--nx-ink); font-size: 18px; }
+  .plan-box-meta { color: var(--nx-muted); font-size: 14px; margin-bottom: 14px; }
   .plan-actions { display: flex; gap: 8px; flex-wrap: wrap; }
   .plan-act { padding: 9px 18px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 13px; transition: all 0.2s; }
-  .pa-primary { background: #3A4A5C; color: #fff; }
-  .pa-primary:hover { background: #3A4A5C; }
-  .pa-secondary { background: #fff; color: #3A4A5C; border: 1px solid #3A4A5C; }
-  .pa-secondary:hover { background: #F3F5F7; }
-  .pending-box { background: #FDF6EC; border: 2px dashed #f59e0b; border-radius: 14px; padding: 20px; text-align: center; color: #8A4B1C; }
+  .pa-primary { background: var(--nx-solid-2); color: #fff; }
+  .pa-primary:hover { background: var(--nx-solid-2); }
+  .pa-secondary { background: var(--nx-surface); color: var(--nx-ink-2); border: 1px solid var(--nx-ink-2); }
+  .pa-secondary:hover { background: var(--nx-surface-2); }
+  .pending-box { background: var(--nx-warn-bg); border: 2px dashed #f59e0b; border-radius: 14px; padding: 20px; text-align: center; color: var(--nx-warn-ink); }
   .pending-icon { font-size: 40px; margin-bottom: 8px; }
-  .waiting-box { background: #F3F5F7; border-radius: 14px; padding: 20px; text-align: center; color: #5A6472; }
-  .countdown { display: inline-block; background: #fff; padding: 8px 16px; border-radius: 10px; margin: 10px 0; font-weight: 700; color: #f59e0b; border: 1px solid #F5E6CF; }
+  .waiting-box { background: var(--nx-surface-2); border-radius: 14px; padding: 20px; text-align: center; color: var(--nx-muted); }
+  .countdown { display: inline-block; background: var(--nx-surface); padding: 8px 16px; border-radius: 10px; margin: 10px 0; font-weight: 700; color: #f59e0b; border: 1px solid #F5E6CF; }
   /* Weight progress */
   .wp-stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
   .wp-box { flex:1; min-width:95px; text-align:center; border-radius:12px; padding:12px; }
   .wp-box .l { font-size:12px; }
   .wp-box .v { font-size:20px; font-weight:800; }
-  .wp-chart { background:#fff; border:1px solid #E9F2F6; border-radius:14px; padding:10px; overflow-x:auto; }
+  .wp-chart { background:var(--nx-surface); border:1px solid var(--nx-info-line); border-radius:14px; padding:10px; overflow-x:auto; }
 </style>
 
 <div class="mp-wrap">
@@ -60,16 +60,16 @@
   {% include "_next_appointment.html" %}
     {% if tracking and tracking.has_plan %}
     <!-- ═══ وجبات النهارده والتتبع (فوق خالص) ═══ -->
-    <div style="background:#fff;border:2px solid #D5DAE0;border-radius:16px;padding:16px;margin-bottom:16px;">
+    <div style="background:var(--nx-surface);border:2px solid var(--nx-line);border-radius:16px;padding:16px;margin-bottom:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-weight:900;font-size:15px;color:#1E2630;">✅ {{ t('وجبات النهارده','Today\'s meals') }} ({{ tracking.day_name }})</div>
-        <div id="todayCount" style="font-size:12px;font-weight:800;color:#3A4A5C;background:#F3F5F7;padding:4px 12px;border-radius:999px;">{{ tracking.today_done }}/{{ tracking.today_total }}</div>
+        <div style="font-weight:900;font-size:15px;color:var(--nx-ink);">✅ {{ t('وجبات النهارده','Today\'s meals') }} ({{ tracking.day_name }})</div>
+        <div id="todayCount" style="font-size:12px;font-weight:800;color:var(--nx-ink-2);background:var(--nx-surface-2);padding:4px 12px;border-radius:999px;">{{ tracking.today_done }}/{{ tracking.today_total }}</div>
       </div>
       {% if streak and streak.current_streak > 0 %}
-      <div style="display:flex;align-items:center;gap:8px;background:#fff7ed;border:1.5px solid #f3d98a;border-radius:12px;padding:10px 14px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:8px;background:var(--nx-warn-bg);border:1.5px solid #f3d98a;border-radius:12px;padding:10px 14px;margin-bottom:12px;">
         <span style="font-size:22px;">🔥</span>
         <div style="flex:1;">
-          <div style="font-weight:900;font-size:14px;color:#8A4B1C;">{% if is_ar %}{{ streak.current_streak }} يوم متتالي من الالتزام الكامل!{% else %}{{ streak.current_streak }} consecutive days of full adherence!{% endif %}</div>
+          <div style="font-weight:900;font-size:14px;color:var(--nx-warn-ink);">{% if is_ar %}{{ streak.current_streak }} يوم متتالي من الالتزام الكامل!{% else %}{{ streak.current_streak }} consecutive days of full adherence!{% endif %}</div>
           {% if streak.badge %}
           <div style="font-size:12px;font-weight:700;color:#b45309;">{{ streak.badge.emoji }} {{ streak.badge.label }}</div>
           {% endif %}
@@ -79,26 +79,26 @@
       {% set mnotes = meal_notes_today(user) %}
       {% for m in tracking.today_meals %}
       {% set mn = mnotes.get(m.key) %}
-      <div class="track-meal" data-key="{{ m.key }}" style="display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:12px;cursor:pointer;transition:all .15s;{% if m.checked %}background:#F3F5F7;{% endif %}border:1.5px solid {% if m.checked %}#FF7A59{% else %}#D5DAE0{% endif %};margin-bottom:8px;">
-        <div class="track-box" style="width:24px;height:24px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;background:{% if m.checked %}#3A4A5C{% else %}#D5DAE0{% endif %};margin-top:2px;">{% if m.checked %}✓{% endif %}</div>
+      <div class="track-meal" data-key="{{ m.key }}" style="display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:12px;cursor:pointer;transition:all .15s;{% if m.checked %}background:var(--nx-surface-2);{% endif %}border:1.5px solid {% if m.checked %}#FF7A59{% else %}var(--nx-line){% endif %};margin-bottom:8px;">
+        <div class="track-box" style="width:24px;height:24px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;background:{% if m.checked %}var(--nx-solid-2){% else %}var(--nx-line){% endif %};margin-top:2px;">{% if m.checked %}✓{% endif %}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:800;font-size:13px;color:#1E2630;">{{ m.emoji }} {{ m.label }}</div>
-          <div style="font-size:12px;color:#5A6472;line-height:1.6;{% if m.checked %}text-decoration:line-through;opacity:.6;{% endif %}">{{ m.text | meal_en }}</div>
+          <div style="font-weight:800;font-size:13px;color:var(--nx-ink);">{{ m.emoji }} {{ m.label }}</div>
+          <div style="font-size:12px;color:var(--nx-muted);line-height:1.6;{% if m.checked %}text-decoration:line-through;opacity:.6;{% endif %}">{{ m.text | meal_en }}</div>
         </div>
       </div>
       <span data-swap="{{ m.text }}" hidden></span>
       {# ‏تحت كل وجبة: "ماكلتهاش" وتعليق. برّه الكارت اللي فوق بالقصد --
          الدوسة على الكارت معناها "اتاكلت"، ودول مايتلخبطوش بيها. #}
       <div class="meal-note" data-key="{{ m.key }}" data-skipped="{{ 1 if mn and mn.skipped else 0 }}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-2px 0 12px;font-size:12px">
-        <button type="button" class="mn-skip" aria-pressed="{{ 'true' if mn and mn.skipped else 'false' }}" style="border:1px solid {% if mn and mn.skipped %}#8B2E2E{% else %}#D5DAE0{% endif %};background:{% if mn and mn.skipped %}#fdf4f4{% else %}#fff{% endif %};color:{% if mn and mn.skipped %}#8B2E2E{% else %}#5A6472{% endif %};border-radius:999px;padding:4px 12px;font-family:inherit;font-weight:700;font-size:12px;cursor:pointer">{{ t('ماكلتهاش','Skipped it') }}</button>
-        <input class="mn-comment" maxlength="300" value="{{ mn.comment if mn and mn.comment else '' }}" aria-label="{{ t('تعليق على','Comment on') }} {{ m.label }}" placeholder="{{ t('تعليق للأخصائي (اختياري)','Note for your nutritionist (optional)') }}" style="flex:1;min-width:150px;border:1px solid #D5DAE0;border-radius:999px;padding:5px 12px;font-family:inherit;font-size:12px">
-        <span class="mn-saved" role="status" style="color:#1F5A36;font-weight:800;display:none">{{ t('اتحفظ','Saved') }}</span>
+        <button type="button" class="mn-skip" aria-pressed="{{ 'true' if mn and mn.skipped else 'false' }}" style="border:1px solid {% if mn and mn.skipped %}#8B2E2E{% else %}var(--nx-line){% endif %};background:{% if mn and mn.skipped %}var(--nx-bad-bg){% else %}var(--nx-surface){% endif %};color:{% if mn and mn.skipped %}var(--nx-bad-ink){% else %}var(--nx-muted){% endif %};border-radius:999px;padding:4px 12px;font-family:inherit;font-weight:700;font-size:12px;cursor:pointer">{{ t('ماكلتهاش','Skipped it') }}</button>
+        <input class="mn-comment" maxlength="300" value="{{ mn.comment if mn and mn.comment else '' }}" aria-label="{{ t('تعليق على','Comment on') }} {{ m.label }}" placeholder="{{ t('تعليق للأخصائي (اختياري)','Note for your nutritionist (optional)') }}" style="flex:1;min-width:150px;border:1px solid var(--nx-line);border-radius:999px;padding:5px 12px;font-family:inherit;font-size:12px">
+        <span class="mn-saved" role="status" style="color:var(--nx-ok-ink);font-weight:800;display:none">{{ t('اتحفظ','Saved') }}</span>
       </div>
       {% endfor %}
       {% if tracking.week_pct is not none %}
       <div style="margin-top:10px;">
-        <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:#5A6472;margin-bottom:4px;"><span>{{ t('التزامك آخر 7 أيام','Your adherence, last 7 days') }}</span><span>{{ tracking.week_pct }}%</span></div>
-        <div style="height:8px;background:#D5DAE0;border-radius:99px;overflow:hidden;"><div style="height:100%;width:{{ tracking.week_pct }}%;background:#3A4A5C;border-radius:99px;"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:var(--nx-muted);margin-bottom:4px;"><span>{{ t('التزامك آخر 7 أيام','Your adherence, last 7 days') }}</span><span>{{ tracking.week_pct }}%</span></div>
+        <div style="height:8px;background:var(--nx-line);border-radius:99px;overflow:hidden;"><div style="height:100%;width:{{ tracking.week_pct }}%;background:var(--nx-solid-2);border-radius:99px;"></div></div>
       </div>
       {% endif %}
     </div>
@@ -121,9 +121,9 @@
         const on = el.dataset.skipped !== '1';
         el.dataset.skipped = on ? '1' : '0';
         skip.setAttribute('aria-pressed', on ? 'true' : 'false');
-        skip.style.borderColor = on ? '#8B2E2E' : '#D5DAE0';
-        skip.style.background = on ? '#fdf4f4' : '#fff';
-        skip.style.color = on ? '#8B2E2E' : '#5A6472';
+        skip.style.borderColor = on ? '#8B2E2E' : 'var(--nx-line)';
+        skip.style.background = on ? 'var(--nx-bad-bg)' : 'var(--nx-surface)';
+        skip.style.color = on ? 'var(--nx-bad-ink)' : 'var(--nx-muted)';
         save();
       });
       box.addEventListener('change', save);
@@ -140,9 +140,9 @@
           const r = await fetch('/track/meal', {method:'POST', body: fd});
           if (!(await r.json()).ok) return;
           box.textContent = nowChecked ? '✓' : '';
-          box.style.background = nowChecked ? '#3A4A5C' : '#D5DAE0';
-          el.style.background = nowChecked ? '#F3F5F7' : '#fff';
-          el.style.borderColor = nowChecked ? '#FF7A59' : '#D5DAE0';
+          box.style.background = nowChecked ? 'var(--nx-solid-2)' : 'var(--nx-line)';
+          el.style.background = nowChecked ? 'var(--nx-surface-2)' : 'var(--nx-surface)';
+          el.style.borderColor = nowChecked ? '#FF7A59' : 'var(--nx-line)';
           const txt = el.querySelector('div[style*="line-height"]');
           txt.style.textDecoration = nowChecked ? 'line-through' : 'none';
           txt.style.opacity = nowChecked ? '.6' : '1';
@@ -228,42 +228,42 @@
     <h2 class="card-title">⚖️ {{ t('تقدّمك في الوزن','Your Weight Progress') }}</h2>
     {% if weight and weight.has_data %}
       {% if weight.message %}
-      <div style="background:#F3F5F7;border:1px solid #FF7A59;border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+      <div style="background:var(--nx-surface-2);border:1px solid #FF7A59;border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
         <span style="font-size:26px;">{{ weight.message_icon }}</span>
-        <span style="font-size:14px;font-weight:700;color:#1E2630;line-height:1.6;">{{ weight.message }}</span>
+        <span style="font-size:14px;font-weight:700;color:var(--nx-ink);line-height:1.6;">{{ weight.message }}</span>
       </div>
       {% endif %}
       <div class="wp-stats">
-        <div class="wp-box" style="background:#F3F5F7;border:1px solid #D5DAE0">
-          <div class="l" style="color:#1E2630">{{ t('البداية','Start') }}</div>
-          <div class="v" style="color:#1E2630">{{ weight.start }}<span style="font-size:11px"> kg</span></div>
+        <div class="wp-box" style="background:var(--nx-surface-2);border:1px solid var(--nx-line)">
+          <div class="l" style="color:var(--nx-ink)">{{ t('البداية','Start') }}</div>
+          <div class="v" style="color:var(--nx-ink)">{{ weight.start }}<span style="font-size:11px"> kg</span></div>
         </div>
-        <div class="wp-box" style="background:#F3F5F7;border:1px solid #D5DAE0">
-          <div class="l" style="color:#3A4A5C">{{ t('الحالي','Current') }}</div>
-          <div class="v" style="color:#1E2630">{{ weight.current }}<span style="font-size:11px"> kg</span></div>
+        <div class="wp-box" style="background:var(--nx-surface-2);border:1px solid var(--nx-line)">
+          <div class="l" style="color:var(--nx-ink-2)">{{ t('الحالي','Current') }}</div>
+          <div class="v" style="color:var(--nx-ink)">{{ weight.current }}<span style="font-size:11px"> kg</span></div>
         </div>
-        <div class="wp-box" style="background:{% if weight.change < 0 %}#F3F5F7{% elif weight.change > 0 %}#FBEDED{% else %}#F3F5F7{% endif %};border:1px solid {% if weight.change < 0 %}#D5DAE0{% elif weight.change > 0 %}#E3B4B4{% else %}#D5DAE0{% endif %}">
-          <div class="l" style="color:#5A6472">{{ t('التغيّر','Change') }}</div>
-          <div class="v" style="color:{% if weight.change < 0 %}#3A4A5C{% elif weight.change > 0 %}#dc2626{% else %}#5A6472{% endif %}">
+        <div class="wp-box" style="background:{% if weight.change < 0 %}var(--nx-surface-2){% elif weight.change > 0 %}var(--nx-bad-bg){% else %}var(--nx-surface-2){% endif %};border:1px solid {% if weight.change < 0 %}var(--nx-line){% elif weight.change > 0 %}var(--nx-bad-line){% else %}var(--nx-line){% endif %}">
+          <div class="l" style="color:var(--nx-muted)">{{ t('التغيّر','Change') }}</div>
+          <div class="v" style="color:{% if weight.change < 0 %}var(--nx-ink-2){% elif weight.change > 0 %}var(--nx-red){% else %}var(--nx-muted){% endif %}">
             {% if weight.change > 0 %}▲ +{{ weight.change }}{% elif weight.change < 0 %}▼ {{ weight.change }}{% else %}{{ weight.change }}{% endif %}<span style="font-size:11px"> kg</span>
           </div>
         </div>
         {% if weight.pace %}
-        <div class="wp-box" style="background:#F3F5F7;border:1px solid #D5DAE0">
+        <div class="wp-box" style="background:var(--nx-surface-2);border:1px solid var(--nx-line)">
           <div class="l" style="color:#a4884a">{{ t('المعدل الأسبوعي','Weekly rate') }}</div>
-          <div class="v" style="color:#1E2630">{% if weight.pace > 0 %}+{% endif %}{{ weight.pace }}<span style="font-size:11px"> {{ t('kg/أسبوع','kg/week') }}</span></div>
+          <div class="v" style="color:var(--nx-ink)">{% if weight.pace > 0 %}+{% endif %}{{ weight.pace }}<span style="font-size:11px"> {{ t('kg/أسبوع','kg/week') }}</span></div>
         </div>
         {% endif %}
         {% if weight.bmi %}
-        <div class="wp-box" style="background:#FDF6EC;border:1px solid #E5C9A1">
-          <div class="l" style="color:#8A4B1C">{{ t('مؤشر الكتلة BMI','BMI') }}</div>
+        <div class="wp-box" style="background:var(--nx-warn-bg);border:1px solid var(--nx-warn-line)">
+          <div class="l" style="color:var(--nx-warn-ink)">{{ t('مؤشر الكتلة BMI','BMI') }}</div>
           <div class="v" style="color:{{ weight.bmi_color }}">{{ weight.bmi }}<span style="font-size:11px"> {{ weight.bmi_label }}</span></div>
         </div>
         {% endif %}
         {% if weight.days_tracking > 0 %}
-        <div class="wp-box" style="background:#E9F2F6;border:1px solid #d6cdb8">
-          <div class="l" style="color:#3A4A5C">{{ t('بتتابع بقالك','Tracking for') }}</div>
-          <div class="v" style="color:#1E2630">{{ weight.days_tracking }}<span style="font-size:11px"> {{ t('يوم','days') }}</span></div>
+        <div class="wp-box" style="background:var(--nx-info-bg);border:1px solid #d6cdb8">
+          <div class="l" style="color:var(--nx-ink-2)">{{ t('بتتابع بقالك','Tracking for') }}</div>
+          <div class="v" style="color:var(--nx-ink)">{{ weight.days_tracking }}<span style="font-size:11px"> {{ t('يوم','days') }}</span></div>
         </div>
         {% endif %}
       </div>
@@ -280,7 +280,7 @@
         </svg>
       </div>
       {% else %}
-      <p style="color:#5A6472;font-size:13px;text-align:center">{{ t('سجّلت قياس واحد لحد دلوقتي. سجّل كمان عشان يبان خط التقدّم.','You have logged one measurement so far. Log more to see the progress line.') }}</p>
+      <p style="color:var(--nx-muted);font-size:13px;text-align:center">{{ t('سجّلت قياس واحد لحد دلوقتي. سجّل كمان عشان يبان خط التقدّم.','You have logged one measurement so far. Log more to see the progress line.') }}</p>
       {% endif %}
 
       <div style="text-align:center;margin-top:14px">
@@ -288,7 +288,7 @@
       </div>
     {% else %}
       <div style="text-align:center;padding:14px">
-        <p style="color:#5A6472;margin-bottom:14px">{{ t('لسه ماسجّلتش وزنك. سجّل وزنك عشان نتابع تقدّمك ونوريك نزولك أول بأول.','You have not logged your weight yet. Log it so we can track your progress.') }}</p>
+        <p style="color:var(--nx-muted);margin-bottom:14px">{{ t('لسه ماسجّلتش وزنك. سجّل وزنك عشان نتابع تقدّمك ونوريك نزولك أول بأول.','You have not logged your weight yet. Log it so we can track your progress.') }}</p>
         <a href="/history" class="plan-act pa-primary" style="font-size:15px;padding:12px 28px">+ {{ t('سجّل وزنك دلوقتي','Log your weight now') }}</a>
       </div>
     {% endif %}
@@ -333,7 +333,7 @@
       </div>
     {% elif can_request %}
       <div style="text-align: center; padding: 14px;">
-        <p style="color: #5A6472; margin-bottom: 14px;">{{ t('لسه ما عندكش خطة. اطلب أول خطة دلوقتي.','You do not have a plan yet. Request your first one now.') }}</p>
+        <p style="color: var(--nx-muted); margin-bottom: 14px;">{{ t('لسه ما عندكش خطة. اطلب أول خطة دلوقتي.','You do not have a plan yet. Request your first one now.') }}</p>
         <a href="/request-plan" class="plan-act pa-primary" style="font-size: 15px; padding: 12px 28px;">
           + {{ t('اطلب خطة جديدة','Request a new plan') }}
         </a>

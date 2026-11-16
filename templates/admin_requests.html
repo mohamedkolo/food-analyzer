@@ -16,21 +16,21 @@
   <i class="fa-solid fa-bell"></i> {{ t('طلبات العملاء','Client Requests') }}
 </h1>
 
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:10px 14px;background:#FDF6EC;border-radius:10px">
-  <div style="font-size:15px;font-weight:800;color:#8A4B1C;display:flex;align-items:center;gap:8px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:10px 14px;background:var(--nx-warn-bg);border-radius:10px">
+  <div style="font-size:15px;font-weight:800;color:var(--nx-warn-ink);display:flex;align-items:center;gap:8px">
     <i class="fa-solid fa-clock" style="font-size:18px"></i>
     {{ t('طلبات جديدة','New Requests') }}
   </div>
-  <div style="font-size:11px;color:#8A4B1C;font-weight:600">{{ t('بانتظار المعالجة','Awaiting action') }}</div>
+  <div style="font-size:11px;color:var(--nx-warn-ink);font-weight:600">{{ t('بانتظار المعالجة','Awaiting action') }}</div>
 </div>
 
 <div style="display:grid;gap:12px;margin-bottom:30px" id="pendingArea">
   {% for req in pending_reqs %}
     {% set rdata = req.request_data | from_json if req.request_data else {} %}
-    <div class="card" style="padding:16px;border:2px solid #f59e0b;background:#FDF6EC">
+    <div class="card" style="padding:16px;border:2px solid #f59e0b;background:var(--nx-warn-bg)">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px">
         <div>
-          <div style="font-size:17px;font-weight:800;color:var(--blue)">
+          <div style="font-size:17px;font-weight:800;color:var(--nx-ink)">
             <i class="fa-solid fa-user-circle"></i> {{ req.client_name or t('عميل','Client') }}
           </div>
           <div style="font-size:12px;color:var(--muted);margin-top:4px">
@@ -38,7 +38,7 @@
           </div>
         </div>
         <div>
-          <span style="background:#FDF6EC;color:#8A4B1C;padding:5px 12px;border-radius:100px;font-size:12px;font-weight:800">{{ t('جديد','New') }}</span>
+          <span style="background:var(--nx-warn-bg);color:var(--nx-warn-ink);padding:5px 12px;border-radius:100px;font-size:12px;font-weight:800">{{ t('جديد','New') }}</span>
         </div>
       </div>
 
@@ -53,18 +53,18 @@
         </div>
         {% if rdata.symptoms and rdata.symptoms|length > 0 %}
         <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-2)">
-          <strong style="font-size:12px;color:#8B2E2E;">{{ t('حالات صحية','Health conditions') }}:</strong>
+          <strong style="font-size:12px;color:var(--nx-bad-ink);">{{ t('حالات صحية','Health conditions') }}:</strong>
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
             {% for s in rdata.symptoms %}
-            <span style="background:#FBEDED;color:#8B2E2E;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">{{ s | cond_en }}</span>
+            <span style="background:var(--nx-bad-bg);color:var(--nx-bad-ink);padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">{{ s | cond_en }}</span>
             {% endfor %}
           </div>
         </div>
         {% endif %}
         {% if rdata.notes %}
         <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-2)">
-          <strong style="font-size:12px;color:#dc2626;">{{ t('ملاحظات العميل','Client notes') }}:</strong>
-          <div style="background:#FBEDED;border:1px solid #E3B4B4;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:13px;font-weight:600;color:#1a1a1a">{{ rdata.notes }}</div>
+          <strong style="font-size:12px;color:var(--nx-red);">{{ t('ملاحظات العميل','Client notes') }}:</strong>
+          <div style="background:var(--nx-bad-bg);border:1px solid var(--nx-bad-line);border-radius:8px;padding:8px 10px;margin-top:6px;font-size:13px;font-weight:600;color:#1a1a1a">{{ rdata.notes }}</div>
         </div>
         {% endif %}
       </div>
@@ -84,24 +84,24 @@
   {% endfor %}
 
   {% if not pending_reqs %}
-  <div class="card" style="text-align:center;padding:30px;background:#F3F5F7;border:2px dashed #D5DAE0">
-    <i class="fa-solid fa-check-circle" style="font-size:40px;color:#3A4A5C;margin-bottom:10px"></i>
-    <h2 style="color:#1E2630;font-weight:800">{{ t('مفيش طلبات جديدة','No new requests') }}</h2>
+  <div class="card" style="text-align:center;padding:30px;background:var(--nx-surface-2);border:2px dashed var(--nx-line)">
+    <i class="fa-solid fa-check-circle" style="font-size:40px;color:var(--nx-ink-2);margin-bottom:10px"></i>
+    <h2 style="color:var(--nx-ink);font-weight:800">{{ t('مفيش طلبات جديدة','No new requests') }}</h2>
   </div>
   {% endif %}
 </div>
 
 {% if approved_reqs %}
 <div style="margin-top:20px">
-  <button onclick="toggleDone()" id="doneToggle" style="width:100%;padding:14px 18px;background:#F3F5F7;border:2px solid #D5DAE0;border-radius:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-family:'Cairo',sans-serif">
+  <button onclick="toggleDone()" id="doneToggle" style="width:100%;padding:14px 18px;background:var(--nx-surface-2);border:2px solid var(--nx-line);border-radius:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-family:'Cairo',sans-serif">
     <div style="display:flex;align-items:center;gap:10px">
       <div style="font-size:22px">✅</div>
       <div style="text-align:{{ 'right' if is_ar else 'left' }}">
-        <div style="font-weight:800;font-size:15px;color:#1E2630">{{ t('الطلبات المكتملة','Completed Requests') }}</div>
-        <div style="font-size:12px;color:#166534;margin-top:2px">{{ t('اضغط للعرض','Tap to view') }}</div>
+        <div style="font-weight:800;font-size:15px;color:var(--nx-ink)">{{ t('الطلبات المكتملة','Completed Requests') }}</div>
+        <div style="font-size:12px;color:var(--nx-ok-ink);margin-top:2px">{{ t('اضغط للعرض','Tap to view') }}</div>
       </div>
     </div>
-    <i id="doneIcon" class="fa-solid fa-chevron-down" style="font-size:18px;color:#3A4A5C"></i>
+    <i id="doneIcon" class="fa-solid fa-chevron-down" style="font-size:18px;color:var(--nx-ink-2)"></i>
   </button>
 
   <div id="doneList" style="display:none;margin-top:12px">
@@ -118,14 +118,14 @@
             </div>
           </div>
           <div>
-            <span style="background:#EDF0F3;color:#1E2630;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">{{ t('مكتمل','Done') }}</span>
+            <span style="background:var(--nx-tint);color:var(--nx-ink);padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700">{{ t('مكتمل','Done') }}</span>
           </div>
         </div>
 
         <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-bottom:10px">
-          <span style="background:white;padding:3px 8px;border-radius:6px;border:1px solid var(--gray-2)">{{ goal_names.get(rdata.goal_type, '-') }}</span>
-          <span style="background:white;padding:3px 8px;border-radius:6px;border:1px solid var(--gray-2)">{{ culture_names.get(rdata.culture, rdata.culture or '-') }}</span>
-          <span style="background:white;padding:3px 8px;border-radius:6px;border:1px solid var(--gray-2)">{{ rdata.goal_cal or '-' }} kcal</span>
+          <span style="background:var(--nx-surface);padding:3px 8px;border-radius:6px;border:1px solid var(--gray-2)">{{ goal_names.get(rdata.goal_type, '-') }}</span>
+          <span style="background:var(--nx-surface);padding:3px 8px;border-radius:6px;border:1px solid var(--gray-2)">{{ culture_names.get(rdata.culture, rdata.culture or '-') }}</span>
+          <span style="background:var(--nx-surface);padding:3px 8px;border-radius:6px;border:1px solid var(--gray-2)">{{ rdata.goal_cal or '-' }} kcal</span>
         </div>
 
         <div style="display:flex;gap:6px;flex-wrap:wrap"
@@ -147,10 +147,10 @@
 {% endif %}
 
 <div id="phoneModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:20px">
-  <div style="background:white;border-radius:16px;padding:24px;max-width:420px;width:100%">
+  <div style="background:var(--nx-surface);border-radius:16px;padding:24px;max-width:420px;width:100%">
     <div style="text-align:center;margin-bottom:16px">
       <div style="font-size:48px">📱</div>
-      <h3 style="color:var(--blue);margin-top:8px">{{ t('رقم العميل','Client number') }}</h3>
+      <h3 style="color:var(--nx-ink);margin-top:8px">{{ t('رقم العميل','Client number') }}</h3>
       <p style="color:var(--muted);font-size:13px;margin-top:4px">{{ t('اكتب رقم واتساب مع كود الدولة','Enter the WhatsApp number with country code') }}</p>
     </div>
     <div class="form-group">
@@ -166,7 +166,7 @@
   </div>
 </div>
 
-<div id="toast" style="display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#3A4A5C;color:white;padding:14px 24px;border-radius:100px;font-weight:700;z-index:2000">
+<div id="toast" style="display:none;position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--nx-solid-2);color:white;padding:14px 24px;border-radius:100px;font-weight:700;z-index:2000">
   <i class="fa-solid fa-check-circle"></i> <span id="toastMsg">{{ t('تم','Done') }}</span>
 </div>
 
@@ -293,8 +293,8 @@ document.addEventListener('keydown', function(e) {
 
 <!-- Reject Modal -->
 <div id="rejectModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;padding:20px;align-items:center;justify-content:center">
-  <div style="background:white;border-radius:14px;max-width:480px;width:100%;padding:24px">
-    <h3 style="color:#dc2626;font-weight:800;margin-bottom:8px">
+  <div style="background:var(--nx-surface);border-radius:14px;max-width:480px;width:100%;padding:24px">
+    <h3 style="color:var(--nx-red);font-weight:800;margin-bottom:8px">
       <i class="fa-solid fa-xmark-circle"></i> {{ t('رفض طلب الخطة','Reject plan request') }}
     </h3>
     <p style="color:var(--muted);font-size:13px;margin-bottom:14px">

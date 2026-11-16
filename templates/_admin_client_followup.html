@@ -10,8 +10,8 @@
   {% if cd %}
   <p style="font-size:13.5px;margin:0 0 10px"><strong>{{ t('مياه النهارده:','Water today:') }}</strong> {{ cd.water.total }} / {{ cd.water.goal }} {{ t('مل','ml') }}</p>
   {% for n in cd.notes %}
-  <p style="font-size:13px;margin:0 0 6px;color:#374250">
-    <strong>{{ meal_names.get(n.meal_key, n.meal_key) }}</strong>{% if n.skipped %} · <span style="color:#8B2E2E;font-weight:800">{{ t('اتخطّت','Skipped') }}</span>{% endif %}{% if n.comment %} · {{ n.comment }}{% endif %}
+  <p style="font-size:13px;margin:0 0 6px;color:var(--nx-ink-2)">
+    <strong>{{ meal_names.get(n.meal_key, n.meal_key) }}</strong>{% if n.skipped %} · <span style="color:var(--nx-bad-ink);font-weight:800">{{ t('اتخطّت','Skipped') }}</span>{% endif %}{% if n.comment %} · {{ n.comment }}{% endif %}
   </p>
   {% endfor %}
   {% endif %}
@@ -20,39 +20,39 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="water_goal">
     <div><label for="rcWater" style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">{{ t('هدف المياه (مل/يوم)','Water goal (ml/day)') }}</label>
-      <input id="rcWater" type="number" name="water_goal_ml" min="500" max="6000" step="any" value="{{ cd.water.goal if cd else 2000 }}" style="padding:9px 12px;border:1px solid #D5DAE0;border-radius:8px;width:130px;font-family:inherit"></div>
-    <button type="submit" style="padding:9px 16px;border:1px solid #D5DAE0;border-radius:8px;background:#fff;font-family:inherit;font-weight:700;cursor:pointer">{{ t('حفظ','Save') }}</button>
+      <input id="rcWater" type="number" name="water_goal_ml" min="500" max="6000" step="any" value="{{ cd.water.goal if cd else 2000 }}" style="padding:9px 12px;border:1px solid var(--nx-line);border-radius:8px;width:130px;font-family:inherit"></div>
+    <button type="submit" style="padding:9px 16px;border:1px solid var(--nx-line);border-radius:8px;background:var(--nx-surface);font-family:inherit;font-weight:700;cursor:pointer">{{ t('حفظ','Save') }}</button>
   </form>
 
   {# ‏البدائل: العميل بيشوف لكل صنف في خطته أصناف تانية بنفس السعرات
      والماكروز ومسموحة لحالته. بتتقفل هنا لعميل محتاج يمشي على الخطة حرفيًا. #}
-  <form method="post" action="/admin/users/{{ user.id }}/recommendations" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 16px;padding:10px 12px;background:#F6F7F8;border-radius:10px">
+  <form method="post" action="/admin/users/{{ user.id }}/recommendations" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 16px;padding:10px 12px;background:var(--nx-surface-2);border-radius:10px">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="swaps">
     <input type="hidden" name="allow" value="{{ 0 if (user.allow_swaps is none or user.allow_swaps) else 1 }}">
     <span style="font-size:13px;flex:1;min-width:200px"><strong>{{ t('بدائل الأصناف للعميل:','Food swaps for the client:') }}</strong>
       {% if user.allow_swaps is none or user.allow_swaps %}{{ t('شغّالة — بيشوف بدائل بنفس السعرات والماكروز ومسموحة لحالته.','On — they see swaps with the same calories and macros, allowed for their condition.') }}{% else %}{{ t('مقفولة — ملتزم بالخطة زي ما هي.','Off — they follow the plan as written.') }}{% endif %}</span>
-    <button type="submit" style="padding:8px 14px;border:1px solid #D5DAE0;border-radius:8px;background:#fff;font-family:inherit;font-weight:700;cursor:pointer">{% if user.allow_swaps is none or user.allow_swaps %}{{ t('اقفلها','Turn off') }}{% else %}{{ t('شغّلها','Turn on') }}{% endif %}</button>
+    <button type="submit" style="padding:8px 14px;border:1px solid var(--nx-line);border-radius:8px;background:var(--nx-surface);font-family:inherit;font-weight:700;cursor:pointer">{% if user.allow_swaps is none or user.allow_swaps %}{{ t('اقفلها','Turn off') }}{% else %}{{ t('شغّلها','Turn on') }}{% endif %}</button>
   </form>
 
   {% for kind, title in [('goal', t('أهداف','Goals')), ('avoid', t('أكل يبعد عنه','Foods to avoid')), ('note', t('ملاحظات','Notes'))] %}
   <div style="margin-bottom:12px">
     <div style="font-size:13px;font-weight:800;margin-bottom:6px">{{ title }}</div>
     {% for r in rc[kind] %}
-    <form method="post" action="/admin/users/{{ user.id }}/recommendations" style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid #E4E7EA;margin:0">
+    <form method="post" action="/admin/users/{{ user.id }}/recommendations" style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--nx-line);margin:0">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="action" value="delete">
       <input type="hidden" name="id" value="{{ r.id }}">
       <span style="font-size:13.5px">{{ r.body }}</span>
-      <button type="submit" aria-label="{{ t('حذف','Remove') }}" style="border:none;background:none;color:#8B2E2E;cursor:pointer;font-weight:800">✕</button>
+      <button type="submit" aria-label="{{ t('حذف','Remove') }}" style="border:none;background:none;color:var(--nx-bad-ink);cursor:pointer;font-weight:800">✕</button>
     </form>
     {% endfor %}
     <form method="post" action="/admin/users/{{ user.id }}/recommendations" style="display:flex;gap:8px;margin-top:6px">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="action" value="add">
       <input type="hidden" name="kind" value="{{ kind }}">
-      <input name="body" maxlength="300" required aria-label="{{ title }}" placeholder="{{ t('اكتب وأضف','Type and add') }}" style="flex:1;padding:9px 12px;border:1px solid #D5DAE0;border-radius:8px;font-family:inherit">
-      <button type="submit" style="padding:9px 16px;border:none;border-radius:8px;background:#2B3746;color:#fff;font-family:inherit;font-weight:700;cursor:pointer">{{ t('أضف','Add') }}</button>
+      <input name="body" maxlength="300" required aria-label="{{ title }}" placeholder="{{ t('اكتب وأضف','Type and add') }}" style="flex:1;padding:9px 12px;border:1px solid var(--nx-line);border-radius:8px;font-family:inherit">
+      <button type="submit" style="padding:9px 16px;border:none;border-radius:8px;background:var(--nx-solid-2);color:#fff;font-family:inherit;font-weight:700;cursor:pointer">{{ t('أضف','Add') }}</button>
     </form>
   </div>
   {% endfor %}

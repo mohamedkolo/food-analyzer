@@ -3,13 +3,13 @@
 
 {% block extra_style %}
 <style>
-.cond-card{background:#fff;border:1.5px solid var(--gray-2);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer;transition:all .2s}
+.cond-card{background:var(--nx-surface);border:1.5px solid var(--gray-2);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer;transition:all .2s}
 .cond-card:hover{border-color:var(--blue-light);box-shadow:0 3px 14px rgba(37,99,235,.1)}
 .cond-detail{display:none;margin-top:14px;padding-top:14px;border-top:1.5px solid var(--gray-2)}
 .cond-detail.open{display:block}
 .rec-row{background:var(--blue-pale);border-inline-start:3px solid var(--blue-light);border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:13px}
-.rec-label{font-size:11px;font-weight:700;color:var(--blue);margin-bottom:2px}
-.food-tag-good{background:var(--green-pale);color:var(--green);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-block;margin:2px}
+.rec-label{font-size:11px;font-weight:700;color:var(--nx-ink);margin-bottom:2px}
+.food-tag-good{background:var(--green-pale);color:var(--nx-ink-2);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-block;margin:2px}
 .food-tag-bad{background:var(--red-pale);color:var(--red);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-block;margin:2px}
 .arr{transition:transform .3s}
 </style>
@@ -35,7 +35,7 @@ const IS_AR = {{ 'true' if is_ar else 'false' }};
 
 const CONDITIONS = [
   {
-    icon: 'fa-droplet', color: '#dc2626',
+    icon: 'fa-droplet', color: 'var(--nx-red)',
     name_ar: 'السكري النوع الثاني', name_en: 'Type 2 Diabetes',
     overview_ar: 'مقاومة للانسولين مع نقص تدريجي في افرازه. فقدان 5-10% من الوزن يحسن التحكم في السكر بشكل ملحوظ.',
     overview_en: 'Insulin resistance with progressive secretion deficit. Losing 5-10% of weight significantly improves blood sugar control.',
@@ -52,7 +52,7 @@ const CONDITIONS = [
     ref: 'Ch.26 — Diabetes Mellitus, pp.818-836'
   },
   {
-    icon: 'fa-syringe', color: '#b91c1c',
+    icon: 'fa-syringe', color: 'var(--nx-bad-ink)',
     name_ar: 'السكري النوع الأول', name_en: 'Type 1 Diabetes',
     overview_ar: 'مرض مناعي ذاتي بيدمّر خلايا البنكرياس المنتجة للأنسولين — المريض محتاج أنسولين مدى الحياة (مش مقاومة أنسولين زي النوع التاني). الأساس الغذائي هنا مختلف جذرياً: مش "امنع الكارب"، لكن **عدّ الكارب بدقة** عشان يتحدد جرعة الأنسولين المناسبة لكل وجبة.',
     overview_en: 'An autoimmune disease that destroys insulin-producing pancreatic cells - the patient needs insulin for life (not insulin resistance like Type 2). The dietary approach is fundamentally different: not "avoid carbs" but **precise carb counting** to determine the right insulin dose per meal.',
@@ -69,7 +69,7 @@ const CONDITIONS = [
     ref: 'Ch.26 — Diabetes Mellitus, pp.818-836 (تمييز النوع الأول عن الثاني إرشاد عام — general Type 1 vs Type 2 distinction)'
   },
   {
-    icon: 'fa-heart', color: '#dc2626',
+    icon: 'fa-heart', color: 'var(--nx-red)',
     name_ar: 'امراض القلب وضغط الدم', name_en: 'Cardiovascular & Hypertension',
     overview_ar: 'نظام TLC يستهدف خفض LDL والكوليسترول مع الحفاظ على HDL. DASH يخفض الضغط الانقباضي 8-14 نقطة.',
     overview_en: 'TLC system targets lowering LDL and cholesterol while maintaining HDL. DASH lowers systolic BP by 8-14 points.',
@@ -120,7 +120,7 @@ const CONDITIONS = [
     ref: 'Ch.14 — Pregnancy and Lactation, pp.497-505'
   },
   {
-    icon: 'fa-kidney', color: '#3A4A5C',
+    icon: 'fa-kidney', color: 'var(--nx-ink-2)',
     name_ar: 'الفشل الكلوي المزمن (قبل الديلزة)', name_en: 'Chronic Kidney Disease (Pre-Dialysis)',
     overview_ar: 'تقليل البروتين لتخفيف حمل اليوريا وضبط الصوديوم والبوتاسيوم والفوسفور.',
     overview_en: 'Protein restriction to reduce urea load and control sodium, potassium, and phosphorus.',
@@ -137,7 +137,7 @@ const CONDITIONS = [
     ref: 'Ch.28 — Renal Diseases, pp.872-892'
   },
   {
-    icon: 'fa-person-walking', color: '#3A4A5C',
+    icon: 'fa-person-walking', color: 'var(--nx-ink-2)',
     name_ar: 'السمنة وزيادة الوزن', name_en: 'Obesity & Overweight',
     overview_ar: 'خسارة 0.5-1 كجم/اسبوع بعجز 500-1000 kcal/يوم. البروتين العالي يحافظ على العضل ويقلل الجوع.',
     overview_en: 'Lose 0.5-1 kg/week with 500-1000 kcal/day deficit. High protein preserves muscle and reduces hunger.',
@@ -154,7 +154,7 @@ const CONDITIONS = [
     ref: 'Ch.9 — Weight Management, pp.270-310'
   },
   {
-    icon: 'fa-stomach', color: '#8A4B1C',
+    icon: 'fa-stomach', color: 'var(--nx-warn-ink)',
     name_ar: 'القولون العصبي (IBS)', name_en: 'Irritable Bowel Syndrome (IBS)',
     overview_ar: 'حمية Low-FODMAP فعالة لدى 75% من المرضى. ادارة التوتر جزء اساسي من العلاج.',
     overview_en: 'Low-FODMAP diet effective in 75% of patients. Stress management is an essential part of treatment.',
@@ -171,7 +171,7 @@ const CONDITIONS = [
     ref: 'Ch.24 — Lower GI Disorders, pp.754-780'
   },
   {
-    icon: 'fa-fire', color: '#dc2626',
+    icon: 'fa-fire', color: 'var(--nx-red)',
     name_ar: 'حرقة المعدة / الارتجاع (GERD)', name_en: 'GERD / Acid Reflux',
     overview_ar: 'الارتجاع يحدث عند ارتداد حمض المعدة للمريء. التعديلات الغذائية وتغيير نمط الحياة اساس العلاج.',
     overview_en: 'Reflux occurs when stomach acid backs up into the esophagus. Dietary changes and lifestyle modification are the foundation of treatment.',
@@ -188,7 +188,7 @@ const CONDITIONS = [
     ref: 'Ch.23 — Upper GI Disorders, pp.730-750'
   },
   {
-    icon: 'fa-wheat-awn', color: '#8A4B1C',
+    icon: 'fa-wheat-awn', color: 'var(--nx-warn-ink)',
     name_ar: 'الداء الزلاقي (حساسية الجلوتين)', name_en: 'Celiac Disease',
     overview_ar: 'مرض مناعي يهاجم الامعاء الدقيقة كرد فعل على الجلوتين (بروتين في القمح والشعير والشوفان الملوث)، ويسبب سوء امتصاص شديد. العلاج الوحيد الفعال هو الامتناع التام عن الجلوتين مدى الحياة.',
     overview_en: 'An immune disorder that damages the small intestine in reaction to gluten (found in wheat, barley, and contaminated oats), causing severe malabsorption. Lifelong complete gluten avoidance is the only effective treatment.',
@@ -273,7 +273,7 @@ const CONDITIONS = [
     ref: 'إرشادات طبية عامة — General clinical guidance (not covered in reference textbook)'
   },
   {
-    icon: 'fa-vial', color: '#dc2626',
+    icon: 'fa-vial', color: 'var(--nx-red)',
     name_ar: 'الثلاسيميا', name_en: 'Thalassemia',
     overview_ar: 'اضطراب وراثي في تكوين الهيموجلوبين يسبب فقر دم مزمن. المرضى غالباً بياخدوا نقل دم متكرر، وده بيسبب تراكم زيادة حديد خطيرة في الجسم (اخطر من نقص الحديد نفسه). ⚠️ إرشادات طبية عامة — الكتاب المرجعي الحالي مش بيغطي الحالة دي بالتفصيل.',
     overview_en: 'A genetic hemoglobin disorder causing chronic anemia. Patients often receive repeated blood transfusions, which causes dangerous iron overload (more dangerous than iron deficiency itself). ⚠️ General medical guidance - the current reference textbook does not cover this condition in detail.',
@@ -290,7 +290,7 @@ const CONDITIONS = [
     ref: 'إرشادات طبية عامة — General clinical guidance (not covered in reference textbook)'
   },
   {
-    icon: 'fa-bacteria', color: '#8A4B1C',
+    icon: 'fa-bacteria', color: 'var(--nx-warn-ink)',
     name_ar: 'التهاب الأمعاء (كرون والتهاب القولون التقرحي)', name_en: 'Inflammatory Bowel Disease (Crohn\'s & Ulcerative Colitis)',
     overview_ar: 'أمراض التهابية مزمنة تصيب الجهاز الهضمي، ببداية غالباً بين سن 15-25. كرون ممكن يصيب أي جزء من الجهاز الهضمي ويسبب سوء امتصاص، بينما التهاب القولون التقرحي يقتصر على القولون. فترات نشاط وفترات هدوء متبادلة.',
     overview_en: 'Chronic inflammatory GI diseases, usually starting between ages 15-25. Crohn\'s can affect any part of the GI tract causing malabsorption, while ulcerative colitis is limited to the colon. Both alternate between active flares and remission.',
@@ -307,7 +307,7 @@ const CONDITIONS = [
     ref: 'Ch.24 — Lower GI Disorders, pp.768-769'
   },
   {
-    icon: 'fa-notes-medical', color: '#8A4B1C',
+    icon: 'fa-notes-medical', color: 'var(--nx-warn-ink)',
     name_ar: 'تليف الكبد (السيروزيس)', name_en: 'Liver Cirrhosis',
     overview_ar: 'المرحلة النهائية من تلف الكبد المزمن — تدمير تدريجي لأنسجة الكبد يحل محله نسيج ندبي. بيأثر على تكوين البروتينات، تنقية السموم، وامتصاص الدهون. 40% من الحالات بدون أعراض في البداية.',
     overview_en: 'The final stage of chronic liver damage — progressive scarring replaces healthy liver tissue. Affects protein synthesis, toxin clearance, and fat absorption. 40% of cases are initially asymptomatic.',
@@ -324,7 +324,7 @@ const CONDITIONS = [
     ref: 'Ch.25 — Liver Disease and Gallstones, pp.790-792'
   },
   {
-    icon: 'fa-triangle-exclamation', color: '#dc2626',
+    icon: 'fa-triangle-exclamation', color: 'var(--nx-red)',
     name_ar: 'حساسية الطعام', name_en: 'Food Allergies',
     overview_ar: 'رد فعل مناعي تجاه بروتين معين في الطعام (مختلف عن عدم تحمل الطعام اللي مالوش علاقة بالمناعة). الأطعمة الأكتر تسبباً: البيض والسمك واللبن والفول السوداني والمحار وفول الصويا والمكسرات والقمح. أخطر حالاته الحساسية المفرطة (anaphylaxis) اللي محتاجة إبرة إبينفرين فورية.',
     overview_en: 'An immune reaction to a specific food protein (different from food intolerance, which is not immune-related). Most common triggers: eggs, fish, milk, peanuts, shellfish, soy, tree nuts, wheat. The most dangerous form is anaphylaxis, requiring immediate epinephrine.',
@@ -341,7 +341,7 @@ const CONDITIONS = [
     ref: 'Highlight 25 — Food Allergies, pp.806-808'
   },
   {
-    icon: 'fa-bone', color: '#5A6472',
+    icon: 'fa-bone', color: 'var(--nx-muted)',
     name_ar: 'هشاشة العظام', name_en: 'Osteoporosis',
     overview_ar: 'ضعف وتخلخل في العظام بيزود خطر الكسور، خصوصاً في الورك والعمود الفقري والمعصم. أكتر انتشاراً في السيدات فوق الخمسين بعد سن اليأس (فقدان هرمون الاستروجين). أهم فترة للوقاية: بناء كثافة العظام في العقود التلاتة الأولى من العمر.',
     overview_en: 'Weakened, porous bones with increased fracture risk, especially hip, spine, and wrist. Most common in women over 50 post-menopause (estrogen loss). The most critical prevention window is building bone density in the first three decades of life.',
@@ -358,7 +358,7 @@ const CONDITIONS = [
     ref: 'Highlight 12 — Osteoporosis and Calcium, pp.431-434'
   },
   {
-    icon: 'fa-heart-pulse', color: '#b91c1c',
+    icon: 'fa-heart-pulse', color: 'var(--nx-bad-ink)',
     name_ar: 'فقر الدم بسبب نقص الحديد', name_en: 'Iron-Deficiency Anemia',
     overview_ar: 'أكتر نقص غذائي انتشاراً في العالم — بيأثر على أكتر من 1.2 مليار شخص. الفئات الأكتر عرضة: السيدات في سن الإنجاب (فقد دم بالدورة الشهرية)، الحوامل، الأطفال الصغار، والمراهقين. الأعراض: إرهاق، شحوب، ضيق نفس، دوخة.',
     overview_en: 'The most common nutrient deficiency worldwide, affecting over 1.2 billion people. Most vulnerable: women of reproductive age (menstrual losses), pregnant women, young children, and adolescents. Symptoms: fatigue, paleness, shortness of breath, dizziness.',
@@ -460,7 +460,7 @@ const CONDITIONS = [
     ref: 'Ch.19 — Medications, Herbal Products & Diet-Drug Interactions, pp.651-653'
   },
   {
-    icon: 'fa-droplet', color: '#8B2E2E',
+    icon: 'fa-droplet', color: 'var(--nx-bad-ink)',
     name_ar: 'فقر الدم المصاحب للمرض المزمن', name_en: 'Anemia of Chronic Disease',
     overview_ar: 'مختلف عن فقر الدم بنقص الحديد العادي — بيحصل مع أمراض مزمنة (فشل كلوي، التهابات مزمنة، سرطان) حتى لو مخازن الحديد في الجسم كافية. شائع جداً في المستشفيات (20-40% من المرضى المنومين عندهم درجة من فقر الدم). ⚠️ إعطاء مكملات حديد هنا غالباً ملوش فايدة ومش الحل، لازم علاج المرض الأساسي أولاً.',
     overview_en: 'Different from ordinary iron-deficiency anemia - occurs alongside chronic illness (kidney failure, chronic inflammation, cancer) even when iron stores are adequate. Very common in hospitals (20-40% of inpatients show some degree of anemia). ⚠️ Iron supplements are usually not the answer here - the underlying disease needs treatment first.',
@@ -524,14 +524,14 @@ function renderConditions() {
       </div>
       <div class="cond-detail" id="det_${i}">
         <p style="font-size:14px;color:var(--text-2);margin-bottom:12px;line-height:1.7">${overview}</p>
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px">
+        <div style="font-size:13px;font-weight:700;color:var(--nx-ink);margin-bottom:8px">
           <i class="fa-solid fa-scale-balanced"></i>
           ${IS_AR ? 'التوصيات الكمية' : 'Quantitative Recommendations'}
         </div>
         ${macrosHtml}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
           <div>
-            <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:8px">
+            <div style="font-size:13px;font-weight:700;color:var(--nx-ink-2);margin-bottom:8px">
               <i class="fa-solid fa-circle-check"></i>
               ${IS_AR ? 'اطعمة مشجعة' : 'Recommended Foods'}
             </div>
