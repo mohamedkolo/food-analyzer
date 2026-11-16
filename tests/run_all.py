@@ -76,6 +76,7 @@ SUITES = [
     "test_speed.py",
     "test_liquid_nav.py",
     "test_dark_mode.py",
+    "test_glass.py",
 ]
 
 

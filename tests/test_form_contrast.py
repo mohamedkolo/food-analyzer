@@ -164,7 +164,12 @@ def test_the_public_header_is_readable_on_a_white_bar():
         "‏لينكات الهيدر رمادي فاتح (١.٤٨:١ على الأبيض)")
     base = _page(_BASE)
     m = re.search(r"\.header\{[^}]*background:([^;}]+)", base)
-    assert m and "var(--white)" in m.group(1), (
+    # ‏الهيدر بقى زجاج (test_glass): أبيض ٧٨٪ في الفاتح، وألوان الهيدر العام
+    # أسامي من الثيم بتقلب معاه في الغامق. المهم إنه يفضل فاتح في الفاتح.
+    theme = _page(os.path.join(_HERE, "templates", "_theme.html"))
+    strong = re.search(r"--nx-glass-strong:rgba\(255,255,255,([\d.]+)\)", theme)
+    assert m and ("var(--white)" in m.group(1) or
+                  ("var(--nx-glass-strong)" in m.group(1) and strong and float(strong.group(1)) >= 0.7)), (
         "‏لو الهيدر رجع غامق، ألوان الهيدر العام لازم تتراجع معاه")
 
 
