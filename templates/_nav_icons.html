@@ -1,0 +1,42 @@
+{#- ‏أيقونات القايمة الجانبية: خط رفيع أبيض بمقاس واحد (٢٠ بكسل، سُمك ١.٥).
+    كانت Font Awesome مصمتة، وطلب صاحب المشروع شكل iOS بخط رفيع. مرسومة هنا
+    بإيدينا من أشكال بسيطة، فمفيش مكتبة جديدة ولا ملف بيتحمّل من برّه.
+    ‏الأيقونة بتاخد لون النص (currentColor)، فلما الزرار يتملي بلون فاتح
+    والكلام يبقى كحلي، الأيقونة بتبقى كحلي معاه. -#}
+{%- set _P = {
+  'house': '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>',
+  'users': '<circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 4.8a3 3 0 0 1 0 6"/><path d="M18 14.6a5 5 0 0 1 3 5.4"/>',
+  'inbox': '<path d="M3 13 5.5 5h13L21 13v6H3z"/><path d="M3 13h5l1.5 2.5h5L16 13h5"/>',
+  'calendar': '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  'calendar-check': '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="m9 15.5 2 2 4-4"/>',
+  'clock': '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  'chat': '<path d="M4 5h16v11H9l-5 4z"/>',
+  'ban': '<circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/>',
+  'file': '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>',
+  'file-plus': '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M12 11v6M9 14h6"/>',
+  'bookmark': '<path d="M6 3h12v18l-6-4-6 4z"/>',
+  'search': '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.3-4.3"/>',
+  'book': '<path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 19v2H6"/>',
+  'gear': '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
+  'bell': '<path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+  'plug': '<path d="M9 3v5M15 3v5M7 8h10v3a5 5 0 0 1-10 0zM12 16v5"/>',
+  'sliders': '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
+  'phone': '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+  'clipboard': '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2.5h6v3H9zM8.5 11h7M8.5 15h5"/>',
+  'send': '<path d="M21 3 3 10.5l7 3 3 7z"/><path d="M10 13.5 21 3"/>',
+  'target': '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
+  'chart': '<path d="M3 20h18"/><path d="m5 16 4.5-5 3.5 3 6-7"/>',
+  'dots': '<circle cx="6" cy="12" r="1.1"/><circle cx="12" cy="12" r="1.1"/><circle cx="18" cy="12" r="1.1"/>',
+  'logout': '<path d="M10 4H5v16h5"/><path d="m14 8 4 4-4 4M9 12h9"/>',
+  'chevron': '<path d="m6 9 6 6 6-6"/>',
+} -%}
+
+{%- macro ic(name, extra='') -%}
+<svg class="nx-ic{{ ' ' ~ extra if extra }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{{ _P[name]|safe }}</svg>
+{%- endmacro -%}
+
+{#- ‏السائل اللي بيملا الزرار من تحت: موجتين بسرعتين في اتجاهين، الورانية
+    أبهت. اللون من --lq اللي data-lq على الزرار بيحدده. -#}
+{%- macro liquid() -%}
+<span class="lq-fill" aria-hidden="true"><svg class="lq-wave back" viewBox="0 0 200 14" preserveAspectRatio="none" focusable="false"><path d="M0 7Q12.5 0 25 7T50 7T75 7T100 7T125 7T150 7T175 7T200 7V14H0Z" fill="currentColor"/></svg><svg class="lq-wave" viewBox="0 0 200 14" preserveAspectRatio="none" focusable="false"><path d="M0 7Q12.5 0 25 7T50 7T75 7T100 7T125 7T150 7T175 7T200 7V14H0Z" fill="currentColor"/></svg></span>
+{%- endmacro -%}
