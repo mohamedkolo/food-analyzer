@@ -674,7 +674,7 @@ def my_plan():
                            can_request=can_request, days_left=days_left,
                            hours_left=hours_left, last_request_date=last_date,
                            today_tip=today_tip, weight=weight, tracking=tracking,
-                           streak=streak)
+                           streak=streak, progress=client_app.today_progress(u))
 
 def _plan_input_error(age, height, weight, lang="ar"):
     """None when age/height/weight are usable, otherwise a message to show.
