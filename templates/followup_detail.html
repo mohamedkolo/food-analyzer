@@ -45,7 +45,7 @@
 </div>
 
 {% if saved %}
-<div style="background:#F3F5F7;border:1px solid #D5DAE0;color:#2E4A3D;border-radius:10px;
+<div style="background:var(--nx-surface-2);border:1px solid var(--nx-line);color:#2E4A3D;border-radius:10px;
             padding:10px 14px;margin-bottom:14px;font-size:13.5px">
   <i class="fa-solid fa-circle-check"></i>
   {% if saved == 'visit' %}{{ t('أرقام الزيارة اتصلّحت، والتقدّم اتحسب تاني.','The visit is corrected and the progress recomputed.') }}
@@ -55,7 +55,7 @@
 </div>
 {% endif %}
 {% if err %}
-<div style="background:#FBEDED;border:1px solid #E3B4B4;color:#8B2E2E;border-radius:10px;
+<div style="background:var(--nx-bad-bg);border:1px solid var(--nx-bad-line);color:var(--nx-bad-ink);border-radius:10px;
             padding:10px 14px;margin-bottom:14px;font-size:13.5px">
   <i class="fa-solid fa-triangle-exclamation"></i>
   {% if err == 'exists' %}
@@ -78,7 +78,7 @@
 <form id="fuEditForm" method="POST" action="/followups/{{ client_key|urlencode }}/rename"
       hidden class="card" style="padding:16px 18px;margin-bottom:16px">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <div style="font-weight:800;color:var(--blue-dark);margin-bottom:4px">
+  <div style="font-weight:800;color:var(--nx-ink);margin-bottom:4px">
     {{ t('تعديل بيانات العميل','Edit the client details') }}</div>
   <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
     {{ t('التعديل بيسري على كل زيارات الملف، والتقدّم بيفضل متصل زي ما هو.',
@@ -114,7 +114,7 @@
       hidden class="card" style="padding:16px 18px;margin-bottom:16px"
       onsubmit="return confirm('{{ t('الدمج مالوش رجوع. تأكيد؟','A merge cannot be undone. Are you sure?') }}')">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <div style="font-weight:800;color:var(--blue-dark);margin-bottom:4px">
+  <div style="font-weight:800;color:var(--nx-ink);margin-bottom:4px">
     {{ t('دمج الملف ده في ملف تاني','Merge this file into another') }}</div>
   <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
     {{ t('كل زيارات الملف ده هتنقل للملف اللي تختاره، وتترتّب بتاريخها. الملف ده هيختفي، والدمج مالوش رجوع.',
@@ -179,26 +179,26 @@
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px">
     <div>
       <div style="font-size:12px;color:var(--muted);font-weight:700">{{ t('الزيارات','Visits') }}</div>
-      <div style="font-size:24px;font-weight:900;color:var(--blue-dark)">{{ summary.visits }}</div>
+      <div style="font-size:24px;font-weight:900;color:var(--nx-ink)">{{ summary.visits }}</div>
     </div>
     <div>
       <div style="font-size:12px;color:var(--muted);font-weight:700">{{ t('أول وزن','Starting weight') }}</div>
-      <div style="font-size:24px;font-weight:900;color:var(--blue-dark)">{{ summary.first_weight }}<span style="font-size:14px">{{ t('كجم','kg') }}</span></div>
+      <div style="font-size:24px;font-weight:900;color:var(--nx-ink)">{{ summary.first_weight }}<span style="font-size:14px">{{ t('كجم','kg') }}</span></div>
     </div>
     <div>
       <div style="font-size:12px;color:var(--muted);font-weight:700">{{ t('الوزن الحالي','Current weight') }}</div>
-      <div style="font-size:24px;font-weight:900;color:var(--blue-dark)">{{ summary.current_weight }}<span style="font-size:14px">{{ t('كجم','kg') }}</span></div>
+      <div style="font-size:24px;font-weight:900;color:var(--nx-ink)">{{ summary.current_weight }}<span style="font-size:14px">{{ t('كجم','kg') }}</span></div>
     </div>
     <div>
       <div style="font-size:12px;color:var(--muted);font-weight:700">{{ t('الإجمالي','Total change') }}</div>
-      <div style="font-size:24px;font-weight:900;color:{{ '#3A4A5C' if summary.total_change < 0 else '#8A4B1C' }}">
+      <div style="font-size:24px;font-weight:900;color:{{ 'var(--nx-ink-2)' if summary.total_change < 0 else 'var(--nx-warn-ink)' }}">
         {{ '+' if summary.total_change > 0 }}{{ summary.total_change }}<span style="font-size:14px">{{ t('كجم','kg') }}</span>
       </div>
     </div>
     {% if summary.rate %}
     <div>
       <div style="font-size:12px;color:var(--muted);font-weight:700">{{ t('المعدل','Rate') }}</div>
-      <div style="font-size:24px;font-weight:900;color:var(--blue-dark)">
+      <div style="font-size:24px;font-weight:900;color:var(--nx-ink)">
         {{ '+' if summary.rate > 0 }}{{ summary.rate }}<span style="font-size:13px">{{ t(' كجم/أسبوع',' kg/wk') }}</span>
       </div>
     </div>
@@ -217,7 +217,7 @@
   {% set pad = ((hi - lo) / 4) if (hi - lo) > 0 else 1 %}
   {% set y0 = lo - pad %}{% set span = (hi + pad) - y0 %}
   {% set W = 100 %}{% set H = 34 %}
-  <div style="margin-top:20px;padding-top:16px;border-top:1px solid #EDF0F3">
+  <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--nx-line)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div style="font-size:12px;color:var(--muted);font-weight:700">{{ t('خط الوزن','Weight over time') }}</div>
       <div style="font-size:11.5px;color:var(--muted)">
@@ -242,7 +242,7 @@
       <div style="display:flex;justify-content:space-between;margin-top:4px">
         {% for p in pts %}
         <div style="text-align:center;font-size:11px">
-          <div style="font-weight:800;color:var(--blue-dark)">{{ p.weight }}</div>
+          <div style="font-weight:800;color:var(--nx-ink)">{{ p.weight }}</div>
           <div style="color:var(--muted);font-size:10.5px">#{{ p.visit_no }}</div>
         </div>
         {% endfor %}
@@ -257,7 +257,7 @@
 {% set v = s.visit %}{% set p = s.progress %}
 <div class="card" style="padding:16px 18px;margin-bottom:12px">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-    <div style="font-weight:800;color:var(--blue-dark);font-size:15px">
+    <div style="font-weight:800;color:var(--nx-ink);font-size:15px">
       {{ t('زيارة','Visit') }} #{{ v.visit_no }}
       <span style="color:var(--muted);font-weight:600;font-size:13px">· {{ v.created_at|string|truncate(16, True, '') }}</span>
     </div>
@@ -280,7 +280,7 @@
       {%- if p.rate %} · {{ p.rate }} {{ t('كجم/أسبوع','kg/wk') }}{% endif %}
       {%- if p.fat_delta %} · {{ t('دهون','fat') }} {{ '+' if p.fat_delta > 0 }}{{ p.fat_delta }}%{% endif %}
     </div>
-    <div style="font-size:12.5px;color:#1E2630;margin-top:6px;line-height:1.8">
+    <div style="font-size:12.5px;color:var(--nx-ink);margin-top:6px;line-height:1.8">
       {{ p.note_ar if is_ar else p.note_en }}
     </div>
     {% if p.tdee_drop and p.tdee_drop > 0 %}
@@ -300,7 +300,7 @@
 
   {% if v.saved_plan_id %}
   <div style="margin-top:10px">
-    <a href="/saved/{{ v.saved_plan_id }}/open" style="color:#3A4A5C;font-weight:700;font-size:13px;text-decoration:none">
+    <a href="/saved/{{ v.saved_plan_id }}/open" style="color:var(--nx-ink-2);font-weight:700;font-size:13px;text-decoration:none">
       {{ t('شوف جدول الزيارة دي','Open this visit’s plan') }} ›</a>
   </div>
   {% endif %}
@@ -318,7 +318,7 @@
           onsubmit="return confirm('{{ t('مسح الزيارة دي؟ مالوش رجوع.','Delete this visit? It cannot be undone.') }}')">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-outline"
-              style="font-size:12px;padding:5px 11px;color:#8B2E2E;border-color:#E3B4B4">
+              style="font-size:12px;padding:5px 11px;color:var(--nx-bad-ink);border-color:var(--nx-bad-line)">
         <i class="fa-regular fa-trash-can"></i> {{ t('امسح الزيارة','Delete visit') }}
       </button>
     </form>
@@ -326,7 +326,7 @@
 
   <form id="visitForm{{ v.id }}" method="POST" hidden
         action="/followups/{{ client_key|urlencode }}/visit/{{ v.id }}/edit"
-        style="margin-top:12px;background:#FAF8F3;border:1px dashed #E5C9A1;
+        style="margin-top:12px;background:#FAF8F3;border:1px dashed var(--nx-warn-line);
                border-radius:10px;padding:14px 16px">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div style="font-size:12.5px;color:#8A6B45;margin-bottom:10px">

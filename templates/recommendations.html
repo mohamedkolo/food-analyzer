@@ -16,7 +16,7 @@
     <div class="rc-item"><i class="fa-solid fa-glass-water" style="color:#2E8F9E" aria-hidden="true"></i>
       <span>{{ t('مياه:','Water:') }} <strong>{{ water_goal }} {{ t('مل في اليوم','ml a day') }}</strong></span></div>
     {% for r in recs.goal %}
-    <div class="rc-item"><i class="fa-solid fa-check" style="color:#1F5A36" aria-hidden="true"></i><span>{{ r.body }}</span></div>
+    <div class="rc-item"><i class="fa-solid fa-check" style="color:var(--nx-ok-ink)" aria-hidden="true"></i><span>{{ r.body }}</span></div>
     {% endfor %}
   </div>
 

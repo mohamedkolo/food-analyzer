@@ -295,7 +295,9 @@ def test_the_selected_card_is_not_signalled_by_colour_alone():
     """‏اللون لوحده مايكفيش لحد مش بيفرّق الألوان -- فيه حدود وعلامة صح كمان."""
     html = _form()
     css = html[html.index(".nx-opt {"):html.index(".nx-opt-in:focus-visible")]
-    assert "border-color:var(--green)" in css.replace(" ", "")         or "border-color: var(--green)" in css, "‏الحدود مش بتتغير عند الاختيار"
+    # ‏--nx-ink-2 هو نفس اللون في الفاتح، وأوضح في الغامق (test_dark_mode).
+    flat = css.replace(" ", "")
+    assert "border-color:var(--green)" in flat or "border-color:var(--nx-ink-2)" in flat, "‏الحدود مش بتتغير عند الاختيار"
     assert 'content:"✓"' in css.replace(" ", "") or 'content: "✓"' in css,         "‏مفيش علامة صح على الكارت المختار"
     assert "focus-visible" in html, "‏مفيش حلقة تركيز للكيبورد"
 
@@ -317,6 +319,10 @@ def test_the_css_tokens_the_cards_use_are_actually_defined():
     base = open(os.path.join(HERE, "templates", "base.html"), encoding="utf-8").read()
     root = base[base.index(":root{"):base.index("}", base.index(":root{"))]
     defined = set(re.findall(r"(--[a-z0-9-]+):", root))
+    # ‏أسامي الألوان بتاعة الوضع الفاتح/الغامق (--nx-*) متعرّفة في _theme.html،
+    # علشان الصفحات اللي مش بتورث base.html تستخدمها هي كمان.
+    theme = open(os.path.join(HERE, "templates", "_theme.html"), encoding="utf-8").read()
+    defined |= set(re.findall(r"(--[a-z0-9-]+):", theme[theme.index(":root{"):theme.index("}", theme.index(":root{"))]))
     used = set()
     for name in ("generate.html", "base.html", "followups.html",
                  "followup_detail.html", "preview.html"):

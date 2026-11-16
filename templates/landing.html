@@ -18,10 +18,10 @@
     font-weight: 800; font-size: 15px; transition: all .2s; border: 2px solid transparent;
     cursor: pointer; font-family: inherit;
   }
-  .lp-btn-primary { background: #FF7A59; color: #1E2630; }
+  .lp-btn-primary { background: #FF7A59; color: var(--nx-on-warm); }
   .lp-btn-primary:hover { background: #FF9A80; transform: translateY(-2px); }
-  .lp-btn-ghost { background: transparent; color: #3A4A5C; border-color: #3A4A5C; }
-  .lp-btn-ghost:hover { background: #3A4A5C; color: #fff; }
+  .lp-btn-ghost { background: transparent; color: var(--nx-ink-2); border-color: var(--nx-ink-2); }
+  .lp-btn-ghost:hover { background: var(--nx-solid-2); color: #fff; }
   .lp-btn-light { background: rgba(255,255,255,.15); color: #fff; border-color: rgba(255,255,255,.4); }
   .lp-btn-light:hover { background: rgba(255,255,255,.28); }
 
@@ -30,7 +30,7 @@
      فوقهم. التوهّج والتدرّج والشبكة هما بالظبط اللي بيخلّوا الصفحة تبان
      مولّدة -- فبقى لون واحد مصمت، والكلام هو اللي بيشيل الصفحة. */
   .lp-hero {
-    background: #1E2630;
+    background: var(--nx-solid);
     color: #fff; padding: 88px 20px 96px; text-align: center; position: relative;
     overflow: hidden;
   }
@@ -70,11 +70,11 @@
   /* sections */
   .lp-sec { max-width: 1080px; margin: 0 auto; padding: 68px 20px; }
   .lp-sec h2 {
-    font-size: 30px; font-weight: 900; color: #1E2630;
+    font-size: 30px; font-weight: 900; color: var(--nx-ink);
     margin: 0 0 12px; text-align: center;
   }
   .lp-sec .lead {
-    text-align: center; color: #5A6472; font-size: 16px;
+    text-align: center; color: var(--nx-muted); font-size: 16px;
     max-width: 640px; margin: 0 auto 40px; line-height: 1.8;
   }
   .lp-grid {
@@ -82,20 +82,20 @@
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   }
   .lp-card {
-    background: #fff; border: 1px solid #D5DAE0; border-radius: 16px;
+    background: var(--nx-surface); border: 1px solid var(--nx-line); border-radius: 16px;
     padding: 26px; transition: all .25s;
   }
   .lp-card:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(20,51,43,.10); }
   .lp-card .ic { font-size: 34px; margin-bottom: 12px; }
-  .lp-card h3 { margin: 0 0 8px; font-size: 17px; font-weight: 800; color: #1E2630; }
-  .lp-card p { margin: 0; color: #5A6472; font-size: 14px; line-height: 1.8; }
+  .lp-card h3 { margin: 0 0 8px; font-size: 17px; font-weight: 800; color: var(--nx-ink); }
+  .lp-card p { margin: 0; color: var(--nx-muted); font-size: 14px; line-height: 1.8; }
 
   /* conditions */
-  .lp-conds { background: #F3F5F7; }
+  .lp-conds { background: var(--nx-surface-2); }
   .lp-chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
   .lp-chip {
-    background: #fff; border: 1px solid #D5DAE0; border-radius: 999px;
-    padding: 9px 18px; font-size: 14px; font-weight: 700; color: #1E2630;
+    background: var(--nx-surface); border: 1px solid var(--nx-line); border-radius: 999px;
+    padding: 9px 18px; font-size: 14px; font-weight: 700; color: var(--nx-ink);
   }
 
   /* steps */
@@ -106,16 +106,16 @@
     counter-increment: s; content: counter(s);
     position: absolute; top: 0; inset-inline-start: 0;
     width: 40px; height: 40px; border-radius: 50%;
-    background: #3A4A5C; color: #fff;
+    background: var(--nx-solid-2); color: #fff;
     display: flex; align-items: center; justify-content: center;
     font-weight: 900; font-size: 17px;
   }
-  .lp-step h3 { margin: 0 0 6px; font-size: 16px; font-weight: 800; color: #1E2630; }
-  .lp-step p { margin: 0; color: #5A6472; font-size: 14px; line-height: 1.8; }
+  .lp-step h3 { margin: 0 0 6px; font-size: 16px; font-weight: 800; color: var(--nx-ink); }
+  .lp-step p { margin: 0; color: var(--nx-muted); font-size: 14px; line-height: 1.8; }
 
   /* closing call to action */
   .lp-cta {
-    background: #3A4A5C;
+    background: var(--nx-solid-2);
     color: #fff; text-align: center; padding: 64px 20px;
   }
   .lp-cta h2 { color: #fff; font-size: 30px; font-weight: 900; margin: 0 0 12px; }

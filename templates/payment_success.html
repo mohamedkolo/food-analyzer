@@ -11,12 +11,12 @@
   }
 
   .success-card {
-    background: #fff;
+    background: var(--nx-surface);
     border-radius: 24px;
     padding: 48px 32px;
     text-align: center;
     box-shadow: 0 8px 30px rgba(16, 185, 129, 0.12);
-    border: 2px solid #EDF0F3;
+    border: 2px solid var(--nx-line);
     position: relative;
     overflow: hidden;
   }
@@ -28,7 +28,7 @@
     left: 0;
     right: 0;
     height: 6px;
-    background: #3A4A5C;
+    background: var(--nx-solid-2);
   }
 
   .success-icon {
@@ -36,7 +36,7 @@
     height: 100px;
     margin: 0 auto 24px;
     border-radius: 50%;
-    background: #3A4A5C;
+    background: var(--nx-solid-2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -55,20 +55,20 @@
   .success-title {
     font-size: 32px;
     font-weight: 800;
-    color: #1E2630;
+    color: var(--nx-ink);
     margin: 0 0 12px;
   }
 
   .success-msg {
     font-size: 17px;
-    color: #5A6472;
+    color: var(--nx-muted);
     line-height: 1.7;
     margin: 0 0 28px;
   }
 
   .info-box {
-    background: #F3F5F7;
-    border: 1px solid #D5DAE0;
+    background: var(--nx-surface-2);
+    border: 1px solid var(--nx-line);
     border-radius: 14px;
     padding: 20px;
     margin: 24px 0;
@@ -79,13 +79,13 @@
     display: flex;
     justify-content: space-between;
     padding: 8px 0;
-    border-bottom: 1px dashed #EDF0F3;
+    border-bottom: 1px dashed var(--nx-line);
     font-size: 15px;
   }
 
   .info-row:last-child { border-bottom: 0; }
-  .info-label { color: #5A6472; font-weight: 600; }
-  .info-value { color: #1E2630; font-weight: 700; }
+  .info-label { color: var(--nx-muted); font-weight: 600; }
+  .info-value { color: var(--nx-ink); font-weight: 700; }
 
   .actions {
     display: flex;
@@ -109,7 +109,7 @@
   }
 
   .btn-primary {
-    background: #3A4A5C;
+    background: var(--nx-solid-2);
     color: #fff;
     box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
   }
@@ -120,11 +120,11 @@
   }
 
   .btn-secondary {
-    background: #E9F2F6;
-    color: #5A6472;
+    background: var(--nx-info-bg);
+    color: var(--nx-muted);
   }
 
-  .btn-secondary:hover { background: #D5DAE0; }
+  .btn-secondary:hover { background: var(--nx-line); }
 
   .confetti {
     position: absolute;

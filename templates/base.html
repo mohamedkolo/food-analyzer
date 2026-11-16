@@ -2,6 +2,7 @@
 <html lang="{{ lang or 'ar' }}" dir="{{ 'rtl' if (lang or 'ar') == 'ar' else 'ltr' }}">
 <head>
 <meta charset="UTF-8">
+{% include "_theme.html" %}
 {% if google_verification() %}<meta name="google-site-verification" content="{{ google_verification() }}">{% endif %}
 
 {# ── what search engines and link previews read ──
@@ -89,19 +90,19 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
    بخط شعرة -- شكل برامج الشغل، والانتباه بيروح للمحتوى. */
 .header{position:fixed;top:0;right:0;left:0;height:var(--header-h);background:var(--white);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:100;border-bottom:1px solid var(--gray-2)}
 .header-logo{color:var(--text);font-size:18px;font-weight:900;display:flex;align-items:center;gap:10px}
-.header-btn{background:#F3F5F7;color:var(--text-2);border:1px solid var(--gray-2);padding:7px 14px;border-radius:7px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.header-btn{background:var(--nx-surface-2);color:var(--text-2);border:1px solid var(--gray-2);padding:7px 14px;border-radius:7px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
 .header-btn i,.user-badge i,.notif-bell i{color:var(--muted)}
-.header-btn:hover{background:#EDF0F3}
-.user-badge{background:#F3F5F7;color:var(--text-2);font-size:12px;font-weight:700;padding:6px 12px;border-radius:7px;border:1px solid var(--gray-2);display:inline-flex;align-items:center;gap:6px}
-.menu-toggle{background:#F3F5F7;border:1px solid var(--gray-2);color:var(--text-2);font-size:16px;cursor:pointer;width:36px;height:36px;border-radius:7px;display:none;align-items:center;justify-content:center}
+.header-btn:hover{background:var(--nx-tint)}
+.user-badge{background:var(--nx-surface-2);color:var(--text-2);font-size:12px;font-weight:700;padding:6px 12px;border-radius:7px;border:1px solid var(--gray-2);display:inline-flex;align-items:center;gap:6px}
+.menu-toggle{background:var(--nx-surface-2);border:1px solid var(--gray-2);color:var(--text-2);font-size:16px;cursor:pointer;width:36px;height:36px;border-radius:7px;display:none;align-items:center;justify-content:center}
 .role-badge{font-size:10px;padding:2px 8px;border-radius:6px;font-weight:700;margin-inline-start:4px}
-.role-admin{background:#FBEDED;color:#8B2E2E}
-.role-nutritionist{background:var(--blue-pale);color:#2B3746}
-.role-client{background:var(--blue-pale);color:#2B3746}
+.role-admin{background:var(--nx-bad-bg);color:var(--nx-bad-ink)}
+.role-nutritionist{background:var(--blue-pale);color:var(--nx-ink)}
+.role-client{background:var(--blue-pale);color:var(--nx-ink)}
 /* جرس الإشعارات */
 .notif-bell{position:relative;width:36px;height:36px;padding:0;justify-content:center}
 .notif-bell i{font-size:16px}
-.notif-bell-badge{position:absolute;top:-5px;inset-inline-end:-5px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;min-width:18px;height:18px;padding:0 4px;border-radius:20px;display:flex;align-items:center;justify-content:center;border:2px solid var(--blue);line-height:1}
+.notif-bell-badge{position:absolute;top:-5px;inset-inline-end:-5px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;min-width:18px;height:18px;padding:0 4px;border-radius:20px;display:flex;align-items:center;justify-content:center;border:2px solid var(--nx-ink-2);line-height:1}
 .notif-bell.ring i{animation:bellRing .7s ease}
 @keyframes bellRing{0%,100%{transform:rotate(0)}15%{transform:rotate(16deg)}30%{transform:rotate(-14deg)}45%{transform:rotate(10deg)}60%{transform:rotate(-7deg)}75%{transform:rotate(4deg)}}
 /* ═══ القايمة الجانبية: Liquid Button ═════════════════════════════════
@@ -114,7 +115,7 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
    ‏الكلام على السائل: أبيض على الأزرق والبنفسجي والأحمر، وكحلي على
    الكهرماني والتركواز -- الأبيض عليهم تباينه تحت ٤.٥ (test_liquid_nav). */
 .sidebar{position:fixed;top:var(--header-h);inset-inline-start:0;bottom:0;width:var(--sidebar-w);
-  background-color:var(--blue);color:#FFFFFF;overflow-y:auto;overflow-x:hidden;padding:16px 12px;z-index:90;
+  background-color:var(--nx-hero);color:#FFFFFF;overflow-y:auto;overflow-x:hidden;padding:16px 12px;z-index:90;
   isolation:isolate;transition:transform .3s,background-color .6s ease}
 /* ‏بقع لون ورا الزجاج: من غيرها الزجاج على كحلي سادة بيبان رمادي باهت */
 .sidebar::before,.sidebar::after{content:"";position:absolute;width:190px;height:190px;border-radius:50%;
@@ -181,31 +182,31 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .nav-badge{position:absolute;inset-inline-end:12px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;min-width:20px;text-align:center;box-shadow:0 0 0 2px #1E2630}
 .main{margin-top:var(--header-h);margin-inline-start:var(--sidebar-w);padding:24px 20px;min-height:calc(100vh - var(--header-h))}
 .card{background:var(--white);border:1.5px solid var(--gray-2);border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.04);margin-bottom:16px;position:relative;overflow:hidden}
-.card-title{font-size:15px;font-weight:800;color:var(--blue);margin-bottom:14px;padding-bottom:10px;border-bottom:1.5px solid var(--gray-2);display:flex;align-items:center;gap:8px}
+.card-title{font-size:15px;font-weight:800;color:var(--nx-ink);margin-bottom:14px;padding-bottom:10px;border-bottom:1.5px solid var(--gray-2);display:flex;align-items:center;gap:8px}
 .page-title{font-size:20px;font-weight:900;color:var(--text);margin:0 0 20px;display:flex;align-items:center;gap:10px}
-.page-title i{font-size:22px;color:var(--blue)}
+.page-title i{font-size:22px;color:var(--nx-ink)}
 .metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px}
 .metric{background:var(--white);border:1.5px solid var(--gray-2);border-radius:14px;padding:16px;text-align:center}
 .alert{padding:12px 16px;border-radius:10px;font-size:14px;font-weight:600;margin-bottom:12px;line-height:1.6;display:flex;align-items:flex-start;gap:8px}
-.alert-info{background:var(--blue-pale);color:#0F2A43;border:1px solid #B4D0DA}
-.alert-success{background:var(--green-pale);color:#0F2A43;border:1px solid #B4D0DA}
+.alert-info{background:var(--blue-pale);color:var(--nx-ink);border:1px solid var(--nx-info-line)}
+.alert-success{background:var(--green-pale);color:var(--nx-ink);border:1px solid var(--nx-info-line)}
 .alert-warn{background:#fffbeb;color:#78350f;border:1px solid #fcd34d}
 .alert-error{background:var(--red-pale);color:#7f1d1d;border:1px solid #fca5a5}
 .form-group{margin-bottom:14px}
 .form-label{display:block;font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:5px}
 .form-input,.form-select,.form-textarea{width:100%;padding:11px 14px;border:1px solid var(--gray-2);border-radius:7px;font-family:'Cairo',sans-serif;font-size:14px;color:var(--text);background:var(--white);outline:none;text-align:start}
-.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(58,74,92,.16)}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--nx-ink-2);box-shadow:0 0 0 3px rgba(58,74,92,.16)}
 .btn{padding:11px 22px;border:none;border-radius:7px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none;justify-content:center}
 /* ‏الزرارين دول كانوا تدرّجات. التدرّج أول علامة بتقول "ده شكل مولّد"،
    وكمان: اللي بيشيل التدرّج من غير ما يحط لون صلب مكانه بيطلّع زرار
    أبيض عليه نص أبيض -- حصل فعلاً مع "ولّد الخطة" وهو بيستعمل
    .btn-success. */
-.btn-primary{background:#2B3746;color:#fff}
+.btn-primary{background:var(--nx-solid-2);color:#fff}
 .btn-primary:hover{background:#222C38}
 .btn-success{background:var(--green);color:#fff}
 .btn-success:hover{background:#334152}
-.btn-outline{background:transparent;color:var(--blue);border:1px solid var(--gray-2)}
-.btn-danger{background:var(--red-pale);color:var(--red);border:1px solid #E3B4B4}
+.btn-outline{background:transparent;color:var(--nx-ink);border:1px solid var(--gray-2)}
+.btn-danger{background:var(--red-pale);color:var(--red);border:1px solid var(--nx-bad-line)}
 .btn-full{width:100%}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
@@ -224,11 +225,11 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .nx-big{border:1px solid var(--gray-2);border-radius:8px;background:var(--white);
   padding:18px 16px;display:flex;align-items:center;gap:13px;text-decoration:none;
   transition:background .14s,border-color .14s}
-.nx-big:hover{background:#FAFBFC;border-color:#CFD5DB}
+.nx-big:hover{background:var(--nx-surface-2);border-color:var(--nx-line)}
 .nx-big:focus-visible{outline:2px solid var(--green);outline-offset:2px}
 .nx-big .ic{flex:0 0 40px;height:40px;border-radius:9px;background:var(--blue-pale);
   display:flex;align-items:center;justify-content:center}
-.nx-big .ic i{color:var(--green);font-size:17px}
+.nx-big .ic i{color:var(--nx-ink-2);font-size:17px}
 .nx-big .tx{display:block}
 .nx-big .t{display:block;font-size:15px;font-weight:800;color:var(--text)}
 .nx-big .s{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
@@ -247,8 +248,8 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .nx-rest-g .quick-action{display:flex;flex-direction:column;align-items:center;gap:8px;
   border:1px solid var(--gray-2);border-radius:8px;background:var(--white);
   padding:14px 12px;text-decoration:none;transition:background .14s,border-color .14s}
-.nx-rest-g .quick-action:hover{background:#FAFBFC;border-color:#CFD5DB}
-.nx-rest-g .quick-action i{color:var(--green);font-size:17px}
+.nx-rest-g .quick-action:hover{background:var(--nx-surface-2);border-color:var(--nx-line)}
+.nx-rest-g .quick-action i{color:var(--nx-ink-2);font-size:17px}
 .nx-rest-g .quick-action span{font-size:13px;font-weight:700;color:var(--text)}
 
 /* ‏شريط الأرقام: كارت واحد مقسوم بخطوط شعرة بدل أربع كروت */
@@ -257,13 +258,13 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .nx-cell{padding:14px 16px;display:flex;align-items:center;gap:11px;
   border-inline-start:1px solid var(--gray-2)}
 .nx-cell:first-child{border-inline-start:none}
-.nx-cell .nx-ic{flex:0 0 32px;height:32px;border-radius:7px;background:#F1F3F5;
+.nx-cell .nx-ic{flex:0 0 32px;height:32px;border-radius:7px;background:var(--nx-tint);
   display:flex;align-items:center;justify-content:center}
-.nx-cell .nx-ic i{color:#6E7885;font-size:14px}
+.nx-cell .nx-ic i{color:var(--nx-muted);font-size:14px}
 .nx-cell .nx-tx{display:block;flex:1}
 .nx-cell .nx-n{display:block;font-size:25px;font-weight:900;color:var(--text);line-height:1}
 .nx-cell .nx-l{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-top:2px}
-.nx-cell a{display:block;font-size:11.5px;font-weight:700;color:var(--green);margin-top:3px}
+.nx-cell a{display:block;font-size:11.5px;font-weight:700;color:var(--nx-ink-2);margin-top:3px}
 .nx-cell.is-alert .nx-ic{background:#F6EEE4}
 .nx-cell.is-alert .nx-ic i,.nx-cell.is-alert .nx-n,.nx-cell.is-alert a{color:var(--orange)}
 
@@ -273,11 +274,11 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .nx-fu-bar{display:flex;align-items:center;gap:11px;text-decoration:none;
   border:1px solid var(--gray-2);border-radius:8px;background:var(--white);
   padding:11px 14px;margin-bottom:14px;transition:background .14s,border-color .14s}
-.nx-fu-bar:hover{background:#FAFBFC;border-color:#CFD5DB}
+.nx-fu-bar:hover{background:var(--nx-surface-2);border-color:var(--nx-line)}
 .nx-fu-bar:focus-visible{outline:2px solid var(--green);outline-offset:2px}
-.nx-fu-bar .ic{flex:0 0 30px;height:30px;border-radius:7px;background:#F1F3F5;
+.nx-fu-bar .ic{flex:0 0 30px;height:30px;border-radius:7px;background:var(--nx-tint);
   display:flex;align-items:center;justify-content:center}
-.nx-fu-bar .ic i{color:#6E7885;font-size:13px}
+.nx-fu-bar .ic i{color:var(--nx-muted);font-size:13px}
 .nx-fu-bar.has-risk .ic{background:#F6EEE4}
 .nx-fu-bar.has-risk .ic i{color:var(--orange)}
 .nx-fu-bar .tx{flex:1;display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 10px;
@@ -285,7 +286,7 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .nx-fu-bar .tx b{font-size:13.5px;color:var(--text)}
 .nx-fu-bar .bit{font-weight:700}
 .nx-fu-bar .bit.risk{color:var(--orange)}
-.nx-fu-bar .go{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--green);
+.nx-fu-bar .go{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--nx-ink-2);
   display:flex;align-items:center;gap:6px}
 @media(max-width:560px){
   .nx-fu-bar{flex-wrap:wrap}
@@ -365,7 +366,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
 .acc{background:var(--white);border:1.5px solid var(--gray-2);border-radius:16px;
      box-shadow:0 2px 10px rgba(0,0,0,.04);margin-bottom:10px;overflow:hidden}
 .acc>summary{list-style:none;cursor:pointer;padding:15px 18px;display:flex;
-     align-items:center;gap:10px;font-size:15px;font-weight:800;color:var(--blue);
+     align-items:center;gap:10px;font-size:15px;font-weight:800;color:var(--nx-ink);
      user-select:none;transition:background .15s}
 .acc>summary::-webkit-details-marker{display:none}
 .acc>summary:hover{background:var(--gray)}
@@ -415,6 +416,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
       <span class="notif-bell-badge" id="notifBadge" {% if not (notif_unread and notif_unread > 0) %}style="display:none"{% endif %}>{{ notif_unread or 0 }}</span>
     </a>
     {% endif %}
+    {% include "_theme_btn.html" %}
     <a href="/lang/{{ 'en' if is_ar else 'ar' }}" class="header-btn">
       <i class="fa-solid fa-globe"></i> {{ 'English' if is_ar else 'العربية' }}
     </a>
@@ -876,20 +878,20 @@ async function nxEnablePush(){
 <!-- ═══ زرار المحادثة العائم (للعملاء) ═══ -->
 {% if user is defined and user and not is_staff and not request.path.startswith('/messages') %}
 <a href="/messages" id="chatFab" title="{{ t('راسل د. محمد', 'Message Dr. Mohamed') }}"
-   style="position:fixed;bottom:20px;inset-inline-end:20px;z-index:990;width:58px;height:58px;border-radius:50%;background:#3A4A5C;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(30,38,48,.26);text-decoration:none;border:none;transition:transform .15s">
+   style="position:fixed;bottom:20px;inset-inline-end:20px;z-index:990;width:58px;height:58px;border-radius:50%;background:var(--nx-solid-2);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(30,38,48,.26);text-decoration:none;border:none;transition:transform .15s">
   <i class="fa-solid fa-comment-dots" style="font-size:23px"></i>
 </a>
 <style>a#chatFab:hover{transform:scale(1.08)} @media(max-width:768px){ a#chatFab{bottom:16px;inset-inline-end:14px;width:54px;height:54px} }</style>
 {% endif %}
 
 <!-- ═══ زرار تثبيت التطبيق (PWA) ═══ -->
-<div id="pwaInstallBar" style="display:none;position:fixed;bottom:16px;left:12px;right:12px;z-index:9999;background:#2B3746;color:#fff;border-radius:8px;padding:12px 14px;box-shadow:0 4px 16px rgba(0,0,0,.2);align-items:center;gap:10px;">
+<div id="pwaInstallBar" style="display:none;position:fixed;bottom:16px;left:12px;right:12px;z-index:9999;background:var(--nx-solid-2);color:#fff;border-radius:8px;padding:12px 14px;box-shadow:0 4px 16px rgba(0,0,0,.2);align-items:center;gap:10px;">
   <span style="font-size:26px;">📲</span>
   <div style="flex:1;min-width:0;">
     <div style="font-weight:800;font-size:14px;">{{ t('ثبّت تطبيق NutraX', 'Install the NutraX app') }}</div>
     <div id="pwaInstallHint" style="font-size:11.5px;opacity:.85;">{{ t('افتحه من شاشتك الرئيسية زي أي تطبيق', 'Open it from your home screen like any app') }}</div>
   </div>
-  <button id="pwaInstallBtn" style="background:#fff;color:#0F2A43;border:none;border-radius:9px;padding:9px 16px;font-family:inherit;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap;">{{ t('تثبيت','Install') }}</button>
+  <button id="pwaInstallBtn" style="background:var(--nx-surface);color:var(--nx-ink);border:none;border-radius:9px;padding:9px 16px;font-family:inherit;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap;">{{ t('تثبيت','Install') }}</button>
   <button id="pwaInstallClose" style="background:transparent;color:#fff;border:none;font-size:18px;cursor:pointer;padding:4px 6px;opacity:.7;">✕</button>
 </div>
 <script>

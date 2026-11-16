@@ -11,8 +11,8 @@
   .usage-bar-fill.warn { background: #8A4B1C; }
   .tiers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 14px; }
   .tier-card { border: 2px solid var(--gray-2); border-radius: 14px; padding: 18px; text-align: center; }
-  .tier-card.current { border-color: var(--blue); background: var(--blue-pale); }
-  .tier-name { font-weight: 800; color: var(--blue); margin-bottom: 6px; }
+  .tier-card.current { border-color: var(--nx-ink-2); background: var(--blue-pale); }
+  .tier-name { font-weight: 800; color: var(--nx-ink); margin-bottom: 6px; }
   .tier-price { font-size: 22px; font-weight: 900; }
 </style>
 
@@ -38,9 +38,9 @@
 <div class="card">
   <div class="card-title"><i class="fa-solid fa-chart-simple"></i> {{ 'الاستخدام هذا الشهر' if is_ar else 'This month\'s usage' }}</div>
   <div class="metrics">
-    <div class="metric"><div style="font-size:22px;font-weight:900;color:var(--blue)">{{ usage.tier_name }}</div><div style="font-size:12px;color:var(--muted)">{{ 'الخطة' if is_ar else 'Plan' }}</div></div>
-    <div class="metric"><div style="font-size:22px;font-weight:900;color:var(--blue)">{{ usage.used }}/{{ usage.quota }}</div><div style="font-size:12px;color:var(--muted)">{{ 'طلبات مستخدمة' if is_ar else 'Requests used' }}</div></div>
-    <div class="metric"><div style="font-size:22px;font-weight:900;color:var(--blue)">{{ usage.remaining }}</div><div style="font-size:12px;color:var(--muted)">{{ 'متبقي' if is_ar else 'Remaining' }}</div></div>
+    <div class="metric"><div style="font-size:22px;font-weight:900;color:var(--nx-ink)">{{ usage.tier_name }}</div><div style="font-size:12px;color:var(--muted)">{{ 'الخطة' if is_ar else 'Plan' }}</div></div>
+    <div class="metric"><div style="font-size:22px;font-weight:900;color:var(--nx-ink)">{{ usage.used }}/{{ usage.quota }}</div><div style="font-size:12px;color:var(--muted)">{{ 'طلبات مستخدمة' if is_ar else 'Requests used' }}</div></div>
+    <div class="metric"><div style="font-size:22px;font-weight:900;color:var(--nx-ink)">{{ usage.remaining }}</div><div style="font-size:12px;color:var(--muted)">{{ 'متبقي' if is_ar else 'Remaining' }}</div></div>
   </div>
   {% set pct = ((usage.used / usage.quota * 100) if usage.quota else 0) %}
   <div class="usage-bar-track"><div class="usage-bar-fill {% if pct >= 80 %}warn{% endif %}" style="width:{{ pct if pct <= 100 else 100 }}%"></div></div>

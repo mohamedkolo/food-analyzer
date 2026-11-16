@@ -32,7 +32,7 @@
       ] %}
       <label style="cursor:pointer">
         <input type="radio" name="goal_type" value="{{ goal[0] }}" {% if loop.first %}checked{% endif %} style="display:none">
-        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:12px;padding:14px;text-align:center;background:white;transition:all .2s">
+        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:12px;padding:14px;text-align:center;background:var(--nx-surface);transition:all .2s">
           <div style="font-size:28px;margin-bottom:6px">{{ goal[1] }}</div>
           <div style="font-weight:700;font-size:13px">{{ goal[2] }}</div>
         </div>
@@ -51,7 +51,7 @@
       {% for cul in [('مصري','🇪🇬',t('مصري','Egyptian')),('خليجي','🇸🇦',t('خليجي','Gulf')),('شامي','🇱🇧',t('شامي','Levantine')),('مغربي','🇲🇦',t('مغربي','Moroccan')),('عالمي','🌍',t('عالمي','International'))] %}
       <label style="cursor:pointer">
         <input type="radio" name="culture" value="{{ cul[0] }}" {% if loop.first %}checked{% endif %} style="display:none">
-        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:12px;text-align:center;background:white;transition:all .2s">
+        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:12px;text-align:center;background:var(--nx-surface);transition:all .2s">
           <div style="font-size:24px">{{ cul[1] }}</div>
           <div style="font-weight:700;font-size:13px;margin-top:4px">{{ cul[2] }}</div>
         </div>
@@ -70,12 +70,12 @@
       {% for key, info in diet_plans.items() %}
       <label style="cursor:pointer">
         <input type="radio" name="diet_plan_type" value="{{ key }}" {% if loop.first %}checked{% endif %} style="display:none">
-        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:14px;background:white;transition:all .2s;display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div class="goal-card" style="border:2px solid var(--gray-2);border-radius:10px;padding:14px;background:var(--nx-surface);transition:all .2s;display:flex;justify-content:space-between;align-items:center;gap:10px">
           <div>
             <div style="font-weight:700;font-size:14px">{{ info.name if is_ar else (info.name_en or info.name) }}</div>
             <div style="font-size:12px;color:var(--muted);margin-top:2px">{{ info.description if is_ar else (info.description_en or info.description) }}</div>
           </div>
-          <div style="color:var(--blue);font-size:18px">→</div>
+          <div style="color:var(--nx-ink);font-size:18px">→</div>
         </div>
       </label>
       {% endfor %}
@@ -155,9 +155,9 @@
     <div class="acc-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">{{ t('اختر أي حساسية عندك (أكلات هتتشال نهائياً من خطتك):','Select any allergy you have (those foods are removed from your plan entirely):') }}</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
       {% for allergy, allergy_en in [('اللاكتوز','Lactose'),('الجلوتين','Gluten'),('المكسرات','Tree nuts'),('البيض','Eggs'),('الأسماك','Fish'),('الفول السوداني','Peanuts'),('الصويا','Soy'),('المحار','Shellfish'),('السمسم','Sesame')] %}
-      <label style="display:flex;align-items:center;gap:8px;background:#FBEDED;border:1.5px solid #E3B4B4;border-radius:10px;padding:10px;cursor:pointer">
+      <label style="display:flex;align-items:center;gap:8px;background:var(--nx-bad-bg);border:1.5px solid var(--nx-bad-line);border-radius:10px;padding:10px;cursor:pointer">
         <input type="checkbox" name="allergies" value="{{ allergy }}" style="width:18px;height:18px">
-        <span style="font-size:12px;font-weight:600;color:#8B2E2E">{{ allergy if is_ar else allergy_en }}</span>
+        <span style="font-size:12px;font-weight:600;color:var(--nx-bad-ink)">{{ allergy if is_ar else allergy_en }}</span>
       </label>
       {% endfor %}
     </div>
@@ -180,7 +180,7 @@
 
   <!-- ═══════════ 8. الأكلات اللي مش بتحبها ═══════════ -->
   <details class="acc">
-    <summary><i class="fa-solid fa-ban" style="color:#dc2626"></i> {{ t('الخطوة 8: الأكلات اللي مش بتحبها','Step 8: Foods You Dislike') }}<span class="acc-sum"></span></summary>
+    <summary><i class="fa-solid fa-ban" style="color:var(--nx-red)"></i> {{ t('الخطوة 8: الأكلات اللي مش بتحبها','Step 8: Foods You Dislike') }}<span class="acc-sum"></span></summary>
     <div class="acc-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ t('اكتب الأكلات اللي مش بتحبها أو مش بتاكلها مفصولة بفواصل (هتتشال من خطتك):','List foods you dislike or do not eat, separated by commas (they are removed from your plan):') }}</p>
     <textarea class="form-input" name="disliked_foods" rows="2" 
       placeholder="{{ t('مثلاً: كبدة، باذنجان، بصل، فلفل حار، كوسة','e.g. liver, eggplant, onion, chili, zucchini') }}" 

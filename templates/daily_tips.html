@@ -9,14 +9,14 @@
 <!-- Today's Featured Tip -->
 {% if tips and tips|length > 0 %}
 {% set today_tip = tips[today_index] %}
-<div class="card" style="background:#FDF6EC;border:3px solid #f59e0b;padding:24px">
+<div class="card" style="background:var(--nx-warn-bg);border:3px solid #f59e0b;padding:24px">
   <div style="text-align:center">
-    <div style="font-size:14px;color:#8A4B1C;font-weight:700;margin-bottom:10px">
+    <div style="font-size:14px;color:var(--nx-warn-ink);font-weight:700;margin-bottom:10px">
       💫 {{ t('نصيحة اليوم','Tip of the day') }}
     </div>
     <div style="font-size:64px;margin-bottom:14px">{{ today_tip.icon }}</div>
-    <div style="font-size:20px;font-weight:900;color:#8A4B1C;margin-bottom:10px">{{ today_tip.title }}</div>
-    <div style="font-size:15px;color:#8A4B1C;line-height:1.8;font-weight:600;max-width:400px;margin:0 auto">
+    <div style="font-size:20px;font-weight:900;color:var(--nx-warn-ink);margin-bottom:10px">{{ today_tip.title }}</div>
+    <div style="font-size:15px;color:var(--nx-warn-ink);line-height:1.8;font-weight:600;max-width:400px;margin:0 auto">
       {{ today_tip.tip }}
     </div>
   </div>
@@ -24,12 +24,12 @@
 {% endif %}
 
 <!-- Notification Permission -->
-<div class="card" id="notifBanner" style="display:none;background:#EDF0F3;border:2px solid #3A4A5C">
+<div class="card" id="notifBanner" style="display:none;background:var(--nx-tint);border:2px solid var(--nx-ink-2)">
   <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
     <div style="font-size:38px">🔔</div>
     <div style="flex:1;min-width:200px">
-      <div style="font-weight:800;color:#1E2630;margin-bottom:4px">{{ t('شغل الإشعارات اليومية','Turn on daily notifications') }}</div>
-      <div style="font-size:12px;color:#1E2630">{{ t('هنبعتلك نصيحة كل يوم على وقت الفطار','We will send you a tip every day at breakfast time') }}</div>
+      <div style="font-weight:800;color:var(--nx-ink);margin-bottom:4px">{{ t('شغل الإشعارات اليومية','Turn on daily notifications') }}</div>
+      <div style="font-size:12px;color:var(--nx-ink)">{{ t('هنبعتلك نصيحة كل يوم على وقت الفطار','We will send you a tip every day at breakfast time') }}</div>
     </div>
     <button onclick="enableNotifications()" class="btn btn-primary">
       <i class="fa-solid fa-bell"></i> {{ t('تشغيل','Enable') }}
@@ -46,7 +46,7 @@
     {% for tip in tips %}
     <div class="tip-card">
       <div style="font-size:32px;margin-bottom:8px">{{ tip.icon }}</div>
-      <div style="font-weight:800;color:var(--blue);font-size:14px;margin-bottom:6px">{{ tip.title }}</div>
+      <div style="font-weight:800;color:var(--nx-ink);font-size:14px;margin-bottom:6px">{{ tip.title }}</div>
       <div style="font-size:13px;color:var(--text-2);line-height:1.7">{{ tip.tip }}</div>
     </div>
     {% endfor %}
@@ -116,7 +116,7 @@
   transition: all 0.2s;
 }
 .tip-card:hover {
-  background: white;
+  background: var(--nx-surface);
   border-color: var(--blue-light);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.06);
@@ -131,7 +131,7 @@
   cursor: pointer;
   transition: background 0.2s;
 }
-.reminder-row:hover { background: #D5DAE0; }
+.reminder-row:hover { background: var(--nx-line); }
 .reminder-row input[type="checkbox"] {
   width: 20px;
   height: 20px;
@@ -151,16 +151,16 @@ var allTips = [
 // Check notification status
 function checkNotificationStatus() {
   if (!('Notification' in window)) {
-    document.getElementById('notifStatus').innerHTML = '<span style="color:#dc2626">❌ {{ t('المتصفح ده مش بيدعم الإشعارات','This browser does not support notifications') }}</span>';
+    document.getElementById('notifStatus').innerHTML = '<span style="color:var(--nx-red)">❌ {{ t('المتصفح ده مش بيدعم الإشعارات','This browser does not support notifications') }}</span>';
     return;
   }
 
   if (Notification.permission === 'granted') {
-    document.getElementById('notifStatus').innerHTML = '<span style="color:#3A4A5C;background:#EDF0F3;padding:6px 14px;border-radius:8px">✅ الإشعارات شغالة</span>';
+    document.getElementById('notifStatus').innerHTML = '<span style="color:var(--nx-ink-2);background:var(--nx-tint);padding:6px 14px;border-radius:8px">✅ الإشعارات شغالة</span>';
     document.getElementById('notifBanner').style.display = 'none';
     scheduleNotifications();
   } else if (Notification.permission === 'denied') {
-    document.getElementById('notifStatus').innerHTML = '<span style="color:#dc2626;background:#FBEDED;padding:6px 14px;border-radius:8px">❌ الإشعارات مرفوضة - فعلها من إعدادات المتصفح</span>';
+    document.getElementById('notifStatus').innerHTML = '<span style="color:var(--nx-red);background:var(--nx-bad-bg);padding:6px 14px;border-radius:8px">❌ الإشعارات مرفوضة - فعلها من إعدادات المتصفح</span>';
   } else {
     document.getElementById('notifBanner').style.display = 'flex';
   }
