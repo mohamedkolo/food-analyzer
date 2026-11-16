@@ -83,7 +83,7 @@
    ‏و--pick **لون صلب مش تدرّج**: التدرّج أول علامة بتقول إن الشكل
    مولّد. وتباينه مع الأبيض ٩.٠٨:١ -- والنص اللي فوقه أبيض.
    (tests/test_form_contrast.py) #}
-:root{--blue:#1E2630;--blue-light:#3A4A5C;--blue-pale:#EDF0F3;--green:#3A4A5C;--green-light:#3A4A5C;--green-pale:#EDF0F3;--red:#8B2E2E;--red-pale:#fdf4f4;--orange:#8A4B1C;--gray:#F6F7F8;--gray-2:#E4E7EA;--text:#1E2630;--text-2:#374250;--muted:#5A6472;--muted-2:#5A6472;--blue-dark:#161C24;--gray-dark:#5A6472;--white:#ffffff;--sidebar-w:240px;--header-h:60px;--sh-1:none;--sh-2:none;--pick:#3A4A5C}
+:root{--blue:#1E2630;--blue-light:#3A4A5C;--blue-pale:#EDF0F3;--green:#3A4A5C;--green-light:#3A4A5C;--green-pale:#EDF0F3;--red:#8B2E2E;--red-pale:#fdf4f4;--orange:#8A4B1C;--gray:#F6F7F8;--gray-2:#E4E7EA;--text:#1E2630;--text-2:#374250;--muted:#5A6472;--muted-2:#5A6472;--blue-dark:#161C24;--gray-dark:#5A6472;--white:#ffffff;--sidebar-w:240px;--header-h:60px;--sh-1:none;--sh-2:none;--pick:#3A4A5C;--lq-blue:#1F63E0;--lq-blue-ink:#FFFFFF;--lq-amber:#F5A20F;--lq-amber-ink:#1E2630;--lq-teal:#14B8A6;--lq-teal-ink:#1E2630;--lq-violet:#6A4CE0;--lq-violet-ink:#FFFFFF;--lq-red:#D92D20;--lq-red-ink:#FFFFFF;--lq:var(--lq-blue);--lq-on:var(--lq-blue-ink)}
 body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min-height:100vh;-webkit-tap-highlight-color:transparent}
 /* ‏الهيدر كان بلوك كحلي غامق بياخد انتباه ومش بيقول حاجة. بقى أبيض
    بخط شعرة -- شكل برامج الشغل، والانتباه بيروح للمحتوى. */
@@ -104,62 +104,81 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .notif-bell-badge{position:absolute;top:-5px;inset-inline-end:-5px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;min-width:18px;height:18px;padding:0 4px;border-radius:20px;display:flex;align-items:center;justify-content:center;border:2px solid var(--blue);line-height:1}
 .notif-bell.ring i{animation:bellRing .7s ease}
 @keyframes bellRing{0%,100%{transform:rotate(0)}15%{transform:rotate(16deg)}30%{transform:rotate(-14deg)}45%{transform:rotate(10deg)}60%{transform:rotate(-7deg)}75%{transform:rotate(4deg)}}
-.sidebar{position:fixed;top:var(--header-h);inset-inline-start:0;bottom:0;width:var(--sidebar-w);background:var(--white);border-inline-end:1px solid var(--gray-2);overflow-y:auto;padding:14px 11px;z-index:90;transition:transform .3s}
-.sidebar-user{padding:8px 14px 16px;border-bottom:1px solid var(--gray-2);margin-bottom:12px}
-.sidebar-user .name{font-size:15px;font-weight:700;color:var(--text)}
-.sidebar-user .email{font-size:12px;color:var(--muted);margin-top:2px}
-.nav-section{font-size:10.5px;font-weight:700;color:#97A0AA;letter-spacing:.9px;padding:4px 12px;margin-bottom:3px;text-transform:uppercase}
-/* ‏الشريط بتاع "انت هنا" كان box-shadow inset، وde مالوش نسخة منطقية:
-   offset سالب = شريط على اليمين **دايماً**. في العربي ده بيطلع على
-   أول العنصر فبيبان صح، وفي الإنجليزي بيطلع في آخره -- غلط.
-   border-inline-start بتتبع الاتجاه لوحدها، وشفافة في العادي عشان
-   النص مايتزحلقش ٣ بكسل لما العنصر يبقى نشط. */
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;text-decoration:none;color:var(--text-2);font-size:13.5px;font-weight:600;margin-bottom:1px;transition:background .14s,color .14s;border:none;border-inline-start:3px solid transparent;background:none;width:100%;cursor:pointer;text-align:start;position:relative}
-/* ‏أيقونات القايمة كانت كل واحدة بلون: جرس أحمر، شات تركوازي، فيشة
-   برتقالي. ده قوس قزح بيخلي العين مش عارفة تبص فين. كلها رمادي،
-   واللون للنشط بس -- والخروج أحمر لأن ده معناه حاجة. */
-.nav-item i{font-size:14px;min-width:18px;text-align:center;color:#8D96A1}
-.nav-item[style] i,.nav-item i[style]{color:#8D96A1}
-.nav-item:hover{background:#F1F3F5;color:var(--blue)}
-.nav-item:hover i{color:var(--blue)}
-.nav-item.active{background:var(--blue-pale);color:#2B3746;font-weight:800;border-inline-start-color:var(--green)}
-.nav-item:focus-visible{outline:2px solid var(--green);outline-offset:1px}
-.nav-item.active i{color:var(--green)}
-.nav-item.danger{color:#8B2E2E}
-.nav-item.danger i{color:#8B2E2E}
-.nav-more summary{list-style:none}
-.nav-more summary::-webkit-details-marker{display:none}
-.nav-more summary::after{content:'▾';margin-inline-start:auto;font-size:11px;color:var(--muted);transition:transform .2s}
-.nav-more[open] summary::after{transform:rotate(180deg)}
-.nav-more > a, .nav-more > button{margin-inline-start:14px;font-size:13px}
-/* ═══ المجموعات: ٣ بدل ١٣ ═══════════════════════════════════════════
-   ‏القايمة كانت ١٣ عنصر على مستوى واحد، والدكتور بيدوّر فيها بعينه كل
-   مرة. بقت تلات مجموعات بتتفتح: العملاء، الخطط، الإدارة -- ومفيش لينك
-   اتشال، كلهم اتلموا بس. والمجموعة اللي فيها الصفحة الحالية بتفتح
-   لوحدها (`open` من السيرفر)، فالدكتور مابيضيعش بعد ما يدوس. */
-.nav-grp{margin-bottom:2px}
-.nav-grp > summary{display:flex;align-items:center;gap:10px;padding:10px 12px;
-  border-radius:7px;border-inline-start:3px solid transparent;font-size:14px;font-weight:800;color:var(--text);cursor:pointer;
-  list-style:none;transition:background .14s}
-.nav-grp > summary::-webkit-details-marker{display:none}
-/* ‏السهم أيقونة من مكتبة المشروع، مش مربع مرسوم بborder. الحيلة
-   بالborder محتاجة خاصية **فيزيائية** (border-right)، واللي بتتقلب
-   في العربي لو اتكتبت inline -- فالسهم كان بيطلع لجنب بدل تحت،
-   وده بيتقرا "روح لصفحة" مش "افتح القايمة". والأيقونة بتلف ١٨٠
-   درجة، فمفيش اتجاه أصلاً. */
-.nav-grp-x{margin-inline-start:auto;font-size:11px !important;color:#97A0AA !important;
-  min-width:auto !important;transition:transform .18s}
+/* ═══ القايمة الجانبية: Liquid Button ═════════════════════════════════
+   ‏طلب صاحب المشروع: حبوب زجاج على كحلي، وكل مجموعة ليها لون سائل بيملا
+   الزرار من تحت مع موجة لما تقف عليه، وأرضية القايمة بتميل للون ده.
+   ‏قبل كده القايمة كانت رمادي كلها، والتعليق كان بيقول إن الألوان الكتير
+   بتلخبط العين. فاللون هنا مربوط بمعنى: كل مجموعة لون واحد وعناصرها
+   بتاخده (الرئيسية أزرق، العملاء كهرماني، الخطط تركواز، الإدارة بنفسجي)،
+   والأحمر للخروج بس.
+   ‏الكلام على السائل: أبيض على الأزرق والبنفسجي والأحمر، وكحلي على
+   الكهرماني والتركواز -- الأبيض عليهم تباينه تحت ٤.٥ (test_liquid_nav). */
+.sidebar{position:fixed;top:var(--header-h);inset-inline-start:0;bottom:0;width:var(--sidebar-w);
+  background-color:var(--blue);color:#FFFFFF;overflow-y:auto;overflow-x:hidden;padding:16px 12px;z-index:90;
+  isolation:isolate;transition:transform .3s,background-color .6s ease}
+/* ‏بقع لون ورا الزجاج: من غيرها الزجاج على كحلي سادة بيبان رمادي باهت */
+.sidebar::before,.sidebar::after{content:"";position:absolute;width:190px;height:190px;border-radius:50%;
+  filter:blur(52px);opacity:.32;z-index:-1;pointer-events:none;animation:nx-float 14s ease-in-out infinite}
+.sidebar::before{background-color:#2F7BFF;top:90px;inset-inline-start:-70px}
+.sidebar::after{background-color:#F5A20F;top:380px;inset-inline-end:-80px;animation-delay:-7s}
+@keyframes nx-float{50%{transform:translate(16px,-24px) scale(1.1)}}
+.sidebar:has([data-lq="blue"]:hover){background-color:#1C2A3E}
+.sidebar:has([data-lq="amber"]:hover){background-color:#262829}
+.sidebar:has([data-lq="teal"]:hover){background-color:#1A2C31}
+.sidebar:has([data-lq="violet"]:hover){background-color:#212539}
+.sidebar:has([data-lq="red"]:hover){background-color:#2A2329}
+.sidebar-user{padding:6px 12px 16px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:14px}
+.sidebar-user .name{font-size:15px;font-weight:700;color:#FFFFFF}
+.sidebar-user .email{font-size:12px;color:#C9D2DC;margin-top:2px;overflow-wrap:anywhere}
+.nav-section{font-size:10.5px;font-weight:700;color:#A9B4C0;letter-spacing:.9px;padding:6px 12px;margin-bottom:4px;text-transform:uppercase}
+[data-lq="blue"]{--lq:var(--lq-blue);--lq-on:var(--lq-blue-ink)}
+[data-lq="amber"]{--lq:var(--lq-amber);--lq-on:var(--lq-amber-ink)}
+[data-lq="teal"]{--lq:var(--lq-teal);--lq-on:var(--lq-teal-ink)}
+[data-lq="violet"]{--lq:var(--lq-violet);--lq-on:var(--lq-violet-ink)}
+[data-lq="red"]{--lq:var(--lq-red);--lq-on:var(--lq-red-ink)}
+.lq{position:relative;overflow:hidden;isolation:isolate;display:flex;align-items:center;gap:11px;
+  min-height:44px;padding:0 14px;margin-bottom:6px;width:100%;box-sizing:border-box;
+  border-radius:999px;border:1px solid rgba(255,255,255,.18);background-color:rgba(255,255,255,.07);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2);backdrop-filter:blur(16px) saturate(1.6);-webkit-backdrop-filter:blur(16px) saturate(1.6);
+  color:#FFFFFF;font-family:inherit;font-size:13.5px;font-weight:700;text-decoration:none;text-align:start;cursor:pointer;list-style:none;
+  transition:transform .45s cubic-bezier(.3,1.6,.5,1),color .3s ease,border-color .3s ease}
+.lq::-webkit-details-marker{display:none}
+.lq:hover{transform:scale(1.03);border-color:rgba(255,255,255,.45)}
+.lq:active{transform:scale(.98)}
+.lq:focus-visible{outline:2px solid #FFFFFF;outline-offset:3px}
+.lq:hover,.lq:focus-visible,.lq.active{color:var(--lq-on)}
+.lq-fill{position:absolute;inset-inline:0;bottom:0;height:0;z-index:-1;background-color:var(--lq);color:var(--lq);
+  transition:height .65s cubic-bezier(.3,1.25,.5,1)}
+.lq:hover .lq-fill,.lq:focus-visible .lq-fill{height:100%}
+.lq.active .lq-fill{height:100%}
+/* ‏الموجة مستخبية والزرار فاضي: كانت قاعدة على قاع كل زرار، فكان فيه
+   شريط ألوان تحت القايمة كلها حتى من غير ما حد يقف على حاجة. */
+.lq-wave{position:absolute;inset-inline-start:0;bottom:calc(100% - 1px);width:200%;height:12px;opacity:0;transition:opacity .25s ease;animation:nx-drift 1.8s linear infinite}
+.lq:hover .lq-wave,.lq:focus-visible .lq-wave,.nav-grp.has-active > summary .lq-wave{opacity:1}
+.lq:hover .lq-wave.back,.lq:focus-visible .lq-wave.back,.nav-grp.has-active > summary .lq-wave.back{opacity:.5}
+.lq-wave.back{bottom:calc(100% + 2px);animation-duration:2.6s;animation-direction:reverse}
+@keyframes nx-drift{to{transform:translateX(-50%)}}
+[dir="rtl"] .lq-wave{animation-name:nx-drift-rtl}
+@keyframes nx-drift-rtl{to{transform:translateX(50%)}}
+.nx-ic{flex:none;width:20px;height:20px}
+.nav-item.active{font-weight:800}
+.nav-more summary::after{content:none}
+.nav-more > a,.nav-more > button{margin-inline-start:12px;width:calc(100% - 12px)}
+.nav-grp{margin-bottom:0}
+.nav-grp-s{font-size:14px;font-weight:800}
+.nav-grp-x{margin-inline-start:auto;width:16px;height:16px;opacity:.75;transition:transform .2s}
 .nav-grp[open] > summary .nav-grp-x{transform:rotate(180deg)}
-.nav-grp > summary:hover{background:#F1F3F5}
-.nav-grp > summary:focus-visible{outline:2px solid var(--green);outline-offset:1px}
-.nav-grp > summary i{font-size:14px;min-width:18px;text-align:center;color:var(--muted)}
-.nav-grp.has-active > summary i{color:var(--green)}
-.nav-grp-body{padding:2px 0 6px;margin-inline-start:13px;
-  border-inline-start:1px solid var(--gray-2)}
-.nav-grp-body .nav-item{font-size:13px;padding:7px 12px;margin-inline-start:5px;font-weight:600}
-.nav-grp-body .nav-item i{font-size:12.5px;min-width:16px}
-.nav-divider{height:1px;background:var(--gray-2);margin:12px 0}
-.nav-badge{position:absolute;inset-inline-end:12px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;min-width:20px;text-align:center}
+/* ‏المجموعة اللي فيها الصفحة الحالية: شوية سائل في قاعها (ربع الزرار)،
+   فتعرف إنت فين حتى والمجموعة مقفولة. */
+.nav-grp.has-active > summary{border-color:var(--lq)}
+.nav-grp.has-active > summary .lq-fill{height:24%}
+.nav-grp.has-active > summary:hover .lq-fill{height:100%}
+.nav-grp-body{padding:2px 0 8px;margin-inline-start:16px;padding-inline-start:10px;border-inline-start:1px solid rgba(255,255,255,.14)}
+.nav-grp-body .lq{min-height:40px;font-size:13px;font-weight:600}
+.nav-grp-body .lq:hover{transform:scale(1.015)}
+.nav-grp-body .lq .nx-ic{width:18px;height:18px}
+.nav-divider{height:1px;background-color:rgba(255,255,255,.12);margin:12px 0}
+.nav-badge{position:absolute;inset-inline-end:12px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;min-width:20px;text-align:center;box-shadow:0 0 0 2px #1E2630}
 .main{margin-top:var(--header-h);margin-inline-start:var(--sidebar-w);padding:24px 20px;min-height:calc(100vh - var(--header-h))}
 .card{background:var(--white);border:1.5px solid var(--gray-2);border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.04);margin-bottom:16px;position:relative;overflow:hidden}
 .card-title{font-size:15px;font-weight:800;color:var(--blue);margin-bottom:14px;padding-bottom:10px;border-bottom:1.5px solid var(--gray-2);display:flex;align-items:center;gap:8px}
@@ -288,6 +307,9 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
   .nx-cell .nx-n{font-size:22px}
 }
 @media (prefers-reduced-motion: reduce){
+  .lq-wave,.sidebar::before,.sidebar::after{animation:none}
+  .lq,.lq-fill,.sidebar{transition:none}
+  .lq:hover{transform:none}
   .nx-big,.nx-rest-g .quick-action,.nav-item,.nav-grp > summary{transition:none}
 }
 
@@ -325,7 +347,9 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
   .user-badge{display:none}
   /* ‏الدرج بيخرج من ناحية الاتجاه: يمين في العربي وشمال في الإنجليزي.
      ‏translateX مالوش نسخة منطقية، فمحتاج سطر لكل اتجاه. */
-  .sidebar{transform:translateX(100%);width:85%}
+  /* ‏شريط العميل اللي تحت (٦٤ بكسل + زرار عايم) كان مغطّي آخر القايمة،
+     فـ"خروج" كان مستخبي وراه. */
+  .sidebar{transform:translateX(100%);width:85%;padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px))}
   html[dir="ltr"] .sidebar{transform:translateX(-100%)}
   .sidebar.open,html[dir="ltr"] .sidebar.open{transform:translateX(0)}
   .main{margin-inline-start:0;padding:16px 14px 80px}
@@ -408,6 +432,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
 
 <div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
 
+{% from "_nav_icons.html" import ic, liquid %}
 <nav class="sidebar" id="sidebar">
   <div class="sidebar-user">
     <div class="name">{{ me.name if me else '' }}</div>
@@ -420,43 +445,42 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
        بقت: الرئيسية لوحدها، وتحتها تلات مجموعات بتتفتح. **مفيش لينك
        اتشال**، كلهم اتلموا بس، والمجموعة اللي فيها الصفحة الحالية
        بتفتح من السيرفر عشان حد مايضيعش بعد ما يدوس. #}
-    <a href="/dashboard" class="nav-item {% if request.endpoint=='dashboard' %}active{% endif %}"
-       style="font-weight:800">
-      <i class="fa-solid fa-house"></i> {{ 'الرئيسية' if is_ar else 'Dashboard' }}
+    <a href="/dashboard" class="nav-item {% if request.endpoint=='dashboard' %}active{% endif %} lq" data-lq="blue">{{ liquid() }}
+      {{ ic('house') }} {{ 'الرئيسية' if is_ar else 'Dashboard' }}
     </a>
 
     {% set g_clients = request.endpoint in ['admin.admin_users','admin.admin_new_user','admin.admin_user_profile','admin.admin_requests','plans.followups','plans.followup_detail','messages','chat','admin.admin_blocked_list','booking.admin_calendar','booking.admin_booking_settings'] %}
     <details class="nav-grp {% if g_clients %}has-active{% endif %}" {% if g_clients %}open{% endif %}>
-      <summary><i class="fa-solid fa-users"></i> {{ 'العملاء' if is_ar else 'Clients' }}
+      <summary class="nav-grp-s lq" data-lq="amber">{{ liquid() }}{{ ic('users') }} {{ 'العملاء' if is_ar else 'Clients' }}
         {% set c_badge = (pending_count or 0) + (unread_messages or 0) + (booking_pending or 0) %}
         {% if c_badge > 0 %}<span class="nav-badge">{{ c_badge }}</span>{% endif %}
       
-        <i class="fa-solid fa-chevron-down nav-grp-x"></i>
+        {{ ic('chevron', 'nav-grp-x') }}
       </summary>
       <div class="nav-grp-body">
         {% if is_admin %}
-        <a href="/admin/users" class="nav-item {% if request.endpoint in ['admin.admin_users','admin.admin_new_user','admin.admin_user_profile'] %}active{% endif %}">
-          <i class="fa-solid fa-users"></i> {{ 'العملاء' if is_ar else 'Clients' }}
+        <a href="/admin/users" class="nav-item {% if request.endpoint in ['admin.admin_users','admin.admin_new_user','admin.admin_user_profile'] %}active{% endif %} lq" data-lq="amber">{{ liquid() }}
+          {{ ic('users') }} {{ 'كل العملاء' if is_ar else 'All clients' }}
         </a>
         {% endif %}
-        <a href="/admin/requests" class="nav-item {% if request.endpoint in ['admin.admin_requests'] %}active{% endif %}">
-          <i class="fa-solid fa-inbox"></i> {{ 'طلبات العملاء' if is_ar else 'Client Requests' }}
+        <a href="/admin/requests" class="nav-item {% if request.endpoint in ['admin.admin_requests'] %}active{% endif %} lq" data-lq="amber">{{ liquid() }}
+          {{ ic('inbox') }} {{ 'طلبات العملاء' if is_ar else 'Client Requests' }}
           {% if pending_count and pending_count > 0 %}<span class="nav-badge">{{ pending_count }}</span>{% endif %}
         </a>
-        <a href="/admin/calendar" class="nav-item {% if request.endpoint in ['booking.admin_calendar','booking.admin_booking_settings'] %}active{% endif %}">
-          <i class="fa-solid fa-calendar-days"></i> {{ 'التقويم والحجوزات' if is_ar else 'Calendar & bookings' }}
+        <a href="/admin/calendar" class="nav-item {% if request.endpoint in ['booking.admin_calendar','booking.admin_booking_settings'] %}active{% endif %} lq" data-lq="amber">{{ liquid() }}
+          {{ ic('calendar') }} {{ 'التقويم والحجوزات' if is_ar else 'Calendar & bookings' }}
           {% if booking_pending and booking_pending > 0 %}<span class="nav-badge">{{ booking_pending }}</span>{% endif %}
         </a>
-        <a href="/followups" class="nav-item {% if request.endpoint in ['plans.followups','plans.followup_detail'] %}active{% endif %}">
-          <i class="fa-solid fa-clock-rotate-left"></i> {{ 'المتابعات' if is_ar else 'Follow-ups' }}
+        <a href="/followups" class="nav-item {% if request.endpoint in ['plans.followups','plans.followup_detail'] %}active{% endif %} lq" data-lq="amber">{{ liquid() }}
+          {{ ic('clock') }} {{ 'المتابعات' if is_ar else 'Follow-ups' }}
         </a>
-        <a href="/messages" class="nav-item {% if request.endpoint in ['messages','chat'] %}active{% endif %}">
-          <i class="fa-solid fa-comments"></i> {{ 'الرسائل' if is_ar else 'Messages' }}
+        <a href="/messages" class="nav-item {% if request.endpoint in ['messages','chat'] %}active{% endif %} lq" data-lq="amber">{{ liquid() }}
+          {{ ic('chat') }} {{ 'الرسائل' if is_ar else 'Messages' }}
           {% if unread_messages and unread_messages > 0 %}<span class="nav-badge">{{ unread_messages }}</span>{% endif %}
         </a>
         {% if is_admin %}
-        <a href="/admin/blocked" class="nav-item {% if request.endpoint=='admin.admin_blocked_list' %}active{% endif %}">
-          <i class="fa-solid fa-ban"></i> {{ 'الحسابات المحظورة' if is_ar else 'Blocked Users' }}
+        <a href="/admin/blocked" class="nav-item {% if request.endpoint=='admin.admin_blocked_list' %}active{% endif %} lq" data-lq="amber">{{ liquid() }}
+          {{ ic('ban') }} {{ 'الحسابات المحظورة' if is_ar else 'Blocked Users' }}
         </a>
         {% endif %}
       </div>
@@ -464,85 +488,85 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
 
     {% set g_plans = request.endpoint in ['plans.generate','plans.preview','plans.generate','plans.preview','plans.saved','analyzer','clinical'] %}
     <details class="nav-grp {% if g_plans %}has-active{% endif %}" {% if g_plans %}open{% endif %}>
-      <summary><i class="fa-solid fa-file-lines"></i> {{ 'الخطط' if is_ar else 'Plans' }}
-        <i class="fa-solid fa-chevron-down nav-grp-x"></i>
+      <summary class="nav-grp-s lq" data-lq="teal">{{ liquid() }}{{ ic('file') }} {{ 'الخطط' if is_ar else 'Plans' }}
+        {{ ic('chevron', 'nav-grp-x') }}
       </summary>
       <div class="nav-grp-body">
-        <a href="/generate" class="nav-item {% if request.endpoint in ['plans.generate','plans.preview','plans.generate','plans.preview'] %}active{% endif %}">
-          <i class="fa-solid fa-file-medical"></i> {{ 'توليد جدول' if is_ar else 'Generate' }}
+        <a href="/generate" class="nav-item {% if request.endpoint in ['plans.generate','plans.preview','plans.generate','plans.preview'] %}active{% endif %} lq" data-lq="teal">{{ liquid() }}
+          {{ ic('file-plus') }} {{ 'توليد جدول' if is_ar else 'Generate' }}
         </a>
-        <a href="/saved" class="nav-item {% if request.endpoint=='plans.saved' %}active{% endif %}">
-          <i class="fa-solid fa-bookmark"></i> {{ 'جداولي المحفوظة' if is_ar else 'Saved Plans' }}
+        <a href="/saved" class="nav-item {% if request.endpoint=='plans.saved' %}active{% endif %} lq" data-lq="teal">{{ liquid() }}
+          {{ ic('bookmark') }} {{ 'جداولي المحفوظة' if is_ar else 'Saved Plans' }}
         </a>
-        <a href="/analyzer" class="nav-item {% if request.endpoint=='analyzer' %}active{% endif %}">
-          <i class="fa-solid fa-magnifying-glass"></i> {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
+        <a href="/analyzer" class="nav-item {% if request.endpoint=='analyzer' %}active{% endif %} lq" data-lq="teal">{{ liquid() }}
+          {{ ic('search') }} {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
         </a>
-        <a href="/clinical" class="nav-item {% if request.endpoint=='clinical' %}active{% endif %}">
-          <i class="fa-solid fa-book-medical"></i> {{ 'المرجع الكلينيكي' if is_ar else 'Clinical Reference' }}
+        <a href="/clinical" class="nav-item {% if request.endpoint=='clinical' %}active{% endif %} lq" data-lq="teal">{{ liquid() }}
+          {{ ic('book') }} {{ 'المرجع الكلينيكي' if is_ar else 'Clinical Reference' }}
         </a>
       </div>
     </details>
 
     {% set g_admin = request.endpoint in ['admin.admin_notifications','api_dashboard','developers_docs','settings'] %}
     <details class="nav-grp {% if g_admin %}has-active{% endif %}" {% if g_admin %}open{% endif %}>
-      <summary><i class="fa-solid fa-gear"></i> {{ 'الإدارة' if is_ar else 'Admin' }}
+      <summary class="nav-grp-s lq" data-lq="violet">{{ liquid() }}{{ ic('gear') }} {{ 'الإدارة' if is_ar else 'Admin' }}
         {% if notif_unread and notif_unread > 0 %}<span class="nav-badge">{{ notif_unread }}</span>{% endif %}
       
-        <i class="fa-solid fa-chevron-down nav-grp-x"></i>
+        {{ ic('chevron', 'nav-grp-x') }}
       </summary>
       <div class="nav-grp-body">
-        <a href="/admin/notifications" class="nav-item {% if request.endpoint=='admin.admin_notifications' %}active{% endif %}">
-          <i class="fa-solid fa-bell-concierge"></i> {{ 'الإشعارات' if is_ar else 'Notifications' }}
+        <a href="/admin/notifications" class="nav-item {% if request.endpoint=='admin.admin_notifications' %}active{% endif %} lq" data-lq="violet">{{ liquid() }}
+          {{ ic('bell') }} {{ 'الإشعارات' if is_ar else 'Notifications' }}
           {% if notif_unread and notif_unread > 0 %}<span class="nav-badge">{{ notif_unread }}</span>{% endif %}
         </a>
-        <a href="/dashboard/api" class="nav-item {% if request.endpoint in ['api_dashboard','developers_docs'] %}active{% endif %}">
-          <i class="fa-solid fa-plug"></i> {{ 'API للمطورين' if is_ar else 'Developer API' }}
+        <a href="/dashboard/api" class="nav-item {% if request.endpoint in ['api_dashboard','developers_docs'] %}active{% endif %} lq" data-lq="violet">{{ liquid() }}
+          {{ ic('plug') }} {{ 'API للمطورين' if is_ar else 'Developer API' }}
         </a>
-        <a href="/settings" class="nav-item {% if request.endpoint=='settings' %}active{% endif %}">
-          <i class="fa-solid fa-sliders"></i> {{ 'الإعدادات' if is_ar else 'Settings' }}
+        <a href="/settings" class="nav-item {% if request.endpoint=='settings' %}active{% endif %} lq" data-lq="violet">{{ liquid() }}
+          {{ ic('sliders') }} {{ 'الإعدادات' if is_ar else 'Settings' }}
         </a>
-        <button type="button" id="nxPushBtn" class="nav-item" onclick="nxEnablePush()">
-          <i class="fa-solid fa-mobile-screen-button"></i> {{ 'فعّل إشعارات الموبايل' if is_ar else 'Enable Phone Alerts' }}
+        <button type="button" id="nxPushBtn" class="nav-item lq" data-lq="violet" onclick="nxEnablePush()">{{ liquid() }}
+          {{ ic('phone') }} {{ 'فعّل إشعارات الموبايل' if is_ar else 'Enable Phone Alerts' }}
         </button>
       </div>
     </details>
   {% else %}
     <div class="nav-section">{{ 'القائمة' if is_ar else 'Menu' }}</div>
-    <a href="/my-plan" class="nav-item {% if request.endpoint in ['my_plan','dashboard'] %}active{% endif %}">
-      <i class="fa-solid fa-clipboard-list" style="color:var(--green-light)"></i> {{ 'خطتي الغذائية' if is_ar else 'My Plan' }}
+    <a href="/my-plan" class="nav-item {% if request.endpoint in ['my_plan','dashboard'] %}active{% endif %} lq" data-lq="teal">{{ liquid() }}
+      {{ ic('clipboard') }} {{ 'خطتي الغذائية' if is_ar else 'My Plan' }}
     </a>
-    <a href="/request-plan" class="nav-item {% if request.endpoint=='request_plan' %}active{% endif %}">
-      <i class="fa-solid fa-paper-plane"></i> {{ 'طلب خطة جديدة' if is_ar else 'Request Plan' }}
+    <a href="/request-plan" class="nav-item {% if request.endpoint=='request_plan' %}active{% endif %} lq" data-lq="blue">{{ liquid() }}
+      {{ ic('send') }} {{ 'طلب خطة جديدة' if is_ar else 'Request Plan' }}
     </a>
-    <a href="/recommendations" class="nav-item {% if request.endpoint=='clientapp.recommendations' %}active{% endif %}">
-      <i class="fa-solid fa-bullseye"></i> {{ 'التوصيات والأهداف' if is_ar else 'Advice & goals' }}
+    <a href="/recommendations" class="nav-item {% if request.endpoint=='clientapp.recommendations' %}active{% endif %} lq" data-lq="amber">{{ liquid() }}
+      {{ ic('target') }} {{ 'التوصيات والأهداف' if is_ar else 'Advice & goals' }}
     </a>
-    <a href="/book" class="nav-item {% if request.endpoint in ['booking.book','booking.book_status'] %}active{% endif %}">
-      <i class="fa-solid fa-calendar-check"></i> {{ 'احجز استشارة' if is_ar else 'Book a consultation' }}
+    <a href="/book" class="nav-item {% if request.endpoint in ['booking.book','booking.book_status'] %}active{% endif %} lq" data-lq="violet">{{ liquid() }}
+      {{ ic('calendar-check') }} {{ 'احجز استشارة' if is_ar else 'Book a consultation' }}
     </a>
-    <a href="/messages" class="nav-item {% if request.endpoint in ['messages','chat'] %}active{% endif %}">
-      <i class="fa-solid fa-comments" style="color:#2E8F9E"></i> {{ 'الرسائل' if is_ar else 'Messages' }}
+    <a href="/messages" class="nav-item {% if request.endpoint in ['messages','chat'] %}active{% endif %} lq" data-lq="blue">{{ liquid() }}
+      {{ ic('chat') }} {{ 'الرسائل' if is_ar else 'Messages' }}
       {% if unread_messages and unread_messages > 0 %}<span class="nav-badge">{{ unread_messages }}</span>{% endif %}
     </a>
-    <a href="/history" class="nav-item {% if request.endpoint=='history' %}active{% endif %}">
-      <i class="fa-solid fa-chart-line"></i> {{ 'وزني' if is_ar else 'My Weight' }}
+    <a href="/history" class="nav-item {% if request.endpoint=='history' %}active{% endif %} lq" data-lq="teal">{{ liquid() }}
+      {{ ic('chart') }} {{ 'وزني' if is_ar else 'My Weight' }}
     </a>
-    <a href="/analyzer" class="nav-item {% if request.endpoint=='analyzer' %}active{% endif %}">
-      <i class="fa-solid fa-magnifying-glass"></i> {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
+    <a href="/analyzer" class="nav-item {% if request.endpoint=='analyzer' %}active{% endif %} lq" data-lq="amber">{{ liquid() }}
+      {{ ic('search') }} {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
     </a>
     <details class="nav-more" {% if request.endpoint in ['daily_tips','knowledge','my_plans_history'] %}open{% endif %}>
-      <summary class="nav-item"><i class="fa-solid fa-ellipsis"></i> {{ 'المزيد' if is_ar else 'More' }}</summary>
-      <a href="/daily-tips" class="nav-item {% if request.endpoint=='daily_tips' %}active{% endif %}">
-        <i class="fa-solid fa-bell" style="color:#FF7A59"></i> {{ 'نصائحك اليومية' if is_ar else 'Daily Tips' }}
+      <summary class="nav-item lq" data-lq="violet">{{ liquid() }}{{ ic('dots') }} {{ 'المزيد' if is_ar else 'More' }}</summary>
+      <a href="/daily-tips" class="nav-item {% if request.endpoint=='daily_tips' %}active{% endif %} lq" data-lq="amber">{{ liquid() }}
+        {{ ic('bell') }} {{ 'نصائحك اليومية' if is_ar else 'Daily Tips' }}
       </a>
-      <a href="/knowledge" class="nav-item {% if request.endpoint=='knowledge' %}active{% endif %}">
-        <i class="fa-solid fa-book-open" style="color:#1B6E80"></i> {{ 'مركز المعرفة' if is_ar else 'Knowledge Hub' }}
+      <a href="/knowledge" class="nav-item {% if request.endpoint=='knowledge' %}active{% endif %} lq" data-lq="teal">{{ liquid() }}
+        {{ ic('book') }} {{ 'مركز المعرفة' if is_ar else 'Knowledge Hub' }}
       </a>
-      <a href="/my-plans-history" class="nav-item {% if request.endpoint=='my_plans_history' %}active{% endif %}">
-        <i class="fa-solid fa-clock-rotate-left"></i> {{ 'خططي السابقة' if is_ar else 'Past Plans' }}
+      <a href="/my-plans-history" class="nav-item {% if request.endpoint=='my_plans_history' %}active{% endif %} lq" data-lq="violet">{{ liquid() }}
+        {{ ic('clock') }} {{ 'خططي السابقة' if is_ar else 'Past Plans' }}
       </a>
-      <button type="button" id="nxPushBtn" class="nav-item" onclick="nxEnablePush()">
-        <i class="fa-solid fa-mobile-screen-button" style="color:#1B6E80"></i> {{ 'فعّل إشعارات الموبايل' if is_ar else 'Enable Phone Alerts' }}
+      <button type="button" id="nxPushBtn" class="nav-item lq" data-lq="blue" onclick="nxEnablePush()">{{ liquid() }}
+        {{ ic('phone') }} {{ 'فعّل إشعارات الموبايل' if is_ar else 'Enable Phone Alerts' }}
       </button>
     </details>
   {% endif %}
@@ -552,15 +576,15 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
      هنا -- اللي فضل الخروج بس. والعميل لسه محتاجهم في مكانهم. #}
   {% if not is_staff %}
   <div class="nav-section">{{ 'الحساب' if is_ar else 'Account' }}</div>
-  <a href="/dashboard/api" class="nav-item {% if request.endpoint in ['api_dashboard','developers_docs'] %}active{% endif %}">
-    <i class="fa-solid fa-plug"></i> {{ 'API للمطورين' if is_ar else 'Developer API' }}
+  <a href="/dashboard/api" class="nav-item {% if request.endpoint in ['api_dashboard','developers_docs'] %}active{% endif %} lq" data-lq="violet">{{ liquid() }}
+    {{ ic('plug') }} {{ 'API للمطورين' if is_ar else 'Developer API' }}
   </a>
-  <a href="/settings" class="nav-item {% if request.endpoint=='settings' %}active{% endif %}">
-    <i class="fa-solid fa-gear"></i> {{ 'الإعدادات' if is_ar else 'Settings' }}
+  <a href="/settings" class="nav-item {% if request.endpoint=='settings' %}active{% endif %} lq" data-lq="blue">{{ liquid() }}
+    {{ ic('gear') }} {{ 'الإعدادات' if is_ar else 'Settings' }}
   </a>
   {% endif %}
-  <a href="/logout" class="nav-item danger" style="margin-top:8px">
-    <i class="fa-solid fa-right-from-bracket"></i> {{ 'خروج' if is_ar else 'Logout' }}
+  <a href="/logout" class="nav-item danger lq" data-lq="red">{{ liquid() }}
+    {{ ic('logout') }} {{ 'خروج' if is_ar else 'Logout' }}
   </a>
 </nav>
 {% endif %}
