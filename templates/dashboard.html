@@ -369,6 +369,11 @@
 .dash .next-appt{margin:0}
 {# ‏الوضع الغامق: نفس فكرة اللوحة (كروت على الأرضية، برتقالي واحد)، بس الكروت
    غامقة والكلام فاتح. البرتقالي ونص الكلام اللي عليه زي ما هما. #}
+{# ‏الكروت زجاج زي باقي الموقع (test_glass): أبيض شفاف في الفاتح وكحلي شفاف
+   في الغامق. البرتقالي (الكارت المميز والباقة الأكتر) فاضل صلب. #}
+.dash-card,.dash-hero:not(.is-accent),.dash-plan:not(.is-lead),.dash .nx-strip,.dash-tabs{
+  background-color:var(--nx-glass) !important;backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6);
+  border:1px solid var(--nx-glass-line)}
 html[data-theme="dark"] .dash{--dx-ink:#E8ECF1;--dx-card:#171D25;--dx-line:#2E3844;--dx-mute:#9AA6B4;
   --dx-bar:#2E3844;--dx-soft:#33210F;--dx-track:#232B36;--dx-dot:#FF9A5C;--dx-gain:#5A6472}
 .dash-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
