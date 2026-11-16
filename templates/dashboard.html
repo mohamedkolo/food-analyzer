@@ -288,7 +288,7 @@
   </div>
   <div style="display:flex;flex-direction:column;gap:8px">
     {% for req in recent_requests %}
-    <a href="/admin/requests" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--gray);border-radius:10px;text-decoration:none;color:var(--text);transition:all 0.2s" onmouseover="this.style.background='#D3E3EA'" onmouseout="this.style.background='var(--gray)'">
+    <a href="/admin/requests" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--gray);border-radius:10px;text-decoration:none;color:var(--text);transition:all 0.2s" onmouseover="this.style.background='var(--nx-tint)'" onmouseout="this.style.background='var(--gray)'">
       <div>
         <div style="font-weight:700;font-size:14px">{{ req.client_name or ('عميل' if is_ar else 'Client') }}</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px">{{ req.created_at }}</div>

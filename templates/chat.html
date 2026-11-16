@@ -22,7 +22,7 @@
       {% for m in messages %}
         {% set is_me = m.sender_id == user.id %}
         <div style="display:flex;{{ 'justify-content:flex-end' if is_me else 'justify-content:flex-start' }}">
-          <div style="max-width:75%;background:{{ 'var(--nx-tint)' if is_me else '#f3f4f6' }};color:{{ 'var(--nx-ink)' if is_me else '#1f2937' }};padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.6">
+          <div style="max-width:75%;background:{{ 'var(--nx-tint)' if is_me else 'var(--nx-surface-2)' }};color:{{ 'var(--nx-ink)' if is_me else 'var(--nx-ink)' }};padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.6">
             {{ m.message }}
             <div style="font-size:10px;color:var(--muted);margin-top:4px;text-align:left">
               {{ m.created_at.strftime('%H:%M') if m.created_at.strftime is defined else m.created_at }}
