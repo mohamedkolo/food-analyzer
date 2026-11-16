@@ -148,9 +148,12 @@ def today_progress(user):
         return None
     checked = {m["key"] for m in tracking["today_meals"] if m["checked"]}
     skipped = {k for k, r in meal_notes_today(user).items() if r.get("skipped")}
+    import food_log
+    today = _meal_day(user)
+    extra = food_log.by_day(db_rows, user["id"], today).get(str(today)[:10])
     return day_progress.build(tracking["day"], tracking["meal_keys"], checked, skipped,
                               tracking["labels"], is_ar=cur_lang() == "ar",
-                              hour=client_now(user).hour)
+                              hour=client_now(user).hour, extra=extra)
 
 
 _TRACK_KEYS = ["breakfast", "snack1", "meal1", "pre_workout", "lunch", "post_workout",
@@ -182,10 +185,53 @@ def week_progress(user):
             skips.setdefault(str(r["check_date"])[:10], set()).add(r["meal_key"])
         start = row.get("updated_at")
         start = start.date() if hasattr(start, "date") else datetime.fromisoformat(str(start)[:10]).date() if start else None
-        return day_progress.week(plan, _TRACK_KEYS, {}, checks, skips, today, start=start)
+        import food_log
+        extras = food_log.by_day(db_rows, user["id"], since)
+        return day_progress.week(plan, _TRACK_KEYS, {}, checks, skips, today, start=start, extras=extras)
     except Exception as exc:                      # noqa: BLE001
         print("[client] week_progress failed: %s" % exc)
         return None
+
+
+@bp.route("/api/food/search")
+@login_required
+def food_search():
+    import food_log
+    return jsonify(food_log.search(request.args.get("q", "")))
+
+
+@bp.route("/food-log/add", methods=["POST"])
+@login_required
+def food_log_add():
+    """‏الأرقام من الجدول × الجرامات. أي رقم جاي من المتصفح بيتجاهل."""
+    import food_log
+    user = get_user_by_id(session["uid"])
+    row = food_log.entry(request.form.get("slug"), request.form.get("grams"))
+    if not user or not row:
+        return jsonify({"ok": False}), 400
+    db_run("INSERT INTO food_log (user_id, log_date, slug, food_name, grams, cal, p, c, f)"
+           " VALUES (?,?,?,?,?,?,?,?,?)",
+           (user["id"], _meal_day(user), row["slug"], row["food_name"], row["grams"],
+            row["cal"], row["p"], row["c"], row["f"]))
+    return jsonify({"ok": True, "entry": row})
+
+
+@bp.route("/food-log/<int:fid>/delete", methods=["POST"])
+@login_required
+def food_log_delete(fid):
+    row = db_row("SELECT id FROM food_log WHERE id=? AND user_id=?", (fid, session["uid"]))
+    if not row:
+        return jsonify({"ok": False}), 404
+    db_run("DELETE FROM food_log WHERE id=?", (fid,))
+    return jsonify({"ok": True})
+
+
+@bp.app_template_global()
+def food_log_days(user_id, days=7):
+    """‏أكل برّه الخطة آخر كام يوم، للعميل في خطتي وللدكتور في ملفه."""
+    import food_log
+    since = (datetime.now() - timedelta(days=days - 1)).date()
+    return food_log.by_day(db_rows, user_id, since)
 
 
 @bp.route("/my-plan/progress")

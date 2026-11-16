@@ -89,6 +89,114 @@
         <ul class="dp-hints" id="dpHints" aria-live="polite">{% for h in progress.hints %}<li>{{ h }}</li>{% endfor %}</ul>
         {% endif %}
       </div>
+      {# ‏"أكلت حاجة برّه الخطة؟": بحث في جدول الأكل، والأرقام بتتحسب في السيرفر
+         (food_log.py). الدكتور بيشوف اللي اتسجّل في ملف العميل. #}
+      {% set fl_today = (food_log_days(user.id, 1).values()|list or [{'items': []}])[0] %}
+      <details class="fl" id="flBox" {% if fl_today['items'] %}open{% endif %}>
+        <summary>🍽️ {{ t('أكلت حاجة برّه الخطة؟','Ate something outside the plan?') }}</summary>
+        <div class="fl-body">
+          <label class="fl-lbl" for="flQ">{{ t('دوّر على الأكل','Search for the food') }}</label>
+          <input class="fl-in" id="flQ" type="search" autocomplete="off" placeholder="{{ t('مثلاً: فول، طعمية، كشري','e.g. fava beans, falafel, rice') }}">
+          <div id="flRes" class="fl-res"></div>
+          <div id="flPick" class="fl-pick" hidden>
+            <b id="flName"></b>
+            <div class="fl-row">
+              <label class="fl-lbl" for="flG">{{ t('الكمية بالجرام','Amount in grams') }}</label>
+              <input class="fl-in fl-g" id="flG" type="number" min="1" max="2000" value="100" inputmode="numeric">
+              <span id="flUnits" class="fl-units"></span>
+            </div>
+            <div class="fl-row">
+              <span id="flCal" class="fl-cal" aria-live="polite"></span>
+              <button type="button" id="flAdd" class="fl-add">{{ t('ضيف','Add') }}</button>
+            </div>
+          </div>
+          <ul id="flToday" class="fl-today">
+            {% for it in fl_today['items'] %}
+            <li data-id="{{ it.id }}"><span>{{ it.name }} · {{ it.grams }} {{ t('جم','g') }} · {{ it.cal }} {{ t('سعرة','kcal') }}</span>
+              <button type="button" class="fl-del" data-del="{{ it.id }}" aria-label="{{ t('امسح','Remove') }} {{ it.name }}">×</button></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </details>
+      <style>
+      .fl{margin:0 0 14px;border:1px dashed var(--nx-line);border-radius:12px;padding:10px 12px}
+      .fl>summary{cursor:pointer;font-size:13px;font-weight:800;color:var(--nx-ink-2);list-style:none}
+      .fl>summary::-webkit-details-marker{display:none}
+      .fl>summary:focus-visible{outline:2px solid var(--nx-ink-2);outline-offset:2px;border-radius:6px}
+      .fl-body{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+      .fl-lbl{font-size:12px;font-weight:700;color:var(--nx-muted)}
+      .fl-in{inline-size:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--nx-line);border-radius:10px;background:var(--nx-surface);color:var(--nx-ink);font:inherit;font-size:14px}
+      .fl-g{inline-size:110px}
+      .fl-res{display:flex;flex-direction:column;gap:4px}
+      .fl-res button{display:flex;justify-content:space-between;gap:8px;text-align:start;background:var(--nx-surface-2);border:1px solid var(--nx-line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px;color:var(--nx-ink);cursor:pointer}
+      .fl-res button span{color:var(--nx-muted);font-size:12px;white-space:nowrap}
+      .fl-res button:focus-visible,.fl-add:focus-visible,.fl-del:focus-visible,.fl-units button:focus-visible{outline:2px solid var(--nx-ink-2);outline-offset:2px}
+      .fl-pick{display:flex;flex-direction:column;gap:8px;background:var(--nx-surface-2);border-radius:10px;padding:10px}
+      .fl-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+      .fl-units{display:flex;gap:6px;flex-wrap:wrap}
+      .fl-units button{border:1px solid var(--nx-line);background:var(--nx-surface);color:var(--nx-ink-2);border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer}
+      .fl-cal{font-size:13px;font-weight:800;color:var(--nx-ink);flex:1}
+      .fl-add{background:var(--nx-solid);color:var(--nx-on-solid);border:0;border-radius:10px;padding:9px 18px;font:inherit;font-weight:800;cursor:pointer}
+      .fl-today{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+      .fl-today li{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;color:var(--nx-ink-2);background:var(--nx-surface-2);border-radius:10px;padding:6px 10px}
+      .fl-del{background:none;border:0;color:var(--nx-bad-ink);font-size:18px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:6px}
+      </style>
+      <script>
+      (function(){
+        var isAr = {{ 'true' if is_ar else 'false' }};
+        var q = document.getElementById('flQ'), res = document.getElementById('flRes'), pick = document.getElementById('flPick');
+        var g = document.getElementById('flG'), cal = document.getElementById('flCal'), units = document.getElementById('flUnits');
+        var today = document.getElementById('flToday'), chosen = null, timer = null;
+        var KCAL = isAr ? ' سعرة' : ' kcal', G = isAr ? ' جم' : ' g', PER = isAr ? ' / 100 جم' : ' / 100 g';
+        function show(){ if (!chosen) return; var n = parseFloat(g.value) || 0; cal.textContent = Math.round(chosen.cal * n / 100) + KCAL; }
+        function choose(f){
+          chosen = f; pick.hidden = false; res.textContent = '';
+          document.getElementById('flName').textContent = isAr ? f.n : f.en;
+          units.textContent = '';
+          (f.units || []).forEach(function(u){
+            var b = document.createElement('button'); b.type = 'button'; b.textContent = u[0] + ' (' + u[1] + G + ')';
+            b.addEventListener('click', function(){ g.value = u[1]; show(); }); units.appendChild(b);
+          });
+          if (f.units && f.units[0]) g.value = f.units[0][1];
+          show(); g.focus();
+        }
+        q.addEventListener('input', function(){
+          clearTimeout(timer);
+          timer = setTimeout(async function(){
+            var v = q.value.trim(); res.textContent = '';
+            if (v.length < 2) return;
+            try {
+              var rows = await (await fetch('/api/food/search?q=' + encodeURIComponent(v))).json();
+              rows.forEach(function(f){
+                var b = document.createElement('button'); b.type = 'button';
+                var name = document.createElement('b'); name.textContent = isAr ? f.n : f.en;
+                var meta = document.createElement('span'); meta.textContent = Math.round(f.cal) + KCAL + PER;
+                b.appendChild(name); b.appendChild(meta);
+                b.addEventListener('click', function(){ choose(f); });
+                res.appendChild(b);
+              });
+            } catch(e) {}
+          }, 220);
+        });
+        g.addEventListener('input', show);
+        document.getElementById('flAdd').addEventListener('click', async function(){
+          if (!chosen) return;
+          var fd = new FormData(); fd.append('slug', chosen.slug); fd.append('grams', g.value);
+          try {
+            var r = await fetch('/food-log/add', {method: 'POST', body: fd});
+            // ‏إعادة تحميل: الدواير والقايمة بييجوا من السيرفر بنفس حسابه
+            if (r.ok) location.reload();
+          } catch(err) {}
+        });
+        today.addEventListener('click', async function(ev){
+          var b = ev.target.closest('[data-del]'); if (!b) return;
+          try {
+            var r = await fetch('/food-log/' + b.dataset.del + '/delete', {method: 'POST'});
+            if (r.ok){ b.closest('li').remove(); if (window.refreshProgress) refreshProgress(); }
+          } catch(e) {}
+        });
+      })();
+      </script>
       <style>
       .dp{margin-bottom:14px}
       .dp-rings{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}

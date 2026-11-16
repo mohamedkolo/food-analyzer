@@ -43,7 +43,7 @@ def _split(total, weights):
     return out
 
 
-def build(day, meal_keys, checked, skipped, labels, is_ar=True, hour=12):
+def build(day, meal_keys, checked, skipped, labels, is_ar=True, hour=12, extra=None):
     """‏الدواير والنصايح ليوم واحد. None لو اليوم مافيهوش أرقام خالص."""
     if not day or not meal_keys:
         return None
@@ -73,8 +73,16 @@ def build(day, meal_keys, checked, skipped, labels, is_ar=True, hour=12):
     eaten = {n: (sum(meals[k].get(n, 0) for k in checked) if target[n] is not None else None)
              for n in NUTRIENTS}
     left_keys = [k for k in meal_keys if k not in checked and k not in skipped]
-    return {"target": target, "eaten": eaten, "meals": meals,
-            "hints": _hints(meals, target, checked, skipped, left_keys, labels, is_ar, hour)}
+    hints = _hints(meals, target, checked, skipped, left_keys, labels, is_ar, hour)
+    # ‏أكل برّه الخطة (food_log): بيتجمع على المتاكل، والنصيحة بتقوله بالرقم بس.
+    if extra and extra.get("cal"):
+        for n in NUTRIENTS:
+            if eaten[n] is not None:
+                eaten[n] += int(extra.get(n) or 0)
+        hints.append(("أكلت برّه الخطة %d سعرة النهارده، والدكتور هيشوفها في ملفك." % extra["cal"]) if is_ar
+                     else "You ate %d kcal outside the plan today; your doctor will see it." % extra["cal"])
+    return {"target": target, "eaten": eaten, "meals": meals, "hints": hints,
+            "extra": {n: int(extra.get(n) or 0) for n in NUTRIENTS} if extra else None}
 
 
 def _hints(meals, target, checked, skipped, left_keys, labels, is_ar, hour):
@@ -122,7 +130,7 @@ def _window(days):
             "days_logged": sum(1 for d in days if d["logged"])}
 
 
-def week(plan, meal_keys, labels, checks, skips, today, start=None):
+def week(plan, meal_keys, labels, checks, skips, today, start=None, extras=None):
     """‏آخر ١٤ يوم (الأقدم الأول): لكل يوم المتاكل قصاد المستهدف، بنفس حساب
     build()، ومعاهم متوسط الأسبوع ده واللي قبله والفرق بينهم.
 
@@ -139,9 +147,9 @@ def week(plan, meal_keys, labels, checks, skips, today, start=None):
         # ‏"ماكلتهاش" بتشيل علامة "اتاكلت" في الأبلكيشن، فهنا كمان التخطّي بيغلب.
         skipped = set(skips.get(iso, ()))
         checked = set(checks.get(iso, ())) - skipped
-        r = build(day, keys, checked, skipped, labels) if keys else None
+        r = build(day, keys, checked, skipped, labels, extra=(extras or {}).get(iso)) if keys else None
         active = r is not None and (start is None or d >= start)
-        days.append({"date": iso, "dow": d.weekday(), "logged": bool(checked) and active,
+        days.append({"date": iso, "dow": d.weekday(), "logged": (bool(checked) or bool((extras or {}).get(iso))) and active,
                      "cal": r["eaten"]["cal"] if active else 0, "p": (r["eaten"]["p"] or 0) if active else 0,
                      "cal_target": r["target"]["cal"] if active else 0,
                      "p_target": (r["target"]["p"] or 0) if active else 0})

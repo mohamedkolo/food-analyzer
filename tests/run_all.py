@@ -79,6 +79,7 @@ SUITES = [
     "test_glass.py",
     "test_day_progress.py",
     "test_week_progress.py",
+    "test_food_log.py",
 ]
 
 
