@@ -153,6 +153,41 @@ def today_progress(user):
                               hour=client_now(user).hour)
 
 
+_TRACK_KEYS = ["breakfast", "snack1", "meal1", "pre_workout", "lunch", "post_workout",
+               "iftar", "snack", "snack2", "suhoor", "meal2", "dinner"]
+
+
+def week_progress(user):
+    """‏"أسبوعك": آخر ١٤ يوم بنفس حساب الدواير، في ٣ استعلامات."""
+    import day_progress
+    from core import client_now
+    if not user:
+        return None
+    try:
+        row = db_row("SELECT plan_data, updated_at FROM plan_requests WHERE client_id=? AND status='approved'"
+                     " ORDER BY updated_at DESC LIMIT 1", (user["id"],))
+        if not row or not row.get("plan_data"):
+            return None
+        plan = (json.loads(row["plan_data"]) or {}).get("plan") or []
+        if not plan:
+            return None
+        today = client_now(user).date()
+        since = today - timedelta(days=13)
+        checks, skips = {}, {}
+        for r in db_rows("SELECT check_date, meal_key FROM meal_checks WHERE user_id=? AND check_date>=?",
+                         (user["id"], since)) or []:
+            checks.setdefault(str(r["check_date"])[:10], set()).add(r["meal_key"])
+        for r in db_rows("SELECT check_date, meal_key FROM meal_notes WHERE user_id=? AND check_date>=? AND skipped=1",
+                         (user["id"], since)) or []:
+            skips.setdefault(str(r["check_date"])[:10], set()).add(r["meal_key"])
+        start = row.get("updated_at")
+        start = start.date() if hasattr(start, "date") else datetime.fromisoformat(str(start)[:10]).date() if start else None
+        return day_progress.week(plan, _TRACK_KEYS, {}, checks, skips, today, start=start)
+    except Exception as exc:                      # noqa: BLE001
+        print("[client] week_progress failed: %s" % exc)
+        return None
+
+
 @bp.route("/my-plan/progress")
 @login_required
 def my_plan_progress():

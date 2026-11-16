@@ -109,3 +109,43 @@ def _hints(meals, target, checked, skipped, left_keys, labels, is_ar, hour):
             hints.append(("%s فيها %d جم بروتين، أكتر وجبة بروتين فاضلة النهارده." % (lab(top), p)) if is_ar
                          else "%s has %d g protein, the most protein left today." % (lab(top), p))
     return hints
+
+
+# ═══ "أسبوعك": آخر ١٤ يوم ═══
+
+def _window(days):
+    """متوسط اللي اتاكل من المستهدف على كام يوم، بالنسبة المئوية."""
+    tc = sum(d["cal_target"] for d in days)
+    tp = sum(d["p_target"] for d in days)
+    return {"cal_pct": int(round(sum(d["cal"] for d in days) * 100.0 / tc)) if tc else 0,
+            "p_pct": int(round(sum(d["p"] for d in days) * 100.0 / tp)) if tp else 0,
+            "days_logged": sum(1 for d in days if d["logged"])}
+
+
+def week(plan, meal_keys, labels, checks, skips, today, start=None):
+    """‏آخر ١٤ يوم (الأقدم الأول): لكل يوم المتاكل قصاد المستهدف، بنفس حساب
+    build()، ومعاهم متوسط الأسبوع ده واللي قبله والفرق بينهم.
+
+    ‏plan = أيام الخطة (الأحد أولها، زي get_meal_tracking). checks وskips =
+    {"YYYY-MM-DD": {meal_key}}. الأيام قبل start (بداية الخطة) مابتتحسبش،
+    علشان عميل لسه بادئ مايطلعش ملتزم ٣٠٪ بسبب أيام ماكانش عنده فيها خطة."""
+    from datetime import timedelta
+    days = []
+    for back in range(13, -1, -1):
+        d = today - timedelta(days=back)
+        iso = d.isoformat()
+        day = plan[min((d.weekday() + 1) % 7, len(plan) - 1)] if plan else {}
+        keys = [k for k in meal_keys if day.get(k)]
+        # ‏"ماكلتهاش" بتشيل علامة "اتاكلت" في الأبلكيشن، فهنا كمان التخطّي بيغلب.
+        skipped = set(skips.get(iso, ()))
+        checked = set(checks.get(iso, ())) - skipped
+        r = build(day, keys, checked, skipped, labels) if keys else None
+        active = r is not None and (start is None or d >= start)
+        days.append({"date": iso, "dow": d.weekday(), "logged": bool(checked) and active,
+                     "cal": r["eaten"]["cal"] if active else 0, "p": (r["eaten"]["p"] or 0) if active else 0,
+                     "cal_target": r["target"]["cal"] if active else 0,
+                     "p_target": (r["target"]["p"] or 0) if active else 0})
+    this, last = _window(days[7:]), _window(days[:7])
+    delta = None if not last["days_logged"] else {
+        "cal_pct": this["cal_pct"] - last["cal_pct"], "p_pct": this["p_pct"] - last["p_pct"]}
+    return {"days": days, "this": this, "last": last, "delta": delta}
