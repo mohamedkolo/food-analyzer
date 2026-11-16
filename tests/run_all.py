@@ -73,6 +73,7 @@ SUITES = [
     "test_email_codes.py",
     "test_new_client_notice.py",
     "test_admin_dashboard.py",
+    "test_speed.py",
 ]
 
 

@@ -162,7 +162,9 @@ def dashboard():
         pass
 
     analytics = build_admin_analytics(db_rows)
-    at_risk = get_at_risk_clients()
+    # ‏كل أرقام العملاء في ٣ استعلامات، مش ٦ لكل عميل (شوف bulk_client_stats).
+    client_stats = bulk_client_stats()
+    at_risk = get_at_risk_clients(stats=client_stats)
 
     # ‏أرقام اللوحة الجديدة: كلها من الجداول، على ساعة القاهرة.
     import dashboard_data as DD
@@ -171,7 +173,7 @@ def dashboard():
     week = DD.clients_logging_week(db_rows, now_local.date())
     goal_mix = DD.goal_breakdown(db_rows)
     plans_now = DD.plan_cards(db_rows, datetime.now())
-    leaders = DD.streak_leaders(db_rows, get_meal_streak)
+    leaders = DD.streak_leaders(db_rows, lambda uid: client_stats.get(uid, {}))
     recent = DD.recent_ticks(db_rows)
     for r in recent:
         r["meal"] = DD.meal_name(r["meal_key"], lang == "ar")
@@ -327,6 +329,49 @@ ARABIC_DAYS = ["الاحد","الاثنين","الثلاثاء","الاربعا�
 
 
 
+def _streak_from(pd, done_by_date, today, max_days=90):
+    """‏حساب التتابع نفسه، من غير قاعدة بيانات. get_meal_streak و
+    bulk_client_stats الاتنين بينادوه، فالرقم واحد في الصفحتين."""
+    plan = pd.get("plan") or []
+    if not plan:
+        return 0, 0
+    diet_type = (pd.get("data") or {}).get("diet_plan_type", "standard")
+    meal_list = get_diet_plan_info(diet_type).get("meals", [])
+
+    # الوجبات المتوقعة لكل يوم أسبوع (0=الأحد..6=السبت) حسب الخطة
+    expected_by_weekday = {}
+    for i in range(7):
+        day = plan[min(i, len(plan) - 1)]
+        expected_by_weekday[i] = [k for k in meal_list if day.get(k)]
+
+    def is_complete(d):
+        widx = (d.weekday() + 1) % 7
+        expected = expected_by_weekday.get(widx, [])
+        if not expected:
+            return None  # يوم مفيهوش وجبات متوقعة أصلاً — نتجاهله
+        done = done_by_date.get(d.strftime("%Y-%m-%d"), set())
+        return all(k in done for k in expected)
+
+    current, run, best, counting_current = 0, 0, 0, True
+    for back in range(1, max_days + 1):
+        complete = is_complete(today - timedelta(days=back))
+        if complete is None:
+            continue
+        if complete:
+            run += 1
+            best = max(best, run)
+            if counting_current:
+                current = run
+        else:
+            run = 0
+            counting_current = False
+
+    if is_complete(today):
+        current += 1
+        best = max(best, current)
+    return current, max(best, current)
+
+
 def get_meal_streak(user_id, max_days=90):
     """بيحسب تتابع الالتزام الحالي (أيام متتالية بالتزام كامل بكل وجبات اليوم) وأطول تتابع، من بيانات meal_checks الموجودة."""
     out = {"current_streak": 0, "best_streak": 0, "badge": None}
@@ -337,53 +382,15 @@ def get_meal_streak(user_id, max_days=90):
         if not latest or not latest.get("plan_data"):
             return out
         pd = json.loads(latest["plan_data"])
-        plan = pd.get("plan") or []
-        if not plan:
+        if not (pd.get("plan") or []):
             return out
-        diet_type = (pd.get("data") or {}).get("diet_plan_type", "standard")
-        meal_list = get_diet_plan_info(diet_type).get("meals", [])
-
-        # الوجبات المتوقعة لكل يوم أسبوع (0=الأحد..6=السبت) حسب الخطة
-        expected_by_weekday = {}
-        for i in range(7):
-            day = plan[min(i, len(plan) - 1)]
-            expected_by_weekday[i] = [k for k in meal_list if day.get(k)]
-
         rows = db_rows("SELECT check_date, meal_key FROM meal_checks WHERE user_id=?", (user_id,))
         done_by_date = {}
         for r in (rows or []):
             d = str(r["check_date"])[:10]
             done_by_date.setdefault(d, set()).add(r["meal_key"])
-
-        def is_complete(d):
-            widx = (d.weekday() + 1) % 7
-            expected = expected_by_weekday.get(widx, [])
-            if not expected:
-                return None  # يوم مفيهوش وجبات متوقعة أصلاً — نتجاهله
-            done = done_by_date.get(d.strftime("%Y-%m-%d"), set())
-            return all(k in done for k in expected)
-
-        today = client_now(user_id).date()
-        current, run, best, counting_current = 0, 0, 0, True
-        for back in range(1, max_days + 1):
-            complete = is_complete(today - timedelta(days=back))
-            if complete is None:
-                continue
-            if complete:
-                run += 1
-                best = max(best, run)
-                if counting_current:
-                    current = run
-            else:
-                run = 0
-                counting_current = False
-
-        if is_complete(today):
-            current += 1
-            best = max(best, current)
-
-        out["current_streak"] = current
-        out["best_streak"] = max(best, current)
+        out["current_streak"], out["best_streak"] = _streak_from(
+            pd, done_by_date, client_now(user_id).date(), max_days)
     except Exception as e:
         print(f"[streak] error: {e}")
         return out
@@ -399,23 +406,73 @@ def get_meal_streak(user_id, max_days=90):
     return out
 
 
-def get_at_risk_clients(threshold=40, limit=10):
-    """عملاء عندهم خطة معتمدة والتزامهم بالوجبات آخر 7 أيام أقل من حد معيّن — إشارة مبكرة إنهم محتاجين متابعة."""
-    out = []
+_TRACK_KEYS = ["breakfast", "snack1", "meal1", "pre_workout", "lunch", "post_workout",
+               "iftar", "snack", "snack2", "suhoor", "meal2", "dinner"]
+
+
+def bulk_client_stats(max_days=90):
+    """‏التزام الأسبوع والتتابع لكل العملاء، في ٣ استعلامات.
+
+    ‏لوحة الأدمن كانت بتنادي get_meal_tracking وget_meal_streak لكل عميل
+    لوحده: ٦ استعلامات للعميل، يعني ٨٦٦ استعلام لـ١٢٠ عميل. على Neon كل
+    استعلام رحلة شبكة، فاللوحة كانت بتاخد ثواني كتير. الحساب نفسه واحد:
+    week_pct بنفس معادلة get_meal_tracking، والتتابع من _streak_from اللي
+    get_meal_streak بيستخدمها (اختبار test_speed بيقارن الاتنين عميل عميل)."""
+    import booking
+    out = {}
     try:
-        clients = db_rows("SELECT id, name, email FROM users WHERE role='client' AND active=1")
+        users = db_rows("SELECT id, name, email, timezone FROM users WHERE role='client' AND active=1")
+        plans = db_rows("""SELECT p.client_id, p.plan_data FROM plan_requests p
+                           WHERE p.status='approved' AND p.updated_at = (
+                               SELECT MAX(q.updated_at) FROM plan_requests q
+                               WHERE q.client_id = p.client_id AND q.status='approved')""")
+        since = (booking.utcnow() - timedelta(days=max_days + 2)).date()
+        checks = db_rows("SELECT user_id, check_date, meal_key FROM meal_checks WHERE check_date >= ?",
+                         (since,))
     except Exception as e:
-        print(f"[at risk] users query error: {e}")
+        print(f"[bulk stats] query error: {e}")
         return out
-    for c in (clients or []):
+    plan_of = {}
+    for r in plans or []:
+        plan_of.setdefault(r["client_id"], r.get("plan_data"))
+    done = {}
+    for r in checks or []:
+        done.setdefault(r["user_id"], {}).setdefault(str(r["check_date"])[:10], set()).add(r["meal_key"])
+    utc_now = booking.utcnow()
+    for u in users or []:
+        uid = u["id"]
+        row = {"id": uid, "name": u.get("name") or "-", "email": u.get("email") or "-",
+               "has_plan": False, "week_pct": None, "current_streak": 0, "best_streak": 0}
+        out[uid] = row
+        raw = plan_of.get(uid)
+        if not raw:
+            continue
         try:
-            tracking = get_meal_tracking(c["id"])
-            pct = tracking.get("week_pct")
-            if tracking.get("has_plan") and pct is not None and pct < threshold:
-                out.append({"id": c["id"], "name": c.get("name") or "-",
-                           "email": c.get("email") or "-", "week_pct": pct})
+            pd = json.loads(raw)
         except Exception:
             continue
+        plan = pd.get("plan") or []
+        if not plan:
+            continue
+        now = booking.to_local(utc_now, booking.tz(u.get("timezone"))).replace(tzinfo=None)
+        by_date = done.get(uid, {})
+        # ‏نفس get_meal_tracking: وجبات النهارده × ٧، وعلامات من أسبوع لحد دلوقتي
+        day = plan[min((now.weekday() + 1) % 7, len(plan) - 1)]
+        meal_keys = [k for k in _TRACK_KEYS if day.get(k)]
+        week_ago = (now - timedelta(days=6)).strftime("%Y-%m-%d")
+        n_week = sum(len(keys) for d, keys in by_date.items() if d >= week_ago)
+        row["has_plan"] = True
+        row["week_pct"] = min(round(n_week / max(len(meal_keys) * 7, 1) * 100), 100)
+        row["current_streak"], row["best_streak"] = _streak_from(pd, by_date, now.date(), max_days)
+    return out
+
+
+def get_at_risk_clients(threshold=40, limit=10, stats=None):
+    """عملاء عندهم خطة معتمدة والتزامهم بالوجبات آخر 7 أيام أقل من حد معيّن — إشارة مبكرة إنهم محتاجين متابعة."""
+    stats = bulk_client_stats() if stats is None else stats
+    out = [{"id": r["id"], "name": r["name"], "email": r["email"], "week_pct": r["week_pct"]}
+           for r in stats.values()
+           if r["has_plan"] and r["week_pct"] is not None and r["week_pct"] < threshold]
     out.sort(key=lambda x: x["week_pct"])
     return out[:limit]
 
