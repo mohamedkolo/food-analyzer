@@ -65,6 +65,46 @@
         <div style="font-weight:900;font-size:15px;color:var(--nx-ink);">✅ {{ t('وجبات النهارده','Today\'s meals') }} ({{ tracking.day_name }})</div>
         <div id="todayCount" style="font-size:12px;font-weight:800;color:var(--nx-ink-2);background:var(--nx-surface-2);padding:4px 12px;border-radius:999px;">{{ tracking.today_done }}/{{ tracking.today_total }}</div>
       </div>
+      {# ‏دواير الماكروز: المتاكل قصاد المستهدف من خطة الدكتور (day_progress).
+         كل دايرة بلون السائل بتاعها في القايمة الجانبية: سعرات كهرماني، بروتين
+         أزرق، كارب تركواز، دهون بنفسجي. #}
+      {% if progress %}
+      <div class="dp" id="dpBox">
+        <div class="dp-rings">
+          {% for k, ar, en, unit in [('cal','سعرات','Calories',''),('p','بروتين','Protein',t('جم','g')),('c','كارب','Carbs',t('جم','g')),('f','دهون','Fat',t('جم','g'))] %}
+          {% if progress.target[k] %}
+          {% set pct = [((progress.eaten[k] or 0) * 100 / progress.target[k])|round|int, 100]|min %}
+          <div class="dp-ring" data-k="{{ k }}" data-target="{{ progress.target[k] }}" style="--dp-c:var(--lq-{{ {'cal':'amber','p':'blue','c':'teal','f':'violet'}[k] }})">
+            <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+              <circle class="dp-track" cx="32" cy="32" r="26" fill="none" stroke-width="7"/>
+              <circle class="dp-arc" cx="32" cy="32" r="26" fill="none" stroke-width="7" stroke-linecap="round" pathLength="100" style="stroke-dashoffset:{{ 100 - pct }}"/>
+            </svg>
+            <div class="dp-num"><b class="dp-eaten">{{ progress.eaten[k] or 0 }}</b><span>{{ t('من','of') }} {{ progress.target[k] }}{{ (' ' ~ unit) if unit }}</span></div>
+            <div class="dp-lbl">{{ ar if is_ar else en }}</div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% if progress.hints %}
+        <ul class="dp-hints" id="dpHints" aria-live="polite">{% for h in progress.hints %}<li>{{ h }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+      <style>
+      .dp{margin-bottom:14px}
+      .dp-rings{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+      .dp-ring{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;min-width:0}
+      .dp-ring svg{width:64px;height:64px;transform:rotate(-90deg)}
+      .dp-track{stroke:var(--nx-line)}
+      .dp-arc{stroke:var(--dp-c);stroke-dasharray:100;transition:stroke-dashoffset .7s cubic-bezier(.3,1.2,.5,1)}
+      .dp-num{font-size:12px;color:var(--nx-muted);font-variant-numeric:tabular-nums;line-height:1.3}
+      .dp-num b{display:block;font-size:17px;font-weight:900;color:var(--nx-ink)}
+      .dp-lbl{font-size:11.5px;font-weight:800;color:var(--nx-ink-2)}
+      .dp-hints{list-style:none;margin:12px 0 0;padding:10px 12px;border-radius:12px;background:var(--nx-surface-2);display:flex;flex-direction:column;gap:6px}
+      .dp-hints li{font-size:12.5px;font-weight:700;color:var(--nx-ink-2);line-height:1.7}
+      @media (max-width:380px){.dp-ring svg{width:54px;height:54px}.dp-num b{font-size:15px}}
+      @media (prefers-reduced-motion:reduce){.dp-arc{transition:none}}
+      </style>
+      {% endif %}
       {% if streak and streak.current_streak > 0 %}
       <div style="display:flex;align-items:center;gap:8px;background:var(--nx-warn-bg);border:1.5px solid #f3d98a;border-radius:12px;padding:10px 14px;margin-bottom:12px;">
         <span style="font-size:22px;">🔥</span>
@@ -128,6 +168,22 @@
       });
       box.addEventListener('change', save);
     });
+    async function refreshProgress(){
+      const box = document.getElementById('dpBox'); if (!box) return;
+      try {
+        const d = await (await fetch('/my-plan/progress')).json();
+        if (!d || !d.target) return;
+        box.querySelectorAll('.dp-ring').forEach(r => {
+          const k = r.dataset.k, tg = d.target[k], e = d.eaten[k] || 0;
+          if (!tg) return;
+          r.querySelector('.dp-eaten').textContent = e;
+          r.querySelector('.dp-arc').style.strokeDashoffset = 100 - Math.min(100, Math.round(e * 100 / tg));
+        });
+        let ul = document.getElementById('dpHints');
+        if (!ul && d.hints && d.hints.length){ ul = document.createElement('ul'); ul.id = 'dpHints'; ul.className = 'dp-hints'; ul.setAttribute('aria-live','polite'); box.appendChild(ul); }
+        if (ul){ ul.textContent = ''; (d.hints || []).forEach(h => { const li = document.createElement('li'); li.textContent = h; ul.appendChild(li); }); }
+      } catch(e) {}
+    }
     document.querySelectorAll('.track-meal').forEach(el => {
       el.addEventListener('click', async () => {
         const box = el.querySelector('.track-box');
@@ -148,6 +204,8 @@
           txt.style.opacity = nowChecked ? '.6' : '1';
           const done = document.querySelectorAll('.track-box').length ? [...document.querySelectorAll('.track-box')].filter(b=>b.textContent.trim()==='✓').length : 0;
           document.getElementById('todayCount').textContent = done + '/' + document.querySelectorAll('.track-box').length;
+          // ‏الدواير والنصايح من السيرفر، بنفس الحساب اللي رسم الصفحة
+          refreshProgress();
         } catch(e) {}
       });
     });

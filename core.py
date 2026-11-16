@@ -1777,6 +1777,10 @@ def get_meal_tracking(user_id):
             out["today_meals"].append({"key": k, "label": labels.get(k, k), "emoji": emojis.get(k, "🍽️"),
                                        "text": day.get(k, ""), "checked": bool(checks.get(k))})
         out["has_plan"] = True
+        # ‏اليوم نفسه بأرقامه، علشان دواير الماكروز (day_progress) تقرا منه
+        out["day"] = day
+        out["meal_keys"] = meal_keys
+        out["labels"] = {k: labels.get(k, k) for k in meal_keys}
         out["day_name"] = day.get("day", "")
         if cur_lang() != "ar":
             out["day_name"] = ENGLISH_DAYS.get(out["day_name"], out["day_name"])

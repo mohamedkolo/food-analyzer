@@ -137,6 +137,30 @@ def meal_notes_today(user):
         return {}
 
 
+def today_progress(user):
+    """‏دواير الماكروز ونصايح النهارده (day_progress)، أو None من غير خطة."""
+    import day_progress
+    from core import client_now, cur_lang, get_meal_tracking
+    if not user:
+        return None
+    tracking = get_meal_tracking(user["id"])
+    if not tracking.get("has_plan") or not tracking.get("day"):
+        return None
+    checked = {m["key"] for m in tracking["today_meals"] if m["checked"]}
+    skipped = {k for k, r in meal_notes_today(user).items() if r.get("skipped")}
+    return day_progress.build(tracking["day"], tracking["meal_keys"], checked, skipped,
+                              tracking["labels"], is_ar=cur_lang() == "ar",
+                              hour=client_now(user).hour)
+
+
+@bp.route("/my-plan/progress")
+@login_required
+def my_plan_progress():
+    """‏نفس الدواير بعد كل علامة، من غير إعادة تحميل الصفحة."""
+    from core import get_user_by_id
+    return jsonify(today_progress(get_user_by_id(session["uid"])) or {})
+
+
 @bp.route("/track/meal-note", methods=["POST"])
 @login_required
 def track_meal_note():

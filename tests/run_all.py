@@ -77,6 +77,7 @@ SUITES = [
     "test_liquid_nav.py",
     "test_dark_mode.py",
     "test_glass.py",
+    "test_day_progress.py",
 ]
 
 
