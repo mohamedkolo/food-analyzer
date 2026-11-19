@@ -572,6 +572,9 @@
           <div style="flex:1">
             <div class="meal-slot">{{ label }}</div>
             <div class="meal-text editable" data-day="{{ day_idx }}" data-type="{{ key }}" style="font-size:13px;font-weight:600;cursor:text">{{ day[key] | meal_en }}</div>
+            {# ‏كمية كل صنف بزرار: الدكتور يلاقي الجبنة كتير فينقّصها، من غير ما يكتب السطر كله من الأول #}
+            <div class="qty-row" data-day="{{ day_idx }}" data-type="{{ key }}" role="group" aria-label="{{ t('كميات ' ~ label, label ~ ' portions') }}">{% for it in meal_items(day[key]) %}<span class="qty-chip" data-item="{{ it.index }}"><button type="button" class="qty-btn" data-item="{{ it.index }}" data-dir="-1" aria-label="{{ t('نقّص ' ~ it.name_label, 'Less ' ~ it.name_label) }}"{% if not it.can_down %} disabled{% endif %}><i class="fa-solid fa-minus" aria-hidden="true"></i></button><span class="qty-name">{{ it.name_label }}</span><b class="qty-v" aria-live="polite">{{ it.qty_label }}</b><button type="button" class="qty-btn" data-item="{{ it.index }}" data-dir="+1" aria-label="{{ t('زوّد ' ~ it.name_label, 'More ' ~ it.name_label) }}"><i class="fa-solid fa-plus" aria-hidden="true"></i></button></span>{% endfor %}</div>
+            <!--/qty-row-->
             {% set warn = problems.get(day_idx ~ ':' ~ key, '') %}
             <div class="meal-warn" data-day="{{ day_idx }}" data-type="{{ key }}" role="alert"
                  style="display:{{ 'block' if warn else 'none' }};margin-top:5px;background:var(--nx-bad-bg);border:1px solid var(--nx-bad-line);color:var(--nx-bad-ink);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:800">
@@ -679,6 +682,26 @@
 </div>
 
 <style>
+  /* ‏كمية كل صنف. الرقم هو اللي بيتغيّر فهو الأتقل في الشريحة، والاسم جنبه
+     مطفي. الزرار ٣٢ بكسل عشان يتداس بصباع على الموبايل. */
+  .qty-row { display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;padding-inline:10px; }
+  .qty-row:empty { display:none; }
+  .qty-chip { display:inline-flex;align-items:center;gap:6px;padding:2px;border:1px solid var(--nx-line);
+              border-radius:999px;background:var(--nx-surface);font-size:12px; }
+  .qty-name { color:var(--nx-muted);font-weight:700;max-inline-size:16ch;overflow:hidden;
+              text-overflow:ellipsis;white-space:nowrap; }
+  .qty-v { color:var(--nx-ink);font-weight:900;font-variant-numeric:tabular-nums;min-inline-size:3.5ch;text-align:center; }
+  .qty-btn { inline-size:32px;block-size:32px;border-radius:50%;border:0;background:var(--nx-surface-2);
+             color:var(--nx-ink);cursor:pointer;display:inline-grid;place-items:center;font-size:11px;
+             transition:background .15s, transform .1s; }
+  .qty-btn:hover:not(:disabled) { background:var(--nx-solid-2);color:#fff; }
+  .qty-btn:active:not(:disabled) { transform:scale(.92); }
+  .qty-btn:focus-visible { outline:2px solid var(--nx-ink-2);outline-offset:2px; }
+  .qty-btn:disabled { opacity:.35;cursor:not-allowed; }
+  .qty-chip.busy { opacity:.6; }
+  .qty-v.bump { animation:qty-bump .25s ease; }
+  @keyframes qty-bump { 50% { transform:scale(1.18); } }
+  @media (prefers-reduced-motion:reduce){ .qty-btn,.qty-v.bump { transition:none;animation:none; } }
   .meal-text { transition: all 0.2s ease; padding:6px 10px;border-radius:6px;border:1.5px dashed transparent; }
   .meal-text.editable:hover { background:rgba(37,99,235,0.05);border-color:var(--nx-line); }
   .meal-text.editing { background:var(--nx-surface-2) !important;border:1.5px solid var(--nx-ink-2) !important;outline:none; }
@@ -763,6 +786,9 @@ document.addEventListener('click', async function(ev){
       const tmp = mine.textContent;
       mine.textContent = other.textContent;
       other.textContent = tmp;
+      // ‏الكميات بتمشي مع الوجبة: الأرقام اللي في الصف هي أرقام نص الوجبة
+      const qa = row.querySelector('.qty-row'), qb = target.querySelector('.qty-row');
+      if (qa && qb) { const h = qa.innerHTML; qa.innerHTML = qb.innerHTML; qb.innerHTML = h; }
       if(typeof showSaveIndicator === 'function') showSaveIndicator();
     }
   }catch(e){}
@@ -847,6 +873,52 @@ function applyCheck(day, type, check) {
   }
 }
 
+// ‏صف الكميات بيتبني من الأصناف اللي السيرفر رجّعها، بعد أي تعديل على
+// الوجبة -- لو اتسابت قديمة، الزرار هيزوّد رقم صنف اتشال أو اتغيّر.
+const QTY = { less: {{ t('نقّص ','Less ')|tojson }}, more: {{ t('زوّد ','More ')|tojson }} };
+function renderQty(day, type, items) {
+  const row = document.querySelector(`.qty-row[data-day="${day}"][data-type="${type}"]`);
+  if (!row || !items) return;
+  row.innerHTML = items.map(it =>
+    `<span class="qty-chip" data-item="${it.index}">`
+    + `<button type="button" class="qty-btn" data-item="${it.index}" data-dir="-1" aria-label="${esc(QTY.less + it.name_label)}"${it.can_down ? '' : ' disabled'}><i class="fa-solid fa-minus" aria-hidden="true"></i></button>`
+    + `<span class="qty-name">${esc(it.name_label)}</span><b class="qty-v" aria-live="polite">${esc(it.qty_label)}</b>`
+    + `<button type="button" class="qty-btn" data-item="${it.index}" data-dir="+1" aria-label="${esc(QTY.more + it.name_label)}"><i class="fa-solid fa-plus" aria-hidden="true"></i></button></span>`
+  ).join('');
+}
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.qty-btn');
+  if (!btn || btn.disabled) return;
+  const row = btn.closest('.qty-row');
+  const chip = btn.closest('.qty-chip');
+  const day = row.dataset.day, type = row.dataset.type, item = btn.dataset.item;
+  // ‏ضغطتين ورا بعض على نفس الوجبة: التانية تستنى الأولى، وإلا الاتنين
+  // بيبدأوا من نفس النص وواحدة منهم بتضيع.
+  if (row.dataset.busy) return;
+  row.dataset.busy = '1';
+  chip.classList.add('busy');
+  try {
+    const fd = new FormData();
+    fd.append('day_idx', day); fd.append('meal_type', type);
+    fd.append('item', item); fd.append('dir', btn.dataset.dir);
+    const res = await fetch('/nudge_item', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.ok) {
+      const textEl = document.querySelector(`.meal-text[data-day="${day}"][data-type="${type}"]`);
+      if (textEl) textEl.textContent = data.display || data.new_meal;
+      renderQty(day, type, data.items);
+      const v = row.querySelector(`.qty-chip[data-item="${item}"] .qty-v`);
+      if (v) v.classList.add('bump');
+      row.querySelector(`.qty-btn[data-item="${item}"][data-dir="${btn.dataset.dir}"]`)?.focus();
+      applyCheck(day, type, data.check);
+      showSaveIndicator();
+    }
+  } catch (err) {}
+  delete row.dataset.busy;
+  chip.classList.remove('busy');
+});
+
 function showSaveIndicator() {
   const ind = document.getElementById('saveIndicator');
   ind.style.display = 'block';
@@ -882,6 +954,7 @@ document.querySelectorAll('.meal-text.editable').forEach(el => {
         const data = await res.json();
         if (data.ok) {
           el.textContent = newText;
+          renderQty(day, type, data.items);
           applyCheck(day, type, data.check);
           showSaveIndicator();
         }
@@ -922,6 +995,7 @@ document.querySelectorAll('.swap-btn').forEach(btn => {
           textEl.style.opacity = '0';
           setTimeout(() => { textEl.textContent = data.display || data.new_meal; textEl.style.opacity = '1'; }, 150);
         }
+        renderQty(day, type, data.items);
         applyCheck(day, type, data.check);
         showSaveIndicator();
       }
@@ -1048,6 +1122,7 @@ async function selectMeal(card, mealText, displayText) {
         textEl.style.opacity = '0';
         setTimeout(() => { textEl.textContent = displayText || mealText; textEl.style.opacity = '1'; }, 150);
       }
+      renderQty(currentPickDay, currentPickType, data.items);
       applyCheck(currentPickDay, currentPickType, data.check);
       showSaveIndicator();
       setTimeout(closePicker, 500);
