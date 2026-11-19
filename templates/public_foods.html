@@ -149,7 +149,7 @@
           </tr></thead>
           <tbody>
             {% for f in rows %}
-            <tr>
+            <tr class="fx-row nx-stagger" style="--i:{{ [loop.index0, 6]|min }}">
               <td><a href="/foods/{{ f.slug }}">{{ f.n if _ar else f.en }}</a>
                   <span class="fx-alt">{{ f.en if _ar else f.n }}</span></td>
               <td class="fx-n">{{ f.cal|num }}</td>
@@ -167,7 +167,7 @@
       <p class="fx-sub">{{ total }} {{ t('صنف في 14 فئة','foods across 14 categories') }}</p>
       <div class="fx-cats">
         {% for key, pair in categories.items() %}
-        <a href="/foods?cat={{ key }}" class="fx-cat">
+        <a href="/foods?cat={{ key }}" class="fx-cat nx-stagger" style="--i:{{ loop.index0 }}">
           <span class="em">{{ EMOJI.get(key,'🍽️') }}</span>
           <span class="nm">{{ pair[0] if _ar else pair[1] }}</span>
           <span class="ct">{{ counts[key] }} {{ t('صنف','items') }}</span>

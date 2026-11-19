@@ -80,6 +80,7 @@ SUITES = [
     "test_day_progress.py",
     "test_week_progress.py",
     "test_food_log.py",
+    "test_stagger.py",
 ]
 
 
