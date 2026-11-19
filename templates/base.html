@@ -308,7 +308,16 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
   .nx-cell{padding:12px 13px;gap:9px}
   .nx-cell .nx-n{font-size:22px}
 }
+/* ‏القوايم بتظهر واحد ورا التاني: fadeIn + طلوع خُمس طول العنصر، ٤٠٠ مللي،
+   وبين العنصر والتاني ٨٠ مللي (--i بيتحط من القالب). backwards مش both:
+   لو الأنيميشن مسك آخر حالته، الـtransform بتاعه بيغلب hover الكارت
+   فالرفعة بتاعته بتموت. والقايمة الطويلة بتقفل --i عند ٦ في القالب، عشان
+   الصف رقم ٥٠ مايستناش ٤ ثواني وهو أصلاً تحت الشاشة. */
+@keyframes nx-rise{from{opacity:0;transform:translateY(20%)}}
+.nx-stagger{animation:nx-rise .4s linear backwards;animation-delay:calc(var(--i,0) * 80ms)}
+
 @media (prefers-reduced-motion: reduce){
+  .nx-stagger{animation:none}
   .lq-wave,.sidebar::before,.sidebar::after{animation:none}
   .lq,.lq-fill,.sidebar{transition:none}
   .lq:hover{transform:none}
