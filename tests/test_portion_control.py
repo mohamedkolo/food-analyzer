@@ -170,8 +170,8 @@ def test_the_preview_shows_a_labelled_control_for_each_item():
     assert m, "مفيش صف كميات تحت الفطار"
     row = m.group(1)
     buttons = re.findall(r"<button[^>]*class=\"qty-btn\"[^>]*>", row)
-    # ‏صنفين بكمية × (ناقص + زايد)، والخضار من غير رقم: حذف بس
-    assert len(buttons) == 5, buttons
+    # ‏حذف على كل صنف (٣)، وناقص + زايد على الاتنين اللي ليهم كمية (٤)
+    assert len(buttons) == 7, buttons
     for b in buttons:
         assert 'aria-label="' in b, b
     assert re.search(r'data-item="1"[^>]*data-dir="\+1"|data-dir="\+1"[^>]*data-item="1"', row)
@@ -251,15 +251,78 @@ def test_the_preview_asks_before_removing_and_has_a_labelled_add_box():
     m = re.search(r'<div class="qty-row"[^>]*data-day="0"[^>]*data-type="breakfast"[^>]*>(.*?)</div>\s*<!--/qty-row-->',
                   html, re.S)
     row = m.group(1)
-    # ‏البيض واحدة: الناقص بقى حذف، وكمان الخضار اللي من غير رقم
+    # ‏زرار حذف ثابت على كل صنف -- صاحب المشروع: تفاح ٢٢٠جم كان محتاج
+    # ٤٣ ضغطة ناقص قبل ما يتحذف. والناقص على البيضة الواحدة متقفل.
     removes = re.findall(r'<button[^>]*data-remove="1"[^>]*>', row)
-    assert len(removes) == 2, removes
+    assert len(removes) == 3, removes
+    assert re.search(r'<button[^>]*data-item="0"[^>]*data-dir="-1"[^>]*disabled', row), row
     for b in removes:
         assert 'aria-label="' in b, b
     assert re.search(r'<dialog[^>]*id="rmDialog"', html), "مفيش رسالة تأكيد للحذف"
     form = re.search(r'<form class="add-item"[^>]*data-day="0"[^>]*data-type="breakfast".*?</form>', html, re.S)
     assert form, "مفيش خانة إضافة تحت الفطار"
     assert re.search(r'<input[^>]*aria-label="', form.group(0)), form.group(0)
+
+
+# ── كتابة الكمية والسعرات جنب كل صنف ────────────────────────────────
+#
+# ‏فكرتين من برنامج تاني صاحب المشروع بعت صورته: الكمية خانة تتكتب،
+# وسعرات كل صنف جنبه. التصميم بتاعنا؛ الفكرة بس.
+
+def test_a_quantity_can_be_typed_straight_in():
+    assert P.set_item_qty(MEAL, 1, 85) == MEAL.replace("60جم", "85جم")
+    assert P.set_item_qty(MEAL, 0, 4) == MEAL.replace("بيض مسلوق 2", "بيض مسلوق 4")
+    oil = "🫒 زيت زيتون 1 ملعقة"
+    assert P.set_item_qty(oil, 0, 0.5) == "🫒 زيت زيتون 0.5 ملعقة"
+    assert P.set_item_qty("🍎 تفاح 150جم - 80 kcal", 0, 300) == "🍎 تفاح 300جم - 160 kcal"
+
+
+def test_a_typed_quantity_has_to_be_something_you_can_serve():
+    assert P.set_item_qty(MEAL, 1, 0) is None          # صفر = حذف، وده زراره لوحده
+    assert P.set_item_qty(MEAL, 1, 3) is None          # تحت ٥ جم
+    assert P.set_item_qty(MEAL, 1, 5000) is None       # ٥ كيلو جبنة: غلطة كتابة
+    assert P.set_item_qty(MEAL, 0, 2.5) is None        # نص بيضة
+    assert P.set_item_qty(MEAL, 0, 40) is None         # ٤٠ بيضة
+    assert P.set_item_qty(MEAL, 2, 100) is None        # الخضار مالهاش رقم
+    assert P.set_item_qty(MEAL, 1, 60) == MEAL         # نفس الرقم: مفيش تغيير
+
+
+def test_typing_a_quantity_on_the_page_saves_and_moves_the_day():
+    c = _staff()
+    before = _set(c, MEAL)["check"]["total_cal"]
+    r = c.post("/set_item_qty", data={"day_idx": 0, "meal_type": "breakfast",
+                                      "item": 1, "qty": "120"})
+    got = r.get_json()
+    assert r.status_code == 200 and got["ok"], got
+    assert _plan(c)[0]["breakfast"] == MEAL.replace("60جم", "120جم")
+    assert got["check"]["total_cal"] > before
+    for bad in ("0", "abc", "", "99999"):
+        assert c.post("/set_item_qty", data={"day_idx": 0, "meal_type": "breakfast",
+                                             "item": 1, "qty": bad}).status_code == 400, bad
+
+
+def test_each_item_carries_its_own_calories():
+    items = {i["index"]: i for i in P.meal_items(MEAL)}
+    import meal_macros
+    assert items[1]["cal"] == meal_macros.macros("🧀 جبن قريش 60جم")["cal"] > 0
+    assert items[0]["cal"] > 0
+    unknown = P.meal_items("حاجة مش موجودة في الجدول 50جم")[0]
+    assert unknown["cal"] is None
+
+
+def test_the_preview_shows_a_typed_quantity_box_and_the_items_calories():
+    c = _staff()
+    _set(c, MEAL)
+    html = c.get("/preview").get_data(as_text=True)
+    m = re.search(r'<div class="qty-row"[^>]*data-day="0"[^>]*data-type="breakfast"[^>]*>(.*?)</div>\s*<!--/qty-row-->',
+                  html, re.S)
+    row = m.group(1)
+    boxes = re.findall(r'<input[^>]*class="qty-in"[^>]*>', row)
+    assert len(boxes) == 2, boxes
+    for b in boxes:
+        assert 'aria-label="' in b and 'inputmode="decimal"' in b, b
+    assert 'value="60"' in boxes[1], boxes[1]
+    assert len(re.findall(r'class="qty-kcal"', row)) >= 2, row
 
 if __name__ == "__main__":
     passed = failed = 0

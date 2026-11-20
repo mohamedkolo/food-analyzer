@@ -1276,6 +1276,27 @@ def remove_item():
     return _item_change(plan, slot[0], slot[1], new_text)
 
 
+@bp.route("/set_item_qty", methods=["POST"])
+@staff_required
+def set_item_qty():
+    """الكمية زي ما الدكتور كتبها في الخانة، بدل ما يضغط ناقص وزايد كذا مرة."""
+    plan = draft_store.draft_plan()
+    slot = _slot_from_form(plan) if plan else None
+    if not slot:
+        return jsonify({"ok": False, "error": "missing data"}), 400
+    try:
+        item = int(request.form.get("item", -1))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "missing data"}), 400
+    raw = (request.form.get("qty") or "").strip().replace(",", ".")
+    # ‏الأرقام العربي (٨٥) زي الإنجليزي: الكيبورد العربي على الموبايل بيكتبها
+    raw = raw.translate(str.maketrans("٠١٢٣٤٥٦٧٨٩٫", "0123456789."))
+    new_text = portion_scale.set_item_qty(plan[slot[0]].get(slot[1]) or "", item, raw)
+    if new_text is None:
+        return jsonify({"ok": False, "error": "bad quantity"}), 400
+    return _item_change(plan, slot[0], slot[1], new_text)
+
+
 @bp.route("/add_item", methods=["POST"])
 @staff_required
 def add_item():
