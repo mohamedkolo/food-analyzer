@@ -742,6 +742,7 @@ def meal_items(text):
         joint = "" if unit in ("جم", "جرام", "مل", "g", "ml", "") else " "
         item["qty_label"] = ("" if item["qty"] is None
                              else "%s%s%s" % (item["qty"], joint, unit))
+        item["unit_label"] = unit
     return items
 
 

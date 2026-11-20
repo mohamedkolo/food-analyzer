@@ -272,6 +272,17 @@ def _fmt(value):
     return str(int(value)) if float(value).is_integer() else ("%g" % value)
 
 
+def _item_cal(segment):
+    """‏سعرات الصنف لوحده، أو None لو جدول الأكل مايعرفوش.
+
+    ‏None مش صفر: "طعمية" مش في الجدول، وكتابة "٠ سعرة" جنبها كانت
+    هتقول إنها مابتتحسبش، وهي بتتحسب -- إحنا اللي مانعرفهاش.
+    """
+    import meal_macros
+    rows = meal_macros.macros(segment)["items"]
+    return rows[0].get("cal") if rows and rows[0].get("food") and rows[0].get("grams") else None
+
+
 def meal_items(text):
     """‏أصناف الوجبة، بترتيبها في النص.
 
@@ -293,12 +304,13 @@ def meal_items(text):
             # عشان ينفع يتشال -- صاحب المشروع عايز يحذف أي نوع أكل.
             out.append({"index": index, "text": segment.strip(),
                         "name": segment.strip(), "qty": None, "unit": "",
-                        "can_down": False})
+                        "can_down": False, "cal": _item_cal(segment)})
             continue
         value, unit = q[2], q[3]
         name = re.sub(r"\s+", " ", segment[:q[4]] + segment[q[5]:]).strip()
         out.append({
             "index": index, "text": segment.strip(), "name": name,
+            "cal": _item_cal(segment),
             "qty": int(value) if value.is_integer() else value, "unit": unit,
             "can_down": value - _step(value, unit, -1) >= _floor(unit),
         })
@@ -326,6 +338,12 @@ def nudge_item(text, index, direction):
     new = value + sign * _step(value, unit, sign)
     if new < _floor(unit):
         return None
+    return _with_qty(segments, tail, index, new)
+
+
+def _with_qty(segments, tail, index, new):
+    """‏يكتب الرقم الجديد في الصنف، ويحرّك سعرات السناك المكتوبة معاه."""
+    start, end, value = _quantity(segments[index])[:3]
     seg = segments[index]
     segments[index] = seg[:start] + _fmt(new) + seg[end:]
 
@@ -377,3 +395,47 @@ def add_item(text, item):
     segments = [seg.strip() for seg in body.split(" + ") if seg.strip()]
     segments.append(item)
     return " + ".join(segments)
+
+
+# ‏حدود الكمية اللي بتتكتب بالإيد. الهدف إنها تمسك غلطة كتابة (٥٠٠٠ بدل
+# ٥٠٠)، مش إنها تقرّر حصة: مجموع اليوم والتحذير قدّام الدكتور.
+MAX_WEIGHT = 2000
+MAX_COUNT = 30
+MAX_SPOONS = 20
+
+
+def set_item_qty(text, index, value):
+    """‏يكتب كمية الصنف زي ما الدكتور كتبها. يرجّع النص الجديد، أو None لو
+    الكمية مش حاجة تتقدّم (صفر، نص بيضة، ٥ كيلو) أو الصنف مالوش رقم.
+
+    ‏الصفر مرفوض بالقصد: الحذف ليه زرار ورسالة تأكيد، والخانة دي مش باب
+    تاني يمسح من غير ما يسأل.
+    """
+    if not text or not isinstance(text, str):
+        return None
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return None
+    body, tail = _split_tail(text)
+    segments = body.split(" + ")
+    if not (0 <= index < len(segments)):
+        return None
+    q = _quantity(segments[index])
+    if not q:
+        return None
+    unit = q[3]
+    if _is_weight(unit):
+        value = round(value)
+        if not (_floor(unit) <= value <= MAX_WEIGHT):
+            return None
+    elif unit:
+        # ‏ملعقة أو كوب: نص ملعقة تتنفّذ، تلت ملعقة لأ
+        if value * 2 != int(value * 2) or not (0.5 <= value <= MAX_SPOONS):
+            return None
+    else:
+        if value != int(value) or not (1 <= value <= MAX_COUNT):
+            return None
+    if value == q[2]:
+        return text
+    return _with_qty(segments, tail, index, value)
