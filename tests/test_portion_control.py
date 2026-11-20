@@ -49,11 +49,13 @@ MEAL = "🥚 بيض مسلوق 2 + 🧀 جبن قريش 60جم + 🥒 خضار �
 
 # ── الحساب ──────────────────────────────────────────────────────────
 
-def test_only_items_with_a_quantity_get_a_control():
+def test_every_item_gets_a_control_and_only_numbers_get_a_quantity():
+    """‏كل صنف ليه شريحة عشان ينفع يتشال -- حتى "خضار طازة" اللي مالهاش رقم."""
     items = P.meal_items(MEAL)
     assert [(i["index"], i["qty"], i["unit"]) for i in items] == [
-        (0, 2, ""), (1, 60, "جم")], items
+        (0, 2, ""), (1, 60, "جم"), (2, None, "")], items
     assert "بيض" in items[0]["text"] and "جبن" in items[1]["text"]
+    assert items[2]["name"] == "🥒 خضار طازة" and not items[2]["can_down"]
 
 
 def test_grams_move_in_weighable_steps():
@@ -136,7 +138,7 @@ def test_a_nudge_is_saved_and_moves_the_days_total():
     assert got["new_meal"] == MEAL.replace("60جم", "70جم")
     assert _plan(c)[0]["breakfast"] == got["new_meal"], "التغيير مااتحفظش في المسودة"
     assert got["check"]["total_cal"] > before, (before, got["check"])
-    assert [i["qty"] for i in got["items"]] == [2, 70]
+    assert [i["qty"] for i in got["items"]] == [2, 70, None]
 
     down = _nudge(c, 1, "-1").get_json()
     assert down["check"]["total_cal"] < got["check"]["total_cal"]
@@ -168,11 +170,96 @@ def test_the_preview_shows_a_labelled_control_for_each_item():
     assert m, "مفيش صف كميات تحت الفطار"
     row = m.group(1)
     buttons = re.findall(r"<button[^>]*class=\"qty-btn\"[^>]*>", row)
-    assert len(buttons) == 4, buttons          # صنفين × (ناقص + زايد)
+    # ‏صنفين بكمية × (ناقص + زايد)، والخضار من غير رقم: حذف بس
+    assert len(buttons) == 5, buttons
     for b in buttons:
         assert 'aria-label="' in b, b
     assert re.search(r'data-item="1"[^>]*data-dir="\+1"|data-dir="\+1"[^>]*data-item="1"', row)
 
+
+
+# ── الحذف والإضافة ──────────────────────────────────────────────────
+#
+# ‏صاحب المشروع: "لما أدوس ناقص على الوجبة أو نوع الأكل يتحذف ويجيلي
+# رسالة تأكيد للحذف، وأقدر أضيف مكانه من خانة لوحدها".
+
+def test_removing_an_item_leaves_the_rest_exactly():
+    assert P.remove_item(MEAL, 1) == "🥚 بيض مسلوق 2 + 🥒 خضار طازة"
+    assert P.remove_item(MEAL, 2) == "🥚 بيض مسلوق 2 + 🧀 جبن قريش 60جم"
+    assert P.remove_item(MEAL, 9) is None
+    assert P.remove_item("🍎 تفاح 150جم", 0) == ""
+
+
+def test_a_written_calorie_figure_goes_when_the_items_change():
+    """‏"- 99 kcal" بيوصف الوجبة اللي اتكتبت؛ بعد ما صنف يتشال أو يتضاف
+    الرقم ده بيبقى كذب مكتوب على ورقة العميل."""
+    snack = "🌴 تمر 15جم + 🌰 لوز 10جم - 100 kcal"
+    assert P.remove_item(snack, 1) == "🌴 تمر 15جم"
+    assert P.add_item(snack, "زبادي 100جم") == "🌴 تمر 15جم + 🌰 لوز 10جم + زبادي 100جم"
+
+
+def test_adding_an_item_appends_it_cleanly():
+    assert P.add_item(MEAL, "  زبادي   يوناني 150جم ") == MEAL + " + زبادي يوناني 150جم"
+    assert P.add_item("", "تفاح 150جم") == "تفاح 150جم"
+    assert P.add_item(MEAL, "   ") is None
+    assert P.add_item(MEAL, "ا" * 200) is None
+
+
+def _remove(c, item, key="breakfast"):
+    return c.post("/remove_item", data={"day_idx": 0, "meal_type": key, "item": item})
+
+
+def _add(c, text, key="breakfast"):
+    return c.post("/add_item", data={"day_idx": 0, "meal_type": key, "text": text})
+
+
+def test_removing_from_the_page_saves_and_lowers_the_day():
+    c = _staff()
+    before = _set(c, MEAL)["check"]["total_cal"]
+    got = _remove(c, 1).get_json()
+    assert got["ok"], got
+    assert _plan(c)[0]["breakfast"] == "🥚 بيض مسلوق 2 + 🥒 خضار طازة"
+    assert got["check"]["total_cal"] < before
+    assert [i["index"] for i in got["items"]] == [0, 1]
+    assert _remove(c, 7).status_code == 400
+
+
+def test_an_emptied_meal_keeps_its_row_so_something_can_be_added_back():
+    c = _staff()
+    _set(c, "🍎 تفاح 150جم")
+    got = _remove(c, 0).get_json()
+    assert got["ok"] and got["new_meal"] == "" and got["items"] == []
+    html = c.get("/preview").get_data(as_text=True)
+    assert re.search(r'class="add-item"[^>]*data-day="0"[^>]*data-type="breakfast"', html), \
+        "الوجبة اتمسحت والصف بتاعها اختفى -- مفيش مكان يتضاف فيه"
+    back = _add(c, "زبادي 150جم").get_json()
+    assert back["ok"] and _plan(c)[0]["breakfast"] == "زبادي 150جم"
+
+
+def test_an_added_item_is_checked_against_the_clients_conditions():
+    c = _staff(symptoms=DIABETES)
+    _set(c, MEAL)
+    got = _add(c, "عسل 2 ملعقة").get_json()
+    assert got["ok"] and got["check"]["warning"], got
+    assert _add(c, "   ").status_code == 400
+
+
+def test_the_preview_asks_before_removing_and_has_a_labelled_add_box():
+    c = _staff()
+    _set(c, MEAL.replace("بيض مسلوق 2", "بيض مسلوق 1"))
+    html = c.get("/preview").get_data(as_text=True)
+    m = re.search(r'<div class="qty-row"[^>]*data-day="0"[^>]*data-type="breakfast"[^>]*>(.*?)</div>\s*<!--/qty-row-->',
+                  html, re.S)
+    row = m.group(1)
+    # ‏البيض واحدة: الناقص بقى حذف، وكمان الخضار اللي من غير رقم
+    removes = re.findall(r'<button[^>]*data-remove="1"[^>]*>', row)
+    assert len(removes) == 2, removes
+    for b in removes:
+        assert 'aria-label="' in b, b
+    assert re.search(r'<dialog[^>]*id="rmDialog"', html), "مفيش رسالة تأكيد للحذف"
+    form = re.search(r'<form class="add-item"[^>]*data-day="0"[^>]*data-type="breakfast".*?</form>', html, re.S)
+    assert form, "مفيش خانة إضافة تحت الفطار"
+    assert re.search(r'<input[^>]*aria-label="', form.group(0)), form.group(0)
 
 if __name__ == "__main__":
     passed = failed = 0

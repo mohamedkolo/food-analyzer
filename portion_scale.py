@@ -273,20 +273,27 @@ def _fmt(value):
 
 
 def meal_items(text):
-    """‏الأصناف اللي ليها كمية في الوجبة، بترتيبها في النص.
+    """‏أصناف الوجبة، بترتيبها في النص.
 
+    ‏كل صنف في الوجبة ليه عنصر، واللي من غير رقم qty بتاعه None.
     ‏كل عنصر: index (رقم الصنف في النص بعد التقسيم على " + ")، text، name
     (الصنف من غير الكمية، عشان الرقم يتكتب لوحده جنب الزراير)، qty، unit
     ("" للعدد)، وcan_down (لو النزول خطوة كمان لسه فوق الحد الأدنى).
-    الصنف اللي من غير رقم ("خضار طازة") مالوش زرار: مفيش رقم نحرّكه.
     """
     if not text or not isinstance(text, str):
         return []
     body, _ = _split_tail(text)
     out = []
     for index, segment in enumerate(body.split(" + ")):
+        if not segment.strip():
+            continue
         q = _quantity(segment)
         if not q:
+            # ‏صنف من غير رقم ("خضار طازة"): مالوش ناقص وزايد، بس ليه شريحة
+            # عشان ينفع يتشال -- صاحب المشروع عايز يحذف أي نوع أكل.
+            out.append({"index": index, "text": segment.strip(),
+                        "name": segment.strip(), "qty": None, "unit": "",
+                        "can_down": False})
             continue
         value, unit = q[2], q[3]
         name = re.sub(r"\s+", " ", segment[:q[4]] + segment[q[5]:]).strip()
@@ -334,3 +341,39 @@ def nudge_item(text, index, direction):
                 lambda m: "%s %d kcal" % (m.group(1),
                                           int(round(float(m.group(2)) * ratio))), tail)
     return " + ".join(segments) + tail
+
+
+# ‏أقصى طول لصنف بيتكتب في خانة الإضافة. الورقة سطر لكل وجبة، وصنف أطول
+# من كده غالباً حاجة اتلصقت غلط مش اسم أكل.
+MAX_ITEM_LEN = 80
+
+
+def remove_item(text, index):
+    """‏يشيل صنف واحد من الوجبة. يرجّع النص الجديد ("" لو كان آخر صنف)،
+    أو None لو الرقم غلط.
+
+    ‏السعرات المكتوبة جنب السناك ("- 99 kcal") بتتشال: كانت بتوصف
+    الوجبة قبل ما الصنف يتشال، وسيبها يبقى رقم غلط مكتوب على ورقة العميل.
+    مجموع اليوم مابيعتمدش عليها -- بيتحسب من الأصناف.
+    """
+    if not isinstance(text, str):
+        return None
+    body, _ = _split_tail(text)
+    segments = body.split(" + ")
+    if not (0 <= index < len(segments)) or not segments[index].strip():
+        return None
+    del segments[index]
+    return " + ".join(seg.strip() for seg in segments if seg.strip())
+
+
+def add_item(text, item):
+    """‏يضيف صنف في آخر الوجبة. يرجّع النص الجديد، أو None لو الصنف فاضي
+    أو أطول من MAX_ITEM_LEN. السعرات المكتوبة بتتشال لنفس سبب remove_item.
+    """
+    item = re.sub(r"\s+", " ", str(item or "")).strip()
+    if not item or len(item) > MAX_ITEM_LEN:
+        return None
+    body, _ = _split_tail(text or "")
+    segments = [seg.strip() for seg in body.split(" + ") if seg.strip()]
+    segments.append(item)
+    return " + ".join(segments)

@@ -740,7 +740,8 @@ def meal_items(text):
         unit = item["unit"] if ar else _UNIT_EN.get(item["unit"], item["unit"])
         # ‏الوزن لازق في الرقم زي ما مكتوب في الوجبة ("60جم")، والملعقة بمسافة
         joint = "" if unit in ("جم", "جرام", "مل", "g", "ml", "") else " "
-        item["qty_label"] = "%s%s%s" % (item["qty"], joint, unit)
+        item["qty_label"] = ("" if item["qty"] is None
+                             else "%s%s%s" % (item["qty"], joint, unit))
     return items
 
 
