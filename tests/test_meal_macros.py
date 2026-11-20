@@ -163,6 +163,31 @@ def test_the_old_traps_are_still_closed():
     assert "لوز" not in MM.find_food("لبن لوز 200مل")["n"]
 
 
+
+def test_a_count_followed_by_a_description_is_still_a_count():
+    """‏"بيض اومليت 3 بالسبانخ" كانت بتتحسب بيضة واحدة مهما كان الرقم.
+
+    ‏العدد كان بيتدوّر عليه في **آخر** الصنف بس، فأي وصف بعده
+    ("بالسبانخ"، "بالفرن") بيخلّيه حصة افتراضية. صاحب المشروع شافها على
+    الشاشة: زوّد البيض بزرار + والرقم على الورقة اتغيّر ومجموع اليوم
+    فضل زي ما هو.
+    """
+    three = MM.item_grams("🥚 بيض اومليت 3 بالسبانخ")
+    four = MM.item_grams("🥚 بيض اومليت 4 بالسبانخ")
+    one = MM.item_grams("🥚 بيض اومليت 1 بالسبانخ")
+    assert three[1] == "count" and four[1] == "count", (three, four)
+    assert three[0] == 3 * one[0] and four[0] == 4 * one[0], (one, three, four)
+    assert MM.macros("🥚 بيض اومليت 4 بالسبانخ")["cal"] > MM.macros("🥚 بيض اومليت 3 بالسبانخ")["cal"]
+
+
+
+def test_a_fraction_is_not_read_as_a_count():
+    """‏"1/2 رغيف" نص رغيف، مش رغيف ولا رغيفين."""
+    for text in ("🍞 عيش بلدي 1/2 رغيف", "🍞 عيش بلدي 1/2"):
+        grams, how = MM.item_grams(text)
+        whole, _ = MM.item_grams("🍞 عيش بلدي 1")
+        assert grams < 2 * whole and grams != whole * 2, (text, grams, how)
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):
