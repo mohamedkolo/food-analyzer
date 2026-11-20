@@ -580,13 +580,16 @@
                  style="display:{{ 'block' if warn else 'none' }};margin-top:5px;background:var(--nx-bad-bg);border:1px solid var(--nx-bad-line);color:var(--nx-bad-ink);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:800">
               <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span class="v">{{ warn }}</span></div>
           </div>
-          {% if key not in ['snack','snack1','snack2','pre_workout','post_workout'] %}
+          {% if key not in ['pre_workout','post_workout'] %}
           <div style="display:flex;gap:4px">
+            {# ‏السناك بيتبدّل بس، مايتنقلش: الترتيب بين الوجبات الرئيسية #}
+            {% if key not in ['snack','snack1','snack2'] %}
             <button class="move-btn" data-day="{{ day_idx }}" data-type="{{ key }}" data-dir="up"
                     title="{{ t('بدّلها باللي فوقها','Swap with the one above') }}"
                     style="background:var(--nx-surface-2);color:var(--nx-ink);border-color:var(--nx-line)">
               <i class="fa-solid fa-arrow-up"></i>
             </button>
+            {% endif %}
             <button class="swap-btn" data-day="{{ day_idx }}" data-type="{{ key }}" title="{{ t('استبدال عشوائي','Random swap') }}">
               <i class="fa-solid fa-shuffle"></i>
             </button>

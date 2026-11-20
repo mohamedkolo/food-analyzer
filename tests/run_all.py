@@ -82,6 +82,7 @@ SUITES = [
     "test_food_log.py",
     "test_stagger.py",
     "test_portion_control.py",
+    "test_snack_swap.py",
 ]
 
 
