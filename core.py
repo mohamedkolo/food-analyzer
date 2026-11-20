@@ -720,6 +720,30 @@ def meal_en(text):
         return text
 
 
+_UNIT_EN = {"جم": "g", "جرام": "g", "مل": "ml", "ملعقة": "tbsp", "ملاعق": "tbsp",
+            "كوب": "cup", "كوباية": "cup"}
+
+
+@app.template_global('meal_items')
+def meal_items(text):
+    """أصناف الوجبة اللي ليها كمية، بأسمائها بلغة المستخدم -- لزراير − / +.
+
+    ‏هنا مش في routes_plans: صفحة المعاينة بتتعرض كمان من غير الـblueprint
+    (اختبارات النظام الكيميائي بتعرضها على core لوحده)، والقالب اللي بينادي
+    دالة مش متسجّلة بيقع كله مش الزرار بس.
+    """
+    import portion_scale
+    items = portion_scale.meal_items(text)
+    ar = session.get("lang", "ar") == "ar"
+    for item in items:
+        item["name_label"] = meal_en(item["name"])
+        unit = item["unit"] if ar else _UNIT_EN.get(item["unit"], item["unit"])
+        # ‏الوزن لازق في الرقم زي ما مكتوب في الوجبة ("60جم")، والملعقة بمسافة
+        joint = "" if unit in ("جم", "جرام", "مل", "g", "ml", "") else " "
+        item["qty_label"] = "%s%s%s" % (item["qty"], joint, unit)
+    return items
+
+
 @app.template_filter('day_en')
 def day_en(name):
     """Weekday names come out of the generator in Arabic."""

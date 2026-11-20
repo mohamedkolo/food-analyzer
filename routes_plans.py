@@ -34,6 +34,8 @@ from core import (
 )
 import followup
 import plan_tools
+import portion_scale
+from core import meal_items as _items_for_page
 from plan_engine import (
     build_pdf, filter_carbs, filter_meals_by_exclusions,
     generate_weekly_plan, parse_user_exclusions,
@@ -1078,6 +1080,7 @@ def swap_meal():
             check = _change_meal(data, plan, day_idx, meal_type, new_meal["meal"])
             return jsonify({"ok": True, "new_meal": new_meal["meal"],
                             "display": _meal_display(new_meal["meal"]),
+                            "items": _items_for_page(new_meal["meal"]),
                             "check": check})
     return jsonify({"ok": False}), 400
 
@@ -1124,7 +1127,8 @@ def replace_meal():
         check = _change_meal(draft_store.draft_data() or {}, plan, day_idx,
                              meal_type, new_meal)
         return jsonify({"ok": True, "new_meal": new_meal,
-                        "display": _meal_display(new_meal), "check": check})
+                        "display": _meal_display(new_meal),
+                        "items": _items_for_page(new_meal), "check": check})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -1158,6 +1162,38 @@ def move_meal():
         return jsonify({"ok": False, "error": "failed"}), 500
 
 
+@bp.route("/nudge_item", methods=["POST"])
+@staff_required
+def nudge_item():
+    """زوّد أو نقّص كمية صنف واحد في الوجبة خطوة واحدة.
+
+    ‏بيعدّي على _change_meal زي أي تعديل تاني: مجموع اليوم بيتحدّث، والتحذير
+    الطبي بيرجع لو الوجبة فيها حاجة ممنوعة على العميل. الزرار ده باب تاني
+    لتغيير الوجبة، والباب اللي مابيتفحصش هو بالظبط اللي plan_tools اتعمل
+    عشان يقفله.
+    """
+    plan = draft_store.draft_plan()
+    if not plan:
+        return jsonify({"ok": False, "error": "no plan"}), 400
+    try:
+        day_idx = int(request.form.get("day_idx", -1))
+        item = int(request.form.get("item", -1))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "missing data"}), 400
+    direction = {"+1": 1, "-1": -1}.get(request.form.get("dir", ""))
+    meal_type = request.form.get("meal_type", "")
+    if not direction or not (0 <= day_idx < len(plan)) or not plan[day_idx].get(meal_type):
+        return jsonify({"ok": False, "error": "missing data"}), 400
+    new_text = portion_scale.nudge_item(plan[day_idx][meal_type], item, direction)
+    if not new_text:
+        return jsonify({"ok": False, "error": "limit"}), 400
+    check = _change_meal(draft_store.draft_data() or {}, plan, day_idx,
+                         meal_type, new_text)
+    return jsonify({"ok": True, "new_meal": new_text,
+                    "display": _meal_display(new_text),
+                    "items": _items_for_page(new_text), "check": check})
+
+
 @bp.route("/edit_meal", methods=["POST"])
 @staff_required
 def edit_meal():
@@ -1171,7 +1207,8 @@ def edit_meal():
         if day_idx < 0 or day_idx >= len(plan): return jsonify({"ok": False, "error": "invalid day"}), 400
         check = _change_meal(draft_store.draft_data() or {}, plan, day_idx,
                              meal_type, new_text)
-        return jsonify({"ok": True, "saved_text": new_text, "check": check})
+        return jsonify({"ok": True, "saved_text": new_text,
+                        "items": _items_for_page(new_text), "check": check})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

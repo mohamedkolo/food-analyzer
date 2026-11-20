@@ -210,3 +210,127 @@ def scale_meal(text, factor):
                                              * effective)))
         out += _KCAL_DASH.sub(_dash, _KCAL_PAREN.sub(_paren, tail))
     return out.strip(), effective
+
+
+# ── التحكم بالإيد في كمية صنف واحد ─────────────────────────────────
+#
+# ‏كل اللي فوق ده بيكبّر الوجبة كلها بمعامل. ده العكس: الدكتور بيبص على
+# الوجبة الجاهزة ويقول "الجبنة كتير" -- فبيتغيّر رقم الجبنة لوحده، وباقي
+# السطر بالحرف زي ما هو. قبل كده كان لازم يفتح النص كله ويكتب الرقم بإيده،
+# وأي غلطة كتابة بتبوّظ صنف تاني في نفس السطر.
+#
+# ‏سقف العدد (COUNT_MAX) مش بيتطبّق هنا: السقف ده اتعمل عشان المعامل
+# الأوتوماتيك هو اللي طلّع "بيض ٧"، مش الدكتور. هنا الدكتور هو اللي بيقرّر،
+# ومجموع اليوم والتحذير الطبي بيتحدّثوا قدّامه مع كل ضغطة.
+
+_BARE_NUMBER = re.compile(r"(?<![\d.])(\d+(?:\.\d+)?)(?![\d.])")
+
+
+def _split_tail(text):
+    match = _KCAL_ANY.search(text)
+    if not match:
+        return text, ""
+    return text[:match.start()], text[match.start():]
+
+
+def _quantity(segment):
+    """‏(بداية الرقم، نهايته، القيمة، الوحدة، بداية الكمية بوحدتها، نهايتها)
+    لأول كمية في الصنف، أو None.
+
+    ‏نفس ترتيب _scale_segment: وزن، بعدين ملعقة، بعدين عدد. "زيت زيتون 1
+    ملعقة" لو اتقرت عدد الأول كانت هتبقى "زيتون" مش ملعقة.
+    """
+    for rx in (_WEIGHT_RX, _SPOON_RX):
+        m = rx.search(segment)
+        if m:
+            return (m.start(1), m.end(1), float(m.group(1)), m.group(2),
+                    m.start(), m.end())
+    m = _BARE_NUMBER.search(segment)
+    if m:
+        return m.start(1), m.end(1), float(m.group(1)), "", m.start(1), m.end(1)
+    return None
+
+
+def _is_weight(unit):
+    return unit in ("جم", "جرام", "مل", "g", "ml")
+
+
+def _step(value, unit, direction):
+    """‏خطوة يقدر يوزنها: ٥ جم لحد الـ٥٠، و١٠ فوقها. العدد والملاعق واحدة."""
+    if not _is_weight(unit):
+        return 1
+    if direction > 0:
+        return 5 if value < 50 else 10
+    return 5 if value <= 50 else 10
+
+
+def _floor(unit):
+    return 5 if _is_weight(unit) else 1
+
+
+def _fmt(value):
+    return str(int(value)) if float(value).is_integer() else ("%g" % value)
+
+
+def meal_items(text):
+    """‏الأصناف اللي ليها كمية في الوجبة، بترتيبها في النص.
+
+    ‏كل عنصر: index (رقم الصنف في النص بعد التقسيم على " + ")، text، name
+    (الصنف من غير الكمية، عشان الرقم يتكتب لوحده جنب الزراير)، qty، unit
+    ("" للعدد)، وcan_down (لو النزول خطوة كمان لسه فوق الحد الأدنى).
+    الصنف اللي من غير رقم ("خضار طازة") مالوش زرار: مفيش رقم نحرّكه.
+    """
+    if not text or not isinstance(text, str):
+        return []
+    body, _ = _split_tail(text)
+    out = []
+    for index, segment in enumerate(body.split(" + ")):
+        q = _quantity(segment)
+        if not q:
+            continue
+        value, unit = q[2], q[3]
+        name = re.sub(r"\s+", " ", segment[:q[4]] + segment[q[5]:]).strip()
+        out.append({
+            "index": index, "text": segment.strip(), "name": name,
+            "qty": int(value) if value.is_integer() else value, "unit": unit,
+            "can_down": value - _step(value, unit, -1) >= _floor(unit),
+        })
+    return out
+
+
+def nudge_item(text, index, direction):
+    """‏يزوّد (direction > 0) أو ينقّص خطوة واحدة في صنف واحد.
+
+    ‏يرجّع النص الجديد، أو None لو الصنف مالوش كمية، أو الرقم غلط، أو
+    النزول هيوصّل تحت الحد الأدنى. مفيش نزول لصفر: الصنف اللي عايز يتشال
+    بيتشال بالتعديل العادي، مش بـ"صفر جم" مكتوبة على ورقة العميل.
+    """
+    if not text or not isinstance(text, str) or not direction:
+        return None
+    body, tail = _split_tail(text)
+    segments = body.split(" + ")
+    if not (0 <= index < len(segments)):
+        return None
+    q = _quantity(segments[index])
+    if not q:
+        return None
+    start, end, value, unit = q[:4]
+    sign = 1 if direction > 0 else -1
+    new = value + sign * _step(value, unit, sign)
+    if new < _floor(unit):
+        return None
+    seg = segments[index]
+    segments[index] = seg[:start] + _fmt(new) + seg[end:]
+
+    if tail:
+        # ‏سعرات السناك المكتوبة جنبه لازم تتحرك مع الحصة. لو فيه أكتر من
+        # صنف بكمية، النسبة بتاعة صنف واحد مش نسبة الوجبة، فبنسيبها.
+        quantified = [s for s in segments if _quantity(s)]
+        if len(quantified) == 1:
+            ratio = new / value
+            tail = _KCAL_PAREN.sub(
+                lambda m: "(%d kcal)" % int(round(float(m.group(1)) * ratio)), tail)
+            tail = _KCAL_DASH.sub(
+                lambda m: "%s %d kcal" % (m.group(1),
+                                          int(round(float(m.group(2)) * ratio))), tail)
+    return " + ".join(segments) + tail
