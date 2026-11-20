@@ -15,6 +15,7 @@ against, and `display` is what the reader sees. Never save `display`.
 import io
 import json
 import random
+import re
 from datetime import datetime
 
 from flask import (Blueprint, jsonify, redirect, render_template, request,
@@ -1018,6 +1019,33 @@ def _filtered_meals(data, pool_key, culture=None):
         meals = filter_carbs(meals, False) or meals
     return meals
 
+SNACK_SLOTS = ("snack", "snack1", "snack2")
+
+
+def _snack_options(data):
+    """أسناك العميل للتبديل، بنفس شكل وجبات الطابور ({"meal", "cal", "p"}).
+
+    ‏من نفس الطابور اللي المولّد بيوزّع منه (plan_engine.snack_queue)،
+    مفلتر على الحالة والمرفوضات. snack1/snack2 كانوا بيتقروا هنا كخانة
+    فطار، فالتبديل كان هيحط "فول + بيض + خبز" مكان تفاحة.
+    """
+    import meal_macros
+    import plan_engine
+    out = []
+    for m in plan_engine.snack_queue(data):
+        if isinstance(m, dict):
+            out.append(m)
+            continue
+        # ‏الأسناك نصوص من غير ماكروز مخزّنة: السعرات المكتوبة جنبها هي
+        # المرجع، والبروتين بيتحسب من أصنافها -- من غير كده القايمة كانت
+        # بتكتب "٠ بروتين" جنب زبادي يوناني.
+        kcal = re.search(r"(\d+)\s*kcal", m)
+        out.append({"meal": m,
+                    "cal": int(kcal.group(1)) if kcal else meal_macros.macros(m)["cal"],
+                    "p": meal_macros.macros(m)["p"]})
+    return out
+
+
 def _problem_text(problems):
     """What the page says about a meal that clashes with this client."""
     if not problems:
@@ -1071,7 +1099,8 @@ def swap_meal():
         elif meal_type in ["snack1", "snack2"]: pool_key = "breakfast"
         elif meal_type == "pre_workout": pool_key = "breakfast"
         elif meal_type == "post_workout": pool_key = "lunch"
-    meals = _filtered_meals(data, pool_key)
+    meals = (_snack_options(data) if meal_type in SNACK_SLOTS
+             else _filtered_meals(data, pool_key))
     if meals:
         current = plan[day_idx].get(meal_type, "")
         options = [m for m in meals if m["meal"] != current]
@@ -1100,6 +1129,12 @@ def get_meal_options():
         elif meal_type == "pre_workout": pool_key = "breakfast"
         elif meal_type == "post_workout": pool_key = "lunch"
     all_options = []
+    if meal_type in SNACK_SLOTS:
+        # ‏السناك من طابور الأسناك بس: مطابخ تانية هنا معناها أطباق كاملة
+        for m in _snack_options(data):
+            all_options.append({"meal": m["meal"], "display": _meal_display(m["meal"]),
+                                "cal": m.get("cal", 0), "p": m.get("p", 0), "source": culture})
+        return jsonify({"ok": True, "options": all_options})
     for m in _filtered_meals(data, pool_key):
         all_options.append({"meal": m["meal"], "display": _meal_display(m["meal"]),
                             "cal": m.get("cal", 0), "p": m.get("p", 0), "source": culture})

@@ -385,6 +385,65 @@ def _spread_by_base(meals, take=7, cap=3, base=None):
     return picked + rest
 
 
+def snack_queue(data, pool=None):
+    """‏طابور الأسناك لعميل: نفس اللي المولّد بيوزّع منه، ونفس اللي زراير
+    التبديل في صفحة المعاينة بتختار منه.
+
+    ‏الفطار والغدا والعشا كانوا بيعدّوا على filter_by_conditions والأسناك
+    لأ -- على المرفوضات بس. فعميل عنده فشل كلوي خد كيوي وبرتقال، وعميل
+    عنده حساسية لاكتوز خد جبن قريش، في كل خطة اتجرّبت. الصفحة كانت بتعلّم
+    عليهم بالأحمر بعد ما يتولّدوا. والفلترة هنا بقت في مكان واحد عشان
+    زرار التبديل مايبقاش باب تاني من غيرها.
+
+    ‏pool بيتبعت من المولّد (قاعدة الأطفال لو العميل طفل)؛ من غيره بيتجاب
+    بنفس الطريقة.
+    """
+    symptoms = data.get("symptoms") or []
+    if isinstance(symptoms, str):
+        symptoms = [symptoms]
+    goal = data.get("goal_type", "weight_loss")
+    if goal == "cutting":
+        goal = "weight_loss"
+    diet_type = data.get("diet_plan_type", "standard")
+    allergies = data.get("allergies")
+    user_exclusions = parse_user_exclusions(
+        data.get("notes", ""), data.get("disliked_foods", ""),
+        allergies if isinstance(allergies, list) else [])
+    if pool is None:
+        try:
+            import child_meals
+            pool = child_meals.pool_for(data.get("age"), data.get("culture", "مصري"))
+        except Exception:
+            pool = None
+        pool = pool or get_meal_pool(goal, data.get("culture", "مصري"))
+
+    snacks = get_snacks_for_goal(goal)
+    pool_snacks = pool.get("snack", [])
+    # ‏كان [:10]. القص ده كان بيلغي أي زيادة في المحتوى: جداول الأطفال
+    # فيها ٢٤ سناك و١٠ بس كانوا بيوصلوا للأسبوع، والأسبوع فيه ١٤ خانة
+    # سناك (سناكين × سبع أيام) -- فالتكرار كان حتمي مهما زوّدنا أصناف.
+    if pool_snacks: snacks = list(pool_snacks)
+    while len(snacks) < 7: snacks.append("فاكهة + مكسرات (120 kcal)")
+
+    snacks = [s for s in snacks if not any(ex in (s if isinstance(s, str) else s.get("meal","")) for ex in user_exclusions)] or snacks
+
+    if diet_type == "keto":
+        try:
+            from meal_extra import KETO_SNACKS
+            if KETO_SNACKS:
+                snacks = list(KETO_SNACKS)
+        except Exception:
+            pass
+    elif diet_type == "low_carb":
+        _fs = [s for s in snacks if not any(w in (s if isinstance(s, str) else s.get("meal", "")) for w in LOW_CARB_WORDS)]
+        snacks = _fs if _fs else snacks
+
+    # ‏آخر خطوة عشان تمسك كمان أسناك الكيتو اللي بتستبدل الطابور كله.
+    # ومن غير "or snacks": طابور فضي بعد الفلترة بيتملى من بدايل خانة
+    # السناك الآمنة جوه filter_by_conditions، مش من الأسناك اللي اتشالت.
+    return filter_by_conditions(snacks, symptoms, "snack")
+
+
 def generate_weekly_plan(data, seed=None):
     """‏خطة سبع أيام. seed اختياري: لو اتبعت، نفس البذرة = نفس الخطة.
 
@@ -641,28 +700,9 @@ def generate_weekly_plan(data, seed=None):
         lunches = filter_carbs(lunches, False)
         dinners = filter_carbs(dinners, False)
 
-    snacks = get_snacks_for_goal(goal)
-    pool_snacks = pool.get("snack", [])
-    # ‏كان [:10]. القص ده كان بيلغي أي زيادة في المحتوى: جداول الأطفال
-    # فيها ٢٤ سناك و١٠ بس كانوا بيوصلوا للأسبوع، والأسبوع فيه ١٤ خانة
-    # سناك (سناكين × سبع أيام) -- فالتكرار كان حتمي مهما زوّدنا أصناف.
-    if pool_snacks: snacks = list(pool_snacks)
-    while len(snacks) < 7: snacks.append("فاكهة + مكسرات (120 kcal)")
-
-    snacks = [s for s in snacks if not any(ex in (s if isinstance(s, str) else s.get("meal","")) for ex in user_exclusions)] or snacks
+    snacks = snack_queue(data, pool)
     if avoid:
         snacks = _defer_repeats(snacks, avoid)
-
-    if diet_type == "keto":
-        try:
-            from meal_extra import KETO_SNACKS
-            if KETO_SNACKS:
-                snacks = list(KETO_SNACKS)
-        except Exception:
-            pass
-    elif diet_type == "low_carb":
-        _fs = [s for s in snacks if not any(w in (s if isinstance(s, str) else s.get("meal", "")) for w in LOW_CARB_WORDS)]
-        snacks = _fs if _fs else snacks
 
     days = ["الاحد","الاثنين","الثلاثاء","الاربعاء","الخميس","الجمعة","السبت"]
     plan_info = get_diet_plan_info(diet_type)
