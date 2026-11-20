@@ -1,6 +1,20 @@
 {% extends "base.html" %}
 {% block title %}{{ t('معاينة الخطة','Plan Preview') }}{% endblock %}
 {% block content %}
+{# ‏شريحة صنف واحد. نفس الشكل بيتبني في JS (renderQty) بعد أي تعديل. #}
+{% macro qty_chip(it) -%}
+<span class="qty-chip{% if it.qty is none %} is-bare{% endif %}" data-item="{{ it.index }}">
+{%- if it.can_down -%}
+<button type="button" class="qty-btn" data-item="{{ it.index }}" data-dir="-1" aria-label="{{ t('نقّص ' ~ it.name_label, 'Less ' ~ it.name_label) }}"><i class="fa-solid fa-minus" aria-hidden="true"></i></button>
+{%- else -%}
+<button type="button" class="qty-btn" data-item="{{ it.index }}" data-remove="1" aria-label="{{ t('احذف ' ~ it.name_label, 'Remove ' ~ it.name_label) }}"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
+{%- endif -%}
+<span class="qty-name">{{ it.name_label }}</span>
+{%- if it.qty is not none -%}
+<b class="qty-v" aria-live="polite">{{ it.qty_label }}</b><button type="button" class="qty-btn" data-item="{{ it.index }}" data-dir="+1" aria-label="{{ t('زوّد ' ~ it.name_label, 'More ' ~ it.name_label) }}"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>
+{%- endif -%}
+</span>
+{%- endmacro %}
 <style>
   /* ‏صف الوجبة: علامة الوجبة بقت أيقونة في مربع رمادي بدل إيموجي
      ٢٠ بكسل. والسناك بيفضل بخلفية دافية خفيفة عشان يتفرز بالعين عن
@@ -566,15 +580,27 @@
       ] %}
 
       {% for key, icon, label in meal_configs %}
-        {% if day[key] %}
+        {# ‏key in day مش day[key]: وجبة اتشالت كل أصنافها بتفضل صف فاضي
+           يتضاف فيه. اليوم بيتخزّن فيه خانات نظامه بس، فده مابيطلّعش خانات
+           مالهاش لازمة -- وورقة العميل بتسيب الفاضية زي ما هي. #}
+        {% if key in day %}
         <div class="meal-row{% if 'snack' in key or key in ['pre_workout','post_workout'] %} is-snack{% endif %}">
           <span class="meal-ic"><i class="fa-solid {{ icon }}"></i></span>
           <div style="flex:1">
             <div class="meal-slot">{{ label }}</div>
-            <div class="meal-text editable" data-day="{{ day_idx }}" data-type="{{ key }}" style="font-size:13px;font-weight:600;cursor:text">{{ day[key] | meal_en }}</div>
+            <div class="meal-text editable" data-day="{{ day_idx }}" data-type="{{ key }}" data-empty="{{ t('الوجبة فاضية — أضف صنف تحت','This meal is empty — add an item below') }}" style="font-size:13px;font-weight:600;cursor:text">{{ day[key] | meal_en }}</div>
             {# ‏كمية كل صنف بزرار: الدكتور يلاقي الجبنة كتير فينقّصها، من غير ما يكتب السطر كله من الأول #}
-            <div class="qty-row" data-day="{{ day_idx }}" data-type="{{ key }}" role="group" aria-label="{{ t('كميات ' ~ label, label ~ ' portions') }}">{% for it in meal_items(day[key]) %}<span class="qty-chip" data-item="{{ it.index }}"><button type="button" class="qty-btn" data-item="{{ it.index }}" data-dir="-1" aria-label="{{ t('نقّص ' ~ it.name_label, 'Less ' ~ it.name_label) }}"{% if not it.can_down %} disabled{% endif %}><i class="fa-solid fa-minus" aria-hidden="true"></i></button><span class="qty-name">{{ it.name_label }}</span><b class="qty-v" aria-live="polite">{{ it.qty_label }}</b><button type="button" class="qty-btn" data-item="{{ it.index }}" data-dir="+1" aria-label="{{ t('زوّد ' ~ it.name_label, 'More ' ~ it.name_label) }}"><i class="fa-solid fa-plus" aria-hidden="true"></i></button></span>{% endfor %}</div>
+            <div class="qty-row" data-day="{{ day_idx }}" data-type="{{ key }}" role="group" aria-label="{{ t('كميات ' ~ label, label ~ ' portions') }}">{% for it in meal_items(day[key]) %}{{ qty_chip(it) }}{% endfor %}</div>
             <!--/qty-row-->
+            <button type="button" class="add-toggle" aria-expanded="{{ 'true' if not day[key] else 'false' }}"
+                    data-day="{{ day_idx }}" data-type="{{ key }}"{% if not day[key] %} hidden{% endif %}>
+              <i class="fa-solid fa-plus" aria-hidden="true"></i> {{ t('أضف صنف','Add an item') }}</button>
+            <form class="add-item" data-day="{{ day_idx }}" data-type="{{ key }}"{% if day[key] %} hidden{% endif %}>
+              <input type="text" name="text" maxlength="80" autocomplete="off"
+                     aria-label="{{ t('صنف جديد في ' ~ label, 'New item for ' ~ label) }}"
+                     placeholder="{{ t('مثال: زبادي يوناني 150جم','e.g. Greek yogurt 150g') }}">
+              <button type="submit">{{ t('أضف','Add') }}</button>
+            </form>
             {% set warn = problems.get(day_idx ~ ':' ~ key, '') %}
             <div class="meal-warn" data-day="{{ day_idx }}" data-type="{{ key }}" role="alert"
                  style="display:{{ 'block' if warn else 'none' }};margin-top:5px;background:var(--nx-bad-bg);border:1px solid var(--nx-bad-line);color:var(--nx-bad-ink);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:800">
@@ -684,7 +710,54 @@
   </div>
 </div>
 
+<dialog id="rmDialog" class="rm-dialog" aria-labelledby="rmTitle" aria-describedby="rmMsg">
+  <form method="dialog">
+    <h3 id="rmTitle"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> {{ t('تحذف الصنف ده؟','Remove this item?') }}</h3>
+    <p id="rmMsg"></p>
+    <div class="rm-actions">
+      <button value="cancel" class="rm-cancel">{{ t('لأ، سيبه','Keep it') }}</button>
+      <button value="ok" class="rm-ok">{{ t('احذف','Remove') }}</button>
+    </div>
+  </form>
+</dialog>
+
 <style>
+  /* ‏حذف صنف: رسالة تأكيد قبل أي حذف (صاحب المشروع طلبها). زرار الحذف
+     أحمر والإلغاء هو اللي عليه التركيز أول ما الرسالة تفتح، عشان Enter
+     بالغلط مايمسحش. */
+  .rm-dialog { border:0;border-radius:16px;padding:0;max-inline-size:min(92vw,380px);
+               position:fixed;inset:0;margin:auto;block-size:fit-content;
+               background:var(--nx-surface);color:var(--nx-ink);box-shadow:0 20px 60px rgba(0,0,0,.3); }
+  .rm-dialog::backdrop { background:rgba(15,20,30,.45); }
+  .rm-dialog form { padding:20px; }
+  .rm-dialog h3 { margin:0 0 8px;font-size:16px;font-weight:900;display:flex;gap:8px;align-items:center; }
+  .rm-dialog h3 i { color:var(--nx-bad-ink); }
+  .rm-dialog p { margin:0 0 18px;font-size:14px;line-height:1.8;color:var(--nx-ink-2); }
+  .rm-actions { display:flex;gap:8px;justify-content:flex-end; }
+  .rm-actions button { min-block-size:42px;padding:0 18px;border-radius:10px;font-family:inherit;
+                       font-weight:800;font-size:14px;cursor:pointer;border:1px solid var(--nx-line); }
+  .rm-cancel { background:var(--nx-surface-2);color:var(--nx-ink); }
+  .rm-ok { background:var(--nx-bad-ink);color:#fff;border-color:var(--nx-bad-ink) !important; }
+  .rm-actions button:focus-visible { outline:2px solid var(--nx-ink-2);outline-offset:2px; }
+  .qty-btn[data-remove] { color:var(--nx-bad-ink); }
+  .qty-btn[data-remove]:hover { background:var(--nx-bad-ink) !important;color:#fff !important; }
+  .qty-chip.is-bare { padding-inline-end:12px; }
+  /* ‏خانة الإضافة: مقفولة لحد ما الدكتور يطلبها، عشان ٢٨ خانة كتابة في
+     الصفحة دوشة. الوجبة الفاضية بتفتحها لوحدها. */
+  .add-toggle { margin-top:6px;margin-inline-start:10px;background:none;border:1px dashed var(--nx-line);
+                border-radius:999px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:800;
+                color:var(--nx-ink-2);cursor:pointer;min-block-size:32px; }
+  .add-toggle:hover { border-color:var(--nx-ink-2);color:var(--nx-ink); }
+  .add-item { display:flex;gap:6px;margin-top:6px;padding-inline:10px; }
+  .add-item[hidden], .add-toggle[hidden] { display:none; }
+  .add-item input { flex:1;min-inline-size:0;min-block-size:38px;padding:0 12px;border-radius:10px;
+                    border:1.5px solid var(--nx-line);background:var(--nx-surface);color:var(--nx-ink);
+                    font-family:inherit;font-size:13px;font-weight:600; }
+  .add-item input:focus { outline:none;border-color:var(--nx-ink-2); }
+  .add-item button { min-block-size:38px;padding:0 16px;border-radius:10px;border:0;background:var(--nx-solid-2);
+                     color:#fff;font-family:inherit;font-weight:800;cursor:pointer; }
+  .meal-text:empty::before { content:attr(data-empty);color:var(--nx-muted);font-weight:700; }
+
   /* ‏كمية كل صنف. الرقم هو اللي بيتغيّر فهو الأتقل في الشريحة، والاسم جنبه
      مطفي. الزرار ٣٢ بكسل عشان يتداس بصباع على الموبايل. */
   .qty-row { display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;padding-inline:10px; }
@@ -878,19 +951,77 @@ function applyCheck(day, type, check) {
 
 // ‏صف الكميات بيتبني من الأصناف اللي السيرفر رجّعها، بعد أي تعديل على
 // الوجبة -- لو اتسابت قديمة، الزرار هيزوّد رقم صنف اتشال أو اتغيّر.
-const QTY = { less: {{ t('نقّص ','Less ')|tojson }}, more: {{ t('زوّد ','More ')|tojson }} };
+const QTY = {
+  less: {{ t('نقّص ','Less ')|tojson }}, more: {{ t('زوّد ','More ')|tojson }},
+  remove: {{ t('احذف ','Remove ')|tojson }},
+  goes: {{ t('«%s» هيتشال من %s.','"%s" will be removed from %s.')|tojson }},
+  last: {{ t('ده آخر صنف في %s، فالوجبة هتفضل فاضية لحد ما تضيف حاجة مكانها.','This is the last item in %s, so the meal stays empty until you add something.')|tojson }},
+};
+const fmt = (s, ...a) => a.reduce((out, v) => out.replace('%s', v), s);
+const slotOf = (day, type) => document.querySelector(`.qty-row[data-day="${day}"][data-type="${type}"]`);
+
+function chipHtml(it) {
+  const name = esc(it.name_label);
+  const first = it.can_down
+    ? `<button type="button" class="qty-btn" data-item="${it.index}" data-dir="-1" aria-label="${esc(QTY.less + it.name_label)}"><i class="fa-solid fa-minus" aria-hidden="true"></i></button>`
+    : `<button type="button" class="qty-btn" data-item="${it.index}" data-remove="1" aria-label="${esc(QTY.remove + it.name_label)}"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>`;
+  const rest = it.qty === null ? '' :
+    `<b class="qty-v" aria-live="polite">${esc(it.qty_label)}</b>`
+    + `<button type="button" class="qty-btn" data-item="${it.index}" data-dir="+1" aria-label="${esc(QTY.more + it.name_label)}"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>`;
+  return `<span class="qty-chip${it.qty === null ? ' is-bare' : ''}" data-item="${it.index}">${first}<span class="qty-name">${name}</span>${rest}</span>`;
+}
+
+// ‏صف الكميات بيتبني من الأصناف اللي السيرفر رجّعها، بعد أي تعديل على
+// الوجبة -- لو اتسابت قديمة، الزرار هيزوّد أو يمسح صنف اتغيّر مكانه.
 function renderQty(day, type, items) {
-  const row = document.querySelector(`.qty-row[data-day="${day}"][data-type="${type}"]`);
+  const row = slotOf(day, type);
   if (!row || !items) return;
-  row.innerHTML = items.map(it =>
-    `<span class="qty-chip" data-item="${it.index}">`
-    + `<button type="button" class="qty-btn" data-item="${it.index}" data-dir="-1" aria-label="${esc(QTY.less + it.name_label)}"${it.can_down ? '' : ' disabled'}><i class="fa-solid fa-minus" aria-hidden="true"></i></button>`
-    + `<span class="qty-name">${esc(it.name_label)}</span><b class="qty-v" aria-live="polite">${esc(it.qty_label)}</b>`
-    + `<button type="button" class="qty-btn" data-item="${it.index}" data-dir="+1" aria-label="${esc(QTY.more + it.name_label)}"><i class="fa-solid fa-plus" aria-hidden="true"></i></button></span>`
-  ).join('');
+  row.innerHTML = items.map(chipHtml).join('');
+  // ‏الوجبة الفاضية: خانة الإضافة مفتوحة على طول، مفيش حاجة تانية تتعمل فيها
+  const cell = row.parentElement;
+  const empty = items.length === 0;
+  const form = cell.querySelector('.add-item'), toggle = cell.querySelector('.add-toggle');
+  if (empty) { form.hidden = false; toggle.hidden = true; }
+  else if (form.hidden) { toggle.hidden = false; }
+}
+
+function setMeal(day, type, data) {
+  const textEl = document.querySelector(`.meal-text[data-day="${day}"][data-type="${type}"]`);
+  if (textEl) textEl.textContent = data.display || data.new_meal || '';
+  renderQty(day, type, data.items);
+  applyCheck(day, type, data.check);
+  showSaveIndicator();
+}
+
+async function postSlot(path, day, type, extra) {
+  const fd = new FormData();
+  fd.append('day_idx', day); fd.append('meal_type', type);
+  Object.entries(extra).forEach(([k, v]) => fd.append(k, v));
+  const res = await fetch(path, { method: 'POST', body: fd });
+  return res.json();
+}
+
+// ‏رسالة التأكيد. بترجع true لو الدكتور داس احذف. الإلغاء عليه التركيز
+// الأول، فـEnter بالغلط مابيمسحش.
+function confirmRemove(message) {
+  const dlg = document.getElementById('rmDialog');
+  document.getElementById('rmMsg').textContent = message;
+  return new Promise(resolve => {
+    dlg.addEventListener('close', () => resolve(dlg.returnValue === 'ok'), { once: true });
+    dlg.returnValue = '';
+    dlg.showModal();
+    dlg.querySelector('.rm-cancel').focus();
+  });
 }
 
 document.addEventListener('click', async (e) => {
+  const toggle = e.target.closest('.add-toggle');
+  if (toggle) {
+    const form = toggle.parentElement.querySelector('.add-item');
+    form.hidden = false; toggle.hidden = true; toggle.setAttribute('aria-expanded', 'true');
+    form.querySelector('input').focus();
+    return;
+  }
   const btn = e.target.closest('.qty-btn');
   if (!btn || btn.disabled) return;
   const row = btn.closest('.qty-row');
@@ -899,27 +1030,52 @@ document.addEventListener('click', async (e) => {
   // ‏ضغطتين ورا بعض على نفس الوجبة: التانية تستنى الأولى، وإلا الاتنين
   // بيبدأوا من نفس النص وواحدة منهم بتضيع.
   if (row.dataset.busy) return;
+
+  if (btn.dataset.remove) {
+    const name = chip.querySelector('.qty-name').textContent.trim();
+    const slot = row.closest('.meal-row').querySelector('.meal-slot').textContent.trim();
+    const isLast = row.querySelectorAll('.qty-chip').length === 1;
+    const ok = await confirmRemove(isLast ? fmt(QTY.last, slot) : fmt(QTY.goes, name, slot));
+    if (!ok) { btn.focus(); return; }
+  }
+
   row.dataset.busy = '1';
   chip.classList.add('busy');
   try {
-    const fd = new FormData();
-    fd.append('day_idx', day); fd.append('meal_type', type);
-    fd.append('item', item); fd.append('dir', btn.dataset.dir);
-    const res = await fetch('/nudge_item', { method: 'POST', body: fd });
-    const data = await res.json();
+    const data = btn.dataset.remove
+      ? await postSlot('/remove_item', day, type, { item })
+      : await postSlot('/nudge_item', day, type, { item, dir: btn.dataset.dir });
     if (data.ok) {
-      const textEl = document.querySelector(`.meal-text[data-day="${day}"][data-type="${type}"]`);
-      if (textEl) textEl.textContent = data.display || data.new_meal;
-      renderQty(day, type, data.items);
-      const v = row.querySelector(`.qty-chip[data-item="${item}"] .qty-v`);
-      if (v) v.classList.add('bump');
-      row.querySelector(`.qty-btn[data-item="${item}"][data-dir="${btn.dataset.dir}"]`)?.focus();
-      applyCheck(day, type, data.check);
-      showSaveIndicator();
+      setMeal(day, type, data);
+      if (!btn.dataset.remove) {
+        const v = row.querySelector(`.qty-chip[data-item="${item}"] .qty-v`);
+        if (v) v.classList.add('bump');
+        row.querySelector(`.qty-btn[data-item="${item}"][data-dir="${btn.dataset.dir}"]`)?.focus();
+      }
     }
   } catch (err) {}
   delete row.dataset.busy;
   chip.classList.remove('busy');
+});
+
+document.addEventListener('submit', async (e) => {
+  const form = e.target.closest('.add-item');
+  if (!form) return;
+  e.preventDefault();
+  const input = form.querySelector('input');
+  const text = input.value.trim();
+  if (!text) { input.focus(); return; }
+  const day = form.dataset.day, type = form.dataset.type;
+  form.querySelector('button').disabled = true;
+  try {
+    const data = await postSlot('/add_item', day, type, { text });
+    if (data.ok) {
+      input.value = '';
+      setMeal(day, type, data);
+      input.focus();
+    }
+  } catch (err) {}
+  form.querySelector('button').disabled = false;
 });
 
 function showSaveIndicator() {

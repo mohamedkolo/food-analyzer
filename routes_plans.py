@@ -1229,6 +1229,72 @@ def nudge_item():
                     "items": _items_for_page(new_text), "check": check})
 
 
+def _slot_from_form(plan):
+    """(رقم اليوم، الخانة) من الفورم، أو None لو مش خانة موجودة في اليوم ده.
+
+    ‏الخانة الفاضية بتتقبل: وجبة اتشالت كل أصنافها بتفضل مكان يتضاف فيه.
+    """
+    try:
+        day_idx = int(request.form.get("day_idx", -1))
+    except (TypeError, ValueError):
+        return None
+    meal_type = request.form.get("meal_type", "")
+    if not (0 <= day_idx < len(plan)) or meal_type not in plan[day_idx]:
+        return None
+    if meal_type not in plan_tools.MEAL_KEYS:
+        return None
+    return day_idx, meal_type
+
+
+def _item_change(plan, day_idx, meal_type, new_text):
+    check = _change_meal(draft_store.draft_data() or {}, plan, day_idx,
+                         meal_type, new_text)
+    return jsonify({"ok": True, "new_meal": new_text,
+                    "display": _meal_display(new_text) if new_text else "",
+                    "items": _items_for_page(new_text), "check": check})
+
+
+@bp.route("/remove_item", methods=["POST"])
+@staff_required
+def remove_item():
+    """شيل صنف من الوجبة -- بعد ما الدكتور أكّد في الصفحة.
+
+    ‏بيعدّي على _change_meal زي أي تغيير: المجموع بيتحدّث والفحص الطبي
+    بيشتغل على اللي فاضل.
+    """
+    plan = draft_store.draft_plan()
+    slot = _slot_from_form(plan) if plan else None
+    if not slot:
+        return jsonify({"ok": False, "error": "missing data"}), 400
+    try:
+        item = int(request.form.get("item", -1))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "missing data"}), 400
+    new_text = portion_scale.remove_item(plan[slot[0]].get(slot[1]) or "", item)
+    if new_text is None:
+        return jsonify({"ok": False, "error": "no such item"}), 400
+    return _item_change(plan, slot[0], slot[1], new_text)
+
+
+@bp.route("/add_item", methods=["POST"])
+@staff_required
+def add_item():
+    """ضيف صنف في آخر الوجبة من خانة الإضافة.
+
+    ‏المكتوب بالإيد هو بالظبط اللي plan_tools اتعمل عشانه: بيتحفظ، بس
+    التحذير بيرجع لو فيه حاجة ممنوعة على العميل.
+    """
+    plan = draft_store.draft_plan()
+    slot = _slot_from_form(plan) if plan else None
+    if not slot:
+        return jsonify({"ok": False, "error": "missing data"}), 400
+    new_text = portion_scale.add_item(plan[slot[0]].get(slot[1]) or "",
+                                      request.form.get("text", ""))
+    if new_text is None:
+        return jsonify({"ok": False, "error": "empty"}), 400
+    return _item_change(plan, slot[0], slot[1], new_text)
+
+
 @bp.route("/edit_meal", methods=["POST"])
 @staff_required
 def edit_meal():
