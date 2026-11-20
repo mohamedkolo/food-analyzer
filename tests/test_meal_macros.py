@@ -188,6 +188,52 @@ def test_a_fraction_is_not_read_as_a_count():
         whole, _ = MM.item_grams("🍞 عيش بلدي 1")
         assert grams < 2 * whole and grams != whole * 2, (text, grams, how)
 
+
+# ‏أصناف كانت بتتحسب صفر وهي موجودة في الجدول باسم أطول ("كينوا" والجدول
+# فيه "كينوا مطبوخة"). الأرقام من الجدول نفسه -- مفيش رقم جديد اتكتب.
+WORD_CASES = {
+    "🫒 زيت 1 ملعقة": "زيت زيتون",
+    "🧀 فيتا 30جم": "جبنة فيتا",
+    "🥗 كينوا 100جم": "كينوا مطبوخة",
+    "🌿 زعتر": "زعتر ناشف",
+    "🍯 دبس 1 ملعقة": "دبس تمر",
+    "🍲 حريرة كبيرة": "حريرة مغربية",
+    "🧀 بارميزان 15جم": "جبنة بارميزان",
+    "🌾 برغل 100جم": "برغل مطبوخ",
+    "🌯 تورتيلا قمح كامل": "عيش تورتيلا",
+    "🧀 حلوم 50جم": "جبنة حلوم",
+    "🍲 كسكس مغربي 150جم": "كسكسي مطبوخ",
+    "🍵 شاي": "شاي بدون سكر",
+    "🍗 فروج مشوي 200جم": "فراخ مشوية (ربع فرخة)",
+    "🍗 فرخة كاملة 250جم": "فراخ مشوية (ربع فرخة)",
+    "🧆 طعمية مشوية 5": "فلافل/طعمية",
+    "🍢 شيش طاووق 200جم": "صدر دجاج",
+    "🥩 ستيك 200جم": "لحم بقري قليل الدهن",
+    "🥣 يوغورت 150جم": "زبادى خالى الدسم",
+}
+
+
+def test_foods_written_shorter_than_the_table_are_recognised():
+    for text, want in WORD_CASES.items():
+        got = MM.find_food(text)
+        assert got and MM._norm(got["n"]) == MM._norm(want), (text, got and got["n"])
+        assert MM.macros(text)["cal"] > 0 or "شاي" in text, text
+
+
+def test_the_new_words_match_whole_words_only():
+    """‏"زيت" جوه "زيتون": لو اتطابقت كحروف، ٤ زيتونات كانت هتبقى ٤ ملاعق
+    زيت -- حوالي ٥٠٠ سعرة زيادة على اليوم."""
+    for text in ("🫒 زيتون 4", "زيتون اسود 30جم", "🥗 سلطة بالزيتون"):
+        got = MM.find_food(text)
+        assert not got or "زيت زيتون" != got["n"], (text, got and got["n"])
+
+
+def test_every_word_bridge_points_at_a_food_that_exists():
+    import food_data
+    have = {MM._norm(f["n"]) for f in food_data.FOODS}
+    missing = sorted({v for v in MM.GENERIC_WORDS.values() if MM._norm(v) not in have})
+    assert not missing, missing
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):
