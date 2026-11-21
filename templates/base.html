@@ -118,12 +118,15 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
   background-color:var(--nx-side-bg);backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);
   border-inline-end:1px solid var(--nx-side-line);color:var(--nx-side-ink);overflow-y:auto;overflow-x:hidden;padding:16px 12px;z-index:90;
   isolation:isolate;transition:transform .3s,background-color .6s ease}
-/* ‏بقع لون ورا الزجاج: من غيرها الزجاج على كحلي سادة بيبان رمادي باهت */
+/* ‏بقع لون ورا الزجاج: من غيرها الزجاج على كحلي سادة بيبان رمادي باهت.
+   ‏وهي ثابتة بالقصد. كانت بتتحرك على طول، وكل زرار في القايمة زجاج
+   متغبّش (backdrop-filter) -- فالجهاز كان بيعيد تغبيش الأزرار كلها كل
+   فريم. على جهاز الشغل من غير كارت شاشة الداشبورد الواقفة كانت ٢٦ فريم
+   في الثانية بدل ٦٠ ("الأمواج اللي في الجنب فيها لاج"). */
 .sidebar::before,.sidebar::after{content:"";position:absolute;width:190px;height:190px;border-radius:50%;
-  filter:blur(52px);opacity:.32;z-index:-1;pointer-events:none;animation:nx-float 14s ease-in-out infinite}
+  filter:blur(52px);opacity:.32;z-index:-1;pointer-events:none}
 .sidebar::before{background-color:#2F7BFF;top:90px;inset-inline-start:-70px}
-.sidebar::after{background-color:#F5A20F;top:380px;inset-inline-end:-80px;animation-delay:-7s}
-@keyframes nx-float{50%{transform:translate(16px,-24px) scale(1.1)}}
+.sidebar::after{background-color:#F5A20F;top:380px;inset-inline-end:-80px}
 .sidebar:has([data-lq="blue"]:hover){background-color:color-mix(in srgb,var(--lq-blue) 10%,var(--nx-side-bg))}
 .sidebar:has([data-lq="amber"]:hover){background-color:color-mix(in srgb,var(--lq-amber) 10%,var(--nx-side-bg))}
 .sidebar:has([data-lq="teal"]:hover){background-color:color-mix(in srgb,var(--lq-teal) 10%,var(--nx-side-bg))}
@@ -155,8 +158,10 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .lq.active .lq-fill{height:100%}
 /* ‏الموجة مستخبية والزرار فاضي: كانت قاعدة على قاع كل زرار، فكان فيه
    شريط ألوان تحت القايمة كلها حتى من غير ما حد يقف على حاجة. */
-.lq-wave{position:absolute;inset-inline-start:0;bottom:calc(100% - 1px);width:200%;height:12px;opacity:0;transition:opacity .25s ease;animation:nx-drift 1.8s linear infinite}
-.lq:hover .lq-wave,.lq:focus-visible .lq-wave,.nav-grp.has-active > summary .lq-wave{opacity:1}
+/* ‏والموجة واقفة وهي مستخبية: حوالي ٢٠ موجة كانت بتتحرك طول الوقت وهي
+   opacity:0، والجهاز بيرسمها برضو. بتتحرك بس في الزرار اللي إنت عليه. */
+.lq-wave{position:absolute;inset-inline-start:0;bottom:calc(100% - 1px);width:200%;height:12px;opacity:0;transition:opacity .25s ease;animation:nx-drift 1.8s linear infinite;animation-play-state:paused}
+.lq:hover .lq-wave,.lq:focus-visible .lq-wave,.nav-grp.has-active > summary .lq-wave{opacity:1;animation-play-state:running}
 .lq:hover .lq-wave.back,.lq:focus-visible .lq-wave.back,.nav-grp.has-active > summary .lq-wave.back{opacity:.5}
 .lq-wave.back{bottom:calc(100% + 2px);animation-duration:2.6s;animation-direction:reverse}
 @keyframes nx-drift{to{transform:translateX(-50%)}}

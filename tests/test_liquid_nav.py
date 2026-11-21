@@ -155,6 +155,30 @@ def test_the_group_holding_this_page_shows_some_liquid():
     assert re.search(r"\.nav-grp\.has-active > summary \.lq-fill\{[^}]*height:", BASE)
 
 
+
+# ═══ اللاج على جهاز الشغل ═══
+#
+# ‏صاحب المشروع: الموقع على التليفون سريع، وعلى جهاز الشغل "الأمواج اللي
+# في الجنب فيها لاج". اتقاس على متصفح من غير كارت شاشة ومعالج أبطأ ٦
+# مرات: الداشبورد واقفة من غير ما حد يلمسها كانت ٢٦-٢٨ فريم في الثانية
+# بدل ٦٠ -- القايمة كانت بترسم طول الوقت:
+#   ‏- بقعتين لون متغبّشين (blur 52px) ورا الزجاج بيتحركوا على طول، فكل
+#     زرار زجاج (backdrop-filter، حوالي ١٠) بيتعاد تغبيشه كل فريم.
+#   ‏- حوالي ٢٠ موجة بتتحرك حتى وهي مخفية (opacity:0).
+
+def test_the_colour_behind_the_glass_stands_still():
+    m = re.search(r"\.sidebar::before,\.sidebar::after\{([^}]*)\}", BASE)
+    assert m, "البقع ورا الزجاج اختفت"
+    assert "animation" not in m.group(1), m.group(1)
+
+
+def test_a_wave_only_moves_while_it_is_seen():
+    assert re.search(r"\.lq-wave\{[^}]*animation-play-state:paused", BASE), "الموجة المخفية لسه بتتحرك"
+    m = re.search(r"([^{}]*)\{[^}]*animation-play-state:running", BASE)
+    assert m, "الموجة مابتتحركش خالص"
+    for shown in (".lq:hover .lq-wave", ".lq:focus-visible .lq-wave", ".nav-grp.has-active > summary .lq-wave"):
+        assert shown in m.group(1), (shown, m.group(1))
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in list(globals().items())
              if n.startswith("test_") and callable(f)]
