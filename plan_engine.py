@@ -1385,7 +1385,12 @@ def plan_html(data, plan=None, clean=False):
         return ar if _pdf_ar else en
 
     def _meal(txt):
-        return txt if _pdf_ar else translate_meal(txt)
+        # ‏العربي بياخد مكيال جنب كل صنف ("ارز 150جم (≈ كوب)") -- نفس
+        # meal_sheet في core، عشان الـPDF والينك يقولوا نفس الكلام.
+        if _pdf_ar:
+            from measures import annotate
+            return annotate(txt)
+        return translate_meal(txt)
 
     symptoms = data.get("symptoms", [])
     goal = data.get("goal_type", "weight_loss")
@@ -1583,8 +1588,11 @@ def plan_html(data, plan=None, clean=False):
         for p in parts:
             p = _esc(p)
             # units appear in Arabic or English depending on the PDF language
-            p = re.sub(r'(\d+[\.\d]*\s*(?:جم|مل|كوب|ملعقة|ملاعق|قطع|قطعة|حبات|شريحتين|ثمرة'
-                       r'|g|ml|cup|tbsp|pcs?|slices?|piece)?)',
+            # ‏الأطول الأول، والوحدة لازم تخلص عند آخر حرف: "مل" كانت قبل
+            # "ملعقة" فالخط العريض كان بيقف عند أول حرفين، وكل ملعقة على
+            # الورقة المطبوعة طلعت "<b>1 مل</b>عقة".
+            p = re.sub(r'(\d+[\.\d]*\s*(?:(?:ملعقة|ملاعق|شريحتين|قطعة|قطع|حبات|ثمرة|كوب|جم|مل'
+                       r'|tbsp|slices?|piece|pcs?|cup|ml|g)(?![\u0600-\u06FFa-zA-Z]))?)',
                        r'<b>\1</b>', p, count=1)
             out.append(f'<span class="it">{p}</span>')
         return "".join(out)

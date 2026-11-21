@@ -151,7 +151,10 @@ FOOD_MEASURES = {
 _KEYS_SORTED = sorted(FOOD_MEASURES.keys(), key=len, reverse=True)
 
 # الأرقام + الوحدة (جم / جرام / غ / g / مل)
-_QTY_RE = re.compile(r'(\d+)\s*(?:جم|جرام|غ|g|مل)')
+# ‏والوحدة لازم تخلص هنا: "مل" هي أول حرفين في "ملعقة"، فـ"زيت زيتون 1
+# ملعقة" كانت بتتقري ١ مليلتر وبتطلع على الورقة "1 مل (≈ ملعقة
+# صغيرة)عقة" -- الكلمة مقطوعة نصين.
+_QTY_RE = re.compile(r'(\d+)\s*(?:جم|جرام|غ|g|مل)(?![\u0600-\u06FFa-zA-Z])')
 
 
 def _match_food(item):
@@ -215,6 +218,10 @@ def _annotate_item(item):
             return item
         return item[:m.end()] + f" ({phrase})" + item[m.end():]
     else:
+        # ‏فيه رقم من غير جرامات ("موز 1"، "زيت 1 ملعقة"): الصنف مكتوب
+        # بمكياله أصلاً، و"موز 1 (≈ حبة)" بتقول نفس الحاجة مرتين.
+        if re.search(r'\d', item):
+            return item
         # مفيش جرامات → نحط مكيال تقريبي (وحدة واحدة) في آخر الصنف
         sing = UNIT_FORMS[food["unit"]][0]
         stripped = item.rstrip()
@@ -236,3 +243,12 @@ def annotate(text):
         else:
             out.append(_annotate_item(p))
     return "".join(out)
+
+
+def measure_for(item):
+    """‏المكيال لوحده ("≈ كوب") لصنف بجرامات، أو "" -- لشرايح المعاينة."""
+    food = _match_food(item or "")
+    m = _QTY_RE.search(item or "")
+    if not food or not m:
+        return ""
+    return _phrase(int(m.group(1)), food)

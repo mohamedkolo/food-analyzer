@@ -743,6 +743,11 @@ def meal_items(text):
         item["qty_label"] = ("" if item["qty"] is None
                              else "%s%s%s" % (item["qty"], joint, unit))
         item["unit_label"] = unit
+        if ar:
+            from measures import measure_for
+            item["measure"] = measure_for(item["text"])
+        else:
+            item["measure"] = ""
     return items
 
 
@@ -772,6 +777,25 @@ def num_filter(v, places=1):
     except (TypeError, ValueError):
         return v
     return int(f) if f == int(f) else f
+@app.template_filter('meal_sheet')
+def meal_sheet(text):
+    """الوجبة زي ما بتتكتب على ورقة العميل: بلغته، وجنب كل صنف مكياله.
+
+    ‏صاحب المشروع: "عايز كل حاجة في الجدول تتكتب قد إيه جنبها بمكيال".
+    العميل مش معاه ميزان. والمكيال بيتضاف هنا وقت العرض بس -- النص
+    المتخزّن مابيتلمسش، وإلا أي تعديل بعده هيلاقي "(≈ كوب)" جوه الوجبة.
+    ‏بالعربي بس: المكاييل مكتوبة عربي، وجملة عربي وسط ورقة إنجليزي أسوأ
+    من مفيش.
+    """
+    if session.get("lang", "ar") != "ar":
+        return meal_en(text)
+    try:
+        from measures import annotate
+        return annotate(text or "")
+    except Exception:
+        return text
+
+
 @app.template_filter('measures')
 def measures_filter(s):
     try:

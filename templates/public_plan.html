@@ -123,7 +123,7 @@
         <div class="em">{{ meta[0] }}</div>
         <div>
           <div class="lbl">{{ meta[1] if _ar else meta[2] }}</div>
-          <div class="txt">{{ day[key] }}</div>
+          <div class="txt">{{ day[key] | meal_sheet }}</div>
         </div>
       </div>
       {% endif %}

@@ -83,6 +83,7 @@ SUITES = [
     "test_stagger.py",
     "test_portion_control.py",
     "test_snack_swap.py",
+    "test_household_measures.py",
 ]
 
 
