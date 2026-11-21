@@ -5,7 +5,7 @@
 {% macro qty_chip(it) -%}
 <span class="qty-chip{% if it.qty is none %} is-bare{% endif %}" data-item="{{ it.index }}">
 <button type="button" class="qty-btn" data-item="{{ it.index }}" data-remove="1" aria-label="{{ t('احذف ' ~ it.name_label, 'Remove ' ~ it.name_label) }}"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
-<span class="qty-name">{{ it.name_label }}{% if it.cal is not none %}<small class="qty-kcal">{{ it.cal }} kcal</small>{% endif %}</span>
+<span class="qty-name">{{ it.name_label }}{% if it.cal is not none %}<small class="qty-kcal">{{ it.cal }} kcal</small>{% endif %}{% if it.measure %}<small class="qty-measure">{{ it.measure }}</small>{% endif %}</span>
 {%- if it.qty is not none -%}
 <span class="qty-ctl"><button type="button" class="qty-btn" data-item="{{ it.index }}" data-dir="-1" aria-label="{{ t('نقّص ' ~ it.name_label, 'Less ' ~ it.name_label) }}"{% if not it.can_down %} disabled{% endif %}><i class="fa-solid fa-minus" aria-hidden="true"></i></button><input type="text" class="qty-in" inputmode="decimal" data-item="{{ it.index }}" value="{{ it.qty }}" aria-label="{{ t('كمية ' ~ it.name_label, 'Amount of ' ~ it.name_label) }}{% if it.unit_label %} ({{ it.unit_label }}){% endif %}"><span class="qty-unit">{{ it.unit_label }}</span><button type="button" class="qty-btn" data-item="{{ it.index }}" data-dir="+1" aria-label="{{ t('زوّد ' ~ it.name_label, 'More ' ~ it.name_label) }}"><i class="fa-solid fa-plus" aria-hidden="true"></i></button></span>
 {%- endif -%}
@@ -773,6 +773,8 @@
   @keyframes qty-shake { 25%,75% { translate:-4px 0; } 50% { translate:4px 0; } }
   .qty-unit { font-size:11px;font-weight:800;color:var(--nx-muted);margin-inline-end:2px; }
   .qty-unit:empty { display:none; }
+  /* ‏المكيال جنب السعرات: "≈ كوب". بلون مختلف عشان مايتلخبطش مع الرقم. */
+  .qty-measure { display:block;font-size:10.5px;font-weight:800;color:var(--nx-ink-2);line-height:1.2; }
   .qty-kcal { display:block;font-size:10.5px;font-weight:700;color:var(--nx-muted);line-height:1.2; }
   .qty-v { color:var(--nx-ink);font-weight:900;font-variant-numeric:tabular-nums;min-inline-size:3.5ch;text-align:center; }
   .qty-btn { inline-size:32px;block-size:32px;border-radius:50%;border:0;background:var(--nx-surface-2);
@@ -980,7 +982,8 @@ function chipHtml(it) {
     + `<input type="text" class="qty-in" inputmode="decimal" data-item="${it.index}" value="${esc(it.qty)}" aria-label="${esc(QTY.amount + it.name_label + unit)}">`
     + `<span class="qty-unit">${esc(it.unit_label || '')}</span>`
     + `<button type="button" class="qty-btn" data-item="${it.index}" data-dir="+1" aria-label="${esc(QTY.more + it.name_label)}"><i class="fa-solid fa-plus" aria-hidden="true"></i></button></span>`;
-  return `<span class="qty-chip${it.qty === null ? ' is-bare' : ''}" data-item="${it.index}">${trash}<span class="qty-name">${name}${kcal}</span>${ctl}</span>`;
+  const measure = it.measure ? `<small class="qty-measure">${esc(it.measure)}</small>` : '';
+  return `<span class="qty-chip${it.qty === null ? ' is-bare' : ''}" data-item="${it.index}">${trash}<span class="qty-name">${name}${kcal}${measure}</span>${ctl}</span>`;
 }
 
 // ‏صف الكميات بيتبني من الأصناف اللي السيرفر رجّعها، بعد أي تعديل على

@@ -119,7 +119,9 @@ def test_a_dangling_separator_is_not_printed():
         html = plan_engine.plan_html(data, plan)
     items = re.findall(r'<span class="it">(.*?)</span>', html, re.S)
     items = [re.sub(r"<[^>]+>", "", i).strip() for i in items]
-    assert items == ["جمبري مشوي 150جم", "سلطة كبيرة 200جم"], items
+    # ‏المكيال جنب كل صنف من طلب صاحب المشروع (test_household_measures).
+    # اللي بيتحرس هنا إن مفيش "+" معلّقة في الآخر.
+    assert items == ["جمبري مشوي 150جم (≈ كف اليد)", "سلطة كبيرة 200جم (≈ كوبين)"], items
 
 
 def test_what_left_the_sheet_reaches_the_specialist_instead():
