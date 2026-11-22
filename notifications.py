@@ -36,18 +36,115 @@ SMTP_FROM = os.environ.get("SMTP_FROM", "") or SMTP_USER or ADMIN_EMAIL
 # ═══════════════════════════════════════════════
 # أنواع الإشعارات (أيقونة + اسم للعرض)
 # ═══════════════════════════════════════════════
+# ‏fa: أيقونة خطوط (Font Awesome) للصفحة -- الإيموجي كانت بتطلع بأشكال
+# مختلفة على كل جهاز. cat: المجموعة اللي الفلتر فوق الصفحة بيفرز بيها.
 NOTIF_TYPES = {
-    "new_client":    {"icon": "🆕", "label": "عميل جديد"},
-    "plan_request":  {"icon": "📋", "label": "طلب خطة"},
-    "new_message":   {"icon": "💬", "label": "رسالة جديدة"},
-    "payment_click": {"icon": "💰", "label": "ضغط دفع واتساب"},
-    "booking_request": {"icon": "📅", "label": "طلب حجز"},
-    "booking_payment": {"icon": "💵", "label": "تحويل استشارة"},
+    "new_client":    {"icon": "🆕", "label": "عميل جديد", "label_en": "New client",
+                      "fa": "fa-user-plus", "cat": "clients"},
+    "plan_request":  {"icon": "📋", "label": "طلب خطة", "label_en": "Plan request",
+                      "fa": "fa-clipboard-list", "cat": "requests"},
+    "new_message":   {"icon": "💬", "label": "رسالة جديدة", "label_en": "New message",
+                      "fa": "fa-comment", "cat": "messages"},
+    "payment_click": {"icon": "💰", "label": "ضغط دفع واتساب", "label_en": "WhatsApp payment click",
+                      "fa": "fa-hand-pointer", "cat": "payments"},
+    "booking_request": {"icon": "📅", "label": "طلب حجز", "label_en": "Booking request",
+                        "fa": "fa-calendar-check", "cat": "bookings"},
+    "booking_payment": {"icon": "💵", "label": "تحويل استشارة", "label_en": "Consultation transfer",
+                        "fa": "fa-money-bill-transfer", "cat": "payments"},
 }
+_OTHER = {"icon": "🔔", "label": "إشعار", "label_en": "Notification", "fa": "fa-bell", "cat": "other"}
 
 
 def get_type_meta(type_):
-    return NOTIF_TYPES.get(type_, {"icon": "🔔", "label": "إشعار"})
+    return NOTIF_TYPES.get(type_, _OTHER)
+
+
+# ═══════════════════════════════════════════════
+# العرض: مجموعات بالأيام ووقت بيتقري زي الكلام
+# ═══════════════════════════════════════════════
+_AR_MONTHS = ("يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو",
+              "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر")
+_GROUPS = (("today", "النهارده", "Today"), ("yesterday", "امبارح", "Yesterday"),
+           ("week", "الأسبوع ده", "This week"), ("older", "أقدم", "Older"))
+
+
+def _as_datetime(value):
+    from datetime import datetime
+    if isinstance(value, datetime):
+        return value
+    text = str(value or "").replace("T", " ")[:19]
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def _clock(dt, ar):
+    h = dt.hour % 12 or 12
+    if ar:
+        return "%d:%02d %s" % (h, dt.minute, "ص" if dt.hour < 12 else "م")
+    return "%d:%02d %s" % (h, dt.minute, "AM" if dt.hour < 12 else "PM")
+
+
+def _ago(minutes, ar):
+    if minutes < 1:
+        return "دلوقتي" if ar else "just now"
+    if minutes < 60:
+        if not ar:
+            return "%d min ago" % minutes
+        return {1: "من دقيقة", 2: "من دقيقتين"}.get(
+            minutes, "من %d %s" % (minutes, "دقايق" if minutes <= 10 else "دقيقة"))
+    hours = minutes // 60
+    if not ar:
+        return "%d h ago" % hours
+    return {1: "من ساعة", 2: "من ساعتين"}.get(
+        hours, "من %d %s" % (hours, "ساعات" if hours <= 10 else "ساعة"))
+
+
+def present(rows, tz_name="Africa/Cairo", lang="ar", now_utc=None):
+    """‏الإشعارات زي ما الصفحة بتعرضها: [{key, label, items: [...]}].
+
+    ‏created_at بيتسجّل CURRENT_TIMESTAMP -- توقيت جرينتش. الصفحة كانت
+    بتكتبه زي ما هو، فاللي حصل الساعة ١١ في القاهرة كان مكتوب ٩، و"امبارح"
+    كان بيبدأ الساعة ٢ الصبح. فالوقت بيتحوّل لتوقيت الأدمن الأول، والأيام
+    بتتقسم على توقيته.
+    """
+    from datetime import datetime, timedelta, timezone
+    try:
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo(tz_name or "Africa/Cairo")
+    except Exception:
+        tz = timezone(timedelta(hours=2))
+    ar = lang != "en"
+    now = (now_utc or datetime.utcnow()).replace(tzinfo=timezone.utc).astimezone(tz)
+    buckets = {key: [] for key, _a, _e in _GROUPS}
+    for row in rows or []:
+        meta = get_type_meta(row.get("type"))
+        raw = _as_datetime(row.get("created_at"))
+        local = raw.replace(tzinfo=timezone.utc).astimezone(tz) if raw else now
+        days = (now.date() - local.date()).days
+        if days <= 0:
+            key = "today"
+            when = _ago(max(0, int((now - local).total_seconds() // 60)), ar)
+        elif days == 1:
+            key, when = "yesterday", _clock(local, ar)
+        else:
+            key = "week" if days < 7 else "older"
+            day = ("%d %s" % (local.day, _AR_MONTHS[local.month - 1]) if ar
+                   else local.strftime("%-d %b"))
+            when = "%s · %s" % (day, _clock(local, ar))
+        buckets[key].append({
+            "id": row.get("id"), "title": row.get("title") or "",
+            "message": row.get("message") or "", "link": row.get("link") or "",
+            "unread": not row.get("is_read"), "when": when,
+            "iso": local.strftime("%Y-%m-%dT%H:%M"),
+            "label": meta["label"] if ar else meta["label_en"],
+            "icon": meta["fa"], "cat": meta["cat"],
+        })
+    return [{"key": key, "label": a if ar else e, "items": buckets[key]}
+            for key, a, e in _GROUPS if buckets[key]]
 
 
 # ═══════════════════════════════════════════════

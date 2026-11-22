@@ -3,69 +3,135 @@
 {% block content %}
 
 <style>
-  .notif-wrap { max-width: 760px; margin: 24px auto; padding: 16px; font-family: 'Cairo','Tajawal',system-ui,sans-serif; }
-  .notif-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
-  .notif-head h1 { font-size: 24px; font-weight: 800; color: var(--nx-ink); margin: 0; display: flex; align-items: center; gap: 8px; }
-  .notif-count-pill { background: var(--nx-bad-bg); color: var(--nx-bad-ink); font-size: 13px; font-weight: 700; padding: 4px 12px; border-radius: 999px; }
-  .read-all-btn { background: var(--nx-info-bg); color: var(--nx-muted); border: 0; padding: 10px 18px; border-radius: 12px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s; }
-  .read-all-btn:hover { background: var(--nx-line); }
-
-  .notif-list { display: flex; flex-direction: column; gap: 10px; }
-  .notif-card { display: flex; gap: 14px; background: var(--nx-surface); border: 1px solid var(--nx-line); border-radius: 16px; padding: 16px 18px; transition: all .2s; position: relative; }
-  .notif-card.unread { background: var(--nx-surface-2); border-color: var(--nx-line); }
-  .notif-card.unread::before { content: ''; position: absolute; top: 18px; inset-inline-start: 6px; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
-  .notif-icon { font-size: 26px; flex-shrink: 0; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; background: var(--nx-surface-2); border-radius: 12px; }
-  .notif-body { flex: 1; min-width: 0; }
-  .notif-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
-  .notif-type { font-size: 11px; font-weight: 700; color: var(--nx-ink-2); background: var(--nx-tint); padding: 2px 9px; border-radius: 999px; }
-  .notif-time { font-size: 12px; color: var(--nx-muted); margin-inline-start: auto; }
-  .notif-title { font-size: 15px; font-weight: 700; color: var(--nx-ink); margin: 0 0 4px; }
-  .notif-msg { font-size: 14px; color: var(--nx-muted); line-height: 1.6; margin: 0; white-space: pre-line; }
-  .notif-open { display: inline-block; margin-top: 8px; font-size: 13px; font-weight: 700; color: var(--nx-ink-2); text-decoration: none; }
-  .notif-open:hover { text-decoration: underline; }
-
-  .notif-empty { text-align: center; padding: 60px 20px; color: var(--nx-muted); }
-  .notif-empty .big { font-size: 54px; margin-bottom: 12px; }
-  .notif-empty p { font-size: 16px; margin: 0; }
+/* ‏الإشعارات صفوف مضغوطة جوّه كارت لكل يوم، مش كارت لكل إشعار: سبعة
+   إشعارات كانوا بيملوا الصفحة. الصف كله بيفتح لو ليه لينك. */
+.nt-wrap{max-inline-size:820px;margin:0 auto}
+.nt-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.nt-head h1{margin:0;font-size:24px;font-weight:900;color:var(--nx-ink);display:flex;align-items:center;gap:10px}
+.nt-pill{font-size:12.5px;font-weight:800;padding:3px 11px;border-radius:999px;background:var(--nx-bad-bg);color:var(--nx-bad-ink)}
+.nt-readall{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:10px;border:1px solid var(--nx-line);
+  background:var(--nx-surface);color:var(--nx-ink-2);font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;min-block-size:40px}
+.nt-readall:hover{border-color:var(--nx-ink-2);color:var(--nx-ink)}
+.nt-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.nt-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;border:1px solid var(--nx-line);
+  background:var(--nx-surface);color:var(--nx-ink-2);font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;min-block-size:36px}
+.nt-chip b{font-weight:900;color:var(--nx-muted);font-variant-numeric:tabular-nums}
+.nt-chip[aria-pressed="true"]{background:var(--nx-solid-2);border-color:var(--nx-solid-2);color:#fff}
+.nt-chip[aria-pressed="true"] b{color:#fff}
+.nt-chip:focus-visible,.nt-row:focus-visible,.nt-readall:focus-visible{outline:2px solid var(--nx-ink-2);outline-offset:2px}
+.nt-day{margin:0 0 14px;padding:0;overflow:hidden}
+.nt-day h2{margin:0;padding:12px 18px;font-size:13px;font-weight:900;color:var(--nx-muted);letter-spacing:.3px;
+  border-bottom:1px solid var(--nx-line)}
+.nt-row{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:start;padding:14px 18px;
+  text-decoration:none;color:inherit;position:relative;border-inline-start:3px solid transparent}
+.nt-row + .nt-row{border-top:1px solid var(--nx-line)}
+a.nt-row:hover{background:var(--nx-surface-2)}
+.nt-row.unread{border-inline-start-color:var(--nx-bad-ink)}
+.nt-ic{inline-size:40px;block-size:40px;border-radius:12px;display:grid;place-items:center;font-size:16px}
+/* ‏لون لكل نوع -- من ألوان الثيم، فيقلب مع الغامق */
+.nt-ic[data-cat="requests"]{background:var(--blue-pale);color:var(--nx-ink)}
+.nt-ic[data-cat="messages"]{background:var(--nx-ok-bg);color:var(--nx-ok-ink)}
+.nt-ic[data-cat="bookings"]{background:var(--nx-warn-bg);color:var(--nx-warn-ink)}
+.nt-ic[data-cat="payments"]{background:var(--nx-ok-bg);color:var(--nx-ok-ink)}
+.nt-ic[data-cat="clients"]{background:var(--nx-tint);color:var(--nx-ink-2)}
+.nt-ic[data-cat="other"]{background:var(--nx-surface-2);color:var(--nx-muted)}
+.nt-txt{min-inline-size:0}
+.nt-title{margin:0;font-size:14.5px;font-weight:700;color:var(--nx-ink);line-height:1.5}
+.nt-row.unread .nt-title{font-weight:900}
+.nt-msg{margin:2px 0 0;font-size:13.5px;color:var(--nx-muted);line-height:1.6;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nt-kind{display:inline-block;margin-top:6px;font-size:11.5px;font-weight:800;color:var(--nx-ink-2)}
+.nt-meta{display:flex;flex-direction:column;align-items:flex-end;gap:6px;white-space:nowrap}
+.nt-when{font-size:12px;color:var(--nx-muted);font-variant-numeric:tabular-nums}
+.nt-go{font-size:12px;color:var(--nx-muted)}
+.nt-empty{text-align:center;padding:56px 20px;color:var(--nx-muted)}
+.nt-empty i{font-size:40px;margin-bottom:12px;display:block}
+.nt-empty p{margin:0;font-size:15px}
+/* ‏الفرز بيستخدم hidden، و display:grid على الصف أقوى منه -- فلازم صراحة */
+.nt-row[hidden],.nt-day[hidden]{display:none}
+html[dir="ltr"] .nt-go{transform:scaleX(-1)}
+.nt-none{display:none;padding:28px;text-align:center;color:var(--nx-muted);font-size:14px}
+.sr-only{position:absolute;inline-size:1px;block-size:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media(max-width:560px){
+  .nt-row{grid-template-columns:36px minmax(0,1fr);padding:12px 14px}
+  .nt-ic{inline-size:36px;block-size:36px}
+  .nt-meta{grid-column:2;flex-direction:row;align-items:center;justify-content:space-between}
+}
 </style>
 
-<div class="notif-wrap">
-  <div class="notif-head">
-    <h1>🔔 {{ t('الإشعارات', 'Notifications') }}
+{% set CATS = [('requests', t('طلبات','Requests')), ('messages', t('رسائل','Messages')),
+               ('bookings', t('حجوزات','Bookings')), ('clients', t('عملاء','Clients')),
+               ('payments', t('دفع','Payments')), ('other', t('غيره','Other'))] %}
+
+<div class="nt-wrap">
+  <div class="nt-head">
+    <h1>{{ t('الإشعارات', 'Notifications') }}
       {% if unread_before and unread_before > 0 %}
-      <span class="notif-count-pill">{{ unread_before }} {{ t('جديد', 'new') }}</span>
+      <span class="nt-pill">{{ unread_before }} {{ t('جديد', 'new') }}</span>
       {% endif %}
     </h1>
     {% if notifications %}
-    <form method="post" action="/admin/notifications/read" style="margin:0;">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit" class="read-all-btn">✓ {{ t('علّم الكل كمقروء', 'Mark all as read') }}</button>
+    <form method="post" action="/admin/notifications/read" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="nt-readall"><i class="fa-solid fa-check-double" aria-hidden="true"></i>{{ t('علّم الكل كمقروء', 'Mark all as read') }}</button>
     </form>
     {% endif %}
   </div>
 
   {% if notifications %}
-  <div class="notif-list">
-    {% for n in notifications %}
-    <div class="notif-card {% if not n.is_read %}unread{% endif %}">
-      <div class="notif-icon">{{ n.icon }}</div>
-      <div class="notif-body">
-        <div class="notif-top">
-          <span class="notif-type">{{ n.type_label }}</span>
-          <span class="notif-time">{{ n.created_str }}</span>
-        </div>
-        <h3 class="notif-title">{{ n.title }}</h3>
-        <p class="notif-msg">{{ n.message }}</p>
-        {% if n.link %}
-        <a class="notif-open" href="{{ n.link }}">{{ t('افتح ←', 'Open →') }}</a>
-        {% endif %}
-      </div>
-    </div>
-    {% endfor %}
+  <div class="nt-chips" role="group" aria-label="{{ t('فرز حسب النوع','Filter by kind') }}">
+    <button type="button" class="nt-chip" data-filter="all" aria-pressed="true">{{ t('الكل','All') }} <b>{{ notifications|length }}</b></button>
+    {% for key, label in CATS %}{% if cats.get(key) %}
+    <button type="button" class="nt-chip" data-filter="{{ key }}" aria-pressed="false">{{ label }} <b>{{ cats[key] }}</b></button>
+    {% endif %}{% endfor %}
   </div>
+
+  {% for g in groups %}
+  <section class="card nt-day" aria-labelledby="nt-{{ g.key }}">
+    <h2 id="nt-{{ g.key }}">{{ g.label }}</h2>
+    {% for n in g["items"] %}
+    {% set tag = 'a' if n.link else 'div' %}
+    <{{ tag }} class="nt-row{% if n.unread %} unread{% endif %}" data-cat="{{ n.cat }}"{% if n.link %} href="{{ n.link }}"{% endif %}>
+      <span class="nt-ic" data-cat="{{ n.cat }}" aria-hidden="true"><i class="fa-solid {{ n.icon }}"></i></span>
+      <span class="nt-txt">
+        <p class="nt-title">{% if n.unread %}<span class="sr-only">{{ t('جديد','New') }}: </span>{% endif %}{{ n.title }}</p>
+        {% if n.message and n.message != n.title %}<p class="nt-msg">{{ n.message }}</p>{% endif %}
+        {# ‏النوع بيتكتب بس لو العنوان مابيقولهوش: "طلب خطة" تحت "طلب خطة جديدة" تكرار #}
+        {% if n.label not in n.title %}<span class="nt-kind">{{ n.label }}</span>{% endif %}
+      </span>
+      <span class="nt-meta">
+        <time class="nt-when" datetime="{{ n.iso }}">{{ n.when }}</time>
+        {% if n.link %}<i class="fa-solid fa-chevron-left nt-go" aria-hidden="true"></i>{% endif %}
+      </span>
+    </{{ tag }}>
+    {% endfor %}
+  </section>
+  {% endfor %}
+  <p class="nt-none" id="ntNone">{{ t('مفيش إشعارات من النوع ده', 'Nothing of this kind') }}</p>
+
+  <script>
+  // ‏الفرز على الصفحة نفسها: الإشعارات كلها متحمّلة (آخر ١٠٠)، فمفيش داعي لطلب تاني.
+  (function(){
+    const chips = document.querySelectorAll('.nt-chip');
+    chips.forEach(chip => chip.addEventListener('click', () => {
+      const f = chip.dataset.filter;
+      chips.forEach(c => c.setAttribute('aria-pressed', String(c === chip)));
+      let shown = 0;
+      document.querySelectorAll('.nt-day').forEach(day => {
+        let any = 0;
+        day.querySelectorAll('.nt-row').forEach(row => {
+          const ok = f === 'all' || row.dataset.cat === f;
+          row.hidden = !ok; if (ok) { any++; shown++; }
+        });
+        day.hidden = !any;
+      });
+      document.getElementById('ntNone').style.display = shown ? 'none' : 'block';
+    }));
+  })();
+  </script>
   {% else %}
-  <div class="notif-empty">
-    <div class="big">🔕</div>
+  <div class="card nt-empty">
+    <i class="fa-regular fa-bell-slash" aria-hidden="true"></i>
     <p>{{ t('مفيش إشعارات لسه', 'No notifications yet') }}</p>
   </div>
   {% endif %}
