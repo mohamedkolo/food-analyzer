@@ -1139,30 +1139,23 @@ def messages():
     role = get_user_role(user)
 
     if role in ['admin', 'nutritionist']:
-        clients = db_rows("SELECT * FROM users WHERE role='client' OR role IS NULL ORDER BY name")
-        conversations = []
-        for c in clients:
-            try:
-                last_msg = db_row("""SELECT message, created_at FROM messages 
-                                    WHERE (sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)
-                                    ORDER BY created_at DESC LIMIT 1""",
-                                  (user["id"], c["id"], c["id"], user["id"]))
-                unread = db_row("""SELECT COUNT(*) as c FROM messages 
-                                  WHERE sender_id=? AND receiver_id=? AND is_read=0""",
-                                (c["id"], user["id"]))
-                conversations.append({
-                    "user": c,
-                    "last_message": last_msg["message"][:60] if last_msg else None,
-                    "last_at": last_msg["created_at"] if last_msg else None,
-                    "unread": unread["c"] if unread else 0
-                })
-            except:
-                conversations.append({"user": c, "last_message": None, "last_at": None, "unread": 0})
-        return render_template("messages_list.html", conversations=conversations, user=user, lang=session.get("lang","ar"))
+        return render_template("messages_list.html", conversations=_staff_conversations(user),
+                               user=user, lang=session.get("lang","ar"))
     else:
         admin = db_row("SELECT * FROM users WHERE role='admin' OR is_admin=1 ORDER BY id LIMIT 1")
         if not admin: return redirect("/dashboard")
         return redirect(f"/messages/{admin['id']}")
+
+
+def _staff_conversations(user):
+    """قايمة محادثات الدكتور: طلبين للقاعدة بدل اتنين لكل عميل (messages_view)."""
+    import messages_view
+    clients = db_rows("SELECT * FROM users WHERE role='client' OR role IS NULL ORDER BY name")
+    rows = db_rows("SELECT sender_id, receiver_id, message, is_read, created_at FROM messages "
+                   "WHERE sender_id=? OR receiver_id=?", (user["id"], user["id"]))
+    return messages_view.conversations(user["id"], rows, clients,
+                                       user.get("timezone") or "Africa/Cairo",
+                                       session.get("lang", "ar"))
 
 
 @app.route("/messages/<int:other_id>", methods=["GET","POST"])
@@ -1218,7 +1211,14 @@ def chat(other_id):
                     ORDER BY created_at ASC""",
                   (user["id"], other_id, other_id, user["id"]))
 
-    return render_template("chat.html", messages=msgs, user=user, other=other, lang=session.get("lang","ar"))
+    import messages_view
+    staff = role in ("admin", "nutritionist")
+    items = messages_view.thread(msgs, user["id"], user.get("timezone") or "Africa/Cairo",
+                                 session.get("lang", "ar"))
+    return render_template("chat.html", messages=msgs, items=items, user=user, other=other,
+                           other_role=get_user_role(other), is_staff=staff,
+                           conversations=_staff_conversations(user) if staff else None,
+                           lang=session.get("lang","ar"))
 
 
 # ═══════════════════════════════════════════════════
