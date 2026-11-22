@@ -351,26 +351,22 @@ def admin_notifications():
     """صفحة كل الإشعارات (وبتعلّمها مقروءة بعد العرض)"""
     user = get_user_by_id(session["uid"])
     items = get_all_notifications(db_rows, limit=100)
-    notifs = []
-    for n in items:
-        nd = dict(n)
-        v = nd.get("created_at")
-        if v:
-            nd["created_str"] = v.strftime("%Y-%m-%d %H:%M") if hasattr(v, "strftime") else str(v)[:16]
-        else:
-            nd["created_str"] = ""
-        meta = get_type_meta(nd.get("type"))
-        nd["icon"] = meta["icon"]
-        nd["type_label"] = meta["label"]
-        notifs.append(nd)
-    unread_before = sum(1 for n in notifs if not n.get("is_read"))
+    import notifications as _notif
+    lang = session.get("lang", "ar")
+    groups = _notif.present([dict(n) for n in items], (user or {}).get("timezone") or "Africa/Cairo", lang)
+    notifs = [i for g in groups for i in g["items"]]
+    cats = {}
+    for i in notifs:
+        cats[i["cat"]] = cats.get(i["cat"], 0) + 1
+    unread_before = sum(1 for n in notifs if n["unread"])
     # نعلّمها كلها مقروءة بعد ما اتعرضت
     try:
         mark_all_read(db_run)
     except: pass
     return render_template("admin_notifications.html", user=user,
                            lang=session.get("lang", "ar"),
-                           notifications=notifs, unread_before=unread_before)
+                           notifications=notifs, groups=groups, cats=cats,
+                           unread_before=unread_before)
 
 
 @bp.route("/admin/notifications/read", methods=["POST"])
