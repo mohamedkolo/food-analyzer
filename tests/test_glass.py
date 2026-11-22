@@ -61,8 +61,30 @@ def test_glass_tokens_exist_in_both_modes():
 def test_the_shared_surfaces_are_glass():
     for sel in (".header", ".sidebar", ".card"):
         body = _rule(BASE, sel)
-        assert "backdrop-filter" in body, sel
-        assert re.search(r"var\(--nx-(glass|glass-strong|side-bg)\)", body), sel
+        assert re.search(r"var\(--nx-(glass|glass-strong|side-bg|bar)\)", body), sel
+
+
+# ‏الزجاج من غير تغبيش. صاحب المشروع: الموقع على التليفون سريع وعلى جهاز
+# الشغل بطيء. اتقاس على متصفح من غير كارت شاشة ومعالج أبطأ ٦ مرات، وإنت
+# بتسكرول: الداشبورد ٢٧ فريم في الثانية والمعاينة ٢٣ -- كل كارت وكل زرار
+# كان backdrop-filter، وكل واحد بيتعاد تغبيشه مع كل حركة. من غير التغبيش:
+# ٦٠ و٤٧. والشكل نفسه تقريباً: اللي ورا الكروت بقع لون متغبّشة أصلاً
+# (ثابتة، بتترسم مرة)، فالتغبيش التاني فوقها ماكانش بيبان.
+def test_nothing_blurs_what_is_behind_it():
+    import glob
+    hits = []
+    for path in glob.glob(os.path.join(T, "*.html")):
+        text = open(path, encoding="utf-8").read()
+        for m in re.finditer(r"backdrop-filter\s*:\s*(?!none)[^;}\"]+", text):
+            hits.append((os.path.basename(path), m.group(0)[:40]))
+    assert not hits, hits
+
+
+def test_the_header_hides_what_scrolls_under_it():
+    """‏من غير تغبيش، هيدر نص شفاف بيبيّن الكلام اللي بيعدّي تحته."""
+    for block in (_block(THEME, ":root{"), _block(THEME, 'html[data-theme="dark"]{')):
+        assert _alpha(block, "--nx-bar") >= 0.94, block[:200]
+    assert "var(--nx-bar)" in _rule(BASE, ".header")
 
 
 def test_there_is_something_behind_the_glass():
@@ -79,8 +101,9 @@ def test_the_light_sidebar_writes_in_navy():
     assert "var(--nx-side-ink)" in _rule(BASE, ".lq")
 
 
-def test_no_glass_falls_back_to_solid():
-    assert "@supports not ((backdrop-filter" in THEME
+def test_reduced_transparency_gets_solid_surfaces():
+    # ‏كان فيه كمان @supports للمتصفح اللي مابيعرفش backdrop-filter؛ من
+    # غير تغبيش مالوش لازمة، والسطح الشفاف بيتقري زي ما هو.
     assert "prefers-reduced-transparency" in THEME
 
 

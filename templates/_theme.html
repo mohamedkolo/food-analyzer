@@ -45,7 +45,7 @@
   --nx-solid:#1E2630;--nx-solid-2:#3A4A5C;--nx-on-solid:#FFFFFF;--nx-hero:#1E2630;
   --nx-ok-bg:#F0F7F4;--nx-ok-ink:#1F5132;--nx-ok-line:#CFE3D9;--nx-on-warm:#1E2630;
   /* ‏الزجاج: فاتح زي زجاج Apple، أبيض نص شفاف على بقع لون مطفية */
-  --nx-glass:rgba(255,255,255,0.64);--nx-glass-strong:rgba(255,255,255,0.78);--nx-glass-line:rgba(255,255,255,0.8);
+  --nx-glass:rgba(255,255,255,0.64);--nx-glass-strong:rgba(255,255,255,0.78);--nx-bar:rgba(255,255,255,0.99);--nx-glass-line:rgba(255,255,255,0.8);
   --nx-glass-shadow:0 0 0 1px rgba(30,38,48,0.06),0 10px 30px rgba(30,38,48,0.08);
   --nx-side-bg:rgba(255,255,255,0.58);--nx-side-ink:#1E2630;--nx-side-muted:#4F5966;--nx-side-line:rgba(30,38,48,0.1);
   --nx-side-pill:rgba(255,255,255,0.6);--nx-side-pill-line:rgba(30,38,48,0.1);--nx-side-pill-hover:rgba(30,38,48,0.28);
@@ -61,7 +61,7 @@ html[data-theme="dark"]{
   --nx-solid:#3A4A5E;--nx-solid-2:#4A5C72;--nx-on-solid:#FFFFFF;--nx-hero:#0B0F14;
   --nx-ok-bg:#15291F;--nx-ok-ink:#8FD9AE;--nx-ok-line:#2B4D3A;--nx-on-warm:#1E2630;
   /* ‏الزجاج الغامق: نفس القايمة الجانبية، كحلي شفاف على بقع لون */
-  --nx-glass:rgba(23,29,37,0.6);--nx-glass-strong:rgba(15,20,26,0.74);--nx-glass-line:rgba(255,255,255,0.08);
+  --nx-glass:rgba(23,29,37,0.6);--nx-glass-strong:rgba(15,20,26,0.74);--nx-bar:rgba(15,20,26,0.99);--nx-glass-line:rgba(255,255,255,0.08);
   --nx-glass-shadow:0 0 0 1px rgba(255,255,255,0.04),0 12px 32px rgba(0,0,0,0.35);
   --nx-side-bg:rgba(15,20,26,0.55);--nx-side-ink:#FFFFFF;--nx-side-muted:#C9D2DC;--nx-side-line:rgba(255,255,255,0.12);
   --nx-side-pill:rgba(255,255,255,0.07);--nx-side-pill-line:rgba(255,255,255,0.18);--nx-side-pill-hover:rgba(255,255,255,0.45);
@@ -99,12 +99,7 @@ body.nx-glass-page::before{content:"";position:fixed;top:-140px;left:-140px;widt
   box-shadow:72vw 34vh 0 60px var(--nx-blob-2),34vw 86vh 0 30px var(--nx-blob-3)}
 /* ‏كروت مكتوبة inline في صفحات كتير (background:var(--nx-surface) على div):
    بتاخد نفس الزجاج من غير ما نلمس كل صفحة. الـinputs والأزرار مش div. */
-body.nx-glass-page main div[style*="background:var(--nx-surface)"]{background:var(--nx-glass) !important;
-  backdrop-filter:blur(16px) saturate(1.5);-webkit-backdrop-filter:blur(16px) saturate(1.5)}
-/* ‏متصفح مابيعرفش الزجاج، أو حد مشغّل "تقليل الشفافية": سطح صلب مقروء */
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-  :root,html[data-theme="dark"]{--nx-glass:var(--nx-surface);--nx-glass-strong:var(--nx-surface);--nx-side-bg:var(--nx-surface)}
-}
+body.nx-glass-page main div[style*="background:var(--nx-surface)"]{background:var(--nx-glass) !important;}
 @media (prefers-reduced-transparency:reduce){
   :root,html[data-theme="dark"]{--nx-glass:var(--nx-surface);--nx-glass-strong:var(--nx-surface);--nx-side-bg:var(--nx-surface)}
   body.nx-glass-page::before{display:none}
