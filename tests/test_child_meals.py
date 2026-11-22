@@ -237,7 +237,10 @@ def test_the_childs_sheet_is_one_page():
              goal_cal="1800", protein_per_kg="1.6"),
     ]
     for case in cases:
-        _data, _plan_days, html = _plan(case)
+        _data, _plan_days, _html = _plan(case)
+        # ‏الورقة اللي بتتطبع: sheet_html بتختار الخط اللي يخليها صفحة واحدة
+        with A.app.test_request_context("/"):
+            html = plan_engine.sheet_html(_data, _plan_days)
         pages = len(HTML(string=html).render().pages)
         assert pages == 1, (
             "‏%s سنة / %s / %s طلعت %d صفحات"

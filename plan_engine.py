@@ -1461,7 +1461,8 @@ def plan_html(data, plan=None, clean=False):
             emoji = plan_info["meal_emojis"].get(meal_key, "-")
             meal_text = d.get(meal_key, "")
             if meal_text:
-                meals_html.append({"label": label, "emoji": emoji, "text": _meal(meal_text)})
+                meals_html.append({"label": label, "emoji": emoji, "text": _meal(meal_text),
+                                   "key": meal_key})
         pdf_days.append({"name": d["day"] if _pdf_ar else ENGLISH_DAYS.get(d["day"], d["day"]),
                          "total_kcal": d["total_cal"], "total_p": d.get("total_p", 0),
                          "target_kcal": d.get("target_cal"), "zigzag_pct": d.get("zigzag_pct"),
@@ -1586,6 +1587,11 @@ def plan_html(data, plan=None, clean=False):
                  if re.search(r"[\w\u0600-\u06FF]", p or "")]
         out = []
         for p in parts:
+            # ‏"افوكادو 1/2" اتطبعت "افوكادو 21/": الكسر وسط سطر عربي
+            # بيتقلب في الـPDF. حرف الكسر الواحد (½) مابيتقلبش.
+            for _frac, _glyph in (("1/2", "½"), ("1/4", "¼"), ("3/4", "¾"),
+                                  ("1/3", "⅓"), ("2/3", "⅔")):
+                p = re.sub(r"(?<![\d/])" + _frac + r"(?![\d/])", _glyph, p)
             p = _esc(p)
             # units appear in Arabic or English depending on the PDF language
             # ‏الأطول الأول، والوحدة لازم تخلص عند آخر حرف: "مل" كانت قبل
@@ -1641,6 +1647,7 @@ def plan_html(data, plan=None, clean=False):
     # خالص -- تحت عند بناء الـbody فيه الحكاية كلها.
     # أعمدة الوجبات (من أول يوم - تنفع لأي نظام)
     columns = [m['label'] for m in pdays[0]['meals']] if pdays else []
+    _col_keys = [m.get('key', '') for m in pdays[0]['meals']] if pdays else []
     # ‏عَرضية دايماً. كانت بتتقرر من عدد الأعمدة (عرضية لو ٥ أو أكتر،
     # وإلا طولية)، بس ورقة الشركة عَرضية -- والشكل بقى عليها، فالاتجاه
     # بقى واحد. ولا أقل عدد أعمدة (يوم + وجبتين + سعرات + بروتين = ٥)
@@ -1653,8 +1660,11 @@ def plan_html(data, plan=None, clean=False):
     # السعرات، البروتين) شغل الأخصائي مش شغل العميل، وبتظهرله في
     # المعاينة قبل التسليم.
     head_cells = f'<th class="dcol">{_L("اليوم", "Day")}</th>'
-    for c in columns:
-        head_cells += f'<th>{_esc(c)}</th>'
+    # ‏عمود السناك أضيق: صنف أو اتنين في سطر، والغدا والعشا جنبه كانوا
+    # بيلفّوا على أربع سطور في نفس العرض.
+    for c, _k in zip(columns, _col_keys):
+        _cls = ' class="scol"' if _k in ("snack", "snack1", "snack2") else ''
+        head_cells += f'<th{_cls}>{_esc(c)}</th>'
 
     # صفوف الأيام
     body_rows = ""
@@ -1893,17 +1903,21 @@ def plan_html(data, plan=None, clean=False):
 @page { margin: 9mm 11mm; }
 body { color:#000; font-size:10.5px; }
 table { border-collapse:collapse; }
-th, td { border:0.5pt solid #000 !important; padding:3px !important;
+/* ‏الخط كان ٩.٥ والجدول واخد نص الصفحة والنص التاني فاضي -- صاحب
+   المشروع: "عايز الجدول واخد الورقة كاملة ويكون الكلام مش مضغوط".
+   فالخط بقى ١٣ والجدول بيتمد لآخر الورقة (body > table تحت). */
+th, td { border:0.5pt solid #000 !important; padding:6px 5px !important;
          text-align:center !important; vertical-align:middle !important;
-         font-weight:700 !important; font-size:9.5px !important;
-         line-height:1.38 !important; }
+         font-weight:700 !important; font-size:13px !important;
+         line-height:1.55 !important; }
 th { background:#F2F2F2 !important; color:#000 !important;
-     font-size:12px !important; letter-spacing:0 !important;
-     padding:4px 3px !important; }
+     font-size:15px !important; letter-spacing:0 !important;
+     padding:7px 4px !important; }
 td { background:#fff !important; }
 tr:nth-child(even) td { background:#fff !important; }
-td.dcell { background:#F2F2F2 !important; font-size:10.5px !important; }
-.dcol { width:50px; }
+td.dcell { background:#F2F2F2 !important; font-size:14px !important; }
+.dcol { width:64px; }
+.scol { width:15%; }
 td .it { display:block; padding:0; }
 td b { font-weight:700; }
 /* ‏عمود اليوم: أسماء الأيام بالإنجليزي أطول من العربي، فكانت
@@ -1914,10 +1928,10 @@ td.dcell { white-space:normal !important; word-wrap:normal !important;
 /* ‏المسموح والممنوع كانوا بيزحّفوا لصفحة تانية لوحدهم -- صفحة كاملة
    للستّتين، والعميل بياخد ورقتين. ورقة الشركة ورقة واحدة، فالمساحات
    هنا مضغوطة عشان الكل يدخل في الأولى. */
-.foot { margin-top:6px !important; gap:10px !important; font-size:8px !important; }
-.foot .fbox { border-top:0.5pt solid #000; padding-top:4px; }
-.foot .fbox h4 { font-size:8.5px !important; color:#000 !important;
-                 margin-bottom:2px !important; }
+.foot { margin-top:8px !important; gap:14px !important; font-size:10px !important; }
+.foot .fbox { border-top:0.5pt solid #000; padding-top:5px; }
+.foot .fbox h4 { font-size:11px !important; color:#000 !important;
+                 margin-bottom:3px !important; }
 .foot .fbox li { margin-bottom:0 !important; }
 """
 
@@ -1928,30 +1942,12 @@ td.dcell { white-space:normal !important; word-wrap:normal !important;
     # فالجدول طال سبع سطور وزحّف الملاحظات لصفحة تانية فيها فقرة
     # وتوقيع -- وقِسْتها: ٤ من ٧ أوراق أطفال طلعت ورقتين.
     #
-    # ‏والضغط مش ثابت: بيتحسب من أطول خانة فعلاً، فورقة البالغ
-    # (٣ أصناف) مابتتغيّرش، وورقة الطفل بتضيق بالقدر اللي يخليها
-    # تدخل. الأرقام دي مقيسة على الناتج المطبوع مش مخمّنة.
+    # ‏والضغط مش ثابت: sheet_html بتجرّب درجات الخط (SHEET_TIERS) وبتقف
+    # عند أكبر واحدة الورقة فيها صفحة واحدة -- بتتقاس على الناتج
+    # المطبوع نفسه، مش بتتخمّن من عدد الأصناف.
     if not _pdf_ar:
         _company_css += """
-.dcol { width:76px; }
-"""
-
-    _max_items = 1
-    for _d in pdays:
-        for _m in _d.get("meals", []):
-            _max_items = max(_max_items,
-                             len((_m.get("text") or "").split(" + ")))
-    if _max_items >= 5:
-        _company_css += """
-th, td { padding:1.5px !important; font-size:8.5px !important;
-         line-height:1.22 !important; }
-th { font-size:10.5px !important; padding:3px 2px !important; }
-td.dcell { font-size:9.5px !important; }
-.foot { margin-top:4px !important; font-size:7.5px !important; }
-"""
-    elif _max_items == 4:
-        _company_css += """
-th, td { padding:2.5px !important; line-height:1.3 !important; }
+.dcol { width:92px; }
 """
 
     # ── الورقة ما تقولش رقم والأكل يدي غيره ──
@@ -2362,6 +2358,11 @@ th, td { padding:2.5px !important; line-height:1.3 !important; }
             '<div class="rules"><h4>%s</h4><table>%s</table></div>'
             % (_L("تعليمات", "Instructions"), _rows))
 
+    # ‏مقاس الخط وطول الجدول بيتحطوا مكان /*FIT*/ -- sheet_html بتجرّبهم
+    # لحد ما الورقة تتملى وتفضل صفحة واحدة. data["_fit_reserve_mm"]
+    # تقدير اللي تحت الجدول، عشان الجدول يتمد للباقي.
+    data["_fit_reserve_mm"] = 38 + (10 if _alert_html else 0) + (34 if _rules_html else 0)
+
     html_string = f"""<!DOCTYPE html><html lang="{_L("ar", "en")}"><head><meta charset="utf-8">
 <style>
 @page {{ size: A4 {orientation}; margin: 9mm 10mm; }}
@@ -2411,6 +2412,7 @@ tr:nth-child(even) td {{ background:#fbfcfb; }}
 .alert {{ margin-top:6px; font-size:8.5px; font-weight:700;
           color:#7f1d1d; line-height:1.5; }}
 {_company_css}
+/*FIT*/
 </style></head><body>
 <table><thead><tr>{head_cells}</tr></thead><tbody>{body_rows}</tbody></table>
 {_alert_html}
@@ -2426,7 +2428,59 @@ tr:nth-child(even) td {{ background:#fbfcfb; }}
     return html_string
 
 
+# ‏درجات الخط للورقة، من الأكبر للأصغر: (خط الأكل، المسافة بين السطور،
+# الحشو، خط العناوين، خط اليوم، خط المسموح والممنوع). الأولى هي اللي
+# صاحب المشروع طلبها ("الكلام مش مضغوط")؛ الأخيرة هي ورقة الشركة القديمة.
+SHEET_TIERS = (
+    (13, 1.55, 6, 15, 14, 10),
+    (12, 1.45, 5, 14, 13, 9.5),
+    (11, 1.35, 4, 13, 12, 9),
+    (10, 1.3, 3, 12, 11, 8.5),
+    (9, 1.25, 2, 11, 10, 8),
+    (8.5, 1.2, 1.5, 10.5, 9.5, 7.5),
+)
+SHEET_HEIGHT_MM = 192          # ‏A4 عرضي ناقص هامش ٩ مم فوق وتحت
+
+
+def _fit_css(tier, table_mm):
+    font, lh, pad, th, day, foot = tier
+    css = ("th, td { font-size:%spx !important; line-height:%s !important; padding:%spx %spx !important; }\n"
+           "th { font-size:%spx !important; }\n"
+           "td.dcell { font-size:%spx !important; }\n"
+           ".foot { font-size:%spx !important; }\n" % (font, lh, pad, max(1.5, pad - 1), th, day, foot))
+    if table_mm:
+        # ‏ارتفاع للجدول نفسه WeasyPrint بيطوّل بيه الصندوق ومابيوزّعوش على
+        # الصفوف -- الجدول فضل في نص الورقة والفراغ تحته جوّه الصندوق
+        # (اتصوّر). فالطول بيتحط على كل صف: سبع صفوف + العناوين.
+        css += "body > table > tbody > tr { height:%.1fmm; }\n" % ((table_mm - 12) / 7.0)
+    return css
+
+
+def sheet_html(data, plan=None, clean=False):
+    """‏الورقة بأكبر خط يدخل في صفحة واحدة، والجدول ممدود لآخرها.
+
+    ‏صاحب المشروع بعت الـPDF: الجدول واخد نص الصفحة والخط ٩.٥ -- "عايز
+    الجدول واخد الورقة كاملة ويكون الكلام مش مضغوط". مقاس ثابت ماينفعش:
+    اتقاس، ورقة البالغ ١٦١ مم وخمس وجبات ١٨٧ وورقة بالتعليمات ١٩٢ بنفس
+    الخط -- واحدة تدخل والتانية تطلع صفحتين. فالورقة بتتجرّب: أكبر خط
+    الأول، ولو طلعت أكتر من صفحة الدرجة اللي بعدها. كل تجربة ~٠.٢ ثانية،
+    والبالغ بيدخل من أول مرة.
+    """
+    from weasyprint import HTML
+    base = plan_html(data, plan, clean)
+    table_mm = max(100, SHEET_HEIGHT_MM - int(data.get("_fit_reserve_mm") or 38))
+    last = None
+    for heights in ((table_mm, table_mm - 10, table_mm - 20), (None,)):
+        for tier in SHEET_TIERS:
+            for h in heights:
+                html = base.replace("/*FIT*/", _fit_css(tier, h))
+                last = html
+                if len(HTML(string=html).render().pages) == 1:
+                    return html
+    return last
+
+
 def build_pdf(data, plan=None, clean=False):
     """‏نفس الصفحة، مطبوعة PDF."""
     from weasyprint import HTML
-    return HTML(string=plan_html(data, plan, clean)).write_pdf()
+    return HTML(string=sheet_html(data, plan, clean)).write_pdf()
