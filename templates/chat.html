@@ -1,67 +1,88 @@
 {% extends "base.html" %}
 {% block title %}{{ t('محادثة','Chat') }} - {{ other.name }}{% endblock %}
 {% block content %}
+{% import "_messages_ui.html" as ui with context %}
+{% include "_messages_ui.html" %}
+{% set other_name = other.name or other.email %}
+{% set role_label = {'admin': t('د. محمد · الأخصائي','Dr. Mohamed · Nutritionist'),
+                     'nutritionist': t('أخصائي تغذية','Nutritionist')}.get(other_role, t('عميل','Client')) %}
 
-<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-  <a href="/messages" class="btn btn-outline" style="padding:8px 12px">
-    <i class="fa-solid fa-arrow-right"></i>
-  </a>
-  <div style="width:42px;height:42px;border-radius:50%;background:var(--nx-solid);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">
-    {{ other.name[0] if other.name else '?' }}
-  </div>
-  <div>
-    <div style="font-weight:800;font-size:15px">{{ other.name or other.email }}</div>
-    <div style="font-size:11px;color:var(--muted)">{{ other.role or t('عميل','Client') }}</div>
-  </div>
-</div>
+<div class="ms{% if is_staff %} has-list in-chat{% endif %}">
+  {% if is_staff %}{{ ui.ms_list(conversations, other.id) }}{% endif %}
 
-<div class="card" style="padding:0;display:flex;flex-direction:column;height:65vh">
-  
-  <div id="msgsBox" style="flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:10px">
-    {% if messages %}
-      {% for m in messages %}
-        {% set is_me = m.sender_id == user.id %}
-        <div style="display:flex;{{ 'justify-content:flex-end' if is_me else 'justify-content:flex-start' }}">
-          <div style="max-width:75%;background:{{ 'var(--nx-tint)' if is_me else 'var(--nx-surface-2)' }};color:{{ 'var(--nx-ink)' if is_me else 'var(--nx-ink)' }};padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.6">
-            {{ m.message }}
-            <div style="font-size:10px;color:var(--muted);margin-top:4px;text-align:left">
-              {{ m.created_at.strftime('%H:%M') if m.created_at.strftime is defined else m.created_at }}
+  <section class="card ms-pane ms-chat" aria-label="{{ t('محادثة مع','Conversation with') }} {{ other_name }}">
+    <header class="ms-chat-head">
+      {% if is_staff %}
+      <a class="ms-back" href="/messages" aria-label="{{ t('رجوع للمحادثات','Back to conversations') }}"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+      {% endif %}
+      <span class="ms-av sm" aria-hidden="true">{{ other_name[:1] | upper }}</span>
+      <div class="ms-who"><b>{{ other_name }}</b><small>{{ role_label }}</small></div>
+      {% if is_staff and other_role == 'client' %}
+      <a class="ms-prof" href="/admin/users/{{ other.id }}"><i class="fa-regular fa-id-card" aria-hidden="true"></i>{{ t('ملف العميل','Client file') }}</a>
+      {% endif %}
+    </header>
+
+    <div class="ms-body" id="msgsBox" role="log" aria-live="polite">
+      {% if items %}
+        {% for m in items %}
+          {% if m.day %}
+          <div class="ms-day">{{ m.day }}</div>
+          {% else %}
+          <div class="ms-msg{% if m.mine %} mine{% endif %}">
+            <div class="ms-text">{{ m.text }}</div>
+            <div class="ms-meta">
+              <time datetime="{{ m.iso }}">{{ m.clock }}</time>
+              {% if m.mine %}
+              {# ‏✓ اتبعتت، ✓✓ اتقرت -- is_read متسجّل من الأول ومكانش بيظهر #}
+              <i class="fa-solid {{ 'fa-check-double' if m.read else 'fa-check' }} ms-tick{% if m.read %} read{% endif %}" aria-hidden="true"></i>
+              <span class="sr-only">{{ t('اتقرت','Read') if m.read else t('اتبعتت','Sent') }}</span>
+              {% endif %}
             </div>
           </div>
+          {% endif %}
+        {% endfor %}
+        {% if messages and messages[-1].sender_id == user.id and not is_staff %}
+        <div class="ms-note">
+          <b><i class="fa-solid fa-reply" aria-hidden="true"></i>{{ t('رد تلقائي','Auto-reply') }}</b>
+          {{ t('وصلت رسالتك لد. محمد، وهيرد عليك شخصياً في أقرب وقت، عادةً خلال ساعات العمل.','Your message reached Dr. Mohamed. He will reply personally as soon as possible, usually within working hours.') }}
         </div>
-      {% endfor %}
-      {% if messages[-1].sender_id == user.id and (not user.role or user.role == 'client') %}
-      <div style="display:flex;justify-content:flex-start">
-        <div style="max-width:75%;background:var(--nx-surface-2);border:1px dashed #FF7A59;color:var(--nx-ink);padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.7">
-          <div style="font-size:10px;font-weight:800;color:#FF7A59;margin-bottom:4px">⚡ {{ t('رد تلقائي','Auto-reply') }}</div>
-          {{ t('وصلت رسالتك لد. محمد ✅ هيرد عليك شخصياً في أقرب وقت — عادةً خلال ساعات العمل.','Your message reached Dr. Mohamed ✅ He will reply personally as soon as possible - usually within working hours.') }}
+        {% endif %}
+      {% else %}
+        <div class="ms-start">
+          <i class="fa-regular fa-comment-dots" aria-hidden="true"></i>
+          {{ t('ابدأ المحادثة دلوقتي','Start the conversation') }}
         </div>
-      </div>
       {% endif %}
-    {% else %}
-      <div style="margin:auto;text-align:center;color:var(--muted)">
-        <div style="font-size:42px;margin-bottom:10px">👋</div>
-        <div style="font-size:13px">{{ t('ابدأ المحادثة دلوقتي','Start the conversation now') }}</div>
-      </div>
-    {% endif %}
-  </div>
+    </div>
 
-  <form method="POST" style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--gray-2);background:var(--gray)">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="text" name="message" required autocomplete="off"
-           class="form-input" 
-           placeholder="{{ t('اكتب رسالتك هنا...','Type your message here...') }}" 
-           style="flex:1;margin:0">
-    <button type="submit" class="btn btn-success" style="padding:0 18px">
-      <i class="fa-solid fa-paper-plane"></i>
-    </button>
-  </form>
+    <form method="POST" class="ms-compose" id="msForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <textarea name="message" id="msText" rows="1" required autocomplete="off"
+                aria-label="{{ t('رسالة لـ','Message to ') }}{{ other_name }}"
+                placeholder="{{ t('اكتب رسالتك...','Type a message...') }}"></textarea>
+      <button type="submit" class="ms-send" aria-label="{{ t('ابعت','Send') }}"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
+    </form>
+    <p class="ms-hint">{{ t('Enter يبعت · Shift + Enter سطر جديد','Enter sends · Shift + Enter for a new line') }}</p>
+  </section>
 </div>
 
 <script>
-// scroll to bottom
-const box = document.getElementById('msgsBox');
-if (box) box.scrollTop = box.scrollHeight;
+(function(){
+  const box = document.getElementById('msgsBox');
+  if (box) box.scrollTop = box.scrollHeight;
+  const text = document.getElementById('msText'), form = document.getElementById('msForm');
+  // ‏الخانة بتكبر مع الكلام لحد حد، بدل سطر واحد بيلزق السطور في بعض
+  const grow = () => { text.style.blockSize = 'auto'; text.style.blockSize = Math.min(text.scrollHeight, 160) + 'px'; };
+  text.addEventListener('input', grow);
+  text.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      if (text.value.trim()) form.requestSubmit();
+    }
+  });
+  form.addEventListener('submit', () => form.querySelector('.ms-send').disabled = true);
+  {% if is_staff %}if (window.matchMedia('(min-width:1000px)').matches) text.focus();{% endif %}
+})();
 </script>
 
 {% endblock %}
