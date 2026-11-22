@@ -158,10 +158,62 @@ def test_the_sheet_is_still_one_page():
     for over in ({}, {"diet_plan_type": "five_meals"},
                  {"age": "10", "weight": "108.8", "height": "152",
                   "tdee": "1912", "goal_cal": "1912", "symptoms": []}):
-        _d, _p, html = _sheet(**over)
+        html = _printed(**over)
         pages = len(HTML(string=html).render().pages)
         assert pages == 1, (over, pages)
 
+
+
+# ── الورقة كلها للجدول ──────────────────────────────────────────────
+#
+# ‏صاحب المشروع بعت الـPDF: "عايز الجدول واخد الورقة كاملة ويكون الكلام
+# مش مضغوط كده". الجدول كان واخد نص الصفحة، والنص تحته فاضي، والخط
+# ٩.٥ بكسل -- ورقة الشركة كانت مضغوطة عشان تدخل في صفحة، والمساحة
+# اللي اتوفرت فضلت فاضية.
+
+def _printed(**over):
+    """‏الورقة زي ما بتتطبع: sheet_html بتختار الخط اللي يخليها صفحة واحدة."""
+    data, plan, _html = _sheet(**over)
+    with A.app.test_request_context("/"):
+        return plan_engine.sheet_html(data, plan)
+
+
+def _layout(html):
+    from weasyprint import HTML
+    doc = HTML(string=html).render()
+    page = doc.pages[0]
+    boxes = list(page._page_box.descendants())
+    bottom = max(b.position_y + b.margin_height() for b in boxes
+                 if getattr(b, "element_tag", None) in ("table", "div", "ul"))
+    fonts = [b.style["font_size"] for b in boxes
+             if getattr(b, "element_tag", None) == "td"]
+    return len(doc.pages), page.height, bottom, fonts
+
+
+def test_the_table_fills_the_page_on_one_sheet():
+    for over in ({}, {"diet_plan_type": "five_meals"}, {"print_rules": "1"}):
+        pages, height, bottom, _f = _layout(_printed(**over))
+        assert pages == 1, (over, pages)
+        assert bottom / height >= 0.85, (over, round(bottom / height, 2))
+
+
+def test_the_food_is_not_squeezed():
+    _pages, _h, _b, fonts = _layout(_printed())
+    # ‏١٢ بكسل على الأقل في ورقة البالغ (كانت ٩.٥)
+    assert min(fonts) >= 12, sorted(set(fonts))
+
+
+def test_a_fraction_reads_the_right_way_round():
+    """‏"افوكادو 1/2" اتطبعت "افوكادو 21/": الكسر بيتقلب في سطر عربي."""
+    data = dict(CLIENT, zigzag_mode="off")
+    plan = [{"day": "الاحد", "diet_type": "standard", "meal_labels": ["breakfast"],
+             "meal_emojis": {}, "breakfast": "🥑 افوكادو 1/2 + 🍞 عيش 1/4 رغيف",
+             "total_cal": 300, "total_p": 10}]
+    with A.app.test_request_context("/"):
+        html = plan_engine.plan_html(data, plan)
+    items = [re.sub(r"<[^>]+>", "", i) for i in re.findall(r'<span class="it">(.*?)</span>', html, re.S)]
+    assert any("½" in i for i in items) and any("¼" in i for i in items), items
+    assert not any("1/2" in i or "1/4" in i for i in items), items
 
 if __name__ == "__main__":
     passed = failed = 0

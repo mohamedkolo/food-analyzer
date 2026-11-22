@@ -113,8 +113,12 @@ def test_the_unbranded_copy_keeps_every_bit_of_the_medicine():
 def test_the_pdf_still_comes_out_of_the_same_page():
     """‏لو الاتنين اتفرقوا، الاختبارات فوق بتقيس صفحة والعميل بياخد غيرها."""
     import inspect
+    # ‏build_pdf -> sheet_html -> plan_html: sheet_html بتزوّد مقاس الخط
+    # وطول الصفوف بس (مكان /*FIT*/)، والمحتوى هو هو.
     src = inspect.getsource(plan_engine.build_pdf)
-    assert "plan_html(" in src, "‏build_pdf مابقتش بتستخدم نفس الصفحة"
+    assert "sheet_html(" in src or "plan_html(" in src, "‏build_pdf مابقتش بتستخدم نفس الصفحة"
+    fit = inspect.getsource(plan_engine.sheet_html)
+    assert "plan_html(" in fit and '.replace("/*FIT*/"' in fit, "‏sheet_html بقت تبني صفحة تانية"
     _html(True)   # ‏يجهّز نفس الخطة في الكاش
     with A.app.test_request_context("/"):
         raw = plan_engine.build_pdf(_CACHE["data"], _CACHE["plan"], clean=True)

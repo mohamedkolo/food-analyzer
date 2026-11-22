@@ -285,7 +285,10 @@ def test_an_ordinary_sheet_carries_no_extra_line_at_all():
 def test_the_sheet_is_still_one_page():
     """‏السطر الزيادة مايزحّفش المسموح والممنوع لصفحة تانية."""
     from weasyprint import HTML
-    _data, _plan, html = _sheet(diet_plan_type="low_carb_program")
+    _data, _plan, _html = _sheet(diet_plan_type="low_carb_program")
+    # ‏الورقة اللي بتتطبع: sheet_html بتختار الخط اللي يخليها صفحة واحدة
+    with A.app.test_request_context("/"):
+        html = plan_engine.sheet_html(_data, _plan)
     assert len(HTML(string=html).render().pages) == 1, "‏الورقة بقت صفحتين"
 
 
