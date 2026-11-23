@@ -96,9 +96,16 @@ def _tier(metric, pts):
 # مالتودكسترين. معادلات الواي هتظلمه في Total AA% وهو مش معمول عشانها.
 # ‏أقل واي Concentrate بيبقى حوالي ٧٠٪، فالـ٦٠ فيها مسافة.
 LOW_PROTEIN_PCT = 60
+# ‏الـIsolate تعريفه ٩٠٪ بروتين أو أكتر على الوزن الجاف (USDEC). العلبة
+# فيها نكهة ومحلّي، فالحد للحصة ٨٠ -- ده افتراض، مكتوب في
+# docs/supplements-sources.md. أقل منه يبقى مكتوب Isolate وهو مش كده.
+ISOLATE_PCT = 80
+# ‏الجينر: أكتر من ٢٥ جم سكر في الحصة = نص حد WHO للسكر الحر في اليوم (٥٠ جم)
+SUGAR_G = 25
+KINDS = ("isolate", "whey", "mass")
 
 
-def _score(out, added=None):
+def _score(out, added=None, kind="whey", sugar_g=None):
     """‏النقط والتقييم والتحذيرات -- واحدة للجدول الكامل وللملخص.
 
     ‏معادلة رقمها مش مكتوب على العلبة (None) مابتتحسبش صفر: بتتشال، ومفيش
@@ -107,6 +114,11 @@ def _score(out, added=None):
     rows, partial = [], []
     for metric, key in (("total_aa", "total_aa_pct"), ("leucine", "leucine_pct"),
                         ("eaa", "eaa_pct"), ("bcaa", "bcaa_pct")):
+        # ‏الجينر أغلبه كربوهيدرات بالقصد: نسبة الأحماض من الحصة هتطلع واطية
+        # دايمًا ومش بتقول حاجة عنه. بيتقيّم على جودة البروتين اللي فيه بس.
+        if metric == "total_aa" and kind == "mass":
+            partial.append(metric)
+            continue
         if out.get(key) is None:
             partial.append(metric)
             continue
@@ -132,13 +144,18 @@ def _score(out, added=None):
             "المكونات فيها أحماض أمينية مضافة (%s) -- علامة Amino Spiking: بتعلّي رقم "
             "البروتين على الورق من غير بروتين حقيقي" % "، ".join(added))
         out["alerts"].append({"key": "added", "items": added})
-    if out["protein_pct"] < LOW_PROTEIN_PCT:
+    if kind == "isolate" and out["protein_pct"] < ISOLATE_PCT:
+        out["alerts"].append({"key": "not_isolate"})
+    if kind != "mass" and out["protein_pct"] < LOW_PROTEIN_PCT:
         out["alerts"].append({"key": "low_protein"})
+    if kind == "mass" and sugar_g and float(sugar_g) > SUGAR_G:
+        out["alerts"].append({"key": "sugar", "grams": float(sugar_g)})
     out["added"] = added
+    out["kind"] = kind
     return out
 
 
-def analyze(serving_g, protein_g, amino, unit="per100", added=None):
+def analyze(serving_g, protein_g, amino, unit="per100", added=None, kind="whey", sugar_g=None):
     """‏الحساب كله من جدول الأحماض. unit: "per100" (لكل ١٠٠ جم بروتين) أو "serving".
 
     ‏بترفع ValueError برسالة عربي لو الأرقام مستحيلة -- مايتقيّمش منتج
@@ -168,10 +185,11 @@ def analyze(serving_g, protein_g, amino, unit="per100", added=None):
         "protein_pct": protein_g / serving_g * 100,
         "missing": [k for k in AMINO if not aa[k]],
     }
-    return _score(out, added)
+    return _score(out, added, kind, sugar_g)
 
 
-def analyze_summary(serving_g, protein_g, total_aa_g, eaa_g, bcaa_g, leucine_g, added=None):
+def analyze_summary(serving_g, protein_g, total_aa_g, eaa_g, bcaa_g, leucine_g, added=None,
+                    kind="whey", sugar_g=None):
     """‏علبة كاتبة ملخص بس (زي Dymatize: "25g total amino acids, 11.9g EAAs,
     5.5g BCAAs, leucine 2.6g") والجدول الكامل ورا QR. نفس المعادلات: النسب
     من مجموع الأحماض، والمجموع بالجرام للحصة على طول.
@@ -202,7 +220,7 @@ def analyze_summary(serving_g, protein_g, total_aa_g, eaa_g, bcaa_g, leucine_g, 
         "protein_pct": protein_g / serving_g * 100,
         "missing": [],
     }
-    return _score(out, added)
+    return _score(out, added, kind, sugar_g)
 
 
 def _check_basics(serving_g, protein_g):

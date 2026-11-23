@@ -100,6 +100,30 @@ body.wy-page::before{display:none}
 .wy-saved div{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:13.5px}
 .wy-saved button{background:none;border:0;color:var(--muted);cursor:pointer;font-family:inherit}
 [data-g="excellent"]{--c:var(--ok)}[data-g="good"]{--c:var(--good)}[data-g="fair"]{--c:var(--fair)}[data-g="bad"]{--c:var(--bad)}
+/* ‏اختيار النوع قبل الصورة */
+.wy-kinds{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.wy-kind{display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:14px;border:1px solid var(--line);background:var(--bg);
+  color:var(--ink);text-decoration:none;font-weight:900;font-size:14.5px;min-block-size:92px}
+.wy-kind i{color:var(--accent);font-size:20px}
+.wy-kind:hover{border-color:var(--accent)}
+.wy-kind:focus-visible{outline:3px solid var(--good);outline-offset:3px}
+.wy-kind small{color:var(--muted);font-weight:700;font-size:11.5px}
+.wy-group{margin:16px 0 8px;font-size:12.5px;color:var(--muted);font-weight:800}
+.wy-chosen{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.wy-chosen b{display:flex;align-items:center;gap:10px;font-size:16px}
+.wy-chosen b i{color:var(--accent)}
+.wy-chosen a{color:var(--accent);font-weight:800;font-size:13.5px;text-decoration:none}
+.wy-check{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);
+  font-size:13.5px;font-weight:800;cursor:pointer;margin:0}
+.wy-check input{accent-color:var(--accent);inline-size:18px;block-size:18px}
+.wy-f select{inline-size:100%;min-block-size:46px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);
+  color:var(--ink);font-family:inherit;font-size:15px;font-weight:700}
+.sp-checks{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.sp-checks li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:12px 14px;border-radius:12px;
+  background:var(--bg);border:1px solid var(--line);border-inline-start:4px solid var(--c)}
+.sp-checks i{color:var(--c);font-size:18px;margin-top:3px}
+.sp-checks p{margin:0;font-weight:800;line-height:1.7}
+.sp-checks small{display:block;color:var(--muted);font-size:11.5px;font-weight:700;margin-top:4px}
 @media(max-width:560px){
   .wy-pick{grid-template-columns:1fr}
   .wy-result{grid-template-columns:1fr;justify-items:center;text-align:center}
@@ -119,9 +143,37 @@ body.wy-page::before{display:none}
  <div class="wy-in">
 
   <header class="wy-hero">
-    <h1>{{ t('محلل','Whey') }} <em>{{ t('الواي بروتين','Protein Analyzer') }}</em></h1>
-    <p>{{ t('صوّر ضهر العلبة (Supplement Facts وجدول الأحماض الأمينية)، وهنقولك البروتين ده نضيف ولا فيه حشو.','Photograph the back of the tub (Supplement Facts and the amino acid table) and we will tell you if it is clean or padded.') }}</p>
+    <h1>{{ t('محلل','Supplement') }} <em>{{ t('المكملات','Analyzer') }}</em></h1>
+    <p>{{ t('اختار نوع المنتج، وبعدين صوّر ضهر العلبة، وهنقولك هو نضيف ولا فيه حشو.','Choose the product type, then photograph the back of the tub, and we will tell you if it is clean or padded.') }}</p>
   </header>
+
+  {% set KN = {} %}
+  {% for k, ar, en, icon in whey_kinds %}{% set _ = KN.update({k: (t(ar, en), icon)}) %}{% endfor %}
+  {% for k, sp in supp_types.items() %}{% set _ = KN.update({k: (t(sp.ar, sp.en), sp.icon)}) %}{% endfor %}
+  {% if not kind %}
+  <section class="wy-card" aria-labelledby="wy-kind">
+    <h2 id="wy-kind"><i class="fa-solid fa-list-check" aria-hidden="true"></i>{{ t('المنتج ده إيه؟','What is this product?') }}</h2>
+    <p class="wy-group">{{ t('بروتين','Protein') }}</p>
+    <div class="wy-kinds">
+      {% for k, ar, en, icon in whey_kinds %}
+      <a class="wy-kind" href="/whey?kind={{ k }}"><i class="fa-solid {{ icon }}" aria-hidden="true"></i>{{ t(ar, en) }}
+        <small>{{ t('بالأحماض الأمينية · من ١٠٠','By amino acids · out of 100') if k != 'mass' else t('جودة البروتين والسكر','Protein quality and sugar') }}</small></a>
+      {% endfor %}
+    </div>
+    <p class="wy-group">{{ t('مكملات تانية','Other supplements') }}</p>
+    <div class="wy-kinds">
+      {% for k, sp in supp_types.items() %}
+      <a class="wy-kind" href="/whey?kind={{ k }}"><i class="fa-solid {{ sp.icon }}" aria-hidden="true"></i>{{ t(sp.ar, sp.en) }}
+        <small>{{ t('الجرعة والأمان','Dose and safety') }}</small></a>
+      {% endfor %}
+    </div>
+  </section>
+  {% else %}
+  <div class="wy-card wy-chosen">
+    <b><i class="fa-solid {{ KN[kind][1] }}" aria-hidden="true"></i>{{ KN[kind][0] }}</b>
+    <a href="/whey"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> {{ t('غيّر النوع','Change type') }}</a>
+  </div>
+  {% endif %}
 
   {% if result %}
   {% if result.grade %}
@@ -152,9 +204,12 @@ body.wy-page::before{display:none}
            data-score="{{ result.points }}/{{ result.max_score }}" data-grade="{{ t('ناقص','Partial') }}">
     <h2 id="wy-res"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i>{{ t('النتيجة','Result') }}</h2>
     <div class="wy-alert" id="wyPartial">
-      {% if result.rows %}
+      {% if result.kind == 'mass' and result.partial == ['total_aa'] %}
+      {{ t('الجينر أغلبه كربوهيدرات بالقصد، فمالوش درجة من ١٠٠ زي الواي. اتقيّم على جودة البروتين اللي فيه:','A gainer is mostly carbohydrate by design, so it gets no score out of 100 like whey. Its protein quality is rated:') }}
+      <bdi dir="ltr">{{ result.points }}/{{ result.max_score }}</bdi>
+      {% elif result.rows %}
       {{ t('مفيش تقييم نهائي من ١٠٠: العلبة مش كاتبة','No final score out of 100: the label does not print') }}
-      {% for m in result.partial %}{{ PN[m] }}{{ '، ' if not loop.last else '' }}{% endfor %}.
+      {% for m in result.partial if not (result.kind == 'mass' and m == 'total_aa') %}{{ PN[m] }}{{ '، ' if not loop.last else '' }}{% endfor %}.
       {{ t('النقط اللي اتحسبت:','Points from what it prints:') }} <bdi dir="ltr">{{ result.points }}/{{ result.max_score }}</bdi>
       {% else %}
       {{ t('العلبة دي مش كاتبة أحماض أمينية خالص، فمينفعش نحكم على نضافة البروتين. اللي نقدر نقوله: نسبة البروتين من الحصة، والمكونات.','This label prints no amino acids at all, so its protein quality cannot be judged. What we can say: the protein share of the serving, and the ingredients.') }}
@@ -168,6 +223,8 @@ body.wy-page::before{display:none}
   <div class="wy-warn" role="alert"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
     <span>{% if a.key == 'spiking' %}{{ t('احتمال غش - Amino Spiking: الليوسين أو الأحماض الأساسية أقل من المفروض، غالباً اتضاف أحماض رخيصة عشان ترفع رقم البروتين.','Possible cheating - Amino Spiking: leucine or the essential amino acids are too low, so cheap amino acids were probably added to inflate the protein figure.') }}
     {%- elif a.key == 'added' %}{{ t('المكونات فيها أحماض أمينية مضافة','The ingredients list added amino acids') }} (<bdi dir="ltr">{{ a['items'] | join(', ') }}</bdi>) {{ t('-- علامة Amino Spiking: بتعلّي رقم البروتين على الورق من غير بروتين حقيقي.','-- a sign of amino spiking: they raise the protein figure on paper without real protein.') }}
+    {%- elif a.key == 'not_isolate' %}{{ t('البروتين %s%% بس من الحصة -- الـIsolate الحقيقي ٩٠٪ بروتين، فده غالباً Concentrate أو خلطة متسمّية Isolate.' % ('%.0f' % result.protein_pct),'Protein is only %s%% of the serving -- real isolate is 90%% protein, so this is likely concentrate or a blend sold as isolate.' % ('%.0f' % result.protein_pct)) }}
+    {%- elif a.key == 'sugar' %}{{ t('%s جم سكر في الحصة -- نص الحد اليومي للسكر (٥٠ جم) في حصة واحدة.' % ('%g' % a.grams),'%s g sugar per serving -- half the daily sugar limit (50 g) in one serving.' % ('%g' % a.grams)) }}
     {%- else %}{{ t('البروتين %s%% بس من الحصة -- ده غالباً Mass Gainer مش واي، والتقييم ده معمول للواي.' % ('%.0f' % result.protein_pct),'Protein is only %s%% of the serving -- this is likely a Mass Gainer, not whey, and this score is made for whey.' % ('%.0f' % result.protein_pct)) }}{% endif %}</span></div>
   {% endfor %}
 
@@ -201,9 +258,34 @@ body.wy-page::before{display:none}
   </section>
   {% endif %}
 
+  {% if supp_result %}
+  {% set SG = {'pass': 'excellent', 'warn': 'fair', 'fail': 'bad'} %}
+  {% set SI = {'pass': 'fa-circle-check', 'warn': 'fa-circle-exclamation', 'fail': 'fa-circle-xmark'} %}
+  <section class="wy-card" aria-labelledby="wy-res" id="spResult" data-g="{{ SG[supp_result.verdict] }}"
+           data-score="{{ t(supp.ar, supp.en) }}" data-grade="{{ t(supp_result.verdict_ar, supp_result.verdict_en) }}">
+    <h2 id="wy-res"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i>{{ t('النتيجة','Result') }}</h2>
+    <div class="wy-verdict" data-g="{{ SG[supp_result.verdict] }}">
+      <span class="wy-badge">{{ t(supp_result.verdict_ar, supp_result.verdict_en) }}</span>
+      <p>{{ t(supp_result.note_ar, supp_result.note_en) }}</p>
+    </div>
+    <ul class="sp-checks" style="margin-top:16px">
+      {% for c in supp_result.checks %}
+      <li data-g="{{ SG[c.status] }}"><i class="fa-solid {{ SI[c.status] }}" aria-hidden="true"></i>
+        <p>{{ t(c.ar, c.en) }}<small>{{ t('المصدر:','Source:') }} {{ sources[c.source] }}</small></p></li>
+      {% endfor %}
+    </ul>
+    <p class="wy-sub">{{ t('الحدود دي للكبار الأصحاء. الحوامل والأطفال وأصحاب الأمراض المزمنة يسألوا دكتور.','These limits are for healthy adults. Pregnancy, children and chronic illness: ask a doctor.') }}</p>
+    <div class="wy-actions">
+      <a class="wy-btn main" href="/whey"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i>{{ t('حلل منتج تاني','Analyse another product') }}</a>
+      <button type="button" class="wy-btn" id="wySave"><i class="fa-regular fa-bookmark" aria-hidden="true"></i>{{ t('حفظ النتيجة','Save the result') }}</button>
+    </div>
+    <p class="wy-status" id="wySaveMsg" role="status"></p>
+  </section>
+  {% endif %}
+
   {% if error %}<div class="wy-error" role="alert">{{ error }}</div>{% endif %}
 
-  {% if not result %}
+  {% if kind and not result and not supp_result %}
   <section class="wy-card" aria-labelledby="wy-photo">
     <h2 id="wy-photo"><i class="fa-solid fa-camera" aria-hidden="true"></i>{{ t('صورة ضهر العلبة','Photo of the label') }}</h2>
     <div class="wy-pick">
@@ -223,6 +305,36 @@ body.wy-page::before{display:none}
   </section>
   {% endif %}
 
+  {% if supp %}
+  <form class="wy-card" method="post" action="/whey" id="spForm" aria-labelledby="sp-nums">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="kind" value="{{ kind }}">
+    <h2 id="sp-nums"><i class="fa-solid fa-list-ol" aria-hidden="true"></i>{{ t('الأرقام','The numbers') }}</h2>
+    <div class="wy-f"><label for="wy_name">{{ t('اسم المنتج (اختياري)','Product name (optional)') }}</label>
+      <input type="text" id="wy_name" name="product" value="{{ request.form.get('product','') }}" autocomplete="off"></div>
+    <p class="wy-sub">{{ t('اكتب اللي مكتوب على العلبة للحصة الواحدة، وسيب الباقي فاضي.','Fill in what the label prints for one serving; leave the rest empty.') }}</p>
+    <div class="wy-aa">
+      {% for key, ar, en, typ, lo, hi in supp.fields %}
+      {% set v = supp_values.get(key) %}
+      {% if typ == 'num' %}
+      <div class="wy-f" data-key="{{ key }}"><label for="sp_{{ key }}">{{ t(ar, en) }}</label>
+        <input type="number" step="any" inputmode="decimal" id="sp_{{ key }}" name="{{ key }}" value="{{ v or '' }}"></div>
+      {% elif typ == 'choice' %}
+      <div class="wy-f" data-key="{{ key }}"><label for="sp_{{ key }}">{{ t(ar, en) }}</label>
+        <select id="sp_{{ key }}" name="{{ key }}">
+          {% for val, car, cen in supp.choices[key] %}<option value="{{ val }}"{% if v == val %} selected{% endif %}>{{ t(car, cen) }}</option>{% endfor %}
+        </select></div>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% for key, ar, en, typ, lo, hi in supp.fields if typ == 'bool' %}
+    <label class="wy-check" for="sp_{{ key }}" style="margin-top:12px"><input type="checkbox" id="sp_{{ key }}" name="{{ key }}" value="1"{% if supp_values.get(key) %} checked{% endif %}>{{ t(ar, en) }}</label>
+    {% endfor %}
+    <div class="wy-actions">
+      <button type="submit" class="wy-btn main"><i class="fa-solid fa-bolt" aria-hidden="true"></i>{{ t('احسب التقييم','Score it') }}</button>
+    </div>
+  </form>
+  {% elif kind %}
   <form class="wy-card" method="post" action="/whey" id="wyForm" aria-labelledby="wy-nums">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <h2 id="wy-nums"><i class="fa-solid fa-list-ol" aria-hidden="true"></i>{{ t('الأرقام','The numbers') }}</h2>
@@ -237,6 +349,11 @@ body.wy-page::before{display:none}
         <button type="button" class="wy-hint" hidden></button></div>
     </div>
     <input type="hidden" name="added" id="wyAdded" value="{{ (values.added or []) | join(',') }}">
+    <input type="hidden" name="kind" value="{{ kind or 'whey' }}">
+    {% if kind == 'mass' %}
+    <div class="wy-f" data-key="sugar_g" style="margin-top:12px"><label for="wy_sugar">{{ t('سكر في الحصة (جم) -- اختياري','Sugar per serving (g) -- optional') }}</label>
+      <input type="number" step="any" inputmode="decimal" id="wy_sugar" name="sugar_g" value="{{ values.sugar_g if values.sugar_g is not none else '' }}"></div>
+    {% endif %}
     <fieldset class="wy-mode" style="border:0;padding:0">
       <legend class="wy-pts" style="margin-bottom:6px">{{ t('العلبة كاتبة:','The label shows:') }}</legend>
       <label><input type="radio" name="mode" value="profile" {% if values.mode != 'summary' %}checked{% endif %}>{{ t('جدول الأحماض كامل','The full amino acid table') }}</label>
@@ -278,6 +395,7 @@ body.wy-page::before{display:none}
       <button type="submit" class="wy-btn main"><i class="fa-solid fa-bolt" aria-hidden="true"></i>{{ t('احسب التقييم','Score it') }}</button>
     </div>
   </form>
+  {% endif %}
 
   <section class="wy-card" id="wySavedBox" hidden aria-labelledby="wy-saved">
     <h2 id="wy-saved"><i class="fa-solid fa-bookmark" aria-hidden="true"></i>{{ t('نتايجك المحفوظة','Your saved results') }}</h2>
@@ -293,6 +411,7 @@ body.wy-page::before{display:none}
     reading: {{ t('بقرا الصورة… أول مرة بتاخد شوية','Reading the photo… the first time takes a moment')|tojson }},
     found: {{ t('اتقرا %n من 20 رقم. راجعهم، والخانات الصفرا اكتبها بإيدك.','Read %n of 20 numbers. Check them and fill in the yellow boxes.')|tojson }},
     none: {{ t('مقدرناش نقرا الصورة. صوّرها أقرب وفي نور كويس، أو اكتب الأرقام بإيدك.','Could not read the photo. Take it closer in good light, or type the numbers.')|tojson }},
+    typeIt: {{ t('القراية الأوتوماتيك للنوع ده محتاجة مفتاح Gemini على السيرفر. اكتب الأرقام بإيدك تحت.','Automatic reading for this type needs a Gemini key on the server. Type the numbers below.')|tojson }},
     saved: {{ t('اتحفظت على الجهاز ده','Saved on this device')|tojson }},
     noName: {{ t('بدون اسم','Unnamed')|tojson }},
     remove: {{ t('امسح','Remove')|tojson }},
@@ -323,7 +442,7 @@ body.wy-page::before{display:none}
   });
   const save = document.getElementById('wySave');
   if (save) save.addEventListener('click', () => {
-    const res = document.getElementById('wyResult');
+    const res = document.getElementById('wyResult') || document.getElementById('spResult');
     const l = load();
     l.unshift({name: (document.getElementById('wy_name') || {}).value || '', score: res.dataset.score,
                grade: res.dataset.grade, key: res.dataset.g, date: new Date().toLocaleDateString()});
@@ -336,6 +455,7 @@ body.wy-page::before{display:none}
   const status = document.getElementById('wyStatus'), bar = document.getElementById('wyBar');
   function say(msg, cls){ status.textContent = msg; status.className = 'wy-status' + (cls ? ' ' + cls : ''); }
   const VISION = {{ 'true' if vision else 'false' }};
+  const KIND = {{ (kind or 'whey')|tojson }}, SUPP = {{ 'true' if supp else 'false' }};
   const modeBox = v => { document.querySelectorAll('input[name=mode]').forEach(r => r.checked = r.value === v);
     document.getElementById('wySummary').hidden = v !== 'summary'; document.getElementById('wyProfile').hidden = v === 'summary'; };
   document.querySelectorAll('input[name=mode]').forEach(r => r.addEventListener('change', () => modeBox(r.value)));
@@ -387,7 +507,7 @@ body.wy-page::before{display:none}
   // واللامعة)، وبعدين في الموبايل بـTesseract: ٣ قرايات (عادية، متحسّنة،
   // ألوانها معكوسة)، والرقم بيتاخد لو قرايتين متفقين -- whey_analyzer.parse_passes.
   async function readServer(file){
-    const fd = new FormData(); fd.append('image', await shrink(file));
+    const fd = new FormData(); fd.append('image', await shrink(file)); fd.append('kind', KIND);
     const r = await fetch('/whey/read', {method: 'POST', body: fd});
     let j = {}; try { j = await r.json(); } catch (e) { throw new Error('HTTP ' + r.status); }
     if (!j.ok) throw new Error(j.error || ('HTTP ' + r.status));
@@ -410,9 +530,29 @@ body.wy-page::before{display:none}
     const res = await fetch('/whey/parse', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({passes: texts})});
     return res.json();
   }
+  // ‏المكملات التانية: الحقول بتتملا من قراية Gemini بس. Tesseract في
+  // الموبايل اتعمل لجدول الأحماض، ومن غير Gemini الأرقام بتتكتب بالإيد.
+  function applySupp(got){
+    let n = 0;
+    Object.entries(got.fields || {}).forEach(([k, v]) => {
+      const el = document.querySelector(`#spForm [name="${k}"]`); if (!el) return;
+      if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
+      const w = el.closest('.wy-f'); if (w) w.classList.add('read'); n++;
+    });
+    return n;
+  }
   async function readPhoto(file){
     if (!file) return;
+    if (SUPP && !VISION) { say(S.typeIt, ''); return; }
     say(S.reading); bar.style.display = 'block';
+    if (SUPP) {
+      const fill = bar.firstElementChild; fill.style.inlineSize = '40%';
+      try { const n = applySupp(await readServer(file)); say(n ? S.byVision : S.none, n ? 'ok' : 'err'); }
+      catch (e) { say(S.none + S.visionWhy.replace('%e', e.message || ''), 'err'); }
+      fill.style.inlineSize = '100%'; setTimeout(() => { bar.style.display = 'none'; fill.style.inlineSize = '0'; }, 600);
+      document.getElementById('spForm').scrollIntoView({behavior: 'smooth', block: 'start'});
+      return;
+    }
     const fill = bar.firstElementChild;
     try {
       let got = null, why = '';
