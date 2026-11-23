@@ -6,7 +6,41 @@
 Postgres المجانية على Render ليها تاريخ انتهاء وبتحتاج تتعمل من الأول. يعني
 بيانات العملاء كانت في نسخة واحدة بس.
 
-## إزاي تاخد نسخة
+## النسخة الأوتوماتيك (كل يوم)
+
+`.github/workflows/db-backup.yml` بياخد نسخة كل يوم ٣:١٧ الفجر، ويشفّرها
+بـgpg، ويرفعها على **Cloudflare R2** (ببلاش لحد ١٠ جيجا)، ويسيب آخر ٣٠
+نسخة بس. اتعمل لأن صاحب المشروع مالوش كمبيوتر ياخد منه النسخة اليدوي.
+
+‏الريبو Public، فالنسخة **مابتطلعش من غير تشفير**، ومفيش artifact (بيتنزّل
+لأي حد مسجّل على GitHub)، والسجل مافيهوش غير اسم الملف وحجمه.
+
+### الأسرار المطلوبة
+
+GitHub → الريبو → Settings → Secrets and variables → Actions → New repository secret:
+
+| الاسم | منين |
+|---|---|
+| `DATABASE_URL` | Neon → المشروع → Connect → Connection string |
+| `R2_ACCOUNT_ID` | Cloudflare → R2 → Account ID (على اليمين) |
+| `R2_BUCKET` | اسم الـbucket اللي عملته (مثلًا `nutrax-backups`) |
+| `R2_ACCESS_KEY_ID` و`R2_SECRET_ACCESS_KEY` | R2 → Manage API tokens → Create token (Object Read & Write على الـbucket ده بس) |
+| `BACKUP_PASSPHRASE` | باسورد طويلة إنت اللي تختارها. **من غيرها النسخ كلها مالهاش لازمة**: احفظها في مكان تاني غير GitHub |
+
+### تتأكد إنها شغالة
+
+GitHub → Actions → DB backup → Run workflow. لو الأسرار ناقصة، السجل بيقول
+أنهي واحد. ولو فشلت أي ليلة، GitHub بيبعت إيميل لصاحب الريبو.
+
+### الاسترجاع من نسخة R2
+
+```bash
+# نزّل الملف من Cloudflare → R2 → الـbucket، وبعدين:
+gpg --decrypt nutrax-2026-11-24_0117.sql.gz.gpg | gunzip > nutrax.sql
+psql "$DATABASE_URL" < nutrax.sql
+```
+
+## إزاي تاخد نسخة يدوي
 
 من جهازك انت (مش من Render):
 
@@ -47,8 +81,7 @@ psql "$DATABASE_URL" < backups/nutrax-2026-08-20_1430.sql
 - **دلوقتي**: مرة كل أسبوع، ويوم ما تعمل تغيير كبير
 - **لما يبقى فيه عملاء بيدفعوا**: كل يوم. وخلي آخر 7 نسخ على الأقل
 
-الأوتوماتيك أحسن من إنك تفتكر: حط الأمر ده في cron على جهازك أو أي سيرفر
-شغال، أو خد خطة Render المدفوعة اللي فيها نسخ احتياطي أوتوماتيك.
+الأوتوماتيك أحسن من إنك تفتكر: ده اللي `db-backup.yml` بيعمله كل يوم (فوق).
 
 ## مهم جداً
 
