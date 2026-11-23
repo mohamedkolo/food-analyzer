@@ -455,6 +455,98 @@ def test_the_page_says_who_read_it_and_the_phone_only_suggests():
     # على صورة حقيقية والصح 6100 -- الـ10200 بتاعة Leucine تحته)
     assert "phoneOnlySuggests" in html
 
+
+# ── العلب الأربعة اللي صاحب المشروع صوّرها تاني (نوفمبر) ──────────────
+#
+# ‏الرد اللي المفروض Gemini يرجّعه لكل علبة، مكتوب من الصور بالإيد. اللي
+# بيتختبر هنا هو اللي بعده: الحواجز والتقييم. العلب دي مش كاتبة جدول كامل:
+# واحدة مفيهاش أحماض خالص، وواحدة كاتبة EAA وBCAA من غير المجموع ولا
+# الليوسين، وجينر (البروتين ٢٢ جم من ١٠٠) مكوّناته فيها L-Alanine وL-Lysine.
+
+def _blank(**kw):
+    raw = {"serving_g": None, "protein_g": None, "unit": "unknown",
+           "amino": {k: None for k in W.AMINO},
+           "summary": {"total_aa_g": None, "eaa_g": None, "bcaa_g": None, "leucine_g": None},
+           "added": []}
+    for k, v in kw.items():
+        raw[k] = dict(raw[k], **v) if isinstance(v, dict) else v
+    return raw
+
+
+ISOLATE = _blank(serving_g=28.5, protein_g=25,
+                 added=["Amino acid blend", "L-Glycine", "L-Glutamine", "L-Taurine"])
+GAINER = _blank(serving_g=100, protein_g=22, unit="serving",
+                amino={"Leucine": 2155, "Isoleucine": 1520, "Valine": 1410, "Glutamine": 3940},
+                summary={"eaa_g": 9.9, "bcaa_g": 5.085},
+                added=["L-Glycine", "L-Alanine", "L-Lysine"])
+C4 = _blank(serving_g=35, protein_g=25)
+GOLD = _blank(serving_g=32, protein_g=25, unit="serving", amino={"Glutamine": 2000},
+              summary={"eaa_g": 12.5, "bcaa_g": 6.2})
+
+
+def _keys(r):
+    return [a["key"] for a in r["alerts"]]
+
+
+def test_a_label_without_amino_acids_still_gets_a_verdict():
+    import whey_vision
+    got = whey_vision.normalize(ISOLATE)
+    assert got["no_profile"] and got["serving_g"] == 28.5 and got["protein_g"] == 25, got
+    assert got["added"] == ["Amino acid blend", "Glycine", "Glutamine", "Taurine"], got["added"]
+    r = W.analyze_summary(28.5, 25, None, None, None, None, got["added"])
+    assert r["score"] is None and r["rows"] == [] and _close(r["protein_pct"], 87.7), r
+    assert "added" in _keys(r), r["alerts"]
+    r = W.analyze_summary(35, 25, None, None, None, None)
+    assert r["score"] is None and not r["alerts"] and _close(r["protein_pct"], 71.4)
+
+
+def test_a_summary_without_the_total_uses_the_protein():
+    import whey_vision
+    got = whey_vision.normalize(GOLD)
+    assert got["summary"] == {"total_aa_g": None, "eaa_g": 12.5, "bcaa_g": 6.2, "leucine_g": None}, got
+    r = W.analyze_summary(32, 25, None, 12.5, 6.2, None)
+    assert r["approx_total"] and _close(r["eaa_pct"], 50) and _close(r["bcaa_pct"], 24.8), r
+    # ‏الليوسين مش مكتوب: مفيش تقييم نهائي، بس النقط اللي اتحسبت من أصلها
+    assert r["score"] is None and r["partial"] == ["leucine"], r
+    assert r["points"] == 62 and r["max_score"] == 70, (r["points"], r["max_score"])
+
+
+def test_a_mass_gainer_with_free_amino_acids_is_called_out():
+    import whey_vision
+    got = whey_vision.normalize(GAINER)
+    assert {"Glycine", "Alanine", "Lysine"} <= set(got["added"]), got["added"]
+    # ‏الليوسين مكتوب في الجدول بالمللي للحصة -> بيكمّل الملخص
+    assert got["summary"]["leucine_g"] == 2.155, got["summary"]
+    sm = got["summary"]
+    r = W.analyze_summary(100, 22, sm["total_aa_g"], sm["eaa_g"], sm["bcaa_g"], sm["leucine_g"], got["added"])
+    assert r["score"] == 64 and r["grade"]["key"] == "fair", r["score"]
+    assert {"low_protein", "added"} <= set(_keys(r)), r["alerts"]
+
+
+def test_free_amino_acids_in_a_phone_reading_count_too():
+    got = W.parse_label("Ingredients: Maltodextrin, CFM Whey Protein Concentrate, L-Glycine, "
+                        "Cocoa Powder, L-Alanine, L-Lysine, Stabilizing Agents")
+    assert {"Glycine", "Alanine", "Lysine"} <= set(got["added"]), got["added"]
+
+
+def test_the_page_shows_a_partial_verdict_and_each_warning():
+    c = A.app.test_client()
+    html = c.post("/whey", data={"mode": "summary", "serving_g": "28.5", "protein_g": "25",
+                                 "added": "Glycine,Taurine"}).get_data(as_text=True)
+    assert "wyPartial" in html and "Glycine" in html, "علبة من غير أحماض مااتعرضتش"
+    html = c.post("/whey", data={"mode": "summary", "serving_g": "32", "protein_g": "25",
+                                 "eaa_g": "12.5", "bcaa_g": "6.2"}).get_data(as_text=True)
+    assert "62/70" in html, "النقط الناقصة مابانتش"
+    html = c.post("/whey", data={"mode": "summary", "serving_g": "100", "protein_g": "22",
+                                 "eaa_g": "9.9", "bcaa_g": "5.085", "leucine_g": "2.155"}).get_data(as_text=True)
+    assert re.search(r'class="wy-score"[^>]*>\s*64', html) and "Mass Gainer" in html
+
+
+def test_the_reader_is_told_which_column_to_read():
+    import whey_vision
+    p = whey_vision._PROMPT.lower()
+    assert "in water" in p and "100 g of product" in p and "l-alanine" in p
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
     failed = 0

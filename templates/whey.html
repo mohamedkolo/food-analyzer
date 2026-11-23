@@ -124,6 +124,7 @@ body.wy-page::before{display:none}
   </header>
 
   {% if result %}
+  {% if result.grade %}
   {% set g = result.grade %}
   <section class="wy-card" aria-labelledby="wy-res" data-g="{{ g.key }}" id="wyResult"
            data-score="{{ result.score }}" data-grade="{{ g.ar if lang != 'en' else g.en }}">
@@ -142,16 +143,37 @@ body.wy-page::before{display:none}
         <p>{{ g.note_ar if lang != 'en' else g.note_en }}</p>
       </div>
     </div>
+    {% if result.approx_total %}<p class="wy-sub">{{ t('العلبة مش كاتبة مجموع الأحماض، فاتحسب من البروتين -- النتيجة تقريبية.','The label does not print total amino acids, so protein was used instead -- the result is approximate.') }}</p>{% endif %}
   </section>
+  {% else %}
+  {# ‏علبة ناقصة أرقام: مفيش تقييم من ١٠٠ على أرقام مش موجودة #}
+  {% set PN = {'total_aa': t('مجموع الأحماض','total amino acids'), 'leucine': t('الليوسين','leucine'), 'eaa': 'EAA', 'bcaa': 'BCAA'} %}
+  <section class="wy-card" aria-labelledby="wy-res" data-g="fair" id="wyResult"
+           data-score="{{ result.points }}/{{ result.max_score }}" data-grade="{{ t('ناقص','Partial') }}">
+    <h2 id="wy-res"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i>{{ t('النتيجة','Result') }}</h2>
+    <div class="wy-alert" id="wyPartial">
+      {% if result.rows %}
+      {{ t('مفيش تقييم نهائي من ١٠٠: العلبة مش كاتبة','No final score out of 100: the label does not print') }}
+      {% for m in result.partial %}{{ PN[m] }}{{ '، ' if not loop.last else '' }}{% endfor %}.
+      {{ t('النقط اللي اتحسبت:','Points from what it prints:') }} <bdi dir="ltr">{{ result.points }}/{{ result.max_score }}</bdi>
+      {% else %}
+      {{ t('العلبة دي مش كاتبة أحماض أمينية خالص، فمينفعش نحكم على نضافة البروتين. اللي نقدر نقوله: نسبة البروتين من الحصة، والمكونات.','This label prints no amino acids at all, so its protein quality cannot be judged. What we can say: the protein share of the serving, and the ingredients.') }}
+      {% endif %}
+    </div>
+    {% if result.approx_total %}<p class="wy-sub">{{ t('مجموع الأحماض مش مكتوب، فاتحسب من البروتين.','Total amino acids are not printed, so protein was used instead.') }}</p>{% endif %}
+  </section>
+  {% endif %}
 
-  {% for w in result.warnings %}
+  {% for a in result.alerts %}
   <div class="wy-warn" role="alert"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-    {{ t('احتمال غش - Amino Spiking: الليوسين أو الأحماض الأساسية أقل من المفروض، غالباً اتضاف أحماض رخيصة عشان ترفع رقم البروتين.','Possible cheating - Amino Spiking: leucine or the essential amino acids are too low, so cheap amino acids were probably added to inflate the protein figure.') }}</div>
+    <span>{% if a.key == 'spiking' %}{{ t('احتمال غش - Amino Spiking: الليوسين أو الأحماض الأساسية أقل من المفروض، غالباً اتضاف أحماض رخيصة عشان ترفع رقم البروتين.','Possible cheating - Amino Spiking: leucine or the essential amino acids are too low, so cheap amino acids were probably added to inflate the protein figure.') }}
+    {%- elif a.key == 'added' %}{{ t('المكونات فيها أحماض أمينية مضافة','The ingredients list added amino acids') }} (<bdi dir="ltr">{{ a['items'] | join(', ') }}</bdi>) {{ t('-- علامة Amino Spiking: بتعلّي رقم البروتين على الورق من غير بروتين حقيقي.','-- a sign of amino spiking: they raise the protein figure on paper without real protein.') }}
+    {%- else %}{{ t('البروتين %s%% بس من الحصة -- ده غالباً Mass Gainer مش واي، والتقييم ده معمول للواي.' % ('%.0f' % result.protein_pct),'Protein is only %s%% of the serving -- this is likely a Mass Gainer, not whey, and this score is made for whey.' % ('%.0f' % result.protein_pct)) }}{% endif %}</span></div>
   {% endfor %}
 
   <section class="wy-card" aria-labelledby="wy-tab">
     <h2 id="wy-tab"><i class="fa-solid fa-table-list" aria-hidden="true"></i>{{ t('التفاصيل','Breakdown') }}</h2>
-    <table class="wy-table">
+    {% if result.rows %}<table class="wy-table">
       <thead><tr><th scope="col">{{ t('المعادلة','Measure') }}</th><th scope="col">{{ t('نتيجتك','Yours') }}</th>
         <th scope="col">{{ t('المثالي','Ideal') }}</th><th scope="col">{{ t('التقييم','Rating') }}</th></tr></thead>
       <tbody>
@@ -165,11 +187,11 @@ body.wy-page::before{display:none}
       </tr>
       {% endfor %}
       </tbody>
-    </table>
+    </table>{% endif %}
     <div class="wy-info">
       <div><small>{{ t('نسبة البروتين من الحصة','Protein in the serving') }}</small><b>{{ '%.1f' % result.protein_pct }}%</b></div>
-      <div><small>{{ t('أحماض أمينية في الحصة','Amino acids per serving') }}</small><b>{{ '%.1f' % result.total_aa_g }} {{ t('جم','g') }}</b></div>
-      <div><small>{{ t('ليوسين في الحصة','Leucine per serving') }}</small><b>{{ '%.2f' % result.leucine_g }} {{ t('جم','g') }}</b></div>
+      {% if result.total_aa_g %}<div><small>{{ t('أحماض أمينية في الحصة','Amino acids per serving') }}</small><b>{{ '%.1f' % result.total_aa_g }} {{ t('جم','g') }}</b></div>{% endif %}
+      {% if result.leucine_g %}<div><small>{{ t('ليوسين في الحصة','Leucine per serving') }}</small><b>{{ '%.2f' % result.leucine_g }} {{ t('جم','g') }}</b></div>{% endif %}
     </div>
     <div class="wy-actions">
       <a class="wy-btn main" href="/whey"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i>{{ t('حلل منتج تاني','Analyse another product') }}</a>
@@ -222,7 +244,7 @@ body.wy-page::before{display:none}
     </fieldset>
 
     <div class="wy-pane" id="wySummary"{% if values.mode != 'summary' %} hidden{% endif %}>
-      <p class="wy-sub">{{ t('زي Dymatize: "25g total amino acids · 11.9g EAAs · 5.5g BCAAs · Leucine 2.6g" -- بالجرام للحصة','Like Dymatize: "25g total amino acids · 11.9g EAAs · 5.5g BCAAs · Leucine 2.6g" -- grams per serving') }}</p>
+      <p class="wy-sub">{{ t('زي Dymatize: "25g total amino acids · 11.9g EAAs · 5.5g BCAAs · Leucine 2.6g" -- بالجرام للحصة. اكتب اللي مكتوب بس وسيب الباقي فاضي.','Like Dymatize: "25g total amino acids · 11.9g EAAs · 5.5g BCAAs · Leucine 2.6g" -- grams per serving. Fill in only what is printed.') }}</p>
       <div class="wy-aa">
         {% for k, label in [('total_aa_g', t('مجموع الأحماض (جم)','Total amino acids (g)')), ('eaa_g', 'EAA (g)'), ('bcaa_g', 'BCAA (g)'), ('leucine_g', t('ليوسين (جم)','Leucine (g)'))] %}
         {% set v = (values.summary or {}).get(k) %}
@@ -280,7 +302,7 @@ body.wy-page::before{display:none}
     visionWhy: {{ t(' (Gemini ماقراش: %e)',' (Gemini did not read it: %e)')|tojson }},
     unsure: {{ t('اتقرا %n رقم متأكدين منهم، و%h اقتراح تحت الخانات (دوس عليه لو صح). الباقي اكتبه بإيدك.','Read %n numbers for sure and %h suggestions under the boxes (tap if right). Type the rest.')|tojson }},
     summary: {{ t('العلبة دي كاتبة ملخص بس، فحطّيناه في "ملخص بس". راجعه واحسب.','This label only shows a summary, so it went into "summary only". Check it and score it.')|tojson }},
-    noProfile: {{ t('العلبة دي مفيهاش جدول أحماض أمينية، فمينفعش تتقيّم بالأرقام.','This label has no amino acid table, so it cannot be scored on numbers.')|tojson }},
+    noProfile: {{ t('العلبة دي مفيهاش جدول أحماض أمينية، فمينفعش تاخد درجة من ١٠٠. دوس "احسب التقييم" تشوف نسبة البروتين وتحذيرات المكونات.','This label has no amino acid table, so it cannot get a score out of 100. Press "Score it" to see the protein share and ingredient warnings.')|tojson }},
     addedMsg: {{ t(' وفي المكونات أحماض مضافة (%a) -- دي علامة Amino Spiking: بتعلّي رقم البروتين من غير بروتين حقيقي.',' And the ingredients list added amino acids (%a) -- a sign of amino spiking: they inflate the protein figure without real protein.')|tojson }},
   };
   const KEY = 'nx-whey-saved';
@@ -353,7 +375,7 @@ body.wy-page::before{display:none}
     if (sm && Object.keys(got.amino || {}).length < 12) {
       modeBox('summary');
       Object.entries(sm).forEach(([k, v]) => { if (v != null) put(k, v); });
-    } else modeBox('profile');
+    } else modeBox(got.no_profile ? 'summary' : 'profile');   // ‏من غير أحماض: الملخص بيقبل الحصة والبروتين بس
     const alert = document.getElementById('wyNoProfile');
     const added = (got.added || []).join('، ');
     if (got.no_profile) { alert.hidden = false; alert.textContent = S.noProfile + (added ? S.addedMsg.replace('%a', added) : ''); }

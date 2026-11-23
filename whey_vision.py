@@ -49,7 +49,16 @@ _PROMPT = """This is a photo of the back of a whey protein tub. Read ONLY what i
   total amino acids, EAAs, BCAAs, leucine. null otherwise.
 - added: free amino acids listed in the INGREDIENTS (e.g. "Amino Acid Blend (L-Glycine, L-Glutamine,
   L-Taurine)" -> ["Amino acid blend", "Glycine", "Glutamine", "Taurine"]). Empty if none.
-Read each row's number from the same row as its name; tables are often curved or glossy."""
+Read each row's number from the same row as its name; tables are often curved or glossy, and the
+number column can sit half a row below its names -- check that BCAA = Leucine + Isoleucine + Valine.
+
+Labels with several columns: use the FIRST per-serving column, the one "in water" (never "in milk",
+never the bigger 2-serving column), and give serving_g for that same column. A "per 100 g" column is
+per 100 g of product, NOT per 100 g of protein: take protein per serving from the serving column
+(e.g. "Per 100 g: 71 g / Per 35 g: 25 g" -> serving_g 35, protein_g 25). Labels may be in several
+languages; read the English or the numbers.
+Free amino acids in the ingredients count for "added" too, with or without a blend:
+"L-Glycine, L-Alanine, L-Lysine" -> ["Glycine", "Alanine", "Lysine"]."""
 
 
 def _gemini_key():
@@ -71,16 +80,27 @@ def normalize(raw):
     if unit not in ("per100", "serving"):
         unit = W._unit("", serving, amino_in)
     amino = W._in_range(amino_in, unit, raw.get("protein_g") or None)
-    summary = raw.get("summary") or {}
-    summary = summary if summary.get("total_aa_g") else None
+    # ‏الملخص بيتاخد لو فيه أي رقم منه: علب كتير كاتبة EAA وBCAA من غير
+    # المجموع. ورقم أكبر من الحصة نفسها غلطة قراية (عمود الـ٢٠٠ جم).
+    summary = {k: (float(v) if v and (not serving or float(v) <= serving) else None)
+               for k, v in (raw.get("summary") or {}).items()
+               if k in ("total_aa_g", "eaa_g", "bcaa_g", "leucine_g")}
+    protein = raw.get("protein_g") or None
+    if summary and not summary.get("leucine_g") and amino.get("Leucine"):
+        # ‏الليوسين في الجدول بالمللي (جينر Body Builder: "Leucine 2155 mg")
+        leu = amino["Leucine"] / 1000.0
+        summary["leucine_g"] = round(leu if unit == "serving" else leu * (protein or 0) / 100, 3) or None
+    summary = summary if any(summary.values()) else None
+    import re
     added = []
     for item in raw.get("added") or []:
-        low = str(item).lower()
+        low = str(item).lower().strip()
         for label, rx in W._ADDED:
-            import re
-            if re.search(rx, low) and label not in added:
+            # ‏الموديل ساعات بيكتب "Alanine" من غير الـL-: الاسم لوحده كفاية هنا،
+            # لأنه جاي من خانة المكونات مش من الجدول
+            if (re.search(rx, low) or low == label.lower()) and label not in added:
                 added.append(label)
-    return W._finish({"serving_g": serving, "protein_g": raw.get("protein_g") or None,
+    return W._finish({"serving_g": serving, "protein_g": protein,
                       "amino": amino, "unit": unit, "summary": summary,
                       "added": added, "hints": {}, "engine": "vision"})
 
