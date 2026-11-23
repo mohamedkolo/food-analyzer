@@ -275,6 +275,9 @@ body.wy-page::before{display:none}
     noName: {{ t('بدون اسم','Unnamed')|tojson }},
     remove: {{ t('امسح','Remove')|tojson }},
     hint: {{ t('قريت %v -- لو صح دوس هنا','I read %v -- tap if right')|tojson }},
+    byVision: {{ t('اتقرا بـGemini -- راجع الأرقام.','Read by Gemini -- check the numbers.')|tojson }},
+    byPhone: {{ t('اتقرا على الموبايل: الأرقام اقتراحات تحت الخانات، دوس على اللي صح منها.','Read on the phone: the numbers are suggestions under the boxes; tap the right ones.')|tojson }},
+    visionWhy: {{ t(' (Gemini ماقراش: %e)',' (Gemini did not read it: %e)')|tojson }},
     unsure: {{ t('اتقرا %n رقم متأكدين منهم، و%h اقتراح تحت الخانات (دوس عليه لو صح). الباقي اكتبه بإيدك.','Read %n numbers for sure and %h suggestions under the boxes (tap if right). Type the rest.')|tojson }},
     summary: {{ t('العلبة دي كاتبة ملخص بس، فحطّيناه في "ملخص بس". راجعه واحسب.','This label only shows a summary, so it went into "summary only". Check it and score it.')|tojson }},
     noProfile: {{ t('العلبة دي مفيهاش جدول أحماض أمينية، فمينفعش تتقيّم بالأرقام.','This label has no amino acid table, so it cannot be scored on numbers.')|tojson }},
@@ -315,7 +318,16 @@ body.wy-page::before{display:none}
     document.getElementById('wySummary').hidden = v !== 'summary'; document.getElementById('wyProfile').hidden = v === 'summary'; };
   document.querySelectorAll('input[name=mode]').forEach(r => r.addEventListener('change', () => modeBox(r.value)));
 
-  function apply(got){
+  // ‏phoneOnlySuggests: قراية الموبايل مابتملاش خانة لوحدها. على صورة حقيقية
+  // Isoleucine اتسجّل 10200 والصح 6100 (الـ10200 بتاعة Leucine تحته)، وقرايتين
+  // اتفقوا على نفس الغلطة. فكل رقم منها اقتراح، وإنت تأكّده بدوسة.
+  function apply(got, phone){
+    if (phone) {
+      got = Object.assign({}, got);
+      got.hints = Object.assign({}, got.amino || {}, got.hints || {});
+      ['serving_g', 'protein_g'].forEach(k => { if (got[k] != null) got.hints[k] = got[k]; got[k] = null; });
+      got.amino = {};
+    }
     let sure = 0, hints = 0;
     document.querySelectorAll('.wy-f[data-key]').forEach(w => { w.classList.remove('miss', 'read');
       const h = w.querySelector('.wy-hint'); if (h) h.hidden = true; });
@@ -355,7 +367,8 @@ body.wy-page::before{display:none}
   async function readServer(file){
     const fd = new FormData(); fd.append('image', await shrink(file));
     const r = await fetch('/whey/read', {method: 'POST', body: fd});
-    const j = await r.json(); if (!j.ok) throw new Error(j.error || 'vision');
+    let j = {}; try { j = await r.json(); } catch (e) { throw new Error('HTTP ' + r.status); }
+    if (!j.ok) throw new Error(j.error || ('HTTP ' + r.status));
     return j;
   }
   function shrink(file){
@@ -380,14 +393,16 @@ body.wy-page::before{display:none}
     say(S.reading); bar.style.display = 'block';
     const fill = bar.firstElementChild;
     try {
-      let got = null;
-      if (VISION) { try { fill.style.inlineSize = '40%'; got = await readServer(file); } catch (e) { got = null; } }
-      if (!got) got = await readPhone(file, fill);
-      const r = apply(got);
+      let got = null, why = '';
+      if (VISION) { try { fill.style.inlineSize = '40%'; got = await readServer(file); } catch (e) { got = null; why = e.message || ''; } }
+      const phone = !got;
+      if (phone) got = await readPhone(file, fill);
+      const r = apply(got, phone);
       if (r.none) say(S.none, 'err');
       else if (r.summary) say(S.summary, 'ok');
       else if (!r.sure && !r.hints) throw new Error('nothing');
-      else say((r.hints || r.sure < 20 ? S.unsure.replace('%n', r.sure).replace('%h', r.hints) : S.found.replace('%n', r.sure)), r.hints || r.sure < 20 ? '' : 'ok');
+      else if (phone) say(S.byPhone + (VISION && why ? S.visionWhy.replace('%e', why) : ''), '');
+      else say(S.byVision + ' ' + (r.hints || r.sure < 20 ? S.unsure.replace('%n', r.sure).replace('%h', r.hints) : S.found.replace('%n', r.sure)), r.hints || r.sure < 20 ? '' : 'ok');
       const first = document.querySelector('.wy-f.miss input');
       (first || document.getElementById('wyForm')).scrollIntoView({behavior: 'smooth', block: 'center'});
     } catch (e) {

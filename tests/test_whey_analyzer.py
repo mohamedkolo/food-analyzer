@@ -398,6 +398,63 @@ def test_a_gemini_failure_falls_back_to_the_phone():
         whey_vision.urllib.request.urlopen = real
         os.environ.pop("GEMINI_API_KEY", None)
 
+
+def test_gemini_tries_the_next_model_and_says_why_it_failed():
+    """‏على Render القراية رجعت للموبايل ساكتة، ومحدش عرف ليه. دلوقتي لو
+    موديل رفض (حد مجاني صفر عليه مثلاً) بيجرّب اللي بعده، ولو كلهم فشلوا
+    الرسالة فيها السبب -- عشان تبان في الصفحة وفي سجل Render."""
+    import json
+    import urllib.error
+    import whey_vision
+    answer = {"serving_g": 31, "protein_g": 28, "unit": "per100", "amino": dict(DEMO["amino"]),
+              "summary": None, "added": []}
+    tried = []
+
+    def urlopen(req, timeout=None):
+        url = req.full_url
+        if url.split("?")[0].endswith("/models"):
+            return _Resp({"models": [
+                {"name": "models/gemini-9-flash", "supportedGenerationMethods": ["generateContent"]},
+                {"name": "models/gemini-flash-latest", "supportedGenerationMethods": ["generateContent"]},
+                {"name": "models/gemini-9-flash-lite", "supportedGenerationMethods": ["generateContent"]}]})
+        tried.append(url.split("/models/")[1].split(":")[0])
+        if len(tried) == 1:
+            raise urllib.error.HTTPError(url, 429, "Too Many Requests", {}, None)
+        return _Resp({"candidates": [{"content": {"parts": [{"text": json.dumps(answer)}]}}]})
+
+    os.environ["GEMINI_API_KEY"] = "test-key"
+    whey_vision._MODEL_CACHE.clear()
+    real = whey_vision.urllib.request.urlopen
+    whey_vision.urllib.request.urlopen = urlopen
+    try:
+        got = whey_vision.read_label(b"\xff\xd8x", "image/jpeg")
+        assert got["amino"]["Leucine"] == 10200 and len(tried) == 2, tried
+        assert tried[0] == "gemini-flash-latest", tried      # ‏الـlatest الأول
+
+        def always(req, timeout=None):
+            if req.full_url.split("?")[0].endswith("/models"):
+                return urlopen(req)
+            raise urllib.error.HTTPError(req.full_url, 403, "Forbidden", {}, None)
+        whey_vision._MODEL_CACHE.clear()
+        whey_vision.urllib.request.urlopen = always
+        try:
+            whey_vision.read_label(b"\xff\xd8x", "image/jpeg")
+        except whey_vision.VisionError as e:
+            assert "403" in str(e), str(e)
+        else:
+            raise AssertionError("مفيش غلطة")
+    finally:
+        whey_vision.urllib.request.urlopen = real
+        os.environ.pop("GEMINI_API_KEY", None)
+
+
+def test_the_page_says_who_read_it_and_the_phone_only_suggests():
+    html = A.app.test_client().get("/whey").get_data(as_text=True)
+    assert "byVision" in html and "byPhone" in html, "الصفحة مابتقولش مين قرا"
+    # ‏قراية الموبايل: كل الأرقام اقتراحات (Isoleucine 10200 اتسجّل لوحده
+    # على صورة حقيقية والصح 6100 -- الـ10200 بتاعة Leucine تحته)
+    assert "phoneOnlySuggests" in html
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
     failed = 0
