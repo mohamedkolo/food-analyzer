@@ -229,7 +229,10 @@ def whey():
     values = _whey_form(request.form)
     extra = {"kind": kind, "sugar_g": values["sugar_g"]}
     try:
-        if values["mode"] == "summary":
+        # ‏جدول أحماض فاضي = مفيش أحماض مكتوبة: نفس الملخص الفاضي -- نسبة
+        # البروتين والسكر والمكونات بدل "مفيش أرقام" ومفيش نتيجة خالص.
+        # صاحب المشروع دوس احسب على ماس جينر بالحصة والبروتين بس ووقف هنا.
+        if values["mode"] == "summary" or not any(values["amino"].values()):
             sm = values["summary"]
             result = W.analyze_summary(values["serving_g"], values["protein_g"], sm["total_aa_g"],
                                        sm["eaa_g"], sm["bcaa_g"], sm["leucine_g"], values["added"], **extra)

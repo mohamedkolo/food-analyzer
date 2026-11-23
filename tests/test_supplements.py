@@ -92,6 +92,18 @@ def test_the_whey_form_carries_the_type():
     assert re.search(r'name="kind"[^>]*value="mass"', html)
 
 
+def test_an_empty_amino_table_still_gives_what_is_known():
+    """‏صاحب المشروع اختار ماس جينر ودوس احسب بالحصة والبروتين بس (الفورم
+    على "جدول الأحماض كامل" افتراضيًا) -- طلعله "مفيش أرقام للأحماض
+    الأمينية" ومفيش نتيجة خالص. اللي معروف يتعرض: نسبة البروتين والسكر
+    والمكونات."""
+    html = A.app.test_client().post("/whey", data={
+        "kind": "mass", "mode": "profile", "unit": "per100", "serving_g": "100",
+        "protein_g": "22", "sugar_g": "30", "added": "Glycine"}).get_data(as_text=True)
+    assert "مفيش أرقام للأحماض" not in html, "لسه بيرفض"
+    assert 'id="wyPartial"' in html and "Glycine" in html and "30 جم سكر" in html, "النتيجة الناقصة مابانتش"
+
+
 # ── باقي المكملات ───────────────────────────────────────────────────
 
 def test_creatine():
