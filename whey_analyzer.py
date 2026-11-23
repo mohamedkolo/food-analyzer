@@ -91,27 +91,49 @@ def _tier(metric, pts):
     return "good" if pts >= full * 0.7 else "fair"
 
 
+# ‏البروتين أقل من كده من الحصة يبقى المنتج مش واي: علبة Body Builder اللي
+# صاحب المشروع صوّرها (نوفمبر) جينر -- ٢٢ جم بروتين في حصة ١٠٠ جم، والباقي
+# مالتودكسترين. معادلات الواي هتظلمه في Total AA% وهو مش معمول عشانها.
+# ‏أقل واي Concentrate بيبقى حوالي ٧٠٪، فالـ٦٠ فيها مسافة.
+LOW_PROTEIN_PCT = 60
+
+
 def _score(out, added=None):
-    """‏النقط والتقييم والتحذيرات -- واحدة للجدول الكامل وللملخص."""
-    rows = []
+    """‏النقط والتقييم والتحذيرات -- واحدة للجدول الكامل وللملخص.
+
+    ‏معادلة رقمها مش مكتوب على العلبة (None) مابتتحسبش صفر: بتتشال، ومفيش
+    تقييم نهائي من ١٠٠ -- بيبان النقط اللي اتحسبت من أصلها (points/max_score).
+    علبة كاتبة EAA وBCAA بس كانت هتطلع "غير مقبول" على رقم مش موجود."""
+    rows, partial = [], []
     for metric, key in (("total_aa", "total_aa_pct"), ("leucine", "leucine_pct"),
                         ("eaa", "eaa_pct"), ("bcaa", "bcaa_pct")):
+        if out.get(key) is None:
+            partial.append(metric)
+            continue
         # ‏النقط على الرقم مقرّب، زي ما الجدول مكتوب (84.9 مش 84.96)
         pts = points(metric, round(out[key], 2 if metric == "leucine" else 1))
         rows.append({"metric": metric, "value": out[key], "points": pts,
                      "max": MAX_POINTS[metric], "ideal": SCALE[metric][0][0],
                      "tier": _tier(metric, pts)})
     out["rows"] = rows
-    out["score"] = sum(r["points"] for r in rows)
-    out["grade"] = grade(out["score"])
-    out["warnings"] = []
-    if out["leucine_pct"] < 8 or out["eaa_pct"] < 35:
+    out["partial"] = partial
+    out["points"] = sum(r["points"] for r in rows)
+    out["max_score"] = sum(r["max"] for r in rows)
+    out["score"] = None if partial else out["points"]
+    out["grade"] = None if partial else grade(out["score"])
+    out["warnings"], out["alerts"] = [], []
+    leu, eaa = out.get("leucine_pct"), out.get("eaa_pct")
+    if (leu is not None and leu < 8) or (eaa is not None and eaa < 35):
         out["warnings"].append("احتمال غش - Amino Spiking")
+        out["alerts"].append({"key": "spiking"})
     added = [a for a in (added or []) if a]
     if added:
         out["warnings"].append(
             "المكونات فيها أحماض أمينية مضافة (%s) -- علامة Amino Spiking: بتعلّي رقم "
             "البروتين على الورق من غير بروتين حقيقي" % "، ".join(added))
+        out["alerts"].append({"key": "added", "items": added})
+    if out["protein_pct"] < LOW_PROTEIN_PCT:
+        out["alerts"].append({"key": "low_protein"})
     out["added"] = added
     return out
 
@@ -152,23 +174,31 @@ def analyze(serving_g, protein_g, amino, unit="per100", added=None):
 def analyze_summary(serving_g, protein_g, total_aa_g, eaa_g, bcaa_g, leucine_g, added=None):
     """‏علبة كاتبة ملخص بس (زي Dymatize: "25g total amino acids, 11.9g EAAs,
     5.5g BCAAs, leucine 2.6g") والجدول الكامل ورا QR. نفس المعادلات: النسب
-    من مجموع الأحماض، والمجموع بالجرام للحصة على طول."""
+    من مجموع الأحماض، والمجموع بالجرام للحصة على طول.
+
+    ‏أي رقم ممكن يبقى مش مكتوب. علب كتير كاتبة EAA وBCAA من غير المجموع:
+    ساعتها البروتين بيتاخد مكانه (approx_total) -- البروتين في الجدول هو
+    مجموع الأحماض تقريبًا. وعلبة مفيهاش ولا رقم بتطلع نسبة البروتين
+    والتحذيرات بس."""
     serving_g, protein_g = _check_basics(serving_g, protein_g)
-    vals = [float(v or 0) for v in (total_aa_g, eaa_g, bcaa_g, leucine_g)]
-    total, eaa, bcaa, leu = vals
-    if min(vals) <= 0:
-        raise ValueError("اكتب الأربع أرقام: مجموع الأحماض، EAA، BCAA، والليوسين (بالجرام للحصة)")
-    if total > serving_g * 1.05:
+    total, eaa, bcaa, leu = [float(v) if v else None for v in (total_aa_g, eaa_g, bcaa_g, leucine_g)]
+    approx = total is None and any(v is not None for v in (eaa, bcaa, leu))
+    if approx:
+        total = protein_g
+    if total is not None and total > serving_g * 1.05:
         raise ValueError("مجموع الأحماض أكبر من الحصة نفسها -- راجع الرقم")
-    if not (leu <= bcaa <= eaa <= total):
+    chain = [v for v in (leu, bcaa, eaa, total) if v is not None]
+    if chain != sorted(chain):
         raise ValueError("الأرقام مش منطقية: الليوسين جوّه الـBCAA، والـBCAA جوّه الـEAA، والـEAA جوّه المجموع")
+
+    def pct(v):
+        return v / total * 100 if v is not None and total else None
     out = {
-        "mode": "summary", "unit": "serving", "total_aa_mg": total * 1000,
+        "mode": "summary", "unit": "serving", "approx_total": approx,
+        "total_aa_mg": total * 1000 if total else None,
         "total_aa_g": total, "leucine_g": leu,
-        "total_aa_pct": total / serving_g * 100,
-        "leucine_pct": leu / total * 100,
-        "eaa_pct": eaa / total * 100,
-        "bcaa_pct": bcaa / total * 100,
+        "total_aa_pct": total / serving_g * 100 if total else None,
+        "leucine_pct": pct(leu), "eaa_pct": pct(eaa), "bcaa_pct": pct(bcaa),
         "protein_pct": protein_g / serving_g * 100,
         "missing": [],
     }
@@ -224,6 +254,12 @@ _PERSERVING = re.compile(r"per\s*serving|per\s*scoop|لكل\s*(?:حصة|سكوب
 # جدول الأحماض: "Glycine 1400mg" جدول، "L-Glycine, L-Taurine" مكونات).
 _ADDED = (("Amino acid blend", r"amino\s*acids?\s*blend"), ("Glycine", r"glycine"),
           ("Glutamine", r"glutamine"), ("Taurine", r"taurine"), ("Creatine", r"creatine"))
+# ‏وأي حمض تاني مكتوب "L-" في المكونات حمض حر اتضاف: جينر Body Builder
+# كاتب "L-Alanine, L-Lysine" جنب الـL-Glycine. الـ"L-" شرط هنا عشان
+# "alanine" جوه "phenylalanine" وعشان ده اللي بيفرق المكوّن عن اسم في الجدول.
+_ADDED += tuple((n, r"l\s*-\s*" + n.lower()) for n in
+                ("Alanine", "Lysine", "Arginine", "Leucine", "Isoleucine", "Valine",
+                 "Serine", "Proline", "Threonine", "Histidine", "Methionine"))
 
 
 def _clean(text):
