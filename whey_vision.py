@@ -163,10 +163,10 @@ def _why(e):
     return type(e).__name__
 
 
-def _read_gemini(image_bytes, media_type):
+def _read_gemini(image_bytes, media_type, text=None):
     body = json.dumps({"contents": [{"parts": [
         {"inline_data": {"mime_type": media_type, "data": base64.standard_b64encode(image_bytes).decode()}},
-        {"text": _PROMPT + _SHAPE}]}],
+        {"text": text or (_PROMPT + _SHAPE)}]}],
         "generationConfig": {"responseMimeType": "application/json", "temperature": 0}}).encode()
     errors = []
     for model in _gemini_models():
@@ -180,40 +180,86 @@ def _read_gemini(image_bytes, media_type):
     raise RuntimeError(" | ".join(errors) or "no model")
 
 
-def read_label(image_bytes, content_type):
-    from lab_report import ALLOWED_TYPES, MAX_IMAGE_BYTES, MODEL, api_key
-    media_type = ALLOWED_TYPES.get((content_type or "").split(";")[0].strip().lower())
-    if not image_bytes or not media_type or media_type == "application/pdf":
-        raise VisionError("ابعت صورة JPG أو PNG")
-    if len(image_bytes) > MAX_IMAGE_BYTES:
-        raise VisionError("الصورة كبيرة -- صوّرها بدقة أقل")
-    if _gemini_key():
-        try:
-            return normalize(_read_gemini(image_bytes, media_type))
-        except Exception as e:  # noqa: BLE001 -- حد يومي خلص، شبكة، رد غريب: الموبايل يكمّل
-            _MODEL_CACHE.clear()
-            why = str(e) if isinstance(e, RuntimeError) else _why(e)
-            print("[whey] gemini failed: %s" % why)    # ‏يبان في سجل Render
-            if not api_key():
-                raise VisionError("Gemini: %s" % why)
+# ── باقي المكملات ──────────────────────────────────────────────────
+#
+# ‏نفس القراية، بس المطلوب حقول المكمل (supplements.TYPES) بدل جدول
+# الأحماض. الوحدات اللي العلب بتكتبها بالـIU بتتحوّل في البرومبت، لأن حدود
+# الأمان (UL) بالميكروجرام والمللي.
+_SUPP_NOTES = {
+    "creatine": "form: one of monohydrate, hcl, ethyl_ester, other, unknown. blend: true only if creatine "
+                "sits inside a proprietary blend with no amount of its own.",
+    "omega3": "Per serving (e.g. per 2 softgels if the serving is 2). oil_mg is the total fish oil.",
+    "multi": "Convert units: vitamin D 1 IU = 0.025 ug; vitamin A as retinol/retinyl 1 IU = 0.3 ug "
+             "(give null for vitamin A that comes only from beta-carotene); vitamin E 1 IU = 0.67 mg "
+             "(d-alpha) or 0.45 mg (dl-alpha); 1 mg = 1000 ug. Give elemental amounts for minerals "
+             "when printed. magnesium_mg is from the supplement.",
+    "preworkout": "blend: true if any active ingredient is inside a proprietary blend without its own dose.",
+    "eaa": "bcaa_only: true if the product has only leucine, isoleucine and valine and none of the other "
+           "six essential amino acids.",
+}
+
+
+def prompt_for(kind):
+    import supplements as SP
+    spec = SP.TYPES[kind]
+    shape = ", ".join('"%s": %s' % (k, "number|null" if typ == "num" else "true|false" if typ == "bool" else "string|null")
+                      for k, _ar, _en, typ, _lo, _hi in spec["fields"])
+    names = "; ".join("%s = %s" % (k, en) for k, _ar, en, _t, _lo, _hi in spec["fields"])
+    return ("This is a photo of the label of a %s supplement. Read ONLY what is printed; never estimate. "
+            "Use the amounts per ONE serving. Fields: %s. %s null for anything not printed. "
+            "Reply with JSON only, exactly this shape: {%s}"
+            % (spec["en"], names, _SUPP_NOTES.get(kind, ""), shape))
+
+
+def normalize_supplement(kind, raw):
+    """‏رد الموديل -> حقول المكمل بعد حدود القراية (supplements.clean)."""
+    import supplements as SP
+    return {"kind": kind, "fields": SP.clean(kind, raw or {}), "engine": "vision"}
+
+
+def _anthropic(image_bytes, media_type, text, schema=None):
+    from lab_report import MODEL, api_key
     try:
         import anthropic
     except ImportError:
         raise VisionError("مكتبة القراءة مش متركّبة على السيرفر")
     client = anthropic.Anthropic(api_key=api_key())
+    extra = {"output_config": {"format": {"type": "json_schema", "schema": schema}}} if schema else {}
     try:
         response = client.messages.create(
             model=MODEL, max_tokens=2048,
             messages=[{"role": "user", "content": [
                 {"type": "image", "source": {"type": "base64", "media_type": media_type,
                                              "data": base64.standard_b64encode(image_bytes).decode()}},
-                {"type": "text", "text": _PROMPT}]}],
-            output_config={"format": {"type": "json_schema", "schema": _SCHEMA}},
-        )
+                {"type": "text", "text": text}]}], **extra)
     except Exception as e:  # noqa: BLE001 -- أي غلطة: الصفحة بترجع للقراية في الموبايل
         raise VisionError("الخدمة مش متاحة دلوقتي (%s)" % type(e).__name__)
-    text = next((b.text for b in response.content if b.type == "text"), "")
+    out = next((b.text for b in response.content if b.type == "text"), "")
     try:
-        return normalize(json.loads(text))
+        return json.loads(out[out.find("{"):out.rfind("}") + 1] if not schema else out)
     except (ValueError, TypeError):
         raise VisionError("الرد مش مفهوم")
+
+
+def read_label(image_bytes, content_type, kind="whey"):
+    from lab_report import ALLOWED_TYPES, MAX_IMAGE_BYTES, api_key
+    media_type = ALLOWED_TYPES.get((content_type or "").split(";")[0].strip().lower())
+    if not image_bytes or not media_type or media_type == "application/pdf":
+        raise VisionError("ابعت صورة JPG أو PNG")
+    if len(image_bytes) > MAX_IMAGE_BYTES:
+        raise VisionError("الصورة كبيرة -- صوّرها بدقة أقل")
+    supp = kind not in W.KINDS
+    text = prompt_for(kind) if supp else None
+    finish = (lambda raw: normalize_supplement(kind, raw)) if supp else normalize
+    if _gemini_key():
+        try:
+            return finish(_read_gemini(image_bytes, media_type, text))
+        except Exception as e:  # noqa: BLE001 -- حد يومي خلص، شبكة، رد غريب: الموبايل يكمّل
+            _MODEL_CACHE.clear()
+            why = str(e) if isinstance(e, RuntimeError) else _why(e)
+            print("[whey] gemini failed: %s" % why)    # ‏يبان في سجل Render
+            if not api_key():
+                raise VisionError("Gemini: %s" % why)
+    if supp:
+        return finish(_anthropic(image_bytes, media_type, text))
+    return finish(_anthropic(image_bytes, media_type, _PROMPT, _SCHEMA))

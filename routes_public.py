@@ -175,11 +175,27 @@ def _whey_form(form):
             "mode": "summary" if form.get("mode") == "summary" else "profile",
             "summary": {k: num(k) for k in ("total_aa_g", "eaa_g", "bcaa_g", "leucine_g")},
             "added": [a for a in (form.get("added") or "").split(",") if a.strip()][:6],
+            "kind": form.get("kind") if form.get("kind") in W.KINDS else "whey",
+            "sugar_g": num("sugar_g"),
             "amino": {k: num(k) for k in W.AMINO}}
 
 
-def _whey_page(values=None, result=None, error=None, demo=False):
+# ‏النوع بيتختار قبل الصورة (طلب صاحب المشروع): الواي بأنواعه بيتقيّم
+# بمعادلاته، وباقي المكملات ببنود supplements.py.
+WHEY_KINDS = (("isolate", "واي أيزوليت", "Whey Isolate", "fa-droplet"),
+              ("whey", "واي (Concentrate / Blend)", "Whey (Concentrate / Blend)", "fa-bottle-water"),
+              ("mass", "ماس جينر", "Mass Gainer", "fa-weight-hanging"))
+
+
+def _kind(value):
+    import supplements as SP
+    return value if value in dict((k[0], 1) for k in WHEY_KINDS) or value in SP.TYPES else None
+
+
+def _whey_page(values=None, result=None, error=None, demo=False, kind=None,
+               supp_values=None, supp_result=None):
     import whey_analyzer as W
+    import supplements as SP
     # ‏المسجّل بيشوف الصفحة بقايمته الجانبية -- بيوصلها منها، ومن غيرها
     # كان بيتنقل لهيدر الزوار ويتوه. الزائر بالهيدر العام.
     from core import get_user_by_id
@@ -190,6 +206,9 @@ def _whey_page(values=None, result=None, error=None, demo=False):
                            amino=W.AMINO, amino_ar=W.AMINO_AR, eaa=W.EAA, bcaa=W.BCAA,
                            values=values or {"unit": "per100", "amino": {}},
                            result=result, error=error, demo=demo,
+                           kind=kind, whey_kinds=WHEY_KINDS, supp_types=SP.TYPES,
+                           supp=SP.TYPES.get(kind), supp_values=supp_values or {},
+                           supp_result=supp_result, sources=SP.SOURCES,
                            canonical_url=site_origin() + "/whey")
 
 
@@ -197,20 +216,29 @@ def _whey_page(values=None, result=None, error=None, demo=False):
 def whey():
     """صورة ضهر علبة الواي -> تقييم من ١٠٠ (whey_analyzer)."""
     import whey_analyzer as W
+    import supplements as SP
     if request.method != "POST":
-        return _whey_page()
+        return _whey_page(kind=_kind(request.args.get("kind")))
+    kind = _kind(request.form.get("kind")) or "whey"
+    if kind in SP.TYPES:
+        sv = {k: request.form.get(k) for k, *_ in SP.TYPES[kind]["fields"]}
+        try:
+            return _whey_page(kind=kind, supp_values=sv, supp_result=SP.evaluate(kind, sv))
+        except ValueError as e:
+            return _whey_page(kind=kind, supp_values=sv, error=str(e))
     values = _whey_form(request.form)
+    extra = {"kind": kind, "sugar_g": values["sugar_g"]}
     try:
         if values["mode"] == "summary":
             sm = values["summary"]
             result = W.analyze_summary(values["serving_g"], values["protein_g"], sm["total_aa_g"],
-                                       sm["eaa_g"], sm["bcaa_g"], sm["leucine_g"], values["added"])
+                                       sm["eaa_g"], sm["bcaa_g"], sm["leucine_g"], values["added"], **extra)
         else:
             result = W.analyze(values["serving_g"], values["protein_g"],
-                               values["amino"], values["unit"], values["added"])
+                               values["amino"], values["unit"], values["added"], **extra)
     except ValueError as e:
-        return _whey_page(values=values, error=str(e))
-    return _whey_page(values=values, result=result)
+        return _whey_page(values=values, error=str(e), kind=kind)
+    return _whey_page(values=values, result=result, kind=kind)
 
 
 @bp.route("/whey/demo")
@@ -221,7 +249,7 @@ def whey_demo():
               "unit": "per100", "mode": "profile", "summary": {}, "added": [],
               "amino": dict(W.DEMO["amino"])}
     result = W.analyze(values["serving_g"], values["protein_g"], values["amino"], "per100")
-    return _whey_page(values=values, result=result, demo=True)
+    return _whey_page(values=values, result=result, demo=True, kind="whey")
 
 
 @bp.route("/whey/parse", methods=["POST"])
@@ -248,7 +276,7 @@ def whey_read():
     if not f:
         return jsonify({"ok": False, "fallback": True, "error": "no image"}), 400
     try:
-        data = whey_vision.read_label(f.read(), f.mimetype)
+        data = whey_vision.read_label(f.read(), f.mimetype, _kind(request.form.get("kind")) or "whey")
     except whey_vision.VisionError as e:
         return jsonify({"ok": False, "fallback": True, "error": str(e)}), 502
     data["ok"] = True
