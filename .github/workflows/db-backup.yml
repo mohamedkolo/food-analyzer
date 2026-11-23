@@ -37,7 +37,7 @@ jobs:
           AWS_DEFAULT_REGION: auto
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
-          KEEP: "30"
+          KEEP: "1"        # ‏صاحب المشروع: كل نسخة تمسح اللي قبلها (بعد ما الجديدة تترفع)
         run: |
           set -euo pipefail
           for v in DATABASE_URL BACKUP_PASSPHRASE AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY R2_ACCOUNT_ID R2_BUCKET; do
@@ -57,7 +57,7 @@ jobs:
           rm -f "$NAME"
           aws s3 cp "$NAME.gpg" "s3://$R2_BUCKET/$NAME.gpg" --endpoint-url "$ENDPOINT" --only-show-errors
           echo "uploaded $NAME.gpg ($(du -h "$NAME.gpg" | cut -f1))"
-          # ‏آخر KEEP نسخة بس: الأقدم بتتمسح (R2 ببلاش لحد ١٠ جيجا)
+          # ‏آخر KEEP نسخة بس، والمسح بعد الرفع: لو الرفع فشل، القديمة بتفضل
           aws s3api list-objects-v2 --bucket "$R2_BUCKET" --prefix nutrax- --endpoint-url "$ENDPOINT" \
               --query 'Contents[].Key' --output text | tr '\t' '\n' | grep . | sort -r | tail -n +$((KEEP + 1)) \
             | while read -r key; do

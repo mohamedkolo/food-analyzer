@@ -18,6 +18,10 @@ from datetime import timedelta, datetime
 
 app = Flask(__name__)
 
+# ‏Sentry: إيميل لما صفحة تضرب (لو SENTRY_DSN متحط) -- monitoring.py
+import monitoring as _monitoring
+_monitoring.init()
+
 # ═══ حماية CSRF ═══
 from flask_wtf import CSRFProtect
 csrf = CSRFProtect(app)

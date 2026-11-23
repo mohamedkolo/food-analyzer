@@ -1871,6 +1871,8 @@ def something_broke(e):
     detail = traceback.format_exc()
     print(f"[NUTRAX-500 {ref}] {request.method} {request.path}\n{detail}",
           flush=True)
+    import monitoring
+    monitoring.report(e, ref)
 
     # ‏غلطة قاعدة البيانات هي الحالة اللي ليها إجراء مختلف تماماً، فبتتفصل
     db_hint = any(word in detail.lower() for word in
