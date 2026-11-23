@@ -181,6 +181,25 @@ def test_a_posted_form_is_scored_and_impossible_input_is_explained():
     assert r.status_code == 200 and "wy-error" in r.get_data(as_text=True)
 
 
+
+def test_the_menus_lead_to_it():
+    """‏صاحب المشروع فتح القايمة ومالقاهوش: "فين بقى". الصفحة كانت شغالة
+    على /whey ومفيش لينك ليها في أي مكان."""
+    from datetime import datetime
+    from werkzeug.security import generate_password_hash
+    if not A.db_row("SELECT id FROM users WHERE email='wheyclient@x.test'"):
+        A.db_run("INSERT INTO users (name,email,password,role,active,onboarded_at) VALUES (?,?,?,'client',1,?)",
+                 ("عميل", "wheyclient@x.test", generate_password_hash("pw123456"), datetime.now()))
+    for email in ("admin@nutrax.com", "wheyclient@x.test"):
+        c = A.app.test_client()
+        c.post("/login", data={"action": "login", "email": email, "password": "pw123456"})
+        html = c.get("/whey").get_data(as_text=True)
+        side = html.split('class="sidebar', 1)[1].split("</aside>", 1)[0] if 'class="sidebar' in html else html
+        # ‏وصفحة الواي نفسها بالقايمة، والزرار بتاعها منوّر
+        assert re.search(r'<a href="/whey" class="nav-item active[^"]*lq"', side), email
+    footer = A.app.test_client().get("/foods").get_data(as_text=True)
+    assert 'href="/whey"' in footer.split("nx-footer", 1)[1], "مفيش لينك في الفوتر"
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
     failed = 0
