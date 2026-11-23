@@ -205,7 +205,24 @@ window.ReportOCR = (function () {
   // الأصل صغير، لازم الدكتور يعرف قبل ما يستنى القراءة ويلاقيها فاضية.
   var MIN_SOURCE_EDGE = 2000;
 
-  async function read(file, onStep) {
+  /** ‏نسخة ألوانها معكوسة: جدول أبيض على أسود (ضهر علب الواي) بيتقري
+   *  أحسن بكتير أسود على أبيض -- اتقاس على صورة حقيقية. */
+  function invertedCanvas(gray, w, h) {
+    var cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    var ctx = cv.getContext('2d', { willReadFrequently: true });
+    var frame = ctx.createImageData(w, h), d = frame.data;
+    for (var p = 0; p < w * h; p++) {
+      var i = p * 4; d[i] = d[i + 1] = d[i + 2] = 255 - gray[p]; d[i + 3] = 255;
+    }
+    ctx.putImageData(frame, 0, 0);
+    return cv;
+  }
+
+  // ‏opts.invert: قراية تالتة بالألوان معكوسة. ورقة التحليل مش بتطلبها
+  // (وقت زيادة على الفاضي)؛ محلل الواي بيطلبها.
+  async function read(file, onStep, opts) {
+    opts = opts || {};
     var worker = await getWorker(onStep);
     var img = await loadImage(file);
     var sourceEdge = Math.max(img.naturalWidth || 0, img.naturalHeight || 0);
@@ -213,11 +230,12 @@ window.ReportOCR = (function () {
     var w = first.width, h = first.height;
     var gray = toGray(first);
     var second = sharpenCanvas(gray, w, h);
+    var third = opts.invert ? invertedCanvas(gray, w, h) : null;
     gray = null;
 
-    var passes = [], sheets = [first, second];
+    var passes = [], sheets = third ? [first, second, third] : [first, second];
     for (var i = 0; i < sheets.length; i++) {
-      if (onStep) onStep({ status: 'recognizing text', progress: i / 2 });
+      if (onStep) onStep({ status: 'recognizing text', progress: i / sheets.length });
       var res = await worker.recognize(sheets[i], {}, { blocks: true, text: false });
       passes.push(linesOf(res.data));
       sheets[i].width = sheets[i].height = 1;   // ‏نفضّي الذاكرة على طول

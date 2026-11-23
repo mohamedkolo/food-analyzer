@@ -87,6 +87,15 @@ body.wy-page::before{display:none}
 .wy-info small{display:block;font-size:11.5px;color:var(--muted);font-weight:800}
 .wy-info b{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums}
 .wy-demo{display:inline-flex;gap:8px;align-items:center;color:var(--accent);font-weight:800;font-size:13.5px;text-decoration:none}
+.wy-hint{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:4px 10px;border-radius:999px;border:1px dashed var(--fair);
+  background:none;color:var(--fair);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer}
+.wy-hint[hidden]{display:none}
+.wy-mode{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+.wy-mode label{flex:1 1 200px;display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);
+  background:var(--bg);font-size:13.5px;font-weight:800;cursor:pointer}
+.wy-mode input{accent-color:var(--accent)}
+.wy-pane[hidden]{display:none}
+.wy-alert{padding:14px 16px;border-radius:14px;background:#2A2410;border:1px solid var(--fair);color:#FFE7A3;font-weight:800;line-height:1.8}
 .wy-saved{display:grid;gap:8px}
 .wy-saved div{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:13.5px}
 .wy-saved button{background:none;border:0;color:var(--muted);cursor:pointer;font-family:inherit}
@@ -186,7 +195,8 @@ body.wy-page::before{display:none}
       </div>
     </div>
     <div class="wy-bar" id="wyBar"><span></span></div>
-    <p class="wy-status" id="wyStatus" role="status" aria-live="polite">{{ t('الصورة بتتقرا على موبايلك ومابتتبعتش لأي حد.','The photo is read on your phone and is not sent anywhere.') }}</p>
+    <p class="wy-status" id="wyStatus" role="status" aria-live="polite">{% if vision %}{{ t('صوّر الجدول كله قريب وفي نور كويس، من غير لمعة.','Photograph the whole table close up, in good light, without glare.') }}{% else %}{{ t('الصورة بتتقرا على موبايلك ومابتتبعتش لأي حد.','The photo is read on your phone and is not sent anywhere.') }}{% endif %}</p>
+    <div class="wy-alert" id="wyNoProfile" hidden role="alert"></div>
     <a class="wy-demo" href="/whey/demo"><i class="fa-solid fa-flask" aria-hidden="true"></i>{{ t('جرّب على علبة تجريبية','Try a demo tub') }}</a>
   </section>
   {% endif %}
@@ -198,10 +208,31 @@ body.wy-page::before{display:none}
       <input type="text" id="wy_name" name="product" value="{{ request.form.get('product','') }}" autocomplete="off"></div>
     <div class="wy-row2" style="margin-top:12px">
       <div class="wy-f" data-key="serving_g"><label for="wy_serving">{{ t('حجم الحصة (جم)','Serving size (g)') }}</label>
-        <input type="number" step="any" inputmode="decimal" id="wy_serving" name="serving_g" value="{{ values.serving_g if values.serving_g is not none else '' }}" required></div>
+        <input type="number" step="any" inputmode="decimal" id="wy_serving" name="serving_g" value="{{ values.serving_g if values.serving_g is not none else '' }}" required>
+        <button type="button" class="wy-hint" hidden></button></div>
       <div class="wy-f" data-key="protein_g"><label for="wy_protein">{{ t('بروتين في الحصة (جم)','Protein per serving (g)') }}</label>
-        <input type="number" step="any" inputmode="decimal" id="wy_protein" name="protein_g" value="{{ values.protein_g if values.protein_g is not none else '' }}" required></div>
+        <input type="number" step="any" inputmode="decimal" id="wy_protein" name="protein_g" value="{{ values.protein_g if values.protein_g is not none else '' }}" required>
+        <button type="button" class="wy-hint" hidden></button></div>
     </div>
+    <input type="hidden" name="added" id="wyAdded" value="{{ (values.added or []) | join(',') }}">
+    <fieldset class="wy-mode" style="border:0;padding:0">
+      <legend class="wy-pts" style="margin-bottom:6px">{{ t('العلبة كاتبة:','The label shows:') }}</legend>
+      <label><input type="radio" name="mode" value="profile" {% if values.mode != 'summary' %}checked{% endif %}>{{ t('جدول الأحماض كامل','The full amino acid table') }}</label>
+      <label><input type="radio" name="mode" value="summary" {% if values.mode == 'summary' %}checked{% endif %}>{{ t('ملخص بس (مجموع، EAA، BCAA، ليوسين)','A summary only (total, EAA, BCAA, leucine)') }}</label>
+    </fieldset>
+
+    <div class="wy-pane" id="wySummary"{% if values.mode != 'summary' %} hidden{% endif %}>
+      <p class="wy-sub">{{ t('زي Dymatize: "25g total amino acids · 11.9g EAAs · 5.5g BCAAs · Leucine 2.6g" -- بالجرام للحصة','Like Dymatize: "25g total amino acids · 11.9g EAAs · 5.5g BCAAs · Leucine 2.6g" -- grams per serving') }}</p>
+      <div class="wy-aa">
+        {% for k, label in [('total_aa_g', t('مجموع الأحماض (جم)','Total amino acids (g)')), ('eaa_g', 'EAA (g)'), ('bcaa_g', 'BCAA (g)'), ('leucine_g', t('ليوسين (جم)','Leucine (g)'))] %}
+        {% set v = (values.summary or {}).get(k) %}
+        <div class="wy-f" data-key="{{ k }}"><label for="wy_{{ k }}">{{ label }}</label>
+          <input type="number" step="any" inputmode="decimal" id="wy_{{ k }}" name="{{ k }}" value="{{ ('%g' % v) if v is not none else '' }}"></div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="wy-pane" id="wyProfile"{% if values.mode == 'summary' %} hidden{% endif %}>
     <fieldset class="wy-unit" style="border:0;padding:0">
       <legend class="wy-pts" style="margin-bottom:6px">{{ t('أرقام الأحماض مكتوبة:','The amino acid figures are:') }}</legend>
       <label><input type="radio" name="unit" value="per100" {% if values.unit != 'serving' %}checked{% endif %}>{{ t('لكل ١٠٠ جم بروتين','Per 100 g of protein') }}</label>
@@ -216,8 +247,10 @@ body.wy-page::before{display:none}
         <input type="number" step="any" inputmode="decimal" id="wy_{{ k }}" name="{{ k }}" value="{{ ('%g' % v) if v is not none else '' }}"
                aria-describedby="wy_{{ k }}_ar" placeholder="mg">
         <span class="wy-pts" id="wy_{{ k }}_ar">{{ amino_ar[k] if lang != 'en' else '' }}</span>
+        <button type="button" class="wy-hint" hidden></button>
       </div>
       {% endfor %}
+    </div>
     </div>
     <div class="wy-actions">
       <button type="submit" class="wy-btn main"><i class="fa-solid fa-bolt" aria-hidden="true"></i>{{ t('احسب التقييم','Score it') }}</button>
@@ -241,6 +274,11 @@ body.wy-page::before{display:none}
     saved: {{ t('اتحفظت على الجهاز ده','Saved on this device')|tojson }},
     noName: {{ t('بدون اسم','Unnamed')|tojson }},
     remove: {{ t('امسح','Remove')|tojson }},
+    hint: {{ t('قريت %v -- لو صح دوس هنا','I read %v -- tap if right')|tojson }},
+    unsure: {{ t('اتقرا %n رقم متأكدين منهم، و%h اقتراح تحت الخانات (دوس عليه لو صح). الباقي اكتبه بإيدك.','Read %n numbers for sure and %h suggestions under the boxes (tap if right). Type the rest.')|tojson }},
+    summary: {{ t('العلبة دي كاتبة ملخص بس، فحطّيناه في "ملخص بس". راجعه واحسب.','This label only shows a summary, so it went into "summary only". Check it and score it.')|tojson }},
+    noProfile: {{ t('العلبة دي مفيهاش جدول أحماض أمينية، فمينفعش تتقيّم بالأرقام.','This label has no amino acid table, so it cannot be scored on numbers.')|tojson }},
+    addedMsg: {{ t(' وفي المكونات أحماض مضافة (%a) -- دي علامة Amino Spiking: بتعلّي رقم البروتين من غير بروتين حقيقي.',' And the ingredients list added amino acids (%a) -- a sign of amino spiking: they inflate the protein figure without real protein.')|tojson }},
   };
   const KEY = 'nx-whey-saved';
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
@@ -272,33 +310,86 @@ body.wy-page::before{display:none}
   // ‏صورة -> سطور (في المتصفح، ReportOCR) -> أرقام (السيرفر، whey_analyzer.parse_label)
   const status = document.getElementById('wyStatus'), bar = document.getElementById('wyBar');
   function say(msg, cls){ status.textContent = msg; status.className = 'wy-status' + (cls ? ' ' + cls : ''); }
+  const VISION = {{ 'true' if vision else 'false' }};
+  const modeBox = v => { document.querySelectorAll('input[name=mode]').forEach(r => r.checked = r.value === v);
+    document.getElementById('wySummary').hidden = v !== 'summary'; document.getElementById('wyProfile').hidden = v === 'summary'; };
+  document.querySelectorAll('input[name=mode]').forEach(r => r.addEventListener('change', () => modeBox(r.value)));
+
+  function apply(got){
+    let sure = 0, hints = 0;
+    document.querySelectorAll('.wy-f[data-key]').forEach(w => { w.classList.remove('miss', 'read');
+      const h = w.querySelector('.wy-hint'); if (h) h.hidden = true; });
+    const put = (key, val) => {
+      const wrap = document.querySelector(`.wy-f[data-key="${key}"]`); if (!wrap) return;
+      wrap.querySelector('input').value = val; wrap.classList.add('read'); sure++;
+    };
+    const hint = (key, val) => {
+      const wrap = document.querySelector(`.wy-f[data-key="${key}"]`); if (!wrap) return;
+      const b = wrap.querySelector('.wy-hint'); if (!b) return;
+      wrap.classList.add('miss'); b.hidden = false; b.textContent = S.hint.replace('%v', val);
+      b.onclick = () => { wrap.querySelector('input').value = val; wrap.classList.replace('miss', 'read'); b.hidden = true; };
+      hints++;
+    };
+    if (got.serving_g != null) put('serving_g', got.serving_g);
+    if (got.protein_g != null) put('protein_g', got.protein_g);
+    Object.entries(got.amino || {}).forEach(([k, v]) => put(k, v));
+    Object.entries(got.hints || {}).forEach(([k, v]) => hint(k, v));
+    (got.missing || []).forEach(k => { const w = document.querySelector(`.wy-f[data-key="${k}"]`); if (w && !w.classList.contains('read')) w.classList.add('miss'); });
+    const u = document.querySelector(`input[name="unit"][value="${got.unit}"]`); if (u) u.checked = true;
+    document.getElementById('wyAdded').value = (got.added || []).join(',');
+    const sm = got.summary;
+    if (sm && Object.keys(got.amino || {}).length < 12) {
+      modeBox('summary');
+      Object.entries(sm).forEach(([k, v]) => { if (v != null) put(k, v); });
+    } else modeBox('profile');
+    const alert = document.getElementById('wyNoProfile');
+    const added = (got.added || []).join('، ');
+    if (got.no_profile) { alert.hidden = false; alert.textContent = S.noProfile + (added ? S.addedMsg.replace('%a', added) : ''); }
+    else alert.hidden = true;
+    return {sure, hints, summary: !!(sm && Object.keys(got.amino || {}).length < 12), none: got.no_profile};
+  }
+
+  // ‏الأول بالذكاء الاصطناعي على السيرفر لو فيه مفتاح (بيقرا العلب المقوّسة
+  // واللامعة)، وبعدين في الموبايل بـTesseract: ٣ قرايات (عادية، متحسّنة،
+  // ألوانها معكوسة)، والرقم بيتاخد لو قرايتين متفقين -- whey_analyzer.parse_passes.
+  async function readServer(file){
+    const fd = new FormData(); fd.append('image', await shrink(file));
+    const r = await fetch('/whey/read', {method: 'POST', body: fd});
+    const j = await r.json(); if (!j.ok) throw new Error(j.error || 'vision');
+    return j;
+  }
+  function shrink(file){
+    return new Promise(res => {
+      const img = new Image(), url = URL.createObjectURL(file);
+      img.onload = () => { const k = Math.min(1, 2000 / Math.max(img.width, img.height));
+        const c = document.createElement('canvas'); c.width = img.width * k; c.height = img.height * k;
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+        c.toBlob(b => res(b || file), 'image/jpeg', 0.88); };
+      img.onerror = () => res(file); img.src = url;
+    });
+  }
+  async function readPhone(file, fill){
+    if (!window.ReportOCR) throw new Error('no-engine');
+    const passes = await window.ReportOCR.read(file, m => { if (m && m.progress != null) fill.style.inlineSize = Math.round(m.progress * 100) + '%'; }, {invert: true});
+    const texts = passes.map(p => p.map(w => w.join(' ')).join('\n'));
+    const res = await fetch('/whey/parse', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({passes: texts})});
+    return res.json();
+  }
   async function readPhoto(file){
     if (!file) return;
     say(S.reading); bar.style.display = 'block';
     const fill = bar.firstElementChild;
     try {
-      if (!window.ReportOCR) throw new Error('no-engine');
-      const passes = await window.ReportOCR.read(file, m => { if (m && m.progress != null) fill.style.inlineSize = Math.round(m.progress * 100) + '%'; });
-      const text = passes.map(p => p.map(w => w.join(' ')).join('\n')).join('\n');
-      const res = await fetch('/whey/parse', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text})});
-      const got = await res.json();
-      let n = 0;
-      const put = (key, val) => {
-        const wrap = document.querySelector(`.wy-f[data-key="${key}"]`);
-        if (!wrap) return;
-        wrap.classList.remove('miss', 'read');
-        if (val != null) { wrap.querySelector('input').value = val; wrap.classList.add('read'); n++; }
-        else wrap.classList.add('miss');
-      };
-      put('serving_g', got.serving_g); put('protein_g', got.protein_g);
-      Object.keys(got.amino || {}).forEach(k => put(k, got.amino[k]));
-      (got.missing || []).forEach(k => put(k, null));
-      const u = document.querySelector(`input[name="unit"][value="${got.unit}"]`); if (u) u.checked = true;
-      if (!n) throw new Error('nothing');
-      say(S.found.replace('%n', n), 'ok');
+      let got = null;
+      if (VISION) { try { fill.style.inlineSize = '40%'; got = await readServer(file); } catch (e) { got = null; } }
+      if (!got) got = await readPhone(file, fill);
+      const r = apply(got);
+      if (r.none) say(S.none, 'err');
+      else if (r.summary) say(S.summary, 'ok');
+      else if (!r.sure && !r.hints) throw new Error('nothing');
+      else say((r.hints || r.sure < 20 ? S.unsure.replace('%n', r.sure).replace('%h', r.hints) : S.found.replace('%n', r.sure)), r.hints || r.sure < 20 ? '' : 'ok');
       const first = document.querySelector('.wy-f.miss input');
       (first || document.getElementById('wyForm')).scrollIntoView({behavior: 'smooth', block: 'center'});
-      if (first) first.focus({preventScroll: true});
     } catch (e) {
       say(S.none, 'err');
     }

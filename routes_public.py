@@ -172,6 +172,9 @@ def _whey_form(form):
             return None
     return {"serving_g": num("serving_g"), "protein_g": num("protein_g"),
             "unit": "serving" if form.get("unit") == "serving" else "per100",
+            "mode": "summary" if form.get("mode") == "summary" else "profile",
+            "summary": {k: num(k) for k in ("total_aa_g", "eaa_g", "bcaa_g", "leucine_g")},
+            "added": [a for a in (form.get("added") or "").split(",") if a.strip()][:6],
             "amino": {k: num(k) for k in W.AMINO}}
 
 
@@ -181,7 +184,9 @@ def _whey_page(values=None, result=None, error=None, demo=False):
     # كان بيتنقل لهيدر الزوار ويتوه. الزائر بالهيدر العام.
     from core import get_user_by_id
     user = get_user_by_id(session["uid"]) if session.get("uid") else None
+    import whey_vision
     return render_template("whey.html", lang=session.get("lang", "ar"), user=user,
+                           vision=whey_vision.available(),
                            amino=W.AMINO, amino_ar=W.AMINO_AR, eaa=W.EAA, bcaa=W.BCAA,
                            values=values or {"unit": "per100", "amino": {}},
                            result=result, error=error, demo=demo,
@@ -196,8 +201,13 @@ def whey():
         return _whey_page()
     values = _whey_form(request.form)
     try:
-        result = W.analyze(values["serving_g"], values["protein_g"],
-                           values["amino"], values["unit"])
+        if values["mode"] == "summary":
+            sm = values["summary"]
+            result = W.analyze_summary(values["serving_g"], values["protein_g"], sm["total_aa_g"],
+                                       sm["eaa_g"], sm["bcaa_g"], sm["leucine_g"], values["added"])
+        else:
+            result = W.analyze(values["serving_g"], values["protein_g"],
+                               values["amino"], values["unit"], values["added"])
     except ValueError as e:
         return _whey_page(values=values, error=str(e))
     return _whey_page(values=values, result=result)
@@ -208,7 +218,8 @@ def whey_demo():
     """العلبة التجريبية من صاحب المشروع -- نتيجتها المتوقعة ١٠٠ ممتاز."""
     import whey_analyzer as W
     values = {"serving_g": W.DEMO["serving_g"], "protein_g": W.DEMO["protein_g"],
-              "unit": "per100", "amino": dict(W.DEMO["amino"])}
+              "unit": "per100", "mode": "profile", "summary": {}, "added": [],
+              "amino": dict(W.DEMO["amino"])}
     result = W.analyze(values["serving_g"], values["protein_g"], values["amino"], "per100")
     return _whey_page(values=values, result=result, demo=True)
 
@@ -218,5 +229,27 @@ def whey_parse():
     """نص الصورة (اتقرا في موبايل المستخدم) -> أرقام. الصورة نفسها مابتوصلش هنا."""
     import whey_analyzer as W
     from flask import jsonify
-    text = ((request.get_json(silent=True) or {}).get("text") or "")[:20000]
-    return jsonify(W.parse_label(text))
+    body = request.get_json(silent=True) or {}
+    passes = body.get("passes")
+    if isinstance(passes, list):
+        return jsonify(W.parse_passes([str(p)[:20000] for p in passes[:4]]))
+    return jsonify(W.parse_label((body.get("text") or "")[:20000]))
+
+
+@bp.route("/whey/read", methods=["POST"])
+def whey_read():
+    """الصورة نفسها -> أرقام بالذكاء الاصطناعي، لو فيه مفتاح على السيرفر
+    (whey_vision). من غيره 503 والصفحة بتقرا في الموبايل."""
+    import whey_vision
+    from flask import jsonify
+    if not whey_vision.available():
+        return jsonify({"ok": False, "fallback": True}), 503
+    f = request.files.get("image")
+    if not f:
+        return jsonify({"ok": False, "fallback": True, "error": "no image"}), 400
+    try:
+        data = whey_vision.read_label(f.read(), f.mimetype)
+    except whey_vision.VisionError as e:
+        return jsonify({"ok": False, "fallback": True, "error": str(e)}), 502
+    data["ok"] = True
+    return jsonify(data)
