@@ -200,6 +200,119 @@ def test_the_menus_lead_to_it():
     footer = A.app.test_client().get("/foods").get_data(as_text=True)
     assert 'href="/whey"' in footer.split("nx-footer", 1)[1], "مفيش لينك في الفوتر"
 
+
+# ── صور حقيقية (صاحب المشروع صوّرها في المحل) ────────────────────────
+#
+# ‏tests/data/whey_ocr_real.json: اللي Tesseract قراه في المتصفح فعلاً من
+# ٣ صور علب، كل قراية لوحدها. العلبة الأولى هي نفس العلبة التجريبية
+# (DEMO)؛ والقراية الأولى سجّلت أرقام في خانات غلط ("Aspartic 1748"،
+# "Lysine 2200" -- دي بتاعة Methionine). رقم غلط أسوأ من خانة فاضية:
+# بيدخل في الحساب من غير ما حد يشوفه.
+
+def _real(name):
+    import json
+    root = os.path.dirname(os.path.abspath(__file__))
+    return json.load(open(os.path.join(root, "data", "whey_ocr_real.json"), encoding="utf-8"))[name]
+
+
+def test_a_real_photo_never_fills_a_wrong_number():
+    got = W.parse_passes(_real("box1.jpg"))
+    for k, v in got["amino"].items():
+        assert v == DEMO["amino"][k], (k, v, DEMO["amino"][k])
+    for k in ("serving_g", "protein_g"):
+        assert got[k] in (None, DEMO[k + ""] if k in DEMO else None), (k, got[k])
+
+
+def test_numbers_need_two_readings_that_agree():
+    one = W.parse_passes(["Leucine 10200mg", "Leucine 10200 mg", "nothing here"])
+    assert one["amino"].get("Leucine") == 10200, one
+    clash = W.parse_passes(["Leucine 10200mg", "Leucine 10800mg", "x"])
+    assert "Leucine" not in clash["amino"], clash
+    lone = W.parse_passes(["x", "y", "Tyrosine 5700mg"])
+    # ‏قراية واحدة بس: مش في الخانة، بس اقتراح تحتها
+    assert "Tyrosine" not in lone["amino"] and lone["hints"].get("Tyrosine") == 5700, lone
+
+
+def test_a_number_without_a_unit_or_out_of_range_is_not_taken():
+    got = W.parse_label("Threonine 14008\nCystine 7\nSerine 700mg\nLeucine 10200mg")
+    assert set(got["amino"]) == {"Leucine"}, got["amino"]
+
+
+def test_a_label_with_no_profile_but_added_amino_acids_is_called_out():
+    got = W.parse_passes(_real("box2.jpg"))
+    assert not got["amino"], got["amino"]
+    assert {"Glycine", "Taurine"} <= set(got["added"]), got["added"]
+    r = W.analyze(31, 28, DEMO["amino"], unit="per100", added=["Glycine", "Taurine"])
+    assert any("Glycine" in w and "Taurine" in w for w in r["warnings"]), r["warnings"]
+
+
+# ── علبة كاتبة ملخص بس (Dymatize) ──────────────────────────────────
+
+DYMATIZE = """Serving size 1 Scoop (32g)
+Protein 25g
+TYPICAL AMINO ACID PROFILE
+25g TOTAL AMINO ACIDS PER SERVING
+11.9 g EAAs
+ISOLEUCINE 1.4g VALINE 1.4g LEUCINE 2.6g
+5.5 g BCAAs
+13.4 g NON-EAAs
+GLUTAMINE 4.4g"""
+
+
+def test_a_summary_label_is_read_and_scored():
+    got = W.parse_label(DYMATIZE)
+    assert got["summary"] == {"total_aa_g": 25, "eaa_g": 11.9, "bcaa_g": 5.5, "leucine_g": 2.6}, got["summary"]
+    r = W.analyze_summary(32, 25, 25, 11.9, 5.5, 2.6)
+    assert _close(r["total_aa_pct"], 78.1) and _close(r["leucine_pct"], 10.4)
+    assert _close(r["eaa_pct"], 47.6) and _close(r["bcaa_pct"], 22.0)
+    assert r["score"] == 92 and r["grade"]["key"] == "excellent", r["score"]
+
+
+def test_the_summary_form_is_scored():
+    c = A.app.test_client()
+    html = c.post("/whey", data={"mode": "summary", "serving_g": "32", "protein_g": "25",
+                                 "total_aa_g": "25", "eaa_g": "11.9", "bcaa_g": "5.5",
+                                 "leucine_g": "2.6"}).get_data(as_text=True)
+    assert re.search(r'class="wy-score"[^>]*>\s*92', html), "ملخص Dymatize مااتقيّمش"
+
+
+# ── القراية بالذكاء الاصطناعي لو فيه مفتاح ──────────────────────────
+
+def test_without_a_key_the_page_falls_back_to_the_phone():
+    os.environ.pop("ANTHROPIC_API_KEY", None)
+    import whey_vision
+    assert not whey_vision.available()
+    r = A.app.test_client().post("/whey/read", data={})
+    assert r.status_code == 503 and r.get_json()["fallback"] is True
+
+
+def test_what_the_model_returns_goes_through_the_same_checks():
+    import whey_vision
+    raw = {"serving_g": 31, "protein_g": 28, "unit": "per100",
+           "amino": dict(DEMO["amino"], Threonine=67000),   # ‏غلطة: صفر زيادة
+           "summary": {"total_aa_g": None, "eaa_g": None, "bcaa_g": None, "leucine_g": None},
+           "added": ["L-Taurine"]}
+    got = whey_vision.normalize(raw)
+    assert got["amino"]["Leucine"] == 10200 and "Threonine" not in got["amino"], got["amino"]
+    assert "Threonine" in got["missing"] and got["added"] == ["Taurine"], got
+    assert got["engine"] == "vision"
+
+
+def test_one_amino_acid_cannot_be_most_of_the_protein():
+    """‏Dymatize على صورة حقيقية: "Valine 5000" اتسجّل والصح 1.4 جم -- الـ5
+    جاية من "5.5g BCAAs" جنبه. حمض واحد (غير الجلوتامين والأسبارتيك) بيبقى
+    تحت ١٤٪ من البروتين؛ ٥ جم في حصة ٢٥ جم بروتين = ٢٠٪."""
+    got = W.parse_passes(["Serving size 1 Scoop (32g)\nProtein 25g\nValine 5g\nLeucine 2.6g"] * 2)
+    assert "Valine" not in got["amino"] and got["amino"].get("Leucine") == 2600, got["amino"]
+    per100 = W.parse_label("Protein 28g\nper 100g of protein\nThreonine 14008mg\nGlutamine 18100mg")
+    assert "Threonine" not in per100["amino"] and per100["amino"]["Glutamine"] == 18100, per100["amino"]
+
+
+def test_equal_readings_are_not_mixed_up():
+    """‏قرايتين نتيجتهم شبه بعض كانوا بيتلخبطوا (reads.index) فالاقتراحات ضاعت."""
+    got = W.parse_passes(["x", "x", "Alanine 5000mg"])
+    assert got["hints"].get("Alanine") == 5000, got
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
     failed = 0
