@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ t('محلل الواي بروتين — اعرف البروتين بتاعك أصلي ولا لأ','Whey Protein Analyzer — is your whey the real thing?') }}{% endblock %}
+{% block title %}{{ t('محلل المكملات — الواي والكرياتين والأوميجا وغيرهم','Supplement Analyzer — whey, creatine, omega-3 and more') }}{% endblock %}
 {% block meta_description %}{{ t('صوّر ضهر علبة الواي بروتين، والتحليل بيحسب نسبة الأحماض الأمينية والليوسين وEAA وBCAA ويديك تقييم من ١٠٠ ويكشف الـAmino Spiking.','Photograph the back of a whey tub: we work out the amino acid, leucine, EAA and BCAA percentages, score it out of 100 and flag amino spiking.') }}{% endblock %}
 {% block body_class %}{% if not user %}public-chrome {% endif %}wy-page{% endblock %}
 {% block chrome %}{% if not user %}{% include "_public_header.html" %}{% else %}{{ super() }}{% endif %}{% endblock %}
@@ -100,6 +100,12 @@ body.wy-page::before{display:none}
 .wy-saved div{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:13.5px}
 .wy-saved button{background:none;border:0;color:var(--muted);cursor:pointer;font-family:inherit}
 [data-g="excellent"]{--c:var(--ok)}[data-g="good"]{--c:var(--good)}[data-g="fair"]{--c:var(--fair)}[data-g="bad"]{--c:var(--bad)}
+/* ‏الباركود */
+.wy-code{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.wy-code-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+.wy-code-num input{min-block-size:56px}
+.wy-sr{position:absolute;inline-size:1px;block-size:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media(max-width:560px){.wy-code-row{grid-template-columns:1fr auto}.wy-code-row > label{grid-column:1 / -1}}
 /* ‏اختيار النوع قبل الصورة */
 .wy-kinds{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
 .wy-kind{display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:14px;border:1px solid var(--line);background:var(--bg);
@@ -301,7 +307,20 @@ body.wy-page::before{display:none}
     <div class="wy-bar" id="wyBar"><span></span></div>
     <p class="wy-status" id="wyStatus" role="status" aria-live="polite">{% if vision %}{{ t('صوّر الجدول كله قريب وفي نور كويس، من غير لمعة.','Photograph the whole table close up, in good light, without glare.') }}{% else %}{{ t('الصورة بتتقرا على موبايلك ومابتتبعتش لأي حد.','The photo is read on your phone and is not sent anywhere.') }}{% endif %}</p>
     <div class="wy-alert" id="wyNoProfile" hidden role="alert"></div>
-    <a class="wy-demo" href="/whey/demo"><i class="fa-solid fa-flask" aria-hidden="true"></i>{{ t('جرّب على علبة تجريبية','Try a demo tub') }}</a>
+    {# ‏الباركود: الاسم والحصة والبروتين والسكر والمكونات من Open Food Facts.
+       جدول الأحماض مش هناك، فصورة ضهر العلبة لسه هي الأساس. #}
+    <div class="wy-code">
+      <p class="wy-group" style="margin-top:0">{{ t('أو بالباركود:','Or by barcode:') }}</p>
+      <div class="wy-code-row">
+        <input class="wy-file" type="file" id="wyCode" accept="image/*" capture="environment" aria-label="{{ t('صوّر الباركود','Photograph the barcode') }}">
+        <label class="wy-btn" for="wyCode"><i class="fa-solid fa-barcode" aria-hidden="true"></i>{{ t('صوّر الباركود','Photograph the barcode') }}</label>
+        <div class="wy-f wy-code-num"><label for="wyCodeNum" class="wy-sr">{{ t('رقم الباركود','Barcode number') }}</label>
+          <input type="text" inputmode="numeric" id="wyCodeNum" placeholder="{{ t('أو اكتب الرقم اللي تحت الخطوط','or type the number under the lines') }}" autocomplete="off"></div>
+        <button type="button" class="wy-btn" id="wyCodeGo">{{ t('بحث','Search') }}</button>
+      </div>
+      <p class="wy-status" id="wyCodeMsg" role="status" aria-live="polite"></p>
+    </div>
+    {% if not supp %}<a class="wy-demo" href="/whey/demo"><i class="fa-solid fa-flask" aria-hidden="true"></i>{{ t('جرّب على علبة تجريبية','Try a demo tub') }}</a>{% endif %}
   </section>
   {% endif %}
 
@@ -322,6 +341,7 @@ body.wy-page::before{display:none}
       {% elif typ == 'choice' %}
       <div class="wy-f" data-key="{{ key }}"><label for="sp_{{ key }}">{{ t(ar, en) }}</label>
         <select id="sp_{{ key }}" name="{{ key }}">
+          <option value="">{{ t('— اختار من العلبة —','— as on the label —') }}</option>
           {% for val, car, cen in supp.choices[key] %}<option value="{{ val }}"{% if v == val %} selected{% endif %}>{{ t(car, cen) }}</option>{% endfor %}
         </select></div>
       {% endif %}
@@ -411,6 +431,9 @@ body.wy-page::before{display:none}
     reading: {{ t('بقرا الصورة… أول مرة بتاخد شوية','Reading the photo… the first time takes a moment')|tojson }},
     found: {{ t('اتقرا %n من 20 رقم. راجعهم، والخانات الصفرا اكتبها بإيدك.','Read %n of 20 numbers. Check them and fill in the yellow boxes.')|tojson }},
     none: {{ t('مقدرناش نقرا الصورة. صوّرها أقرب وفي نور كويس، أو اكتب الأرقام بإيدك.','Could not read the photo. Take it closer in good light, or type the numbers.')|tojson }},
+    codeReading: {{ t('بقرا الباركود…','Reading the barcode…')|tojson }},
+    codeSearching: {{ t('بدوّر على المنتج…','Looking the product up…')|tojson }},
+    codeFound: {{ t('لقيت "%n" وملّيت اللي معروف عنه. جدول الأحماض مش في قاعدة الباركود: صوّر ضهر العلبة.','Found "%n" and filled what is known. The amino table is not in the barcode database: photograph the back of the tub.')|tojson }},
     typeIt: {{ t('القراية الأوتوماتيك للنوع ده محتاجة مفتاح Gemini على السيرفر. اكتب الأرقام بإيدك تحت.','Automatic reading for this type needs a Gemini key on the server. Type the numbers below.')|tojson }},
     saved: {{ t('اتحفظت على الجهاز ده','Saved on this device')|tojson }},
     noName: {{ t('بدون اسم','Unnamed')|tojson }},
@@ -572,6 +595,43 @@ body.wy-page::before{display:none}
     }
     fill.style.inlineSize = '100%'; setTimeout(() => { bar.style.display = 'none'; fill.style.inlineSize = '0'; }, 600);
   }
+  // ‏الباركود: الصورة بتتقرا على السيرفر (آيفون مفيهوش BarcodeDetector)
+  const codeMsg = document.getElementById('wyCodeMsg');
+  function setVal(name, v){
+    const el = document.querySelector(`form [name="${name}"]`); if (!el || v == null || v === '') return false;
+    el.value = v; const w = el.closest('.wy-f'); if (w) w.classList.add('read'); return true;
+  }
+  async function lookupCode(code){
+    codeMsg.className = 'wy-status'; codeMsg.textContent = S.codeSearching;
+    try {
+      const r = await fetch('/whey/barcode/' + encodeURIComponent(code)); const j = await r.json();
+      if (!j.ok) { codeMsg.className = 'wy-status err'; codeMsg.textContent = j.error || S.none; return; }
+      const p = j.product;
+      setVal('product', p.name);
+      if (!SUPP) {
+        setVal('serving_g', p.serving_g); setVal('protein_g', p.protein_g); setVal('sugar_g', p.sugar_g);
+        const added = document.getElementById('wyAdded'); if (added && p.added && p.added.length) added.value = p.added.join(',');
+      }
+      codeMsg.className = 'wy-status ok';
+      codeMsg.textContent = S.codeFound.replace('%n', p.name || code) + (p.added && p.added.length ? S.addedMsg.replace('%a', p.added.join('، ')) : '');
+    } catch (e) { codeMsg.className = 'wy-status err'; codeMsg.textContent = S.none; }
+  }
+  const codeIn = document.getElementById('wyCode'), codeNum = document.getElementById('wyCodeNum');
+  if (codeIn) codeIn.addEventListener('change', async () => {
+    const f = codeIn.files[0]; if (!f) return;
+    codeMsg.className = 'wy-status'; codeMsg.textContent = S.codeReading;
+    const fd = new FormData(); fd.append('image', await shrink(f));
+    try {
+      const j = await (await fetch('/barcode/read', {method: 'POST', body: fd})).json();
+      if (!j.ok) { codeMsg.className = 'wy-status err'; codeMsg.textContent = j.error; return; }
+      codeNum.value = j.code; lookupCode(j.code);
+    } catch (e) { codeMsg.className = 'wy-status err'; codeMsg.textContent = S.none; }
+    codeIn.value = '';
+  });
+  const goCode = () => { const c = (codeNum.value || '').replace(/\D/g, ''); if (c) lookupCode(c); };
+  if (codeNum) { document.getElementById('wyCodeGo').addEventListener('click', goCode);
+    codeNum.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); goCode(); } }); }
+
   ['wyCam', 'wyUp'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', () => readPhoto(el.files[0])); });
 })();
 </script>

@@ -521,7 +521,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
           {{ ic('search') }} {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
         </a>
         <a href="/whey" class="nav-item {% if request.endpoint in ['public.whey','public.whey_demo'] %}active{% endif %} lq" data-lq="teal">{{ liquid() }}
-          {{ ic('shaker') }} {{ 'محلل الواي بروتين' if is_ar else 'Whey Analyzer' }}
+          {{ ic('shaker') }} {{ 'محلل المكملات' if is_ar else 'Supplement Analyzer' }}
         </a>
         <a href="/clinical" class="nav-item {% if request.endpoint=='clinical' %}active{% endif %} lq" data-lq="teal">{{ liquid() }}
           {{ ic('book') }} {{ 'المرجع الكلينيكي' if is_ar else 'Clinical Reference' }}
@@ -577,7 +577,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
       {{ ic('search') }} {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
     </a>
     <a href="/whey" class="nav-item {% if request.endpoint in ['public.whey','public.whey_demo'] %}active{% endif %} lq" data-lq="amber">{{ liquid() }}
-      {{ ic('shaker') }} {{ 'محلل الواي بروتين' if is_ar else 'Whey Analyzer' }}
+      {{ ic('shaker') }} {{ 'محلل المكملات' if is_ar else 'Supplement Analyzer' }}
     </a>
     <details class="nav-more" {% if request.endpoint in ['daily_tips','knowledge','my_plans_history'] %}open{% endif %}>
       <summary class="nav-item lq" data-lq="violet">{{ liquid() }}{{ ic('dots') }} {{ 'المزيد' if is_ar else 'More' }}</summary>
@@ -639,7 +639,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
           <li><a href="/"><i class="fa-solid fa-house"></i> {{ 'الرئيسية' if is_ar else 'Home' }}</a></li>
           <li><a href="/pricing"><i class="fa-solid fa-gem"></i> {{ 'الأسعار' if is_ar else 'Pricing' }}</a></li>
           <li><a href="/analyzer"><i class="fa-solid fa-magnifying-glass"></i> {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}</a></li>
-          <li><a href="/whey"><i class="fa-solid fa-bottle-water"></i> {{ 'محلل الواي بروتين' if is_ar else 'Whey Analyzer' }}</a></li>
+          <li><a href="/whey"><i class="fa-solid fa-bottle-water"></i> {{ 'محلل المكملات' if is_ar else 'Supplement Analyzer' }}</a></li>
           <li><a href="/knowledge"><i class="fa-solid fa-book-open"></i> {{ 'مركز المعرفة' if is_ar else 'Knowledge' }}</a></li>
           <li><a href="/developers"><i class="fa-solid fa-plug"></i> {{ 'API للمطورين' if is_ar else 'Developer API' }}</a></li>
         </ul>

@@ -281,3 +281,36 @@ def whey_read():
         return jsonify({"ok": False, "fallback": True, "error": str(e)}), 502
     data["ok"] = True
     return jsonify(data)
+
+
+# ── الباركود: صورة -> رقم، ورقم -> منتج ─────────────────────────────
+
+@bp.route("/barcode/read", methods=["POST"])
+def barcode_read():
+    """صورة باركود -> رقمه (barcode_scan). محلل المكملات ومحلل الطعام بيستخدموها."""
+    import barcode_scan
+    from flask import jsonify
+    f = request.files.get("image")
+    code = barcode_scan.decode(f.read(barcode_scan.MAX_BYTES + 1) if f else b"")
+    if not code:
+        return jsonify({"ok": False, "error": "مقدرناش نقرا الباركود. صوّره قريب ومستقيم، أو اكتب الرقم اللي تحته."}), 422
+    return jsonify({"ok": True, "code": code})
+
+
+@bp.route("/whey/barcode/<code>")
+def whey_barcode(code):
+    """رقم الباركود -> اللي Open Food Facts عارفه عن المكمل."""
+    import barcode_scan
+    from flask import jsonify
+    code = barcode_scan.clean_code(code)
+    if len(code) < 8:
+        return jsonify({"ok": False, "error": "باركود غير صالح"}), 400
+    try:
+        product = barcode_scan.fetch_product(code)
+    except Exception as e:  # noqa: BLE001
+        print("[barcode] fetch error: %s" % type(e).__name__)
+        return jsonify({"ok": False, "error": "تعذر الاتصال بقاعدة بيانات الباركود"}), 502
+    if not product:
+        return jsonify({"ok": False, "error": "المنتج ده مش موجود في القاعدة -- صوّر ضهر العلبة"}), 404
+    return jsonify({"ok": True, "code": code, "product": barcode_scan.supplement_fields(product)})
+
