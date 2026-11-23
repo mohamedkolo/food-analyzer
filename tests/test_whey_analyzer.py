@@ -313,6 +313,91 @@ def test_equal_readings_are_not_mixed_up():
     got = W.parse_passes(["x", "x", "Alanine 5000mg"])
     assert got["hints"].get("Alanine") == 5000, got
 
+
+# ── Gemini (المفتاح المجاني من Google AI Studio) ────────────────────
+
+class _Resp:
+    def __init__(self, body):
+        import json
+        self._b = json.dumps(body).encode()
+    def read(self):
+        return self._b
+    def __enter__(self):
+        return self
+    def __exit__(self, *a):
+        return False
+
+
+def _fake_google(answer, seen):
+    import json
+    models = {"models": [
+        {"name": "models/gemini-embedding-1", "supportedGenerationMethods": ["embedContent"]},
+        {"name": "models/gemini-9-pro", "supportedGenerationMethods": ["generateContent"]},
+        {"name": "models/gemini-9-flash", "supportedGenerationMethods": ["generateContent"]},
+    ]}
+
+    def urlopen(req, timeout=None):
+        url = req.full_url if hasattr(req, "full_url") else req
+        seen.append(url)
+        if url.split("?")[0].endswith("/models"):
+            return _Resp(models)
+        body = json.loads(req.data.decode())
+        assert body["contents"][0]["parts"][0]["inline_data"]["mime_type"] == "image/jpeg"
+        return _Resp({"candidates": [{"content": {"parts": [{"text": json.dumps(answer)}]}}]})
+    return urlopen
+
+
+def test_a_gemini_key_turns_the_reader_on():
+    import whey_vision
+    os.environ.pop("ANTHROPIC_API_KEY", None)
+    os.environ["GEMINI_API_KEY"] = "test-key"
+    try:
+        assert whey_vision.available()
+    finally:
+        os.environ.pop("GEMINI_API_KEY", None)
+
+
+def test_gemini_reads_the_label_through_the_same_checks():
+    import whey_vision
+    answer = {"serving_g": 31, "protein_g": 28, "unit": "per100",
+              "amino": dict(DEMO["amino"]), "summary": None, "added": []}
+    seen = []
+    os.environ["GEMINI_API_KEY"] = "test-key"
+    whey_vision._MODEL_CACHE.clear()
+    real = whey_vision.urllib.request.urlopen
+    whey_vision.urllib.request.urlopen = _fake_google(answer, seen)
+    try:
+        got = whey_vision.read_label(b"\xff\xd8fakejpeg", "image/jpeg")
+    finally:
+        whey_vision.urllib.request.urlopen = real
+        os.environ.pop("GEMINI_API_KEY", None)
+    assert got["amino"] == DEMO["amino"] and got["serving_g"] == 31, got
+    # ‏الموديل اتختار من القايمة: flash، وبيعمل generateContent
+    assert any("gemini-9-flash:generateContent" in u for u in seen), seen
+    r = W.analyze(got["serving_g"], got["protein_g"], got["amino"], got["unit"])
+    assert r["score"] == 100
+
+
+def test_a_gemini_failure_falls_back_to_the_phone():
+    import whey_vision
+    os.environ["GEMINI_API_KEY"] = "test-key"
+    whey_vision._MODEL_CACHE.clear()
+    real = whey_vision.urllib.request.urlopen
+
+    def boom(req, timeout=None):
+        raise OSError("quota")
+    whey_vision.urllib.request.urlopen = boom
+    try:
+        try:
+            whey_vision.read_label(b"\xff\xd8x", "image/jpeg")
+        except whey_vision.VisionError:
+            pass
+        else:
+            raise AssertionError("الغلطة مااتحوّلتش لـVisionError")
+    finally:
+        whey_vision.urllib.request.urlopen = real
+        os.environ.pop("GEMINI_API_KEY", None)
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
     failed = 0

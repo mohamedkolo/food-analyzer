@@ -13,6 +13,8 @@
 
 import base64
 import json
+import os
+import urllib.request
 
 import whey_analyzer as W
 
@@ -50,9 +52,13 @@ _PROMPT = """This is a photo of the back of a whey protein tub. Read ONLY what i
 Read each row's number from the same row as its name; tables are often curved or glossy."""
 
 
+def _gemini_key():
+    return (os.environ.get("GEMINI_API_KEY") or "").strip()
+
+
 def available():
     from lab_report import api_key
-    return bool(api_key())
+    return bool(_gemini_key() or api_key())
 
 
 def normalize(raw):
@@ -83,6 +89,53 @@ class VisionError(Exception):
     pass
 
 
+# ── Gemini: المفتاح المجاني من Google AI Studio ────────────────────
+#
+# ‏صاحب المشروع طلب حل من غير فلوس، ومفتاح Claude مدفوع. Gemini عنده
+# استخدام مجاني بحد يومي. الطلب بيتبعت REST مباشرة (urllib) -- من غير ما
+# نضيف مكتبة. واسم الموديل مش مكتوب: Google بتغيّر الأسامي كل كام شهر،
+# فبيتختار من قايمة الموديلات المتاحة للمفتاح (flash الأول: أسرع، وهو
+# اللي عليه الحد المجاني الأوسع). GEMINI_MODEL بيغيّره لو حد عايز.
+_GEMINI = "https://generativelanguage.googleapis.com/v1beta"
+_MODEL_CACHE = {}
+_SHAPE = (' Reply with JSON only, exactly this shape: {"serving_g": number|null, "protein_g": number|null, '
+          '"unit": "per100"|"serving"|"unknown", "amino": {' +
+          ", ".join('"%s": number|null' % k for k in W.AMINO) +
+          '}, "summary": {"total_aa_g": number|null, "eaa_g": number|null, "bcaa_g": number|null, '
+          '"leucine_g": number|null}, "added": [string]}')
+
+
+def _get(url, data=None, timeout=60):
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json",
+                                                         "x-goog-api-key": _gemini_key()})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode())
+
+
+def _gemini_model():
+    chosen = (os.environ.get("GEMINI_MODEL") or "").strip()
+    if chosen:
+        return chosen
+    if "name" not in _MODEL_CACHE:
+        names = [m.get("name", "").split("/")[-1] for m in _get(_GEMINI + "/models", timeout=20).get("models", [])
+                 if "generateContent" in (m.get("supportedGenerationMethods") or [])]
+        names = [n for n in names if n.startswith("gemini")]
+        flash = [n for n in names if "flash" in n and "lite" not in n and "image" not in n]
+        _MODEL_CACHE["name"] = (flash or names or ["gemini-flash-latest"])[0]
+    return _MODEL_CACHE["name"]
+
+
+def _read_gemini(image_bytes, media_type):
+    model = _gemini_model()
+    body = {"contents": [{"parts": [
+        {"inline_data": {"mime_type": media_type, "data": base64.standard_b64encode(image_bytes).decode()}},
+        {"text": _PROMPT + _SHAPE}]}],
+        "generationConfig": {"responseMimeType": "application/json", "temperature": 0}}
+    out = _get("%s/models/%s:generateContent" % (_GEMINI, model), json.dumps(body).encode())
+    parts = ((out.get("candidates") or [{}])[0].get("content") or {}).get("parts") or []
+    return json.loads("".join(p.get("text", "") for p in parts))
+
+
 def read_label(image_bytes, content_type):
     from lab_report import ALLOWED_TYPES, MAX_IMAGE_BYTES, MODEL, api_key
     media_type = ALLOWED_TYPES.get((content_type or "").split(";")[0].strip().lower())
@@ -90,6 +143,13 @@ def read_label(image_bytes, content_type):
         raise VisionError("ابعت صورة JPG أو PNG")
     if len(image_bytes) > MAX_IMAGE_BYTES:
         raise VisionError("الصورة كبيرة -- صوّرها بدقة أقل")
+    if _gemini_key():
+        try:
+            return normalize(_read_gemini(image_bytes, media_type))
+        except Exception as e:  # noqa: BLE001 -- حد يومي خلص، شبكة، رد غريب: الموبايل يكمّل
+            _MODEL_CACHE.clear()
+            if not api_key():
+                raise VisionError("Gemini مش متاح دلوقتي (%s)" % type(e).__name__)
     try:
         import anthropic
     except ImportError:
