@@ -871,27 +871,20 @@ def _lookup_barcode(code):
     قدام مريض مرارة أو كبد دهني كدب. فالناقص بيترجّع None، والكارت
     بيكتب "غير مذكور" -- اللي مش معروف يفضل مش معروف.
     """
-    import urllib.request as _ur
-
     clean_code = re.sub(r"\D", "", code or "")[:20]
     if not clean_code:
         return {"ok": False, "error": "باركود غير صالح"}, 400
 
     try:
-        req = _ur.Request(
-            f"https://world.openfoodfacts.org/api/v2/product/{clean_code}.json",
-            headers={"User-Agent": "NutraX-FoodAnalyzer/1.0 (contact: admin@nutrax.com)"}
-        )
-        with _ur.urlopen(req, timeout=8) as r:
-            data = json.loads(r.read())
+        import barcode_scan
+        p = barcode_scan.fetch_product(clean_code)
     except Exception as e:
         print(f"[barcode] fetch error: {e}")
         return {"ok": False, "error": "تعذر الاتصال بقاعدة بيانات الباركود"}, 502
 
-    if data.get("status") != 1 or not data.get("product"):
+    if not p:
         return {"ok": False, "error": "المنتج ده مش موجود في القاعدة"}, 404
 
-    p = data["product"]
     payload = _barcode_food(p, clean_code)
     if payload is None:
         return {"ok": False, "error": "البيانات الغذائية لهذا المنتج ناقصة"}, 404
