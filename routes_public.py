@@ -29,6 +29,7 @@ PUBLIC_PAGES = [
     ("/", "weekly", "1.0"),
     ("/pricing", "monthly", "0.8"),
     ("/foods", "weekly", "0.7"),
+    ("/whey", "monthly", "0.6"),
     ("/terms", "yearly", "0.3"),
     ("/privacy", "yearly", "0.3"),
 ]
@@ -154,3 +155,64 @@ def landing():
 
 # "/" still answers POST: the login form used to live at the root, so old
 # bookmarks and any cached PWA shell keep working.
+
+
+# ── محلل الواي بروتين ───────────────────────────────────────────────
+
+def _whey_form(form):
+    """الأرقام من الفورم. الخانة الفاضية = None، مش صفر -- عشان تبان ناقصة."""
+    import whey_analyzer as W
+
+    def num(name):
+        raw = (form.get(name) or "").strip().replace(",", ".")
+        raw = raw.translate(str.maketrans("٠١٢٣٤٥٦٧٨٩٫", "0123456789."))
+        try:
+            return float(raw) if raw else None
+        except ValueError:
+            return None
+    return {"serving_g": num("serving_g"), "protein_g": num("protein_g"),
+            "unit": "serving" if form.get("unit") == "serving" else "per100",
+            "amino": {k: num(k) for k in W.AMINO}}
+
+
+def _whey_page(values=None, result=None, error=None, demo=False):
+    import whey_analyzer as W
+    return render_template("whey.html", lang=session.get("lang", "ar"),
+                           amino=W.AMINO, amino_ar=W.AMINO_AR, eaa=W.EAA, bcaa=W.BCAA,
+                           values=values or {"unit": "per100", "amino": {}},
+                           result=result, error=error, demo=demo,
+                           canonical_url=site_origin() + "/whey")
+
+
+@bp.route("/whey", methods=["GET", "POST"])
+def whey():
+    """صورة ضهر علبة الواي -> تقييم من ١٠٠ (whey_analyzer)."""
+    import whey_analyzer as W
+    if request.method != "POST":
+        return _whey_page()
+    values = _whey_form(request.form)
+    try:
+        result = W.analyze(values["serving_g"], values["protein_g"],
+                           values["amino"], values["unit"])
+    except ValueError as e:
+        return _whey_page(values=values, error=str(e))
+    return _whey_page(values=values, result=result)
+
+
+@bp.route("/whey/demo")
+def whey_demo():
+    """العلبة التجريبية من صاحب المشروع -- نتيجتها المتوقعة ١٠٠ ممتاز."""
+    import whey_analyzer as W
+    values = {"serving_g": W.DEMO["serving_g"], "protein_g": W.DEMO["protein_g"],
+              "unit": "per100", "amino": dict(W.DEMO["amino"])}
+    result = W.analyze(values["serving_g"], values["protein_g"], values["amino"], "per100")
+    return _whey_page(values=values, result=result, demo=True)
+
+
+@bp.route("/whey/parse", methods=["POST"])
+def whey_parse():
+    """نص الصورة (اتقرا في موبايل المستخدم) -> أرقام. الصورة نفسها مابتوصلش هنا."""
+    import whey_analyzer as W
+    from flask import jsonify
+    text = ((request.get_json(silent=True) or {}).get("text") or "")[:20000]
+    return jsonify(W.parse_label(text))

@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% block title %}{{ t('محلل الواي بروتين — اعرف البروتين بتاعك أصلي ولا لأ','Whey Protein Analyzer — is your whey the real thing?') }}{% endblock %}
+{% block meta_description %}{{ t('صوّر ضهر علبة الواي بروتين، والتحليل بيحسب نسبة الأحماض الأمينية والليوسين وEAA وBCAA ويديك تقييم من ١٠٠ ويكشف الـAmino Spiking.','Photograph the back of a whey tub: we work out the amino acid, leucine, EAA and BCAA percentages, score it out of 100 and flag amino spiking.') }}{% endblock %}
+{% block body_class %}public-chrome wy-page{% endblock %}
+{% block chrome %}{% include "_public_header.html" %}{% endblock %}
+
+{% block extra_style %}
+<style>
+/* ‏محلل الواي: داكن ورياضي بطلب صاحب المشروع -- ألوانه ثابتة بالقصد،
+   مش من ثيم الموقع، عشان الصفحة نفسها شكلها "جيم" في الوضعين.
+   ألوان التقييم من طلبه: أخضر ممتاز، أزرق جيد، أصفر مقبول، أحمر غير مقبول. */
+.wy{--bg:#0E1116;--card:#161B22;--card-2:#1D242E;--line:#2A3340;--ink:#F2F5F8;--muted:#9AA6B4;
+  --accent:#C6F135;--accent-ink:#0E1116;--ok:#3DDC84;--good:#4FA3FF;--fair:#F5C542;--bad:#FF5A5F;
+  background:var(--bg);color:var(--ink);font-family:'Cairo',system-ui,sans-serif;min-block-size:100vh;
+  padding:28px 16px 72px}
+.wy *{box-sizing:border-box}
+/* ‏الصفحة كلها داكنة، مش كارت داكن في نص صفحة فاتحة */
+body.wy-page{background-color:#0E1116}
+body.wy-page::before{display:none}
+.wy-in{max-inline-size:880px;margin:0 auto;display:grid;gap:18px}
+.wy-hero h1{margin:0;font-size:clamp(26px,6vw,40px);font-weight:900;line-height:1.2;letter-spacing:-.3px}
+.wy-hero h1 em{font-style:normal;color:var(--accent)}
+.wy-hero p{margin:8px 0 0;color:var(--muted);font-size:15px;line-height:1.8}
+.wy-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
+.wy-card h2{margin:0 0 14px;font-size:16px;font-weight:900;display:flex;align-items:center;gap:10px}
+.wy-card h2 i{color:var(--accent)}
+
+/* ‏الزرارين: كاميرا ورفع. الـinput نفسه مستخبي والـlabel هو الزرار */
+.wy-pick{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.wy-file{position:absolute;inline-size:1px;block-size:1px;opacity:0;pointer-events:none}
+/* ‏margin:0 صراحة: قاعدة عامة في الموقع بتدي label جنب input مسافة ٦٠ بكسل فوقه */
+.wy-btn{margin:0;display:flex;align-items:center;justify-content:center;gap:10px;min-block-size:56px;padding:0 18px;border-radius:14px;
+  font-family:inherit;font-size:15.5px;font-weight:900;cursor:pointer;text-decoration:none;border:1px solid var(--line);
+  background:var(--card-2);color:var(--ink)}
+.wy-btn.main{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.wy-btn:hover{filter:brightness(1.08)}
+.wy-file:focus-visible + .wy-btn,.wy-btn:focus-visible{outline:3px solid var(--good);outline-offset:3px}
+.wy-status{margin:12px 0 0;font-size:14px;color:var(--muted);min-block-size:1.6em}
+.wy-status.ok{color:var(--ok)}.wy-status.err{color:var(--bad)}
+.wy-bar{block-size:6px;border-radius:99px;background:var(--card-2);overflow:hidden;margin-top:8px;display:none}
+.wy-bar span{display:block;block-size:100%;inline-size:0;background:var(--accent);transition:inline-size .3s}
+
+/* ‏الفورم */
+.wy-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.wy-f label{display:block;font-size:12.5px;font-weight:800;color:var(--muted);margin-bottom:6px}
+.wy-f input[type=text],.wy-f input[type=number]{inline-size:100%;min-block-size:46px;padding:0 12px;border-radius:12px;
+  border:1px solid var(--line);background:var(--bg);color:var(--ink);font-family:inherit;font-size:15px;font-weight:700;
+  font-variant-numeric:tabular-nums}
+.wy-f input:focus{outline:none;border-color:var(--accent)}
+.wy-f.miss input{border-color:var(--fair)}
+.wy-f.read input{border-color:var(--ok)}
+.wy-unit{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}
+.wy-unit label{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);
+  background:var(--bg);font-size:13.5px;font-weight:800;cursor:pointer}
+.wy-unit input{accent-color:var(--accent)}
+.wy-aa{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:14px}
+.wy-tag{display:inline-block;margin-inline-start:6px;font-size:10px;font-weight:900;padding:1px 6px;border-radius:6px;
+  background:var(--card-2);color:var(--accent)}
+.wy-sub{margin:18px 0 0;font-size:13px;color:var(--muted)}
+.wy-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.wy-actions .wy-btn{flex:1 1 200px}
+.wy-error{padding:14px 16px;border-radius:14px;background:#2A1416;border:1px solid var(--bad);color:#FFC9CB;font-weight:800}
+
+/* ‏النتيجة */
+.wy-result{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center}
+.wy-ring{position:relative;inline-size:150px;block-size:150px}
+.wy-ring svg{inline-size:100%;block-size:100%;transform:rotate(-90deg)}
+.wy-ring .track{stroke:var(--card-2)}
+.wy-ring .val{stroke:var(--c);stroke-linecap:round;transition:stroke-dashoffset 1s ease}
+.wy-ring-in{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.wy-score{font-size:52px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+.wy-of{font-size:12px;color:var(--muted);font-weight:800}
+.wy-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;font-weight:900;font-size:15px;
+  background:var(--c);color:#0E1116}
+.wy-verdict p{margin:10px 0 0;font-size:16px;line-height:1.8;font-weight:700}
+.wy-warn{display:flex;gap:10px;align-items:flex-start;padding:14px 16px;border-radius:14px;background:#2A1416;
+  border:1px solid var(--bad);color:#FFC9CB;font-weight:900;font-size:15px}
+.wy-table{inline-size:100%;border-collapse:collapse;font-size:14px}
+.wy-table th{font-size:11.5px;color:var(--muted);font-weight:800;text-align:start;padding:8px 10px;border-bottom:1px solid var(--line)}
+.wy-table td{padding:12px 10px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.wy-table tr:last-child td{border-bottom:0}
+.wy-table b{font-size:16px;font-weight:900}
+.wy-pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:900;color:#0E1116;background:var(--c)}
+.wy-pts{color:var(--muted);font-size:12px}
+.wy-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
+.wy-info div{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px}
+.wy-info small{display:block;font-size:11.5px;color:var(--muted);font-weight:800}
+.wy-info b{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums}
+.wy-demo{display:inline-flex;gap:8px;align-items:center;color:var(--accent);font-weight:800;font-size:13.5px;text-decoration:none}
+.wy-saved{display:grid;gap:8px}
+.wy-saved div{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:13.5px}
+.wy-saved button{background:none;border:0;color:var(--muted);cursor:pointer;font-family:inherit}
+[data-g="excellent"]{--c:var(--ok)}[data-g="good"]{--c:var(--good)}[data-g="fair"]{--c:var(--fair)}[data-g="bad"]{--c:var(--bad)}
+@media(max-width:560px){
+  .wy-pick{grid-template-columns:1fr}
+  .wy-result{grid-template-columns:1fr;justify-items:center;text-align:center}
+  .wy-table th:nth-child(3),.wy-table td:nth-child(3){display:none}
+}
+@media (prefers-reduced-motion:reduce){.wy-ring .val,.wy-bar span{transition:none}}
+</style>
+{% endblock %}
+
+{% block content %}
+{% set G = {'excellent': t('ممتاز','Excellent'), 'good': t('جيد','Good'), 'fair': t('مقبول','Fair'), 'bad': t('ضعيف','Weak')} %}
+{% set M = {'total_aa': (t('نسبة الأحماض الأمينية من الحصة','Amino acids in the serving'), 'Total AA %'),
+            'leucine': (t('نسبة الليوسين','Leucine'), 'Leucine %'),
+            'eaa': (t('الأحماض الأساسية','Essential amino acids'), 'EAA %'),
+            'bcaa': (t('الأحماض متفرعة السلسلة','Branched-chain amino acids'), 'BCAA %')} %}
+<div class="wy">
+ <div class="wy-in">
+
+  <header class="wy-hero">
+    <h1>{{ t('محلل','Whey') }} <em>{{ t('الواي بروتين','Protein Analyzer') }}</em></h1>
+    <p>{{ t('صوّر ضهر العلبة (Supplement Facts وجدول الأحماض الأمينية)، وهنقولك البروتين ده نضيف ولا فيه حشو.','Photograph the back of the tub (Supplement Facts and the amino acid table) and we will tell you if it is clean or padded.') }}</p>
+  </header>
+
+  {% if result %}
+  {% set g = result.grade %}
+  <section class="wy-card" aria-labelledby="wy-res" data-g="{{ g.key }}" id="wyResult"
+           data-score="{{ result.score }}" data-grade="{{ g.ar if lang != 'en' else g.en }}">
+    <h2 id="wy-res"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i>{{ t('النتيجة','Result') }}{% if demo %} · {{ t('علبة تجريبية','Demo tub') }}{% endif %}</h2>
+    <div class="wy-result">
+      <div class="wy-ring" role="img" aria-label="{{ result.score }} {{ t('من','of') }} 100">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="track" cx="60" cy="60" r="52" fill="none" stroke-width="12"/>
+          <circle class="val" cx="60" cy="60" r="52" fill="none" stroke-width="12"
+                  stroke-dasharray="326.7" stroke-dashoffset="{{ '%.1f' % (326.7 * (1 - result.score / 100)) }}"/>
+        </svg>
+        <div class="wy-ring-in"><div><div class="wy-score">{{ result.score }}</div><div class="wy-of">/ 100</div></div></div>
+      </div>
+      <div class="wy-verdict">
+        <span class="wy-badge">{{ g.ar if lang != 'en' else g.en }}</span>
+        <p>{{ g.note_ar if lang != 'en' else g.note_en }}</p>
+      </div>
+    </div>
+  </section>
+
+  {% for w in result.warnings %}
+  <div class="wy-warn" role="alert"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+    {{ t('احتمال غش - Amino Spiking: الليوسين أو الأحماض الأساسية أقل من المفروض، غالباً اتضاف أحماض رخيصة عشان ترفع رقم البروتين.','Possible cheating - Amino Spiking: leucine or the essential amino acids are too low, so cheap amino acids were probably added to inflate the protein figure.') }}</div>
+  {% endfor %}
+
+  <section class="wy-card" aria-labelledby="wy-tab">
+    <h2 id="wy-tab"><i class="fa-solid fa-table-list" aria-hidden="true"></i>{{ t('التفاصيل','Breakdown') }}</h2>
+    <table class="wy-table">
+      <thead><tr><th scope="col">{{ t('المعادلة','Measure') }}</th><th scope="col">{{ t('نتيجتك','Yours') }}</th>
+        <th scope="col">{{ t('المثالي','Ideal') }}</th><th scope="col">{{ t('التقييم','Rating') }}</th></tr></thead>
+      <tbody>
+      {% for r in result.rows %}
+      <tr data-g="{{ r.tier }}">
+        <td>{{ M[r.metric][0] }}<br><span class="wy-pts">{{ M[r.metric][1] }}</span></td>
+        <td><b>{{ '%.2f' % r.value if r.metric == 'leucine' else '%.1f' % r.value }}%</b></td>
+        {# ‏dir=ltr: "≥" في سطر عربي بيتعكس ويتقري "≤" #}
+        <td><bdi dir="ltr">≥ {{ r.ideal }}%</bdi></td>
+        <td><span class="wy-pill">{{ G[r.tier] }}</span> <span class="wy-pts">{{ r.points }}/{{ r.max }}</span></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <div class="wy-info">
+      <div><small>{{ t('نسبة البروتين من الحصة','Protein in the serving') }}</small><b>{{ '%.1f' % result.protein_pct }}%</b></div>
+      <div><small>{{ t('أحماض أمينية في الحصة','Amino acids per serving') }}</small><b>{{ '%.1f' % result.total_aa_g }} {{ t('جم','g') }}</b></div>
+      <div><small>{{ t('ليوسين في الحصة','Leucine per serving') }}</small><b>{{ '%.2f' % result.leucine_g }} {{ t('جم','g') }}</b></div>
+    </div>
+    <div class="wy-actions">
+      <a class="wy-btn main" href="/whey"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i>{{ t('حلل منتج تاني','Analyse another product') }}</a>
+      <button type="button" class="wy-btn" id="wySave"><i class="fa-regular fa-bookmark" aria-hidden="true"></i>{{ t('حفظ النتيجة','Save the result') }}</button>
+    </div>
+    <p class="wy-status" id="wySaveMsg" role="status"></p>
+  </section>
+  {% endif %}
+
+  {% if error %}<div class="wy-error" role="alert">{{ error }}</div>{% endif %}
+
+  {% if not result %}
+  <section class="wy-card" aria-labelledby="wy-photo">
+    <h2 id="wy-photo"><i class="fa-solid fa-camera" aria-hidden="true"></i>{{ t('صورة ضهر العلبة','Photo of the label') }}</h2>
+    <div class="wy-pick">
+      <div>
+        <input class="wy-file" type="file" id="wyCam" accept="image/*" capture="environment" aria-label="{{ t('صوّر العلبة','Photograph the tub') }}">
+        <label class="wy-btn main" for="wyCam"><i class="fa-solid fa-camera" aria-hidden="true"></i>{{ t('صوّر العلبة','Photograph the tub') }}</label>
+      </div>
+      <div>
+        <input class="wy-file" type="file" id="wyUp" accept="image/*" aria-label="{{ t('ارفع صورة','Upload a photo') }}">
+        <label class="wy-btn" for="wyUp"><i class="fa-solid fa-image" aria-hidden="true"></i>{{ t('ارفع صورة','Upload a photo') }}</label>
+      </div>
+    </div>
+    <div class="wy-bar" id="wyBar"><span></span></div>
+    <p class="wy-status" id="wyStatus" role="status" aria-live="polite">{{ t('الصورة بتتقرا على موبايلك ومابتتبعتش لأي حد.','The photo is read on your phone and is not sent anywhere.') }}</p>
+    <a class="wy-demo" href="/whey/demo"><i class="fa-solid fa-flask" aria-hidden="true"></i>{{ t('جرّب على علبة تجريبية','Try a demo tub') }}</a>
+  </section>
+  {% endif %}
+
+  <form class="wy-card" method="post" action="/whey" id="wyForm" aria-labelledby="wy-nums">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2 id="wy-nums"><i class="fa-solid fa-list-ol" aria-hidden="true"></i>{{ t('الأرقام','The numbers') }}</h2>
+    <div class="wy-f"><label for="wy_name">{{ t('اسم المنتج (اختياري)','Product name (optional)') }}</label>
+      <input type="text" id="wy_name" name="product" value="{{ request.form.get('product','') }}" autocomplete="off"></div>
+    <div class="wy-row2" style="margin-top:12px">
+      <div class="wy-f" data-key="serving_g"><label for="wy_serving">{{ t('حجم الحصة (جم)','Serving size (g)') }}</label>
+        <input type="number" step="any" inputmode="decimal" id="wy_serving" name="serving_g" value="{{ values.serving_g if values.serving_g is not none else '' }}" required></div>
+      <div class="wy-f" data-key="protein_g"><label for="wy_protein">{{ t('بروتين في الحصة (جم)','Protein per serving (g)') }}</label>
+        <input type="number" step="any" inputmode="decimal" id="wy_protein" name="protein_g" value="{{ values.protein_g if values.protein_g is not none else '' }}" required></div>
+    </div>
+    <fieldset class="wy-unit" style="border:0;padding:0">
+      <legend class="wy-pts" style="margin-bottom:6px">{{ t('أرقام الأحماض مكتوبة:','The amino acid figures are:') }}</legend>
+      <label><input type="radio" name="unit" value="per100" {% if values.unit != 'serving' %}checked{% endif %}>{{ t('لكل ١٠٠ جم بروتين','Per 100 g of protein') }}</label>
+      <label><input type="radio" name="unit" value="serving" {% if values.unit == 'serving' %}checked{% endif %}>{{ t('للحصة الواحدة','Per serving') }}</label>
+    </fieldset>
+    <p class="wy-sub">{{ t('الأحماض الأمينية بالمللي جرام (mg)','Amino acids in milligrams (mg)') }}</p>
+    <div class="wy-aa">
+      {% for k in amino %}
+      {% set v = values.amino.get(k) %}
+      <div class="wy-f" data-key="{{ k }}">
+        <label for="wy_{{ k }}">{{ k }}{% if k in bcaa %}<span class="wy-tag">BCAA</span>{% elif k in eaa %}<span class="wy-tag">EAA</span>{% endif %}</label>
+        <input type="number" step="any" inputmode="decimal" id="wy_{{ k }}" name="{{ k }}" value="{{ ('%g' % v) if v is not none else '' }}"
+               aria-describedby="wy_{{ k }}_ar" placeholder="mg">
+        <span class="wy-pts" id="wy_{{ k }}_ar">{{ amino_ar[k] if lang != 'en' else '' }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="wy-actions">
+      <button type="submit" class="wy-btn main"><i class="fa-solid fa-bolt" aria-hidden="true"></i>{{ t('احسب التقييم','Score it') }}</button>
+    </div>
+  </form>
+
+  <section class="wy-card" id="wySavedBox" hidden aria-labelledby="wy-saved">
+    <h2 id="wy-saved"><i class="fa-solid fa-bookmark" aria-hidden="true"></i>{{ t('نتايجك المحفوظة','Your saved results') }}</h2>
+    <div class="wy-saved" id="wySavedList"></div>
+  </section>
+ </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/report_ocr.js') }}" defer></script>
+<script>
+(function(){
+  const S = {
+    reading: {{ t('بقرا الصورة… أول مرة بتاخد شوية','Reading the photo… the first time takes a moment')|tojson }},
+    found: {{ t('اتقرا %n من 20 رقم. راجعهم، والخانات الصفرا اكتبها بإيدك.','Read %n of 20 numbers. Check them and fill in the yellow boxes.')|tojson }},
+    none: {{ t('مقدرناش نقرا الصورة. صوّرها أقرب وفي نور كويس، أو اكتب الأرقام بإيدك.','Could not read the photo. Take it closer in good light, or type the numbers.')|tojson }},
+    saved: {{ t('اتحفظت على الجهاز ده','Saved on this device')|tojson }},
+    noName: {{ t('بدون اسم','Unnamed')|tojson }},
+    remove: {{ t('امسح','Remove')|tojson }},
+  };
+  const KEY = 'nx-whey-saved';
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
+  const store = list => { try { localStorage.setItem(KEY, JSON.stringify(list.slice(0, 30))); return true; } catch (e) { return false; } };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  function drawSaved(){
+    const list = load(), box = document.getElementById('wySavedBox'), el = document.getElementById('wySavedList');
+    if (!box || !list.length) { if (box) box.hidden = true; return; }
+    box.hidden = false;
+    el.innerHTML = list.map((r, i) => `<div data-g="${esc(r.key)}"><span><b>${esc(r.name || S.noName)}</b> · ${esc(r.date)}</span>`
+      + `<span><span class="wy-pill">${esc(r.score)} · ${esc(r.grade)}</span> <button type="button" data-i="${i}" aria-label="${esc(S.remove)}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></span></div>`).join('');
+  }
+  document.addEventListener('click', e => {
+    const del = e.target.closest('#wySavedList button');
+    if (del) { const l = load(); l.splice(+del.dataset.i, 1); store(l); drawSaved(); }
+  });
+  const save = document.getElementById('wySave');
+  if (save) save.addEventListener('click', () => {
+    const res = document.getElementById('wyResult');
+    const l = load();
+    l.unshift({name: (document.getElementById('wy_name') || {}).value || '', score: res.dataset.score,
+               grade: res.dataset.grade, key: res.dataset.g, date: new Date().toLocaleDateString()});
+    document.getElementById('wySaveMsg').textContent = store(l) ? S.saved : '';
+    save.disabled = true; drawSaved();
+  });
+  drawSaved();
+
+  // ‏صورة -> سطور (في المتصفح، ReportOCR) -> أرقام (السيرفر، whey_analyzer.parse_label)
+  const status = document.getElementById('wyStatus'), bar = document.getElementById('wyBar');
+  function say(msg, cls){ status.textContent = msg; status.className = 'wy-status' + (cls ? ' ' + cls : ''); }
+  async function readPhoto(file){
+    if (!file) return;
+    say(S.reading); bar.style.display = 'block';
+    const fill = bar.firstElementChild;
+    try {
+      if (!window.ReportOCR) throw new Error('no-engine');
+      const passes = await window.ReportOCR.read(file, m => { if (m && m.progress != null) fill.style.inlineSize = Math.round(m.progress * 100) + '%'; });
+      const text = passes.map(p => p.map(w => w.join(' ')).join('\n')).join('\n');
+      const res = await fetch('/whey/parse', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text})});
+      const got = await res.json();
+      let n = 0;
+      const put = (key, val) => {
+        const wrap = document.querySelector(`.wy-f[data-key="${key}"]`);
+        if (!wrap) return;
+        wrap.classList.remove('miss', 'read');
+        if (val != null) { wrap.querySelector('input').value = val; wrap.classList.add('read'); n++; }
+        else wrap.classList.add('miss');
+      };
+      put('serving_g', got.serving_g); put('protein_g', got.protein_g);
+      Object.keys(got.amino || {}).forEach(k => put(k, got.amino[k]));
+      (got.missing || []).forEach(k => put(k, null));
+      const u = document.querySelector(`input[name="unit"][value="${got.unit}"]`); if (u) u.checked = true;
+      if (!n) throw new Error('nothing');
+      say(S.found.replace('%n', n), 'ok');
+      const first = document.querySelector('.wy-f.miss input');
+      (first || document.getElementById('wyForm')).scrollIntoView({behavior: 'smooth', block: 'center'});
+      if (first) first.focus({preventScroll: true});
+    } catch (e) {
+      say(S.none, 'err');
+    }
+    fill.style.inlineSize = '100%'; setTimeout(() => { bar.style.display = 'none'; fill.style.inlineSize = '0'; }, 600);
+  }
+  ['wyCam', 'wyUp'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', () => readPhoto(el.files[0])); });
+})();
+</script>
+{% endblock %}
