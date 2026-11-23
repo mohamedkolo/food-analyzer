@@ -103,6 +103,11 @@ ISOLATE_PCT = 80
 # ‏الجينر: أكتر من ٢٥ جم سكر في الحصة = نص حد WHO للسكر الحر في اليوم (٥٠ جم)
 SUGAR_G = 25
 KINDS = ("isolate", "whey", "mass")
+# ‏أحماض أساسية بتتضاف تقوية (BCAA وغيرها): مش غش زي الـGlycine والـTaurine
+# الرخاص، بس بتعلّي الليوسين والـEAA في الحساب -- فملاحظة صفرا مش تحذير.
+# صاحب المشروع صوّر علبة فيها L-Leucine وL-Isoleucine وL-Valine وطلعله
+# "Amino Spiking" بالأحمر.
+FORTIFY = ("Leucine", "Isoleucine", "Valine", "Lysine", "Threonine", "Methionine", "Histidine")
 
 
 def _score(out, added=None, kind="whey", sugar_g=None):
@@ -139,11 +144,15 @@ def _score(out, added=None, kind="whey", sugar_g=None):
         out["warnings"].append("احتمال غش - Amino Spiking")
         out["alerts"].append({"key": "spiking"})
     added = [a for a in (added or []) if a]
-    if added:
+    cheap = [a for a in added if a not in FORTIFY]
+    fortified = [a for a in added if a in FORTIFY]
+    if cheap:
         out["warnings"].append(
             "المكونات فيها أحماض أمينية مضافة (%s) -- علامة Amino Spiking: بتعلّي رقم "
-            "البروتين على الورق من غير بروتين حقيقي" % "، ".join(added))
-        out["alerts"].append({"key": "added", "items": added})
+            "البروتين على الورق من غير بروتين حقيقي" % "، ".join(cheap))
+        out["alerts"].append({"key": "added", "items": cheap})
+    if fortified:
+        out["alerts"].append({"key": "fortified", "items": fortified})
     if kind == "isolate" and out["protein_pct"] < ISOLATE_PCT:
         out["alerts"].append({"key": "not_isolate"})
     if kind != "mass" and out["protein_pct"] < LOW_PROTEIN_PCT:

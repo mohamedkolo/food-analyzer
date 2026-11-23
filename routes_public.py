@@ -203,7 +203,7 @@ def _whey_page(values=None, result=None, error=None, demo=False, kind=None,
     import whey_vision
     return render_template("whey.html", lang=session.get("lang", "ar"), user=user,
                            vision=whey_vision.available(),
-                           amino=W.AMINO, amino_ar=W.AMINO_AR, eaa=W.EAA, bcaa=W.BCAA,
+                           amino=W.AMINO, amino_ar=W.AMINO_AR, eaa=W.EAA, bcaa=W.BCAA, fortify=list(W.FORTIFY),
                            values=values or {"unit": "per100", "amino": {}},
                            result=result, error=error, demo=demo,
                            kind=kind, whey_kinds=WHEY_KINDS, supp_types=SP.TYPES,

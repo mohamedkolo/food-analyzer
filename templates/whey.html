@@ -225,10 +225,15 @@ body.wy-page::before{display:none}
   </section>
   {% endif %}
 
-  {% for a in result.alerts %}
+  {% for a in result.alerts if a.key == 'fortified' %}
+  <div class="wy-alert" role="note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+    {{ t('مضاف أحماض أساسية','Added essential amino acids') }} <bdi dir="ltr">({{ a['items'] | join(', ') }})</bdi>
+    {{ t('-- ده مش غش، ماركات كتير بتضيف BCAA تقوية. بس بيعلّي نسبة الليوسين والـEAA في الحساب، فالتقييم ممكن يطلع أعلى شوية من البروتين نفسه.','-- not cheating; many brands add BCAAs. But they raise the leucine and EAA figures, so the score can read a little higher than the protein itself.') }}</div>
+  {% endfor %}
+  {% for a in result.alerts if a.key != 'fortified' %}
   <div class="wy-warn" role="alert"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
     <span>{% if a.key == 'spiking' %}{{ t('احتمال غش - Amino Spiking: الليوسين أو الأحماض الأساسية أقل من المفروض، غالباً اتضاف أحماض رخيصة عشان ترفع رقم البروتين.','Possible cheating - Amino Spiking: leucine or the essential amino acids are too low, so cheap amino acids were probably added to inflate the protein figure.') }}
-    {%- elif a.key == 'added' %}{{ t('المكونات فيها أحماض أمينية مضافة','The ingredients list added amino acids') }} (<bdi dir="ltr">{{ a['items'] | join(', ') }}</bdi>) {{ t('-- علامة Amino Spiking: بتعلّي رقم البروتين على الورق من غير بروتين حقيقي.','-- a sign of amino spiking: they raise the protein figure on paper without real protein.') }}
+    {%- elif a.key == 'added' %}{{ t('المكونات فيها أحماض أمينية مضافة','The ingredients list added amino acids') }} <bdi dir="ltr">({{ a['items'] | join(', ') }})</bdi> {{ t('-- علامة Amino Spiking: بتعلّي رقم البروتين على الورق من غير بروتين حقيقي.','-- a sign of amino spiking: they raise the protein figure on paper without real protein.') }}
     {%- elif a.key == 'not_isolate' %}{{ t('البروتين %s%% بس من الحصة -- الـIsolate الحقيقي ٩٠٪ بروتين، فده غالباً Concentrate أو خلطة متسمّية Isolate.' % ('%.0f' % result.protein_pct),'Protein is only %s%% of the serving -- real isolate is 90%% protein, so this is likely concentrate or a blend sold as isolate.' % ('%.0f' % result.protein_pct)) }}
     {%- elif a.key == 'sugar' %}{{ t('%s جم سكر في الحصة -- نص الحد اليومي للسكر (٥٠ جم) في حصة واحدة.' % ('%g' % a.grams),'%s g sugar per serving -- half the daily sugar limit (50 g) in one serving.' % ('%g' % a.grams)) }}
     {%- else %}{{ t('البروتين %s%% بس من الحصة -- ده غالباً Mass Gainer مش واي، والتقييم ده معمول للواي.' % ('%.0f' % result.protein_pct),'Protein is only %s%% of the serving -- this is likely a Mass Gainer, not whey, and this score is made for whey.' % ('%.0f' % result.protein_pct)) }}{% endif %}</span></div>
@@ -478,6 +483,7 @@ body.wy-page::before{display:none}
   const status = document.getElementById('wyStatus'), bar = document.getElementById('wyBar');
   function say(msg, cls){ status.textContent = msg; status.className = 'wy-status' + (cls ? ' ' + cls : ''); }
   const VISION = {{ 'true' if vision else 'false' }};
+  const FORTIFY = {{ fortify|tojson }}, cheap = l => (l || []).filter(a => !FORTIFY.includes(a));
   const KIND = {{ (kind or 'whey')|tojson }}, SUPP = {{ 'true' if supp else 'false' }};
   const modeBox = v => { document.querySelectorAll('input[name=mode]').forEach(r => r.checked = r.value === v);
     document.getElementById('wySummary').hidden = v !== 'summary'; document.getElementById('wyProfile').hidden = v === 'summary'; };
@@ -520,7 +526,7 @@ body.wy-page::before{display:none}
       Object.entries(sm).forEach(([k, v]) => { if (v != null) put(k, v); });
     } else modeBox(got.no_profile ? 'summary' : 'profile');   // ‏من غير أحماض: الملخص بيقبل الحصة والبروتين بس
     const alert = document.getElementById('wyNoProfile');
-    const added = (got.added || []).join('، ');
+    const added = cheap(got.added).join('، ');
     if (got.no_profile) { alert.hidden = false; alert.textContent = S.noProfile + (added ? S.addedMsg.replace('%a', added) : ''); }
     else alert.hidden = true;
     return {sure, hints, summary: !!(sm && Object.keys(got.amino || {}).length < 12), none: got.no_profile};
@@ -613,7 +619,7 @@ body.wy-page::before{display:none}
         const added = document.getElementById('wyAdded'); if (added && p.added && p.added.length) added.value = p.added.join(',');
       }
       codeMsg.className = 'wy-status ok';
-      codeMsg.textContent = S.codeFound.replace('%n', p.name || code) + (p.added && p.added.length ? S.addedMsg.replace('%a', p.added.join('، ')) : '');
+      codeMsg.textContent = S.codeFound.replace('%n', p.name || code) + (cheap(p.added).length ? S.addedMsg.replace('%a', cheap(p.added).join('، ')) : '');
     } catch (e) { codeMsg.className = 'wy-status err'; codeMsg.textContent = S.none; }
   }
   const codeIn = document.getElementById('wyCode'), codeNum = document.getElementById('wyCodeNum');
