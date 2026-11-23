@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ t('محلل الواي بروتين — اعرف البروتين بتاعك أصلي ولا لأ','Whey Protein Analyzer — is your whey the real thing?') }}{% endblock %}
 {% block meta_description %}{{ t('صوّر ضهر علبة الواي بروتين، والتحليل بيحسب نسبة الأحماض الأمينية والليوسين وEAA وBCAA ويديك تقييم من ١٠٠ ويكشف الـAmino Spiking.','Photograph the back of a whey tub: we work out the amino acid, leucine, EAA and BCAA percentages, score it out of 100 and flag amino spiking.') }}{% endblock %}
-{% block body_class %}public-chrome wy-page{% endblock %}
-{% block chrome %}{% include "_public_header.html" %}{% endblock %}
+{% block body_class %}{% if not user %}public-chrome {% endif %}wy-page{% endblock %}
+{% block chrome %}{% if not user %}{% include "_public_header.html" %}{% else %}{{ super() }}{% endif %}{% endblock %}
 
 {% block extra_style %}
 <style>

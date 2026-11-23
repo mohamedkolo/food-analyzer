@@ -177,7 +177,11 @@ def _whey_form(form):
 
 def _whey_page(values=None, result=None, error=None, demo=False):
     import whey_analyzer as W
-    return render_template("whey.html", lang=session.get("lang", "ar"),
+    # ‏المسجّل بيشوف الصفحة بقايمته الجانبية -- بيوصلها منها، ومن غيرها
+    # كان بيتنقل لهيدر الزوار ويتوه. الزائر بالهيدر العام.
+    from core import get_user_by_id
+    user = get_user_by_id(session["uid"]) if session.get("uid") else None
+    return render_template("whey.html", lang=session.get("lang", "ar"), user=user,
                            amino=W.AMINO, amino_ar=W.AMINO_AR, eaa=W.EAA, bcaa=W.BCAA,
                            values=values or {"unit": "per100", "amino": {}},
                            result=result, error=error, demo=demo,
