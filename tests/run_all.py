@@ -91,6 +91,7 @@ SUITES = [
     "test_supplements.py",
     "test_barcode_scan.py",
     "test_backup_workflow.py",
+    "test_monitoring.py",
 ]
 
 
