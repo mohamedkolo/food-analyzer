@@ -112,28 +112,52 @@ def _get(url, data=None, timeout=60):
         return json.loads(resp.read().decode())
 
 
-def _gemini_model():
+def _gemini_models():
+    """‏الموديلات اللي هتتجرّب بالترتيب. GEMINI_MODEL الأول لو متحدد، وبعدين
+    من قايمة المفتاح: الـ"-latest" (اسم ثابت Google بتحدّثه)، وبعدين flash،
+    وبعدين flash-lite. موديل عليه حد مجاني صفر بيرد 429 -- فبنجرّب اللي بعده."""
     chosen = (os.environ.get("GEMINI_MODEL") or "").strip()
-    if chosen:
-        return chosen
-    if "name" not in _MODEL_CACHE:
+    if "names" not in _MODEL_CACHE:
         names = [m.get("name", "").split("/")[-1] for m in _get(_GEMINI + "/models", timeout=20).get("models", [])
                  if "generateContent" in (m.get("supportedGenerationMethods") or [])]
-        names = [n for n in names if n.startswith("gemini")]
-        flash = [n for n in names if "flash" in n and "lite" not in n and "image" not in n]
-        _MODEL_CACHE["name"] = (flash or names or ["gemini-flash-latest"])[0]
-    return _MODEL_CACHE["name"]
+        names = [n for n in names if n.startswith("gemini") and "image" not in n and "tts" not in n]
+
+        def rank(n):
+            return (0 if n.endswith("-latest") and "flash" in n else
+                    1 if "flash" in n and "lite" not in n else
+                    2 if "flash" in n else 3)
+        _MODEL_CACHE["names"] = sorted(names, key=rank)[:3] or ["gemini-flash-latest"]
+    return ([chosen] if chosen else []) + [n for n in _MODEL_CACHE["names"] if n != chosen]
+
+
+def _why(e):
+    """‏سبب الفشل من غير المفتاح: كود الـHTTP وأول سطر من رسالة Google."""
+    import urllib.error
+    if isinstance(e, urllib.error.HTTPError):
+        msg = ""
+        try:
+            msg = json.loads(e.read().decode()).get("error", {}).get("message", "")
+        except Exception:  # noqa: BLE001
+            pass
+        return ("HTTP %s %s" % (e.code, msg[:120])).strip()
+    return type(e).__name__
 
 
 def _read_gemini(image_bytes, media_type):
-    model = _gemini_model()
-    body = {"contents": [{"parts": [
+    body = json.dumps({"contents": [{"parts": [
         {"inline_data": {"mime_type": media_type, "data": base64.standard_b64encode(image_bytes).decode()}},
         {"text": _PROMPT + _SHAPE}]}],
-        "generationConfig": {"responseMimeType": "application/json", "temperature": 0}}
-    out = _get("%s/models/%s:generateContent" % (_GEMINI, model), json.dumps(body).encode())
-    parts = ((out.get("candidates") or [{}])[0].get("content") or {}).get("parts") or []
-    return json.loads("".join(p.get("text", "") for p in parts))
+        "generationConfig": {"responseMimeType": "application/json", "temperature": 0}}).encode()
+    errors = []
+    for model in _gemini_models():
+        try:
+            out = _get("%s/models/%s:generateContent" % (_GEMINI, model), body)
+        except Exception as e:  # noqa: BLE001
+            errors.append("%s: %s" % (model, _why(e)))
+            continue
+        parts = ((out.get("candidates") or [{}])[0].get("content") or {}).get("parts") or []
+        return json.loads("".join(p.get("text", "") for p in parts))
+    raise RuntimeError(" | ".join(errors) or "no model")
 
 
 def read_label(image_bytes, content_type):
@@ -148,8 +172,10 @@ def read_label(image_bytes, content_type):
             return normalize(_read_gemini(image_bytes, media_type))
         except Exception as e:  # noqa: BLE001 -- حد يومي خلص، شبكة، رد غريب: الموبايل يكمّل
             _MODEL_CACHE.clear()
+            why = str(e) if isinstance(e, RuntimeError) else _why(e)
+            print("[whey] gemini failed: %s" % why)    # ‏يبان في سجل Render
             if not api_key():
-                raise VisionError("Gemini مش متاح دلوقتي (%s)" % type(e).__name__)
+                raise VisionError("Gemini: %s" % why)
     try:
         import anthropic
     except ImportError:
