@@ -104,6 +104,22 @@ def test_an_empty_amino_table_still_gives_what_is_known():
     assert 'id="wyPartial"' in html and "Glycine" in html and "30 جم سكر" in html, "النتيجة الناقصة مابانتش"
 
 
+def test_added_bcaas_are_a_note_not_cheating():
+    """‏صاحب المشروع صوّر علبة مكوّناتها فيها L-Leucine وL-Isoleucine
+    وL-Valine، وطلعله تحذير أحمر "Amino Spiking". دول أحماض أساسية
+    بتتضاف تقوية -- الغش هو الرخيص غير الأساسي (Glycine، Taurine…)."""
+    r = W.analyze_summary(32, 24, None, None, None, None, ["Leucine", "Isoleucine", "Valine"])
+    keys = {a["key"]: a for a in r["alerts"]}
+    assert "added" not in keys and keys["fortified"]["items"] == ["Leucine", "Isoleucine", "Valine"], r["alerts"]
+    assert not any("Spiking" in w for w in r["warnings"]), r["warnings"]
+    r = W.analyze_summary(32, 24, None, None, None, None, ["Glycine", "Leucine"])
+    keys = {a["key"]: a for a in r["alerts"]}
+    assert keys["added"]["items"] == ["Glycine"] and keys["fortified"]["items"] == ["Leucine"], r["alerts"]
+    html = A.app.test_client().post("/whey", data={"kind": "whey", "mode": "summary", "serving_g": "32",
+                                                   "protein_g": "24", "added": "Leucine,Isoleucine,Valine"}).get_data(as_text=True)
+    assert "Amino Spiking" not in html.split('id="wyResult"', 1)[1].split("<form", 1)[0] and "BCAA" in html
+
+
 # ── باقي المكملات ───────────────────────────────────────────────────
 
 def test_creatine():
