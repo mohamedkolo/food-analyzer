@@ -87,6 +87,7 @@ SUITES = [
     "test_settings_page.py",
     "test_notifications_page.py",
     "test_messages_page.py",
+    "test_whey_analyzer.py",
 ]
 
 
