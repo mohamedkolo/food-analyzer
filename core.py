@@ -248,7 +248,7 @@ CSP = "; ".join([
     # unsplash -> knowledge-hub article images
     "img-src 'self' data: blob: https://images.unsplash.com",
     # openfoodfacts -> the analyzer's barcode lookup
-    "connect-src 'self' https://world.openfoodfacts.org",
+    "connect-src 'self' https://world.openfoodfacts.org https://api.ods.od.nih.gov",
     "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
     "frame-ancestors 'none'",       # nobody may frame us -- clickjacking
     "base-uri 'self'",              # no injected <base> to hijack relative URLs
