@@ -24,7 +24,7 @@
       <a href="/foods">{{ t('جدول السعرات','Calorie table') }}</a>
       <a href="/book">{{ t('احجز استشارة','Book a consultation') }}</a>
       <a href="/lang/{{ 'en' if (lang or 'ar') == 'ar' else 'ar' }}">{{ 'English' if (lang or 'ar') == 'ar' else 'عربي' }}</a>
-      <a href="/login" class="sc-login">{{ t('دخول','Sign in') }}</a>
+      {% if signed_in %}<a href="/my-plan" class="sc-login">{{ t('خطتي','My plan') }}</a>{% else %}<a href="/login" class="sc-login">{{ t('دخول','Sign in') }}</a>{% endif %}
     </div>
   </div>
 </nav>
