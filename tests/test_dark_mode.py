@@ -36,7 +36,10 @@ A.app.config["WTF_CSRF_ENABLED"] = False
 ADMIN = A.db_row("SELECT id FROM users WHERE email='admin@nutrax.com'")["id"]
 
 # ‏دول مايتلمسوش: PDF الخطة (WeasyPrint بيطبعه أبيض)، وأفو (ألوانه شخصيته).
-KEEP_LIGHT = {"meal_plan.html", "_afo.html"}
+# ‏landing.html صفحة مشهد سينمائي غامق بألوان ثابتة في الوضعين -- الدكتور
+# ‏وافق على التصميم ده بالظبط ٢٥ نوفمبر ٢٠٢٦. مش صفحة تيم، زي ورقة
+# ‏الخطة المطبوعة اللي فوق.
+KEEP_LIGHT = {"meal_plan.html", "_afo.html", "landing.html"}
 # ‏قطع بتتحط جوه صفحات تانية، فالثيم بييجي من الصفحة الأم.
 PARTIALS = {"_admin_client_followup.html", "_afo.html", "_client_bar.html", "_client_home_cards.html",
             "_messages_ui.html", "_nav_icons.html", "_next_appointment.html", "_public_header.html", "_swap_sheet.html",
