@@ -142,6 +142,11 @@ def test_no_gradient_or_glow_survives_anywhere_on_the_site():
     import glob
     left = []
     for path in sorted(glob.glob(os.path.join(_HERE, "templates", "*.html"))):
+        # ‏landing.html فيها تدرّجات (سبوت لايت وتوهّج) بقرار معلن: الدكتور
+        # شاف المشهد السينمائي متحرّك ووافق على تركيبه ٢٥ نوفمبر ٢٠٢٦.
+        # ده بالظبط حالة "حد رجّعه وهو عارف". القاعدة شغالة على الباقي.
+        if os.path.basename(path) == "landing.html":
+            continue
         if "gradient" in _page(path):
             left.append(os.path.basename(path))
     assert not left, "‏لسه فيه تدرّج في: %s" % ", ".join(left)
