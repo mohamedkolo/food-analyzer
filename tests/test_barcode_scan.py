@@ -106,7 +106,8 @@ def test_an_unknown_barcode_is_said_plainly():
 
 def test_the_supplement_page_offers_the_barcode_after_the_type():
     html = A.app.test_client().get("/whey?kind=whey").get_data(as_text=True)
-    assert re.search(r'<input[^>]*id="wyCode"[^>]*type="file"|<input[^>]*type="file"[^>]*id="wyCode"', html)
+    assert 'id="wyCodeScan"' in html and 'id="wyScannerVideo"' in html
+    assert 'id="wyCode"' not in html and "/barcode/read" not in html
     assert re.search(r'<input[^>]*id="wyCodeNum"', html) and 'for="wyCodeNum"' in html
 
 
