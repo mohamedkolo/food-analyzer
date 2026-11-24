@@ -17,11 +17,11 @@
 <meta property="og:title" content="{% block og_title %}{{ self.title() or 'NutraX' }}{% endblock %}">
 <meta property="og:description" content="{{ self.meta_description() }}">
 <meta property="og:url" content="{{ canonical_url or (site_origin() + request.path) }}">
-<meta property="og:image" content="{{ site_origin() }}/static/icon-512.png">
+<meta property="og:image" content="{{ site_origin() }}/static/nx-icon-v2-512.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ self.og_title() }}">
 <meta name="twitter:description" content="{{ self.meta_description() }}">
-<meta name="twitter:image" content="{{ site_origin() }}/static/icon-512.png">
+<meta name="twitter:image" content="{{ site_origin() }}/static/nx-icon-v2-512.png">
 {% block extra_head %}{% endblock %}
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -49,12 +49,12 @@
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}{% endblock %}{% if self.title()|trim %} · {% endif %}NutraX</title>
-<link rel="manifest" href="/static/manifest.json">
+<link rel="manifest" href="/static/manifest.json?v=nx2">
 <meta name="theme-color" content="#0F2A43">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NutraX">
-<link rel="apple-touch-icon" href="/static/icon-192.png">
-<link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/nx-icon-v2-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/nx-icon-v2-32.png">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" media="print" onload="this.media='all'"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/fontawesome.min.css">
@@ -424,7 +424,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
 <header class="header">
   <div style="display:flex;align-items:center;gap:12px">
     <button class="menu-toggle" onclick="toggleSidebar()" aria-label="{{ t('القائمة','Menu') }}"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
-    <div class="header-logo"><i class="fa-solid fa-leaf" style="color:#FF7A59"></i> NutraX</div>
+    <div class="header-logo"><img src="/static/nx-icon-v2-192.png" alt="" width="32" height="32" style="object-fit:contain"> NutraX</div>
   </div>
   <div style="display:flex;align-items:center;gap:10px">
     {% if is_staff %}
