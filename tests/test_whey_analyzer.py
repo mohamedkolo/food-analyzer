@@ -153,8 +153,9 @@ def test_the_page_offers_camera_and_upload():
     html = A.app.test_client().get("/whey?kind=whey").get_data(as_text=True)
     assert re.search(r'<input[^>]*type="file"[^>]*capture="environment"', html), "مفيش زرار صوّر العلبة"
     files = re.findall(r'<input[^>]*type="file"[^>]*>', html)
-    # ‏٣: صوّر العلبة، ارفع صورة، صوّر الباركود (tests/test_barcode_scan.py)
-    assert len(files) == 3 and all("aria-label" in f for f in files), files
+    # Label photo capture/upload stay; barcodes now use a live camera stream.
+    assert len(files) == 2 and all("aria-label" in f for f in files), files
+    assert 'id="wyCodeScan"' in html
     for name in ("serving_g", "protein_g", "Leucine", "Valine"):
         assert re.search(r'<input[^>]*name="%s"' % name, html), name
 

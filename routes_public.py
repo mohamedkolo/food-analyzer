@@ -314,6 +314,6 @@ def whey_barcode(code):
         print("[barcode] fetch error: %s" % type(e).__name__)
         return jsonify({"ok": False, "error": "تعذر الاتصال بقاعدة بيانات الباركود"}), 502
     if not product:
-        return jsonify({"ok": False, "error": "المنتج ده مش موجود في القاعدة -- صوّر ضهر العلبة"}), 404
+        return jsonify({"ok": False, "error": "الباركود اتقرا، لكن المنتج مش موجود في قاعدة البيانات. مفيش أرقام اتخمنت. اكتب بيانات العبوة أو استخدم قراءة الملصق الاختيارية."}), 404
     return jsonify({"ok": True, "code": code, "product": barcode_scan.supplement_fields(product)})
 

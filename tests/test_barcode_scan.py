@@ -104,9 +104,20 @@ def test_an_unknown_barcode_is_said_plainly():
     assert r.status_code == 400
 
 
+def test_http404_is_not_a_database_outage():
+    from unittest.mock import patch
+    import urllib.error
+    err = urllib.error.HTTPError('https://world.openfoodfacts.org/',404,'not found',{},None)
+    with patch.object(B.urllib.request, 'urlopen', side_effect=err):
+        response = A.app.test_client().get('/whey/barcode/5401860184216')
+    assert response.status_code == 404, response.get_json()
+    assert not response.get_json()['ok']
+
+
 def test_the_supplement_page_offers_the_barcode_after_the_type():
     html = A.app.test_client().get("/whey?kind=whey").get_data(as_text=True)
-    assert re.search(r'<input[^>]*id="wyCode"[^>]*type="file"|<input[^>]*type="file"[^>]*id="wyCode"', html)
+    assert 'id="wyCodeScan"' in html and 'id="wyScannerVideo"' in html
+    assert 'id="wyCode"' not in html and "/barcode/read" not in html
     assert re.search(r'<input[^>]*id="wyCodeNum"', html) and 'for="wyCodeNum"' in html
 
 

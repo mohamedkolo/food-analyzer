@@ -14,6 +14,7 @@ import io
 import json
 import re
 import urllib.request
+import urllib.error
 
 _OFF = "https://world.openfoodfacts.org/api/v2/product/%s.json"
 # ‏Open Food Facts بيطلب من أي برنامج يعرّف نفسه في الـUser-Agent
@@ -48,8 +49,13 @@ def decode(image_bytes):
 def fetch_product(code):
     """‏المنتج من Open Food Facts، أو None لو مش موجود. غلطة الشبكة بتطلع Exception."""
     req = urllib.request.Request(_OFF % clean_code(code), headers={"User-Agent": _UA})
-    with urllib.request.urlopen(req, timeout=8) as r:
-        data = json.loads(r.read())
+    try:
+        with urllib.request.urlopen(req, timeout=8) as r:
+            data = json.loads(r.read())
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return None
+        raise
     if data.get("status") != 1 or not data.get("product"):
         return None
     return data["product"]
