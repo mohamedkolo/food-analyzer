@@ -4,329 +4,365 @@
   'نوتراكس — خطط غذائية مبنية على حالتك الصحية مع د. محمد. السكري، الضغط، القولون، الكلى، الحمل وأكثر من 20 حالة. متابعة أسبوعية ومحلل طعام لأكثر من ' ~ food_count() ~ ' صنف بالكميات اللي بتتاكل فعلاً.',
   'NutraX — meal plans built around your health condition with Dr. Mohamed. Diabetes, blood pressure, IBS, kidney disease, pregnancy and 20+ conditions. Weekly follow-up and a food analyzer covering ' ~ food_count() ~ '+ items with real serving sizes.') }}{% endblock %}
 
-{# the app sidebar is for signed-in users; visitors get a plain public header #}
-{% block body_class %}public-chrome{% endblock %}
-{% block chrome %}{% include "_public_header.html" %}{% endblock %}
+{# ‏الصفحة الرئيسية بقت المشهد السينمائي اللي الدكتور وافق عليه ٢٥ نوفمبر
+   ٢٠٢٦ بعد ما شافه متحرّك: موبايل عايم في إضاءة غامقة بيلف مع التمرير
+   والواجهة جواه بتتحوّل من المسح لعرض البيانات، ووراه طبقة جزيئات
+   هادية بأخضر NX. الهيدر الأبيض العام ماكانش هيشتغل فوق مشهد غامق،
+   فالصفحة ليها شريطها الغامق بنفس اللينات. #}
+{# ‏public-chrome لازم تتكتب هنا بالاسم: تعديل البلوك بيلغي الشرط اللي
+   جواه في base، ومن غيرها الـmain بيفضل متزاح بعرض السايدبار. #}
+{% block body_class %}nx-scene-page public-chrome{% endblock %}
+
+{% block chrome %}
+<nav class="sc-nav" aria-label="{{ t('التنقل الرئيسي','Main navigation') }}">
+  <div class="sc-nav-in">
+    <a href="/" class="sc-brand">
+      <img src="/static/nx-icon-v2-192.png" alt="" width="34" height="34">
+      <span>NX</span>
+    </a>
+    <div class="sc-links">
+      <a href="/foods">{{ t('جدول السعرات','Calorie table') }}</a>
+      <a href="/book">{{ t('احجز استشارة','Book a consultation') }}</a>
+      <a href="/lang/{{ 'en' if (lang or 'ar') == 'ar' else 'ar' }}">{{ 'English' if (lang or 'ar') == 'ar' else 'عربي' }}</a>
+      <a href="/login" class="sc-login">{{ t('دخول','Sign in') }}</a>
+    </div>
+  </div>
+</nav>
+{% endblock %}
 
 {% block extra_style %}
 <style>
-  .main { padding: 0 !important; }
-  .lp { font-family: 'Cairo', 'Tajawal', system-ui, sans-serif; }
-  .lp-btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 14px 28px; border-radius: 12px; text-decoration: none;
-    font-weight: 800; font-size: 15px; transition: all .2s; border: 2px solid transparent;
-    cursor: pointer; font-family: inherit;
-  }
-  .lp-btn-primary { background: #FF7A59; color: var(--nx-on-warm); }
-  .lp-btn-primary:hover { background: #FF9A80; transform: translateY(-2px); }
-  .lp-btn-ghost { background: transparent; color: var(--nx-ink-2); border-color: var(--nx-ink-2); }
-  .lp-btn-ghost:hover { background: var(--nx-solid-2); color: #fff; }
-  .lp-btn-light { background: rgba(255,255,255,.15); color: #fff; border-color: rgba(255,255,255,.4); }
-  .lp-btn-light:hover { background: rgba(255,255,255,.28); }
+  body.nx-scene-page { background: #0b0b0d !important; }
+  .nx-scene-page .main { padding: 0 !important; margin-top: 0 !important; }
+  .nx-scene-page .nx-footer { margin-top: 0; }
 
-  /* hero */
-  /* ‏الهيرو كان عليه توهّجين في الأركان (مرجاني وتركوازي) وشبكة باهتة
-     فوقهم. التوهّج والتدرّج والشبكة هما بالظبط اللي بيخلّوا الصفحة تبان
-     مولّدة -- فبقى لون واحد مصمت، والكلام هو اللي بيشيل الصفحة. */
-  .lp-hero {
-    background: var(--nx-solid);
-    color: #fff; padding: 88px 20px 96px; text-align: center; position: relative;
-    overflow: hidden;
-  }
-  .lp-hero > * { position: relative; }
-  .lp-eyebrow {
-    display:inline-flex; align-items:center; gap:8px; margin-bottom:20px;
-    background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.24);
-    padding:8px 18px; border-radius:999px; font-size:13.5px; font-weight:700;
-  }
-  .lp-eyebrow .dot { width:7px; height:7px; border-radius:50%; background:#FF7A59;
-                     box-shadow:0 0 0 4px rgba(255,122,89,.25); }
-  .lp-hero h1 {
-    margin: 0 auto 20px; font-size: 50px; font-weight: 900;
-    line-height: 1.22; max-width: 900px; letter-spacing: -.5px;
-  }
-  .lp-hero h1 .hl {
-    color: #FF9A80;
-  }
-  .lp-hero p.sub {
-    margin: 0 auto 34px; font-size: 18.5px; line-height: 1.85;
-    opacity: .93; max-width: 700px;
-  }
-  .lp-hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-  .lp-trust {
-    margin-top: 52px; display: grid; gap: 14px; max-width: 820px;
-    margin-inline: auto; grid-template-columns: repeat(4, 1fr);
-  }
-  .lp-trust > div {
-    background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.16);
-    border-radius: 15px; padding: 18px 10px; font-size: 13px; opacity: .95;
-  }
-  .lp-trust b { display: block; font-size: 30px; font-weight: 900; color: #FF9A80;
-                line-height: 1; margin-bottom: 6px; }
+  /* ‏ممنوع backdrop-filter في الموقع كله (بيتعاد تغبيشه مع كل فريم
+     تمرير) -- وده مشهد بتمرير مستمر، فالشريط مصمت. */
+  .sc-nav { position: sticky; top: 0; z-index: 50;
+    background: #0b0b0d; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .sc-nav-in { display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; max-width: 1080px; margin: 0 auto; padding: 10px 20px; }
+  .sc-brand { display: flex; align-items: center; gap: 10px; font-weight: 900;
+    font-size: 19px; color: #fff; text-decoration: none; }
+  .sc-brand img { width: 34px; height: 34px; border-radius: 10px; display: block; }
+  .sc-links { display: flex; align-items: center; gap: 11px; }
+  .sc-links a { color: #9BA0A6; text-decoration: none; font-size: 12px; font-weight: 700;
+    white-space: nowrap; }
+  .sc-links a:hover { color: #fff; }
+  /* ‏أخضر المشهد مكتوب حرفي: --green العام بتاع الموقع تركواز غامق
+     وزرار الدخول طلع غامق على غامق. */
+  .sc-links .sc-login { background: #62DF50; color: #0e1a0b;
+    padding: 7px 14px; border-radius: 9px; font-weight: 800; }
+  .sc-links .sc-login:hover { color: #0e1a0b; }
 
-  /* sections */
-  .lp-sec { max-width: 1080px; margin: 0 auto; padding: 68px 20px; }
-  .lp-sec h2 {
-    font-size: 30px; font-weight: 900; color: var(--nx-ink);
-    margin: 0 0 12px; text-align: center;
-  }
-  .lp-sec .lead {
-    text-align: center; color: var(--nx-muted); font-size: 16px;
-    max-width: 640px; margin: 0 auto 40px; line-height: 1.8;
-  }
-  .lp-grid {
-    display: grid; gap: 16px;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  }
-  .lp-card {
-    background: var(--nx-surface); border: 1px solid var(--nx-line); border-radius: 16px;
-    padding: 26px; transition: all .25s;
-  }
-  .lp-card:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(20,51,43,.10); }
-  .lp-card .ic { font-size: 34px; margin-bottom: 12px; }
-  .lp-card h3 { margin: 0 0 8px; font-size: 17px; font-weight: 800; color: var(--nx-ink); }
-  .lp-card p { margin: 0; color: var(--nx-muted); font-size: 14px; line-height: 1.8; }
+  .sc { --green: #62DF50; --muted: #9BA0A6; font-family: 'Cairo', sans-serif;
+    background: #0b0b0d; color: #fff; }
+  .sc-hero { min-height: 78vh; display: flex; flex-direction: column; justify-content: center;
+    align-items: center; text-align: center; padding: 40px 22px;
+    background: radial-gradient(58% 46% at 50% 40%, #17181b 0%, #0b0b0d 72%); }
+  .sc-hero h1 { margin: 0; font-size: clamp(34px, 8vw, 66px); font-weight: 900; line-height: 1.35; }
+  .sc-hero h1 .g { color: var(--green); }
+  .sc-hint { margin-top: 46px; color: var(--muted); font-weight: 700; font-size: 13px;
+    animation: sc-bob 1.6s ease-in-out infinite; }
+  @keyframes sc-bob { 50% { transform: translateY(8px); } }
 
-  /* conditions */
-  .lp-conds { background: var(--nx-surface-2); }
-  .lp-chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-  .lp-chip {
-    background: var(--nx-surface); border: 1px solid var(--nx-line); border-radius: 999px;
-    padding: 9px 18px; font-size: 14px; font-weight: 700; color: var(--nx-ink);
-  }
+  .sc-story { height: 460vh; position: relative; }
+  .sc-stage { position: sticky; top: 0; height: 100vh; overflow: hidden;
+    background: radial-gradient(60% 48% at 50% 46%, #191a1e 0%, #0b0b0d 74%); }
+  .sc-dust { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .sc-spot { position: absolute; top: 38%; left: 50%; width: min(130vw, 980px);
+    height: min(130vw, 980px); border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,.07) 0%, rgba(98,223,80,.05) 40%, transparent 66%);
+    transform: translate(-50%,-50%); pointer-events: none; }
+  .sc-pool { position: absolute; top: 50%; left: 50%; width: min(70vw, 420px); height: 90px;
+    border-radius: 50%; will-change: transform, opacity;
+    background: radial-gradient(50% 50% at 50% 50%, rgba(98,223,80,.16) 0%, rgba(0,0,0,.5) 62%, transparent 76%); }
 
-  /* steps */
-  .lp-steps { counter-reset: s; display: grid; gap: 18px;
-              grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
-  .lp-step { position: relative; padding-top: 52px; }
-  .lp-step::before {
-    counter-increment: s; content: counter(s);
-    position: absolute; top: 0; inset-inline-start: 0;
-    width: 40px; height: 40px; border-radius: 50%;
-    background: var(--nx-solid-2); color: #fff;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 900; font-size: 17px;
-  }
-  .lp-step h3 { margin: 0 0 6px; font-size: 16px; font-weight: 800; color: var(--nx-ink); }
-  .lp-step p { margin: 0; color: var(--nx-muted); font-size: 14px; line-height: 1.8; }
+  .sc-caption { position: absolute; top: calc(50px + 2.5vh); left: 0; right: 0;
+    text-align: center; z-index: 5; pointer-events: none; }
+  .sc-caption b { font-weight: 900; font-size: clamp(26px, 5.4vw, 44px); color: #fff;
+    letter-spacing: .5px; }
+  .sc-caption .sc-sample { display: block; margin-top: 10px; color: #7d8288;
+    font-size: 11.5px; font-weight: 700; }
 
-  /* closing call to action */
-  .lp-cta {
-    background: var(--nx-solid-2);
-    color: #fff; text-align: center; padding: 64px 20px;
-  }
-  .lp-cta h2 { color: #fff; font-size: 30px; font-weight: 900; margin: 0 0 12px; }
-  .lp-cta p { opacity: .92; font-size: 16px; margin: 0 0 28px; line-height: 1.8; }
+  .sc-scene { position: absolute; inset: 0; display: grid; place-items: center;
+    perspective: 1500px; }
+  .sc-phone { position: relative; width: min(62vw, 290px, 30vh); aspect-ratio: 290/600;
+    transform-style: preserve-3d; will-change: transform; }
+  .sc-p-back { position: absolute; inset: 0; border-radius: 52px; background: #101013;
+    transform: translateZ(-18px); box-shadow: 0 0 0 1px rgba(255,255,255,.05); }
+  .sc-p-frame { position: absolute; inset: 0; border-radius: 52px;
+    background: linear-gradient(160deg, #333338, #1d1d21 60%); padding: 11px;
+    box-shadow: 0 0 0 1.5px rgba(255,255,255,.13), 0 40px 90px rgba(0,0,0,.65); }
+  .sc-screen { position: relative; width: 100%; height: 100%; border-radius: 42px;
+    overflow: hidden; background: #121215; }
+  .sc-screen::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(112deg, transparent 40%, rgba(255,255,255,.13) 50%, transparent 60%);
+    background-size: 300% 100%; background-position: var(--sheen, 130%) 0; }
+  .sc-notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    width: 34%; height: 16px; border-radius: 999px; background: #0a0a0c; z-index: 3; }
 
-  @media (max-width: 640px) {
-    .lp-hero { padding: 56px 18px 64px; }
-    .lp-hero h1 { font-size: 31px; }
-    .lp-hero p.sub { font-size: 16px; }
-    .lp-trust { grid-template-columns: repeat(2, 1fr); margin-top: 36px; }
-    .lp-trust b { font-size: 25px; }
-    .lp-sec { padding: 48px 18px; }
-    .lp-sec h2, .lp-cta h2 { font-size: 24px; }
-    .lp-trust { gap: 22px; }
+  .sc-ui { position: absolute; inset: 0; padding: 40px 18px 18px; display: flex;
+    flex-direction: column; gap: 12px; }
+  .sc-ui-top { display: flex; align-items: center; gap: 8px; }
+  .sc-ui-top img { width: 26px; height: 26px; border-radius: 8px; }
+  .sc-ui-top b { font-size: 13px; font-weight: 900; }
+  .sc-ui-title { font-size: 15px; font-weight: 900; color: #e8eaec; margin-top: 2px; }
+  /* ‏كارت الباركود بيصوّر ملصق ورقي حقيقي، مش سطح من أسطح الصفحة،
+     فلونه أبيض ورقي مائل للأخضر ثابت في الوضعين. */
+  .sc-bc { position: relative; height: 64px; flex-shrink: 0; border-radius: 14px;
+    background: #eef1e8; display: grid; place-items: center; overflow: hidden; }
+  .sc-bc .sc-bars { width: 72%; height: 38px;
+    background: repeating-linear-gradient(90deg, #151517 0 2px, transparent 2px 5px,
+      #151517 5px 9px, transparent 9px 12px, #151517 12px 13px, transparent 13px 17px); }
+  .sc-scanline { position: absolute; top: 6px; bottom: 6px; width: 3px; border-radius: 2px;
+    background: var(--green); box-shadow: 0 0 14px 3px rgba(98,223,80,.65); opacity: 0; }
+  .sc-row { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;
+    background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.06);
+    border-radius: 12px; padding: 10px 12px; opacity: 0; }
+  .sc-row span { font-size: 11.5px; color: var(--muted); font-weight: 700; }
+  .sc-row b { font-size: 13px; font-weight: 900; color: var(--green); }
+  .sc-row.sc-unk b { color: var(--muted); }
+  .sc-row.sc-unk { border-style: dashed; }
+  .sc-ui-foot { margin-top: auto; text-align: center; font-size: 10px; color: #6b7075;
+    font-weight: 700; }
+
+  .sc-final { position: absolute; left: 0; right: 0; bottom: 7vh; text-align: center;
+    z-index: 7; opacity: 0; }
+  .sc-btn { display: inline-block; background: var(--green); color: #0e1a0b; font-weight: 900;
+    padding: 16px 34px; border-radius: 16px; text-decoration: none; font-size: 17px;
+    box-shadow: 0 10px 34px rgba(98,223,80,.32); }
+  .sc-final p { color: #B9BFB4; font-weight: 700; font-size: 12.5px; margin-top: 14px;
+    padding: 0 30px; }
+
+  .sc-after { min-height: 50vh; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; text-align: center; padding: 60px 22px; }
+  .sc-after h2 { font-size: clamp(24px, 5vw, 40px); font-weight: 900; max-width: 24ch;
+    line-height: 1.5; margin: 0; }
+  .sc-after p { color: var(--muted); font-weight: 700; margin-top: 16px; font-size: 14.5px; }
+  .sc-after-links { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+    margin-top: 30px; }
+  .sc-after-links a { color: #d7dadde6; text-decoration: none; font-weight: 800;
+    font-size: 14px; border: 1.5px solid rgba(255,255,255,.22); border-radius: 12px;
+    padding: 12px 22px; }
+  .sc-after-links a:hover { border-color: var(--green); color: var(--green); }
+
+  @media (min-width: 900px) {
+    /* ‏الكابشن على الشمال والموبايل يمين النص في العربي، وبالعكس في
+       الإنجليزي. خصائص فيزيائية بوضوح: خلط inset-inline مع left/right
+       في نفس الرول طلّع الكابشن برا الشاشة. */
+    .sc-caption { top: 34%; left: 5vw; right: auto; text-align: start; max-width: 36vw; }
+    [dir="ltr"] .sc-caption { left: auto; right: 5vw; }
+    .sc-caption b { font-size: 46px; }
+    .sc-phone { translate: 16vw 0; }
+    [dir="ltr"] .sc-phone { translate: -16vw 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sc-hint { animation: none; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="lp">
+<div class="sc">
+  <div class="sc-hero">
+    <h1><span class="g">NX</span> {{ t('في مشهد واحد','in one scene') }}</h1>
+    <div class="sc-hint">⬇</div>
+  </div>
 
-  <section class="lp-hero">
-    <div class="lp-eyebrow"><span class="dot"></span>
-      {{ t('تغذية علاجية مع د. محمد','Clinical nutrition with Dr. Mohamed') }}</div>
-    {% if is_ar %}
-    <h1>خطة غذائية مبنية على <span class="hl">حالتك الصحية</span>، مش على كتالوج جاهز</h1>
-    {% else %}
-    <h1>A meal plan built around <span class="hl">your condition</span>, not a template</h1>
-    {% endif %}
-    <p class="sub">{{ t(
-      'نوتراكس عيادة تغذية علاجية أونلاين مع د. محمد. بنبني خطتك على تحاليلك وحالتك المرضية وأكلك اللي بتحبه، وبنتابع معاك أسبوعياً ونعدّل الخطة على حسب النتيجة.',
-      'NutraX is an online clinical nutrition practice with Dr. Mohamed. Your plan is built around your labs, your medical condition and the food you actually eat, with weekly follow-up and adjustments based on how you respond.') }}</p>
-    <div class="lp-hero-cta">
-      <a href="/login?tab=register" class="lp-btn lp-btn-primary">
-        <i class="fa-solid fa-clipboard-list"></i> {{ t('ابدأ خطتك','Start your plan') }}
-      </a>
-      <a href="/foods" class="lp-btn lp-btn-light">
-        <i class="fa-solid fa-magnifying-glass"></i> {{ t('جدول السعرات','Calorie table') }}
-      </a>
-      <a href="/pricing" class="lp-btn lp-btn-light">
-        <i class="fa-solid fa-tag"></i> {{ t('شوف الأسعار','See pricing') }}
-      </a>
-    </div>
-    <div class="lp-trust">
-      <div><b>+20</b>{{ t('حالة مرضية','medical conditions') }}</div>
-      <div><b>+{{ food_count() }}</b>{{ t('صنف في محلل الطعام','foods in the analyzer') }}</div>
-      <div><b>5</b>{{ t('مطابخ عربية','Arab cuisines') }}</div>
-      <div><b>7</b>{{ t('أيام متابعة أسبوعياً','days of weekly follow-up') }}</div>
-    </div>
-  </section>
+  <section class="sc-story" id="scStory" aria-label="{{ t('عرض متحرك لمحلل الطعام','Animated demo of the food analyzer') }}">
+    <div class="sc-stage" id="scStage">
+      <canvas class="sc-dust" id="scDust" aria-hidden="true"></canvas>
+      <div class="sc-spot" id="scSpot"></div>
+      <div class="sc-pool" id="scPool"></div>
 
-  <section class="lp-sec">
-    <h2>{{ t('إيه اللي بيميّز الخطة','What makes the plan different') }}</h2>
-    <p class="lead">{{ t(
-      'الخطة مش مجرد سعرات. كل صنف في جدولك بيتفلتر على حالتك الصحية قبل ما يوصلك.',
-      'The plan is not just a calorie count. Every item in your table is filtered against your health condition before it reaches you.') }}</p>
-    <div class="lp-grid">
-      <div class="lp-card">
-        <div class="ic">🩺</div>
-        <h3>{{ t('مبنية على حالتك','Built on your condition') }}</h3>
-        <p>{{ t('عندك سكري أو ضغط أو قولون أو مشكلة في الكلى؟ الأكل الممنوع على حالتك بيتشال من الجدول أوتوماتيك، مش بيتسيب لك تفتكر.',
-                'Diabetes, blood pressure, IBS or a kidney problem? Food that is unsafe for your condition is removed from the table automatically, rather than left for you to remember.') }}</p>
+      <div class="sc-caption">
+        <b id="scCapText">{{ t('امسح.','Scan.') }}</b>
+        <span class="sc-sample">{{ t('واجهة وبيانات تجريبية للعرض','Sample interface and data for illustration') }}</span>
       </div>
-      <div class="lp-card">
-        <div class="ic">🍽️</div>
-        <h3>{{ t('أكل بتعرفه','Food you recognise') }}</h3>
-        <p>{{ t('مصري، خليجي، شامي، مغربي أو عالمي. أكل من مطبخك انت، بالكميات بالجرام، مش وصفات غريبة مش هتعملها.',
-                'Egyptian, Gulf, Levantine, Moroccan or international. Food from your own kitchen, with quantities in grams, not recipes you will never cook.') }}</p>
+
+      <div class="sc-scene">
+        <div class="sc-phone" id="scPhone">
+          <div class="sc-p-back"></div>
+          <div class="sc-p-frame">
+            <div class="sc-screen">
+              <div class="sc-notch"></div>
+              <div class="sc-ui">
+                <div class="sc-ui-top"><img src="/static/nx-icon-v2-192.png" alt=""><b>NX</b></div>
+                <div class="sc-ui-title">{{ t('بيانات الملصق','Label facts') }}</div>
+                <div class="sc-bc"><div class="sc-bars"></div><div class="sc-scanline" id="scScanline"></div></div>
+                <div class="sc-row" data-r="0"><span>{{ t('السعرات','Calories') }}</span><b>{{ t('٢٣٠ كالوري','230 kcal') }}</b></div>
+                <div class="sc-row" data-r="1"><span>{{ t('البروتين','Protein') }}</span><b>{{ t('١٢ جم','12 g') }}</b></div>
+                <div class="sc-row" data-r="2"><span>{{ t('السكر','Sugar') }}</span><b>{{ t('٩ جم','9 g') }}</b></div>
+                <div class="sc-row" data-r="3"><span>{{ t('الدهون','Fat') }}</span><b>{{ t('٨ جم','8 g') }}</b></div>
+                <div class="sc-row sc-unk" data-r="4"><span>{{ t('الألياف','Fiber') }}</span><b>{{ t('غير معروف','unknown') }}</b></div>
+                <div class="sc-ui-foot">{{ t('بيانات تجريبية للعرض، مش نتيجة تحليل فعلية','Sample data for illustration, not an actual analysis') }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="lp-card">
-        <div class="ic">📊</div>
-        <h3>{{ t('أنظمة على مزاجك','Patterns that fit you') }}</h3>
-        <p>{{ t('3 وجبات، 5 وجبات، صيام متقطع 16/8 أو 18/6، رمضان، كيتو، لو-كارب، أو حسب مواعيد تمرينك.',
-                '3 meals, 5 meals, 16/8 or 18/6 intermittent fasting, Ramadan, keto, low-carb, or timed around your training.') }}</p>
-      </div>
-      <div class="lp-card">
-        <div class="ic">💬</div>
-        <h3>{{ t('متابعة مش تسليم وخلاص','Follow-up, not a hand-off') }}</h3>
-        <p>{{ t('شات مباشر مع د. محمد، تتبع للوزن والالتزام، وتعديل الخطة لو النتيجة مش زي المتوقع.',
-                'Direct chat with Dr. Mohamed, weight and adherence tracking, and plan adjustments when the results are not what we expected.') }}</p>
-      </div>
-      <div class="lp-card">
-        <div class="ic">🔍</div>
-        <h3>{{ t('محلل طعام','Food analyzer') }}</h3>
-        <p>{{ t('أكتر من ' ~ food_count() ~ ' صنف بالسعرات والبروتين والكارب والدهون، وبالكمية اللي بتتاكل فعلاً، ومفلترة على حالتك.',
-                'Over ' ~ food_count() ~ ' items with calories, protein, carbs and fat, with real serving sizes, filtered by your condition.') }}</p>
-      </div>
-      <div class="lp-card">
-        <div class="ic">📄</div>
-        <h3>{{ t('PDF تطبعه','A PDF you can print') }}</h3>
-        <p>{{ t('جدولك الأسبوعي كامل في ملف مرتب تنزّله وتطبعه أو تحتفظ به على موبايلك.',
-                'Your full weekly table in a clean file you can download, print, or keep on your phone.') }}</p>
+
+      <div class="sc-final" id="scFinal">
+        <a class="sc-btn" href="/whey">{{ t('جرّب المحلل الحقيقي','Try the real analyzer') }}</a>
+        <p>{{ t('الأرقام في المشهد توضيحية. المحلل الحقيقي بيعرض بيانات الملصق المسجّلة من مصدرها.','The numbers in this scene are illustrative. The real analyzer shows label data recorded from its source.') }}</p>
       </div>
     </div>
   </section>
 
-  <section class="lp-conds">
-    <div class="lp-sec">
-      <h2>{{ t('حالات بنتعامل معاها','Conditions we work with') }}</h2>
-      <p class="lead">{{ t(
-        'لكل حالة قواعدها: أكل مسموح، أكل ممنوع، ونصائح. الخطة بتتبني عليها من الأول مش بتتعدل بعدين.',
-        'Each condition has its own rules: what is allowed, what is not, and what to watch. The plan is built on them from the start.') }}</p>
-      <div class="lp-chips">
-        {% for c in [
-          ('السكري النوع الأول والثاني','Type 1 & Type 2 Diabetes'),
-          ('ضغط الدم المرتفع','High Blood Pressure'),
-          ('أمراض القلب','Heart Disease'),
-          ('القولون العصبي','IBS'),
-          ('الفشل الكلوي المزمن','Chronic Kidney Disease'),
-          ('الكبد الدهني','Fatty Liver'),
-          ('الداء الزلاقي','Celiac Disease'),
-          ('حساسية اللاكتوز','Lactose Intolerance'),
-          ('نقص إنزيم G6PD','G6PD Deficiency'),
-          ('الثلاسيميا','Thalassemia'),
-          ('فقر الدم ونقص الحديد','Anemia & Iron Deficiency'),
-          ('هشاشة العظام','Osteoporosis'),
-          ('الحمل والرضاعة','Pregnancy & Breastfeeding'),
-          ('السمنة وزيادة الوزن','Obesity & Overweight'),
-          ('حصوات المرارة','Gallstones'),
-          ('التهاب الأمعاء','IBD'),
-          ('حرقة المعدة والارتجاع','GERD'),
-          ('نقص فيتامين D','Vitamin D Deficiency'),
-          ('الإمساك المزمن','Chronic Constipation'),
-          ('اضطرابات الأكل','Eating Disorders') ] %}
-        <span class="lp-chip">{{ c[0] if is_ar else c[1] }}</span>
-        {% endfor %}
-      </div>
+  <section class="sc-after">
+    <h2>{{ t('مشهد واحد، إحساس واحد','One scene, one feel') }}</h2>
+    <p>{{ t('إضاءة، عمق، وحركة مربوطة بالتمرير، والمنتج هو البطل.','Lighting, depth, and scroll-driven motion, with the product as the hero.') }}</p>
+    <div class="sc-after-links">
+      <a href="/foods">{{ t('جدول السعرات','Calorie table') }}</a>
+      <a href="/pricing">{{ t('الأسعار','Pricing') }}</a>
+      <a href="/book">{{ t('احجز استشارة','Book a consultation') }}</a>
     </div>
   </section>
-
-  <section class="lp-sec">
-    <h2>{{ t('بتحصل إزاي','How it works') }}</h2>
-    <p class="lead">{{ t('أربع خطوات، وأول خطة بتوصلك في يوم أو يومين.',
-                        'Four steps, and your first plan arrives within a day or two.') }}</p>
-    <div class="lp-steps">
-      <div class="lp-step">
-        <h3>{{ t('تعمل حساب','Create an account') }}</h3>
-        <p>{{ t('بياناتك الأساسية: الطول، الوزن، السن، والهدف.',
-                'Your basics: height, weight, age and goal.') }}</p>
-      </div>
-      <div class="lp-step">
-        <h3>{{ t('تقولنا على حالتك','Tell us your condition') }}</h3>
-        <p>{{ t('حالاتك الطبية، الحساسية، والأكل اللي مش بتحبه أو مش بتاكله.',
-                'Your medical conditions, allergies, and food you dislike or avoid.') }}</p>
-      </div>
-      <div class="lp-step">
-        <h3>{{ t('د. محمد يبني خطتك','Dr. Mohamed builds the plan') }}</h3>
-        <p>{{ t('جدول 7 أيام بالكميات، مفلتر على حالتك ومن مطبخك.',
-                'A 7-day table with quantities, filtered for your condition and drawn from your cuisine.') }}</p>
-      </div>
-      <div class="lp-step">
-        <h3>{{ t('تتابع وتعدّل','Follow up and adjust') }}</h3>
-        <p>{{ t('تسجّل وجباتك ووزنك، وتكلمه في الشات، والخطة تتعدّل.',
-                'Log your meals and weight, message him in the chat, and the plan gets adjusted.') }}</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="lp-cta">
-    <h2>{{ t('جاهز تبدأ؟','Ready to start?') }}</h2>
-    <p>{{ t('اعمل حسابك وقولنا على حالتك، والباقي علينا.',
-            'Create your account and tell us about your condition. We will take it from there.') }}</p>
-    <div class="lp-hero-cta">
-      <a href="/login?tab=register" class="lp-btn lp-btn-primary">
-        <i class="fa-solid fa-arrow-right"></i> {{ t('ابدأ خطتك','Start your plan') }}
-      </a>
-      <a href="/login" class="lp-btn lp-btn-light">{{ t('عندي حساب','I have an account') }}</a>
-    </div>
-  </section>
-
 </div>
+{% endblock %}
 
-{# tells Google this is a real clinic with a real practitioner #}
-<script type="application/ld+json">
-{{ {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "WebSite",
-      "@id": site_origin() + "/#website",
-      "url": site_origin(),
-      "name": "NutraX",
-      "alternateName": ["نوتراكس", "NutraX Clinical Nutrition"],
-      "inLanguage": ["ar", "en"],
-      "description": self.meta_description()|trim,
-      "publisher": {"@id": site_origin() + "/#org"},
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {"@type": "EntryPoint",
-                   "urlTemplate": site_origin() + "/foods?q={search_term_string}"},
-        "query-input": "required name=search_term_string"
-      }
-    },
-    {
-      "@type": ["MedicalBusiness", "Organization"],
-      "@id": site_origin() + "/#org",
-      "name": "NutraX",
-      "alternateName": "نوتراكس",
-      "url": site_origin(),
-      "logo": site_origin() + "/static/icon-512.png",
-      "image": site_origin() + "/static/icon-512.png",
-      "description": self.meta_description()|trim,
-      "medicalSpecialty": "Nutrition",
-      "priceRange": "$$",
-      "availableLanguage": ["ar", "en"],
-      "areaServed": ["EG", "AE", "SA", "KW", "QA", "BH", "OM", "JO", "LB"],
-      "knowsAbout": [
-        "Clinical nutrition", "Diabetes diet", "Kidney disease diet",
-        "IBS diet", "Weight loss", "Meal planning",
-        "تغذية علاجية", "نظام غذائي", "رجيم", "سعرات حرارية"
-      ]
+{% block extra_script %}
+<script>
+(function () {
+  var sec = document.getElementById('scStory');
+  var stage = document.getElementById('scStage');
+  var phone = document.getElementById('scPhone');
+  var pool = document.getElementById('scPool');
+  var spot = document.getElementById('scSpot');
+  var scan = document.getElementById('scScanline');
+  var rows = Array.prototype.slice.call(document.querySelectorAll('.sc-row'));
+  var fin = document.getElementById('scFinal');
+  var cap = document.getElementById('scCapText');
+  if (!sec || !stage || !phone) return;
+
+  var lerp = function (a, b, t) { return a + (b - a) * t; };
+  var clamp01 = function (v) { return Math.max(0, Math.min(1, v)); };
+  var ease = function (t) { t = clamp01(t); return t * t * (3 - 2 * t); };
+
+  var caps = [
+    [0.00, {{ t('امسح.', 'Scan.') | tojson }}],
+    [0.34, {{ t('افهم.', 'Understand.') | tojson }}],
+    [0.60, {{ t('قرّر.', 'Decide.') | tojson }}],
+    [0.84, {{ t('جرّبها بنفسك.', 'Try it yourself.') | tojson }}]
+  ];
+
+  function frame() {
+    var H = innerHeight;
+    var top = sec.offsetTop;
+    var p = clamp01((scrollY - top) / (sec.offsetHeight - H));
+    var HH = stage.clientHeight;
+
+    var turn = ease(p / 0.34);
+    var settle = ease((p - 0.78) / 0.14);
+    var rotY = lerp(-38, 0, turn) + lerp(0, -10, settle) + Math.sin(p * 8) * 1.1;
+    var rotX = lerp(9, 2, turn);
+    var sc = lerp(0.9, 1.05, turn) * lerp(1, 0.86, settle);
+    var ty = lerp(30, 0, turn) + lerp(0, -22, settle);
+    phone.style.transform = 'translateY(' + ty + 'px) rotateX(' + rotX + 'deg) rotateY(' + rotY + 'deg) scale(' + sc + ')';
+    phone.style.setProperty('--sheen', (130 - p * 300) + '%');
+
+    var flat = Math.max(0.3, Math.abs(Math.cos(rotY * Math.PI / 180)));
+    pool.style.transform = 'translate(-50%, ' + (HH * 0.5 + HH * 0.30 - HH / 2) + 'px) scaleX(' + flat + ')';
+    pool.style.opacity = 0.6 + 0.4 * turn;
+
+    var scanP = clamp01((p - 0.34) / 0.18);
+    var scanning = p > 0.34 && p < 0.60;
+    scan.style.opacity = scanning ? 1 : 0;
+    scan.style.left = (12 + scanP * 76) + '%';
+    spot.style.opacity = 0.75 + 0.25 * Math.sin(scanP * Math.PI);
+
+    rows.forEach(function (r) {
+      var j = +r.dataset.r;
+      var t = clamp01((p - (0.46 + j * 0.045)) / 0.05);
+      r.style.opacity = t;
+      r.style.transform = 'translateY(' + ((1 - ease(t)) * 14) + 'px)';
+    });
+
+    fin.style.opacity = clamp01((p - 0.86) / 0.06);
+
+    var txt = caps[0][1];
+    for (var i = 0; i < caps.length; i++) if (p >= caps[i][0]) txt = caps[i][1];
+    if (cap.textContent !== txt) cap.textContent = txt;
+  }
+  addEventListener('scroll', frame, { passive: true });
+  addEventListener('resize', frame);
+  frame();
+})();
+</script>
+<script>
+/* ‏طبقة الجزيئات الهادية ورا الموبايل -- الإحساس اللي عجب الدكتور في
+   ريل جزيئات بتلف حوالين قلب مضيء، بس بأخضر NX ومتحكّم فيها عشان
+   الموبايل: عدد قليل، من غير توهّج مرسوم لكل نقطة، وبتقف لما التبويب
+   يختفي أو لما المشهد يطلع برا الشاشة. */
+(function () {
+  var cv = document.getElementById('scDust');
+  if (!cv || !cv.getContext) return;
+  var cx = cv.getContext('2d');
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var W = 0, H = 0, parts = [], raf = null, visible = true, inView = true;
+
+  function size() {
+    var dpr = Math.min(devicePixelRatio || 1, 1.5);
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var n = Math.min(80, Math.max(36, Math.floor(W * H / 16000)));
+    parts = [];
+    for (var i = 0; i < n; i++) {
+      parts.push({
+        a: Math.random() * Math.PI * 2,
+        r: (0.12 + Math.random() * 0.55) * Math.min(W, H),
+        s: (0.0009 + Math.random() * 0.0022) * (Math.random() < 0.5 ? -1 : 1),
+        sz: 0.8 + Math.random() * 2.0,
+        g: Math.random() < 0.34,
+        tw: Math.random() * Math.PI * 2
+      });
     }
-  ]
-}|tojson }}
+  }
+
+  function draw(t) {
+    cx.clearRect(0, 0, W, H);
+    var cxx = W / 2, cyy = H * 0.46;
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      var rr = p.r * (1 + 0.06 * Math.sin(t * 0.0004 + p.tw));
+      var x = cxx + Math.cos(p.a) * rr * 1.25;
+      var y = cyy + Math.sin(p.a) * rr * 0.62;
+      var a = 0.07 + 0.13 * (0.5 + 0.5 * Math.sin(t * 0.001 + p.tw));
+      cx.fillStyle = p.g ? 'rgba(98,223,80,' + a + ')' : 'rgba(255,255,255,' + (a * 0.8) + ')';
+      cx.beginPath();
+      cx.arc(x, y, p.sz, 0, 6.2832);
+      cx.fill();
+      p.a += p.s * 16;
+    }
+  }
+
+  function loop(t) {
+    draw(t || 0);
+    raf = (visible && inView) ? requestAnimationFrame(loop) : null;
+  }
+  function kick() {
+    if (!raf && visible && inView && !reduce) raf = requestAnimationFrame(loop);
+  }
+
+  size();
+  if (reduce) { draw(0); }
+  else { kick(); }
+
+  addEventListener('resize', function () { size(); if (reduce) draw(0); });
+  document.addEventListener('visibilitychange', function () {
+    visible = !document.hidden;
+    if (!visible && raf) { cancelAnimationFrame(raf); raf = null; }
+    kick();
+  });
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (entries) {
+      inView = entries[0].isIntersecting;
+      if (!inView && raf) { cancelAnimationFrame(raf); raf = null; }
+      kick();
+    }).observe(cv);
+  }
+})();
 </script>
 {% endblock %}
