@@ -105,7 +105,17 @@ body.wy-page::before{display:none}
 .wy-code-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
 .wy-code-num input{min-block-size:56px}
 .wy-sr{position:absolute;inline-size:1px;block-size:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-@media(max-width:560px){.wy-code-row{grid-template-columns:1fr auto}.wy-code-row > label{grid-column:1 / -1}}
+@media(max-width:560px){.wy-code-row{grid-template-columns:1fr auto}.wy-code-row > #wyCodeScan{grid-column:1 / -1}}
+.wy-scanner[hidden]{display:none}
+.wy-scanner{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
+.wy-scanner-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;font-size:14px}
+.wy-scanner-head .wy-btn{min-block-size:44px;padding:0 14px;font-size:13px}
+.wy-scanner-view{position:relative;overflow:hidden;border-radius:10px;background:#000;aspect-ratio:4/3}
+.wy-scanner video{display:block;inline-size:100%;block-size:100%;object-fit:contain}
+.wy-scanner-guide{position:absolute;inset:25% 7%;border:2px solid var(--accent);border-radius:10px;pointer-events:none}
+.wy-scanner p{margin:12px 0 0;color:var(--muted);font-size:13px;line-height:1.8}
+#wyCodeNum{direction:ltr;min-inline-size:0}
+.wy-code-num{min-inline-size:0}
 /* ‏اختيار النوع قبل الصورة */
 .wy-kinds{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
 .wy-kind{display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:14px;border:1px solid var(--line);background:var(--bg);
@@ -317,11 +327,16 @@ body.wy-page::before{display:none}
     <div class="wy-code">
       <p class="wy-group" style="margin-top:0">{{ t('أو بالباركود:','Or by barcode:') }}</p>
       <div class="wy-code-row">
-        <input class="wy-file" type="file" id="wyCode" accept="image/*" capture="environment" aria-label="{{ t('صوّر الباركود','Photograph the barcode') }}">
-        <label class="wy-btn" for="wyCode"><i class="fa-solid fa-barcode" aria-hidden="true"></i>{{ t('صوّر الباركود','Photograph the barcode') }}</label>
+        <button type="button" class="wy-btn" id="wyCodeScan" aria-expanded="false" aria-controls="wyScanner"><i class="fa-solid fa-barcode" aria-hidden="true"></i>{{ t('امسح الباركود لايف','Scan barcode live') }}</button>
         <div class="wy-f wy-code-num"><label for="wyCodeNum" class="wy-sr">{{ t('رقم الباركود','Barcode number') }}</label>
           <input type="text" inputmode="numeric" id="wyCodeNum" placeholder="{{ t('أو اكتب الرقم اللي تحت الخطوط','or type the number under the lines') }}" autocomplete="off"></div>
         <button type="button" class="wy-btn" id="wyCodeGo">{{ t('بحث','Search') }}</button>
+      </div>
+      <div class="wy-scanner" id="wyScanner" hidden role="region" aria-labelledby="wyScannerTitle">
+        <div class="wy-scanner-head"><strong id="wyScannerTitle">{{ t('وجّه الكاميرا للباركود','Point the camera at the barcode') }}</strong>
+          <button type="button" class="wy-btn" id="wyScannerClose">{{ t('إغلاق','Close') }}</button></div>
+        <div class="wy-scanner-view"><video id="wyScannerVideo" playsinline muted autoplay aria-label="{{ t('معاينة كاميرا الباركود','Barcode camera preview') }}"></video><div class="wy-scanner-guide" aria-hidden="true"></div></div>
+        <p>{{ t('خلّي الخطوط كلها جوّه الإطار وفي نور كويس. الرقم هيتكتب تلقائيًا، من غير تصوير أو رفع صورة.','Keep all the bars in the frame in good light. The number fills automatically, without taking or uploading a photo.') }}</p>
       </div>
       <p class="wy-status" id="wyCodeMsg" role="status" aria-live="polite"></p>
     </div>
@@ -429,6 +444,7 @@ body.wy-page::before{display:none}
  </div>
 </div>
 
+<script src="{{ url_for('static', filename='js/live_barcode.js') }}"></script>
 <script src="{{ url_for('static', filename='js/report_ocr.js') }}" defer></script>
 <script>
 (function(){
@@ -436,6 +452,14 @@ body.wy-page::before{display:none}
     reading: {{ t('بقرا الصورة… أول مرة بتاخد شوية','Reading the photo… the first time takes a moment')|tojson }},
     found: {{ t('اتقرا %n من 20 رقم. راجعهم، والخانات الصفرا اكتبها بإيدك.','Read %n of 20 numbers. Check them and fill in the yellow boxes.')|tojson }},
     none: {{ t('مقدرناش نقرا الصورة. صوّرها أقرب وفي نور كويس، أو اكتب الأرقام بإيدك.','Could not read the photo. Take it closer in good light, or type the numbers.')|tojson }},
+    scanStarting: {{ t('بفتح الكاميرا… اسمح للموقع يستخدمها.','Opening the camera… allow camera access.')|tojson }},
+    scanAim: {{ t('وجّه الكاميرا للخطوط واثبت لحظة…','Point at the bars and hold steady…')|tojson }},
+    scanFound: {{ t('اتقرا الباركود واتكتب الرقم.','Barcode read and number filled.')|tojson }},
+    scanDenied: {{ t('الكاميرا مقفولة. اسمح للموقع بالكاميرا من إعدادات المتصفح، أو اكتب الرقم بإيدك.','Camera access is blocked. Allow it in browser settings, or type the number.')|tojson }},
+    scanUnsupported: {{ t('المتصفح مش قادر يفتح الكاميرا هنا. افتح الموقع برابط HTTPS في Safari أو Chrome، أو اكتب الرقم.','Camera access is unavailable here. Open the HTTPS site in Safari or Chrome, or type the number.')|tojson }},
+    scanError: {{ t('مقدرناش نشغّل الكاميرا أو قارئ الباركود. جرّب تاني أو اكتب الرقم.','Could not start the camera or barcode reader. Try again or type the number.')|tojson }},
+    scanTimeout: {{ t('مفيش باركود اتقرا، وقفلنا الكاميرا. جرّب أقرب وفي نور أحسن، أو اكتب الرقم.','No barcode read. Camera stopped. Try closer in better light, or type the number.')|tojson }},
+    scanStopped: {{ t('الكاميرا اتقفلت. تقدر تفتحها تاني أو تكتب الرقم.','Camera stopped. Scan again or type the number.')|tojson }},
     codeReading: {{ t('بقرا الباركود…','Reading the barcode…')|tojson }},
     codeSearching: {{ t('بدوّر على المنتج…','Looking the product up…')|tojson }},
     codeFound: {{ t('لقيت "%n" وملّيت اللي معروف عنه. جدول الأحماض مش في قاعدة الباركود: صوّر ضهر العلبة.','Found "%n" and filled what is known. The amino table is not in the barcode database: photograph the back of the tub.')|tojson }},
@@ -601,7 +625,7 @@ body.wy-page::before{display:none}
     }
     fill.style.inlineSize = '100%'; setTimeout(() => { bar.style.display = 'none'; fill.style.inlineSize = '0'; }, 600);
   }
-  // ‏الباركود: الصورة بتتقرا على السيرفر (آيفون مفيهوش BarcodeDetector)
+  // Live barcode decoding is local; the existing product lookup receives only the number.
   const codeMsg = document.getElementById('wyCodeMsg');
   function setVal(name, v){
     const el = document.querySelector(`form [name="${name}"]`); if (!el || v == null || v === '') return false;
@@ -622,17 +646,16 @@ body.wy-page::before{display:none}
       codeMsg.textContent = S.codeFound.replace('%n', p.name || code) + (cheap(p.added).length ? S.addedMsg.replace('%a', cheap(p.added).join('، ')) : '');
     } catch (e) { codeMsg.className = 'wy-status err'; codeMsg.textContent = S.none; }
   }
-  const codeIn = document.getElementById('wyCode'), codeNum = document.getElementById('wyCodeNum');
-  if (codeIn) codeIn.addEventListener('change', async () => {
-    const f = codeIn.files[0]; if (!f) return;
-    codeMsg.className = 'wy-status'; codeMsg.textContent = S.codeReading;
-    const fd = new FormData(); fd.append('image', await shrink(f));
-    try {
-      const j = await (await fetch('/barcode/read', {method: 'POST', body: fd})).json();
-      if (!j.ok) { codeMsg.className = 'wy-status err'; codeMsg.textContent = j.error; return; }
-      codeNum.value = j.code; lookupCode(j.code);
-    } catch (e) { codeMsg.className = 'wy-status err'; codeMsg.textContent = S.none; }
-    codeIn.value = '';
+  const codeNum = document.getElementById('wyCodeNum');
+  const scanButton = document.getElementById('wyCodeScan');
+  if (scanButton) new NutraXLiveBarcode({
+    button: scanButton, panel: document.getElementById('wyScanner'),
+    video: document.getElementById('wyScannerVideo'), close: document.getElementById('wyScannerClose'),
+    status: codeMsg, decoderUrl: {{ url_for('static', filename='js/vendor/zxing-browser-0.1.5.min.js')|tojson }},
+    strings: { starting: S.scanStarting, aim: S.scanAim, found: S.scanFound,
+      denied: S.scanDenied, unsupported: S.scanUnsupported, cameraError: S.scanError,
+      timeout: S.scanTimeout, stopped: S.scanStopped },
+    onCode: code => { codeNum.value = code; codeNum.dispatchEvent(new Event('input', { bubbles: true })); lookupCode(code); }
   });
   const goCode = () => { const c = (codeNum.value || '').replace(/\D/g, ''); if (c) lookupCode(c); };
   if (codeNum) { document.getElementById('wyCodeGo').addEventListener('click', goCode);
