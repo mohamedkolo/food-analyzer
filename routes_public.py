@@ -146,11 +146,13 @@ def public_food(slug):
 
 @bp.route("/")
 def landing():
-    """The public front door. Signed-in visitors go straight to their own page."""
-    if "uid" in session:
-        return redirect("/dashboard")
+    """The public front door, for signed-in visitors too.
+
+    ‏بموافقة الدكتور (٢٥ نوفمبر): المشهد يظهر حتى لمسجّلي الدخول،
+    وزر «خطتي» في الشريط بيرجّعهم لحسابهم بدل التحويل التلقائي.
+    """
     return render_template("landing.html", lang=session.get("lang", "ar"),
-                           pricing=PRICING)
+                           pricing=PRICING, signed_in=("uid" in session))
 
 
 # "/" still answers POST: the login form used to live at the root, so old
@@ -316,4 +318,3 @@ def whey_barcode(code):
     if not product:
         return jsonify({"ok": False, "error": "الباركود اتقرا، لكن المنتج مش موجود في قاعدة البيانات. مفيش أرقام اتخمنت. اكتب بيانات العبوة أو استخدم قراءة الملصق الاختيارية."}), 404
     return jsonify({"ok": True, "code": code, "product": barcode_scan.supplement_fields(product)})
-
