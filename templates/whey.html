@@ -308,6 +308,26 @@ body.wy-page::before{display:none}
 
   {% if kind and not result and not supp_result %}
   <section class="wy-card" aria-labelledby="wy-photo">
+    <h2 id="wy-photo"><i class="fa-solid fa-barcode" aria-hidden="true"></i>{{ t('اسكان باركود لايف وملء الحقائق','Live barcode scan and facts') }}</h2>
+    <p class="wy-sub">{{ t('وجّه الكاميرا للخطوط. من غير صورة أو رفع ملف. هنبحث عن المنتج ونملأ الأرقام المتاحة بمصدرها، مش بالتخمين.','Point the camera at the bars. No photo or upload. Available numbers are filled with their source, never guessed.') }}</p>
+    <div class="wy-code">
+      <p class="wy-group" style="margin-top:0">{{ t('امسح الخطوط أو اكتب الرقم:','Scan the bars or type the number:') }}</p>
+      <div class="wy-code-row">
+        <button type="button" class="wy-btn" id="wyCodeScan" aria-expanded="false" aria-controls="wyScanner"><i class="fa-solid fa-barcode" aria-hidden="true"></i>{{ t('امسح الباركود لايف','Scan barcode live') }}</button>
+        <div class="wy-f wy-code-num"><label for="wyCodeNum" class="wy-sr">{{ t('رقم الباركود','Barcode number') }}</label>
+          <input type="text" inputmode="numeric" id="wyCodeNum" placeholder="{{ t('أو اكتب الرقم اللي تحت الخطوط','or type the number under the lines') }}" autocomplete="off"></div>
+        <button type="button" class="wy-btn" id="wyCodeGo">{{ t('بحث','Search') }}</button>
+      </div>
+      <div class="wy-scanner" id="wyScanner" hidden role="region" aria-labelledby="wyScannerTitle">
+        <div class="wy-scanner-head"><strong id="wyScannerTitle">{{ t('وجّه الكاميرا للباركود','Point the camera at the barcode') }}</strong>
+          <button type="button" class="wy-btn" id="wyScannerClose">{{ t('إغلاق','Close') }}</button></div>
+        <div class="wy-scanner-view"><video id="wyScannerVideo" playsinline muted autoplay aria-label="{{ t('معاينة كاميرا الباركود','Barcode camera preview') }}"></video><div class="wy-scanner-guide" aria-hidden="true"></div></div>
+        <p>{{ t('خلّي الخطوط كلها جوّه الإطار وفي نور كويس. الرقم هيتكتب تلقائيًا، من غير تصوير أو رفع صورة.','Keep all the bars in the frame in good light. The number fills automatically, without taking or uploading a photo.') }}</p>
+      </div>
+      <p class="wy-status" id="wyCodeMsg" role="status" aria-live="polite"></p>
+      <div id="wyCodeSources" aria-live="polite"></div>
+    </div>
+    <details><summary>{{ t('اختياري: قراءة ملصق بصورة بدل الباركود','Optional: read a label photo instead of a barcode') }}</summary>
     <h2 id="wy-photo"><i class="fa-solid fa-camera" aria-hidden="true"></i>{{ t('صورة ضهر العلبة','Photo of the label') }}</h2>
     <div class="wy-pick">
       <div>
@@ -322,24 +342,7 @@ body.wy-page::before{display:none}
     <div class="wy-bar" id="wyBar"><span></span></div>
     <p class="wy-status" id="wyStatus" role="status" aria-live="polite">{% if vision %}{{ t('صوّر الجدول كله قريب وفي نور كويس، من غير لمعة.','Photograph the whole table close up, in good light, without glare.') }}{% else %}{{ t('الصورة بتتقرا على موبايلك ومابتتبعتش لأي حد.','The photo is read on your phone and is not sent anywhere.') }}{% endif %}</p>
     <div class="wy-alert" id="wyNoProfile" hidden role="alert"></div>
-    {# ‏الباركود: الاسم والحصة والبروتين والسكر والمكونات من Open Food Facts.
-       جدول الأحماض مش هناك، فصورة ضهر العلبة لسه هي الأساس. #}
-    <div class="wy-code">
-      <p class="wy-group" style="margin-top:0">{{ t('أو بالباركود:','Or by barcode:') }}</p>
-      <div class="wy-code-row">
-        <button type="button" class="wy-btn" id="wyCodeScan" aria-expanded="false" aria-controls="wyScanner"><i class="fa-solid fa-barcode" aria-hidden="true"></i>{{ t('امسح الباركود لايف','Scan barcode live') }}</button>
-        <div class="wy-f wy-code-num"><label for="wyCodeNum" class="wy-sr">{{ t('رقم الباركود','Barcode number') }}</label>
-          <input type="text" inputmode="numeric" id="wyCodeNum" placeholder="{{ t('أو اكتب الرقم اللي تحت الخطوط','or type the number under the lines') }}" autocomplete="off"></div>
-        <button type="button" class="wy-btn" id="wyCodeGo">{{ t('بحث','Search') }}</button>
-      </div>
-      <div class="wy-scanner" id="wyScanner" hidden role="region" aria-labelledby="wyScannerTitle">
-        <div class="wy-scanner-head"><strong id="wyScannerTitle">{{ t('وجّه الكاميرا للباركود','Point the camera at the barcode') }}</strong>
-          <button type="button" class="wy-btn" id="wyScannerClose">{{ t('إغلاق','Close') }}</button></div>
-        <div class="wy-scanner-view"><video id="wyScannerVideo" playsinline muted autoplay aria-label="{{ t('معاينة كاميرا الباركود','Barcode camera preview') }}"></video><div class="wy-scanner-guide" aria-hidden="true"></div></div>
-        <p>{{ t('خلّي الخطوط كلها جوّه الإطار وفي نور كويس. الرقم هيتكتب تلقائيًا، من غير تصوير أو رفع صورة.','Keep all the bars in the frame in good light. The number fills automatically, without taking or uploading a photo.') }}</p>
-      </div>
-      <p class="wy-status" id="wyCodeMsg" role="status" aria-live="polite"></p>
-    </div>
+    </details>
     {% if not supp %}<a class="wy-demo" href="/whey/demo"><i class="fa-solid fa-flask" aria-hidden="true"></i>{{ t('جرّب على علبة تجريبية','Try a demo tub') }}</a>{% endif %}
   </section>
   {% endif %}
@@ -445,6 +448,7 @@ body.wy-page::before{display:none}
 </div>
 
 <script src="{{ url_for('static', filename='js/live_barcode.js') }}"></script>
+<script src="{{ url_for('static', filename='js/product_facts.js') }}"></script>
 <script src="{{ url_for('static', filename='js/report_ocr.js') }}" defer></script>
 <script>
 (function(){
@@ -631,20 +635,33 @@ body.wy-page::before{display:none}
     const el = document.querySelector(`form [name="${name}"]`); if (!el || v == null || v === '') return false;
     el.value = v; const w = el.closest('.wy-f'); if (w) w.classList.add('read'); return true;
   }
+  let lookupVersion = 0;
+  const sources = document.getElementById('wyCodeSources');
+  function applyFacts(p){
+    // New product clears old product values. Missing values never inherit another tub's data.
+    document.querySelectorAll('#wyForm input:not([type="hidden"]):not([type="radio"])').forEach(el => { el.value=''; el.closest('.wy-f')?.classList.remove('read'); });
+    setVal('product', p.name);
+    setVal('serving_g',p.serving_g); setVal('protein_g',p.protein_g); setVal('sugar_g',p.sugar_g);
+    for(const [k,v] of Object.entries(p.amino||{}))setVal(k,v);
+    const unit=document.querySelector('input[name="unit"][value="serving"]');if(unit)unit.checked=true;
+    const mode=document.querySelector('input[name="mode"][value="profile"]');if(mode){mode.checked=true;mode.dispatchEvent(new Event('change',{bubbles:true}));}
+    const added=document.getElementById('wyAdded');if(added)added.value='';
+    codeMsg.className='wy-status ok';
+    codeMsg.textContent='اتقرا الباركود واتملأ المتاح من المصدر. راجع الاسم والنكهة والحصة. الخانات الفاضية بيانات مش متاحة، مش صفر. الأحماض المتاحة: '+Object.keys(p.amino||{}).length+'/18.';
+    sources.replaceChildren();const a=document.createElement('a');a.href=p.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=p.source+' · '+p.name;sources.append(a);
+    const note=document.createElement('p');note.textContent=(p.warnings||[]).join(' ')+' تم الاسترجاع: '+p.retrieved_at.slice(0,10)+(p.label_date?' · تاريخ سجل الملصق: '+p.label_date:'');sources.append(note);
+  }
   async function lookupCode(code){
-    codeMsg.className = 'wy-status'; codeMsg.textContent = S.codeSearching;
-    try {
-      const r = await fetch('/whey/barcode/' + encodeURIComponent(code)); const j = await r.json();
-      if (!j.ok) { codeMsg.className = 'wy-status err'; codeMsg.textContent = j.error || S.none; return; }
-      const p = j.product;
-      setVal('product', p.name);
-      if (!SUPP) {
-        setVal('serving_g', p.serving_g); setVal('protein_g', p.protein_g); setVal('sugar_g', p.sugar_g);
-        const added = document.getElementById('wyAdded'); if (added && p.added && p.added.length) added.value = p.added.join(',');
-      }
-      codeMsg.className = 'wy-status ok';
-      codeMsg.textContent = S.codeFound.replace('%n', p.name || code) + (cheap(p.added).length ? S.addedMsg.replace('%a', cheap(p.added).join('، ')) : '');
-    } catch (e) { codeMsg.className = 'wy-status err'; codeMsg.textContent = S.none; }
+    const id=++lookupVersion;document.querySelectorAll('#wyForm input:not([type="hidden"]):not([type="radio"])').forEach(el=>{el.value='';el.closest('.wy-f')?.classList.remove('read');});const oldAdded=document.getElementById('wyAdded');if(oldAdded)oldAdded.value='';sources.replaceChildren();codeMsg.className='wy-status';codeMsg.textContent='الرقم اتقرا. بنبحث في مصادر الحقائق المجانية…';
+    try{
+      if(SUPP){codeMsg.textContent='الاسكان قرأ الرقم. ملء حقائق هذا النوع من المكملات لم يكتمل بعد، مفيش قيم اتخمنت.';return;}
+      const result=await NutraXProductFacts.lookup(code);if(id!==lookupVersion)return;
+      if(result.candidates.length===1){applyFacts(result.candidates[0]);return;}
+      codeMsg.className='wy-status err';
+      if(!result.candidates.length){codeMsg.textContent=result.errors.length?'بعض المصادر مش متاحة دلوقتي. مفيش حقائق مؤكدة اتملت. جرّب تاني أو ادخل المكتوب على العبوة.':'الباركود اتقرا لكن ملقيناش ملصق مطابق في المصادر. مفيش أرقام اتخمنت. تقدر تدخل المكتوب على العبوة.';return;}
+      codeMsg.textContent='فيه أكثر من سجل لنفس الباركود. اختار المطابق للاسم والنكهة والحصة على عبوتك قبل ملء الأرقام:';
+      result.candidates.forEach(p=>{const b=document.createElement('button');b.type='button';b.className='wy-btn';b.textContent=p.source+' · '+p.name+' · '+(p.serving_g??'?')+' g'+(p.label_date?' · '+p.label_date:'');b.addEventListener('click',()=>applyFacts(p));sources.append(b);});
+    }catch(e){if(id!==lookupVersion)return;codeMsg.className='wy-status err';codeMsg.textContent=e.message==='invalid_barcode'?'رقم الباركود غير صالح. جرّب اسكان تاني أو راجع الرقم.':'تعذر جلب الحقائق. الرقم اتقرا لكن مفيش أرقام اتملت.';}
   }
   const codeNum = document.getElementById('wyCodeNum');
   const scanButton = document.getElementById('wyCodeScan');
