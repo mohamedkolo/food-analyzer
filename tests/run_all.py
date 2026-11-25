@@ -90,6 +90,7 @@ SUITES = [
     "test_whey_analyzer.py",
     "test_supplements.py",
     "test_barcode_scan.py",
+    "test_omega_barcode.py",
     "test_backup_workflow.py",
     "test_monitoring.py",
 ]
