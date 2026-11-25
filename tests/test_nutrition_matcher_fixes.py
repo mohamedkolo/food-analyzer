@@ -61,7 +61,9 @@ for label, ov in (("M93 loss", {}),
                   ("M70 gain", {"weight": "70", "tdee": "2600", "goal_cal": "3000", "goal_type": "muscle_gain"})):
     d = dict(base, **ov)
     with A.app.test_request_context("/"):
-        plan = generate_weekly_plan(dict(d))
+        dd = dict(d)
+        plan = generate_weekly_plan(dd)
+        mm.annotate_plan(plan, dd)
     tgt = float(d["goal_cal"])
     worst = max(abs(day["total_cal"] - tgt) / tgt for day in plan)
     check(label + ": every day within 6% of target", worst <= 0.06, round(worst, 3))
@@ -83,5 +85,8 @@ check("day with incomplete meal is flagged", r["incomplete"] == ["l"] and not r[
 r = mm.reconcile_day({"b": "🥚 بيض 3 + 🍞 خبز اسمر 60جم"})
 check("item sums reach meal and day exactly", r["resolved_cal"] == r["meals"]["b"]["cal"] and r["meals"]["b"]["items_sum_ok"], r)
 
+m = mm.macros("🍲 شوربة لسان عصفور بالخضار 410مل")
+check("orzo soup is not beef tongue", (not m["complete"]) and m["cal"] == 0, m["cal"])
+check("lentil soup still resolved", mm.macros("🍲 شوربة عدس 340مل")["complete"])
 print("FAILED: %d" % len(FAILED))
 sys.exit(1 if FAILED else 0)
