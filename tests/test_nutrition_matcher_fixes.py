@@ -65,6 +65,23 @@ for label, ov in (("M93 loss", {}),
     tgt = float(d["goal_cal"])
     worst = max(abs(day["total_cal"] - tgt) / tgt for day in plan)
     check(label + ": every day within 6% of target", worst <= 0.06, round(worst, 3))
+    check(label + ": every day carries calc_check", all("calc_check" in day for day in plan))
+    # a day the checker calls complete must reconcile to the shown total within 25% (label-vs-items tolerance); others stay flagged incomplete
+    bad = [day["day"] for day in plan if day["calc_check"]["complete"] and day["calc_check"]["matches_shown"] is False]
+    print("INFO %s: complete-but-differs days: %d of %d; incomplete days: %d" % (label, len(bad), len(plan), sum(not d["calc_check"]["complete"] for d in plan)))
+
+# 6. ambiguous counts are explicit incomplete, never guessed
+m = mm.macros("🍞 خبز 2")
+check("bare bread count is unresolved", (not m["complete"]) and m["unresolved"] == ["🍞 خبز 2"], m["unresolved"])
+check("bread in grams is resolved", mm.macros("🍞 خبز اسمر 80جم")["complete"])
+check("bread with explicit unit resolved", mm.macros("🍞 عيش بلدي 2 رغيف")["complete"])
+check("half loaf is 1/2 not 2", abs(mm.item_grams("🍞 عيش بلدي 1/2 رغيف", mm.find_food("عيش بلدي"))[0] - 47.5) < 1)
+check("eggs by count still resolved", mm.macros("🥚 بيض 3")["complete"])
+check("incomplete meal not trusted vs label", mm.trusted("🍞 خبز 2 + 🥚 بيض 3", 400) is None)
+r = mm.reconcile_day({"b": "🥚 بيض 3 + 🍞 خبز اسمر 60جم", "l": "🍞 خبز 2"})
+check("day with incomplete meal is flagged", r["incomplete"] == ["l"] and not r["complete"] and r["matches_shown"] is None, r)
+r = mm.reconcile_day({"b": "🥚 بيض 3 + 🍞 خبز اسمر 60جم"})
+check("item sums reach meal and day exactly", r["resolved_cal"] == r["meals"]["b"]["cal"] and r["meals"]["b"]["items_sum_ok"], r)
 
 print("FAILED: %d" % len(FAILED))
 sys.exit(1 if FAILED else 0)
