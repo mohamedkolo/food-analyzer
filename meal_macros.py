@@ -505,6 +505,12 @@ def macros(text):
             food, grams, how = None, 0.0, None
         row = {"text": raw, "grams": grams, "how": how,
                "food": food.get("n") if food else None}
+        if (food and _norm("شوربة") in _norm(raw)
+                and _norm("شوربة") not in _norm(food.get("n"))):
+            # ‏"شوربة لسان عصفور" مش لسان بقري. الطبق مش في الجدول.
+            row["unresolved"] = "dish"
+            items.append(row)
+            continue
         if (food and how == "count"
                 and food.get("n") in AMBIGUOUS_COUNT
                 and not _named_unit(_norm(raw), food)
@@ -585,3 +591,25 @@ def reconcile_day(meals, shown_total=None, tol=0.05):
     if shown_total and not incomplete:
         res["matches_shown"] = abs(total - shown_total) / float(shown_total) <= tol
     return res
+
+
+def annotate_plan(plan, data):
+    """Attach day["calc_check"] to each day of a generated plan.
+
+    Item -> meal -> day check from the written items. Meals with an
+    unresolved item are listed as incomplete, never filled from labels.
+    Protein is compared with the clinician-set target already in
+    data["protein_basis"]; this only flags (over 1.25x), it never edits.
+    """
+    target = ((data or {}).get("protein_basis") or {}).get("grams") or 0
+    for day in plan or []:
+        if not isinstance(day, dict):
+            continue
+        meals = {k: day.get(k) for k in day.get("meal_labels", [])
+                 if isinstance(day.get(k), str)}
+        chk = reconcile_day(meals, day.get("total_cal"))
+        chk["protein_target"] = int(round(target)) if target else 0
+        chk["protein_shown"] = day.get("total_p")
+        chk["protein_over"] = bool(target and (day.get("total_p") or 0) > 1.25 * target)
+        day["calc_check"] = chk
+    return plan
