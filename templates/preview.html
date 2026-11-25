@@ -267,7 +267,7 @@
     <div>
       <div style="font-size:11.5px;color:var(--nx-muted);font-weight:700">{{ t('الوزن','Weight') }}</div>
       <div style="font-size:19px;font-weight:900;color:var(--nx-ink)">
-        {{ fu.old_weight }} → {{ fu.new_weight }}<span style="font-size:12px">{{ t('كجم','kg') }}</span>
+        <bdi dir="ltr">{{ fu.old_weight }} → {{ fu.new_weight }}</bdi><span style="font-size:12px"> {{ t('كجم','kg') }}</span>
       </div>
     </div>
     <div>
@@ -301,17 +301,17 @@
   {% if fu.tdee_drop and fu.tdee_drop > 0 %}
   <div style="font-size:12.5px;color:var(--nx-warn-ink);background:var(--nx-warn-bg);border:1px solid var(--nx-warn-line);
               border-radius:9px;padding:10px 13px;margin-top:9px;line-height:1.8">
-    {{ t('الـTDEE نزل','TDEE dropped') }} <b>{{ fu.tdee_drop }} kcal</b>
-    {{ t('مع الوزن. يعني هدف الزيارة اللي فاتت','with the weight. That means last visit’s target of') }}
-    <b>{{ fu.old_goal_cal }}</b> {{ t('بقى عجزه أصغر بالمقدار ده — ده السبب الأشهر لثبات الوزن.',
-                                      'now carries that much less deficit — the most common reason weight stalls.') }}
+    {{ t('الـTDEE المحسوب نزل','The calculated TDEE dropped') }} <b>{{ fu.tdee_drop }} kcal</b>
+    {{ t('مع الوزن (حساب مباشر على الوزن الجديد). يعني هدف الزيارة اللي فاتت','with the weight (a direct recalculation on the new weight). That means last visit’s target of') }}
+    <b>{{ fu.old_goal_cal }}</b> {{ t('بقى عجزه أصغر بالمقدار ده. ده حساب، مش تفسير لسبب ثبات الوزن.',
+                                      'now carries that much less deficit. This is arithmetic, not an explanation of why weight stalled.') }}
   </div>
   {% endif %}
 
   {% if fu.suggested_goal_cal and data.goal_cal and fu.suggested_goal_cal|int != data.goal_cal|int %}
   <div style="font-size:12.5px;color:var(--nx-ink);background:var(--nx-tint);border-radius:9px;
               padding:10px 13px;margin-top:9px;line-height:1.8">
-    <i class="fa-solid fa-lightbulb"></i> {{ t('المقترح للزيارة دي','Suggested for this visit') }}: <b>{{ fu.suggested_goal_cal }} kcal</b>
+    <i class="fa-solid fa-lightbulb"></i> {{ t('اقتراح القاعدة الحسابية للزيارة دي (مش توصية طبية)','Calculation-rule suggestion for this visit (not a medical recommendation)') }}: <b>{{ fu.suggested_goal_cal }} kcal</b>
     {{ t('— انت مولّد الخطة على','— you generated this plan on') }} <b>{{ data.goal_cal }}</b> kcal.
     {{ t('لو عايز تجرّب المقترح، ارجع لصفحة التوليد وغيّر الهدف.',
          'To try the suggestion, go back to the generate page and change the target.') }}
@@ -338,7 +338,7 @@
       <tbody>
       {% for iv in fh.intervals %}
       <tr style="border-top:1px solid var(--nx-line)">
-        <td style="padding:5px 6px">#{{ iv.from_visit or '?' }} → {{ ('#' ~ iv.to_visit) if iv.to_visit else t('دلوقتي','now') }}</td>
+        <td style="padding:5px 6px">{{ t('من','From') }} #{{ iv.from_visit or '?' }} {{ t('إلى','to') }} {{ ('#' ~ iv.to_visit) if iv.to_visit else t('دلوقتي','now') }}</td>
         <td style="padding:5px 6px"><bdi dir="ltr">{{ iv.old_weight }} → {{ iv.new_weight }}</bdi></td>
         <td style="padding:5px 6px"><bdi dir="ltr">{{ '+' if iv.rate > 0 }}{{ iv.rate }}</bdi> {{ t('كجم/أسبوع','kg/wk') }}</td>
         <td style="padding:5px 6px">{{ VERDICT_LABELS.get(iv.verdict, (iv.verdict, iv.verdict))[0 if is_ar else 1] }}</td>
