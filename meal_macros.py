@@ -613,3 +613,25 @@ def annotate_plan(plan, data):
         chk["protein_over"] = bool(target and (day.get("total_p") or 0) > 1.25 * target)
         day["calc_check"] = chk
     return plan
+
+
+class InsufficientVerifiedMeals(ValueError):
+    """Too few meals with fully resolved items survive the client's restrictions."""
+
+    def __init__(self, slot, have, need):
+        super().__init__("slot %s: %d verified meals, need %d" % (slot, have, need))
+        self.slot, self.have, self.need = slot, have, need
+
+
+def verified_only(meals, slot="", minimum=3):
+    """Keep meals whose every item resolves (food, unit and grams known).
+
+    Unresolved counts (bare bread/shakshuka), prepared dishes missing from
+    the food table and ml-dry items are dropped, never guessed. Raises
+    InsufficientVerifiedMeals when fewer than `minimum` remain.
+    """
+    keep = [m for m in meals
+            if macros(m.get("meal", "") if isinstance(m, dict) else str(m))["complete"]]
+    if len(keep) < minimum:
+        raise InsufficientVerifiedMeals(slot, len(keep), minimum)
+    return keep
