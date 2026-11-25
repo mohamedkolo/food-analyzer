@@ -1,0 +1,180 @@
+# -*- coding: utf-8 -*-
+"""Run every test suite. Exit code 1 if anything failed.
+
+    python3 tests/run_all.py
+
+Each suite runs in its own process, because they seed the same database and
+importing the app twice in one process would collide.
+"""
+
+import os
+import re
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+# ‏قاعدة الاختبارات: منفصلة عن /tmp/nutrax.db بتاعة التشغيل المحلي
+# ‏من غير \b: print من thread الإيميل ساعات بينزل لازق في PASS من غير مسافة
+# ("...skippedPASS test_x")، و\b بين حرفين مابيتعدّش حد كلمة.
+RESULT = re.compile(r"(PASS|FAIL)\s+test_\w+")
+TEST_DB = os.environ.get("NUTRAX_TEST_DB", "/tmp/nutrax_suite.db")
+SUITES = [
+    "test_db_connection.py",
+    "test_medical_filtering.py",
+    "test_access_control.py",
+    "test_translation.py",
+    "test_zigzag.py",
+    "test_food_data.py",
+    "test_followup.py",
+    "test_quick_check_and_renaming.py",
+    "test_plan_link.py",
+    "test_plan_editing.py",
+    "test_plan_reaches_the_table.py",
+    "test_chemical_diet.py",
+    "test_sleeve_diet.py",
+    "test_form_prefill.py",
+    "test_report_reading.py",
+    "test_report_explaining.py",
+    "test_error_pages.py",
+    "test_portion_scaling.py",
+    "test_pdf_unbranded.py",
+    "test_accessibility.py",
+    "test_diet_programs.py",
+    "test_protein_target.py",
+    "test_child_protein.py",
+    "test_meal_macros.py",
+    "test_child_meals.py",
+    "test_glp1_protein.py",
+    "test_obesity_staging.py",
+    "test_barcode_lookup.py",
+    "test_client_sheet.py",
+    "test_followup_board.py",
+    "test_demo_link.py",
+    "test_report_pdf.py",
+    "test_child_program_guard.py",
+    "test_shopping_list.py",
+    "test_snack_variety.py",
+    "test_backup.py",
+    "test_sports_nutrition.py",
+    "test_form_simpler.py",
+    "test_form_contrast.py",
+    "test_generate_button.py",
+    "test_deficit_note.py",
+    "test_three_meals.py",
+    "test_sheet_rules.py",
+    "test_underweight.py",
+    "test_money.py",
+    "test_booking.py",
+    "test_client_app.py",
+    "test_plan_tools.py",
+    "test_equivalents.py",
+    "test_daily_fixes.py",
+    "test_login_afo.py",
+    "test_email_codes.py",
+    "test_new_client_notice.py",
+    "test_admin_dashboard.py",
+    "test_speed.py",
+    "test_liquid_nav.py",
+    "test_dark_mode.py",
+    "test_glass.py",
+    "test_day_progress.py",
+    "test_week_progress.py",
+    "test_food_log.py",
+    "test_stagger.py",
+    "test_portion_control.py",
+    "test_snack_swap.py",
+    "test_household_measures.py",
+    "test_settings_page.py",
+    "test_notifications_page.py",
+    "test_messages_page.py",
+    "test_whey_analyzer.py",
+    "test_supplements.py",
+    "test_barcode_scan.py",
+    "test_omega_barcode.py",
+    "test_backup_workflow.py",
+    "test_monitoring.py",
+]
+
+
+def _unlisted_suites():
+    """‏ملفات اختبار موجودة في الفولدر ومش مكتوبة في SUITES.
+
+    ‏القايمة فوق مكتوبة بإيدنا، وده معناه إن ملف اختبار جديد ممكن
+    يتكتب ويتنسى -- وحصل: كتبت test_diet_programs.py بـ20 اختبار،
+    والطقم طلّع نفس الرقم بالظبط اللي كان قبله (392) وقال "0 فاشل".
+    الرقم كان صح والتغطية كانت ناقصة، وده أسوأ من اختبار فاشل: الفاشل
+    بيقولك.
+    """
+    listed = set(SUITES)
+    return sorted(name for name in os.listdir(HERE)
+                  if name.startswith("test_") and name.endswith(".py")
+                  and name not in listed)
+
+
+def main():
+    total_pass = total_fail = 0
+    broken = []
+
+    # ‏الفحص ده قبل أي تشغيل: لو فيه ملف مش في القايمة، الرقم اللي
+    # هيطلع في الآخر مش بيغطّيه، فالطقم لازم يقع مش يكمّل.
+    unlisted = _unlisted_suites()
+    if unlisted:
+        broken.extend("%s (مش في SUITES)" % name for name in unlisted)
+        print("⚠️  ملفات اختبار مش في القايمة، فمش بتتشغّل:")
+        for name in unlisted:
+            print("      " + name)
+
+    for suite in SUITES:
+        print(f"\n{'=' * 62}\n  {suite}\n{'=' * 62}")
+        # ‏الاختبارات ليها قاعدتها. قبل كده كانت بتمسح /tmp/nutrax.db --
+        # وهي نفسها القاعدة اللي التطبيق بيستخدمها لما تشغّله محلياً، فتشغيل
+        # الاختبارات كان بيضيّع حساب الأدمن واللي إنت مسجّله للتجربة.
+        env = dict(os.environ, SECRET_KEY=os.environ.get("SECRET_KEY", "test-key"),
+                   NUTRAX_DB=TEST_DB)
+        # each suite seeds from scratch
+        if os.path.exists(TEST_DB):
+            os.remove(TEST_DB)
+        r = subprocess.run([sys.executable, os.path.join(HERE, suite)],
+                           capture_output=True, text=True, env=env)
+        # ‏السطر بيتقرا بـ regex مش startswith: التسجيل بيبعت إيميل الأدمن من
+        # thread في الخلفية، والـprint بتاعه ("[notif] SMTP not configured")
+        # ساعات بيتكتب في نص سطر PASS. الاختبار كان بيعدّي والطقم يقول
+        # "suite crashed" لأن العدّاد ماشافوش.
+        results = []
+        for line in r.stdout.splitlines():
+            m = RESULT.search(line)
+            if m:
+                results.append(m.group(1))
+                print("  " + line[m.start():].strip())
+            elif " passed," in line:
+                print("  " + line.strip())
+            elif line.startswith("        "):
+                print(line)
+        total_pass += results.count("PASS")
+        total_fail += results.count("FAIL")
+        if r.returncode != 0 and total_fail == 0:
+            broken.append(suite)
+            print(f"  suite crashed:\n{(r.stderr or '')[-600:]}")
+
+        # ‏كل def test_ في الملف لازم يطلع في النتيجة. حصل إني كتبت خمس
+        # اختبارات بعد بلوك __main__، فالرنر كان بيلف على globals قبل ما
+        # تتعرّف -- عدّت ولا مرة، والطقم قال "كل حاجة بتعدّي". اختبار
+        # مابيشتغلش أسوأ من اختبار فاشل: الفاشل بيقولك.
+        declared = sum(1 for line in
+                       open(os.path.join(HERE, suite), encoding="utf-8")
+                       if line.startswith("def test_"))
+        ran = len(results)
+        if declared != ran:
+            broken.append(f"{suite} ({declared} معرّفة، {ran} اشتغلت)")
+            print(f"  ⚠️  {declared} اختبار معرّف في الملف و{ran} بس اشتغل"
+                  f" -- في اختبارات مش بتتنادى")
+
+    print(f"\n{'=' * 62}")
+    print(f"  TOTAL: {total_pass} passed, {total_fail} failed"
+          + (f", {len(broken)} suite(s) crashed" if broken else ""))
+    print("=" * 62)
+    return 1 if (total_fail or broken) else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
