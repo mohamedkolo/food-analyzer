@@ -312,6 +312,105 @@ def summarise_history(visits):
     }
 
 
+# ── تحليل التاريخ كله ── مش آخر زيارتين بس
+#
+# ‏assess() بتقارن زيارتين. ده كافي لحكم على أسبوع، لكن مش كافي لسؤال "الخطة
+# شغّالة ولا لأ": وزن واقف شهر واحد ممكن يكون مياه، ووزن واقف شهرين ورا بعض
+# معناه إن الهدف نفسه محتاج مراجعة. فبنقرا كل فترة بين زيارتين بنفس الحكم
+# (assess) ونقول للدكتور لو نفس الحكم اتكرر. مفيش رقم جديد بيتحسب هنا ولا
+# السعرات بتتغيّر -- ده شرح للدكتور يقرر عليه، من الأوزان اللي اتسجّلت بس.
+_STALLED = ("plateau", "too_slow", "regained", "gain_stalled", "lost_on_gain")
+
+_STREAK_TEXT = {
+    "plateau": ("الوزن واقف", "Weight has stalled"),
+    "too_slow": ("النزول أبطأ من المتوقع", "Loss has been slower than expected"),
+    "regained": ("الوزن بيزيد", "Weight has been going up"),
+    "gain_stalled": ("الوزن مش بيزيد", "Weight has not been rising"),
+    "lost_on_gain": ("الوزن بينزل والهدف زيادة", "Weight has been falling on a gaining goal"),
+}
+
+
+def analyse_history(visits, current, lang="ar", limit=6, total_visits=None):
+    """يقرا كل الفترات بين زيارات العميل لحد الزيارة الحالية.
+
+    visits: زيارات العميل، الأحدث الأول (زي visits_for). current: بيانات الزيارة
+    الجديدة. بيرجّع None لو مفيش وزن مسجّل نبني عليه -- مش بنخترع تاريخ."""
+    chron = [dict(v) for v in reversed(list(visits or [])[:limit])
+             if _f(dict(v).get("weight")) > 0]
+    if not chron or _f((current or {}).get("weight")) <= 0:
+        return None
+
+    points = chron + [dict(current)]
+    intervals = []
+    for old, new in zip(points, points[1:]):
+        a = assess(old, new, lang)
+        if not a:
+            continue
+        intervals.append({
+            "from_visit": old.get("visit_no"),
+            "to_visit": new.get("visit_no") if new is not points[-1] else None,
+            "date": str(old.get("created_at") or "")[:10],
+            "old_weight": a["old_weight"], "new_weight": a["new_weight"],
+            "delta": a["delta"], "days": a["days"], "rate": a["rate"],
+            "verdict": a["verdict"],
+        })
+    if not intervals:
+        return None
+
+    # ‏الفترة الأقصر من أسبوع مش حكم: مابتكسرش السلسلة ومابتزوّدها
+    judged = [i for i in intervals if i["verdict"] != "too_soon"]
+    streak = {"verdict": judged[-1]["verdict"] if judged else None, "count": 0}
+    for i in reversed(judged):
+        if i["verdict"] != streak["verdict"]:
+            break
+        streak["count"] += 1
+
+    # ‏وصف لترند وزن متسجّل، مش حكم على السبب. الثبات ممكن يكون قياس أو
+    # توقيت أو التزام أو حالة طبية، فالنص بيطلب من الدكتور يراجع دي كلها
+    # ومابيفرضش تعديل سعرات.
+    note_ar = note_en = ""
+    if streak["count"] >= 2 and streak["verdict"] in _STALLED:
+        ar, en = _STREAK_TEXT[streak["verdict"]]
+        note_ar = ("ترند متسجّل: %s في %d فترات ورا بعض. ده وصف للأوزان بس، "
+                   "مش دليل على السبب. راجع القياسات وتوقيتها والالتزام (لو "
+                   "متاح) والحالة الطبية قبل ما تقرر أي تعديل." % (ar, streak["count"]))
+        note_en = ("Recorded trend: %s over %d intervals in a row. This describes the "
+                   "weights only, not the cause. Review the measurements and their "
+                   "timing, adherence (if available) and the clinical context before "
+                   "deciding on any change." % (en, streak["count"]))
+
+    first_w = _f(chron[0].get("weight"))
+    return {
+        "intervals": intervals,
+        "streak": streak,
+        "streak_note_ar": note_ar,
+        "streak_note_en": note_en,
+        "net_change": round(_f(current.get("weight")) - first_w, 1),
+        "visits_used": len(chron),
+        # ‏العدد الكلي لزيارات العميل، عشان الشاشة تقول لو القراءة آخر `limit` بس
+        "total_visits": max(total_visits or 0, len(chron)),
+    }
+
+
+def meals_across_plans(visits, limit=3):
+    """وجبات آخر `limit` خطط، الأحدث الأول، من غير تكرار.
+
+    ‏الخطة بتتفادى أكل أكتر من أسبوع واحد: عميل جه تلات مرات أكل التلات
+    أسابيع، وكان بياخد نفس الأطباق تاني من الأسبوع اللي قبل اللي فات."""
+    import json
+    out, seen = [], set()
+    for v in list(visits or [])[:limit]:
+        try:
+            plan = json.loads(dict(v).get("plan_json") or "[]")
+        except (ValueError, TypeError):
+            continue
+        for m in meals_in_plan(plan):
+            if m not in seen:
+                seen.add(m)
+                out.append(m)
+    return out
+
+
 def _parse_dt(value):
     if isinstance(value, dt.datetime):
         return value
