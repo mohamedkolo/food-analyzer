@@ -252,7 +252,7 @@
 {% set VERDICT_LABELS = {'on_track':('في النطاق','On track'),'gain_on_track':('زيادة صحية','Healthy gain'),'too_fast':('أسرع من الآمن','Faster than safe'),'gain_too_fast':('زيادة سريعة','Gaining too fast'),'too_slow':('أبطأ من المتوقع','Slower than expected'),'plateau':('ثابت','Stalled'),'gain_stalled':('مش بيزيد','Not rising'),'regained':('زاد','Went up'),'lost_on_gain':('نزل والهدف زيادة','Fell on a gain goal'),'too_soon':('أقل من أسبوع','Under a week')} %}
 {% set col, bg, vicon = VS.get(fu.verdict, ('#5A6472', '#F3F5F7', 'fa-circle-dot')) %}
 <!-- المتابعة -->
-<div id="fuCard" style="background:var(--nx-surface);border:2px solid {{ col }};border-radius:12px;padding:16px 18px;margin-bottom:16px">
+<div id="fuCard" style="background:var(--nx-surface);border:2px solid {{ col }};border-radius:12px;scroll-margin-top:84px;padding:16px 18px;margin-bottom:16px">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
     <div style="font-weight:800;color:var(--nx-ink);font-size:15px">
       <i class="fa-solid fa-clock-rotate-left" style="color:{{ col }}"></i>
@@ -339,8 +339,8 @@
       {% for iv in fh.intervals %}
       <tr style="border-top:1px solid var(--nx-line)">
         <td style="padding:5px 6px">{{ t('من','From') }} #{{ iv.from_visit or '?' }} {{ t('إلى','to') }} {{ ('#' ~ iv.to_visit) if iv.to_visit else t('دلوقتي','now') }}</td>
-        <td style="padding:5px 6px"><bdi dir="ltr">{{ iv.old_weight }} → {{ iv.new_weight }}</bdi></td>
-        <td style="padding:5px 6px"><bdi dir="ltr">{{ '+' if iv.rate > 0 }}{{ iv.rate }}</bdi> {{ t('كجم/أسبوع','kg/wk') }}</td>
+        <td style="padding:5px 6px;white-space:nowrap"><bdi dir="ltr">{{ iv.old_weight }} → {{ iv.new_weight }}</bdi></td>
+        <td style="padding:5px 6px;white-space:nowrap"><bdi dir="ltr">{{ '+' if iv.rate > 0 }}{{ iv.rate }}</bdi> {{ t('كجم/أسبوع','kg/wk') }}</td>
         <td style="padding:5px 6px">{{ VERDICT_LABELS.get(iv.verdict, (iv.verdict, iv.verdict))[0 if is_ar else 1] }}</td>
       </tr>
       {% endfor %}
