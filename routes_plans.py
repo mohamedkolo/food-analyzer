@@ -167,6 +167,11 @@ def generate():
             data["avoid_plans"] = min(3, len(history_rows))
 
         plan = generate_weekly_plan(data)
+        try:
+            import meal_macros
+            meal_macros.annotate_plan(plan, data)
+        except Exception:
+            pass
         draft_store.set_draft(data=data, plan=plan)
         # مفيش حفظ هنا. الدكتور بيولّد ويرجع يظبط ويولّد تاني، والحفظ التلقائي
         # كان بيعمل خطة محفوظة وزيارة متابعة في كل مرة -- تلات تظبيطات كانوا
