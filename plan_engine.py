@@ -1143,6 +1143,20 @@ def generate_weekly_plan(data, seed=None):
 
         day_plan["total_cal"] = total_cal
         day_plan["total_p"] = total_p
+        # ‏فحص حسابي من الأصناف نفسها: مجموع الوجبات المحسومة بس، والوجبة
+        # اللي فيها صنف غير محسوم (كمية غامضة/مش معروف) بتتسجّل ناقصة ومش
+        # بتتملي من رقم الوجبة المكتوب. بيتعرض للدكتور، مابيغيّرش الخطة.
+        try:
+            import meal_macros as _mm
+            _chk = _mm.reconcile_day(
+                {_k: day_plan.get(_k) for _k in plan_info["meal_labels"]
+                 if isinstance(day_plan.get(_k), str)}, total_cal)
+            _chk["protein_target"] = int(round(_target_p)) if _target_p else 0
+            _chk["protein_shown"] = total_p
+            _chk["protein_over"] = bool(_target_p and total_p > 1.25 * _target_p)
+            day_plan["calc_check"] = _chk
+        except Exception:
+            pass
         # ‏بيتكتبوا بس لما كل خانة في اليوم تعرف كاربها ودهونها. يوم
         # ناقص خانة واحدة مايطلعش رقم ناقص وهو ساكت عن النقص.
         if _cf_full and _cur_cs:
