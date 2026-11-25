@@ -417,7 +417,10 @@ def _named_unit(text, food):
         if name and grams > 0:
             rows.append((name, grams))
     for name, grams in sorted(rows, key=lambda r: -len(r[0])):
-        found = re.search(r"(\d+(?:[.,]\d+)?)\s*" + re.escape(name), text)
+        frac = re.search(r"(\d+)/(\d+)\s*" + re.escape(name), text)
+        if frac and int(frac.group(2)):
+            return int(frac.group(1)) / float(frac.group(2)) * grams
+        found = re.search(r"(?<![\d/])(\d+(?:[.,]\d+)?)\s*" + re.escape(name), text)
         if found:
             try:
                 return float(found.group(1).replace(",", ".")) * grams
@@ -465,6 +468,11 @@ def _unit_grams(text, food=None):
     return best[1] if best else None
 
 
+# ‏أصناف العدد فيها غامض (الرقم بدون وحدة): خبز "2" رغيفين ولا شريحتين،
+# شكشوكة "4" أربع بيضات ولا أربع حصص. مفيش مصدر في الجدول يحسم.
+AMBIGUOUS_COUNT = {"خبز أسمر", "شكشوكة"}
+_UNIT_WORD = re.compile(r"رغيف|ارغفة|شريح|شرايح|توست|قطع|حبة|حبات|ملعقة|كوب")
+
 _DRY_CATS = {"grain", "legume", "nut", "supplement"}
 _ML = re.compile(r"\d\s*(?:مل|ml)\b")
 
@@ -497,6 +505,15 @@ def macros(text):
             food, grams, how = None, 0.0, None
         row = {"text": raw, "grams": grams, "how": how,
                "food": food.get("n") if food else None}
+        if (food and how == "count"
+                and food.get("n") in AMBIGUOUS_COUNT
+                and not _named_unit(_norm(raw), food)
+                and not _UNIT_WORD.search(_norm(raw))):
+            # ‏"خبز 2": رغيف ولا شريحة؟ الجدول مافيهوش وزن معتمد،
+            # فمانخمّنش. الصنف بيتعدّ "غير محسوم" والحساب ناقص ظاهر.
+            row["unresolved"] = "unit"
+            items.append(row)
+            continue
         if food and grams > 0:
             known += 1
             share = grams / 100.0
@@ -508,7 +525,11 @@ def macros(text):
                     pass
             row["cal"] = round(float(food.get("cal") or 0) * share)
         items.append(row)
+    unresolved = [r["text"] for r in items
+                  if r.get("unresolved") or not (r.get("food") and r.get("grams", 0) > 0)]
     return {
+        "complete": bool(items) and not unresolved,
+        "unresolved": unresolved,
         "cal": int(round(sums["cal"])),
         "p": int(round(sums["p"])),
         "c": int(round(sums["c"])),
@@ -525,7 +546,7 @@ def trusted(text, stored_cal, stored_p=None):
     قريب منه -- وساعتها الكارب والدهون المحسوبين ينفعوا يتكتبوا.
     """
     out = macros(text)
-    if out["covered"] < 0.6 or not stored_cal:
+    if out["covered"] < 0.6 or not stored_cal or out["unresolved"]:
         return None
     try:
         reference = float(stored_cal)
@@ -536,3 +557,31 @@ def trusted(text, stored_cal, stored_p=None):
     if abs(out["cal"] - reference) / reference > TOLERANCE:
         return None
     return out
+
+
+def reconcile_day(meals, shown_total=None, tol=0.05):
+    """Item -> meal -> day check. `meals` maps slot -> meal text.
+
+    Sums only fully resolved meals. A meal with any unresolved item is
+    listed as incomplete, never filled from its label. Returns
+    {"meals": {slot: {...}}, "resolved_cal", "incomplete": [slots],
+     "complete": bool, "matches_shown": bool|None}.
+    """
+    out, total, incomplete = {}, 0, []
+    for slot, text in meals.items():
+        if not text:
+            continue
+        m = macros(text)
+        meal_sum = sum(i.get("cal", 0) for i in m["items"] if "cal" in i)
+        out[slot] = {"cal": m["cal"], "complete": m["complete"],
+                     "unresolved": m["unresolved"],
+                     "items_sum_ok": abs(meal_sum - m["cal"]) <= len(m["items"])}
+        if m["complete"]:
+            total += m["cal"]
+        else:
+            incomplete.append(slot)
+    res = {"meals": out, "resolved_cal": total, "incomplete": incomplete,
+           "complete": not incomplete, "matches_shown": None}
+    if shown_total and not incomplete:
+        res["matches_shown"] = abs(total - shown_total) / float(shown_total) <= tol
+    return res
