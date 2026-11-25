@@ -129,11 +129,13 @@ GENERIC = {
     # بقت ٤٠، يعني تلات أضعاف على كل وجبة فيها لبن لوز.
     "حليب اللوز": "حليب اللوز غير محلى",
     "حليب لوز": "حليب لوز غير محلى",
+    "لبن لوز": "حليب لوز غير محلى",
+    "لبن اللوز": "حليب اللوز غير محلى",
     "حليب الصويا": "حليب الصويا",
     "حليب صويا": "حليب الصويا",
     "حليب الرز": "حليب الرز",
     "حليب الأرز": "حليب الرز",
-    "حليب": "لبن رايب",
+    "حليب": "حليب قليل الدسم",
     "شوفان": "شوفان خام",
     "فول": "فول مدمس",
     "عدس": "عدس",
@@ -207,6 +209,9 @@ GENERIC_WORDS = {
     "فاصوليا": "فاصوليا خضراء",
     "مشاوي": "فراخ مشوية (ربع فرخة)",
     "فواكه": "تفاح",
+    # ‏"بروتين 30جم" = سكوب واي. من غير السطر ده الكلمة كانت بتقع على
+    # "تين" (جوه "بروتين") وسكوب ١٢٠ سعرة بيتحسب تين.
+    "بروتين": "واي بروتين (سكوب)",
 }
 
 _WORD_RX = None
@@ -304,17 +309,41 @@ def find_food(item):
     return None
 
 
+_PREFIXES = {"ب", "ل", "و", "ال", "بال", "وال", "لل", "فال", "ف"}
+
+
+def _find_word(clean, name):
+    """‏مكان `name` في `clean` لو بيبدأ عند بداية كلمة، وإلا -1.
+
+    ‏البحث بالحروف كان بيلاقي "تين" جوه "بروتين" فشيك البروتين كان
+    بيتحسب تين. الحرف اللي قبل الاسم لازم يكون مسافة أو قوس أو بادئة
+    (ب/ل/و/ال) -- "بحليب" و"بالشوفان" لسه بيتقروا.
+    """
+    start = 0
+    while True:
+        at = clean.find(name, start)
+        if at < 0:
+            return -1
+        head = clean[:at]
+        frag = head.split(" ")[-1] if head and not head.endswith(" ") else ""
+        frag = frag.lstrip("(")
+        if not frag or frag in _PREFIXES:
+            return at
+        start = at + 1
+
+
 def _match(clean):
     """‏أقرب صنف لأول النص، بين الجدول والجسر العام مع بعض."""
     best = None                       # ((المكان, -الطول), الصنف)
     for name, food in _table():
-        at = clean.find(name)
+        at = _find_word(clean, name)
         if at >= 0:
             key = (at, -len(name))
             if best is None or key < best[0]:
                 best = (key, food)
 
-    candidates = [(clean.find(_norm(g)), g, sp) for g, sp in GENERIC.items()]
+    candidates = [(_find_word(clean, _norm(g)), g, sp)
+                  for g, sp in GENERIC.items()]
     for rx, word, specific in _word_patterns():
         m = rx.search(clean)
         candidates.append((m.start() if m else -1, word, specific))
@@ -436,6 +465,14 @@ def _unit_grams(text, food=None):
     return best[1] if best else None
 
 
+_DRY_CATS = {"grain", "legume", "nut", "supplement"}
+_ML = re.compile(r"\d\s*(?:مل|ml)\b")
+
+
+def _is_ml(text):
+    return bool(_ML.search(_norm(text)))
+
+
 def macros(text):
     """‏ماكروز الوجبة كلها من أصنافها.
 
@@ -452,6 +489,12 @@ def macros(text):
         total += 1
         food = find_food(raw)
         grams, how = item_grams(raw, food)
+        if food and _is_ml(raw) and food.get("cat") in _DRY_CATS \
+                and "زيت" not in str(food.get("n")):
+            # ‏"شوفان بحليب 200مل" طبق جاهز، مش ٢٠٠ جم شوفان خام.
+            # الأمان إننا مانخمّنش: الصنف بيتعدّ "مش متعرّف" والوجبة
+            # بترجع للرقم المكتوب.
+            food, grams, how = None, 0.0, None
         row = {"text": raw, "grams": grams, "how": how,
                "food": food.get("n") if food else None}
         if food and grams > 0:
