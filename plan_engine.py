@@ -669,6 +669,13 @@ def generate_weekly_plan(data, seed=None):
     lunches = filter_meals_by_exclusions(lunches, user_exclusions)
     dinners = filter_meals_by_exclusions(dinners, user_exclusions)
 
+    # ‏وجبات كل أصنافها محسومة (صنف + وحدة + جرامات) بس. اللي فيها عدد
+    # غامض أو طبق مش في الجدول بتتشال، ولو الباقي قليل بيطلع خطأ صريح.
+    from meal_macros import verified_only
+    breakfasts = verified_only(breakfasts, "breakfast")
+    lunches = verified_only(lunches, "lunch")
+    dinners = verified_only(dinners, "dinner")
+
     # متابعة: الوجبات اللي كانت في خطة الزيارة اللي فاتت تتأخّر لآخر الطابور،
     # عشان العميل الراجع بعد شهر ياخد أسبوع جديد مش نفس الأكل تاني. تأخير مش
     # حذف -- لو الفلترة الطبية سابت وجبات قليلة، الأفضل يتكرر أكل على إن
