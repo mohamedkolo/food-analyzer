@@ -44,6 +44,7 @@ SUITES = [
     "test_protein_target.py",
     "test_child_protein.py",
     "test_meal_macros.py",
+    "test_nutrition_matcher_fixes.py",
     "test_child_meals.py",
     "test_glp1_protein.py",
     "test_obesity_staging.py",
