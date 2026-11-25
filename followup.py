@@ -111,39 +111,35 @@ def _days_between(then, now=None):
 #    الرقم = كام سعرة نزوّد (+) أو نقلّل (-) على الهدف المحسوب من الـTDEE الجديد
 VERDICTS = {
     "too_soon": (
-        "أقل من أسبوع بين الزيارتين — الفرق ده مياه مش دهون، سيب الخطة زي ما هي.",
-        "Less than a week apart — this is water, not fat. Leave the plan as it is.", 0),
+        "أقل من أسبوع بين الزيارتين — فرق الوزن في المدة دي ممكن يكون مياه، مش حكم على الخطة.",
+        "Less than a week apart — a weight difference over this span can be water, so it is not a judgement of the plan.", 0),
     "on_track": (
-        "المعدل ممتاز وفي النطاق الآمن. الجديد بس إن الـTDEE اتحسب على الوزن الجديد.",
-        "The rate is right in the safe band. The only change is that TDEE was recalculated on the new weight.", 0),
+        "المعدل المسجّل داخل النطاق المعتاد لهدف العميل. الجديد بس إن الـTDEE اتحسب على الوزن الجديد.",
+        "The recorded rate is inside the usual band for the client's goal. The only change is that TDEE was recalculated on the new weight.", 0),
     "too_fast": (
-        "النزول أسرع من الآمن — الوزن السريع بياخد عضل معاه وبيزوّد خطر حصوات المرارة. "
-        "السعرات اترفعت.",
-        "Losing faster than is safe — rapid loss takes muscle with it and raises gallstone risk. "
-        "Calories were raised.", 150),
+        "النزول المسجّل أسرع من النطاق المعتاد. راجع القياسات والحالة الطبية؛ النزول السريع ممكن يزوّد فقد العضل وخطر الحصوات. القاعدة اقترحت رفع السعرات شوية، والقرار ليك.",
+        "The recorded loss is faster than the usual band. Review the measurements and clinical context; rapid loss can raise lean-mass loss and gallstone risk. The rule suggests a small calorie increase; the decision is yours.", 150),
     "too_slow": (
-        "النزول أبطأ من المتوقع. لو الالتزام كويس، العجز محتاج يزيد شوية.",
-        "Losing more slowly than expected. If adherence is good, the deficit needs to widen a little.", -120),
+        "النزول المسجّل أبطأ من النطاق المعتاد. السبب مش معروف من الأرقام: راجع القياسات وتوقيتها والالتزام (لو متاح) والحالة الطبية قبل أي تعديل. القاعدة اقترحت تقليل السعرات شوية، والقرار ليك.",
+        "The recorded loss is slower than the usual band. The numbers do not show why: review the measurements and their timing, adherence (if available) and the clinical context before any change. The rule suggests a small calorie reduction; the decision is yours.", -120),
     "plateau": (
-        "الوزن ثابت. أول حاجة تتعمل هي إعادة حساب الـTDEE على الوزن الجديد — "
-        "غالباً الهدف القديم بقى سعرات محافظة. جرّب كمان تدوير السعرات.",
-        "Weight has stalled. The first thing to do is recalculate TDEE on the new weight — "
-        "the old target has usually become maintenance. Calorie cycling is worth trying too.", -150),
+        "الوزن المسجّل تقريباً ثابت. الأرقام لوحدها ماتقولش السبب: راجع القياسات وتوقيتها والالتزام (لو متاح) والحالة الطبية. الـTDEE اتحسب على الوزن الجديد، وده ممكن يصغّر العجز عن الزيارة اللي فاتت. القاعدة اقترحت تقليل السعرات شوية، والقرار ليك.",
+        "The recorded weight is roughly flat. The numbers alone do not show why: review the measurements and their timing, adherence (if available) and the clinical context. TDEE was recalculated on the new weight, which can narrow the gap versus the last visit. The rule suggests a small calorie reduction; the decision is yours.", -150),
     "regained": (
-        "الوزن زاد. راجع الالتزام والكميات قبل ما تقلّل السعرات أكتر.",
-        "Weight went up. Check adherence and portions before cutting calories further.", -100),
+        "الوزن المسجّل زاد. السبب مش معروف من الأرقام: راجع القياسات والالتزام (لو متاح) والحالة الطبية قبل أي تعديل. القاعدة اقترحت تقليل السعرات شوية، والقرار ليك.",
+        "The recorded weight went up. The numbers do not show why: review the measurements, adherence (if available) and the clinical context before any change. The rule suggests a small calorie reduction; the decision is yours.", -100),
     "gain_on_track": (
-        "الزيادة في المعدل الصحي للعضل.",
-        "Gaining at a healthy rate for muscle.", 0),
+        "الزيادة المسجّلة داخل النطاق المعتاد لزيادة العضل.",
+        "The recorded gain is inside the usual band for muscle gain.", 0),
     "gain_too_fast": (
-        "الزيادة أسرع من اللازم — الزيادة السريعة بتبقى دهون أكتر من عضل. السعرات اتقللت.",
-        "Gaining faster than needed — fast gain is more fat than muscle. Calories were lowered.", -150),
+        "الزيادة المسجّلة أسرع من النطاق المعتاد، والزيادة السريعة غالباً بتبقى دهون أكتر. القاعدة اقترحت تقليل السعرات شوية، والقرار ليك.",
+        "The recorded gain is faster than the usual band; fast gain tends to be more fat. The rule suggests a small calorie reduction; the decision is yours.", -150),
     "gain_stalled": (
-        "الوزن مش بيزيد. الفائض محتاج يكبر.",
-        "Weight is not going up. The surplus needs to be bigger.", 150),
+        "الوزن المسجّل مش بيزيد. راجع القياسات والالتزام (لو متاح) قبل أي تعديل. القاعدة اقترحت زيادة السعرات شوية، والقرار ليك.",
+        "The recorded weight is not rising. Review the measurements and adherence (if available) before any change. The rule suggests a small calorie increase; the decision is yours.", 150),
     "lost_on_gain": (
-        "الوزن نزل والهدف زيادة — السعرات أقل من اللازم.",
-        "Weight went down on a gaining plan — calories are too low.", 250),
+        "الوزن المسجّل نزل والهدف زيادة. راجع القياسات والالتزام (لو متاح). القاعدة اقترحت رفع السعرات، والقرار ليك.",
+        "The recorded weight fell on a gaining goal. Review the measurements and adherence (if available). The rule suggests a calorie increase; the decision is yours.", 250),
 }
 
 
