@@ -315,6 +315,19 @@ def whey_barcode(code):
     except Exception as e:  # noqa: BLE001
         print("[barcode] fetch error: %s" % type(e).__name__)
         return jsonify({"ok": False, "error": "تعذر الاتصال بقاعدة بيانات الباركود"}), 502
-    if not product:
+    cands, cands_err, others = [], False, []
+    if request.args.get("kind") == "omega3":
+        try:
+            cands = barcode_scan.omega_candidates(code, others)
+        except Exception as e:  # noqa: BLE001 -- مصدر EPA/DHA وقع: الباقي يكمّل، والرسالة تقول
+            print("[barcode] dsld error: %s" % type(e).__name__)
+            cands_err = True
+    if not product and not cands:
         return jsonify({"ok": False, "error": "الباركود اتقرا، لكن المنتج مش موجود في قاعدة البيانات. مفيش أرقام اتخمنت. اكتب بيانات العبوة أو استخدم قراءة الملصق الاختيارية."}), 404
-    return jsonify({"ok": True, "code": code, "product": barcode_scan.supplement_fields(product)})
+    fields = barcode_scan.supplement_fields(product) if product else {"name": "", "added": []}
+    out = {"ok": True, "code": code, "product": fields}
+    if request.args.get("kind") == "omega3":
+        out["omega_candidates"] = barcode_scan.mark_name_match(cands, fields.get("name"))
+        out["omega_source_error"] = cands_err
+        out["omega_other_labels"] = others
+    return jsonify(out)
