@@ -181,7 +181,8 @@ def omega_candidates(code, others=None):
         if epa is None and dha is None:
             if others is not None:
                 others.append({"label_name": label.get("fullName"), "entered": _dsld_entered(label),
-                               "label_id": label.get("id"), "url": DSLD_LABEL_URL % label.get("id")})
+                               "label_id": label.get("id"), "url": DSLD_LABEL_URL % label.get("id"),
+                               "serving": _dsld_serving(label)})
             continue
         serving = _dsld_serving(label)
         key = (epa, dha, serving)
