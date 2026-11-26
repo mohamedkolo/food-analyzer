@@ -179,7 +179,7 @@
 {% endif %}
 
 <!-- Summary -->
-<div class="card" style="background:var(--nx-solid-2);color:#fff;border-color:#2B3746">
+<div class="card" style="background:var(--nx-solid-2);color:var(--nx-on-solid);border-color:#2B3746">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
     <div>
       <div style="font-size:13px;opacity:0.8">{{ t('العميل','Client') }}</div>
@@ -678,7 +678,7 @@
 </div>
 
 <!-- Save indicator -->
-<div id="saveIndicator" style="position:fixed;bottom:80px;inset-inline-end:20px;background:var(--nx-solid-2);color:white;padding:10px 18px;border-radius:100px;font-weight:700;font-size:13px;display:none;box-shadow:0 4px 16px rgba(22,163,74,0.4);z-index:1000">
+<div id="saveIndicator" style="position:fixed;bottom:80px;inset-inline-end:20px;background:var(--nx-solid-2);color:var(--nx-on-solid);padding:10px 18px;border-radius:100px;font-weight:700;font-size:13px;display:none;box-shadow:0 4px 16px rgba(22,163,74,0.4);z-index:1000">
   <i class="fa-solid fa-check-circle"></i> {{ t('تم الحفظ','Saved') }}
 </div>
 
@@ -751,7 +751,7 @@
                     font-family:inherit;font-size:13px;font-weight:600; }
   .add-item input:focus { outline:none;border-color:var(--nx-ink-2); }
   .add-item button { min-block-size:38px;padding:0 16px;border-radius:10px;border:0;background:var(--nx-solid-2);
-                     color:#fff;font-family:inherit;font-weight:800;cursor:pointer; }
+                     color:var(--nx-on-solid);font-family:inherit;font-weight:800;cursor:pointer; }
   .meal-text:empty::before { content:attr(data-empty);color:var(--nx-muted);font-weight:700; }
 
   /* ‏كمية كل صنف. الرقم هو اللي بيتغيّر فهو الأتقل في الشريحة، والاسم جنبه
@@ -780,7 +780,7 @@
   .qty-btn { inline-size:32px;block-size:32px;border-radius:50%;border:0;background:var(--nx-surface-2);
              color:var(--nx-ink);cursor:pointer;display:inline-grid;place-items:center;font-size:11px;
              transition:background .15s, transform .1s; }
-  .qty-btn:hover:not(:disabled) { background:var(--nx-solid-2);color:#fff; }
+  .qty-btn:hover:not(:disabled) { background:var(--nx-solid-2);color:var(--nx-on-solid); }
   .qty-btn:active:not(:disabled) { transform:scale(.92); }
   .qty-btn:focus-visible { outline:2px solid var(--nx-ink-2);outline-offset:2px; }
   .qty-btn:disabled { opacity:.35;cursor:not-allowed; }
@@ -796,8 +796,8 @@
     padding:8px 10px;cursor:pointer;color:var(--nx-ink-2);
     font-family:inherit;font-size:14px;
   }
-  .swap-btn:hover { background: var(--nx-solid-2) !important; color: white !important; }
-  .pick-btn:hover { background: var(--nx-solid-2) !important; color: white !important; }
+  .swap-btn:hover { background: var(--nx-solid-2) !important; color:var(--nx-on-solid) !important; }
+  .pick-btn:hover { background: var(--nx-solid-2) !important; color:var(--nx-on-solid) !important; }
   .swap-btn:disabled, .pick-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .meal-edit-textarea {
     width:100%;padding:8px 10px;border:1.5px solid var(--nx-ink-2);border-radius:6px;

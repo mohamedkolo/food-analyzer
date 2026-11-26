@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_nx_icons.html" import nxicon %}
 {% block title %}{{ t('محلل المكملات — الواي والكرياتين والأوميجا وغيرهم','Supplement Analyzer — whey, creatine, omega-3 and more') }}{% endblock %}
 {% block meta_description %}{{ t('صوّر ضهر علبة الواي بروتين، والتحليل بيحسب نسبة الأحماض الأمينية والليوسين وEAA وBCAA ويديك تقييم من ١٠٠ ويكشف الـAmino Spiking.','Photograph the back of a whey tub: we work out the amino acid, leucine, EAA and BCAA percentages, score it out of 100 and flag amino spiking.') }}{% endblock %}
 {% block body_class %}{% if not user %}public-chrome {% endif %}wy-page{% endblock %}
@@ -6,22 +7,23 @@
 
 {% block extra_style %}
 <style>
-/* ‏محلل الواي: داكن ورياضي بطلب صاحب المشروع -- ألوانه ثابتة بالقصد،
-   مش من ثيم الموقع، عشان الصفحة نفسها شكلها "جيم" في الوضعين.
-   ألوان التقييم من طلبه: أخضر ممتاز، أزرق جيد، أصفر مقبول، أحمر غير مقبول. */
-.wy{--bg:#0E1116;--card:#161B22;--card-2:#1D242E;--line:#2A3340;--ink:#F2F5F8;--muted:#9AA6B4;
-  --accent:#C6F135;--accent-ink:#0E1116;--ok:#3DDC84;--good:#4FA3FF;--fair:#F5C542;--bad:#FF5A5F;
-  background:var(--bg);color:var(--ink);font-family:'Cairo',system-ui,sans-serif;min-block-size:100vh;
+/* ‏محلل المكملات: بقى على ثيم الموقع (فاتح/داكن) بعد موافقة صاحب المشروع
+   على التصميم الجديد (نسخة التجربة redesign-trial). ألوان التقييم ثابتة
+   من طلبه: أخضر ممتاز، أزرق جيد، أصفر مقبول، أحمر غير مقبول. */
+.wy{--bg:var(--nx-bg);--card:var(--nx-surface);--card-2:var(--nx-surface-2);--line:var(--nx-line);--ink:var(--nx-ink);--muted:var(--nx-muted);
+  --accent:var(--nx-accent);--accent-ink:var(--nx-on-accent);--ok:#3DDC84;--good:#4FA3FF;--fair:#F5C542;--bad:#FF5A5F;
+  background:var(--bg);
+  color:var(--ink);font-family:'IBM Plex Sans Arabic','Cairo',system-ui,sans-serif;min-block-size:100vh;
   padding:28px 16px 72px}
 .wy *{box-sizing:border-box}
-/* ‏الصفحة كلها داكنة، مش كارت داكن في نص صفحة فاتحة */
-body.wy-page{background-color:#0E1116}
+body.wy-page{background-color:var(--nx-bg)}
 body.wy-page::before{display:none}
-.wy-in{max-inline-size:880px;margin:0 auto;display:grid;gap:18px}
+.wy-kicker{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px}
+.wy-in{max-inline-size:1120px;margin:0 auto;display:grid;gap:18px}
 .wy-hero h1{margin:0;font-size:clamp(26px,6vw,40px);font-weight:900;line-height:1.2;letter-spacing:-.3px}
 .wy-hero h1 em{font-style:normal;color:var(--accent)}
 .wy-hero p{margin:8px 0 0;color:var(--muted);font-size:15px;line-height:1.8}
-.wy-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
+.wy-card{background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:20px;box-shadow:var(--nx-sh)}
 .wy-card h2{margin:0 0 14px;font-size:16px;font-weight:900;display:flex;align-items:center;gap:10px}
 .wy-card h2 i{color:var(--accent)}
 
@@ -34,6 +36,14 @@ body.wy-page::before{display:none}
   background:var(--card-2);color:var(--ink)}
 .wy-btn.main{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .wy-btn:hover{filter:brightness(1.08)}
+.wy-scan{display:flex;align-items:center;gap:16px}
+.wy-scan-t{flex:1;min-inline-size:0}
+.wy-scan-t b{display:flex;align-items:center;gap:8px;font-size:16px;color:var(--ink)}
+.wy-scan-t p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.wy-scan .wy-btn{min-block-size:48px;white-space:nowrap}
+.wy-pulse{animation:wyPulse 1.4s ease}
+@keyframes wyPulse{0%,100%{box-shadow:0 0 0 0 transparent}30%{box-shadow:0 0 0 3px var(--nx-solid)}}
+@media(max-width:560px){.wy-scan{flex-direction:column;align-items:stretch}}
 .wy-file:focus-visible + .wy-btn,.wy-btn:focus-visible{outline:3px solid var(--good);outline-offset:3px}
 .wy-status{margin:12px 0 0;font-size:14px;color:var(--muted);min-block-size:1.6em}
 .wy-status.ok{color:var(--ok)}.wy-status.err{color:var(--bad)}
@@ -119,11 +129,13 @@ body.wy-page::before{display:none}
 #wyCodeNum{direction:ltr;min-inline-size:0}
 .wy-code-num{min-inline-size:0}
 /* ‏اختيار النوع قبل الصورة */
-.wy-kinds{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
-.wy-kind{display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:14px;border:1px solid var(--line);background:var(--bg);
-  color:var(--ink);text-decoration:none;font-weight:900;font-size:14.5px;min-block-size:92px}
-.wy-kind i{color:var(--accent);font-size:20px}
-.wy-kind:hover{border-color:var(--accent)}
+.wy-kinds{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.wy-kind{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:20px;border:1.5px solid var(--line);background:var(--card);
+  color:var(--ink);text-decoration:none;font-weight:700;font-size:14.5px;min-block-size:92px;box-shadow:var(--nx-sh);
+  transition:transform .18s, border-color .18s}
+.wy-kind .ti{width:40px;height:40px;border-radius:12px;background:var(--nx-accent-soft);color:var(--accent);
+  display:flex;align-items:center;justify-content:center}
+.wy-kind:hover{transform:translateY(-3px);border-color:var(--nx-accent-line)}
 .wy-kind:focus-visible{outline:3px solid var(--good);outline-offset:3px}
 .wy-kind small{color:var(--muted);font-weight:700;font-size:11.5px}
 .wy-group{margin:16px 0 8px;font-size:12.5px;color:var(--muted);font-weight:800}
@@ -161,35 +173,47 @@ body.wy-page::before{display:none}
  <div class="wy-in">
 
   <header class="wy-hero">
+    <div class="wy-kicker">{{ t('أدوات الموقع','Site tools') }}</div>
     <h1>{{ t('محلل','Supplement') }} <em>{{ t('المكملات','Analyzer') }}</em></h1>
     <p>{{ t('اختار نوع المنتج وامسح الباركود لايف. بيانات المنتج بتتملي لو موجودة، وصورة الملصق اختيارية.','Choose the product type and scan live. Available product facts fill automatically; a label photo is optional.') }}</p>
   </header>
 
+  {% set FALU = {'fa-droplet':'shaker','fa-bottle-water':'shaker','fa-weight-hanging':'dumbbell','fa-bolt':'pill','fa-fish':'fish','fa-capsules':'tablets','fa-fire':'zap','fa-dna':'dna'} %}
   {% set KN = {} %}
   {% for k, ar, en, icon in whey_kinds %}{% set _ = KN.update({k: (t(ar, en), icon)}) %}{% endfor %}
   {% for k, sp in supp_types.items() %}{% set _ = KN.update({k: (t(sp.ar, sp.en), sp.icon)}) %}{% endfor %}
+  {% if not result and not supp_result %}
+  <section class="wy-card wy-scan" aria-labelledby="wy-scan-h">
+    <div class="wy-scan-t">
+      <b id="wy-scan-h">{{ nxicon('barcode',20) }} {{ t('امسح الباركود لايف','Scan the barcode live') }}</b>
+      <p>{{ t('بيانات المنتج بتتملي لو موجودة، وصورة الملصق اختيارية.','Available product facts fill automatically; a label photo is optional.') }}</p>
+    </div>
+    <button type="button" class="wy-btn main" id="wyScanTop">{{ nxicon('barcode',18) }} {{ t('امسح الباركود','Scan barcode') }}</button>
+  </section>
+  {% endif %}
+
   {% if not kind %}
   <section class="wy-card" aria-labelledby="wy-kind">
-    <h2 id="wy-kind"><i class="fa-solid fa-list-check" aria-hidden="true"></i>{{ t('المنتج ده إيه؟','What is this product?') }}</h2>
+    <h2 id="wy-kind" tabindex="-1">{{ nxicon('clipboard-list',18) }}{{ t('المنتج ده إيه؟','What is this product?') }}</h2>
     <p class="wy-group">{{ t('بروتين','Protein') }}</p>
     <div class="wy-kinds">
       {% for k, ar, en, icon in whey_kinds %}
-      <a class="wy-kind" href="/whey?kind={{ k }}"><i class="fa-solid {{ icon }}" aria-hidden="true"></i>{{ t(ar, en) }}
+      <a class="wy-kind nx-stagger" style="--i:{{ loop.index0 }}" href="/whey?kind={{ k }}"><span class="ti">{{ nxicon(FALU.get(icon,'pill'),20) }}</span>{{ t(ar, en) }}
         <small>{{ t('بالأحماض الأمينية · من ١٠٠','By amino acids · out of 100') if k != 'mass' else t('جودة البروتين والسكر','Protein quality and sugar') }}</small></a>
       {% endfor %}
     </div>
     <p class="wy-group">{{ t('مكملات تانية','Other supplements') }}</p>
     <div class="wy-kinds">
       {% for k, sp in supp_types.items() %}
-      <a class="wy-kind" href="/whey?kind={{ k }}"><i class="fa-solid {{ sp.icon }}" aria-hidden="true"></i>{{ t(sp.ar, sp.en) }}
+      <a class="wy-kind nx-stagger" style="--i:{{ loop.index0 + 3 }}" href="/whey?kind={{ k }}"><span class="ti">{{ nxicon(FALU.get(sp.icon,'pill'),20) }}</span>{{ t(sp.ar, sp.en) }}
         <small>{{ t('الجرعة والأمان','Dose and safety') }}</small></a>
       {% endfor %}
     </div>
   </section>
   {% else %}
   <div class="wy-card wy-chosen">
-    <b><i class="fa-solid {{ KN[kind][1] }}" aria-hidden="true"></i>{{ KN[kind][0] }}</b>
-    <a href="/whey"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> {{ t('غيّر النوع','Change type') }}</a>
+    <b>{{ nxicon(FALU.get(KN[kind][1],'pill'),18) }}{{ KN[kind][0] }}</b>
+    <a href="/whey">{{ nxicon('refresh-cw',14) }} {{ t('غيّر النوع','Change type') }}</a>
   </div>
   {% endif %}
 
@@ -198,7 +222,7 @@ body.wy-page::before{display:none}
   {% set g = result.grade %}
   <section class="wy-card" aria-labelledby="wy-res" data-g="{{ g.key }}" id="wyResult"
            data-score="{{ result.score }}" data-grade="{{ g.ar if lang != 'en' else g.en }}">
-    <h2 id="wy-res"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i>{{ t('النتيجة','Result') }}{% if demo %} · {{ t('علبة تجريبية','Demo tub') }}{% endif %}</h2>
+    <h2 id="wy-res">{{ nxicon('circle-check',18) }}{{ t('النتيجة','Result') }}{% if demo %} · {{ t('علبة تجريبية','Demo tub') }}{% endif %}</h2>
     <div class="wy-result">
       <div class="wy-ring" role="img" aria-label="{{ result.score }} {{ t('من','of') }} 100">
         <svg viewBox="0 0 120 120" aria-hidden="true">
@@ -220,7 +244,7 @@ body.wy-page::before{display:none}
   {% set PN = {'total_aa': t('مجموع الأحماض','total amino acids'), 'leucine': t('الليوسين','leucine'), 'eaa': 'EAA', 'bcaa': 'BCAA'} %}
   <section class="wy-card" aria-labelledby="wy-res" data-g="fair" id="wyResult"
            data-score="{{ result.points }}/{{ result.max_score }}" data-grade="{{ t('ناقص','Partial') }}">
-    <h2 id="wy-res"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i>{{ t('النتيجة','Result') }}</h2>
+    <h2 id="wy-res">{{ nxicon('circle-check',18) }}{{ t('النتيجة','Result') }}</h2>
     <div class="wy-alert" id="wyPartial">
       {% if result.kind == 'mass' and result.partial == ['total_aa'] %}
       {{ t('الجينر أغلبه كربوهيدرات بالقصد، فمالوش درجة من ١٠٠ زي الواي. اتقيّم على جودة البروتين اللي فيه:','A gainer is mostly carbohydrate by design, so it gets no score out of 100 like whey. Its protein quality is rated:') }}
@@ -238,12 +262,12 @@ body.wy-page::before{display:none}
   {% endif %}
 
   {% for a in result.alerts if a.key == 'fortified' %}
-  <div class="wy-alert" role="note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+  <div class="wy-alert" role="note">{{ nxicon('info',18) }}
     {{ t('مضاف أحماض أساسية','Added essential amino acids') }} <bdi dir="ltr">({{ a['items'] | join(', ') }})</bdi>
     {{ t('-- ده مش غش، ماركات كتير بتضيف BCAA تقوية. بس بيعلّي نسبة الليوسين والـEAA في الحساب، فالتقييم ممكن يطلع أعلى شوية من البروتين نفسه.','-- not cheating; many brands add BCAAs. But they raise the leucine and EAA figures, so the score can read a little higher than the protein itself.') }}</div>
   {% endfor %}
   {% for a in result.alerts if a.key != 'fortified' %}
-  <div class="wy-warn" role="alert"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+  <div class="wy-warn" role="alert">{{ nxicon('triangle-alert',18) }}
     <span>{% if a.key == 'spiking' %}{{ t('احتمال غش - Amino Spiking: الليوسين أو الأحماض الأساسية أقل من المفروض، غالباً اتضاف أحماض رخيصة عشان ترفع رقم البروتين.','Possible cheating - Amino Spiking: leucine or the essential amino acids are too low, so cheap amino acids were probably added to inflate the protein figure.') }}
     {%- elif a.key == 'added' %}{{ t('المكونات فيها أحماض أمينية مضافة','The ingredients list added amino acids') }} <bdi dir="ltr">({{ a['items'] | join(', ') }})</bdi> {{ t('-- علامة Amino Spiking: بتعلّي رقم البروتين على الورق من غير بروتين حقيقي.','-- a sign of amino spiking: they raise the protein figure on paper without real protein.') }}
     {%- elif a.key == 'not_isolate' %}{{ t('البروتين %s%% بس من الحصة -- الـIsolate الحقيقي ٩٠٪ بروتين، فده غالباً Concentrate أو خلطة متسمّية Isolate.' % ('%.0f' % result.protein_pct),'Protein is only %s%% of the serving -- real isolate is 90%% protein, so this is likely concentrate or a blend sold as isolate.' % ('%.0f' % result.protein_pct)) }}
@@ -252,7 +276,7 @@ body.wy-page::before{display:none}
   {% endfor %}
 
   <section class="wy-card" aria-labelledby="wy-tab">
-    <h2 id="wy-tab"><i class="fa-solid fa-table-list" aria-hidden="true"></i>{{ t('التفاصيل','Breakdown') }}</h2>
+    <h2 id="wy-tab">{{ nxicon('chart-column',18) }}{{ t('التفاصيل','Breakdown') }}</h2>
     {% if result.rows %}<table class="wy-table">
       <thead><tr><th scope="col">{{ t('المعادلة','Measure') }}</th><th scope="col">{{ t('نتيجتك','Yours') }}</th>
         <th scope="col">{{ t('المثالي','Ideal') }}</th><th scope="col">{{ t('التقييم','Rating') }}</th></tr></thead>
@@ -274,8 +298,8 @@ body.wy-page::before{display:none}
       {% if result.leucine_g %}<div><small>{{ t('ليوسين في الحصة','Leucine per serving') }}</small><b>{{ '%.2f' % result.leucine_g }} {{ t('جم','g') }}</b></div>{% endif %}
     </div>
     <div class="wy-actions">
-      <a class="wy-btn main" href="/whey"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i>{{ t('حلل منتج تاني','Analyse another product') }}</a>
-      <button type="button" class="wy-btn" id="wySave"><i class="fa-regular fa-bookmark" aria-hidden="true"></i>{{ t('حفظ النتيجة','Save the result') }}</button>
+      <a class="wy-btn main" href="/whey">{{ nxicon('refresh-cw',16) }}{{ t('حلل منتج تاني','Analyse another product') }}</a>
+      <button type="button" class="wy-btn" id="wySave">{{ nxicon('bookmark',18) }}{{ t('حفظ النتيجة','Save the result') }}</button>
     </div>
     <p class="wy-status" id="wySaveMsg" role="status"></p>
   </section>
@@ -283,24 +307,24 @@ body.wy-page::before{display:none}
 
   {% if supp_result %}
   {% set SG = {'pass': 'excellent', 'warn': 'fair', 'fail': 'bad'} %}
-  {% set SI = {'pass': 'fa-circle-check', 'warn': 'fa-circle-exclamation', 'fail': 'fa-circle-xmark'} %}
+  {% set SI = {'pass': 'circle-check', 'warn': 'triangle-alert', 'fail': 'circle-x'} %}
   <section class="wy-card" aria-labelledby="wy-res" id="spResult" data-g="{{ SG[supp_result.verdict] }}"
            data-score="{{ t(supp.ar, supp.en) }}" data-grade="{{ t(supp_result.verdict_ar, supp_result.verdict_en) }}">
-    <h2 id="wy-res"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i>{{ t('النتيجة','Result') }}</h2>
+    <h2 id="wy-res">{{ nxicon('circle-check',18) }}{{ t('النتيجة','Result') }}</h2>
     <div class="wy-verdict" data-g="{{ SG[supp_result.verdict] }}">
       <span class="wy-badge">{{ t(supp_result.verdict_ar, supp_result.verdict_en) }}</span>
       <p>{{ t(supp_result.note_ar, supp_result.note_en) }}</p>
     </div>
     <ul class="sp-checks" style="margin-top:16px">
       {% for c in supp_result.checks %}
-      <li data-g="{{ SG[c.status] }}"><i class="fa-solid {{ SI[c.status] }}" aria-hidden="true"></i>
+      <li data-g="{{ SG[c.status] }}">{{ nxicon(SI[c.status],18) }}
         <p>{{ t(c.ar, c.en) }}<small>{{ t('المصدر:','Source:') }} {{ sources[c.source] }}</small></p></li>
       {% endfor %}
     </ul>
     <p class="wy-sub">{{ t('الحدود دي للكبار الأصحاء. الحوامل والأطفال وأصحاب الأمراض المزمنة يسألوا دكتور.','These limits are for healthy adults. Pregnancy, children and chronic illness: ask a doctor.') }}</p>
     <div class="wy-actions">
-      <a class="wy-btn main" href="/whey"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i>{{ t('حلل منتج تاني','Analyse another product') }}</a>
-      <button type="button" class="wy-btn" id="wySave"><i class="fa-regular fa-bookmark" aria-hidden="true"></i>{{ t('حفظ النتيجة','Save the result') }}</button>
+      <a class="wy-btn main" href="/whey">{{ nxicon('refresh-cw',16) }}{{ t('حلل منتج تاني','Analyse another product') }}</a>
+      <button type="button" class="wy-btn" id="wySave">{{ nxicon('bookmark',18) }}{{ t('حفظ النتيجة','Save the result') }}</button>
     </div>
     <p class="wy-status" id="wySaveMsg" role="status"></p>
   </section>
@@ -310,12 +334,12 @@ body.wy-page::before{display:none}
 
   {% if kind and not result and not supp_result %}
   <section class="wy-card" aria-labelledby="wy-photo">
-    <h2 id="wy-photo"><i class="fa-solid fa-barcode" aria-hidden="true"></i>{{ t('اسكان باركود لايف','Live barcode scan') }}</h2>
+    <h2 id="wy-photo">{{ nxicon('barcode',18) }}{{ t('اسكان باركود لايف','Live barcode scan') }}</h2>
     <p class="wy-sub">{{ t('امسح الخطوط من غير صورة أو رفع ملف. قراءة الرقم مستقلة عن توفر بيانات المنتج.','Scan the bars without a photo or upload. Reading the number is separate from product data availability.') }}</p>
     <div class="wy-code">
       <p class="wy-group" style="margin-top:0">{{ t('امسح الخطوط أو اكتب الرقم:','Scan the bars or type the number:') }}</p>
       <div class="wy-code-row">
-        <button type="button" class="wy-btn" id="wyCodeScan" aria-expanded="false" aria-controls="wyScanner"><i class="fa-solid fa-barcode" aria-hidden="true"></i>{{ t('امسح الباركود لايف','Scan barcode live') }}</button>
+        <button type="button" class="wy-btn" id="wyCodeScan" aria-expanded="false" aria-controls="wyScanner">{{ nxicon('barcode',18) }}{{ t('امسح الباركود لايف','Scan barcode live') }}</button>
         <div class="wy-f wy-code-num"><label for="wyCodeNum" class="wy-sr">{{ t('رقم الباركود','Barcode number') }}</label>
           <input type="text" inputmode="numeric" id="wyCodeNum" placeholder="{{ t('أو اكتب الرقم اللي تحت الخطوط','or type the number under the lines') }}" autocomplete="off"></div>
         <button type="button" class="wy-btn" id="wyCodeGo">{{ t('بحث','Search') }}</button>
@@ -329,22 +353,22 @@ body.wy-page::before{display:none}
       <p class="wy-status" id="wyCodeMsg" role="status" aria-live="polite"></p>
     </div>
     <details><summary>{{ t('اختياري: قراءة ملصق بصورة','Optional: read a label photo') }}</summary>
-    <h2 id="wy-label-photo"><i class="fa-solid fa-camera" aria-hidden="true"></i>{{ t('صورة ضهر العلبة','Photo of the label') }}</h2>
+    <h2 id="wy-label-photo">{{ nxicon('camera',18) }}{{ t('صورة ضهر العلبة','Photo of the label') }}</h2>
     <div class="wy-pick">
       <div>
         <input class="wy-file" type="file" id="wyCam" accept="image/*" capture="environment" aria-label="{{ t('صوّر العلبة','Photograph the tub') }}">
-        <label class="wy-btn main" for="wyCam"><i class="fa-solid fa-camera" aria-hidden="true"></i>{{ t('صوّر العلبة','Photograph the tub') }}</label>
+        <label class="wy-btn main" for="wyCam">{{ nxicon('camera',18) }}{{ t('صوّر العلبة','Photograph the tub') }}</label>
       </div>
       <div>
         <input class="wy-file" type="file" id="wyUp" accept="image/*" aria-label="{{ t('ارفع صورة','Upload a photo') }}">
-        <label class="wy-btn" for="wyUp"><i class="fa-solid fa-image" aria-hidden="true"></i>{{ t('ارفع صورة','Upload a photo') }}</label>
+        <label class="wy-btn" for="wyUp">{{ nxicon('image',16) }}{{ t('ارفع صورة','Upload a photo') }}</label>
       </div>
     </div>
     <div class="wy-bar" id="wyBar"><span></span></div>
     <p class="wy-status" id="wyStatus" role="status" aria-live="polite">{% if vision %}{{ t('صوّر الجدول كله قريب وفي نور كويس، من غير لمعة.','Photograph the whole table close up, in good light, without glare.') }}{% else %}{{ t('الصورة بتتقرا على موبايلك ومابتتبعتش لأي حد.','The photo is read on your phone and is not sent anywhere.') }}{% endif %}</p>
     <div class="wy-alert" id="wyNoProfile" hidden role="alert"></div>
     </details>
-    {% if not supp %}<a class="wy-demo" href="/whey/demo"><i class="fa-solid fa-flask" aria-hidden="true"></i>{{ t('جرّب على علبة تجريبية','Try a demo tub') }}</a>{% endif %}
+    {% if not supp %}<a class="wy-demo" href="/whey/demo">{{ nxicon('flask-conical',14) }}{{ t('جرّب على علبة تجريبية','Try a demo tub') }}</a>{% endif %}
   </section>
   {% endif %}
 
@@ -352,7 +376,7 @@ body.wy-page::before{display:none}
   <form class="wy-card" method="post" action="/whey" id="spForm" aria-labelledby="sp-nums">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="kind" value="{{ kind }}">
-    <h2 id="sp-nums"><i class="fa-solid fa-list-ol" aria-hidden="true"></i>{{ t('الأرقام','The numbers') }}</h2>
+    <h2 id="sp-nums">{{ nxicon('list-ordered',18) }}{{ t('الأرقام','The numbers') }}</h2>
     <div class="wy-f"><label for="wy_name">{{ t('اسم المنتج (اختياري)','Product name (optional)') }}</label>
       <input type="text" id="wy_name" name="product" value="{{ request.form.get('product','') }}" autocomplete="off"></div>
     <p class="wy-sub">{{ t('اكتب اللي مكتوب على العلبة للحصة الواحدة، وسيب الباقي فاضي.','Fill in what the label prints for one serving; leave the rest empty.') }}</p>
@@ -375,13 +399,13 @@ body.wy-page::before{display:none}
     <label class="wy-check" for="sp_{{ key }}" style="margin-top:12px"><input type="checkbox" id="sp_{{ key }}" name="{{ key }}" value="1"{% if supp_values.get(key) %} checked{% endif %}>{{ t(ar, en) }}</label>
     {% endfor %}
     <div class="wy-actions">
-      <button type="submit" class="wy-btn main"><i class="fa-solid fa-bolt" aria-hidden="true"></i>{{ t('احسب التقييم','Score it') }}</button>
+      <button type="submit" class="wy-btn main">{{ nxicon('zap',16) }}{{ t('احسب التقييم','Score it') }}</button>
     </div>
   </form>
   {% elif kind %}
   <form class="wy-card" method="post" action="/whey" id="wyForm" aria-labelledby="wy-nums">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <h2 id="wy-nums"><i class="fa-solid fa-list-ol" aria-hidden="true"></i>{{ t('الأرقام','The numbers') }}</h2>
+    <h2 id="wy-nums">{{ nxicon('list-ordered',18) }}{{ t('الأرقام','The numbers') }}</h2>
     <div class="wy-f"><label for="wy_name">{{ t('اسم المنتج (اختياري)','Product name (optional)') }}</label>
       <input type="text" id="wy_name" name="product" value="{{ request.form.get('product','') }}" autocomplete="off"></div>
     <div class="wy-row2" style="margin-top:12px">
@@ -436,13 +460,13 @@ body.wy-page::before{display:none}
     </div>
     </div>
     <div class="wy-actions">
-      <button type="submit" class="wy-btn main"><i class="fa-solid fa-bolt" aria-hidden="true"></i>{{ t('احسب التقييم','Score it') }}</button>
+      <button type="submit" class="wy-btn main">{{ nxicon('zap',16) }}{{ t('احسب التقييم','Score it') }}</button>
     </div>
   </form>
   {% endif %}
 
   <section class="wy-card" id="wySavedBox" hidden aria-labelledby="wy-saved">
-    <h2 id="wy-saved"><i class="fa-solid fa-bookmark" aria-hidden="true"></i>{{ t('نتايجك المحفوظة','Your saved results') }}</h2>
+    <h2 id="wy-saved">{{ nxicon('bookmark',18) }}{{ t('نتايجك المحفوظة','Your saved results') }}</h2>
     <div class="wy-saved" id="wySavedList"></div>
   </section>
  </div>
@@ -500,7 +524,7 @@ body.wy-page::before{display:none}
     if (!box || !list.length) { if (box) box.hidden = true; return; }
     box.hidden = false;
     el.innerHTML = list.map((r, i) => `<div data-g="${esc(r.key)}"><span><b>${esc(r.name || S.noName)}</b> · ${esc(r.date)}</span>`
-      + `<span><span class="wy-pill">${esc(r.score)} · ${esc(r.grade)}</span> <button type="button" data-i="${i}" aria-label="${esc(S.remove)}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></span></div>`).join('');
+      + `<span><span class="wy-pill">${esc(r.score)} · ${esc(r.grade)}</span> <button type="button" data-i="${i}" aria-label="${esc(S.remove)}">{{ nxicon('x',16) }}</button></span></div>`).join('');
   }
   document.addEventListener('click', e => {
     const del = e.target.closest('#wySavedList button');
@@ -723,5 +747,18 @@ body.wy-page::before{display:none}
 
   ['wyCam', 'wyUp'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', () => readPhoto(el.files[0])); });
 })();
+
+<script>
+document.getElementById('wyScanTop') && document.getElementById('wyScanTop').addEventListener('click', function () {
+  var real = document.getElementById('wyCodeScan');
+  if (real) { real.scrollIntoView({behavior:'smooth', block:'center'}); real.click(); return; }
+  var h = document.getElementById('wy-kind');
+  if (!h) return;
+  h.scrollIntoView({behavior:'smooth', block:'start'});
+  h.focus({preventScroll:true});
+  var card = h.closest('.wy-card');
+  if (card) { card.classList.remove('wy-pulse'); void card.offsetWidth; card.classList.add('wy-pulse'); }
+});
+</script>
 </script>
 {% endblock %}

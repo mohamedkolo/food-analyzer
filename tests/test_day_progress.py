@@ -157,11 +157,13 @@ def _as(uid, lang="ar"):
     return c
 
 
-def test_my_plan_shows_four_rings_with_targets():
+def test_my_plan_no_longer_shows_the_rings_but_progress_api_still_has_targets():
+    """‏الدكتور (٢٦ نوفمبر): صفحة العميل أربع وجهات بس — الدواير اتشالت من
+    ‏الرئيسية. البيانات نفسها لسه محفوظة من الـAPI."""
     html = _as(UID).get("/my-plan").get_data(as_text=True)
-    rings = re.findall(r'class="dp-ring"[^>]*data-k="(\w+)"[^>]*data-target="(\d+)"', html)
-    assert [k for k, _ in rings] == ["cal", "p", "c", "f"], rings
-    assert dict(rings)["cal"] == "1600"
+    assert 'class="dp-ring"' not in html
+    data = _as(UID).get("/my-plan/progress").get_json()
+    assert data["target"]["cal"] == 1600, data.get("target")
 
 
 def test_ticking_a_meal_moves_the_rings():

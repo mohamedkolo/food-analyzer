@@ -143,10 +143,11 @@ def test_extras_count_in_the_week():
 
 # ═══ الصفحات ═══
 
-def test_my_plan_has_a_labelled_food_search():
+def test_my_plan_no_longer_carries_the_food_search():
+    """‏الدكتور (٢٦ نوفمبر): صفحة العميل أربع وجهات بس — بحث تسجيل الأكل
+    ‏اتشال من الرئيسية. تسجيل الأكل نفسه شغال (الاختبارات فوق بتضيف منه)."""
     html = _as(AMR).get("/my-plan").get_data(as_text=True)
-    assert 'id="flBox"' in html
-    assert re.search(r'<label[^>]+for="flQ"', html) and 'id="flQ"' in html
+    assert 'id="flBox"' not in html and 'id="flQ"' not in html
 
 
 def test_the_doctor_sees_food_eaten_outside_the_plan():

@@ -1,13 +1,12 @@
 {% extends "base.html" %}
+{% from "_nx_icons.html" import nxicon %}
 {% block title %}{{ 'توليد خطة' if (lang or 'ar')=='ar' else 'Generate Plan' }}{% endblock %}
 {% block content %}
 {% set is_ar = (lang or 'ar') == 'ar' %}
 
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-  <h1 class="page-title" style="margin:0">
-    <i class="fa-solid fa-wand-magic-sparkles"></i>
-    {{ 'توليد خطة غذائية' if is_ar else 'Generate Meal Plan' }}
-  </h1>
+<div style="margin-bottom:20px">
+  <div style="font-size:13px;font-weight:700;color:var(--nx-accent);margin-bottom:6px">{{ 'إنشاء البرنامج' if is_ar else 'New program' }}</div>
+  <h1 style="margin:0;font-size:32px;font-weight:700;line-height:1.2;color:var(--nx-ink)">{{ 'برنامج جديد' if is_ar else 'New program' }}</h1>
 </div>
 
 <form method="POST" action="/generate">
@@ -15,16 +14,16 @@
 
 
   <div class="wz-nav" id="wzNav">
-    <button type="button" class="wz-tab" data-goto="1"><span class="wz-num">1</span><span class="wz-label"><i class="fa-solid fa-user"></i> {{ 'العميل' if is_ar else 'Client' }}</span></button>
-    <button type="button" class="wz-tab" data-goto="2"><span class="wz-num">2</span><span class="wz-label"><i class="fa-solid fa-bullseye"></i> {{ 'الهدف والنظام' if is_ar else 'Goal & system' }}</span></button>
-    <button type="button" class="wz-tab" data-goto="3"><span class="wz-num">3</span><span class="wz-label"><i class="fa-solid fa-stethoscope"></i> {{ 'الحالات والأدوية' if is_ar else 'Conditions & medications' }}</span></button>
-    <button type="button" class="wz-tab" data-goto="4"><span class="wz-num">4</span><span class="wz-label"><i class="fa-solid fa-heart"></i> {{ 'تفضيلات العميل' if is_ar else 'Preferences' }}</span></button>
+    <button type="button" class="wz-tab" data-goto="1"><span class="wz-num">1</span><span class="wz-label">{{ 'العميل' if is_ar else 'Client' }}</span></button>
+    <button type="button" class="wz-tab" data-goto="2"><span class="wz-num">2</span><span class="wz-label">{{ 'الهدف والنظام' if is_ar else 'Goal & system' }}</span></button>
+    <button type="button" class="wz-tab" data-goto="3"><span class="wz-num">3</span><span class="wz-label">{{ 'الحالات والأدوية' if is_ar else 'Conditions & medications' }}</span></button>
+    <button type="button" class="wz-tab" data-goto="4"><span class="wz-num">4</span><span class="wz-label">{{ 'تفضيلات العميل' if is_ar else 'Preferences' }}</span></button>
   </div>
 
   <div class="wz-step" data-step="1">
   <!-- ═══════════ بيانات العميل ═══════════ -->
   <section class="wz-card">
-    <h2 class="wz-card-title"><i class="fa-solid fa-user"></i> {{ 'بيانات العميل' if is_ar else 'Client Data' }}</h2>
+    <h2 class="wz-card-title">{{ 'بيانات العميل' if is_ar else 'Client Data' }}</h2>
     <div class="wz-card-body">
     {# ═══ صوّر ورقة التحليل ═══════════════════════════════════════════════
        الدكتور بيكتب نفس الأرقام اللي مطبوعة قدامه على ورقة الـInBody.
@@ -33,7 +32,7 @@
     <div id="rpBox" class="wz-tool">
       {% if can_read_reports %}
       <label for="rpFile" class="wz-tool-btn">
-        <i class="fa-solid fa-camera"></i>
+        {{ nxicon('camera',15) }}
         {{ 'صوّر ورقة التحليل' if is_ar else 'Photograph the report' }}
       </label>
       <input type="file" id="rpFile" accept="image/*" capture="environment" class="wz-file">
@@ -41,7 +40,7 @@
          capture="environment" المتصفح بيفتح الكاميرا على طول -- وده
          المقصود في الزرار الأول، بس معناه إن ملف PDF مش هيتختار منه. #}
       <label for="rpUpload" class="wz-tool-btn">
-        <i class="fa-solid fa-file-arrow-up"></i>
+        {{ nxicon('upload',15) }}
         {{ 'ارفع PDF أو صورة' if is_ar else 'Upload a PDF or image' }}
       </label>
       <input type="file" id="rpUpload" accept="application/pdf,image/*" class="wz-file">
@@ -82,7 +81,7 @@
     <input type="hidden" id="brWater"><input type="hidden" id="brBmr">
     <div id="brBox" class="wz-tool">
       <button type="button" id="brBtn" class="wz-tool-btn">
-        <i class="fa-solid fa-comments"></i>
+        {{ nxicon('message-circle',15) }}
         {{ 'اشرح الفحص للعميل' if is_ar else 'Explain the report to the client' }}
       </button>
       <span id="brHint" class="wz-tool-hint">
@@ -216,17 +215,17 @@
          (نفس مخزن زيادة العضل) -- في الرقم: +٣٠٠ على حرقه هو، مش ٣٠٠٠
          سعرة ثابتة. #}
       {% for goal in [
-        ('weight_loss','🥗','تخسيس','Weight Loss','1200-1500 kcal'),
-        ('maintenance','🍽️','مكتنز','Maintenance','1800-2200 kcal'),
-        ('muscle_gain','💪','زيادة عضل','Muscle Gain','2200-2600 kcal'),
-        ('bulking','🔥','تضخيم','Bulking','3000-3500 kcal'),
-        ('weight_gain','🌾','زيادة وزن','Weight gain','+300 kcal')
+        ('weight_loss','salad','تخسيس','Weight Loss','1200-1500 kcal'),
+        ('maintenance','utensils','مكتنز','Maintenance','1800-2200 kcal'),
+        ('muscle_gain','biceps-flexed','زيادة عضل','Muscle Gain','2200-2600 kcal'),
+        ('bulking','flame','تضخيم','Bulking','3000-3500 kcal'),
+        ('weight_gain','wheat','زيادة وزن','Weight gain','+300 kcal')
       ] %}
       <label class="nx-opt">
         <input type="radio" name="goal_type" value="{{ goal[0] }}" class="nx-opt-in goal-radio"
                {% if prev.goal_type == goal[0] or (not prev.goal_type and loop.first) %}checked{% endif %}>
         <span class="nx-opt-b">
-          <span class="nx-opt-ic" aria-hidden="true">{{ goal[1] }}</span>
+          <span class="nx-opt-ic" aria-hidden="true">{{ nxicon(goal[1],17) }}</span>
           <span class="nx-opt-tx">
             <span class="nx-opt-t">{{ goal[2] if is_ar else goal[3] }}</span>
             <span class="nx-opt-s">{{ goal[4] }}</span>
@@ -319,7 +318,7 @@
   <div class="wz-step" data-step="2">
   <!-- ═══════════ المطبخ ═══════════ -->
   <section class="wz-card">
-    <h2 class="wz-card-title"><i class="fa-solid fa-utensils"></i>
+    <h2 class="wz-card-title">
       {{ 'اختر المطبخ المفضل' if is_ar else 'Preferred Cuisine' }}</h2>
     <div class="wz-card-body">    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(152px,1fr));gap:9px">
       {% for cul in [('مصري','🇪🇬','Egyptian'),('خليجي','🇸🇦','Gulf'),('شامي','🇱🇧','Levantine'),('مغربي','🇲🇦','Moroccan'),('عالمي','🌍','International')] %}
@@ -344,7 +343,7 @@
   <!-- ═══════════ نظام التغذية ═══════════ -->
   {% if diet_plans %}
   <section class="wz-card">
-    <h2 class="wz-card-title"><i class="fa-solid fa-clock"></i> {{ 'نظام الأكل' if is_ar else 'Eating System' }}</h2>
+    <h2 class="wz-card-title">{{ 'نظام الأكل' if is_ar else 'Eating System' }}</h2>
     <div class="wz-card-body">    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:9px">
       {# ‏أول حرف من الاسم كأيقونة كان بيتكرر ("ص" للصيامين، "ن" للتقليدي
          وللتكميم) و"5" و"P" كانوا شكلهم غلطة. فرمز لكل نظام -- مكتوب هنا
@@ -355,15 +354,15 @@
          بطيئة، مانع إعلانات، الـCDN نفسه واقع) الـ11 كارت بيبانوا مربعات
          فاضية. وباقي المجموعتين إيموجي أصلاً، فده بيوحّد الشكل كمان. #}
       {% set sys_icons = {
-        'standard':'🍽️', 'two_meals':'🕑', 'five_meals':'🍱',
-        'intermittent_16_8':'⏳', 'intermittent_18_6':'⌛',
-        'ramadan':'🌙', 'workout':'🏋️', 'low_carb':'🥬',
-        'keto':'🥑', 'chemical':'🧪', 'sleeve':'🩺',
-        'low_carb_program':'📋', 'low_fat':'🫒', 'dash':'💓',
-        'detox':'🍋', 'kids':'🧸', 'breast_feeding':'🤱',
-        'vegan':'🌱', 'lacto_vegetarian':'🥛',
-        'lacto_ovo_vegetarian':'🍳', 'ovo_vegetarian':'🥚',
-        'optitect':'🧬'
+        'standard':'utensils', 'two_meals':'clock', 'five_meals':'sandwich',
+        'intermittent_16_8':'clock', 'intermittent_18_6':'clock',
+        'ramadan':'moon', 'workout':'dumbbell', 'low_carb':'leaf',
+        'keto':'fish', 'chemical':'flask-conical', 'sleeve':'stethoscope',
+        'low_carb_program':'clipboard-list', 'low_fat':'scale', 'dash':'heart-pulse',
+        'detox':'cup-soda', 'kids':'cookie', 'breast_feeding':'milk',
+        'vegan':'carrot', 'lacto_vegetarian':'milk',
+        'lacto_ovo_vegetarian':'egg', 'ovo_vegetarian':'egg',
+        'optitect':'dna'
       } %}
     {# ═══ ليه مجموعتين ═══════════════════════════════════════════════
        ٢٢ نظام في قايمة واحدة، والدكتور بينزّل فيهم كل زيارة عشان يدوس
@@ -387,7 +386,7 @@
         <input type="radio" name="diet_plan_type" value="{{ key }}" class="nx-opt-in"
                {% if prev.diet_plan_type == key or (not prev.diet_plan_type and loop.first) %}checked{% endif %}>
         <span class="nx-opt-b">
-          <span class="nx-opt-ic" aria-hidden="true">{{ sys_icons.get(key, '🍲') }}</span>
+          <span class="nx-opt-ic" aria-hidden="true">{{ nxicon(sys_icons.get(key, 'salad'),17) }}</span>
           <span class="nx-opt-tx">
             <span class="nx-opt-t">{{ info.name if is_ar else (info.name_en or info.name) }}</span>
             <span class="nx-opt-s">{{ info.description if is_ar else (info.description_en or info.description) }}</span>
@@ -398,7 +397,7 @@
                ولو فشل الكروت بتبان مربعات فاضية -- وفيه اختبار بيمنعها. #}
             {% set src = info.source if is_ar else (info.source_en or info.source) %}
             {% if src %}
-            <span class="nx-opt-src"><span aria-hidden="true">📖</span> {{ src }}</span>
+            <span class="nx-opt-src"><span aria-hidden="true">{{ nxicon('file-text',12) }}</span> {{ src }}</span>
             {% endif %}
           </span>
         </span>
@@ -418,13 +417,13 @@
           <input type="radio" name="diet_plan_type" value="{{ key }}" class="nx-opt-in"
                  {% if prev.diet_plan_type == key %}checked{% endif %}>
           <span class="nx-opt-b">
-            <span class="nx-opt-ic" aria-hidden="true">{{ sys_icons.get(key, '🍲') }}</span>
+            <span class="nx-opt-ic" aria-hidden="true">{{ nxicon(sys_icons.get(key, 'salad'),17) }}</span>
             <span class="nx-opt-tx">
               <span class="nx-opt-t">{{ info.name if is_ar else (info.name_en or info.name) }}</span>
               <span class="nx-opt-s">{{ info.description if is_ar else (info.description_en or info.description) }}</span>
               {% set src = info.source if is_ar else (info.source_en or info.source) %}
               {% if src %}
-              <span class="nx-opt-src"><span aria-hidden="true">📖</span> {{ src }}</span>
+              <span class="nx-opt-src"><span aria-hidden="true">{{ nxicon('file-text',12) }}</span> {{ src }}</span>
               {% endif %}
             </span>
           </span>
@@ -486,7 +485,7 @@
        الخانة بتظهر بس لما النظام ده يتختار. #}
     <div id="sleeveWeeksBox" style="display:none;background:var(--nx-info-bg);border:1.5px solid var(--nx-info-line);border-radius:10px;padding:12px;margin-top:10px">
       <label class="form-label" for="sleeveWeeks">
-        <i class="fa-solid fa-calendar-day" style="color:#1B6E80"></i>
+        {{ nxicon('calendar-days',15) }}
         {{ 'عدّ الأسابيع اللي فاتت على العملية' if is_ar else 'Weeks elapsed since surgery' }}
       </label>
       <input class="form-input" type="number" step="1" min="1" max="520"
@@ -510,7 +509,7 @@
   <div class="wz-step" data-step="3">
   <!-- ═══════════ الأمراض ═══════════ -->
   <section class="wz-card">
-    <h2 class="wz-card-title"><i class="fa-solid fa-stethoscope"></i> {{ 'الحالات المرضية' if is_ar else 'Medical Conditions' }}
+    <h2 class="wz-card-title">{{ 'الحالات المرضية' if is_ar else 'Medical Conditions' }}
       <span id="condCount" style="margin-inline-start:auto;font-size:12px;font-weight:700;
             color:var(--nx-ink-2);background:var(--green-pale);border-radius:7px;padding:2px 9px"></span>
     </h2>
@@ -528,7 +527,7 @@
               aria-label="{{ 'امسح البحث' if is_ar else 'Clear search' }}"
               style="display:none;position:absolute;inset-inline-end:10px;top:50%;
                      transform:translateY(-50%);background:none;border:0;cursor:pointer;
-                     color:var(--muted);font-size:15px;padding:4px">✕</button>
+                     color:var(--muted);font-size:15px;padding:4px">{{ nxicon('x',14) }}</button>
     </div>
     <div id="condNone" style="display:none;font-size:12.5px;color:var(--muted);
          padding:10px 2px">{{ 'مفيش حالة بالاسم ده.' if is_ar else 'No condition by that name.' }}</div>
@@ -580,7 +579,7 @@
 
     <div id="t1dInsulinBox" style="display:none;background:var(--nx-bad-bg);border:1.5px solid #fecaca;border-radius:10px;padding:12px;margin-top:10px">
       <label class="form-label">
-        <i class="fa-solid fa-syringe" style="color:var(--nx-bad-ink)"></i>
+        <span style="color:var(--nx-bad-ink);display:inline-flex">{{ nxicon('syringe',14) }}</span>
         {{ 'إجمالي جرعة الأنسولين اليومية (وحدة/يوم) — الرقم من الطبيب المعالج' if is_ar else 'Total Daily Insulin Dose (units/day) — from the treating physician' }}
       </label>
       <input class="form-input" type="number" step="1" min="1" name="insulin_tdd" id="insulinTdd" value="{{ prev.insulin_tdd or '' }}" placeholder="{{ 'مثلاً: 40' if is_ar else 'e.g. 40' }}">
@@ -600,7 +599,7 @@
      فالبروتين يتقدّم. بتبعت على نفس اسم symptoms عشان المحرك يشوفها من غير
      توصيل جديد. #}
   <section class="wz-card">
-    <h2 class="wz-card-title"><i class="fa-solid fa-syringe" style="color:#1B6E80"></i> {{ 'أدوية العميل' if is_ar else "Patient's medications" }}</h2>
+    <h2 class="wz-card-title">{{ 'أدوية العميل' if is_ar else "Patient's medications" }}</h2>
     <div class="wz-card-body">
     <p style="font-size:12px;color:var(--muted);margin-bottom:10px">
       {{ 'لو العميل على إبر تخسيس، اختارها — الخطة هتتظبط على حجم وجبة أصغر وبروتين أعلى، وهتطلع تحذيرات الغثيان وفقدان العضل وعلامات الخطر في الـPDF:' if is_ar else "If the patient is on a weight-loss injection, select it — the plan shifts to smaller meals and higher protein, and the nausea, muscle-loss and red-flag warnings are printed on the PDF:" }}
@@ -624,7 +623,7 @@
 
   <!-- ═══════════ الحساسية الغذائية ═══════════ -->
   <section class="wz-card">
-    <h2 class="wz-card-title"><i class="fa-solid fa-triangle-exclamation" style="color:var(--nx-red)"></i> {{ 'الحساسية الغذائية' if is_ar else 'Food Allergies' }}</h2>
+    <h2 class="wz-card-title">{{ 'الحساسية الغذائية' if is_ar else 'Food Allergies' }}</h2>
     <div class="wz-card-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">{{ 'اختر أي حساسية عند العميل (الأكلات هتتشال من الخطة):' if is_ar else 'Select any allergy (those foods will be removed from the plan):' }}</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
       {% for allergy in [
@@ -650,7 +649,7 @@
   <div class="wz-step" data-step="4">
   <!-- ═══════════ الأكلات المفضلة ═══════════ -->
   <section class="wz-card">
-    <h2 class="wz-card-title"><i class="fa-solid fa-heart" style="color:#1B6E80"></i> {{ 'الأكلات المفضلة عند العميل' if is_ar else 'Favorite Foods' }}</h2>
+    <h2 class="wz-card-title">{{ 'الأكلات المفضلة عند العميل' if is_ar else 'Favorite Foods' }}</h2>
     <div class="wz-card-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'اكتب الأكلات اللي بيحبها مفصولة بفواصل:' if is_ar else 'List foods they like, separated by commas:' }}</p>
     <textarea class="form-input" name="liked_foods" rows="2"
       placeholder="{{ 'مثلاً: شوفان، سلمون، افوكادو، دجاج مشوي، تفاح' if is_ar else 'e.g. oats, salmon, avocado, grilled chicken, apple' }}"
@@ -663,7 +662,7 @@
 
   <!-- ═══════════ الأكلات اللي مش بيحبها ═══════════ -->
   <section class="wz-card">
-    <h2 class="wz-card-title"><i class="fa-solid fa-ban" style="color:var(--nx-red)"></i> {{ 'أكلات لازم تتشال من الخطة' if is_ar else 'Foods to Exclude' }}</h2>
+    <h2 class="wz-card-title">{{ 'أكلات لازم تتشال من الخطة' if is_ar else 'Foods to Exclude' }}</h2>
     <div class="wz-card-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'اكتب الأكلات اللي مش بياكلها مفصولة بفواصل (هتتشال من الخطة):' if is_ar else 'List foods to remove from the plan, separated by commas:' }}</p>
     <textarea class="form-input" name="disliked_foods" rows="2"
       placeholder="{{ 'مثلاً: كبدة، باذنجان، بصل، فلفل حار، كوسة' if is_ar else 'e.g. liver, eggplant, onion, chili, zucchini' }}"
@@ -676,7 +675,7 @@
 
   <!-- ═══════════ ملاحظات ═══════════ -->
   <section class="wz-card">
-    <h2 class="wz-card-title"><i class="fa-solid fa-note-sticky"></i> {{ 'ملاحظات إضافية' if is_ar else 'Additional Notes' }}</h2>
+    <h2 class="wz-card-title">{{ 'ملاحظات إضافية' if is_ar else 'Additional Notes' }}</h2>
     <div class="wz-card-body">    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">{{ 'أي ملاحظة فيها كلمة "اشيل" أو "بدون" أو "تجنب" + اسم أكل، هيتم استثناء الأكل ده تلقائياً' if is_ar else 'Any note with a food name after "remove/without/avoid" will exclude that food automatically' }}</p>
     {# ‏التعليمات تحت الجدول: اختيارية ومطفية. الورقة اتقلّمت بطلب
        الدكتور، فالإضافة دي قراره هو لما تنفع العميل. وهي زرار واحد --
@@ -685,7 +684,7 @@
       <input type="checkbox" name="print_rules" value="1" class="nx-opt-in"
              {% if prev.print_rules %}checked{% endif %}>
       <span class="nx-opt-b">
-        <span class="nx-opt-ic" aria-hidden="true">📋</span>
+        <span class="nx-opt-ic" aria-hidden="true">{{ nxicon('clipboard-list',17) }}</span>
         <span class="nx-opt-tx">
           <span class="nx-opt-t">{{ 'اطبع التعليمات تحت الجدول' if is_ar else 'Print the instructions under the table' }}</span>
           <span class="nx-opt-s">{{ 'النوم · المياه · الرياضة · الأكل من برّه · الطبق · الوزن'
@@ -706,7 +705,7 @@
   </div>
   <div class="wz-foot">
     <button type="button" class="wz-btn" id="wzPrev">
-      <i class="fa-solid fa-arrow-right"></i>
+      {{ nxicon('arrow-right',15) }}
       {{ 'السابق' if is_ar else 'Back' }}
     </button>
     <div class="spacer"></div>
@@ -714,12 +713,12 @@
        إن الباقي مش محتاج تغيير، مايستحقش يدوس "التالي" تلات مرات. #}
     <button type="submit" class="btn btn-success" id="wzSubmit"
             style="font-size:15.5px;padding:13px 26px">
-      <i class="fa-solid fa-wand-magic-sparkles"></i>
+      {{ nxicon('sparkles',16) }}
       {{ 'ولّد الخطة' if is_ar else 'Generate plan' }}
     </button>
     <button type="button" class="wz-btn wz-btn-go" id="wzNext">
       {{ 'التالي' if is_ar else 'Next' }}
-      <i class="fa-solid fa-arrow-left"></i>
+      {{ nxicon('arrow-left',15) }}
     </button>
   </div>
 </form>
@@ -732,7 +731,7 @@
   .wz-tab { flex:1 1 150px; display:flex; align-items:center; gap:9px;
             background:var(--white); border:1.5px solid var(--gray-2);
             border-radius:12px; padding:11px 13px; cursor:pointer;
-            font-family:'Cairo',sans-serif; text-align:start;
+            font-family:'IBM Plex Sans Arabic','Cairo',sans-serif; text-align:start;
             color:var(--muted); transition:all .18s }
   .wz-tab:hover { border-color:var(--blue-light) }
   .wz-num { flex:0 0 26px; height:26px; border-radius:50%;
@@ -761,10 +760,10 @@
   .wz-foot { display:flex; gap:10px; align-items:center; margin-top:6px }
   .wz-foot .spacer { flex:1 }
   .wz-btn { background:var(--white); color:var(--nx-ink); border:1.5px solid var(--gray-2);
-            border-radius:11px; padding:13px 22px; font-family:'Cairo',sans-serif;
+            border-radius:12px; padding:13px 22px; font-family:'IBM Plex Sans Arabic','Cairo',sans-serif;
             font-size:14.5px; font-weight:800; cursor:pointer }
   .wz-btn:hover { border-color:var(--nx-ink-2) }
-  .wz-btn-go { background:var(--green); color:#fff; border-color:var(--nx-ink-2) }
+  .wz-btn-go { background:var(--nx-solid); color:var(--nx-on-solid); border-color:transparent }
 
   @media(max-width:768px){
     .wz-tab { flex:1 1 calc(50% - 8px); padding:9px 10px }
@@ -783,7 +782,7 @@
   .wz-tool-btn { margin:0; cursor:pointer; display:inline-flex; align-items:center;
                  gap:7px; background:var(--white); color:var(--nx-ink);
                  border:1.5px solid var(--gray-2); border-radius:9px;
-                 padding:8px 13px; font-family:'Cairo',sans-serif;
+                 padding:8px 13px; font-family:'IBM Plex Sans Arabic','Cairo',sans-serif;
                  font-size:13px; font-weight:700; white-space:nowrap }
   .wz-tool-btn:hover { border-color:var(--nx-ink-2) }
   .wz-tool-hint { font-size:11.5px; color:var(--muted); line-height:1.65; flex:1 1 180px }
@@ -1068,34 +1067,34 @@
 
      ‏واللي **ماتغيّرش**: كل الـclass names وأماكن الحاجات والسلوك. */
 
-  .wz-card { border-radius:8px; border:1px solid var(--gray-2);
-             box-shadow:none; margin-bottom:12px; overflow:hidden }
-  .wz-card-title { font-size:15px; font-weight:800; color:var(--text);
-                   padding:13px 17px 11px; gap:10px; margin-bottom:0;
-                   border-bottom:1px solid var(--gray-2); background:var(--white) }
-  .wz-card-title i { color:#8D96A1; opacity:1; font-size:14px }
-  .wz-card-body { padding:14px 17px 16px }
+  /* ‏نسخة التجربة redesign-trial: شكل الصفحة على التصميم الجديد المعتمد --
+     كروت ٢٠ بكسل بحدود ١.٥ وظل التوكنز، والتاب النشط بنفس لغة "اللي مختار"
+     (--pick). مفيش تدرّجات ولا هالات ملوّنة: قاعدة المستودع فاضلة. */
+  .wz-card { border-radius:20px; border:1.5px solid var(--gray-2);
+             box-shadow:var(--nx-sh); margin-bottom:14px; overflow:hidden }
+  .wz-card-title { font-size:15px; font-weight:700; color:var(--text);
+                   padding:16px 20px 0; gap:10px; margin-bottom:0 }
+  .wz-card-body { padding:14px 20px 18px }
 
-  .page-title { font-size:22px !important; letter-spacing:-.3px; color:var(--text) }
-
-  .wz-tab { border-radius:7px; border:1px solid var(--gray-2); background:var(--white);
-            box-shadow:none; padding:10px 13px }
-  .wz-tab.active { background:var(--blue-pale); border-color:#C3CCD5;
-                   color:var(--nx-ink); box-shadow:inset 0 -3px 0 var(--green) }
-  .wz-tab.active .wz-label, .wz-tab.active i { color:var(--nx-ink) }
-  .wz-num { border-radius:7px; font-size:12px }
-  .wz-tab.active .wz-num { background:var(--green); color:#fff }
+  .wz-tab { border-radius:12px; border:1.5px solid var(--gray-2); background:var(--white);
+            box-shadow:var(--nx-sh); padding:10px 13px }
+  .wz-tab.active { background:var(--pick); border-color:var(--pick);
+                   color:#fff; box-shadow:var(--nx-sh) }
+  .wz-tab.active .wz-label { color:#fff }
+  .wz-num { border-radius:9px; font-size:12px }
+  .wz-tab.active .wz-num { background:rgba(255,255,255,.22); color:#fff }
+  .wz-tab.done .wz-num { background:var(--nx-accent-soft); color:var(--nx-accent) }
   .wz-label { font-size:13.5px; font-weight:700 }
 
   .form-label { font-size:13px; font-weight:700; color:var(--text-2);
                 margin-bottom:5px }
   .form-input, .form-select, .form-textarea {
-      border-radius:7px; border:1px solid var(--gray-2); border-width:1px;
+      border-radius:12px; border:1.5px solid var(--gray-2);
       padding:11px 13px; font-size:15px; background:var(--white);
       box-shadow:none; transition:box-shadow .15s, border-color .15s }
   .form-input:focus, .form-select:focus, .form-textarea:focus {
-      border-color:var(--nx-ink-2);
-      box-shadow:0 0 0 3px rgba(58,74,92,.16) }
+      border-color:var(--nx-accent-line);
+      box-shadow:0 0 0 4px var(--nx-accent-soft) }
   .form-group { margin-bottom:12px }
 
   /* ‏الكارت المختار بيتملى باللون كله: الفورم ده بيتملى عشرات المرات
@@ -1130,8 +1129,8 @@
 
   .wz-btn { border-radius:7px; padding:12px 24px; font-size:15px;
             box-shadow:none; transition:background .14s, border-color .14s }
-  .wz-btn-go { background:var(--green); color:#fff; border-color:var(--nx-ink-2) }
-  .wz-btn-go:hover { background:#334152; border-color:#334152 }
+  .wz-btn-go { background:var(--nx-solid); color:var(--nx-on-solid); border-color:transparent }
+  .wz-btn-go:hover { background:var(--nx-solid-2); border-color:transparent }
 
   @media (prefers-reduced-motion: reduce){
     .wz-tab, .nx-opt-b, .wz-btn { transition:none }
@@ -1501,7 +1500,7 @@ function renderFollowup(d){
   <div style="background:var(--nx-info-bg);border:2px solid #1B6E80;border-radius:12px;padding:14px 16px;margin:4px 0 14px">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <div style="font-weight:800;color:var(--nx-ink);font-size:15px">
-        <i class="fa-solid fa-clock-rotate-left" style="color:#1B6E80"></i>
+        {{ nxicon('history', 14) }}
         ${T('متابعة رقم','Follow-up visit')} ${d.next_visit_no} — ${d.name||''}
         <span style="font-size:11px;font-weight:700;color:var(--nx-ink-2);background:var(--nx-info-bg);border-radius:6px;padding:2px 7px;margin-inline-start:6px">${d.matched_by==='pick' ? T('اخترته من القايمة','picked from the list')
           : (d.matched_by==='phone' ? T('اتعرف عليه بالرقم','matched by number')
@@ -2231,7 +2230,7 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
 
     let html = '<div class="ex-card">';
     html += '<div class="ex-head"><span class="ex-head-t">'
-          + '<i class="fa-solid fa-file-waveform"></i> '
+          + {{ nxicon('file-text', 14) | tojson }} + ' '
           + T('قراءة الورقة', 'Reading the sheet') + '</span>'
           + (MODE[data.mode] ? '<span class="ex-mode">' + esc(MODE[data.mode])
                                + '</span>' : '')
@@ -2244,13 +2243,13 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
     if(data.stage){
       const st = data.stage;
       const tone = st.kind === 'high'
-        ? {bg:'#fef2f2', bd:'#fca5a5', fg:'#7f1d1d', icon:'fa-triangle-exclamation'}
-        : {bg:'#fffbeb', bd:'#fcd34d', fg:'#78350f', icon:'fa-circle-info'};
+        ? {bg:'#fef2f2', bd:'#fca5a5', fg:'#7f1d1d', icon:{{ nxicon('triangle-alert', 14) | tojson }}}
+        : {bg:'#fffbeb', bd:'#fcd34d', fg:'#78350f', icon:{{ nxicon('info', 14) | tojson }}};
       html += '<div class="ex-sec"><div style="background:' + tone.bg
             + ';border:1.5px solid ' + tone.bd + ';border-radius:12px;'
             + 'padding:12px 14px;color:' + tone.fg + '">'
             + '<div style="font-weight:800;font-size:14px;margin-bottom:5px">'
-            + '<i class="fa-solid ' + tone.icon + '"></i> ' + esc(st.title)
+            + tone.icon + ' ' + esc(st.title)
             + '</div>'
             + '<div style="font-size:13px;line-height:1.7">'
             + esc(String(st.line).replace(/\*\*/g, '')) + '</div>';
@@ -2265,9 +2264,9 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
     // ‏صح وغلط قبل الأرقام: دي البصة اللي الدكتور بيبصّها الأول.
     const V = data.verdict || {};
     const BUCKETS = [
-      ['good',   T('اللي تمام', 'What is fine'),        'fa-circle-check'],
-      ['work',   T('اللي فيه شغل', 'What needs work'),  'fa-circle-exclamation'],
-      ['unsure', T('اللي مالوش حكم', 'No verdict yet'), 'fa-circle-question']
+      ['good',   T('اللي تمام', 'What is fine'),        {{ nxicon('circle-check', 14) | tojson }}],
+      ['work',   T('اللي فيه شغل', 'What needs work'),  {{ nxicon('triangle-alert', 14) | tojson }}],
+      ['unsure', T('اللي مالوش حكم', 'No verdict yet'), {{ nxicon('circle-help', 14) | tojson }}]
     ];
     if(BUCKETS.some(function(b){ return (V[b[0]] || []).length; })){
       html += '<div class="ex-sec"><div class="ex-sec-h">'
@@ -2278,7 +2277,7 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
         const items = V[bucket[0]] || [];
         if(!items.length) return;
         html += '<div class="ex-j ' + bucket[0] + '"><div class="ex-j-h">'
-              + '<i class="fa-solid ' + bucket[2] + '"></i> ' + esc(bucket[1])
+              + bucket[2] + ' ' + esc(bucket[1])
               + '<span class="ex-j-n">' + items.length + '</span></div>';
         items.forEach(function(item){
           html += '<div class="ex-j-i"><b>' + esc(item.label) + '</b><br>'
@@ -2366,7 +2365,7 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
 
     if(details.length){
       html += '<details class="ex-more"><summary class="ex-more-s">'
-            + '<i class="fa-solid fa-chevron-down"></i> '
+            + {{ nxicon('chevron-down', 14) | tojson }} + ' '
             + T('التفاصيل: كل رقم يعني إيه، والهدف، والنقاط',
                 'Detail: what each number means, the goal, the focus points')
             + '</summary>' + details.join('') + '</details>';
@@ -2378,7 +2377,7 @@ if(genderSel) genderSel.addEventListener('change',recomputeTdee);
     });
     html += '<button type="button" id="brCopy" class="btn btn-outline" '
           + 'style="font-size:12px;padding:6px 12px;margin:6px 0 0">'
-          + '<i class="fa-regular fa-copy"></i> '
+          + {{ nxicon('copy', 14) | tojson }} + ' '
           + T('انسخ الشرح', 'Copy the explanation') + '</button>'
           + '<span id="brCopied" hidden style="font-size:12px;color:var(--nx-ok-ink);'
           + 'font-weight:700;margin-inline-start:8px">' + T('اتنسخ', 'Copied')

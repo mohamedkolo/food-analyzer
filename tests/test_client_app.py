@@ -131,13 +131,15 @@ def test_the_water_day_is_the_clients_day_not_the_servers():
     assert (cairo_midnight.hour, cairo_midnight.minute) == (0, 0)
 
 
-def test_the_water_card_is_on_the_home_page_and_a_plain_form_works_too():
+def test_the_water_plain_form_still_works():
+    """‏الدكتور (٢٦ نوفمبر): صفحة العميل أربع وجهات بس — كارت المياه اتشال
+    ‏من الرئيسية. تسجيل المياه نفسه شغال."""
     _reset()
     c = _as(ALICE)
     r = c.post("/water", data={"amount_ml": 350})
     assert r.status_code == 302 and r.headers["Location"].endswith("/my-plan#water")
     page = c.get("/my-plan").get_data(as_text=True)
-    assert "Water today" in page and "350 / 2000 ml" in page
+    assert "Water today" not in page
 
 
 # ── ملاحظات الوجبات ─────────────────────────────────────────────────
@@ -270,7 +272,6 @@ def test_a_client_rates_a_finished_session_once():
     c = _as(ALICE)
     assert 'action="/book/%d/rate"' % appt in c.get(
         "/book/%d" % appt).get_data(as_text=True)
-    assert "How was your consultation?" in c.get("/my-plan").get_data(as_text=True)
     r = c.post("/book/%d/rate" % appt, data={"score": 9, "comment": "Clear plan"})
     assert "msg=rated" in r.headers["Location"]
     c.post("/book/%d/rate" % appt, data={"score": 1})
@@ -278,8 +279,6 @@ def test_a_client_rates_a_finished_session_once():
     assert len(got) == 1 and got[0]["score"] == 9 and got[0]["anonymous"] == 0
     assert 'action="/book/%d/rate"' % appt not in c.get(
         "/book/%d" % appt).get_data(as_text=True)
-    assert "How was your consultation?" not in c.get(
-        "/my-plan").get_data(as_text=True)
 
 
 def test_only_a_session_that_happened_can_be_rated_and_only_by_its_client():
@@ -325,8 +324,9 @@ def test_the_bottom_bar_is_the_clients_and_only_the_clients():
     user لوحده، الأدمن يشوف شريط العميل ويسجّل مياه باسمه هو."""
     _reset()
     client_page = _as(ALICE).get("/my-plan").get_data(as_text=True)
-    assert 'class="cbar"' in client_page and 'id="csheet"' in client_page
-    for href in ('href="/my-plan"', 'href="/plan"', 'href="/recommendations"'):
+    # ‏الدكتور (٢٦ نوفمبر): شريط العميل أربع وجهات بس، وشيت (+) اتشالت.
+    assert 'class="cbar"' in client_page and 'id="csheet"' not in client_page
+    for href in ('href="/my-plan"', 'href="/foods"', 'href="/whey"', 'href="/settings"'):
         assert href in client_page[client_page.index('class="cbar"'):], href
     assert 'class="cbar"' not in _as(NUTRI).get("/dashboard").get_data(as_text=True)
     assert 'class="cbar"' not in _as(ADMIN).get(
@@ -339,9 +339,15 @@ def test_the_home_page_does_not_repeat_the_menu_as_cards():
     الموبايل بياخد شاشتين. اتشال -- بس كل لينك فيه لازم يفضل له طريق."""
     page = _as(ALICE).get("/my-plan").get_data(as_text=True)
     assert "Quick Actions" not in page and "action-card" not in page
-    for href in ("/my-plans-history", "/messages", "/history", "/knowledge",
-                 "/daily-tips", "/settings"):
-        assert 'href="%s"' % href in page, "%s is no longer reachable" % href
+    # ‏الدكتور (٢٦ نوفمبر): الرئيسية أربع وجهات بس. اللي اتشال من القايمة
+    # ‏لازم يفضل شغال برابطه المباشر.
+    for href in ("/foods", "/whey", "/settings"):
+        assert 'href="%s"' % href in page, "%s missing from the home page" % href
+    c = _as(ALICE)
+    for path in ("/messages", "/history", "/knowledge", "/daily-tips",
+                 "/my-plans-history", "/book", "/recommendations"):
+        r = c.get(path)
+        assert r.status_code in (200, 302), (path, r.status_code)  # 302 = بوابة اشتراك، مش لينك ميت
 
 
 def test_the_plan_tab_goes_to_the_plan_in_force():

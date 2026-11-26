@@ -37,35 +37,40 @@
 </script>
 <style>
 :root{
-  --nx-bg:#EEF1F6;--nx-surface:#FFFFFF;--nx-surface-2:#F3F5F7;--nx-tint:#EDF0F3;
-  --nx-ink:#1E2630;--nx-ink-2:#3A4A5C;--nx-muted:#5A6472;--nx-line:#D5DAE0;
+  --nx-bg:#F6F8F5;--nx-surface:#FFFFFF;--nx-surface-2:#F2F5F0;--nx-tint:#EAF1E7;
+  --nx-ink:#0F1720;--nx-ink-2:#3A463E;--nx-muted:#5C6670;--nx-line:#E4E8E1;
   --nx-warn-bg:#FDF6EC;--nx-warn-ink:#8A4B1C;--nx-warn-line:#E5C9A1;
   --nx-bad-bg:#FBEDED;--nx-bad-ink:#8B2E2E;--nx-bad-line:#E3B4B4;--nx-red:#C81E1E;
   --nx-info-bg:#E9F2F6;--nx-info-line:#B4D0DA;
-  --nx-solid:#1E2630;--nx-solid-2:#3A4A5C;--nx-on-solid:#FFFFFF;--nx-hero:#1E2630;
-  --nx-ok-bg:#F0F7F4;--nx-ok-ink:#1F5132;--nx-ok-line:#CFE3D9;--nx-on-warm:#1E2630;
+  --nx-solid:#0F1720;--nx-solid-2:#3A463E;--nx-on-solid:#FFFFFF;--nx-hero:#0F1720;
+  --nx-ok-bg:#F0F7F4;--nx-ok-ink:#1F5132;--nx-ok-line:#CFE3D9;--nx-on-warm:#0F1720;
+  /* لون الهوية الأخضر: CTA أساسي، حدود الاختيار، خلفيات التمييز */
+  --nx-accent:#16A34A;--nx-accent-2:#22C55E;--nx-accent-soft:rgba(22,163,74,.10);--nx-accent-line:rgba(22,163,74,.35);--nx-on-accent:#FFFFFF;
+  --nx-sh:0 1px 2px rgba(16,24,32,.05),0 10px 30px -14px rgba(16,24,32,.14);
   /* ‏الزجاج: فاتح زي زجاج Apple، أبيض نص شفاف على بقع لون مطفية */
   --nx-glass:rgba(255,255,255,0.64);--nx-glass-strong:rgba(255,255,255,0.78);--nx-bar:rgba(255,255,255,0.99);--nx-glass-line:rgba(255,255,255,0.8);
   --nx-glass-shadow:0 0 0 1px rgba(30,38,48,0.06),0 10px 30px rgba(30,38,48,0.08);
   --nx-side-bg:rgba(255,255,255,0.58);--nx-side-ink:#1E2630;--nx-side-muted:#4F5966;--nx-side-line:rgba(30,38,48,0.1);
   --nx-side-pill:rgba(255,255,255,0.6);--nx-side-pill-line:rgba(30,38,48,0.1);--nx-side-pill-hover:rgba(30,38,48,0.28);
-  --nx-blob-1:#8FB4FF;--nx-blob-2:#FFCF7A;--nx-blob-3:#7FDDCF;--nx-blob-op:0.45;
+  --nx-blob-1:#7BC98F;--nx-blob-2:#B7E4C7;--nx-blob-3:#A3D9B8;--nx-blob-op:0.4;
   color-scheme:light;
 }
 html[data-theme="dark"]{
-  --nx-bg:#0B1016;--nx-surface:#171D25;--nx-surface-2:#1D242E;--nx-tint:#232B36;
-  --nx-ink:#E8ECF1;--nx-ink-2:#C9D2DC;--nx-muted:#9AA6B4;--nx-line:#2E3844;
+  --nx-bg:#0B0B0D;--nx-surface:#101317;--nx-surface-2:#161B1F;--nx-tint:#1B211C;
+  --nx-ink:#EDEFF2;--nx-ink-2:#C9D2DC;--nx-muted:#9AA3AD;--nx-line:#22262B;
   --nx-warn-bg:#2C2214;--nx-warn-ink:#F0C28E;--nx-warn-line:#5A4526;
   --nx-bad-bg:#2F1A1C;--nx-bad-ink:#F2AAAA;--nx-bad-line:#5C2F33;--nx-red:#F87171;
   --nx-info-bg:#172C36;--nx-info-line:#2A4E5C;
-  --nx-solid:#3A4A5E;--nx-solid-2:#4A5C72;--nx-on-solid:#FFFFFF;--nx-hero:#0B0F14;
-  --nx-ok-bg:#15291F;--nx-ok-ink:#8FD9AE;--nx-ok-line:#2B4D3A;--nx-on-warm:#1E2630;
+  --nx-solid:#42E86D;--nx-solid-2:#5BF08A;--nx-on-solid:#04140A;--nx-hero:#0B0B0D;
+  --nx-ok-bg:#15291F;--nx-ok-ink:#8FD9AE;--nx-ok-line:#2B4D3A;--nx-on-warm:#0F1720;
+  --nx-accent:#42E86D;--nx-accent-2:#5BF08A;--nx-accent-soft:rgba(66,232,109,.12);--nx-accent-line:rgba(66,232,109,.4);--nx-on-accent:#04140A;
+  --nx-sh:0 1px 2px rgba(0,0,0,.4),0 14px 34px -16px rgba(0,0,0,.65);
   /* ‏الزجاج الغامق: نفس القايمة الجانبية، كحلي شفاف على بقع لون */
   --nx-glass:rgba(23,29,37,0.6);--nx-glass-strong:rgba(15,20,26,0.74);--nx-bar:rgba(15,20,26,0.99);--nx-glass-line:rgba(255,255,255,0.08);
   --nx-glass-shadow:0 0 0 1px rgba(255,255,255,0.04),0 12px 32px rgba(0,0,0,0.35);
   --nx-side-bg:rgba(15,20,26,0.55);--nx-side-ink:#FFFFFF;--nx-side-muted:#C9D2DC;--nx-side-line:rgba(255,255,255,0.12);
   --nx-side-pill:rgba(255,255,255,0.07);--nx-side-pill-line:rgba(255,255,255,0.18);--nx-side-pill-hover:rgba(255,255,255,0.45);
-  --nx-blob-1:#2F7BFF;--nx-blob-2:#F5A20F;--nx-blob-3:#14B8A6;--nx-blob-op:0.22;
+  --nx-blob-1:#14532D;--nx-blob-2:#166534;--nx-blob-3:#15803D;--nx-blob-op:0.22;
   /* ‏توكنز base.html القديمة، علشان اللي لسه بيستخدمها يقلب معاها */
   --white:#171D25;--gray:#1D242E;--gray-2:#2E3844;--text:#E8ECF1;--text-2:#C9D2DC;
   --muted:#9AA6B4;--muted-2:#9AA6B4;--blue-pale:#232B36;--green-pale:#232B36;--red-pale:#2F1A1C;
@@ -81,7 +86,9 @@ html[data-theme="dark"]{
     --nx-warn-bg:#FDF6EC;--nx-warn-ink:#8A4B1C;--nx-warn-line:#E5C9A1;
     --nx-bad-bg:#FBEDED;--nx-bad-ink:#8B2E2E;--nx-bad-line:#E3B4B4;--nx-red:#C81E1E;
     --nx-info-bg:#E9F2F6;--nx-info-line:#B4D0DA;
-    --nx-solid:#1E2630;--nx-solid-2:#3A4A5C;--nx-on-solid:#FFFFFF;--nx-hero:#1E2630;
+    --nx-solid:#0F1720;--nx-solid-2:#3A463E;--nx-on-solid:#FFFFFF;--nx-hero:#0F1720;
+    --nx-accent:#16A34A;--nx-accent-2:#22C55E;--nx-accent-soft:rgba(22,163,74,.10);--nx-accent-line:rgba(22,163,74,.35);--nx-on-accent:#FFFFFF;
+    --nx-sh:none;
     --nx-ok-bg:#F0F7F4;--nx-ok-ink:#1F5132;--nx-ok-line:#CFE3D9;--nx-on-warm:#1E2630;
     --nx-glass:#FFFFFF;--nx-glass-strong:#FFFFFF;--nx-side-bg:#FFFFFF;--nx-side-ink:#1E2630;
     --white:#ffffff;--gray:#F6F7F8;--gray-2:#E4E7EA;--text:#1E2630;--text-2:#374250;
