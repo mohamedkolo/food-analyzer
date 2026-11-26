@@ -54,7 +54,7 @@ def test_the_head_of_the_dish_wins_not_the_longest_word():
     """
     cases = {
         "🥘 فول بطحينة 150جم": "فول",
-        "🥛 لبن لوز": "لبن",
+        "🥛 لبن لوز": "حليب",
         "🍞 خبز اسمر": "خبز",
         "🍗 صدر دجاج مشوي 150جم": "دجاج",
     }
@@ -160,7 +160,7 @@ def test_the_old_traps_are_still_closed():
     """‏الترتيب "الأقرب لأول الصنف" اتجرّب غيره مرتين وفشل. التجربة
     التانية (النص زي ما هو الأول) مالهاش حق تفتحهم تاني."""
     assert MM.find_food("فول بطحينة 150جم")["n"] == "فول مدمس"
-    assert "لوز" not in MM.find_food("لبن لوز 200مل")["n"]
+    assert MM.find_food("لبن لوز 200مل")["n"] == "حليب لوز غير محلى"  # almond milk, never the nut or cow milk
 
 
 
