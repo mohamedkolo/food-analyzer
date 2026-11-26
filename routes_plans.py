@@ -1022,6 +1022,17 @@ def _filtered_meals(data, pool_key, culture=None):
 SNACK_SLOTS = ("snack", "snack1", "snack2")
 
 
+def _meal_incomplete(text):
+    """True when the item-by-item calculation of this meal is incomplete.
+    The cal/p shown beside it is the library's WRITTEN total, not computed
+    from the items, and the picker marks that. It does not verify the total."""
+    import meal_macros
+    try:
+        return not meal_macros.macros(text)["complete"]
+    except Exception:  # noqa: BLE001
+        return True
+
+
 def _snack_options(data):
     """أسناك العميل للتبديل، بنفس شكل وجبات الطابور ({"meal", "cal", "p"}).
 
@@ -1142,7 +1153,8 @@ def get_meal_options():
         return jsonify({"ok": True, "options": all_options})
     for m in _filtered_meals(data, pool_key):
         all_options.append({"meal": m["meal"], "display": _meal_display(m["meal"]),
-                            "cal": m.get("cal", 0), "p": m.get("p", 0), "source": culture})
+                            "cal": m.get("cal", 0), "p": m.get("p", 0), "source": culture,
+                            "incomplete": _meal_incomplete(m["meal"])})
     # مطابخ تانية (مفلترة برضو) - مش للكيتو/لو-كارب عشان النشويات
     if diet_type not in ("keto", "low_carb"):
         for oc in ["مصري", "خليجي", "شامي", "مغربي", "عالمي"]:
@@ -1150,7 +1162,8 @@ def get_meal_options():
                 continue
             for m in _filtered_meals(data, pool_key, culture=oc)[:5]:
                 all_options.append({"meal": m["meal"], "display": _meal_display(m["meal"]),
-                                    "cal": m.get("cal", 0), "p": m.get("p", 0), "source": oc})
+                                    "cal": m.get("cal", 0), "p": m.get("p", 0), "source": oc,
+                                    "incomplete": _meal_incomplete(m["meal"])})
     return jsonify({"ok": True, "options": all_options})
 
 @bp.route("/replace_meal", methods=["POST"])
