@@ -42,7 +42,7 @@ ADMIN = A.db_row("SELECT id FROM users WHERE email='admin@nutrax.com'")["id"]
 KEEP_LIGHT = {"meal_plan.html", "_afo.html", "landing.html"}
 # ‏قطع بتتحط جوه صفحات تانية، فالثيم بييجي من الصفحة الأم.
 PARTIALS = {"_admin_client_followup.html", "_afo.html", "_client_bar.html", "_client_home_cards.html",
-            "_messages_ui.html", "_nav_icons.html", "_next_appointment.html", "_public_header.html", "_swap_sheet.html",
+            "_messages_ui.html", "_nav_icons.html", "_next_appointment.html", "_nx_icons.html", "_public_header.html", "_swap_sheet.html",
             "_theme.html", "_theme_btn.html"}
 
 
@@ -174,11 +174,14 @@ def test_the_plan_pdf_stays_untouched():
     assert "_theme.html" not in s and "var(--nx-" not in s
 
 
-def test_text_on_dark_buttons_stays_white():
-    # ‏الأزرار الكحلي كلامها أبيض. لو خلفيتها اتقلبت فاتحة في الغامق،
-    # الكلام الأبيض هيختفي -- فخلفيتها اسم مخصوص (solid) بيفضل غامق.
-    dark = DARK()
-    assert _lum(dark["--nx-solid"]) < 0.2 and _lum(dark["--nx-solid-2"]) < 0.25
+def test_text_on_solid_buttons_stays_readable():
+    # ‏خلفية الأزرار اسم مخصوص (solid) ونصها --nx-on-solid. المعيار مش
+    # "الخلفية غامقة" -- المعيار إن النص مقروء عليها في الوضعين: نسخة
+    # التجربة redesign-trial قلّبت الزرار في الغامق أخضر فاتح بنص غامق.
+    for mode, tok in (("light", LIGHT()), ("dark", DARK())):
+        for bg in ("--nx-solid", "--nx-solid-2"):
+            r = _ratio(tok["--nx-on-solid"], tok[bg])
+            assert r >= 4.5, (mode, bg, round(r, 2))
 
 
 # ‏خلفية فاتحة مكتوبة بالإيد = كارت أبيض في نص الصفحة الغامقة، ولو الكلام
