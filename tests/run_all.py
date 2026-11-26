@@ -26,6 +26,7 @@ SUITES = [
     "test_zigzag.py",
     "test_food_data.py",
     "test_followup.py",
+    "test_followup_history_flow.py",
     "test_quick_check_and_renaming.py",
     "test_plan_link.py",
     "test_plan_editing.py",
