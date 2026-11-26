@@ -4,11 +4,11 @@
   'نوتراكس — خطط غذائية مبنية على حالتك الصحية مع د. محمد. السكري، الضغط، القولون، الكلى، الحمل وأكثر من 20 حالة. متابعة أسبوعية ومحلل طعام لأكثر من ' ~ food_count() ~ ' صنف بالكميات اللي بتتاكل فعلاً.',
   'NutraX — meal plans built around your health condition with Dr. Mohamed. Diabetes, blood pressure, IBS, kidney disease, pregnancy and 20+ conditions. Weekly follow-up and a food analyzer covering ' ~ food_count() ~ '+ items with real serving sizes.') }}{% endblock %}
 
-{# ‏الصفحة الرئيسية بقت المشهد السينمائي اللي الدكتور وافق عليه ٢٥ نوفمبر
-   ٢٠٢٦ بعد ما شافه متحرّك: موبايل عايم في إضاءة غامقة بيلف مع التمرير
-   والواجهة جواه بتتحوّل من المسح لعرض البيانات، ووراه طبقة جزيئات
-   هادية بأخضر NX. الهيدر الأبيض العام ماكانش هيشتغل فوق مشهد غامق،
-   فالصفحة ليها شريطها الغامق بنفس اللينات. #}
+{# ‏الصفحة الرئيسية: لوجو NX نفسه مجسّم معدني بإضاءة ستوديو ولمسة أخضر،
+   بيلف بهدوء مع التمرير، والمشاهد بتوضّح مسح الباركود وظهور بياناته.
+   شكل اللوجو متسحوب نقطة-نقطة من الأيقونة الرسمية nx-icon-v2-512.
+   الهيدر الأبيض العام ماكانش هيشتغل فوق مشهد غامق، فالصفحة ليها
+   شريطها الغامق بنفس اللينات. #}
 {# ‏public-chrome لازم تتكتب هنا بالاسم: تعديل البلوك بيلغي الشرط اللي
    جواه في base، ومن غيرها الـmain بيفضل متزاح بعرض السايدبار. #}
 {% block body_class %}nx-scene-page public-chrome{% endblock %}
@@ -55,88 +55,83 @@
     padding: 7px 14px; border-radius: 9px; font-weight: 800; }
   .sc-links .sc-login:hover { color: #0e1a0b; }
 
-  .sc { --green: #62DF50; --muted: #9BA0A6; font-family: 'Cairo', sans-serif;
-    background: #0b0b0d; color: #fff; }
-  .sc-hero { min-height: 78vh; display: flex; flex-direction: column; justify-content: center;
-    align-items: center; text-align: center; padding: 40px 22px;
-    background: radial-gradient(58% 46% at 50% 40%, #17181b 0%, #0b0b0d 72%); }
-  .sc-hero h1 { margin: 0; font-size: clamp(34px, 8vw, 66px); font-weight: 900; line-height: 1.35; }
-  .sc-hero h1 .g { color: var(--green); }
-  .sc-hint { margin-top: 46px; color: var(--muted); font-weight: 700; font-size: 13px;
-    animation: sc-bob 1.6s ease-in-out infinite; }
-  @keyframes sc-bob { 50% { transform: translateY(8px); } }
+  .sc3 { --green: #62DF50; --muted: #9BA0A6; background: #0b0b0d; color: #fff; }
+  .sc3-story { height: 520vh; position: relative; }
+  .sc3-stage { position: sticky; top: 0; height: 100vh; overflow: hidden;
+    background: radial-gradient(60% 48% at 50% 46%, #141519 0%, #0b0b0d 74%); }
+  #sc3-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .sc3-glow { position: absolute; left: 50%; top: 46%; width: min(80vw, 700px); height: min(80vw, 700px);
+    transform: translate(-50%,-50%); pointer-events: none;
+    background: radial-gradient(circle, rgba(98,223,80,.13) 0%, rgba(98,223,80,.04) 38%, transparent 65%); }
+  .sc3-vignette { position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0,0,0,.55) 100%); }
 
-  .sc-story { height: 460vh; position: relative; }
-  .sc-stage { position: sticky; top: 0; height: 100vh; overflow: hidden;
-    background: radial-gradient(60% 48% at 50% 46%, #191a1e 0%, #0b0b0d 74%); }
-  .sc-dust { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-  .sc-spot { position: absolute; top: 38%; left: 50%; width: min(130vw, 980px);
-    height: min(130vw, 980px); border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,255,255,.07) 0%, rgba(98,223,80,.05) 40%, transparent 66%);
-    transform: translate(-50%,-50%); pointer-events: none; }
-  .sc-pool { position: absolute; top: 50%; left: 50%; width: min(70vw, 420px); height: 90px;
-    border-radius: 50%; will-change: transform, opacity;
-    background: radial-gradient(50% 50% at 50% 50%, rgba(98,223,80,.16) 0%, rgba(0,0,0,.5) 62%, transparent 76%); }
+  .sc3-cap { position: absolute; z-index: 5; pointer-events: none; opacity: 0;
+    will-change: opacity, transform; }
+  .sc3-cap b, .sc3-cap h1 { display: block; font-weight: 900; letter-spacing: .5px; color: #fff;
+    text-shadow: 0 6px 40px rgba(0,0,0,.6); margin: 0; }
+  .sc3-cap .sub { display: block; margin-top: 12px; color: var(--muted); font-weight: 700; }
 
-  .sc-caption { position: absolute; top: calc(50px + 2.5vh); left: 0; right: 0;
-    text-align: center; z-index: 5; pointer-events: none; }
-  .sc-caption b { font-weight: 900; font-size: clamp(26px, 5.4vw, 44px); color: #fff;
-    letter-spacing: .5px; }
-  .sc-caption .sc-sample { display: block; margin-top: 10px; color: #7d8288;
-    font-size: 11.5px; font-weight: 700; }
+  .sc3-cap-hero { inset: 0; display: flex; flex-direction: column; justify-content: flex-end;
+    align-items: center; text-align: center; padding-bottom: 12vh; }
+  .sc3-cap-hero h1 { font-size: clamp(44px, 11vw, 120px); line-height: 1.15; }
+  .sc3-cap-hero h1 .g { color: var(--green); }
+  .sc3-cap-hero .sub { font-size: clamp(13px, 1.8vw, 17px); }
+  .sc3-kicker { position: absolute; top: calc(64px + 4vh); left: 0; right: 0; text-align: center;
+    color: #6f757b; font-size: 12px; font-weight: 800; letter-spacing: 3px; }
 
-  .sc-scene { position: absolute; inset: 0; display: grid; place-items: center;
-    perspective: 1500px; }
-  .sc-phone { position: relative; width: min(62vw, 290px, 30vh); aspect-ratio: 290/600;
-    transform-style: preserve-3d; will-change: transform; }
-  .sc-p-back { position: absolute; inset: 0; border-radius: 52px; background: #101013;
-    transform: translateZ(-18px); box-shadow: 0 0 0 1px rgba(255,255,255,.05); }
-  .sc-p-frame { position: absolute; inset: 0; border-radius: 52px;
-    background: linear-gradient(160deg, #333338, #1d1d21 60%); padding: 11px;
-    box-shadow: 0 0 0 1.5px rgba(255,255,255,.13), 0 40px 90px rgba(0,0,0,.65); }
-  .sc-screen { position: relative; width: 100%; height: 100%; border-radius: 42px;
-    overflow: hidden; background: #121215; }
-  .sc-screen::after { content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: linear-gradient(112deg, transparent 40%, rgba(255,255,255,.13) 50%, transparent 60%);
-    background-size: 300% 100%; background-position: var(--sheen, 130%) 0; }
-  .sc-notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-    width: 34%; height: 16px; border-radius: 999px; background: #0a0a0c; z-index: 3; }
+  .sc3-cap-side { top: 50%; right: 8vw; transform: translateY(-50%); text-align: right; max-width: 420px; }
+  .sc3-cap-top { top: 15%; right: 8vw; transform: none; text-align: right; max-width: 420px; }
+  .sc3-cap-side b { font-size: clamp(40px, 7vw, 84px); line-height: 1.2; }
+  .sc3-cap-side .sub, .sc3-cap-top .sub { font-size: clamp(13px, 1.7vw, 16px); }
+  [dir="ltr"] .sc3-cap-side { right: auto; left: 8vw; text-align: left; }
+  [dir="ltr"] .sc3-cap-top { right: auto; left: 8vw; text-align: left; }
 
-  .sc-ui { position: absolute; inset: 0; padding: 40px 18px 18px; display: flex;
-    flex-direction: column; gap: 12px; }
-  .sc-ui-top { display: flex; align-items: center; gap: 8px; }
-  .sc-ui-top img { width: 26px; height: 26px; border-radius: 8px; }
-  .sc-ui-top b { font-size: 13px; font-weight: 900; }
-  .sc-ui-title { font-size: 15px; font-weight: 900; color: #e8eaec; margin-top: 2px; }
-  /* ‏كارت الباركود بيصوّر ملصق ورقي حقيقي، مش سطح من أسطح الصفحة،
-     فلونه أبيض ورقي مائل للأخضر ثابت في الوضعين. */
-  .sc-bc { position: relative; height: 64px; flex-shrink: 0; border-radius: 14px;
-    background: #eef1e8; display: grid; place-items: center; overflow: hidden; }
-  .sc-bc .sc-bars { width: 72%; height: 38px;
-    background: repeating-linear-gradient(90deg, #151517 0 2px, transparent 2px 5px,
-      #151517 5px 9px, transparent 9px 12px, #151517 12px 13px, transparent 13px 17px); }
-  .sc-scanline { position: absolute; top: 6px; bottom: 6px; width: 3px; border-radius: 2px;
-    background: var(--green); box-shadow: 0 0 14px 3px rgba(98,223,80,.65); opacity: 0; }
-  .sc-row { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;
-    background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.06);
-    border-radius: 12px; padding: 10px 12px; opacity: 0; }
-  .sc-row span { font-size: 11.5px; color: var(--muted); font-weight: 700; }
-  .sc-row b { font-size: 13px; font-weight: 900; color: var(--green); }
-  .sc-row.sc-unk b { color: var(--muted); }
-  .sc-row.sc-unk { border-style: dashed; }
-  .sc-ui-foot { margin-top: auto; text-align: center; font-size: 10px; color: #6b7075;
-    font-weight: 700; }
+  .sc3-scan { position: absolute; z-index: 6; left: 48%; top: 44%; width: 264px;
+    transform: translate(-50%,-50%); opacity: 0; pointer-events: none;
+    will-change: opacity, transform; }
+  .sc3-scan-card { position: relative; border-radius: 18px; padding: 16px 18px 20px;
+    background: rgba(18,19,23,.94); border: 1px solid rgba(255,255,255,.08);
+    box-shadow: 0 22px 60px rgba(0,0,0,.55); overflow: hidden; }
+  .sc3-scan-head { display: flex; justify-content: space-between; align-items: center;
+    color: #c9cdd2; font-size: 12px; font-weight: 800; margin-bottom: 12px; }
+  .sc3-scan-head .sc3-scan-id { color: #6f757b; font-size: 11px; letter-spacing: 1px; }
+  .sc3-barcode { height: 64px; border-radius: 8px;
+    background: repeating-linear-gradient(90deg, #e6e9ee 0 3px, transparent 3px 5px,
+      #e6e9ee 5px 9px, transparent 9px 12px, #e6e9ee 12px 13px, transparent 13px 17px);
+    opacity: .92; }
+  .sc3-beam { position: absolute; left: 6%; right: 6%; height: 3px; top: 20%;
+    background: linear-gradient(90deg, transparent, var(--green) 18%, var(--green) 82%, transparent);
+    box-shadow: 0 0 18px 4px rgba(98,223,80,.55); border-radius: 2px; }
+  .sc3-scan-status { margin-top: 12px; text-align: center; color: var(--green);
+    font-size: 13px; font-weight: 800; text-shadow: 0 4px 18px rgba(0,0,0,.6); }
 
-  .sc-final { position: absolute; left: 0; right: 0; bottom: 7vh; text-align: center;
-    z-index: 7; opacity: 0; }
-  .sc-btn { display: inline-block; background: var(--green); color: #0e1a0b; font-weight: 900;
-    padding: 16px 34px; border-radius: 16px; text-decoration: none; font-size: 17px;
-    box-shadow: 0 10px 34px rgba(98,223,80,.32); }
-  .sc-final p { color: #B9BFB4; font-weight: 700; font-size: 12.5px; margin-top: 14px;
-    padding: 0 30px; }
+  .sc3-chips { position: absolute; z-index: 5; left: 8vw; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 12px; opacity: 0; will-change: opacity, transform; }
+  [dir="ltr"] .sc3-chips { left: auto; right: 8vw; }
+  .sc3-chip { display: flex; justify-content: space-between; align-items: center; gap: 26px;
+    min-width: 230px; padding: 14px 18px; border-radius: 16px;
+    background: rgba(20,21,25,.94); border: 1px solid rgba(255,255,255,.07);
+    box-shadow: 0 18px 50px rgba(0,0,0,.5); }
+  .sc3-chip span { color: #c9cdd2; font-size: 14px; font-weight: 700; }
+  .sc3-chip b { color: var(--green); font-size: 17px; font-weight: 900; }
+
+  .sc3-cap-cta { inset: 0; display: flex; flex-direction: column; justify-content: center;
+    align-items: center; text-align: center; gap: 26px; }
+  .sc3-cap-cta b { font-size: clamp(38px, 7.5vw, 88px); line-height: 1.25; }
+  .sc3-btn { pointer-events: auto; display: inline-block; background: var(--green); color: #0e1a0b;
+    font-weight: 900; font-size: 17px; padding: 15px 34px; border-radius: 14px; text-decoration: none;
+    box-shadow: 0 10px 44px rgba(98,223,80,.35); }
+  .sc3-note { color: #7d8288; font-size: 12px; font-weight: 700; max-width: 40ch; }
+
+  .sc3-hint { position: absolute; bottom: 3.5vh; left: 50%; transform: translateX(-50%);
+    color: var(--muted); font-weight: 700; font-size: 13px; z-index: 6;
+    animation: sc3-bob 1.6s ease-in-out infinite; }
+  @keyframes sc3-bob { 50% { transform: translate(-50%, 8px); } }
 
   .sc-after { min-height: 50vh; display: flex; flex-direction: column; align-items: center;
-    justify-content: center; text-align: center; padding: 60px 22px; }
+    justify-content: center; text-align: center; padding: 60px 22px;
+    background: #0e0f12; border-top: 1px solid rgba(255,255,255,.05); }
   .sc-after h2 { font-size: clamp(24px, 5vw, 40px); font-weight: 900; max-width: 24ch;
     line-height: 1.5; margin: 0; }
   .sc-after p { color: var(--muted); font-weight: 700; margin-top: 16px; font-size: 14.5px; }
@@ -147,66 +142,70 @@
     padding: 12px 22px; }
   .sc-after-links a:hover { border-color: var(--green); color: var(--green); }
 
-  @media (min-width: 900px) {
-    /* ‏الكابشن على الشمال والموبايل يمين النص في العربي، وبالعكس في
-       الإنجليزي. خصائص فيزيائية بوضوح: خلط inset-inline مع left/right
-       في نفس الرول طلّع الكابشن برا الشاشة. */
-    .sc-caption { top: 34%; left: 5vw; right: auto; text-align: start; max-width: 36vw; }
-    [dir="ltr"] .sc-caption { left: auto; right: 5vw; }
-    .sc-caption b { font-size: 46px; }
-    .sc-phone { translate: 16vw 0; }
-    [dir="ltr"] .sc-phone { translate: -16vw 0; }
+  @media (max-width: 760px) {
+    .sc3-cap-hero { justify-content: flex-start; padding-top: 56vh; padding-bottom: 0; }
+    .sc3-cap-hero h1 { font-size: clamp(30px, 9vw, 46px); }
+    .sc3-cap-side { right: 6vw; left: 6vw; max-width: none; top: auto; bottom: 12vh; transform: none; }
+    .sc3-cap-top { right: 6vw; left: 6vw; max-width: none; top: 37vh; }
+    [dir="ltr"] .sc3-cap-side, [dir="ltr"] .sc3-cap-top { right: 6vw; left: 6vw; }
+    .sc3-cap-top b { font-size: clamp(30px, 9vw, 44px); }
+    .sc3-cap-side b { font-size: clamp(34px, 10vw, 52px); }
+    .sc3-chips { left: 6vw; right: 6vw; top: auto; bottom: 11vh; transform: none; }
+    .sc3-chip { min-width: 0; }
+    .sc3-scan { left: 50%; top: 45%; width: min(270px, 72vw); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .sc-hint { animation: none; }
+    .sc3-hint { animation: none; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="sc">
-  <div class="sc-hero">
-    <h1><span class="g">NX</span> {{ t('في مشهد واحد','in one scene') }}</h1>
-    <div class="sc-hint">⬇</div>
-  </div>
+<div class="sc3">
+  <section class="sc3-story" id="sc3Story" aria-label="{{ t('عرض متحرك لمحلل الطعام','Animated demo of the food analyzer') }}">
+    <div class="sc3-stage" id="sc3Stage">
+      <div class="sc3-glow"></div>
+      <canvas id="sc3-gl" aria-hidden="true"></canvas>
+      <div class="sc3-vignette"></div>
 
-  <section class="sc-story" id="scStory" aria-label="{{ t('عرض متحرك لمحلل الطعام','Animated demo of the food analyzer') }}">
-    <div class="sc-stage" id="scStage">
-      <canvas class="sc-dust" id="scDust" aria-hidden="true"></canvas>
-      <div class="sc-spot" id="scSpot"></div>
-      <div class="sc-pool" id="scPool"></div>
-
-      <div class="sc-caption">
-        <b id="scCapText">{{ t('امسح.','Scan.') }}</b>
-        <span class="sc-sample">{{ t('واجهة وبيانات تجريبية للعرض','Sample interface and data for illustration') }}</span>
+      <div class="sc3-cap sc3-cap-hero" id="cap0">
+        <div class="sc3-kicker">N U T R A X</div>
+        <h1><span class="g">NX</span> {{ t('في مشهد واحد','in one scene') }}</h1>
+        <span class="sub">{{ t('امسح أي منتج… وشوف حقائقه قدامك.','Scan any product… and see its facts in front of you.') }}</span>
       </div>
 
-      <div class="sc-scene">
-        <div class="sc-phone" id="scPhone">
-          <div class="sc-p-back"></div>
-          <div class="sc-p-frame">
-            <div class="sc-screen">
-              <div class="sc-notch"></div>
-              <div class="sc-ui">
-                <div class="sc-ui-top"><img src="/static/nx-icon-v2-192.png" alt=""><b>NX</b></div>
-                <div class="sc-ui-title">{{ t('بيانات الملصق','Label facts') }}</div>
-                <div class="sc-bc"><div class="sc-bars"></div><div class="sc-scanline" id="scScanline"></div></div>
-                <div class="sc-row" data-r="0"><span>{{ t('السعرات','Calories') }}</span><b>{{ t('٢٣٠ كالوري','230 kcal') }}</b></div>
-                <div class="sc-row" data-r="1"><span>{{ t('البروتين','Protein') }}</span><b>{{ t('١٢ جم','12 g') }}</b></div>
-                <div class="sc-row" data-r="2"><span>{{ t('السكر','Sugar') }}</span><b>{{ t('٩ جم','9 g') }}</b></div>
-                <div class="sc-row" data-r="3"><span>{{ t('الدهون','Fat') }}</span><b>{{ t('٨ جم','8 g') }}</b></div>
-                <div class="sc-row sc-unk" data-r="4"><span>{{ t('الألياف','Fiber') }}</span><b>{{ t('غير معروف','unknown') }}</b></div>
-                <div class="sc-ui-foot">{{ t('بيانات تجريبية للعرض، مش نتيجة تحليل فعلية','Sample data for illustration, not an actual analysis') }}</div>
-              </div>
-            </div>
-          </div>
+      <div class="sc3-cap sc3-cap-side" id="cap1">
+        <b>{{ t('امسح.','Scan.') }}</b>
+        <span class="sub">{{ t('وجّه الكاميرا لخطوط الباركود.','Point the camera at the barcode lines.') }}</span>
+      </div>
+
+      <div class="sc3-scan" id="scan" aria-hidden="true">
+        <div class="sc3-scan-card">
+          <div class="sc3-scan-head"><span>{{ t('منتج غذائي','Food product') }}</span><span class="sc3-scan-id">BARCODE</span></div>
+          <div class="sc3-barcode"></div>
+          <div class="sc3-beam" id="beam"></div>
         </div>
+        <div class="sc3-scan-status" id="scanStatus">{{ t('جاري المسح…','Scanning…') }}</div>
       </div>
 
-      <div class="sc-final" id="scFinal">
-        <a class="sc-btn" href="/whey">{{ t('جرّب المحلل الحقيقي','Try the real analyzer') }}</a>
-        <p>{{ t('الأرقام في المشهد توضيحية. المحلل الحقيقي بيعرض بيانات الملصق المسجّلة من مصدرها.','The numbers in this scene are illustrative. The real analyzer shows label data recorded from its source.') }}</p>
+      <div class="sc3-chips" id="chips" aria-hidden="true">
+        <div class="sc3-chip"><span>{{ t('السعرات','Calories') }}</span><b data-v="230" data-u="{{ t('كالوري','kcal') }}">{{ t('٠ كالوري','0 kcal') }}</b></div>
+        <div class="sc3-chip"><span>{{ t('البروتين','Protein') }}</span><b data-v="12" data-u="{{ t('جم','g') }}">{{ t('٠ جم','0 g') }}</b></div>
+        <div class="sc3-chip"><span>{{ t('السكر','Sugar') }}</span><b data-v="9" data-u="{{ t('جم','g') }}">{{ t('٠ جم','0 g') }}</b></div>
+        <div class="sc3-chip"><span>{{ t('الدهون','Fat') }}</span><b data-v="8" data-u="{{ t('جم','g') }}">{{ t('٠ جم','0 g') }}</b></div>
       </div>
+      <div class="sc3-cap sc3-cap-top" id="cap2">
+        <b>{{ t('اقرأ.','Read.') }}</b>
+        <span class="sub">{{ t('الأرقام في المشهد توضيحية.','The numbers in this scene are illustrative.') }}</span>
+      </div>
+
+      <div class="sc3-cap sc3-cap-cta" id="cap3">
+        <b>{{ t('جرّبها بنفسك.','Try it yourself.') }}</b>
+        <a class="sc3-btn" href="/whey">{{ t('جرّب المحلل الحقيقي','Try the real analyzer') }}</a>
+        <span class="sc3-note">{{ t('الأرقام في المشهد توضيحية. المحلل الحقيقي بيعرض بيانات الملصق المسجّلة من مصدرها.','The numbers in this scene are illustrative. The real analyzer shows label data recorded from its source.') }}</span>
+      </div>
+
+      <div class="sc3-hint" id="hint">↓</div>
     </div>
   </section>
 
@@ -223,146 +222,220 @@
 {% endblock %}
 
 {% block extra_script %}
-<script>
-(function () {
-  var sec = document.getElementById('scStory');
-  var stage = document.getElementById('scStage');
-  var phone = document.getElementById('scPhone');
-  var pool = document.getElementById('scPool');
-  var spot = document.getElementById('scSpot');
-  var scan = document.getElementById('scScanline');
-  var rows = Array.prototype.slice.call(document.querySelectorAll('.sc-row'));
-  var fin = document.getElementById('scFinal');
-  var cap = document.getElementById('scCapText');
-  if (!sec || !stage || !phone) return;
-
-  var lerp = function (a, b, t) { return a + (b - a) * t; };
-  var clamp01 = function (v) { return Math.max(0, Math.min(1, v)); };
-  var ease = function (t) { t = clamp01(t); return t * t * (3 - 2 * t); };
-
-  var caps = [
-    [0.00, {{ t('امسح.', 'Scan.') | tojson }}],
-    [0.34, {{ t('افهم.', 'Understand.') | tojson }}],
-    [0.60, {{ t('قرّر.', 'Decide.') | tojson }}],
-    [0.84, {{ t('جرّبها بنفسك.', 'Try it yourself.') | tojson }}]
-  ];
-
-  function frame() {
-    var H = innerHeight;
-    var top = sec.offsetTop;
-    var p = clamp01((scrollY - top) / (sec.offsetHeight - H));
-    var HH = stage.clientHeight;
-
-    var turn = ease(p / 0.34);
-    var settle = ease((p - 0.78) / 0.14);
-    var rotY = lerp(-38, 0, turn) + lerp(0, -10, settle) + Math.sin(p * 8) * 1.1;
-    var rotX = lerp(9, 2, turn);
-    var sc = lerp(0.9, 1.05, turn) * lerp(1, 0.86, settle);
-    var ty = lerp(30, 0, turn) + lerp(0, -22, settle);
-    phone.style.transform = 'translateY(' + ty + 'px) rotateX(' + rotX + 'deg) rotateY(' + rotY + 'deg) scale(' + sc + ')';
-    phone.style.setProperty('--sheen', (130 - p * 300) + '%');
-
-    var flat = Math.max(0.3, Math.abs(Math.cos(rotY * Math.PI / 180)));
-    pool.style.transform = 'translate(-50%, ' + (HH * 0.5 + HH * 0.30 - HH / 2) + 'px) scaleX(' + flat + ')';
-    pool.style.opacity = 0.6 + 0.4 * turn;
-
-    var scanP = clamp01((p - 0.34) / 0.18);
-    var scanning = p > 0.34 && p < 0.60;
-    scan.style.opacity = scanning ? 1 : 0;
-    scan.style.left = (12 + scanP * 76) + '%';
-    spot.style.opacity = 0.75 + 0.25 * Math.sin(scanP * Math.PI);
-
-    rows.forEach(function (r) {
-      var j = +r.dataset.r;
-      var t = clamp01((p - (0.46 + j * 0.045)) / 0.05);
-      r.style.opacity = t;
-      r.style.transform = 'translateY(' + ((1 - ease(t)) * 14) + 'px)';
-    });
-
-    fin.style.opacity = clamp01((p - 0.78) / 0.06);
-
-    var txt = caps[0][1];
-    for (var i = 0; i < caps.length; i++) if (p >= caps[i][0]) txt = caps[i][1];
-    if (cap.textContent !== txt) cap.textContent = txt;
-  }
-  addEventListener('scroll', frame, { passive: true });
-  addEventListener('resize', frame);
-  frame();
-})();
+<script type="importmap">
+{ "imports": { "three": "/static/js/three.module.js" } }
 </script>
-<script>
-/* ‏طبقة الجزيئات الهادية ورا الموبايل -- الإحساس اللي عجب الدكتور في
-   ريل جزيئات بتلف حوالين قلب مضيء، بس بأخضر NX ومتحكّم فيها عشان
-   الموبايل: عدد قليل، من غير توهّج مرسوم لكل نقطة، وبتقف لما التبويب
-   يختفي أو لما المشهد يطلع برا الشاشة. */
-(function () {
-  var cv = document.getElementById('scDust');
-  if (!cv || !cv.getContext) return;
-  var cx = cv.getContext('2d');
-  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var W = 0, H = 0, parts = [], raf = null, visible = true, inView = true;
+<script type="module">
+import * as THREE from 'three';
 
-  function size() {
-    var dpr = Math.min(devicePixelRatio || 1, 1.5);
-    W = cv.clientWidth; H = cv.clientHeight;
-    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
-    cx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    var n = Math.min(80, Math.max(36, Math.floor(W * H / 16000)));
-    parts = [];
-    for (var i = 0; i < n; i++) {
-      parts.push({
-        a: Math.random() * Math.PI * 2,
-        r: (0.12 + Math.random() * 0.55) * Math.min(W, H),
-        s: (0.0009 + Math.random() * 0.0022) * (Math.random() < 0.5 ? -1 : 1),
-        sz: 0.8 + Math.random() * 2.0,
-        g: Math.random() < 0.34,
-        tw: Math.random() * Math.PI * 2
-      });
-    }
-  }
+const params = new URLSearchParams(location.search);
+const fixedT = params.has('t') ? parseFloat(params.get('t')) : null;
+const fixedY = params.has('y') ? parseFloat(params.get('y')) : null;
 
-  function draw(t) {
-    cx.clearRect(0, 0, W, H);
-    var cxx = W / 2, cyy = H * 0.46;
-    for (var i = 0; i < parts.length; i++) {
-      var p = parts[i];
-      var rr = p.r * (1 + 0.06 * Math.sin(t * 0.0004 + p.tw));
-      var x = cxx + Math.cos(p.a) * rr * 1.25;
-      var y = cyy + Math.sin(p.a) * rr * 0.62;
-      var a = 0.07 + 0.13 * (0.5 + 0.5 * Math.sin(t * 0.001 + p.tw));
-      cx.fillStyle = p.g ? 'rgba(98,223,80,' + a + ')' : 'rgba(255,255,255,' + (a * 0.8) + ')';
-      cx.beginPath();
-      cx.arc(x, y, p.sz, 0, 6.2832);
-      cx.fill();
-      p.a += p.s * 16;
-    }
-  }
+const canvas = document.getElementById('sc3-gl');
+const stage = document.getElementById('sc3Stage');
+const story = document.getElementById('sc3Story');
+if (canvas && stage && story) {
 
-  function loop(t) {
-    draw(t || 0);
-    raf = (visible && inView) ? requestAnimationFrame(loop) : null;
-  }
-  function kick() {
-    if (!raf && visible && inView && !reduce) raf = requestAnimationFrame(loop);
-  }
+const LITE = params.has('rec');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:!LITE, alpha:true, preserveDrawingBuffer: fixedT !== null || LITE });
+renderer.setPixelRatio(LITE ? 1 : Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
 
-  size();
-  if (reduce) { draw(0); }
-  else { kick(); }
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, .1, 100);
+camera.position.set(0, 0, 9);
 
-  addEventListener('resize', function () { size(); if (reduce) draw(0); });
-  document.addEventListener('visibilitychange', function () {
-    visible = !document.hidden;
-    if (!visible && raf) { cancelAnimationFrame(raf); raf = null; }
-    kick();
+/* ‏بيئة ستوديو بسوفت بوكسات مشعّة على خلفية شبه سوداء: انعكاسات
+   مقصودة عالية التباين بدل غسيل فاتح عام. الوش المسطح بيعكس بانل
+   أمامي متصمّم (إضاءة شباك بتدرّج وفواصل)، والباقي للحواف. */
+function makeEnv() {
+  const s = new THREE.Scene();
+  s.background = new THREE.Color(0x040507);
+  const box = (w, h, c, i, x, y, z, rx, ry) => {
+    const m = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(i), side: THREE.DoubleSide })
+    );
+    m.position.set(x, y, z); m.rotation.set(rx || 0, ry || 0, 0);
+    s.add(m);
+  };
+  const cvs = document.createElement('canvas'); cvs.width = 512; cvs.height = 256;
+  const ctx = cvs.getContext('2d');
+  const g2 = ctx.createLinearGradient(0, 0, 512, 256);
+  g2.addColorStop(0, '#f4f7fb'); g2.addColorStop(.38, '#9ba3ae');
+  g2.addColorStop(.62, '#3c4047'); g2.addColorStop(1, '#101215');
+  ctx.fillStyle = g2; ctx.fillRect(0, 0, 512, 256);
+  ctx.fillStyle = 'rgba(4,5,7,.85)';
+  ctx.fillRect(150, 0, 26, 256); ctx.fillRect(330, 0, 20, 256);
+  const gg = ctx.createLinearGradient(0, 190, 0, 256);
+  gg.addColorStop(0, 'rgba(98,223,80,0)'); gg.addColorStop(1, 'rgba(98,223,80,.4)');
+  ctx.fillStyle = gg; ctx.fillRect(0, 190, 512, 66);
+  const ptex = new THREE.CanvasTexture(cvs);
+  const panel = new THREE.Mesh(new THREE.PlaneGeometry(30, 15),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, map: ptex, side: THREE.DoubleSide }));
+  panel.position.set(0, .5, 16); panel.rotation.set(0, Math.PI, 0);
+  s.add(panel);
+  box(22, 2.4, 0xffffff, 3.2, 0, 13, -3, -1.15, 0);
+  box(6, 16, 0xcfe0ff, 2.2, 12, 1, -3, 0, -.85);
+  box(4, 4, 0xffe9c4, 1.8, -7, -1, 9, 0, .6);
+  box(18, 8, 0x62DF50, 1.6, 0, -10, 4, .85, 0);
+  const pm = new THREE.PMREMGenerator(renderer);
+  const env = pm.fromScene(s, .05).texture;
+  pm.dispose();
+  return env;
+}
+scene.environment = makeEnv();
+
+/* ‏شكل اللوجو: 480 نقطة موزعة بالتساوي على محيط الأيقونة الرسمية،
+   من غير أي تنعيم إضافي — الزوايا الحادة والمنحنيات زي الأصل بالظبط. */
+const LOGO_PTS = [[150.16,175.39],[147.51,175.79],[144.89,176.29],[142.3,176.86],[139.75,177.5],[137.24,178.26],[134.78,179.14],[132.37,180.13],[130.0,181.22],[127.68,182.43],[125.41,183.76],[123.19,185.22],[121.01,186.77],[118.84,188.36],[116.7,190.0],[114.62,191.74],[112.63,193.61],[110.79,195.62],[109.09,197.73],[107.49,199.88],[106.0,202.09],[104.59,204.33],[103.28,206.61],[102.1,208.94],[101.03,211.32],[100.07,213.74],[99.24,216.22],[98.6,218.78],[98.14,221.41],[97.78,224.08],[97.45,226.77],[97.2,229.49],[97.06,232.25],[97.01,235.05],[97.0,237.87],[97.0,240.69],[97.0,243.52],[97.0,246.34],[97.0,249.16],[97.0,251.98],[97.0,254.81],[97.0,257.63],[97.0,260.45],[97.0,263.27],[97.0,266.09],[97.0,268.92],[97.0,271.74],[97.0,274.56],[97.0,277.38],[97.0,280.21],[97.0,283.03],[97.0,285.85],[97.0,288.67],[97.0,291.49],[97.0,294.32],[97.0,297.14],[97.0,299.96],[97.0,302.78],[97.0,305.61],[97.0,308.43],[97.0,311.25],[97.0,314.07],[97.0,316.89],[97.0,319.72],[97.0,322.54],[97.0,325.36],[97.05,328.15],[97.26,330.82],[97.92,333.12],[99.28,334.75],[101.37,335.61],[103.94,335.92],[106.71,335.99],[109.52,336.0],[112.35,336.0],[115.17,336.0],[117.99,336.0],[120.81,336.0],[123.64,336.0],[126.46,336.0],[129.28,336.0],[132.1,336.0],[134.92,336.0],[137.75,336.0],[140.57,336.0],[143.38,335.99],[146.12,335.91],[148.58,335.54],[150.42,334.57],[151.47,332.79],[151.88,330.38],[151.99,327.66],[152.0,324.85],[152.0,322.03],[152.0,319.21],[152.0,316.39],[152.0,313.56],[152.0,310.74],[152.0,307.92],[152.0,305.1],[152.0,302.28],[152.0,299.45],[152.0,296.63],[152.0,293.81],[152.0,290.99],[152.0,288.16],[152.0,285.34],[152.0,282.52],[152.0,279.7],[152.0,276.88],[152.0,274.05],[152.0,271.23],[152.0,268.41],[152.0,265.59],[152.0,262.76],[152.0,259.94],[152.0,257.12],[152.0,254.3],[152.02,251.49],[152.12,248.7],[152.36,245.98],[152.82,243.35],[153.53,240.82],[154.53,238.41],[155.78,236.11],[157.22,233.9],[158.84,231.83],[160.7,229.97],[162.76,228.34],[164.96,226.86],[167.22,225.53],[169.57,224.38],[172.0,223.43],[174.5,222.66],[177.07,222.04],[179.69,221.56],[182.38,221.24],[185.13,221.07],[187.93,221.03],[190.72,221.06],[193.48,221.23],[196.15,221.6],[198.72,222.2],[201.2,223.01],[203.62,223.99],[205.97,225.12],[208.25,226.44],[210.44,227.97],[212.54,229.71],[214.55,231.62],[216.49,233.62],[218.32,235.68],[220.1,237.77],[221.86,239.86],[223.62,241.95],[225.38,244.05],[227.14,246.14],[228.91,248.23],[230.67,250.33],[232.45,252.41],[234.25,254.49],[236.02,256.57],[237.77,258.67],[239.5,260.78],[241.23,262.88],[242.98,264.98],[244.74,267.07],[246.5,269.17],[248.26,271.26],[250.02,273.35],[251.78,275.45],[253.56,277.53],[255.34,279.62],[257.11,281.71],[258.86,283.8],[260.6,285.9],[262.34,288.01],[264.1,290.1],[265.86,292.19],[267.62,294.28],[269.41,296.36],[271.22,298.44],[272.99,300.53],[274.74,302.63],[276.47,304.73],[278.2,306.84],[279.95,308.93],[281.71,311.03],[283.48,313.12],[285.29,315.19],[287.14,317.24],[288.97,319.29],[290.79,321.3],[292.7,323.17],[294.76,324.87],[296.95,326.36],[299.29,327.53],[301.79,328.31],[304.42,328.71],[307.1,328.76],[309.75,328.45],[312.28,327.78],[314.68,326.75],[316.94,325.39],[319.08,323.74],[321.15,321.94],[323.23,320.13],[325.31,318.34],[327.37,316.5],[329.4,314.6],[331.44,312.74],[333.54,311.19],[335.7,310.36],[337.83,310.57],[339.81,311.76],[341.64,313.57],[343.39,315.61],[345.12,317.71],[346.87,319.81],[348.6,321.91],[350.34,324.02],[352.08,326.12],[353.82,328.22],[355.54,330.31],[357.29,332.3],[359.19,333.99],[361.38,335.15],[363.9,335.74],[366.62,335.95],[369.42,336.0],[372.24,336.0],[375.06,336.0],[377.88,336.0],[380.7,336.0],[383.53,336.0],[386.35,336.0],[389.17,336.0],[391.99,336.0],[394.81,336.0],[397.64,336.0],[400.46,336.0],[403.27,336.0],[406.03,335.95],[408.5,335.74],[410.25,335.15],[410.86,334.01],[410.3,332.35],[408.98,330.38],[407.31,328.31],[405.57,326.22],[403.87,324.1],[402.2,321.97],[400.52,319.84],[398.81,317.73],[397.07,315.63],[395.34,313.52],[393.62,311.41],[391.89,309.31],[390.15,307.21],[388.41,305.11],[386.67,303.0],[384.91,300.91],[383.15,298.82],[381.39,296.72],[379.63,294.63],[377.87,292.54],[376.11,290.44],[374.35,288.35],[372.59,286.26],[370.83,284.16],[369.07,282.07],[367.31,279.98],[365.54,277.89],[363.74,275.81],[361.91,273.75],[360.11,271.67],[358.33,269.59],[356.54,267.51],[354.76,265.42],[352.98,263.34],[351.17,261.26],[349.41,259.19],[348.0,257.06],[347.34,254.85],[347.69,252.62],[348.92,250.47],[350.67,248.4],[352.62,246.39],[354.61,244.39],[356.6,242.4],[358.6,240.4],[360.59,238.41],[362.59,236.41],[364.59,234.41],[366.58,232.42],[368.58,230.42],[370.57,228.43],[372.57,226.43],[374.56,224.44],[376.56,222.44],[378.56,220.44],[380.55,218.45],[382.55,216.45],[384.54,214.46],[386.54,212.46],[388.53,210.47],[390.53,208.47],[392.52,206.48],[394.52,204.48],[396.52,202.48],[398.51,200.49],[400.51,198.49],[402.5,196.5],[404.5,194.5],[406.48,192.51],[408.39,190.53],[409.97,188.65],[410.75,187.03],[410.29,185.88],[408.62,185.27],[406.18,185.05],[403.44,185.01],[400.62,185.0],[397.8,185.0],[394.98,185.0],[392.16,185.0],[389.33,185.0],[386.51,185.0],[383.69,185.0],[380.87,185.0],[378.05,185.0],[375.22,185.0],[372.4,185.0],[369.58,185.0],[366.76,185.0],[363.93,185.0],[361.11,185.0],[358.29,185.0],[355.47,185.0],[352.65,185.0],[349.84,185.04],[347.1,185.23],[344.49,185.75],[342.1,186.8],[339.92,188.34],[337.86,190.19],[335.85,192.15],[333.86,194.14],[331.86,196.14],[329.86,198.14],[327.87,200.13],[325.87,202.13],[323.88,204.12],[321.88,206.12],[319.89,208.11],[317.89,210.11],[315.9,212.1],[313.9,214.1],[311.9,216.1],[309.91,218.09],[307.91,220.09],[305.93,222.08],[304.05,224.09],[302.54,226.12],[301.84,228.19],[302.19,230.28],[303.4,232.39],[305.01,234.5],[306.72,236.6],[308.42,238.72],[310.09,240.85],[311.75,242.99],[313.44,245.11],[315.16,247.22],[316.89,249.32],[318.6,251.44],[320.28,253.56],[321.94,255.7],[323.59,257.84],[325.23,259.98],[326.88,262.12],[328.56,264.25],[330.26,266.36],[331.98,268.47],[333.7,270.58],[335.4,272.7],[337.07,274.83],[338.71,276.97],[340.3,279.13],[341.68,281.32],[342.51,283.52],[342.42,285.53],[341.33,286.96],[339.56,287.38],[337.58,286.66],[335.69,285.11],[333.94,283.13],[332.26,281.03],[330.57,278.9],[328.85,276.8],[327.12,274.69],[325.41,272.58],[323.71,270.46],[322.0,268.35],[320.25,266.25],[318.5,264.15],[316.81,262.03],[315.13,259.9],[313.43,257.78],[311.68,255.68],[309.94,253.59],[308.23,251.47],[306.54,249.35],[304.83,247.23],[303.09,245.13],[301.35,243.03],[299.62,240.93],[297.87,238.83],[296.12,236.73],[294.36,234.64],[292.58,232.55],[290.8,230.47],[289.05,228.37],[287.28,226.28],[285.52,224.19],[283.77,222.09],[282.0,220.0],[280.24,217.91],[278.47,215.82],[276.65,213.75],[274.8,211.7],[272.98,209.63],[271.19,207.55],[269.37,205.48],[267.51,203.43],[265.67,201.37],[263.87,199.29],[262.03,197.25],[260.1,195.29],[258.07,193.44],[255.98,191.67],[253.88,189.94],[251.74,188.28],[249.56,186.75],[247.31,185.35],[245.04,184.03],[242.74,182.76],[240.41,181.57],[238.02,180.53],[235.57,179.64],[233.08,178.83],[230.59,178.02],[228.08,177.27],[225.52,176.65],[222.9,176.16],[220.25,175.74],[217.58,175.38],[214.85,175.14],[212.08,175.03],[209.27,175.0],[206.44,175.0],[203.62,175.0],[200.8,175.0],[197.98,175.0],[195.16,175.0],[192.33,175.0],[189.51,175.0],[186.69,175.0],[183.87,175.0],[181.04,175.0],[178.22,175.0],[175.4,175.0],[172.58,175.0],[169.76,175.0],[166.93,175.0],[164.11,175.0],[161.29,175.0],[158.47,175.0],[155.66,175.03],[152.88,175.14]];
+const orb = new THREE.Group();
+{
+  const sm = LOGO_PTS.map(p => new THREE.Vector2(p[0] / 512, -p[1] / 512));
+  const shape = new THREE.Shape(sm);
+  const geo = new THREE.ExtrudeGeometry(shape, { depth:.16, bevelEnabled:true, bevelThickness:.05, bevelSize:.038, bevelSegments:16, curveSegments:4 });
+  geo.center();
+  geo.computeBoundingBox();
+  const bb = geo.boundingBox, w = bb.max.x - bb.min.x;
+  const s = 3.6 / w;
+  geo.scale(s, s, s);
+  const mark = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
+    color:0xf6f8fa, metalness:1, roughness:.08, envMapIntensity:1.5,
+    clearcoat:.6, clearcoatRoughness:.1
+  }));
+  orb.add(mark);
+}
+scene.add(orb);
+
+/* غبار خفيف */
+const DUST = 900;
+const dustGeo = new THREE.BufferGeometry();
+{
+  const pos = new Float32Array(DUST*3);
+  for (let i = 0; i < DUST*3; i++) pos[i] = (Math.random()-.5) * 26;
+  dustGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+}
+const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({
+  color:0x8a9188, size:.035, transparent:true, opacity:.55, depthWrite:false
+}));
+scene.add(dust);
+
+scene.add(new THREE.AmbientLight(0x223026, .5));
+const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(4, 6, 6); scene.add(key);
+const green = new THREE.PointLight(0x62DF50, 30, 30); green.position.set(-4, -3, 3); scene.add(green);
+const rim = new THREE.DirectionalLight(0xbfd4ff, .8); rim.position.set(-6, 2, -4); scene.add(rim);
+
+const cap0 = document.getElementById('cap0'), cap1 = document.getElementById('cap1'),
+      cap2 = document.getElementById('cap2'), cap3 = document.getElementById('cap3'),
+      chips = document.getElementById('chips'), hint = document.getElementById('hint'),
+      scan = document.getElementById('scan'), beam = document.getElementById('beam'),
+      scanStatus = document.getElementById('scanStatus');
+const chipEls = Array.from(chips.querySelectorAll('.sc3-chip'));
+const rtl = getComputedStyle(document.documentElement).direction === 'rtl';
+const toAr = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+const fmtNum = n => rtl ? toAr(n) : String(n);
+const scanLabels = { doing: {{ t('جاري المسح…','Scanning…') | tojson }}, done: {{ t('تم المسح ✓','Scanned ✓') | tojson }} };
+
+const ease = x => x<0 ? 0 : x>1 ? 1 : x*x*(3-2*x);
+const seg = (p, a, b) => ease((p - a) / (b - a));
+
+let mouseX = 0, mouseY = 0;
+addEventListener('pointermove', e => {
+  mouseX = (e.clientX / innerWidth - .5);
+  mouseY = (e.clientY / innerHeight - .5);
+});
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+resize();
+
+function frame(t, yOv) {
+  const maxScroll = story.offsetHeight - innerHeight;
+  const y = yOv !== undefined ? yOv : (fixedY !== null ? fixedY : scrollY);
+  const p = Math.min(1, Math.max(0, y / maxScroll));
+
+  const mobile = innerWidth < 760;
+  const sHero = mobile ? .70 : .82;
+  const p1 = seg(p, .12, .34), p2 = seg(p, .42, .62), p3 = seg(p, .72, .92);
+
+  orb.rotation.y = Math.sin(t * .3) * .32 + p * .7;
+  orb.rotation.x = Math.sin(t * .18) * .07 + p * .22;
+  const float = Math.sin(t * .9) * .12;
+
+  let ox = 0, oy = mobile ? 1.05 : .85, sc = sHero;
+  ox += p1 * (mobile ? 0 : -3.2);  oy += p1 * (mobile ? 1.75 : .1);  sc += p1 * (mobile ? -.24 : -.12);
+  ox += p2 * (mobile ? 0 : 4.9);   oy += p2 * (mobile ? -.9 : -.3); sc += p2 * (mobile ? -.14 : -.16);
+  ox -= p3 * (mobile ? 0 : 1.8); oy += p3 * 1.9; sc += p3 * -.42;
+  orb.position.set(ox, oy + float, 0);
+  orb.scale.setScalar(Math.max(.001, sc));
+
+  dust.rotation.y = t * .02;
+
+  camera.position.x += ((mouseX * .8) - camera.position.x) * .06;
+  camera.position.y += ((-mouseY * .5) - camera.position.y) * .06;
+  camera.lookAt(0, .2, 0);
+
+  const set = (el, o, dy=0) => {
+    el.style.opacity = o;
+    el.style.transform = (el.classList.contains('sc3-cap-side') ? 'translateY(-50%) ' : '')
+      + `translateY(${dy}px)`;
+    if (mobile && (el.classList.contains('sc3-cap-side') || el.classList.contains('sc3-cap-top')))
+      el.style.transform = `translateY(${dy}px)`;
+  };
+  set(cap0, 1 - seg(p, .03, .09), seg(p,.03,.09) * -60);
+  set(cap1, seg(p, .16, .24) * (1 - seg(p, .34, .42)), 0);
+
+  const scanIn = seg(p, .24, .32) * (1 - seg(p, .36, .44));
+  scan.style.opacity = scanIn;
+  scan.style.transform = `translate(-50%,-50%) translateY(${(1 - seg(p,.24,.32)) * 36}px)`;
+  const bp = (t * .45) % 1;
+  beam.style.top = (16 + bp * 68) + '%';
+  beam.style.opacity = .45 + Math.sin(bp * Math.PI) * .55;
+  const statusTxt = seg(p, .30, .34) >= 1 ? scanLabels.done : scanLabels.doing;
+  if (scanStatus.textContent !== statusTxt) scanStatus.textContent = statusTxt;
+  green.intensity = 26 + Math.sin(t * 1.4) * 8 + scanIn * 16;
+
+  chips.style.opacity = 1;
+  chips.style.transform = mobile ? '' : 'translateY(-50%)';
+  chipEls.forEach((el, i) => {
+    const e = seg(p, .46 + i * .02, .54 + i * .02) * (1 - seg(p, .62 + i * .015, .70 + i * .015));
+    el.style.opacity = e;
+    el.style.transform = `translateY(${(1 - e) * 22}px)`;
+    const b = el.querySelector('b');
+    const v = Math.round(parseFloat(b.dataset.v) * seg(p, .50 + i * .025, .60 + i * .025));
+    const txt = fmtNum(v) + ' ' + b.dataset.u;
+    if (b.textContent !== txt) b.textContent = txt;
   });
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver(function (entries) {
-      inView = entries[0].isIntersecting;
-      if (!inView && raf) { cancelAnimationFrame(raf); raf = null; }
-      kick();
-    }).observe(cv);
-  }
-})();
+  set(cap2, seg(p, .46, .54) * (1 - seg(p, .62, .7)), 0);
+  set(cap3, seg(p, .76, .86), (1 - seg(p,.76,.86)) * 50);
+  hint.style.opacity = 1 - seg(p, .02, .08);
+
+  renderer.render(scene, camera);
+}
+
+window.__maxScroll = () => story.offsetHeight - innerHeight;
+window.__seek = (tt, yy) => { frame(tt, yy); };
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (fixedT !== null) {
+  frame(fixedT);
+  window.__ready = true;
+} else if (LITE) {
+  frame(0, 0);
+  window.__ready = true;
+} else if (reduceMotion) {
+  frame(0, 0);
+  window.__ready = true;
+} else {
+  const clock = new THREE.Clock();
+  renderer.setAnimationLoop(() => { frame(clock.getElapsedTime()); window.__ready = true; });
+}
+}
 </script>
 {% endblock %}
