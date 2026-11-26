@@ -169,19 +169,21 @@ def generate():
         import meal_macros as _mmx
         try:
             plan = generate_weekly_plan(data)
-        except _mmx.InsufficientVerifiedMeals as exc:
+        except (_mmx.InsufficientVerifiedMeals, _mmx.TargetNotReachable) as exc:
+            # a refusal must never leave the PREVIOUS client's plan in the draft
+            draft_store.clear_draft()
+            if isinstance(exc, _mmx.TargetNotReachable):
+                return ("هدف السعرات (%d) وهدف البروتين مع بعض مش ممكن يتحققوا بوجبات "
+                        "وحصص منطقية من الأصناف المتاحة (أقصى سعرات وصلنا لها %d). "
+                        "لم يتم إنشاء خطة بأرقام غير مطابقة. "
+                        "تغطية الأصناف المتاحة حاليا لا تكفي لهذا العميل."
+                        % (exc.target, exc.got)), 422
             # ‏مفيش وجبات كفاية كل أصنافها محسومة مع قيود العميل: بنقف بدل
             # ما نخمّن كميات أو نرجّع أرقام مش مظبوطة.
             return ("لا توجد وجبات محسوبة بالكامل كافية (%s: %d من %d) مع قيود "
                     "هذا العميل. لم يتم إنشاء خطة بدل تخمين الكميات. "
                     "خفّف قيود الاستبعاد أو أضف وجبات بجرامات مكتوبة."
                     % (exc.slot, exc.have, exc.need)), 422
-        except _mmx.TargetNotReachable as exc:
-            return ("هدف السعرات (%d) وهدف البروتين مع بعض مش ممكن يتحققوا بوجبات "
-                    "وحصص منطقية من الأصناف المتاحة (أقصى سعرات وصلنا لها %d). "
-                    "لم يتم إنشاء خطة بأرقام غير مطابقة. "
-                    "تغطية الأصناف الحالية لا تكفي لهذا العميل."
-                    % (exc.target, exc.got)), 422
         draft_store.set_draft(data=data, plan=plan)
         # مفيش حفظ هنا. الدكتور بيولّد ويرجع يظبط ويولّد تاني، والحفظ التلقائي
         # كان بيعمل خطة محفوظة وزيارة متابعة في كل مرة -- تلات تظبيطات كانوا
