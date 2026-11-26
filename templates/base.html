@@ -55,7 +55,7 @@
 <meta name="apple-mobile-web-app-title" content="NutraX">
 <link rel="apple-touch-icon" sizes="180x180" href="/static/nx-icon-v2-180.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/static/nx-icon-v2-32.png">
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@300;400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" media="print" onload="this.media='all'"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/fontawesome.min.css">
 <link rel="stylesheet" media="print" onload="this.media='all'"
@@ -84,15 +84,15 @@
    ‏و--pick **لون صلب مش تدرّج**: التدرّج أول علامة بتقول إن الشكل
    مولّد. وتباينه مع الأبيض ٩.٠٨:١ -- والنص اللي فوقه أبيض.
    (tests/test_form_contrast.py) #}
-:root{--blue:#1E2630;--blue-light:#3A4A5C;--blue-pale:#EDF0F3;--green:#3A4A5C;--green-light:#3A4A5C;--green-pale:#EDF0F3;--red:#8B2E2E;--red-pale:#fdf4f4;--orange:#8A4B1C;--gray:#F6F7F8;--gray-2:#E4E7EA;--text:#1E2630;--text-2:#374250;--muted:#5A6472;--muted-2:#5A6472;--blue-dark:#161C24;--gray-dark:#5A6472;--white:#ffffff;--sidebar-w:240px;--header-h:60px;--sh-1:none;--sh-2:none;--pick:#3A4A5C;--lq-blue:#1F63E0;--lq-blue-ink:#FFFFFF;--lq-amber:#F5A20F;--lq-amber-ink:#1E2630;--lq-teal:#14B8A6;--lq-teal-ink:#1E2630;--lq-violet:#6A4CE0;--lq-violet-ink:#FFFFFF;--lq-red:#D92D20;--lq-red-ink:#FFFFFF;--lq:var(--lq-blue);--lq-on:var(--lq-blue-ink)}
-body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min-height:100vh;-webkit-tap-highlight-color:transparent}
+:root{--blue:#1E2630;--blue-light:#3A4A5C;--blue-pale:#EDF0F3;--green:#3A4A5C;--green-light:#3A4A5C;--green-pale:#EDF0F3;--red:#8B2E2E;--red-pale:#fdf4f4;--orange:#8A4B1C;--gray:#F6F8F5;--gray-2:#E4E8E1;--text:#0F1720;--text-2:#3A463E;--muted:#5C6670;--muted-2:#5C6670;--blue-dark:#0F1720;--gray-dark:#5A6472;--white:#ffffff;--sidebar-w:240px;--header-h:60px;--sh-1:none;--sh-2:none;--pick:#3A4A5C;--lq-blue:#1F63E0;--lq-blue-ink:#FFFFFF;--lq-amber:#F5A20F;--lq-amber-ink:#1E2630;--lq-teal:#14B8A6;--lq-teal-ink:#1E2630;--lq-violet:#6A4CE0;--lq-violet-ink:#FFFFFF;--lq-red:#D92D20;--lq-red-ink:#FFFFFF;--lq:var(--lq-blue);--lq-on:var(--lq-blue-ink)}
+body{font-family:'IBM Plex Sans Arabic','Cairo',sans-serif;background:var(--gray);color:var(--text);min-height:100vh;-webkit-tap-highlight-color:transparent}
 /* ‏الهيدر كان بلوك كحلي غامق بياخد انتباه ومش بيقول حاجة. بقى أبيض
    بخط شعرة -- شكل برامج الشغل، والانتباه بيروح للمحتوى. */
 /* ‏الهيدر شبه مصمت: من غير تغبيش (اتشال عشان جهاز الشغل -- test_glass)،
    الكلام اللي بيتسكرول تحته كان بيبان من خلاله. */
 .header{position:fixed;top:0;right:0;left:0;height:var(--header-h);background:var(--nx-bar);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:100;border-bottom:1px solid var(--nx-side-line)}
 .header-logo{color:var(--text);font-size:18px;font-weight:900;display:flex;align-items:center;gap:10px}
-.header-btn{background:var(--nx-surface-2);color:var(--text-2);border:1px solid var(--gray-2);padding:7px 14px;border-radius:7px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.header-btn{background:var(--nx-surface-2);color:var(--text-2);border:1px solid var(--gray-2);padding:7px 14px;border-radius:7px;font-family:'IBM Plex Sans Arabic','Cairo',sans-serif;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
 .header-btn i,.user-badge i,.notif-bell i{color:var(--muted)}
 .header-btn:hover{background:var(--nx-tint)}
 .user-badge{background:var(--nx-surface-2);color:var(--text-2);font-size:12px;font-weight:700;padding:6px 12px;border-radius:7px;border:1px solid var(--gray-2);display:inline-flex;align-items:center;gap:6px}
@@ -202,16 +202,16 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 .alert-error{background:var(--red-pale);color:#7f1d1d;border:1px solid #fca5a5}
 .form-group{margin-bottom:14px}
 .form-label{display:block;font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:5px}
-.form-input,.form-select,.form-textarea{width:100%;padding:11px 14px;border:1px solid var(--gray-2);border-radius:7px;font-family:'Cairo',sans-serif;font-size:14px;color:var(--text);background:var(--white);outline:none;text-align:start}
+.form-input,.form-select,.form-textarea{width:100%;padding:11px 14px;border:1px solid var(--gray-2);border-radius:7px;font-family:'IBM Plex Sans Arabic','Cairo',sans-serif;font-size:14px;color:var(--text);background:var(--white);outline:none;text-align:start}
 .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--nx-ink-2);box-shadow:0 0 0 3px rgba(58,74,92,.16)}
-.btn{padding:11px 22px;border:none;border-radius:7px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none;justify-content:center}
+.btn{padding:11px 22px;border:none;border-radius:12px;font-family:'IBM Plex Sans Arabic','Cairo',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none;justify-content:center}
 /* ‏الزرارين دول كانوا تدرّجات. التدرّج أول علامة بتقول "ده شكل مولّد"،
    وكمان: اللي بيشيل التدرّج من غير ما يحط لون صلب مكانه بيطلّع زرار
    أبيض عليه نص أبيض -- حصل فعلاً مع "ولّد الخطة" وهو بيستعمل
    .btn-success. */
-.btn-primary{background:var(--nx-solid-2);color:#fff}
+.btn-primary{background:var(--nx-solid-2);color:var(--nx-on-solid)}
 .btn-primary:hover{background:#222C38}
-.btn-success{background:var(--green);color:#fff}
+.btn-success{background:var(--nx-solid);color:var(--nx-on-solid)}
 .btn-success:hover{background:#334152}
 .btn-outline{background:transparent;color:var(--nx-ink);border:1px solid var(--gray-2)}
 .btn-danger{background:var(--red-pale);color:var(--red);border:1px solid var(--nx-bad-line)}
@@ -334,7 +334,7 @@ body{font-family:'Cairo',sans-serif;background:var(--gray);color:var(--text);min
 /* ═══════════════════════════════════════════════════════ */
 /* NUTRAX FOOTER                                            */
 /* ═══════════════════════════════════════════════════════ */
-.nx-footer{background:#242C36;color:#C4CAD2;padding:40px 24px 24px;margin-inline-start:var(--sidebar-w);margin-top:60px;font-family:'Cairo',sans-serif}
+.nx-footer{background:#242C36;color:#C4CAD2;padding:40px 24px 24px;margin-inline-start:var(--sidebar-w);margin-top:60px;font-family:'IBM Plex Sans Arabic','Cairo',sans-serif}
 /* ‏الصفحات العامة مالهاش سايدبار، فمالهاش تسيب مكانه فاضي. */
 body.public-chrome .main,body.public-chrome .nx-footer{margin-inline-start:0}
 .nx-footer-inner{max-width:1100px;margin:0 auto}
@@ -357,6 +357,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
 .nx-footer-bottom strong{color:#FF7A59}
 .nx-footer-bottom .small{font-size:11px;color:#9AA3AD;margin-top:4px}
 
+@media(max-width:480px){.hide-xs{display:none}}
 @media(max-width:768px){
   .menu-toggle{display:flex}
   /* ‏على الموبايل الهيدر كان بيفيض وزرار الخروج بيطلع بره الشاشة خالص
@@ -435,7 +436,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
     {% endif %}
     {% include "_theme_btn.html" %}
     <a href="/lang/{{ 'en' if is_ar else 'ar' }}" class="header-btn">
-      <i class="fa-solid fa-globe"></i> {{ 'English' if is_ar else 'العربية' }}
+      <i class="fa-solid fa-globe"></i> <span class="hide-xs">{{ 'English' if is_ar else 'العربية' }}</span>
     </a>
     <span class="user-badge">
       <i class="fa-solid fa-user"></i> {{ me.name if me else '' }}
@@ -444,7 +445,7 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
       {% else %}<span class="role-badge role-client">{{ 'عميل' if is_ar else 'Client' }}</span>{% endif %}
     </span>
     <a href="/logout" class="header-btn">
-      <i class="fa-solid fa-right-from-bracket"></i> {{ 'خروج' if is_ar else 'Logout' }}
+      <i class="fa-solid fa-right-from-bracket"></i> <span class="hide-xs">{{ 'خروج' if is_ar else 'Logout' }}</span>
     </a>
   </div>
 </header>
@@ -553,61 +554,25 @@ html[dir="ltr"] .nx-footer-contact a:hover{transform:translateX(4px)}
       </div>
     </details>
   {% else %}
+    {# ‏الدكتور (٢٦ نوفمبر، واتساب): قايمة العميل أربع وجهات بس — الخطة،
+       ‏تحليل الأطعمة، تحليل المكملات، الإعدادات. باقي الصفحات (الرسائل،
+       ‏الحجز، الوزن...) شغالة بروابطها، بس مش في القايمة. #}
     <div class="nav-section">{{ 'القائمة' if is_ar else 'Menu' }}</div>
-    <a href="/my-plan" class="nav-item {% if request.endpoint in ['my_plan','dashboard'] %}active{% endif %} lq" data-lq="teal">{{ liquid() }}
-      {{ ic('clipboard') }} {{ 'خطتي الغذائية' if is_ar else 'My Plan' }}
+    <a href="/my-plan" class="nav-item {% if request.endpoint in ['my_plan','dashboard','request_plan','my_plans_history','my_plans_history_view'] %}active{% endif %} lq" data-lq="teal">{{ liquid() }}
+      {{ ic('clipboard') }} {{ 'الخطة' if is_ar else 'Plan' }}
     </a>
-    <a href="/request-plan" class="nav-item {% if request.endpoint=='request_plan' %}active{% endif %} lq" data-lq="blue">{{ liquid() }}
-      {{ ic('send') }} {{ 'طلب خطة جديدة' if is_ar else 'Request Plan' }}
-    </a>
-    <a href="/recommendations" class="nav-item {% if request.endpoint=='clientapp.recommendations' %}active{% endif %} lq" data-lq="amber">{{ liquid() }}
-      {{ ic('target') }} {{ 'التوصيات والأهداف' if is_ar else 'Advice & goals' }}
-    </a>
-    <a href="/book" class="nav-item {% if request.endpoint in ['booking.book','booking.book_status'] %}active{% endif %} lq" data-lq="violet">{{ liquid() }}
-      {{ ic('calendar-check') }} {{ 'احجز استشارة' if is_ar else 'Book a consultation' }}
-    </a>
-    <a href="/messages" class="nav-item {% if request.endpoint in ['messages','chat'] %}active{% endif %} lq" data-lq="blue">{{ liquid() }}
-      {{ ic('chat') }} {{ 'الرسائل' if is_ar else 'Messages' }}
-      {% if unread_messages and unread_messages > 0 %}<span class="nav-badge">{{ unread_messages }}</span>{% endif %}
-    </a>
-    <a href="/history" class="nav-item {% if request.endpoint=='history' %}active{% endif %} lq" data-lq="teal">{{ liquid() }}
-      {{ ic('chart') }} {{ 'وزني' if is_ar else 'My Weight' }}
-    </a>
-    <a href="/analyzer" class="nav-item {% if request.endpoint=='analyzer' %}active{% endif %} lq" data-lq="amber">{{ liquid() }}
-      {{ ic('search') }} {{ 'محلل الطعام' if is_ar else 'Food Analyzer' }}
+    <a href="/foods" class="nav-item {% if request.endpoint in ['public.public_foods','public.public_food'] %}active{% endif %} lq" data-lq="amber">{{ liquid() }}
+      {{ ic('search') }} {{ 'تحليل الأطعمة' if is_ar else 'Food analysis' }}
     </a>
     <a href="/whey" class="nav-item {% if request.endpoint in ['public.whey','public.whey_demo'] %}active{% endif %} lq" data-lq="amber">{{ liquid() }}
-      {{ ic('shaker') }} {{ 'محلل المكملات' if is_ar else 'Supplement Analyzer' }}
+      {{ ic('shaker') }} {{ 'تحليل المكملات' if is_ar else 'Supplement analysis' }}
     </a>
-    <details class="nav-more" {% if request.endpoint in ['daily_tips','knowledge','my_plans_history'] %}open{% endif %}>
-      <summary class="nav-item lq" data-lq="violet">{{ liquid() }}{{ ic('dots') }} {{ 'المزيد' if is_ar else 'More' }}</summary>
-      <a href="/daily-tips" class="nav-item {% if request.endpoint=='daily_tips' %}active{% endif %} lq" data-lq="amber">{{ liquid() }}
-        {{ ic('bell') }} {{ 'نصائحك اليومية' if is_ar else 'Daily Tips' }}
-      </a>
-      <a href="/knowledge" class="nav-item {% if request.endpoint=='knowledge' %}active{% endif %} lq" data-lq="teal">{{ liquid() }}
-        {{ ic('book') }} {{ 'مركز المعرفة' if is_ar else 'Knowledge Hub' }}
-      </a>
-      <a href="/my-plans-history" class="nav-item {% if request.endpoint=='my_plans_history' %}active{% endif %} lq" data-lq="violet">{{ liquid() }}
-        {{ ic('clock') }} {{ 'خططي السابقة' if is_ar else 'Past Plans' }}
-      </a>
-      <button type="button" id="nxPushBtn" class="nav-item lq" data-lq="blue" onclick="nxEnablePush()">{{ liquid() }}
-        {{ ic('phone') }} {{ 'فعّل إشعارات الموبايل' if is_ar else 'Enable Phone Alerts' }}
-      </button>
-    </details>
+    <a href="/settings" class="nav-item {% if request.endpoint=='settings' %}active{% endif %} lq" data-lq="violet">{{ liquid() }}
+      {{ ic('gear') }} {{ 'الإعدادات' if is_ar else 'Settings' }}
+    </a>
   {% endif %}
 
   <div class="nav-divider"></div>
-  {# ‏للطاقم: API والإعدادات بقوا جوّه مجموعة "الإدارة" فوق، فمايتكرروش
-     هنا -- اللي فضل الخروج بس. والعميل لسه محتاجهم في مكانهم. #}
-  {% if not is_staff %}
-  <div class="nav-section">{{ 'الحساب' if is_ar else 'Account' }}</div>
-  <a href="/dashboard/api" class="nav-item {% if request.endpoint in ['api_dashboard','developers_docs'] %}active{% endif %} lq" data-lq="violet">{{ liquid() }}
-    {{ ic('plug') }} {{ 'API للمطورين' if is_ar else 'Developer API' }}
-  </a>
-  <a href="/settings" class="nav-item {% if request.endpoint=='settings' %}active{% endif %} lq" data-lq="blue">{{ liquid() }}
-    {{ ic('gear') }} {{ 'الإعدادات' if is_ar else 'Settings' }}
-  </a>
-  {% endif %}
   <a href="/logout" class="nav-item danger lq" data-lq="red">{{ liquid() }}
     {{ ic('logout') }} {{ 'خروج' if is_ar else 'Logout' }}
   </a>
@@ -902,14 +867,14 @@ async function nxEnablePush(){
 <!-- ═══ زرار المحادثة العائم (للعملاء) ═══ -->
 {% if user is defined and user and not is_staff and not request.path.startswith('/messages') %}
 <a href="/messages" id="chatFab" title="{{ t('راسل د. محمد', 'Message Dr. Mohamed') }}"
-   style="position:fixed;bottom:20px;inset-inline-end:20px;z-index:990;width:58px;height:58px;border-radius:50%;background:var(--nx-solid-2);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(30,38,48,.26);text-decoration:none;border:none;transition:transform .15s">
+   style="position:fixed;bottom:20px;inset-inline-end:20px;z-index:990;width:58px;height:58px;border-radius:50%;background:var(--nx-solid-2);color:var(--nx-on-solid);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(30,38,48,.26);text-decoration:none;border:none;transition:transform .15s">
   <i class="fa-solid fa-comment-dots" style="font-size:23px"></i>
 </a>
 <style>a#chatFab:hover{transform:scale(1.08)} @media(max-width:768px){ a#chatFab{bottom:16px;inset-inline-end:14px;width:54px;height:54px} }</style>
 {% endif %}
 
 <!-- ═══ زرار تثبيت التطبيق (PWA) ═══ -->
-<div id="pwaInstallBar" style="display:none;position:fixed;bottom:16px;left:12px;right:12px;z-index:9999;background:var(--nx-solid-2);color:#fff;border-radius:8px;padding:12px 14px;box-shadow:0 4px 16px rgba(0,0,0,.2);align-items:center;gap:10px;">
+<div id="pwaInstallBar" style="display:none;position:fixed;bottom:16px;left:12px;right:12px;z-index:9999;background:var(--nx-solid-2);color:var(--nx-on-solid);border-radius:8px;padding:12px 14px;box-shadow:0 4px 16px rgba(0,0,0,.2);align-items:center;gap:10px;">
   <span style="font-size:26px;">📲</span>
   <div style="flex:1;min-width:0;">
     <div style="font-weight:800;font-size:14px;">{{ t('ثبّت تطبيق NutraX', 'Install the NutraX app') }}</div>
