@@ -114,6 +114,72 @@ def test_page_shows_the_note_only_when_a_meal_is_incomplete():
     assert bad.get("/my-plan/progress").get_json()["basis"] == "even_split"
 
 
+def test_even_split_never_says_kcal_or_protein_left():
+    r = DP.build(BAD, KEYS, set(), set(), LABELS, is_ar=False, hour=13)
+    text = " ".join(r["hints"])
+    assert "Meals left" in text and "not calculated from the foods" in text, text
+    assert not re.search(r"\d+ kcal|\d+ g protein", text), text
+    ar = " ".join(DP.build(BAD, KEYS, set(), set(), LABELS, is_ar=True, hour=13)["hints"])
+    assert "فاضلك" not in ar and "مش محسوبة من الأصناف" in ar, ar
+    assert r["meals_done"] == 0 and r["meals_total"] == 3
+
+
+def test_page_replaces_rings_with_a_plan_meal_counter():
+    bad = _client("c@x.test", BAD)
+    bad.post("/track/meal", data={"meal_key": "lunch", "checked": "1"})
+    html = bad.get("/my-plan").get_data(as_text=True)
+    assert 'id="dpPlan"' in html and 'data-done="1"' in html and 'data-total="3"' in html
+    assert 'class="dp-rings"' not in html and 'class="dp-ring"' not in html
+    good = _client("d@x.test", GOOD).get("/my-plan").get_data(as_text=True)
+    assert 'id="dpPlan"' not in good and 'class="dp-rings"' in good
+
+
+def test_week_marks_incomplete_days_and_explains():
+    bad = _client("e@x.test", BAD)
+    bad.post("/track/meal", data={"meal_key": "lunch", "checked": "1"})
+    html = bad.get("/my-plan").get_data(as_text=True)
+    assert 'id="wkApprox"' in html and "~" in html
+    good = _client("f@x.test", GOOD)
+    good.post("/track/meal", data={"meal_key": "lunch", "checked": "1"})
+    assert 'id="wkApprox"' not in good.get("/my-plan").get_data(as_text=True)
+
+
+def test_shopping_list_never_lists_an_unresolved_guess():
+    import shopping_list as SL
+    plan = [dict(day="x", breakfast="لبن لوز 200 مل + تفاحة 1")]
+    out = SL.build(plan, "ar") if hasattr(SL, "build") else None
+    names = [i["name"] for g in out["groups"] for i in g["items"]]
+    assert not any("لوز" in n for n in names), names
+    assert any("لبن لوز" in u["name"] for u in out["unknown"]), out["unknown"]
+    assert any("تفاح" in n for n in names), names
+
+
+def test_portion_scale_gives_no_calories_for_an_unresolved_item():
+    import portion_scale as PS
+    assert PS._item_cal("لبن لوز 200 مل") is None
+    assert PS._item_cal("تفاحة 180جم") is not None
+
+
+def test_snack_option_with_partial_sum_has_no_numbers():
+    import routes_plans as RP
+    import plan_engine
+    orig = plan_engine.snack_queue
+    plan_engine.snack_queue = lambda data: ["لبن لوز 200 مل", "تفاحة 1"]
+    try:
+        out = RP._snack_options({})
+    finally:
+        plan_engine.snack_queue = orig
+    by = {o["meal"]: o for o in out}
+    assert by["لبن لوز 200 مل"]["cal"] is None and by["لبن لوز 200 مل"]["incomplete"] is True
+    assert by["تفاحة 1"]["cal"] and by["تفاحة 1"]["incomplete"] is False
+
+
+def test_fatta_dish_is_not_resolved_from_one_ingredient():
+    r = MM.macros("فتة حمص كبيرة 250جم")
+    assert r["complete"] is False and r["items"][0]["unresolved"] == "dish", r
+    assert MM.macros("حمص مسلوق 250جم")["complete"] is True
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in list(globals().items())
              if n.startswith("test_") and callable(f)]
