@@ -481,6 +481,14 @@ def _is_ml(text):
     return bool(_ML.search(_norm(text)))
 
 
+# Words that name a specific food, cut, fat or cooking method. When the item
+# text has one and the matched table food does not, the match is only the
+# nearest food, not the written one, so the item is not counted as verified.
+QUALIFIERS = ("شيدر", "موزاريلا", "بارميزان", "رومي", "كامل الدسم", "حليب كامل",
+              "مقلي", "بالزبدة", "بالسمن", "بلحم", "بالدجاج", "بالجبن", "بالكريمة",
+              "محشي", "مدخن")
+
+
 def macros(text):
     """‏ماكروز الوجبة كلها من أصنافها.
 
@@ -511,6 +519,15 @@ def macros(text):
             row["unresolved"] = "dish"
             items.append(row)
             continue
+        if food:
+            _nr, _nf = _norm(raw), _norm(food.get("n"))
+            _q = [w for w in QUALIFIERS if _norm(w) in _nr and _norm(w) not in _nf]
+            if _q:
+                # ‏الجدول مافيهوش الصنف المحدّد ده (شيدر مش قريش، مقلي مش مسلوق،
+                # كامل الدسم مش قليل الدسم): الأقرب مش مرجع، فالصنف غير محسوم.
+                row["unresolved"] = "qualifier:" + _q[0]
+                items.append(row)
+                continue
         if (food and how == "count"
                 and food.get("n") in AMBIGUOUS_COUNT
                 and not _named_unit(_norm(raw), food)
@@ -621,6 +638,15 @@ class InsufficientVerifiedMeals(ValueError):
     def __init__(self, slot, have, need):
         super().__init__("slot %s: %d verified meals, need %d" % (slot, have, need))
         self.slot, self.have, self.need = slot, have, need
+
+
+class TargetNotReachable(ValueError):
+    """The day target cannot be met with plausible portions (portion cap)."""
+
+    def __init__(self, day_index, target, got):
+        super().__init__("day %d: target %d kcal, plausible portions reach %d"
+                         % (day_index, target, got))
+        self.day_index, self.target, self.got = day_index, target, got
 
 
 def verified_only(meals, slot="", minimum=3):
