@@ -152,17 +152,19 @@ def generate():
 
         # ── المتابعة ── لو الشخص ده جه قبل كده، الزيارة دي مبنية على اللي فات
         data["client_key"] = followup.client_key(data["name"], data["phone"])
-        prev = last_visit(session["uid"], data["client_key"])
+        # ‏كل زيارات العميل مش آخر واحدة بس: الجدول الجديد بيتبني على التاريخ
+        # كله (كل فترة، وتكرار الثبات)، ومابيكررش أكل آخر ٣ خطط.
+        history_rows = visits_for(session["uid"], data["client_key"], limit=6)
+        prev = dict(history_rows[0]) if history_rows else None
         progress = followup.assess(prev, data, cur_lang()) if prev else None
         if progress:
+            progress["history"] = followup.analyse_history(
+                history_rows, data, cur_lang(),
+                total_visits=int(prev.get("visit_no") or len(history_rows)))
             data["followup"] = progress
             data["visit_no"] = int(prev.get("visit_no") or 1) + 1
-            # الوجبات اللي أكلها الأسبوع اللي فات ما تتكررش
-            try:
-                data["avoid_meals"] = followup.meals_in_plan(
-                    json.loads(prev.get("plan_json") or "[]"))
-            except (ValueError, TypeError):
-                data["avoid_meals"] = []
+            data["avoid_meals"] = followup.meals_across_plans(history_rows, 3)
+            data["avoid_plans"] = min(3, len(history_rows))
 
         plan = generate_weekly_plan(data)
         draft_store.set_draft(data=data, plan=plan)
@@ -1333,5 +1335,4 @@ def edit_meal():
                         "items": _items_for_page(new_text), "check": check})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
-
 
