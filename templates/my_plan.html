@@ -85,6 +85,7 @@
           {% endif %}
           {% endfor %}
         </div>
+        <p class="dp-note" id="dpNote" {% if progress.basis == 'items' %}hidden{% endif %} style="margin:8px 0 0;font-size:12px;color:var(--nx-ink-2)">{{ t('الأرقام دي توزيع تقريبي لهدف اليوم على الوجبات بالتساوي، مش محسوبة من أصناف الوجبات (وجبة حسابها ناقص).','These split the day target evenly across meals. They are not computed from the meals\' items (a meal\'s calculation is incomplete).') }}</p>
         {% if progress.hints %}
         <ul class="dp-hints" id="dpHints" aria-live="polite">{% for h in progress.hints %}<li>{{ h }}</li>{% endfor %}</ul>
         {% endif %}
@@ -287,6 +288,7 @@
           r.querySelector('.dp-eaten').textContent = e;
           r.querySelector('.dp-arc').style.strokeDashoffset = 100 - Math.min(100, Math.round(e * 100 / tg));
         });
+        const note = document.getElementById('dpNote'); if (note) note.hidden = (d.basis === 'items');
         let ul = document.getElementById('dpHints');
         if (!ul && d.hints && d.hints.length){ ul = document.createElement('ul'); ul.id = 'dpHints'; ul.className = 'dp-hints'; ul.setAttribute('aria-live','polite'); box.appendChild(ul); }
         if (ul){ ul.textContent = ''; (d.hints || []).forEach(h => { const li = document.createElement('li'); li.textContent = h; ul.appendChild(li); }); }
