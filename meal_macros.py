@@ -471,6 +471,25 @@ def _unit_grams(text, food=None):
     return best[1] if best else None
 
 
+AMBIGUOUS_COUNT = {"خبز أسمر", "شكشوكة"}
+_UNIT_WORD = re.compile(r"رغيف|ارغفة|شريح|شرايح|توست|قطع|حبة|حبات|ملعقة|كوب")
+
+_DRY_CATS = {"grain", "legume", "nut", "supplement"}
+_ML = re.compile(r"\d\s*(?:مل|ml)\b")
+
+
+def _is_ml(text):
+    return bool(_ML.search(_norm(text)))
+
+
+# Words that name a specific food, cut, fat or cooking method. When the item
+# text has one and the matched table food does not, the match is only the
+# nearest food, not the written one, so the item is not counted as verified.
+QUALIFIERS = ("شيدر", "موزاريلا", "بارميزان", "رومي", "كامل الدسم", "حليب كامل",
+              "مقلي", "بالزبدة", "بالسمن", "بلحم", "بالدجاج", "بالجبن", "بالكريمة",
+              "محشي", "مدخن")
+
+
 def macros(text):
     """‏ماكروز الوجبة كلها من أصنافها.
 
@@ -487,8 +506,57 @@ def macros(text):
         total += 1
         food = find_food(raw)
         grams, how = item_grams(raw, food)
+        if food and _is_ml(raw) and food.get("cat") in _DRY_CATS \
+                and "زيت" not in str(food.get("n")):
+            # ‏"شوفان بحليب 200مل" طبق جاهز، مش ٢٠٠ جم شوفان خام.
+            # الأمان إننا مانخمّنش: الصنف بيتعدّ "مش متعرّف" والوجبة
+            # بترجع للرقم المكتوب.
+            food, grams, how = None, 0.0, None
         row = {"text": raw, "grams": grams, "how": how,
                "food": food.get("n") if food else None}
+        if (food and _norm("شوربة") in _norm(raw)
+                and _norm("شوربة") not in _norm(food.get("n"))):
+            # ‏"شوربة لسان عصفور" مش لسان بقري. الطبق مش في الجدول.
+            row["unresolved"] = "dish"
+            items.append(row)
+            continue
+        _ml_g = food and __import__("meal_food_sources").ML_G.get(food.get("n"))
+        if food and how == "grams" and _is_ml(raw) and _ml_g:
+            # household weight from the source (USDA: 1 US cup = 244 g)
+            grams = grams * float(_ml_g)
+            row["grams"] = round(grams, 1)
+            row["how"] = "ml*density"
+        if food and (_norm("&") in _norm(raw) or "veggies" in raw.lower()):
+            # a dish title naming more than the matched food (fish AND vegetables)
+            row["unresolved"] = "composite"
+            items.append(row)
+            continue
+        if (food and _norm("لبن لوز") in _norm(raw) + " " or
+                food and _norm("حليب لوز") in _norm(raw) + " ") and not re.search(
+                _norm("غير محلى|بدون سكر|unsweetened|sugar free"), _norm(raw)):
+            # sweetened and unsweetened almond milk differ ~2.5x in kcal; the
+            # text does not say which
+            row["unresolved"] = "variant:sweetened or unsweetened not stated"
+            items.append(row)
+            continue
+        if food:
+            _nr, _nf = _norm(raw), _norm(food.get("n"))
+            _q = [w for w in QUALIFIERS if _norm(w) in _nr and _norm(w) not in _nf]
+            if _q:
+                # ‏الجدول مافيهوش الصنف المحدّد ده (شيدر مش قريش، مقلي مش مسلوق،
+                # كامل الدسم مش قليل الدسم): الأقرب مش مرجع، فالصنف غير محسوم.
+                row["unresolved"] = "qualifier:" + _q[0]
+                items.append(row)
+                continue
+        if (food and how == "count"
+                and food.get("n") in AMBIGUOUS_COUNT
+                and not _named_unit(_norm(raw), food)
+                and not _UNIT_WORD.search(_norm(raw))):
+            # ‏"خبز 2": رغيف ولا شريحة؟ الجدول مافيهوش وزن معتمد،
+            # فمانخمّنش. الصنف بيتعدّ "غير محسوم" والحساب ناقص ظاهر.
+            row["unresolved"] = "unit"
+            items.append(row)
+            continue
         if food and grams > 0:
             known += 1
             share = grams / 100.0
@@ -500,7 +568,11 @@ def macros(text):
                     pass
             row["cal"] = round(float(food.get("cal") or 0) * share)
         items.append(row)
+    unresolved = [r["text"] for r in items
+                  if r.get("unresolved") or not (r.get("food") and r.get("grams", 0) > 0)]
     return {
+        "complete": bool(items) and not unresolved,
+        "unresolved": unresolved,
         "cal": int(round(sums["cal"])),
         "p": int(round(sums["p"])),
         "c": int(round(sums["c"])),
@@ -510,6 +582,8 @@ def macros(text):
     }
 
 
+
+
 def trusted(text, stored_cal, stored_p=None):
     """‏الماكروز لو الحساب اتفق مع الرقم المكتوب، وإلا None.
 
@@ -517,7 +591,9 @@ def trusted(text, stored_cal, stored_p=None):
     قريب منه -- وساعتها الكارب والدهون المحسوبين ينفعوا يتكتبوا.
     """
     out = macros(text)
-    if out["covered"] < 0.6 or not stored_cal:
+    # an item that is unresolved (unknown food, unstated unit, named variant the
+    # table lacks) means the computed total is incomplete: never trust it
+    if out["covered"] < 0.6 or not stored_cal or out["unresolved"]:
         return None
     try:
         reference = float(stored_cal)
