@@ -44,6 +44,7 @@ SUITES = [
     "test_child_protein.py",
     "test_meal_macros.py",
     "test_meal_sources.py",
+    "test_incomplete_visible.py",
     "test_child_meals.py",
     "test_glp1_protein.py",
     "test_obesity_staging.py",
