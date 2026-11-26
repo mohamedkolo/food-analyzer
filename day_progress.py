@@ -48,8 +48,14 @@ def build(day, meal_keys, checked, skipped, labels, is_ar=True, hour=12, extra=N
     if not day or not meal_keys:
         return None
     computed = {k: meal_macros.macros(day.get(k, "")) for k in meal_keys}
+    # A meal with any unresolved item gives only a PARTIAL sum. Partial sums
+    # must not set the proportions: if any meal is incomplete, split the day's
+    # stored target evenly and say so (basis) instead of looking item-based.
+    incomplete = [k for k in meal_keys
+                  if str(day.get(k) or "").strip() and not computed[k].get("complete")]
     usable = (sum(m["cal"] for m in computed.values()) > 0 and
-              sum(m["covered"] for m in computed.values()) / len(computed) >= 0.5)
+              sum(m["covered"] for m in computed.values()) / len(computed) >= 0.5
+              and not incomplete)
 
     target = {}
     for n in NUTRIENTS:
@@ -73,7 +79,7 @@ def build(day, meal_keys, checked, skipped, labels, is_ar=True, hour=12, extra=N
     eaten = {n: (sum(meals[k].get(n, 0) for k in checked) if target[n] is not None else None)
              for n in NUTRIENTS}
     left_keys = [k for k in meal_keys if k not in checked and k not in skipped]
-    hints = _hints(meals, target, checked, skipped, left_keys, labels, is_ar, hour)
+    hints = _hints(meals, target, checked, skipped, left_keys, labels, is_ar, hour, usable)
     # ‏أكل برّه الخطة (food_log): بيتجمع على المتاكل، والنصيحة بتقوله بالرقم بس.
     if extra and extra.get("cal"):
         for n in NUTRIENTS:
@@ -81,11 +87,13 @@ def build(day, meal_keys, checked, skipped, labels, is_ar=True, hour=12, extra=N
                 eaten[n] += int(extra.get(n) or 0)
         hints.append(("أكلت برّه الخطة %d سعرة النهارده، والدكتور هيشوفها في ملفك." % extra["cal"]) if is_ar
                      else "You ate %d kcal outside the plan today; your doctor will see it." % extra["cal"])
-    return {"target": target, "eaten": eaten, "meals": meals, "hints": hints,
+    return {"basis": "items" if usable else "even_split",
+            "incomplete_meals": incomplete,
+            "target": target, "eaten": eaten, "meals": meals, "hints": hints,
             "extra": {n: int(extra.get(n) or 0) for n in NUTRIENTS} if extra else None}
 
 
-def _hints(meals, target, checked, skipped, left_keys, labels, is_ar, hour):
+def _hints(meals, target, checked, skipped, left_keys, labels, is_ar, hour, by_items=True):
     lab = lambda k: labels.get(k, k)
     hints = []
     if not left_keys:
@@ -110,7 +118,7 @@ def _hints(meals, target, checked, skipped, left_keys, labels, is_ar, hour):
                      else "It's late and %d meal(s) are left. If you won't eat them, mark them skipped so the doctor knows." % n)
         return hints
 
-    if target.get("p"):
+    if by_items and target.get("p"):
         top = max(left_keys, key=lambda k: meals[k].get("p", 0))
         p = meals[top].get("p", 0)
         if p >= 0.3 * target["p"]:
@@ -152,7 +160,8 @@ def week(plan, meal_keys, labels, checks, skips, today, start=None, extras=None)
         days.append({"date": iso, "dow": d.weekday(), "logged": (bool(checked) or bool((extras or {}).get(iso))) and active,
                      "cal": r["eaten"]["cal"] if active else 0, "p": (r["eaten"]["p"] or 0) if active else 0,
                      "cal_target": r["target"]["cal"] if active else 0,
-                     "p_target": (r["target"]["p"] or 0) if active else 0})
+                     "p_target": (r["target"]["p"] or 0) if active else 0,
+                     "approx": bool(active and r.get("basis") != "items")})
     this, last = _window(days[7:]), _window(days[:7])
     delta = None if not last["days_logged"] else {
         "cal_pct": this["cal_pct"] - last["cal_pct"], "p_pct": this["p_pct"] - last["p_pct"]}
