@@ -520,6 +520,12 @@ def macros(text):
             row["unresolved"] = "dish"
             items.append(row)
             continue
+        if food and any(_norm(w) in _norm(raw) and _norm(w) not in _norm(food.get("n"))
+                        for w in ("فتة", "فته")):
+            # "فتة حمص" is a dish (bread, rice, sauce...), not boiled chickpeas.
+            row["unresolved"] = "dish"
+            items.append(row)
+            continue
         _ml_g = food and __import__("meal_food_sources").ML_G.get(food.get("n"))
         if food and how == "grams" and _is_ml(raw) and _ml_g:
             # household weight from the source (USDA: 1 US cup = 244 g)
