@@ -82,7 +82,8 @@ def test_every_staff_menu_item_is_a_liquid_pill():
 def test_every_client_menu_item_is_a_liquid_pill():
     nav = _sidebar(_page(CLIENT, "/my-plan"))
     items = _items(nav)
-    assert len(items) >= 10, len(items)
+    # ‏الدكتور (٢٦ نوفمبر): قايمة العميل أربع وجهات + خروج.
+    assert len(items) == 5, len(items)
     for tag in items:
         m = re.search(r'data-lq="(\w+)"', tag)
         assert m and m.group(1) in COLOURS, tag
@@ -99,7 +100,7 @@ def test_icons_are_thin_white_lines_of_one_size():
         nav = _sidebar(_page(uid, url))
         assert "fa-solid" not in nav, re.findall(r'fa-solid [\w-]+', nav)[:5]
         icons = re.findall(r'<svg class="nx-ic"[^>]*>', nav)
-        assert len(icons) >= 10
+        assert len(icons) >= 5
         for svg in icons:
             assert 'stroke-width="1.5"' in svg and 'width="20"' in svg and 'height="20"' in svg, svg
             assert 'aria-hidden="true"' in svg and 'fill="none"' in svg, svg
