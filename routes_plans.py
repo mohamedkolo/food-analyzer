@@ -1040,9 +1040,13 @@ def _snack_options(data):
         # المرجع، والبروتين بيتحسب من أصنافها -- من غير كده القايمة كانت
         # بتكتب "٠ بروتين" جنب زبادي يوناني.
         kcal = re.search(r"(\d+)\s*kcal", m)
+        mm = meal_macros.macros(m)
+        # an incomplete calculation is a partial sum: not a number to show
+        # as the snack's calories/protein (a written kcal label still is).
         out.append({"meal": m,
-                    "cal": int(kcal.group(1)) if kcal else meal_macros.macros(m)["cal"],
-                    "p": meal_macros.macros(m)["p"]})
+                    "cal": int(kcal.group(1)) if kcal else (mm["cal"] if mm["complete"] else None),
+                    "p": mm["p"] if mm["complete"] else None,
+                    "incomplete": not mm["complete"]})
     return out
 
 
@@ -1133,7 +1137,8 @@ def get_meal_options():
         # ‏السناك من طابور الأسناك بس: مطابخ تانية هنا معناها أطباق كاملة
         for m in _snack_options(data):
             all_options.append({"meal": m["meal"], "display": _meal_display(m["meal"]),
-                                "cal": m.get("cal", 0), "p": m.get("p", 0), "source": culture})
+                                "cal": m.get("cal", 0), "p": m.get("p", 0), "source": culture,
+                                "incomplete": bool(m.get("incomplete"))})
         return jsonify({"ok": True, "options": all_options})
     for m in _filtered_meals(data, pool_key):
         all_options.append({"meal": m["meal"], "display": _meal_display(m["meal"]),
@@ -1333,5 +1338,4 @@ def edit_meal():
                         "items": _items_for_page(new_text), "check": check})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
-
 
