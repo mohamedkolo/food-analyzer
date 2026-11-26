@@ -12,6 +12,7 @@ top.
 
 import io as _io
 import random
+import uuid
 import re
 from datetime import datetime
 import datetime as dt
@@ -444,7 +445,7 @@ def snack_queue(data, pool=None):
     return filter_by_conditions(snacks, symptoms, "snack")
 
 
-def generate_weekly_plan(data, seed=None):
+def _generate_weekly_plan_raw(data, seed=None):
     """‏خطة سبع أيام. seed اختياري: لو اتبعت، نفس البذرة = نفس الخطة.
 
     الافتراضي عشوائي من الساعة، عشان الدكتور لما يضغط "ولّد تاني" ياخد
@@ -669,12 +670,6 @@ def generate_weekly_plan(data, seed=None):
     lunches = filter_meals_by_exclusions(lunches, user_exclusions)
     dinners = filter_meals_by_exclusions(dinners, user_exclusions)
 
-    # ‏وجبات كل أصنافها محسومة (صنف + وحدة + جرامات) بس. اللي فيها عدد
-    # غامض أو طبق مش في الجدول بتتشال، ولو الباقي قليل بيطلع خطأ صريح.
-    from meal_macros import verified_only
-    breakfasts = verified_only(breakfasts, "breakfast")
-    lunches = verified_only(lunches, "lunch")
-    dinners = verified_only(dinners, "dinner")
 
     # متابعة: الوجبات اللي كانت في خطة الزيارة اللي فاتت تتأخّر لآخر الطابور،
     # عشان العميل الراجع بعد شهر ياخد أسبوع جديد مش نفس الأكل تاني. تأخير مش
@@ -686,9 +681,11 @@ def generate_weekly_plan(data, seed=None):
     if diet_type == "keto":
         try:
             from meal_extra import KETO_MEALS
-            kb = list(KETO_MEALS.get("breakfast", []))
-            kl = list(KETO_MEALS.get("lunch", []))
-            kd = list(KETO_MEALS.get("dinner", []))
+            from keto_verified import keto_verified
+            _kv = keto_verified()
+            kb = list(KETO_MEALS.get("breakfast", [])) + _kv["breakfast"]
+            kl = list(KETO_MEALS.get("lunch", [])) + _kv["lunch"]
+            kd = list(KETO_MEALS.get("dinner", [])) + _kv["dinner"]
             if kb and kl and kd:
                 breakfasts = filter_meals_by_exclusions(filter_by_conditions(kb, symptoms, "breakfast"), user_exclusions) or kb
                 lunches = filter_meals_by_exclusions(filter_by_conditions(kl, symptoms, "lunch"), user_exclusions) or kl
@@ -707,7 +704,15 @@ def generate_weekly_plan(data, seed=None):
         lunches = filter_carbs(lunches, False)
         dinners = filter_carbs(dinners, False)
 
+    # ‏وجبات كل أصنافها محسومة (صنف + وحدة + جرامات) بس. اللي فيها عدد
+    # غامض أو طبق مش في الجدول بتتشال (والكيتو واللو-كارب كمان)، ولو الباقي قليل بيطلع خطأ صريح.
+    from meal_macros import verified_only
+    breakfasts = verified_only(breakfasts, "breakfast")
+    lunches = verified_only(lunches, "lunch")
+    dinners = verified_only(dinners, "dinner")
+
     snacks = snack_queue(data, pool)
+    snacks = verified_only(snacks, "snack", minimum=2)
     if avoid:
         snacks = _defer_repeats(snacks, avoid)
 
@@ -2505,3 +2510,56 @@ def build_pdf(data, plan=None, clean=False):
     """‏نفس الصفحة، مطبوعة PDF."""
     from weasyprint import HTML
     return HTML(string=sheet_html(data, plan, clean)).write_pdf()
+
+
+def generate_weekly_plan(data, seed=None):
+    """Single entry point for every plan-producing route (generate, demo,
+    admin, API). Item arithmetic is the truth: every day is recomputed from
+    its items and checked. A failure is raised, never swallowed, so no caller
+    can show unchecked numbers by accident. The weekly sample is random, so a
+    week whose portions cannot reach the target is redrawn (up to 20 times)
+    before the generation is refused."""
+    import exact_plan
+    import meal_macros
+    last = None
+    for attempt in range(20):
+        # the unseeded draw is time-based, so a redraw needs its own seed
+        s = seed if attempt == 0 else "%s:retry%d:%s" % (
+            seed, attempt, "" if seed else uuid.uuid4().hex)
+        plan = _generate_weekly_plan_raw(data, seed=s)
+        exact_plan.finalize_plan(plan, data)
+        meal_macros.annotate_plan(plan, data)
+        bad = [(i, d["exact"]) for i, d in enumerate(plan or [])
+               if isinstance(d, dict) and d.get("exact")
+               and (abs(d["exact"]["cal_dev_pct"]) > 5
+                    or not d["exact"]["protein_reached"])]
+        if not bad:
+            bad = [(i, {"target_cal": d["exact"]["target_cal"],
+                        "computed_cal": d["exact"]["computed_cal"]})
+                   for i, d in enumerate(plan or [])
+                   if isinstance(d, dict) and d.get("exact")
+                   and exact_plan.impractical_items(d)]
+        if not bad:
+            return plan
+        last = bad[0]
+    raise meal_macros.TargetNotReachable(
+        last[0], last[1]["target_cal"], last[1]["computed_cal"])
+
+
+def safe_generate(data, seed=None):
+    """(plan, None) or (None, arabic_message). For callers that cannot show a
+    422: an unreachable target or too few verified meals is an explicit
+    message, never an unchecked plan and never an unhandled error."""
+    import meal_macros
+    try:
+        return generate_weekly_plan(data, seed=seed), None
+    except meal_macros.InsufficientVerifiedMeals as exc:
+        return None, ("لا توجد وجبات محسوبة بالكامل كافية (%s: %d من %d) مع قيود "
+                      "هذا العميل. لم يتم إنشاء خطة بدل تخمين الكميات."
+                      % (exc.slot, exc.have, exc.need))
+    except meal_macros.TargetNotReachable as exc:
+        return None, ("هدف السعرات (%d) وهدف البروتين مع بعض مش ممكن يتحققوا بوجبات "
+                      "وحصص منطقية من الأصناف المتاحة (أقصى سعرات وصلنا لها %d). "
+                      "لم يتم إنشاء خطة بأرقام غير مطابقة. "
+                      "تغطية الأصناف المتاحة حاليا لا تكفي لهذا العميل."
+                      % (exc.target, exc.got))
