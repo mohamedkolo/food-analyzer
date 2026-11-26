@@ -7,7 +7,7 @@ login wall and is listed in _CRAWL_BLOCKED so search engines do not waste
 their time on redirects.
 """
 
-from flask import Blueprint, Response, render_template, request, session, redirect
+from flask import Blueprint, Response, make_response, render_template, request, session, redirect
 import json
 from datetime import datetime
 
@@ -146,13 +146,22 @@ def public_food(slug):
 
 @bp.route("/")
 def landing():
-    """The public front door, for signed-in visitors too.
+    """The public front door, for first-time visitors only.
 
-    ‏بموافقة الدكتور (٢٥ نوفمبر): المشهد يظهر حتى لمسجّلي الدخول،
-    وزر «خطتي» في الشريط بيرجّعهم لحسابهم بدل التحويل التلقائي.
+    ‏توجيه الدكتور (٢٦ نوفمبر، واتساب): المشهد لأول مرة يفتح التطبيق بس.
+    ‏المسجّل — وهو أدمن — ماينزلش تحت عشان يدخل: يتحوّل مباشرة للوحة.
+    ‏(بيقلب قرار ٢٥ نوفمبر اللي كان بيعرض المشهد لمسجّلي الدخول.)
     """
-    return render_template("landing.html", lang=session.get("lang", "ar"),
-                           pricing=PRICING, signed_in=("uid" in session))
+    if "uid" in session:
+        return redirect("/dashboard")
+    # ‏المشهد لأول مرة بس: زائر مجهول شافه قبل كده يروح لتسجيل الدخول
+    # ‏بدل ما ينزل تحت كل مرة (كوكي سنة، متتسجلش عند أول زيارة فقط).
+    if request.cookies.get("nx_seen"):
+        return redirect("/login")
+    resp = make_response(render_template("landing.html", lang=session.get("lang", "ar"),
+                                         pricing=PRICING, signed_in=False))
+    resp.set_cookie("nx_seen", "1", max_age=365 * 24 * 3600, samesite="Lax")
+    return resp
 
 
 # "/" still answers POST: the login form used to live at the root, so old
