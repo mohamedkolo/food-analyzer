@@ -353,9 +353,15 @@
       {% for d in weekly.days[7:] %}
       {% set pc = ((d.cal * 100 / d.cal_target)|round|int) if d.cal_target else 0 %}
       {% set pp = ((d.p * 100 / d.p_target)|round|int) if d.p_target else 0 %}
+      {% if d.approx %}
+      <div class="wk-col wk-meals{% if loop.last %} is-today{% endif %}" data-approx="1">
+        <span class="wk-v"><bdi dir="ltr">{{ d.meals_done }}/{{ d.meals_total }}</bdi> {{ t('وجبات','meals') }}</span>
+        <span class="wk-stick"><span class="wk-fill wk-mealfill" style="block-size:{{ (d.meals_done * 100 / d.meals_total)|round(1) if d.meals_total else 0 }}%"></span></span>
+      {% else %}
       <div class="wk-col{% if loop.last %} is-today{% endif %}" data-cal="{{ pc }}" data-p="{{ pp }}">
-        <span class="wk-v"><bdi dir="ltr">{% if d.approx %}~{% endif %}{{ pc }}%</bdi></span>
+        <span class="wk-v"><bdi dir="ltr">{{ pc }}%</bdi></span>
         <span class="wk-stick"><span class="wk-goal" aria-hidden="true"></span><span class="wk-fill" style="block-size:{{ ([pc,120]|min * 100 / 120)|round(1) }}%"></span></span>
+      {% endif %}
         <span class="wk-d">{{ (wk_ar if is_ar else wk_en)[d.dow] }}</span>
       </div>
       {% endfor %}
@@ -364,16 +370,18 @@
       {% for k, ar, en in [('cal','السعرات','Calories'),('p','البروتين','Protein')] %}
       <div class="wk-chip">
         <span class="wk-chip-l">{{ ar if is_ar else en }}</span>
-        <b><bdi dir="ltr">{% if weekly.this.approx_days %}~{% endif %}{{ weekly.this[k ~ '_pct'] }}%</bdi></b>
-        <span class="wk-chip-s">{{ t('من المستهدف','of target') }}</span>
-        {% if weekly.delta %}
+        {% if weekly.this[k ~ '_pct'] is none %}<b><bdi dir="ltr">—</bdi></b>
+        <span class="wk-chip-s">{{ t('مفيش يوم حسابه كامل الأسبوع ده','No fully calculated day this week') }}</span>
+        {% else %}<b><bdi dir="ltr">{{ weekly.this[k ~ '_pct'] }}%</bdi></b>
+        <span class="wk-chip-s">{{ t('من المستهدف','of target') }}{% if weekly.this.approx_days %} · {{ t('الأيام المحسوبة بس','calculated days only') }}{% endif %}</span>{% endif %}
+        {% if weekly.delta and weekly.this[k ~ '_pct'] is not none %}
         {% set dv = weekly.delta[k ~ '_pct'] %}
         <span class="wk-delta {{ 'up' if dv > 0 else ('down' if dv < 0 else '') }}">{{ '+' if dv > 0 }}{{ dv }} {{ t('عن الأسبوع اللي فات','vs last week') }}</span>
         {% endif %}
       </div>
       {% endfor %}
       {% if weekly.this.approx_days or weekly.last.approx_days %}
-      <p class="wk-note" id="wkApprox">{{ t('الأيام اللي عليها ~ حسابها ناقص: النسبة فيها بتعدّ وجبات الخطة اللي علّمت عليها، مش سعرات أو بروتين اتاكل فعلًا، فالمقارنة تقريبية.','Days marked ~ have an incomplete calculation: their percent counts plan meals you ticked, not calories or protein eaten, so the comparison is approximate.') }}</p>
+      <p class="wk-note" id="wkApprox">{{ t('الأيام اللي بتعرض «وجبات» حسابها ناقص: بنعدّ الوجبات اللي علّمت عليها بس، ومش داخلة في نسبة السعرات والبروتين.','Days showing "meals" have an incomplete calculation: they only count the meals you ticked, and are left out of the calories and protein percentages.') }}</p>
       {% endif %}
       <p class="wk-note">
         {% if weekly.delta %}{{ t('علّمت على وجبات','You logged meals on') }} {{ weekly.this.days_logged }} {{ t('من 7 أيام.','of 7 days.') }}
@@ -396,6 +404,7 @@
   .wk-goal{position:absolute;inset-inline:0;bottom:83.3%;border-top:2px dashed var(--nx-muted);opacity:.55}
   .wk-fill{display:block;inline-size:100%;background:var(--lq-amber);border-radius:8px;transition:block-size .5s cubic-bezier(.3,1.2,.5,1)}
   .wk-bars[data-metric="p"] .wk-fill{background:var(--lq-blue)}
+  .wk-mealfill{background:var(--nx-muted)!important;opacity:.6}
   .wk-col.is-today .wk-d{color:var(--nx-ink);font-weight:900}
   .wk-d{font-size:11px;color:var(--nx-muted);white-space:nowrap}
   .wk-cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
@@ -417,6 +426,7 @@
         document.querySelectorAll('[data-wk-metric]').forEach(function(b){ b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); });
         bars.dataset.metric = m;
         bars.querySelectorAll('.wk-col').forEach(function(col){
+          if (col.dataset.approx) return;
           var v = parseInt(col.dataset[m], 10) || 0;
           col.querySelector('.wk-v').textContent = v + '%';
           col.querySelector('.wk-fill').style.blockSize = (Math.min(v, 120) * 100 / 120).toFixed(1) + '%';
