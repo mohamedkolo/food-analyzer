@@ -145,9 +145,17 @@ def _window(days):
     """متوسط اللي اتاكل من المستهدف على كام يوم، بالنسبة المئوية."""
     tc = sum(d["cal_target"] for d in days)
     tp = sum(d["p_target"] for d in days)
-    return {"cal_pct": int(round(sum(d["cal"] for d in days) * 100.0 / tc)) if tc else 0,
-            "p_pct": int(round(sum(d["p"] for d in days) * 100.0 / tp)) if tp else 0,
+    # Incomplete days carry no nutrition numbers (targets are 0 for them), so
+    # they are left out here. A window with only such days has NO nutrition
+    # aggregate (None), never an average of unlike quantities.
+    only_incomplete = (not tc) and any(d.get("approx") for d in days)
+    return {"cal_pct": None if only_incomplete else (int(round(sum(d["cal"] for d in days) * 100.0 / tc)) if tc else 0),
+            "p_pct": None if only_incomplete else (int(round(sum(d["p"] for d in days) * 100.0 / tp)) if tp else 0),
             "days_logged": sum(1 for d in days if d["logged"])}
+
+
+def days_flag(r):
+    return r.get("basis") != "items"
 
 
 def week(plan, meal_keys, labels, checks, skips, today, start=None, extras=None):
@@ -170,13 +178,18 @@ def week(plan, meal_keys, labels, checks, skips, today, start=None, extras=None)
         r = build(day, keys, checked, skipped, labels, extra=(extras or {}).get(iso)) if keys else None
         active = r is not None and (start is None or d >= start)
         days.append({"date": iso, "dow": d.weekday(), "logged": (bool(checked) or bool((extras or {}).get(iso))) and active,
-                     "cal": r["eaten"]["cal"] if active else 0, "p": (r["eaten"]["p"] or 0) if active else 0,
-                     "cal_target": r["target"]["cal"] if active else 0,
-                     "p_target": (r["target"]["p"] or 0) if active else 0,
                      "approx": bool(active and r.get("basis") != "items")})
+        # An incomplete day has no calorie/protein figure: it reports meals
+        # ticked instead, and is excluded from the nutrition aggregates.
+        nut = bool(active) and not days_flag(r)
+        days[-1].update({"cal": r["eaten"]["cal"] if nut else 0, "p": (r["eaten"]["p"] or 0) if nut else 0,
+                         "cal_target": r["target"]["cal"] if nut else 0,
+                         "p_target": (r["target"]["p"] or 0) if nut else 0,
+                         "meals_done": r["meals_done"] if active else 0,
+                         "meals_total": r["meals_total"] if active else 0})
     this, last = _window(days[7:]), _window(days[:7])
     this["approx_days"] = sum(1 for d in days[7:] if d["approx"])
     last["approx_days"] = sum(1 for d in days[:7] if d["approx"])
-    delta = None if not last["days_logged"] else {
+    delta = None if (not last["days_logged"] or None in (this["cal_pct"], this["p_pct"], last["cal_pct"], last["p_pct"])) else {
         "cal_pct": this["cal_pct"] - last["cal_pct"], "p_pct": this["p_pct"] - last["p_pct"]}
     return {"days": days, "this": this, "last": last, "delta": delta}
