@@ -88,6 +88,7 @@ def build(day, meal_keys, checked, skipped, labels, is_ar=True, hour=12, extra=N
         hints.append(("أكلت برّه الخطة %d سعرة النهارده، والدكتور هيشوفها في ملفك." % extra["cal"]) if is_ar
                      else "You ate %d kcal outside the plan today; your doctor will see it." % extra["cal"])
     return {"basis": "items" if usable else "even_split",
+            "meals_done": len(checked), "meals_total": len(meal_keys),
             "incomplete_meals": incomplete,
             "target": target, "eaten": eaten, "meals": meals, "hints": hints,
             "extra": {n: int(extra.get(n) or 0) for n in NUTRIENTS} if extra else None}
@@ -104,6 +105,17 @@ def _hints(meals, target, checked, skipped, left_keys, labels, is_ar, hour, by_i
                          else "Day done: %d meals eaten, %d skipped." % (len(checked), len(skipped)))
         return hints
 
+    if not by_items:
+        # Even split: the per-meal numbers are the target divided by meal
+        # count, not what the food contains. Never say "kcal/protein left".
+        names = ("، " if is_ar else ", ").join(lab(k) for k in left_keys)
+        hints.append(("لسه وجبات: %s. كميات السعرات والبروتين مش محسوبة من الأصناف لأن حساب وجبة ناقص." % names) if is_ar
+                     else "Meals left: %s. Calories and protein are not calculated from the foods because a meal's calculation is incomplete." % names)
+        if hour >= 21:
+            n = len(left_keys)
+            hints.append(("الوقت اتأخر وفاضل %d وجبة. لو مش هتاكلها، علّم «ماكلتهاش» علشان الدكتور يعرف." % n) if is_ar
+                         else "It's late and %d meal(s) are left. If you won't eat them, mark them skipped so the doctor knows." % n)
+        return hints
     left_cal = sum(meals[k].get("cal", 0) for k in left_keys)
     left_p = sum(meals[k].get("p", 0) for k in left_keys)
     names = ("، " if is_ar else ", ").join(lab(k) for k in left_keys)
@@ -163,6 +175,8 @@ def week(plan, meal_keys, labels, checks, skips, today, start=None, extras=None)
                      "p_target": (r["target"]["p"] or 0) if active else 0,
                      "approx": bool(active and r.get("basis") != "items")})
     this, last = _window(days[7:]), _window(days[:7])
+    this["approx_days"] = sum(1 for d in days[7:] if d["approx"])
+    last["approx_days"] = sum(1 for d in days[:7] if d["approx"])
     delta = None if not last["days_logged"] else {
         "cal_pct": this["cal_pct"] - last["cal_pct"], "p_pct": this["p_pct"] - last["p_pct"]}
     return {"days": days, "this": this, "last": last, "delta": delta}
