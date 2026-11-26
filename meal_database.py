@@ -2415,3 +2415,28 @@ def filter_by_conditions(meals, conditions, slot=None):
 
 def get_diet_plan_info(plan_type):
     return DIET_PLAN_TYPES.get(plan_type, DIET_PLAN_TYPES["standard"])
+
+# ---------------------------------------------------------------------------
+# Gluten: bread and grain identity words (added 2026-11-26, review branch).
+# The gluten list held "خبز" but not the Egyptian word for bread or the grains
+# themselves, so whole-wheat pita written "عيش بيتا قمح كامل", wheat porridge
+# and couscous passed the filter. Sources (checked 2026-11-26):
+# FDA, gluten occurs naturally in wheat, rye, barley and crossbreeds:
+#   https://www.fda.gov/food/nutrition-education-resources-materials/gluten-and-food-labeling
+# Celiac Disease Foundation, sources of gluten (wheat, rye, semolina, couscous, pita, bread):
+#   https://celiac.org/what-is-gluten/sources-of-gluten/
+# Academy of the Arabic Language in Cairo, entry "العيش" includes "الخبز" (bread):
+#   https://www.arabicacademy.gov.eg/ar/محرك-البحث/العيش
+# Only the gluten list changes. "عيش الغراب" is mushrooms, not bread.
+UNSAFE_FOODS["جلوتين"] = list(UNSAFE_FOODS["جلوتين"]) + [
+    w for w in ("عيش", "قمح", "جاودار", "سميد", "كسكس") if w not in UNSAFE_FOODS["جلوتين"]]
+
+_contains_unsafe_base = _contains_unsafe
+
+
+def _contains_unsafe(meal_text, condition_key):
+    text = meal_text
+    if condition_key == "جلوتين":
+        # drop the mushroom phrase so "عيش" inside it is not read as bread
+        text = normalize_ar(meal_text).replace(normalize_ar("عيش الغراب"), " ")
+    return _contains_unsafe_base(text, condition_key)
