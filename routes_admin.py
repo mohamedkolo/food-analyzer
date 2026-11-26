@@ -180,7 +180,11 @@ def admin_request_generate(rid):
         "name": client.get("name","") if client else req.get("client_name",""),
         **rdata,
     }
-    draft_store.set_draft(data=data, plan=generate_weekly_plan(data))
+    from plan_engine import safe_generate
+    plan, err = safe_generate(data)
+    if err:
+        return err, 422
+    draft_store.set_draft(data=data, plan=plan)
     session["current_request_id"] = rid
     return redirect("/preview")
 
