@@ -115,6 +115,11 @@ GENERIC = {
     "خضار": "خضار مشكل مجمد",
     "فطر": "مشروم",
     "مكسرات": "لوز",
+    # almond milk, never the nut (580 kcal) and never cow milk
+    "لبن لوز": "حليب لوز غير محلي",
+    "لبن اللوز": "حليب اللوز غير محلي",
+    # ‏"زبدة فول" = زبدة الفول السوداني. من غيرها كانت بتتحسب زبدة عادية (٧١٧).
+    "زبدة فول": "زبدة فول سوداني",
     "زبادي": "زبادي خالي الدسم",
     "لبن": "لبن رايب",
     # ‏"حليب" ماكانتش في الخريطة، و"حليب خالى الدسم" موجود في جدول
@@ -255,8 +260,14 @@ def _table():
     global _TABLE
     if _TABLE is None:
         import food_data
+        import meal_food_sources
         rows = []
-        for food in food_data.FOODS:
+        # source-backed extras go AFTER the main table: a name already in the
+        # main table keeps winning, so nothing existing changes.
+        have = {_norm(f.get("n")) for f in food_data.FOODS}
+        for food in list(food_data.FOODS) + [
+                f for f in meal_food_sources.SOURCED_FOODS
+                if _norm(f["n"]) not in have]:
             name = _norm(food.get("n"))
             if name:
                 rows.append((name, food))
@@ -304,17 +315,41 @@ def find_food(item):
     return None
 
 
+_PREFIXES = {"ب", "ل", "و", "ال", "بال", "وال", "لل", "فال", "ف"}
+
+
+def _find_word(clean, name):
+    """Position of `name` in `clean` if it starts at a word start, else -1.
+
+    Plain str.find matched "تين" (fig) inside "بروتين" (protein), so a protein
+    scoop counted as a fig (22 kcal). The character before the name must be a
+    space, a bracket or an Arabic prefix (ب/ل/و/ال): "بحليب" still reads.
+    """
+    start = 0
+    while True:
+        at = clean.find(name, start)
+        if at < 0:
+            return -1
+        head = clean[:at]
+        frag = head.split(" ")[-1] if head and not head.endswith(" ") else ""
+        frag = frag.lstrip("(")
+        if not frag or frag in _PREFIXES:
+            return at
+        start = at + 1
+
+
 def _match(clean):
     """‏أقرب صنف لأول النص، بين الجدول والجسر العام مع بعض."""
     best = None                       # ((المكان, -الطول), الصنف)
     for name, food in _table():
-        at = clean.find(name)
+        at = _find_word(clean, name)
         if at >= 0:
             key = (at, -len(name))
             if best is None or key < best[0]:
                 best = (key, food)
 
-    candidates = [(clean.find(_norm(g)), g, sp) for g, sp in GENERIC.items()]
+    candidates = [(_find_word(clean, _norm(g)), g, sp)
+                  for g, sp in GENERIC.items()]
     for rx, word, specific in _word_patterns():
         m = rx.search(clean)
         candidates.append((m.start() if m else -1, word, specific))
