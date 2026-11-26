@@ -15,7 +15,7 @@ import meal_food_sources as S
 
 USDA = {  # fdc_id: (kcal, protein, fat, carb)
     171265: (61.0, 3.15, 3.25, 4.8),
-    170899: (410.0, 24.25, 33.82, 2.13),
+    173414: (403.0, 22.87, 33.31, 3.37),
     173687: (117.0, 18.28, 4.32, 0.0),
     171956: (105.0, 22.83, 0.86, 0.0),
 }
@@ -44,12 +44,12 @@ def test_whole_milk_is_whole_milk():
     for t in ("🥛 حليب كامل 200مل", "🥛 حليب كامل الدسم 200مل"):
         it = _first(t)
         assert it["food"] in ("حليب كامل", "حليب كامل الدسم"), it
-        assert 120 <= it["cal"] <= 125, it  # 200 g x 61 kcal
+        assert it["cal"] == round(200 * 1.0314 * 0.61), it  # 244 g per US cup (USDA 01077)
 
 
 def test_cheddar_is_not_cottage_cheese():
     it = _first("🧀 جبن شيدر 30جم")
-    assert it["food"] == "جبن شيدر" and it["cal"] == round(0.3 * 410), it
+    assert it["food"] == "جبن شيدر" and it["cal"] == round(0.3 * 403), it
 
 
 def test_smoked_salmon_is_not_plain_salmon():
@@ -63,9 +63,24 @@ def test_peanut_butter_is_not_butter():
     assert _first("🧈 زبدة 10جم")["food"] == "زبدة"
 
 
-def test_almond_milk_is_not_cow_milk_or_the_nut():
-    it = _first("🥛 لبن لوز 200مل")
-    assert "لوز" in it["food"] and it["cal"] < 60, it
+def test_almond_milk_variant_is_not_guessed():
+    r = MM.macros("🥛 لبن لوز 200مل")
+    assert not r["complete"] and r["items"][0]["unresolved"].startswith("variant"), r
+    r = MM.macros("🥛 لبن لوز غير محلى 200مل")
+    assert r["complete"] and r["cal"] < 60, r
+
+
+def test_incomplete_meal_is_never_trusted_as_a_total():
+    text = "🥣 شوفان 80جم + 💪 بروتين 30جم + 🥛 لبن لوز 200مل"
+    r = MM.macros(text)
+    assert not r["complete"] and len(r["unresolved"]) == 2, r
+    assert MM.trusted(text, MM.macros(text)["cal"]) is None
+
+
+def test_fish_and_vegetables_title_is_not_resolved_as_cod_alone():
+    r = MM.macros("🐟 Baked Cod & Veggies (سمك 150جم)")
+    assert not r["complete"], r
+    assert MM.macros("🐟 Baked Cod 150جم")["complete"]
 
 
 def test_protein_is_not_a_fig():
