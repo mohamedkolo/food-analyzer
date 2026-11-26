@@ -126,6 +126,12 @@ def build(plan, lang="ar"):
                 # اللي "مش متعرّف".
                 if not re.search(r"[\w\u0600-\u06FF]", raw):
                     continue
+                if row.get("unresolved"):
+                    # matched a food but the item is unresolved (variant,
+                    # unit, composite dish, soup): never list the guess.
+                    if raw:
+                        unknown[raw] = unknown.get(raw, 0) + 1
+                    continue
                 if not name:
                     # ‏مش في الجدول خالص. مابنخمّنش له كمية، بس
                     # مابنرميهوش كمان -- الدكتور لازم يشوف اللي القايمة
