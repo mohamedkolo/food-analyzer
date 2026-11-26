@@ -134,14 +134,45 @@ def test_page_replaces_rings_with_a_plan_meal_counter():
     assert 'id="dpPlan"' not in good and 'class="dp-rings"' in good
 
 
-def test_week_marks_incomplete_days_and_explains():
+def test_week_incomplete_day_reports_meals_not_nutrition():
+    import datetime as dt
+    today = dt.date(2026, 11, 26)
+    plan = [BAD] * 7
+    iso = today.isoformat()
+    w = DP.week(plan, KEYS, LABELS, {iso: {"lunch"}}, {}, today)
+    d = w["days"][-1]
+    assert d["approx"] and d["cal"] == 0 and d["cal_target"] == 0, d
+    assert (d["meals_done"], d["meals_total"]) == (1, 3)
+    assert w["this"]["cal_pct"] is None and w["this"]["p_pct"] is None   # no aggregate of unlike quantities
+    assert w["delta"] is None
+
+
+def test_mixed_week_aggregates_only_calculated_days():
+    import datetime as dt
+    today = dt.date(2026, 11, 26)
+    yday = today - dt.timedelta(days=1)
+    plan = [GOOD] * 7
+    plan[(today.weekday() + 1) % 7] = BAD       # today incomplete, yesterday complete
+    w = DP.week(plan, KEYS, LABELS, {today.isoformat(): {"lunch"}, yday.isoformat(): set(KEYS)}, {}, today)
+    assert w["days"][-1]["approx"] and not w["days"][-2]["approx"]
+    # 6 calculated days in the window (today excluded): 1500 eaten of 6*1500
+    # targets = 17%. Counting today too would give 14% (7 targets).
+    assert w["this"]["cal_pct"] == 17, w["this"]
+    assert w["this"]["approx_days"] == 1
+
+
+def test_week_page_labels_meal_days_as_meals_and_not_percent():
     bad = _client("e@x.test", BAD)
     bad.post("/track/meal", data={"meal_key": "lunch", "checked": "1"})
     html = bad.get("/my-plan").get_data(as_text=True)
-    assert 'id="wkApprox"' in html and "~" in html
+    assert 'id="wkApprox"' in html and 'data-approx="1"' in html
+    assert re.search(r'wk-meals[^>]*data-approx="1"[^>]*>\s*<span class="wk-v"><bdi dir="ltr">1/3</bdi>', html), "meals label"
+    assert "~" not in re.search(r'id="wkCompare".*?</div>\s*</div>', html, re.S).group(0)
+    assert "No fully" in html or "مفيش يوم حسابه كامل" in html
     good = _client("f@x.test", GOOD)
     good.post("/track/meal", data={"meal_key": "lunch", "checked": "1"})
-    assert 'id="wkApprox"' not in good.get("/my-plan").get_data(as_text=True)
+    gh = good.get("/my-plan").get_data(as_text=True)
+    assert 'id="wkApprox"' not in gh and 'data-approx="1"' not in gh
 
 
 def test_shopping_list_never_lists_an_unresolved_guess():
@@ -178,6 +209,15 @@ def test_fatta_dish_is_not_resolved_from_one_ingredient():
     r = MM.macros("فتة حمص كبيرة 250جم")
     assert r["complete"] is False and r["items"][0]["unresolved"] == "dish", r
     assert MM.macros("حمص مسلوق 250جم")["complete"] is True
+
+
+def test_named_dishes_and_vegetable_dishes_are_not_one_ingredient():
+    for text in ("شاورما دجاج 150جم", "مندي دجاج 150جم", "بيض بالخضار 2", "بيض مع الطماطم 2",
+                 "كفتة بالصينية 150جم", "طاجين دجاج بالخضار 150جم"):
+        r = MM.macros(text)
+        assert r["complete"] is False, (text, r["items"])
+    # dishes the table holds under their own name still resolve
+    assert MM.macros("كبسة دجاج 150جم")["complete"] is True
 
 
 if __name__ == "__main__":
