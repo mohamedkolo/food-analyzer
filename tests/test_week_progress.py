@@ -112,24 +112,12 @@ def _page(lang="ar"):
     return c.get("/my-plan").get_data(as_text=True)
 
 
-def test_my_plan_shows_seven_bars_and_the_comparison():
+def test_my_plan_no_longer_shows_the_week_card():
+    """‏الدكتور (٢٦ نوفمبر): صفحة العميل أربع وجهات بس — كارت «أسبوعك»
+    ‏اتشال من الرئيسية. حساب الأسبوع نفسه محفوظ في week_progress."""
     html = _page()
-    assert 'id="wkCard"' in html
-    bars = re.findall(r'class="wk-col[^"]*"[^>]*data-cal="(\d+)"[^>]*data-p="(\d+)"', html)
-    assert len(bars) == 7, bars
-    assert 'id="wkCompare"' in html
-
-
-def test_the_metric_switch_is_real_buttons():
-    html = _page()
-    btns = re.findall(r'<button[^>]*data-wk-metric="(\w+)"[^>]*aria-pressed="(true|false)"', html)
-    assert [b[0] for b in btns] == ["cal", "p"] and btns[0][1] == "true", btns
-
-
-def test_english_week_card_has_no_arabic():
-    html = _page("en")
-    card = html[html.index('id="wkCard"'):html.index("<!-- /wk -->")]
-    assert not ARABIC.search(card), ARABIC.findall(card)[:10]
+    assert 'id="wkCard"' not in html
+    assert 'data-wk-metric' not in html
 
 
 if __name__ == "__main__":
