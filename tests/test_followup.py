@@ -245,7 +245,7 @@ def test_the_shuffle_does_not_wipe_the_deferral():
     الترتيب كله. يعني الخاصية كانت ملغية من ناحيتين في نفس الوقت."""
     import inspect
     import plan_engine
-    src = inspect.getsource(plan_engine.generate_weekly_plan)
+    src = inspect.getsource(plan_engine._generate_weekly_plan_raw)
     shuffle_at = src.index("random.shuffle")
     defer_at = src.index("_defer_repeats(breakfasts")
     assert defer_at > shuffle_at, (
