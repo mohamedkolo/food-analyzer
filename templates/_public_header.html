@@ -1,4 +1,15 @@
 {# the header a visitor sees: no app sidebar, just a way in #}
+<style>
+  {#- ‏الموبايل (٣٩٠px): اللوجو + خمس لينكات بيفيضوا عن العرض وزرار
+     «تسجيل الدخول» بيتقصّ من الحرف. الهيدر العام بيلفّ على سطرين تحت
+     ٦٠٠px و--header-h بتتظبط عشان المحتوى ينزل بمقدار السطر التاني.
+     متقيّد بـpublic-chrome عشان هيدر التطبيق (فيه مستخدم) مايتأثرش. -#}
+  @media (max-width:600px){
+    body.public-chrome .header{height:auto;min-height:60px;flex-wrap:wrap;row-gap:2px;padding-top:6px;padding-bottom:6px}
+    body.public-chrome .header > div:last-child{flex-wrap:wrap;row-gap:4px}
+    body.public-chrome{--header-h:100px}
+  }
+</style>
 <header class="header">
   <div style="display:flex;align-items:center;gap:12px">
     {# ‏الهيدر بقى أبيض، والألوان هنا كانت مكتوبة لهيدر كحلي غامق: اللوجو
