@@ -220,6 +220,16 @@ def test_named_dishes_and_vegetable_dishes_are_not_one_ingredient():
     assert MM.macros("كبسة دجاج 150جم")["complete"] is True
 
 
+def test_picker_options_flag_incomplete_library_meals():
+    import routes_plans as RP
+    assert RP._meal_incomplete("🥙 شاورما دجاج 150جم") is True
+    assert RP._meal_incomplete("صدر دجاج مشوي 200جم + أرز أبيض مطبوخ 150جم") is False
+    src = open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "routes_plans.py"), encoding="utf-8").read()
+    assert src.count('"incomplete": _meal_incomplete(m["meal"])') == 2   # both non-snack option lists
+    html = open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "templates", "preview.html"), encoding="utf-8").read()
+    assert "opt.incomplete" in html and "not fully calculated" in html
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in list(globals().items())
              if n.startswith("test_") and callable(f)]
