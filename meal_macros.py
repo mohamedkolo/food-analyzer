@@ -521,8 +521,11 @@ def macros(text):
             items.append(row)
             continue
         if food and any(_norm(w) in _norm(raw) and _norm(w) not in _norm(food.get("n"))
-                        for w in ("فتة", "فته")):
-            # "فتة حمص" is a dish (bread, rice, sauce...), not boiled chickpeas.
+                        for w in ("فتة", "فته", "شاورما", "مندي", "مجبوس", "برياني", "كبسة", "كشري")):
+            # a named dish (bread, rice, sauce...) is not the single food it
+            # contains, e.g. "فتة حمص" is not boiled chickpeas, "شاورما دجاج"
+            # is not grilled chicken breast. Dishes the table has under their
+            # own name still match (the food name contains the dish word).
             row["unresolved"] = "dish"
             items.append(row)
             continue
@@ -532,7 +535,9 @@ def macros(text):
             grams = grams * float(_ml_g)
             row["grams"] = round(grams, 1)
             row["how"] = "ml*density"
-        if food and (_norm("&") in _norm(raw) or "veggies" in raw.lower()):
+        if food and (_norm("&") in _norm(raw) or "veggies" in raw.lower()
+                     or " مع " in " " + raw + " "
+                     or any(w in raw for w in ("بالخضار", "بالخضروات", "بالصينية", "بالفلافل"))):
             # a dish title naming more than the matched food (fish AND vegetables)
             row["unresolved"] = "composite"
             items.append(row)
