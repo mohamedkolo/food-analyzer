@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_nx_icons.html" import nxicon %}
 {% block title %}{{ t('المتابعات','Follow-ups') }}{% endblock %}
 {% block content %}
 <style>
@@ -38,11 +39,11 @@
     .fu-table td.note{display:block;padding:0 15px 10px !important}
   }
 
-  .tile{flex:1 1 130px;border:1px solid var(--nx-line);border-radius:12px;
-        padding:12px 14px;text-decoration:none;display:block}
-  .tile .n{font-size:22px;font-weight:800;line-height:1.2}
-  .tile .c{font-size:12px;color:var(--muted);margin-top:2px}
-  .tile.on{border-color:var(--nx-ink-2);box-shadow:0 0 0 1px #3A4A5C inset}
+  .tile{flex:1 1 130px;background:var(--nx-surface);border:1.5px solid var(--nx-line);border-radius:20px;
+        box-shadow:var(--nx-sh);padding:14px 16px;text-decoration:none;display:block;transition:all .2s}
+  .tile .n{font-size:26px;font-weight:700;line-height:1.2}
+  .tile .c{font-size:12px;color:var(--nx-muted);margin-top:2px}
+  .tile.on{border-color:var(--nx-accent-line);background:var(--nx-accent-soft)}
 
   /* ‏الكيلوهات: نازل أخضر، زايد أحمر. الإشارة لوحدها مش بتتقرا بسرعة
      في جدول فيه ستين صف. */
@@ -51,22 +52,23 @@
   td.note{color:var(--muted);font-size:12.5px;line-height:1.6;max-width:320px}
 </style>
 
-<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px">
-  <h1 class="page-title" style="margin:0">
-    <i class="fa-solid fa-clock-rotate-left"></i> {{ t('المتابعات','Follow-ups') }}
-  </h1>
+<div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:14px;margin-bottom:18px">
+  <div>
+    <div style="font-size:13px;font-weight:700;color:var(--nx-accent);margin-bottom:6px">{{ t('لوحة الطبيب','Doctor dashboard') }}</div>
+    <h1 style="margin:0;font-size:32px;font-weight:700;line-height:1.2;color:var(--nx-ink)">{{ t('المتابعات','Follow-ups') }}</h1>
+    <p style="color:var(--nx-muted);font-size:15px;margin:8px 0 0;max-width:560px">
+      {{ t('مين نازل، مين واقف، ومين غاب. الترتيب بالإلحاح مش بالتاريخ، عشان تعرف من نظرة واحدة مين محتاج تدخّل.',
+           'Who is losing, who has stalled, and who stopped coming. Ordered by urgency, not by date, so you see at a glance who needs you.') }}
+    </p>
+  </div>
   <a href="/generate" class="btn btn-primary" style="text-decoration:none">
-    <i class="fa-solid fa-plus"></i> {{ t('خطة جديدة','New plan') }}
+    {{ nxicon('plus',15) }} {{ t('خطة جديدة','New plan') }}
   </a>
 </div>
-<p style="color:var(--muted);font-size:13.5px;margin:0 0 16px">
-  {{ t('مين نازل، مين واقف، ومين غاب. الترتيب بالإلحاح مش بالتاريخ — اللي محتاج تدخّل فوق.',
-       'Who is losing, who has stalled, and who stopped coming. Ordered by urgency, not by date — whoever needs you is at the top.') }}
-</p>
 
 {% if not clients %}
-<div class="card" style="text-align:center;padding:44px 24px">
-  <div style="font-size:28px;margin-bottom:12px;color:#9AA3AD"><i class="fa-solid fa-clipboard-list"></i></div>
+<div class="card" style="text-align:center;padding:44px 24px;border-radius:20px;border:1.5px solid var(--nx-line);box-shadow:var(--nx-sh)">
+  <div style="margin-bottom:12px;color:var(--muted-2);display:flex;justify-content:center">{{ nxicon('clipboard-list',28) }}</div>
   <div style="font-weight:800;color:var(--nx-ink);font-size:16px;margin-bottom:6px">
     {{ t('لسه مفيش متابعات','No follow-ups yet') }}
   </div>
@@ -75,14 +77,14 @@
          'The moment you generate a plan under a client’s name, the visit is recorded here. When the same name comes back, the app compares the weight and retunes the calories on the new one.') }}
   </p>
   <a href="/generate" class="btn btn-primary" style="text-decoration:none">
-    {{ t('ابدأ خطة','Build a plan') }}
+    {{ nxicon('plus',15) }} {{ t('ابدأ خطة','Build a plan') }}
   </a>
 </div>
 {% else %}
 
 {# ‏المربعات دي فلاتر مش زينة: الدكتور بيدخل الصفحة عشان يعرف مين محتاجه،
    فالضغط على "محتاج تدخّل" بيوريه دول بس. #}
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+<div class="nx-stagger" style="--i:1;display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
   <a class="tile {{ 'on' if not state }}" href="/followups">
     <div class="n" style="color:var(--nx-ink)">{{ counts.total }}</div>
     <div class="c">{{ t('كل العملاء','All clients') }}</div>
@@ -101,7 +103,7 @@
   </a>
 </div>
 
-<div class="card" style="padding:0;overflow:hidden">
+<div class="card nx-stagger" style="--i:2;padding:0;overflow:hidden;border-radius:20px;border:1.5px solid var(--nx-line);box-shadow:var(--nx-sh)">
   <div class="fu-wrap" style="overflow-x:auto">
     <table class="fu-table" style="width:100%;border-collapse:collapse;font-size:14px;min-width:760px">
       <thead>
@@ -126,8 +128,11 @@
         {% for c in shown %}
         <tr style="border-top:1px solid var(--nx-line)">
           <td data-l="{{ t('العميل','Client') }}" style="padding:13px 16px;font-weight:800;color:var(--nx-ink)">
-            {{ c.client_name }}
-            <div style="font-weight:600;color:var(--muted);font-size:12px;margin-top:2px">
+            <span style="display:inline-flex;align-items:center;gap:10px">
+              <span style="width:36px;height:36px;border-radius:10px;background:var(--nx-accent-soft);color:var(--nx-accent);display:inline-flex;align-items:center;justify-content:center;flex:none">{{ nxicon('user',17) }}</span>
+              <span>{{ c.client_name }}</span>
+            </span>
+            <div style="font-weight:600;color:var(--muted);font-size:12px;margin-top:2px;margin-inline-start:46px">
               {{ c.visits }} {{ t('زيارة','visits') }}{% if c.weight %} · {{ c.weight }} {{ t('كجم','kg') }}{% endif %}
             </div>
           </td>
