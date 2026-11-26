@@ -112,7 +112,8 @@ def apply_change(data, day, old_text, new_text):
     """
     old = meal_macros.macros(old_text)
     new = meal_macros.macros(new_text)
-    estimated = min(old["covered"], new["covered"]) < MIN_COVERAGE
+    estimated = (min(old["covered"], new["covered"]) < MIN_COVERAGE
+                 or not old.get("complete") or not new.get("complete"))
     if old_text != new_text:
         day["total_cal"] = max(0, int(day.get("total_cal") or 0)
                                - old["cal"] + new["cal"])
