@@ -130,7 +130,7 @@ def admin_new_user():
     return render_template("admin_new_user.html", user=u, lang=session.get("lang","ar"))
 
 
-@bp.route("/admin/users/<int:uid>/toggle")
+@bp.route("/admin/users/<int:uid>/toggle", methods=["POST"])
 @admin_required
 def admin_toggle_user(uid):
     target = db_row("SELECT * FROM users WHERE id=?", (uid,))
@@ -140,7 +140,7 @@ def admin_toggle_user(uid):
     return redirect("/admin/users")
 
 
-@bp.route("/admin/users/<int:uid>/role/<role>")
+@bp.route("/admin/users/<int:uid>/role/<role>", methods=["POST"])
 @admin_required
 def admin_change_role(uid, role):
     if role in ["client", "nutritionist", "admin"]:

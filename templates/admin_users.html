@@ -339,19 +339,25 @@
               <a href="/admin/users/{{ u.id }}" class="act-icon-btn act-view" title="{{ t('عرض الملف الشامل','View full profile') }}">👁️</a>
 
               <!-- Toggle active -->
-              <a href="/admin/users/{{ u.id }}/toggle" class="act-icon-btn act-toggle"
-                 title="{% if is_active %}{{ t('إيقاف','Deactivate') }}{% else %}{{ t('تفعيل','Activate') }}{% endif %}"
-                 onclick="return confirm('{% if is_active %}{{ t('تأكيد إيقاف الحساب؟','Confirm deactivating this account?') }}{% else %}{{ t('تأكيد تفعيل الحساب؟','Confirm activating this account?') }}{% endif %}')">
-                {% if is_active %}⏸️{% else %}▶️{% endif %}
-              </a>
+              <form method="POST" action="/admin/users/{{ u.id }}/toggle" style="display: contents;"
+                    onsubmit="return confirm('{% if is_active %}{{ t('تأكيد إيقاف الحساب؟','Confirm deactivating this account?') }}{% else %}{{ t('تأكيد تفعيل الحساب؟','Confirm activating this account?') }}{% endif %}')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="act-icon-btn act-toggle"
+                        title="{% if is_active %}{{ t('إيقاف','Deactivate') }}{% else %}{{ t('تفعيل','Activate') }}{% endif %}">
+                  {% if is_active %}⏸️{% else %}▶️{% endif %}
+                </button>
+              </form>
 
               <!-- Change role dropdown via select -->
-              <select aria-label="{{ t('تغيير دور العميل','Change client role') }}" onchange="if(this.value){window.location.href='/admin/users/{{ u.id }}/role/'+this.value}"
+              <form method="POST" action="" style="display: contents;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <select aria-label="{{ t('تغيير دور العميل','Change client role') }}" onchange="if(this.value){this.form.action='/admin/users/{{ u.id }}/role/'+this.value;this.form.submit()}"
                       style="padding: 5px 8px; border-radius: 7px; border: 1px solid var(--nx-line); font-size: 12px; background: var(--nx-surface);">
                 <option value="">📝 {{ t('دور','Role') }}</option>
                 <option value="client">{{ t('عميل','Client') }}</option>
                 <option value="nutritionist">{{ t('أخصائي','Nutritionist') }}</option>
               </select>
+              </form>
 
               <!-- Block -->
               {% if is_active %}
