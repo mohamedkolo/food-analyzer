@@ -52,7 +52,7 @@
   .cat-chip:hover { border-color: var(--nx-ink-2); }
   .cat-chip.active {
     background: var(--nx-solid-2);
-    color: #fff;
+    color:var(--nx-on-solid);
     border-color: var(--nx-ink-2);
   }
 
@@ -90,7 +90,7 @@
   .food-name { font-size: 19px; font-weight: 800; color: var(--nx-ink); margin: 0; }
   .food-cal {
     background: var(--nx-solid-2);
-    color: #fff;
+    color:var(--nx-on-solid);
     padding: 8px 14px;
     border-radius: 12px;
     font-weight: 800;
@@ -183,13 +183,13 @@
     transition: all 0.15s;
   }
   .cmp-btn:hover { border-color: var(--nx-ink-2); }
-  .cmp-btn.active { background: var(--nx-solid-2); color: #fff; border-color: var(--nx-ink-2); }
+  .cmp-btn.active { background: var(--nx-solid-2); color:var(--nx-on-solid); border-color: var(--nx-ink-2); }
 
   .cmp-bar {
     position: fixed;
     bottom: 0; left: 0; right: 0;
     background: var(--nx-solid);
-    color: #fff;
+    color:var(--nx-on-solid);
     padding: 12px 16px;
     display: none;
     align-items: center;
@@ -252,10 +252,10 @@
     <input type="file" id="barcodePhoto" accept="image/*" capture="environment" aria-label="{{ t('صوّر الباركود','Photograph the barcode') }}"
            style="position:absolute;inline-size:1px;block-size:1px;opacity:0;pointer-events:none">
     <label for="barcodePhoto" title="{{ t('صوّر الباركود','Photograph the barcode') }}"
-           style="margin:0;display:inline-flex;align-items:center;gap:6px;background:var(--nx-solid-2);color:#fff;border-radius:10px;padding:10px 14px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;">
+           style="margin:0;display:inline-flex;align-items:center;gap:6px;background:var(--nx-solid-2);color:var(--nx-on-solid);border-radius:10px;padding:10px 14px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;">
       📷 <span>{{ t('صوّر','Scan') }}</span></label>
     <button id="barcodeBtn" type="button"
-            style="background:var(--nx-solid-2);color:#fff;border:0;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;">
+            style="background:var(--nx-solid-2);color:var(--nx-on-solid);border:0;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;">
       {{ t('بحث','Search') }}
     </button>
   </div>
