@@ -280,7 +280,8 @@ def _item_cal(segment):
     """
     import meal_macros
     rows = meal_macros.macros(segment)["items"]
-    return rows[0].get("cal") if rows and rows[0].get("food") and rows[0].get("grams") else None
+    return rows[0].get("cal") if (rows and rows[0].get("food") and rows[0].get("grams")
+                                  and not rows[0].get("unresolved")) else None
 
 
 def meal_items(text):
