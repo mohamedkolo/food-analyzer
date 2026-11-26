@@ -43,7 +43,7 @@ app.register_blueprint(email_codes.bp)
 from plan_engine import (              # noqa: F401
     ALLERGY_KEYWORDS, parse_user_exclusions, filter_meals_by_exclusions,
     filter_carbs, _rank_by_condition, _apply_clinical_safety_caps,
-    generate_weekly_plan, get_allowed_forbidden, build_pdf, _has,
+    generate_weekly_plan, safe_generate, get_allowed_forbidden, build_pdf, _has,
 )
 
 
@@ -1041,11 +1041,10 @@ def api_v1_meal_plan():
     if data["culture"] not in ["مصري", "خليجي", "شامي", "مغربي", "عالمي"]:
         return jsonify({"ok": False, "error": "invalid_culture",
                          "message": "culture لازم يكون واحد من: مصري, خليجي, شامي, مغربي, عالمي"}), 400
-    try:
-        plan = generate_weekly_plan(data)
-    except Exception as e:
-        print(f"[api/v1/meal-plan] error: {e}")
-        return jsonify({"ok": False, "error": "generation_failed"}), 500
+    plan, _err = safe_generate(data)
+    if _err:
+        return jsonify({"ok": False, "error": "plan_not_verifiable",
+                        "message": _err}), 422
     return jsonify({"ok": True, "plan": plan, "meta": {
         "goal_type": data["goal_type"], "culture": data["culture"],
         "diet_plan_type": data["diet_plan_type"], "days": len(plan),
@@ -1274,7 +1273,10 @@ def track_whatsapp_click():
 def regenerate_plan():
     data = draft_store.draft_data()
     if not data: return redirect("/generate")
-    draft_store.set_draft(plan=generate_weekly_plan(data))
+    plan, err = safe_generate(data)
+    if err:
+        return err, 422
+    draft_store.set_draft(plan=plan)
     return redirect("/preview")
 
 @app.route("/download_pdf")
@@ -1368,7 +1370,10 @@ def patient_generate(pid):
         "goal_type": "weight_loss", "culture": "مصري", "diet_plan_type": "standard",
         "symptoms": json.loads(pt["conditions"] or "[]"), "notes": pt["notes"] or "",
     }
-    draft_store.set_draft(data=data, plan=generate_weekly_plan(data))
+    plan, err = safe_generate(data)
+    if err:
+        return err, 422
+    draft_store.set_draft(data=data, plan=plan)
     return redirect("/preview")
 
 @app.route("/patients/<int:pid>/status/<s>")
@@ -1888,7 +1893,6 @@ def something_broke(e):
 
 if __name__ == "__main__":
     app.run(debug=os.environ.get("FLASK_DEBUG") == "1")
-
 
 
 
