@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8">
 {% include "_theme.html" %}
+{% from "_nx_icons.html" import nxicon %}
 {% if google_verification() %}<meta name="google-site-verification" content="{{ google_verification() }}">{% endif %}
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NutraX - {{ 'تسجيل الدخول' if (lang or 'ar')=='ar' else 'Login' }}</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@300;400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" media="print" onload="this.media='all'"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/fontawesome.min.css">
 <link rel="stylesheet" media="print" onload="this.media='all'"
@@ -17,21 +18,21 @@
 </noscript>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Cairo',sans-serif;min-height:100vh;background:var(--nx-hero);display:flex;align-items:center;justify-content:center;padding:20px}
+body{font-family:'IBM Plex Sans Arabic','Cairo',sans-serif;min-height:100vh;background:var(--nx-bg);display:flex;align-items:center;justify-content:center;padding:20px}
 .container{max-width:480px;width:100%}
-.logo{text-align:center;margin-bottom:12px;color:#fff}
-.logo i{font-size:42px;color:#FF7A59;margin-bottom:8px;display:block}
-.logo h1{font-size:28px;font-weight:900;letter-spacing:1px}
+.logo{text-align:center;margin-bottom:12px;color:var(--nx-ink)}
+.logo img{width:56px;height:56px;margin-bottom:8px}
+.logo h1{font-size:28px;font-weight:700;letter-spacing:.5px}
 .logo p{font-size:13px;opacity:0.9;margin-top:4px}
-.card{background:var(--nx-surface);border-radius:20px;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-.tabs{display:flex;background:var(--nx-surface-2);border-radius:10px;padding:4px;margin-bottom:20px}
-.tab{flex:1;padding:10px;text-align:center;font-size:14px;font-weight:700;color:var(--nx-muted);cursor:pointer;border-radius:8px;transition:all .2s;border:none;background:none;font-family:'Cairo',sans-serif}
-.tab.active{background:var(--nx-surface);color:var(--nx-ink);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.card{background:var(--nx-surface);border:1.5px solid var(--nx-line);border-radius:20px;padding:28px 24px;box-shadow:var(--nx-sh)}
+.tabs{display:flex;background:var(--nx-surface-2);border:1.5px solid var(--nx-line);border-radius:12px;padding:4px;margin-bottom:20px}
+.tab{flex:1;padding:10px;text-align:center;font-size:14px;font-weight:700;color:var(--nx-muted);cursor:pointer;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:all .2s;border:none;background:none;font-family:'IBM Plex Sans Arabic','Cairo',sans-serif}
+.tab.active{background:var(--nx-surface);color:var(--nx-accent);box-shadow:0 2px 6px rgba(0,0,0,.08)}
 .form-group{margin-bottom:12px}
 .form-label{display:block;font-size:13px;font-weight:700;color:var(--nx-ink-2);margin-bottom:5px}
 .form-label .req{color:var(--nx-red)}
-.form-input,.form-select{width:100%;padding:11px 14px;border:2px solid var(--nx-line);border-radius:10px;font-family:'Cairo',sans-serif;font-size:14px;color:var(--nx-ink);outline:none;transition:border .2s;background:var(--nx-surface)}
-.form-input:focus,.form-select:focus{border-color:var(--nx-ink-2)}
+.form-input,.form-select{width:100%;padding:11px 14px;border:1.5px solid var(--nx-line);border-radius:12px;font-family:'IBM Plex Sans Arabic','Cairo',sans-serif;font-size:14px;color:var(--nx-ink);outline:none;transition:border .2s;background:var(--nx-surface)}
+.form-input:focus,.form-select:focus{border-color:var(--nx-accent-line);box-shadow:0 0 0 4px var(--nx-accent-soft)}
 .form-input.with-icon{padding-inline-start:40px}
 .input-wrap{position:relative}
 .input-icon{position:absolute;inset-inline-start:12px;top:50%;transform:translateY(-50%);color:var(--nx-muted);font-size:14px;pointer-events:none}
@@ -46,15 +47,15 @@ body{font-family:'Cairo',sans-serif;min-height:100vh;background:var(--nx-hero);d
    بيبان "!Test12345" بدل "Test12345!" -- وده بيلغي فايدة الإظهار أصلاً. */
 input[type="password"], input.has-eye{direction:ltr;text-align:left}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.btn{width:100%;padding:13px;border:none;border-radius:10px;font-family:'Cairo',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:10px;background:var(--nx-solid);color:#fff;transition:all .2s}
-.btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(37,99,235,.3)}
+.btn{width:100%;padding:13px;border:none;border-radius:10px;font-family:'IBM Plex Sans Arabic','Cairo',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:10px;background:var(--nx-solid);color:var(--nx-on-solid);transition:all .2s;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{transform:translateY(-2px);box-shadow:var(--nx-sh)}
 .btn-success{background:var(--nx-solid)}
 .msg{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px}
 .msg-error{background:var(--nx-bad-bg);color:var(--nx-bad-ink);border:1px solid var(--nx-bad-line)}
 .msg-success{background:var(--nx-tint);color:var(--nx-ink);border:1px solid var(--nx-line)}
 .info{padding:10px 14px;border-radius:8px;font-size:12px;margin-top:14px;background:var(--nx-tint);color:var(--nx-ink);border:1px solid var(--nx-line);text-align:center;line-height:1.6}
-.lang-switch{text-align:center;margin-top:18px}
-.lang-switch a{color:#fff;font-size:13px;text-decoration:none;opacity:0.9}
+.lang-switch{text-align:center;margin-top:18px;display:flex;align-items:center;justify-content:center;gap:14px}
+.lang-switch a{color:var(--nx-muted);font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
 .hint{font-size:11px;color:var(--nx-muted);margin-top:4px}
 .section-divider{height:1px;background:var(--nx-line);margin:14px 0}
 .section-title{font-size:12px;font-weight:800;color:var(--nx-ink);margin-bottom:10px;letter-spacing:0.5px;text-transform:uppercase}
@@ -64,7 +65,7 @@ input[type="password"], input.has-eye{direction:ltr;text-align:left}
 {% set is_ar = (lang or 'ar') == 'ar' %}
 <main class="container">
   <div class="logo">
-    <i class="fa-solid fa-leaf"></i>
+    <img src="{{ url_for('static', filename='nx-icon-v2-192.png') }}" alt="">
     <h1>NutraX</h1>
     <p>{{ 'استشارات التغذية الإكلينيكية' if is_ar else 'Clinical Nutrition' }}</p>
   </div>
@@ -75,10 +76,10 @@ input[type="password"], input.has-eye{direction:ltr;text-align:left}
     <!-- Tabs -->
     <div class="tabs">
       <button class="tab {% if tab != 'register' %}active{% endif %}" onclick="switchTab('login')" id="tabLogin">
-        <i class="fa-solid fa-arrow-right-to-bracket"></i> {{ 'تسجيل الدخول' if is_ar else 'Sign In' }}
+        {{ nxicon('log-in',15) }} {{ 'تسجيل الدخول' if is_ar else 'Sign In' }}
       </button>
       <button class="tab {% if tab == 'register' %}active{% endif %}" onclick="switchTab('register')" id="tabRegister">
-        <i class="fa-solid fa-user-plus"></i> {{ 'إنشاء حساب' if is_ar else 'Sign Up' }}
+        {{ nxicon('user-plus',15) }} {{ 'إنشاء حساب' if is_ar else 'Sign Up' }}
       </button>
     </div>
 
@@ -96,7 +97,7 @@ input[type="password"], input.has-eye{direction:ltr;text-align:left}
       <div class="form-group">
         <label class="form-label" for="f_email">{{ 'البريد الإلكتروني' if is_ar else 'Email' }}</label>
         <div class="input-wrap">
-          <i class="fa-solid fa-envelope input-icon"></i>
+          <span class="input-icon" style="display:flex">{{ nxicon('mail',15) }}</span>
           <input class="form-input with-icon" type="email" name="email" required id="f_email"
                  placeholder="you@example.com" style="text-align:left;direction:ltr"
                  autocomplete="username" inputmode="email"
@@ -107,17 +108,17 @@ input[type="password"], input.has-eye{direction:ltr;text-align:left}
       <div class="form-group">
         <label class="form-label" for="f_password">{{ 'كلمة المرور' if is_ar else 'Password' }}</label>
         <div class="input-wrap">
-          <i class="fa-solid fa-lock input-icon"></i>
+          <span class="input-icon" style="display:flex">{{ nxicon('lock',15) }}</span>
           <input class="form-input with-icon has-eye" type="password" name="password" required id="f_password"
                  autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false">
           <button type="button" class="pw-eye" data-pw-toggle
                   aria-label="{{ 'إظهار كلمة المرور' if is_ar else 'Show password' }}">
-            <i class="fa-solid fa-eye"></i></button>
+            {{ nxicon('eye',16) }}</button>
         </div>
       </div>
 
       <button type="submit" class="btn">
-        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+        {{ nxicon('log-in',15) }}
         {{ 'تسجيل الدخول' if is_ar else 'Sign In' }}
       </button>
 
@@ -133,12 +134,12 @@ input[type="password"], input.has-eye{direction:ltr;text-align:left}
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="action" value="register">
 
-      <div class="section-title">📝 {{ 'المعلومات الأساسية' if is_ar else 'Basic Information' }}</div>
+      <div class="section-title" style="display:flex;align-items:center;gap:7px">{{ nxicon('clipboard-list',14) }} {{ 'المعلومات الأساسية' if is_ar else 'Basic Information' }}</div>
 
       <div class="form-group">
         <label class="form-label" for="r_name">{{ 'الاسم الكامل' if is_ar else 'Full Name' }} <span class="req">*</span></label>
         <div class="input-wrap">
-          <i class="fa-solid fa-user input-icon"></i>
+          <span class="input-icon" style="display:flex">{{ nxicon('user',15) }}</span>
           <input class="form-input with-icon" type="text" name="name" required id="r_name" placeholder="{{ 'محمد أحمد' if is_ar else 'John Smith' }}">
         </div>
       </div>
@@ -147,7 +148,7 @@ input[type="password"], input.has-eye{direction:ltr;text-align:left}
         <div class="form-group">
           <label class="form-label" for="r_age">{{ 'السن' if is_ar else 'Age' }} <span class="req">*</span></label>
           <div class="input-wrap">
-            <i class="fa-solid fa-calendar input-icon"></i>
+            <span class="input-icon" style="display:flex">{{ nxicon('calendar',15) }}</span>
             <input class="form-input with-icon" type="number" name="age" required id="r_age" placeholder="30" min="10" max="100">
           </div>
         </div>
@@ -180,16 +181,16 @@ input[type="password"], input.has-eye{direction:ltr;text-align:left}
           <svg class="wa-icon input-icon" style="color:#25D366" viewBox="0 0 448 512" width="1em" height="1em" fill="currentColor" aria-hidden="true" focusable="false"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-34.5-17-39.8-18.9-5.3-1.9-9.2-2.9-13.1 2.9-3.9 5.8-15.1 18.9-18.5 22.8-3.4 3.9-6.8 4.4-12.3 1.5-5.5-2.9-23.3-8.6-44.4-27.4-16.4-14.6-27.5-32.7-30.9-38.5-3.4-5.8-.4-9 2.4-11.8 2.5-2.5 5.5-6.5 8.2-9.8 2.7-3.3 3.6-5.6 5.5-9.4 1.9-3.9 1-7.2-.5-10.1-1.5-2.9-13.5-32.5-18.5-44.4-4.9-11.7-9.9-10.1-13.6-10.3-3.5-.2-7.5-.2-11.4-.2-3.9 0-10.2 1.5-15.5 7.3-5.3 5.8-20.3 19.9-20.3 48.5s20.8 56.2 23.7 60.1c2.9 3.9 40.9 62.4 99 87.5 13.8 6 24.6 9.6 33 12.3 11.4 3.6 21.8 3.1 30-1.9 9.2-5.6 15.4-17.3 17.6-24.7 2.2-7.4 2.2-13.8 1.5-15.1-.7-1.3-2.5-2.2-5.3-3.6z"/></svg>
           <input class="form-input with-icon" type="tel" name="phone" required id="r_phone" placeholder="+971501234567" style="text-align:left;direction:ltr">
         </div>
-        <div class="hint">📱 {{ 'لازم يكون مع كود الدولة (مثلاً +971 أو +20)' if is_ar else 'Must include the country code (e.g. +971 or +20)' }}</div>
+        <div class="hint" style="display:flex;align-items:center;gap:5px">{{ nxicon('phone',12) }} {{ 'لازم يكون مع كود الدولة (مثلاً +971 أو +20)' if is_ar else 'Must include the country code (e.g. +971 or +20)' }}</div>
       </div>
 
       <div class="section-divider"></div>
-      <div class="section-title">🔐 {{ 'بيانات الدخول' if is_ar else 'Login Details' }}</div>
+      <div class="section-title" style="display:flex;align-items:center;gap:7px">{{ nxicon('lock',14) }} {{ 'بيانات الدخول' if is_ar else 'Login Details' }}</div>
 
       <div class="form-group">
         <label class="form-label" for="r_email">{{ 'البريد الإلكتروني' if is_ar else 'Email' }} <span class="req">*</span></label>
         <div class="input-wrap">
-          <i class="fa-solid fa-envelope input-icon"></i>
+          <span class="input-icon" style="display:flex">{{ nxicon('mail',15) }}</span>
           <input class="form-input with-icon" type="email" name="reg_email" required id="r_email"
                  placeholder="you@example.com" style="text-align:left;direction:ltr"
                  autocomplete="email" inputmode="email"
@@ -200,23 +201,23 @@ input[type="password"], input.has-eye{direction:ltr;text-align:left}
       <div class="form-group">
         <label class="form-label" for="r_password">{{ 'كلمة المرور' if is_ar else 'Password' }} <span class="req">*</span></label>
         <div class="input-wrap">
-          <i class="fa-solid fa-lock input-icon"></i>
+          <span class="input-icon" style="display:flex">{{ nxicon('lock',15) }}</span>
           <input class="form-input with-icon has-eye" type="password" name="reg_password" required id="r_password" minlength="6"
                  placeholder="{{ '6 أحرف على الأقل' if is_ar else 'At least 6 characters' }}"
                  autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false">
           <button type="button" class="pw-eye" data-pw-toggle
                   aria-label="{{ 'إظهار كلمة المرور' if is_ar else 'Show password' }}">
-            <i class="fa-solid fa-eye"></i></button>
+            {{ nxicon('eye',16) }}</button>
         </div>
       </div>
 
       <button type="submit" class="btn btn-success">
-        <i class="fa-solid fa-user-plus"></i>
+        {{ nxicon('user-plus',15) }}
         {{ 'إنشاء حسابي الجديد' if is_ar else 'Create My Account' }}
       </button>
 
       <div class="info" style="margin-top:14px">
-        <i class="fa-solid fa-circle-info"></i>
+        {{ nxicon('info',14) }}
         {{ 'بعد التسجيل، تقدر تطلب خطة غذائية مخصصة من د. محمد' if is_ar else 'After signing up, you can request a personalized meal plan from Dr. Mohamed' }}
       </div>
     </form>
@@ -225,7 +226,7 @@ input[type="password"], input.has-eye{direction:ltr;text-align:left}
   <div class="lang-switch">
     {% include "_theme_btn.html" %}
     <a href="/lang/{{ 'en' if is_ar else 'ar' }}">
-      <i class="fa-solid fa-globe"></i> {{ 'English' if is_ar else 'عربي' }}
+      {{ nxicon('globe',14) }} {{ 'English' if is_ar else 'عربي' }}
     </a>
   </div>
 </main>
@@ -264,7 +265,8 @@ document.addEventListener('click', function(ev){
   const show = input.type === 'password';
   input.type = show ? 'text' : 'password';
   btn.classList.toggle('on', show);
-  btn.innerHTML = show ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
+  const EYE = '<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0'/><circle cx='12' cy='12' r='3'/></svg>', EYEOFF = '<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49'/><path d='M14.084 14.158a3 3 0 0 1-4.242-4.242'/><path d='M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143'/><path d='m2 2 20 20'/></svg>';
+  btn.innerHTML = show ? EYEOFF : EYE;
   btn.setAttribute('aria-label', show
     ? '{{ 'إخفاء كلمة المرور' if is_ar else 'Hide password' }}'
     : '{{ 'إظهار كلمة المرور' if is_ar else 'Show password' }}');
