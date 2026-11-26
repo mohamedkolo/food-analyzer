@@ -70,6 +70,16 @@
          أزرق، كارب تركواز، دهون بنفسجي. #}
       {% if progress %}
       <div class="dp" id="dpBox">
+        {% if progress.basis != 'items' %}
+        {# Incomplete day: no calorie/protein rings (they would imply food intake). #}
+        {% set md = progress.meals_done %}{% set mt = progress.meals_total %}
+        <div class="dp-plan" id="dpPlan" data-basis="even_split" data-done="{{ md }}" data-total="{{ mt }}">
+          <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800"><span>{{ t('وجبات الخطة النهارده','Plan meals today') }}</span><span><bdi dir="ltr">{{ md }} / {{ mt }}</bdi></span></div>
+          <div style="height:8px;background:var(--nx-line);border-radius:99px;overflow:hidden;margin:6px 0"><div style="height:100%;width:{{ (md * 100 / mt)|round|int if mt else 0 }}%;background:var(--nx-solid-2)"></div></div>
+          <div style="font-size:12px;color:var(--nx-ink-2)">{{ t('هدف اليوم من الدكتور','Doctor\'s day target') }}: <bdi dir="ltr">{{ progress.target.cal }}</bdi> {{ t('سعرة','kcal') }}{% if progress.target.p %} · <bdi dir="ltr">{{ progress.target.p }}</bdi> {{ t('جم بروتين','g protein') }}{% endif %}</div>
+        </div>
+        {% endif %}
+        {% if progress.basis == 'items' %}
         <div class="dp-rings">
           {% for k, ar, en, unit in [('cal','سعرات','Calories',''),('p','بروتين','Protein',t('جم','g')),('c','كارب','Carbs',t('جم','g')),('f','دهون','Fat',t('جم','g'))] %}
           {% if progress.target[k] %}
@@ -85,7 +95,8 @@
           {% endif %}
           {% endfor %}
         </div>
-        <p class="dp-note" id="dpNote" {% if progress.basis == 'items' %}hidden{% endif %} style="margin:8px 0 0;font-size:12px;color:var(--nx-ink-2)">{{ t('الأرقام دي توزيع تقريبي لهدف اليوم على الوجبات بالتساوي، مش محسوبة من أصناف الوجبات (وجبة حسابها ناقص).','These split the day target evenly across meals. They are not computed from the meals\' items (a meal\'s calculation is incomplete).') }}</p>
+        {% endif %}
+        <p class="dp-note" id="dpNote" {% if progress.basis == 'items' %}hidden{% endif %} style="margin:8px 0 0;font-size:12px;color:var(--nx-ink-2)">{{ t('العدّاد هنا بيعدّ وجبات الخطة اللي علّمت عليها، مش سعرات أو بروتين اتاكل فعلًا: حساب وجبة ناقص (فيها صنف مش متحدد).','This counts plan meals you ticked. It is not calories or protein eaten: a meal\'s calculation is incomplete (it has an unresolved item).') }}</p>
         {% if progress.hints %}
         <ul class="dp-hints" id="dpHints" aria-live="polite">{% for h in progress.hints %}<li>{{ h }}</li>{% endfor %}</ul>
         {% endif %}
@@ -289,6 +300,10 @@
           r.querySelector('.dp-arc').style.strokeDashoffset = 100 - Math.min(100, Math.round(e * 100 / tg));
         });
         const note = document.getElementById('dpNote'); if (note) note.hidden = (d.basis === 'items');
+        const wasItems = !document.getElementById('dpPlan');
+        if (wasItems !== (d.basis === 'items')) { location.reload(); return; }
+        const pl = document.getElementById('dpPlan');
+        if (pl) { pl.dataset.done = d.meals_done; const b = pl.querySelector('bdi'); if (b) b.textContent = d.meals_done + ' / ' + d.meals_total; const f = pl.children[1] && pl.children[1].firstElementChild; if (f) f.style.width = (d.meals_total ? Math.round(d.meals_done * 100 / d.meals_total) : 0) + '%'; }
         let ul = document.getElementById('dpHints');
         if (!ul && d.hints && d.hints.length){ ul = document.createElement('ul'); ul.id = 'dpHints'; ul.className = 'dp-hints'; ul.setAttribute('aria-live','polite'); box.appendChild(ul); }
         if (ul){ ul.textContent = ''; (d.hints || []).forEach(h => { const li = document.createElement('li'); li.textContent = h; ul.appendChild(li); }); }
@@ -339,7 +354,7 @@
       {% set pc = ((d.cal * 100 / d.cal_target)|round|int) if d.cal_target else 0 %}
       {% set pp = ((d.p * 100 / d.p_target)|round|int) if d.p_target else 0 %}
       <div class="wk-col{% if loop.last %} is-today{% endif %}" data-cal="{{ pc }}" data-p="{{ pp }}">
-        <span class="wk-v">{{ pc }}%</span>
+        <span class="wk-v"><bdi dir="ltr">{% if d.approx %}~{% endif %}{{ pc }}%</bdi></span>
         <span class="wk-stick"><span class="wk-goal" aria-hidden="true"></span><span class="wk-fill" style="block-size:{{ ([pc,120]|min * 100 / 120)|round(1) }}%"></span></span>
         <span class="wk-d">{{ (wk_ar if is_ar else wk_en)[d.dow] }}</span>
       </div>
@@ -349,7 +364,7 @@
       {% for k, ar, en in [('cal','السعرات','Calories'),('p','البروتين','Protein')] %}
       <div class="wk-chip">
         <span class="wk-chip-l">{{ ar if is_ar else en }}</span>
-        <b>{{ weekly.this[k ~ '_pct'] }}%</b>
+        <b><bdi dir="ltr">{% if weekly.this.approx_days %}~{% endif %}{{ weekly.this[k ~ '_pct'] }}%</bdi></b>
         <span class="wk-chip-s">{{ t('من المستهدف','of target') }}</span>
         {% if weekly.delta %}
         {% set dv = weekly.delta[k ~ '_pct'] %}
@@ -357,6 +372,9 @@
         {% endif %}
       </div>
       {% endfor %}
+      {% if weekly.this.approx_days or weekly.last.approx_days %}
+      <p class="wk-note" id="wkApprox">{{ t('الأيام اللي عليها ~ حسابها ناقص: النسبة فيها بتعدّ وجبات الخطة اللي علّمت عليها، مش سعرات أو بروتين اتاكل فعلًا، فالمقارنة تقريبية.','Days marked ~ have an incomplete calculation: their percent counts plan meals you ticked, not calories or protein eaten, so the comparison is approximate.') }}</p>
+      {% endif %}
       <p class="wk-note">
         {% if weekly.delta %}{{ t('علّمت على وجبات','You logged meals on') }} {{ weekly.this.days_logged }} {{ t('من 7 أيام.','of 7 days.') }}
         {% else %}{{ t('أول أسبوع ليك، والمقارنة هتظهر الأسبوع الجاي.','Your first week; the comparison shows up next week.') }}{% endif %}
