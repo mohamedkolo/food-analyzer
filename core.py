@@ -40,6 +40,12 @@ app.permanent_session_lifetime = timedelta(days=30)
 IS_PRODUCTION = (os.environ.get("ENV", "").lower() == "production"
                  or os.environ.get("RENDER", "").lower() == "true")
 
+# ═══ حد حجم الرفع ═══
+try:
+    app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_UPLOAD_MB", "20")) * 1024 * 1024
+except ValueError:
+    app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
+
 # ═══ كوكي الجلسة ═══
 # الجلسة عايشة 30 يوم على أجهزة فيها بيانات صحية، فلازم تتقفل:
 #   Secure   — ماتتبعتش أبداً على http عادي (على البرودكشن بس، عشان التطوير المحلي)
