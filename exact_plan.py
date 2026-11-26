@@ -45,8 +45,17 @@ PRACTICAL_MAX_G = {"meat": 400, "poultry": 400, "fish": 400, "dairy": 600,
                    "supplement": 60, "veg": 700}
 MIN_SERVE_G = {"meat": 80, "poultry": 80, "fish": 80, "dairy": 50}   # a main protein is not shrunk below this
 OIL_WORDS = ("زيت زيتون", "زيت ", "زبدة", "سمن")
+CHEESE_MAX_G = 250      # cheese / cottage cheese in one meal
 OIL_MAX_G = 45          # oil/butter in one meal
 VOLUME_WORDS = ("شوربة", "سلطة", "محشي")   # soups, salads, stuffed veg: counted by pieces/volume
+
+
+def _cap_for(seg, it):
+    if any(w in seg for w in OIL_WORDS):
+        return OIL_MAX_G
+    if "جبن" in seg or "فيتا" in seg or "بارميزان" in seg:
+        return CHEESE_MAX_G
+    return PRACTICAL_MAX_G.get(it["cat"])
 
 
 def impractical_items(day):
@@ -57,7 +66,7 @@ def impractical_items(day):
             it = _item(seg)
             if not it:
                 continue
-            cap = OIL_MAX_G if any(w in seg for w in OIL_WORDS) else PRACTICAL_MAX_G.get(it["cat"])
+            cap = _cap_for(seg, it)
             if cap and it["g"] > cap and not any(w in seg for w in VOLUME_WORDS):
                 bad.append((k, seg.strip(), it["g"], cap))
     return bad
@@ -80,7 +89,7 @@ def _scale_where(text, pred, factor):
         it = _item(seg)
         if it and pred(it) and not ps._is_free(seg):
             f = factor
-            cap = OIL_MAX_G if any(w in seg for w in OIL_WORDS) else PRACTICAL_MAX_G.get(it["cat"])
+            cap = _cap_for(seg, it)
             floor = MIN_SERVE_G.get(it["cat"])
             if floor and f < 1 and it["g"] > floor:
                 f = max(f, floor / it["g"])     # never shrink a main protein below a real serving
