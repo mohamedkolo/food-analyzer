@@ -249,9 +249,10 @@
   'lost_on_gain':  ('#8B2E2E', '#FBEDED', 'fa-arrow-trend-down'),
   'too_soon':      ('#5A6472', '#F3F5F7', 'fa-hourglass-half'),
 } %}
+{% set VERDICT_LABELS = {'on_track':('في النطاق','On track'),'gain_on_track':('زيادة صحية','Healthy gain'),'too_fast':('أسرع من الآمن','Faster than safe'),'gain_too_fast':('زيادة سريعة','Gaining too fast'),'too_slow':('أبطأ من المتوقع','Slower than expected'),'plateau':('ثابت','Stalled'),'gain_stalled':('مش بيزيد','Not rising'),'regained':('زاد','Went up'),'lost_on_gain':('نزل والهدف زيادة','Fell on a gain goal'),'too_soon':('أقل من أسبوع','Under a week')} %}
 {% set col, bg, vicon = VS.get(fu.verdict, ('#5A6472', '#F3F5F7', 'fa-circle-dot')) %}
 <!-- المتابعة -->
-<div style="background:var(--nx-surface);border:2px solid {{ col }};border-radius:12px;padding:16px 18px;margin-bottom:16px">
+<div id="fuCard" style="background:var(--nx-surface);border:2px solid {{ col }};border-radius:12px;scroll-margin-top:84px;padding:16px 18px;margin-bottom:16px">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
     <div style="font-weight:800;color:var(--nx-ink);font-size:15px">
       <i class="fa-solid fa-clock-rotate-left" style="color:{{ col }}"></i>
@@ -266,7 +267,7 @@
     <div>
       <div style="font-size:11.5px;color:var(--nx-muted);font-weight:700">{{ t('الوزن','Weight') }}</div>
       <div style="font-size:19px;font-weight:900;color:var(--nx-ink)">
-        {{ fu.old_weight }} → {{ fu.new_weight }}<span style="font-size:12px">{{ t('كجم','kg') }}</span>
+        <bdi dir="ltr">{{ fu.old_weight }} → {{ fu.new_weight }}</bdi><span style="font-size:12px"> {{ t('كجم','kg') }}</span>
       </div>
     </div>
     <div>
@@ -300,20 +301,57 @@
   {% if fu.tdee_drop and fu.tdee_drop > 0 %}
   <div style="font-size:12.5px;color:var(--nx-warn-ink);background:var(--nx-warn-bg);border:1px solid var(--nx-warn-line);
               border-radius:9px;padding:10px 13px;margin-top:9px;line-height:1.8">
-    {{ t('الـTDEE نزل','TDEE dropped') }} <b>{{ fu.tdee_drop }} kcal</b>
-    {{ t('مع الوزن. يعني هدف الزيارة اللي فاتت','with the weight. That means last visit’s target of') }}
-    <b>{{ fu.old_goal_cal }}</b> {{ t('بقى عجزه أصغر بالمقدار ده — ده السبب الأشهر لثبات الوزن.',
-                                      'now carries that much less deficit — the most common reason weight stalls.') }}
+    {{ t('الـTDEE المحسوب نزل','The calculated TDEE dropped') }} <b>{{ fu.tdee_drop }} kcal</b>
+    {{ t('مع الوزن (حساب مباشر على الوزن الجديد). يعني هدف الزيارة اللي فاتت','with the weight (a direct recalculation on the new weight). That means last visit’s target of') }}
+    <b>{{ fu.old_goal_cal }}</b> {{ t('بقى عجزه أصغر بالمقدار ده. ده حساب، مش تفسير لسبب ثبات الوزن.',
+                                      'now carries that much less deficit. This is arithmetic, not an explanation of why weight stalled.') }}
   </div>
   {% endif %}
 
   {% if fu.suggested_goal_cal and data.goal_cal and fu.suggested_goal_cal|int != data.goal_cal|int %}
   <div style="font-size:12.5px;color:var(--nx-ink);background:var(--nx-tint);border-radius:9px;
               padding:10px 13px;margin-top:9px;line-height:1.8">
-    <i class="fa-solid fa-lightbulb"></i> {{ t('المقترح للزيارة دي','Suggested for this visit') }}: <b>{{ fu.suggested_goal_cal }} kcal</b>
+    <i class="fa-solid fa-lightbulb"></i> {{ t('اقتراح القاعدة الحسابية للزيارة دي (مش توصية طبية)','Calculation-rule suggestion for this visit (not a medical recommendation)') }}: <b>{{ fu.suggested_goal_cal }} kcal</b>
     {{ t('— انت مولّد الخطة على','— you generated this plan on') }} <b>{{ data.goal_cal }}</b> kcal.
     {{ t('لو عايز تجرّب المقترح، ارجع لصفحة التوليد وغيّر الهدف.',
          'To try the suggestion, go back to the generate page and change the target.') }}
+  </div>
+  {% endif %}
+
+  {% set fh = fu.history %}
+  {% if fh and fh.intervals|length > 1 %}
+  <div id="fuHistory" style="margin-top:12px;border-top:1px solid var(--nx-line);padding-top:12px">
+    <div style="font-weight:800;font-size:13px;color:var(--nx-ink);margin-bottom:8px">
+      {{ t('اللي اتحلل من الزيارات اللي فاتت','What was read from the previous visits') }}
+      <span style="font-weight:600;color:var(--nx-muted)">({{ t('قرأنا','Read') }} {{ fh.visits_used }}
+        {{ t('من','of') }} {{ fh.total_visits }} {{ t('زيارات مسجّلة','recorded visits') }}{% if fh.total_visits > fh.visits_used %}{{ t(' (آخر 6 بس، الأقدم مش داخل)',' (the latest 6 only, older ones are not included)') }}{% endif %},
+        <bdi dir="ltr">{{ '+' if fh.net_change > 0 }}{{ fh.net_change }}</bdi> {{ t('كجم من أول زيارة مقروءة','kg since the first visit read') }})</span>
+    </div>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+      <thead><tr style="color:var(--nx-muted);text-align:start">
+        <th style="padding:4px 6px;text-align:start">{{ t('الفترة','Interval') }}</th>
+        <th style="padding:4px 6px;text-align:start">{{ t('الوزن','Weight') }}</th>
+        <th style="padding:4px 6px;text-align:start">{{ t('المعدل','Rate') }}</th>
+        <th style="padding:4px 6px;text-align:start">{{ t('الحكم','Reading') }}</th>
+      </tr></thead>
+      <tbody>
+      {% for iv in fh.intervals %}
+      <tr style="border-top:1px solid var(--nx-line)">
+        <td style="padding:5px 6px">{{ t('من','From') }} #{{ iv.from_visit or '?' }} {{ t('إلى','to') }} {{ ('#' ~ iv.to_visit) if iv.to_visit else t('دلوقتي','now') }}</td>
+        <td style="padding:5px 6px;white-space:nowrap"><bdi dir="ltr">{{ iv.old_weight }} → {{ iv.new_weight }}</bdi></td>
+        <td style="padding:5px 6px;white-space:nowrap"><bdi dir="ltr">{{ '+' if iv.rate > 0 }}{{ iv.rate }}</bdi> {{ t('كجم/أسبوع','kg/wk') }}</td>
+        <td style="padding:5px 6px">{{ VERDICT_LABELS.get(iv.verdict, (iv.verdict, iv.verdict))[0 if is_ar else 1] }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% set sn = fh.streak_note_ar if is_ar else fh.streak_note_en %}
+    {% if sn %}
+    <div style="font-size:12.5px;background:var(--nx-warn-bg);color:var(--nx-warn-ink);border:1px solid var(--nx-warn-line);
+                border-radius:9px;padding:9px 12px;margin-top:9px;line-height:1.8">{{ sn }}</div>
+    {% endif %}
   </div>
   {% endif %}
 
@@ -321,9 +359,17 @@
   <div style="font-size:12px;color:var(--nx-muted);margin-top:10px">
     {{ t('الخطة دي اتبنت وهي بتتفادى','This plan was built avoiding') }}
     <b>{{ data.avoid_meals|length }}</b>
-    {{ t('وجبة من خطة الزيارة اللي فاتت.','meals from last visit’s plan.') }}
+    {% if (data.avoid_plans or 1) > 1 %}
+    {{ t('وجبة مختلفة اتأخّرت في الاختيار من آخر','distinct meals were pushed to the back of the queue from the last') }} {{ data.avoid_plans }} {{ t('خطط. ده تأخير مش منع: لو الفلترة الطبية سابت خيارات قليلة ممكن وجبة تتكرر.','plans. This is deferral, not a ban: if medical filtering leaves few options, a meal can repeat.') }}
+    {% else %}
+    {{ t('وجبة مختلفة اتأخّرت في الاختيار من خطة الزيارة اللي فاتت (تأخير مش منع).','distinct meals were pushed to the back of the queue from last visit’s plan (deferral, not a ban).') }}
+    {% endif %}
   </div>
   {% endif %}
+  <div style="font-size:11.5px;color:var(--nx-muted);margin-top:8px">
+    {{ t('مسودة بتتراجع قبل أي حفظ أو إرسال للعميل. قراءة الزيارة الأخيرة والسعرات المقترحة فوق هما نفس قواعد المتابعة القديمة ماتغيّرتش. اللي اتضاف هنا جدول الفترات والملاحظة وده وصف للأوزان المسجّلة، مش توصية طبية جديدة متحقق منها.',
+         'A draft for review before anything is saved or sent. The last-visit reading and suggested calories above use the same follow-up rules as before, unchanged. What is new here is the interval table and the note, which describe recorded weights only; they are not a newly verified medical recommendation.') }}
+  </div>
 </div>
 {% endif %}
 
