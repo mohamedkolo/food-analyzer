@@ -39,7 +39,7 @@ import portion_scale
 from core import meal_items as _items_for_page
 from plan_engine import (
     build_pdf, filter_carbs, filter_meals_by_exclusions,
-    generate_weekly_plan, parse_user_exclusions,
+    generate_weekly_plan, safe_generate, parse_user_exclusions,
 )
 from zigzag import ZIGZAG_MODES, zigzag_from_data
 
@@ -176,13 +176,12 @@ def generate():
                     "هذا العميل. لم يتم إنشاء خطة بدل تخمين الكميات. "
                     "خفّف قيود الاستبعاد أو أضف وجبات بجرامات مكتوبة."
                     % (exc.slot, exc.have, exc.need)), 422
-        try:
-            import meal_macros
-            import exact_plan
-            exact_plan.finalize_plan(plan, data)
-            meal_macros.annotate_plan(plan, data)
-        except Exception:
-            pass
+        except _mmx.TargetNotReachable as exc:
+            return ("هدف السعرات (%d) وهدف البروتين مع بعض مش ممكن يتحققوا بوجبات "
+                    "وحصص منطقية من الأصناف المتاحة (أقصى سعرات وصلنا لها %d). "
+                    "لم يتم إنشاء خطة بأرقام غير مطابقة. "
+                    "تغطية الأصناف الحالية لا تكفي لهذا العميل."
+                    % (exc.target, exc.got)), 422
         draft_store.set_draft(data=data, plan=plan)
         # مفيش حفظ هنا. الدكتور بيولّد ويرجع يظبط ويولّد تاني، والحفظ التلقائي
         # كان بيعمل خطة محفوظة وزيارة متابعة في كل مرة -- تلات تظبيطات كانوا
@@ -383,7 +382,9 @@ def demo_plan(token):
     """
     data = _demo_data(token)
     data["zigzag"] = zigzag_from_data(data)
-    plan = generate_weekly_plan(data, seed="demo:" + str(token))
+    plan, _err = safe_generate(data, seed="demo:" + str(token))
+    if _err:
+        return _err, 422
     return render_template("public_plan.html", lang=session.get("lang", "ar"),
                            plan=plan, data=data, token=token,
                            pdf_url="/demo/%s/pdf" % token, demo=True,
@@ -394,7 +395,9 @@ def demo_plan(token):
 def demo_plan_pdf(token):
     data = _demo_data(token)
     data["zigzag"] = zigzag_from_data(data)
-    plan = generate_weekly_plan(data, seed="demo:" + str(token))
+    plan, _err = safe_generate(data, seed="demo:" + str(token))
+    if _err:
+        return _err, 422
     buf = io.BytesIO(build_pdf(data, plan)); buf.seek(0)
     return send_file(buf, as_attachment=True,
                      download_name="NutraX_sample.pdf",
@@ -1351,4 +1354,3 @@ def edit_meal():
                         "items": _items_for_page(new_text), "check": check})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
-
