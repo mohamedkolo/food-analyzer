@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% set _ar = (lang or 'ar') == 'ar' %}
+{% from "_nx_icons.html" import nxicon %}
 {% block title %}{% if active_cat %}{{ t('سعرات ' ~ cat_label, cat_label ~ ' — Calories & Nutrition') }}{% else %}{{ t('جدول السعرات — ابحث عن أي صنف','Calorie Table — Search Any Food') }}{% endif %}{% endblock %}
 {% block meta_description %}{% if active_cat %}{{ t(
   'سعرات وبروتين وكارب ودهون ' ~ cat_label ~ ' لكل 100 جرام، مع تفاصيل كل صنف.',
@@ -12,132 +13,167 @@
 
 {% block extra_style %}
 <style>
-  .fx { --ink:#1E2630; --brand:#3A4A5C; --brand-2:#3A4A5C; --accent:#FF7A59;
-        --line:#D5DAE0; --soft:#F3F5F7; --muted:#5A6472;
-        font-family:'Cairo','Tajawal',system-ui,sans-serif; }
+  .fx { font-family:'IBM Plex Sans Arabic','Cairo','Tajawal',system-ui,sans-serif;
+        color:var(--nx-ink); }
 
-  /* search band */
-  .fx-band { background:var(--nx-solid);
-             padding:44px 20px 52px; color:#fff; position:relative; overflow:hidden; }
-  .fx-band-in { max-width:760px; margin:0 auto; position:relative; text-align:center; }
-  .fx-band h1 { font-size:32px; font-weight:900; margin:0 0 10px; line-height:1.35; }
-  .fx-band p { margin:0 0 24px; opacity:.92; font-size:15.5px; line-height:1.8; }
-  .fx-search { position:relative; }
+  /* هيرو أخضر هادي ورا العنوان والبحث */
+  .fx-hero { position:relative; padding:46px 20px 0; overflow:hidden; }
+  .fx-hero::before { content:""; position:absolute; inset:0; pointer-events:none;
+             background:var(--nx-accent-soft); }
+  .fx-hero-in { max-width:860px; margin:0 auto; position:relative; }
+  .fx-kicker { font-size:13px; font-weight:700; color:var(--nx-accent); margin-bottom:6px; }
+  .fx-hero h1 { font-size:36px; font-weight:700; margin:0; line-height:1.25; }
+  .fx-sub { margin:10px 0 0; color:var(--nx-muted); font-size:15px; font-weight:300; line-height:1.9; max-width:560px; }
+
+  /* بحث: كارت واضح دايمًا في الوش */
+  .fx-search { margin-top:22px; display:flex; align-items:center; gap:10px;
+    background:var(--nx-surface); border:1.5px solid var(--nx-line); border-radius:16px;
+    padding:6px 18px; box-shadow:var(--nx-sh); transition:border-color .2s, box-shadow .2s; }
+  .fx-search:focus-within { border-color:var(--nx-accent-line); box-shadow:0 0 0 4px var(--nx-accent-soft); }
+  .fx-search .ic { color:var(--nx-muted); display:flex; flex:none; }
   .fx-search input {
-    width:100%; padding:17px 54px 17px 20px; border-radius:14px; border:0;
-    font-size:16px; font-family:inherit; font-weight:600; color:var(--nx-ink);
-    box-shadow:0 10px 30px rgba(0,0,0,.18); outline:none;
+    flex:1; width:100%; padding:13px 0; border:0; background:none;
+    font-size:15.5px; font-family:inherit; color:var(--nx-ink); outline:none;
   }
-  html[dir="ltr"] .fx-search input { padding:17px 20px 17px 54px; }
-  .fx-search .ic { position:absolute; top:50%; transform:translateY(-50%);
-                   inset-inline-end:20px; color:var(--nx-muted); font-size:17px; pointer-events:none; }
-  html[dir="ltr"] .fx-search .ic { inset-inline-end:auto; inset-inline-start:20px; }
+  .fx-search input::placeholder { color:var(--nx-muted); font-weight:300; }
+  .fx-search .fx-total { color:var(--nx-accent); font-weight:700; font-size:13px; white-space:nowrap; }
 
-  /* live results */
-  .fx-hits { max-width:760px; margin:-30px auto 0; position:relative; z-index:5;
-             background:var(--nx-surface); border:1px solid var(--line); border-radius:16px;
-             box-shadow:0 14px 40px rgba(15,42,67,.13); overflow:hidden; display:none; }
+  /* نتائج البحث الفوري */
+  .fx-hits { max-width:860px; margin:10px auto 0; padding:0 20px; position:relative; z-index:5; display:none; }
   .fx-hits.on { display:block; }
+  .fx-hits-in { background:var(--nx-surface); border:1.5px solid var(--nx-line); border-radius:16px;
+             box-shadow:var(--nx-sh); overflow:hidden; }
   .fx-hit { display:flex; align-items:center; justify-content:space-between; gap:12px;
             padding:13px 18px; text-decoration:none; border-bottom:1px solid var(--nx-line); }
   .fx-hit:last-child { border-bottom:0; }
-  .fx-hit:hover, .fx-hit:focus { background:var(--soft); }
-  .fx-hit .nm { font-weight:800; color:var(--ink); font-size:14.5px; }
-  .fx-hit .alt { color:var(--nx-muted); font-size:12px; font-weight:600; }
-  .fx-hit .kc { color:var(--brand); font-weight:800; font-size:13.5px; white-space:nowrap; }
-  .fx-none { padding:22px; text-align:center; color:var(--muted); font-size:14px; }
+  .fx-hit:hover, .fx-hit:focus { background:var(--nx-tint); }
+  .fx-hit .nm { font-weight:700; color:var(--nx-ink); font-size:14.5px; }
+  .fx-hit .alt { color:var(--nx-muted); font-size:12px; font-weight:300; }
+  .fx-hit .kc { color:var(--nx-accent); font-weight:700; font-size:13.5px; white-space:nowrap; }
+  .fx-none { padding:22px; text-align:center; color:var(--nx-muted); font-size:14px; }
 
-  .fx-wrap { max-width:1080px; margin:0 auto; padding:38px 20px 64px; }
-  .fx-h2 { font-size:21px; font-weight:900; color:var(--ink); margin:0 0 4px; }
-  .fx-sub { color:var(--muted); font-size:14px; margin:0 0 20px; }
+  .fx-wrap { max-width:1080px; margin:0 auto; padding:34px 20px 64px; }
+  .fx-h2 { font-size:21px; font-weight:700; color:var(--nx-ink); margin:0 0 4px; }
+  .fx-h2sub { color:var(--nx-muted); font-size:14px; font-weight:300; margin:0 0 20px; }
 
-  /* category tiles */
-  .fx-cats { display:grid; gap:12px;
+  /* إحصائيات مختصرة */
+  .fx-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:24px; }
+  .fx-stat { background:var(--nx-surface); border:1.5px solid var(--nx-line); border-radius:20px;
+             box-shadow:var(--nx-sh); padding:16px 20px; }
+  .fx-stat .n { font-size:26px; font-weight:700; color:var(--nx-ink); font-variant-numeric:tabular-nums; }
+  .fx-stat .l { color:var(--nx-muted); font-size:13px; margin-top:2px; font-weight:300;
+                display:flex; align-items:center; gap:6px; }
+  .fx-stat .l svg { color:var(--nx-accent); }
+
+  /* كروت الفئات بأيقونات SVG */
+  .fx-cats { display:grid; gap:14px; margin-top:18px;
              grid-template-columns:repeat(auto-fill,minmax(158px,1fr)); }
-  .fx-cat { background:var(--nx-surface); border:1.5px solid var(--line); border-radius:15px;
-            padding:17px 15px; text-decoration:none; display:block;
+  .fx-cat { background:var(--nx-surface); border:1.5px solid var(--nx-line); border-radius:20px;
+            box-shadow:var(--nx-sh); padding:16px 18px; text-decoration:none;
+            display:flex; flex-direction:column; gap:10px;
             transition:transform .18s, border-color .18s, box-shadow .18s; }
-  .fx-cat:hover { transform:translateY(-3px); border-color:var(--brand);
-                  box-shadow:0 10px 22px rgba(27,110,128,.13); }
-  .fx-cat .em { font-size:26px; display:block; margin-bottom:8px; }
-  .fx-cat .nm { font-weight:800; color:var(--ink); font-size:14.5px; display:block; }
-  .fx-cat .ct { color:var(--muted); font-size:12.5px; font-weight:600; }
-  .fx-cat.on { background:var(--brand); border-color:var(--brand); }
-  .fx-cat.on .nm, .fx-cat.on .ct { color:#fff; }
+  .fx-cat:hover { transform:translateY(-3px); border-color:var(--nx-accent-line); }
+  .fx-cat .ti { width:40px; height:40px; border-radius:12px; background:var(--nx-accent-soft);
+                color:var(--nx-accent); display:flex; align-items:center; justify-content:center; }
+  .fx-cat .nm { font-weight:700; color:var(--nx-ink); font-size:14.5px; display:block; }
+  .fx-cat .ct { color:var(--nx-muted); font-size:12px; font-weight:300; }
 
-  /* highlight rails */
-  .fx-rail { margin-top:38px; }
-  .fx-rail h3 { font-size:16px; font-weight:900; color:var(--ink); margin:0 0 12px;
+  /* شرائط التمييز */
+  .fx-rail { margin-top:34px; }
+  .fx-rail h3 { font-size:15px; font-weight:700; color:var(--nx-ink); margin:0 0 12px;
                 display:flex; align-items:center; gap:8px; }
+  .fx-rail h3 svg { color:var(--nx-accent); }
   .fx-chips { display:flex; flex-wrap:wrap; gap:8px; }
-  .fx-chip { background:var(--nx-surface); border:1px solid var(--line); border-radius:999px;
-             padding:9px 15px; text-decoration:none; font-size:13.5px;
-             font-weight:700; color:var(--ink); transition:all .16s; }
-  .fx-chip:hover { border-color:var(--brand); color:var(--brand); }
-  .fx-chip b { color:var(--brand); font-weight:800; }
+  .fx-chip { background:var(--nx-surface); border:1.5px solid var(--nx-line); border-radius:999px;
+             padding:8px 15px; text-decoration:none; font-size:13px;
+             font-weight:400; color:var(--nx-muted); transition:all .16s; }
+  .fx-chip:hover { border-color:var(--nx-accent-line); color:var(--nx-accent); }
+  .fx-chip b { color:var(--nx-accent); font-weight:700; }
 
-  /* category table */
-  .fx-back { color:var(--muted); text-decoration:none; font-size:13.5px;
-             font-weight:700; display:inline-block; margin-bottom:14px; }
-  .fx-back:hover { color:var(--brand); }
-  .fx-tablewrap { overflow-x:auto; border:1px solid var(--line);
-                  border-radius:15px; background:var(--nx-surface); }
+  /* صفحة الفئة */
+  .fx-back { color:var(--nx-muted); text-decoration:none; font-size:13.5px;
+             font-weight:700; display:inline-flex; align-items:center; gap:6px; margin-bottom:14px; }
+  .fx-back:hover { color:var(--nx-accent); }
+  .fx-cathead { display:flex; align-items:center; gap:14px; margin-bottom:6px; }
+  .fx-cathead .ti { width:48px; height:48px; border-radius:14px; background:var(--nx-accent-soft);
+                    color:var(--nx-accent); display:flex; align-items:center; justify-content:center; flex:none; }
+  .fx-tablewrap { overflow-x:auto; border:1.5px solid var(--nx-line); margin-top:16px;
+                  border-radius:20px; background:var(--nx-surface); box-shadow:var(--nx-sh); }
   table.fx-t { width:100%; border-collapse:collapse; font-size:14px; min-width:540px; }
   table.fx-t th, table.fx-t td { padding:12px 14px; text-align:start;
                                  border-bottom:1px solid var(--nx-line); }
   table.fx-t tr:last-child td { border-bottom:0; }
-  table.fx-t th { background:var(--soft); font-weight:800; color:var(--nx-muted);
+  table.fx-t th { background:var(--nx-tint); font-weight:700; color:var(--nx-muted);
                   font-size:12.5px; white-space:nowrap; }
-  table.fx-t tr:hover td { background:var(--soft); }
-  table.fx-t a { color:var(--brand); font-weight:800; text-decoration:none; }
+  table.fx-t tr:hover td { background:var(--nx-tint); }
+  table.fx-t a { color:var(--nx-accent); font-weight:700; text-decoration:none; }
   table.fx-t a:hover { text-decoration:underline; }
-  .fx-alt { color:var(--nx-muted); font-size:12px; display:block; }
+  .fx-alt { color:var(--nx-muted); font-size:12px; display:block; font-weight:300; }
   .fx-n { font-variant-numeric:tabular-nums; white-space:nowrap; }
 
-  .fx-cta { background:var(--ink);
-            color:#fff; border-radius:18px; padding:30px; margin-top:44px; text-align:center; }
-  .fx-cta h3 { margin:0 0 8px; font-size:21px; font-weight:900; }
-  .fx-cta p { margin:0 0 20px; opacity:.93; font-size:14.5px; line-height:1.8; }
-  .fx-cta a { background:var(--accent); color:var(--nx-ink); padding:13px 28px;
-              border-radius:12px; font-weight:800; text-decoration:none;
-              display:inline-block; font-size:15px; }
+  .fx-cta { background:var(--nx-solid); border-radius:20px; padding:30px; margin-top:44px;
+            text-align:center; color:var(--nx-on-solid); }
+  .fx-cta h3 { margin:0 0 8px; font-size:21px; font-weight:700; }
+  .fx-cta p { margin:0 0 20px; opacity:.85; font-size:14.5px; line-height:1.8; font-weight:300; }
+  .fx-cta a { background:var(--nx-accent); color:var(--nx-on-accent); padding:13px 28px;
+              border-radius:12px; font-weight:700; text-decoration:none;
+              display:inline-block; font-size:15px; transition:transform .18s; }
+  .fx-cta a:hover { transform:translateY(-2px); }
 
   @media (max-width:640px){
-    .fx-band { padding:34px 16px 44px; }
-    .fx-band h1 { font-size:24px; }
-    .fx-cats { grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); }
+    .fx-hero { padding:32px 16px 0; }
+    .fx-hero h1 { font-size:26px; }
+    .fx-sub { font-size:13px; }
+    .fx-stats { grid-template-columns:1fr 1fr; gap:10px; }
+    .fx-cats { grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; }
+    .fx-wrap { padding:26px 14px 48px; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .fx-cat, .fx-cta a, .fx-search { transition:none; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-{% set EMOJI = {'poultry':'🍗','meat':'🥩','fish':'🐟','dairy':'🧀','grain':'🍚',
-                'legume':'🫘','veg':'🥦','fruit':'🍎','nut':'🌰','spice':'🧂',
-                'drink':'🥤','sweet':'🍰','fast':'🍔','supplement':'💊'} %}
+{% set CATICON = {'poultry':'drumstick','meat':'beef','fish':'fish','dairy':'milk','grain':'wheat',
+                  'legume':'bean','veg':'carrot','fruit':'apple','nut':'nut','spice':'leaf',
+                  'drink':'cup-soda','sweet':'cake-slice','fast':'sandwich','supplement':'pill'} %}
 <div class="fx">
 
-  <section class="fx-band">
-    <div class="fx-band-in">
+  <section class="fx-hero">
+    <div class="fx-hero-in">
+      <div class="fx-kicker">{{ t('جدول السعرات','Calorie table') }}</div>
       <h1>{{ t('اعرف سعرات أي أكلة في ثانية','Any food, its numbers, in a second') }}</h1>
-      <p>{{ t('اكتب اسم الصنف بالعربي أو بالإنجليزي — سعرات وبروتين وكارب ودهون لكل 100 جرام.',
+      <p class="fx-sub">{{ t('اكتب اسم الصنف بالعربي أو بالإنجليزي — سعرات وبروتين وكارب ودهون لكل 100 جرام.',
               'Type a food in Arabic or English — calories, protein, carbs and fat per 100 grams.') }}</p>
       <div class="fx-search">
+        <span class="ic">{{ nxicon('search', 18) }}</span>
         <input id="fxq" type="search" autocomplete="off"
                placeholder="{{ t('دور على… فراخ، أرز، جبنة','Search… chicken, rice, cheese') }}"
                aria-label="{{ t('بحث في الأصناف','Search foods') }}">
-        <i class="fa-solid fa-magnifying-glass ic"></i>
+        <span class="fx-total">{{ total }} {{ t('صنف','items') }}</span>
+      </div>
+      <div class="fx-stats">
+        <div class="fx-stat nx-stagger" style="--i:0"><div class="n">{{ total }}</div><div class="l">{{ nxicon('utensils', 14) }} {{ t('إجمالي الأصناف','Total foods') }}</div></div>
+        <div class="fx-stat nx-stagger" style="--i:1"><div class="n">{{ categories|length }}</div><div class="l">{{ nxicon('salad', 14) }} {{ t('فئة','Categories') }}</div></div>
+        <div class="fx-stat nx-stagger" style="--i:2"><div class="n">{{ t('فوري','Live') }}</div><div class="l">{{ nxicon('zap', 14) }} {{ t('بحث من أول حرف','Search as you type') }}</div></div>
       </div>
     </div>
   </section>
 
-  <div class="fx-hits" id="fxhits"></div>
+  <div class="fx-hits" id="fxhits"><div class="fx-hits-in" id="fxhitsin"></div></div>
 
   <div class="fx-wrap">
 
     {% if active_cat %}
-      <a href="/foods" class="fx-back">← {{ t('كل الفئات','All categories') }}</a>
-      <h2 class="fx-h2">{{ EMOJI.get(active_cat,'🍽️') }} {{ cat_label }}</h2>
-      <p class="fx-sub">{{ rows|length }} {{ t('صنف — القيم لكل 100 جرام','items — values per 100 grams') }}</p>
+      <a href="/foods" class="fx-back">{{ nxicon('arrow-right', 15) }} {{ t('كل الفئات','All categories') }}</a>
+      <div class="fx-cathead">
+        <span class="ti">{{ nxicon(CATICON.get(active_cat,'utensils'), 24) }}</span>
+        <div>
+          <h2 class="fx-h2">{{ cat_label }}</h2>
+          <p class="fx-h2sub" style="margin:0">{{ rows|length }} {{ t('صنف — القيم لكل 100 جرام','items — values per 100 grams') }}</p>
+        </div>
+      </div>
       <div class="fx-tablewrap">
         <table class="fx-t">
           <thead><tr>
@@ -164,11 +200,11 @@
 
     {% else %}
       <h2 class="fx-h2">{{ t('اتصفّح بالفئة','Browse by category') }}</h2>
-      <p class="fx-sub">{{ total }} {{ t('صنف في 14 فئة','foods across 14 categories') }}</p>
+      <p class="fx-h2sub">{{ total }} {{ t('صنف في 14 فئة','foods across 14 categories') }}</p>
       <div class="fx-cats">
         {% for key, pair in categories.items() %}
         <a href="/foods?cat={{ key }}" class="fx-cat nx-stagger" style="--i:{{ loop.index0 }}">
-          <span class="em">{{ EMOJI.get(key,'🍽️') }}</span>
+          <span class="ti">{{ nxicon(CATICON.get(key,'utensils'), 20) }}</span>
           <span class="nm">{{ pair[0] if _ar else pair[1] }}</span>
           <span class="ct">{{ counts[key] }} {{ t('صنف','items') }}</span>
         </a>
@@ -176,12 +212,12 @@
       </div>
 
       {% set RAIL = {
-        'protein': ('💪 الأعلى بروتين','💪 Highest in protein'),
-        'light':   ('🍃 الأقل سعرات','🍃 Lowest in calories'),
-        'lowcarb': ('🥑 بروتين عالي وكارب قليل','🥑 High protein, low carb') } %}
+        'protein': ('الأعلى بروتين','Highest in protein','biceps-flexed'),
+        'light':   ('الأقل سعرات','Lowest in calories','leaf'),
+        'lowcarb': ('بروتين عالي وكارب قليل','High protein, low carb','flame') } %}
       {% for key, items in highlights %}
       <div class="fx-rail">
-        <h3>{{ RAIL[key][0] if _ar else RAIL[key][1] }}</h3>
+        <h3>{{ nxicon(RAIL[key][2], 16) }} {{ RAIL[key][0] if _ar else RAIL[key][1] }}</h3>
         <div class="fx-chips">
           {% for f in items %}
           <a class="fx-chip" href="/foods/{{ f.slug }}">
@@ -209,6 +245,7 @@
   var AR = {{ 'true' if _ar else 'false' }};
   var q = document.getElementById('fxq');
   var box = document.getElementById('fxhits');
+  var boxIn = document.getElementById('fxhitsin');
   var NONE = {{ t('مفيش صنف بالاسم ده','Nothing matches that')|tojson }};
   var G = {{ t('جم','g')|tojson }};
 
@@ -222,8 +259,8 @@
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 
   function render(list){
-    if(!list.length){ box.innerHTML = '<div class="fx-none">'+esc(NONE)+'</div>'; box.classList.add('on'); return; }
-    box.innerHTML = list.map(function(f){
+    if(!list.length){ boxIn.innerHTML = '<div class="fx-none">'+esc(NONE)+'</div>'; box.classList.add('on'); return; }
+    boxIn.innerHTML = list.map(function(f){
       var nm = AR ? f.n : f.e, alt = AR ? f.e : f.n;
       return '<a class="fx-hit" href="/foods/'+f.s+'">'
            +   '<span><span class="nm">'+esc(nm)+'</span> '
@@ -238,7 +275,7 @@
     clearTimeout(timer);
     timer = setTimeout(function(){
       var v = fold(q.value.trim());
-      if(v.length < 2){ box.classList.remove('on'); box.innerHTML=''; return; }
+      if(v.length < 2){ box.classList.remove('on'); boxIn.innerHTML=''; return; }
       var hits = [];
       for(var i=0; i<FOODS.length && hits.length<12; i++){
         var f = FOODS[i];
