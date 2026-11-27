@@ -87,7 +87,7 @@
   [dir="ltr"] .sc3-cap-side { right: auto; left: 8vw; text-align: left; }
   [dir="ltr"] .sc3-cap-top { right: auto; left: 8vw; text-align: left; }
 
-  .sc3-scan { position: absolute; z-index: 6; left: 48%; top: 44%; width: 264px;
+  .sc3-scan { position: absolute; z-index: 6; pointer-events: none; left: 48%; top: 44%; width: 264px;
     transform: translate(-50%,-50%); opacity: 0; pointer-events: none;
     will-change: opacity, transform; }
   .sc3-scan-card { position: relative; border-radius: 18px; padding: 16px 18px 20px;
@@ -106,7 +106,7 @@
   .sc3-scan-status { margin-top: 12px; text-align: center; color: var(--green);
     font-size: 13px; font-weight: 800; text-shadow: 0 4px 18px rgba(0,0,0,.6); }
 
-  .sc3-chips { position: absolute; z-index: 5; left: 8vw; top: 50%; transform: translateY(-50%);
+  .sc3-chips { position: absolute; z-index: 5; pointer-events: none; left: 8vw; top: 50%; transform: translateY(-50%);
     display: flex; flex-direction: column; gap: 12px; opacity: 0; will-change: opacity, transform; }
   [dir="ltr"] .sc3-chips { left: auto; right: 8vw; }
   .sc3-chip { display: flex; justify-content: space-between; align-items: center; gap: 26px;
@@ -142,6 +142,23 @@
     padding: 12px 22px; }
   .sc-after-links a:hover { border-color: var(--green); color: var(--green); }
 
+  .sc3-skip { pointer-events: auto; position: relative; z-index: 7; display: inline-block; margin-top: 18px; color: var(--green);
+    font-weight: 800; font-size: 14px; text-decoration: none; border-bottom: 1.5px solid currentColor; }
+  .sv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;
+    inline-size: min(980px, 100%); margin-top: 34px; }
+  .sv-card { display: flex; flex-direction: column; gap: 8px; text-align: start; padding: 20px;
+    border-radius: 16px; background: #15171b; border: 1px solid rgba(255,255,255,.08);
+    color: #fff; text-decoration: none; }
+  .sv-card b { font-size: 17px; font-weight: 900; color: var(--green); }
+  .sv-card span { color: #b7bcc2; font-size: 14px; font-weight: 700; line-height: 1.8; }
+  .sv-card:hover, .sv-card:focus-visible { border-color: var(--green); }
+  .sc-after-links .sv-main { background: var(--green); color: #0e1a0b; border-color: var(--green); }
+  .sc-after-links .sv-main:hover { color: #0e1a0b; }
+
+  /* ‏على ٣٩٠ بكسل بالإنجليزي "Sign in" كان بيتقص برّه الشاشة. جدول
+     السعرات موجود في كروت الخدمة تحت، فيتشال من الشريط على الشاشات الصغيرة. */
+  @media (max-width: 420px) { .sc-links a[href="/foods"] { display: none; } }
+
   @media (max-width: 760px) {
     .sc3-cap-hero { justify-content: flex-start; padding-top: 56vh; padding-bottom: 0; }
     .sc3-cap-hero h1 { font-size: clamp(30px, 9vw, 46px); }
@@ -170,8 +187,10 @@
 
       <div class="sc3-cap sc3-cap-hero" id="cap0">
         <div class="sc3-kicker">N U T R A X</div>
-        <h1><span class="g">NX</span> {{ t('في مشهد واحد','in one scene') }}</h1>
-        <span class="sub">{{ t('امسح أي منتج… وشوف حقائقه قدامك.','Scan any product… and see its facts in front of you.') }}</span>
+        <h1><span class="g">NX</span> {{ t('تغذية علاجية على حالتك','Clinical nutrition for your condition') }}</h1>
+        <span class="sub">{{ t('خطط غذائية مع د. محمد، ومحلل للأكل والمكملات.','Meal plans with Dr. Mohamed, plus a food and supplement analyzer.') }}</span>
+        {# ‏المشهد طوله ٥٢٠vh: الزائر اللي جاي عشان الخدمة مايستناش التمرير كله #}
+        <a class="sc3-skip" href="#services">{{ t('اعرف الخدمة ↓','See the service ↓') }}</a>
       </div>
 
       <div class="sc3-cap sc3-cap-side" id="cap1">
@@ -209,13 +228,28 @@
     </div>
   </section>
 
-  <section class="sc-after">
-    <h2>{{ t('مشهد واحد، إحساس واحد','One scene, one feel') }}</h2>
-    <p>{{ t('إضاءة، عمق، وحركة مربوطة بالتمرير، والمنتج هو البطل.','Lighting, depth, and scroll-driven motion, with the product as the hero.') }}</p>
+  {# ‏الخدمة نفسها: الزائر الجديد كان بيشوف لوجو وباركود بس، ومفيش كلمة عن
+     الخطط مع الدكتور -- المنتج اللي بيتباع. الكلام من وصف الصفحة نفسها. #}
+  <section class="sc-after" id="services" aria-labelledby="sv-title">
+    <h2 id="sv-title">{{ t('خطتك الغذائية مع د. محمد','Your meal plan with Dr. Mohamed') }}</h2>
+    <p>{{ t('أخصائي تغذية إكلينيكية بيبني خطتك على حالتك وتحاليلك، وبيتابعك كل أسبوع.','A clinical nutritionist builds your plan around your condition and lab results, and follows you up every week.') }}</p>
+    <div class="sv-grid">
+      <a class="sv-card" href="/book">
+        <b>{{ t('خطة على حالتك','A plan for your condition') }}</b>
+        <span>{{ t('السكري، الضغط، القولون، الكلى، الحمل وأكتر من ٢٠ حالة.','Diabetes, blood pressure, IBS, kidney disease, pregnancy and 20+ more.') }}</span></a>
+      <a class="sv-card" href="/pricing">
+        <b>{{ t('متابعة كل أسبوع','Weekly follow-up') }}</b>
+        <span>{{ t('وزنك بيتسجّل والخطة بتتعدّل معاك.','Your weight is logged and the plan adjusts with you.') }}</span></a>
+      <a class="sv-card" href="/foods">
+        <b>{{ t('جدول السعرات','Calorie table') }}</b>
+        <span>{{ t('أكتر من %s صنف بالكميات اللي بتتاكل فعلًا.' % food_count(),'%s+ foods in the portions people actually eat.' % food_count()) }}</span></a>
+      <a class="sv-card" href="/whey">
+        <b>{{ t('محلل المكملات','Supplement analyzer') }}</b>
+        <span>{{ t('صوّر علبة الواي أو الكرياتين واعرف هي نضيفة ولا لأ.','Photograph a whey or creatine tub and see if it is clean.') }}</span></a>
+    </div>
     <div class="sc-after-links">
-      <a href="/foods">{{ t('جدول السعرات','Calorie table') }}</a>
+      <a class="sv-main" href="/book">{{ t('احجز استشارة','Book a consultation') }}</a>
       <a href="/pricing">{{ t('الأسعار','Pricing') }}</a>
-      <a href="/book">{{ t('احجز استشارة','Book a consultation') }}</a>
     </div>
   </section>
 </div>
@@ -223,7 +257,7 @@
 
 {% block extra_script %}
 <script type="importmap">
-{ "imports": { "three": "/static/js/three.module.js" } }
+{ "imports": { "three": "/static/js/three.module.min.js" } }
 </script>
 <script type="module">
 import * as THREE from 'three';

@@ -1,5 +1,10 @@
 /* NX launch splash: shows once per tab/app launch, about 1.5 s, tap to skip. */
 (function () {
+  // Installed app only (home-screen PWA / Play Store TWA). In a browser tab it
+  // only delayed the first page by 1.5 s, including for visitors from Google.
+  var app = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) ||
+            (window.navigator && navigator.standalone === true);
+  if (!app) return;
   try { if (sessionStorage.getItem('nx_splash')) return; sessionStorage.setItem('nx_splash', '1'); } catch (e) {}
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var st = document.createElement('style');
