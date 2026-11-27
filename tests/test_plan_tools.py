@@ -155,8 +155,14 @@ def test_swapping_and_picking_report_the_same_way():
     c = _generate(_staff(), symptoms=KIDNEY)
     swapped = _post(c, "/swap_meal", day_idx=1, meal_type="lunch")
     assert swapped["ok"] and "total_cal" in swapped["check"], swapped
-    assert swapped["check"]["warning"] == "", \
+    # a not-counted-item notice ("مش محسوب") may now share the box; only a clash is a failure here
+    assert KIDNEY not in swapped["check"]["warning"] and "ممنوع" not in swapped["check"]["warning"], \
         "the generator's own pool handed a kidney patient a banned meal"
+    # the not-counted notice must be exact: present iff the calculator left a quantified item out
+    import re as _re, meal_macros as _mm
+    _un = [u for u in _mm.macros(swapped["new_meal"])["unresolved"] if _re.search(r"\d|USDA", u)]
+    assert bool(_un) == ("مش محسوب" in swapped["check"]["warning"] or "مش محسوبة" in swapped["check"]["warning"]), \
+        (_un, swapped["check"]["warning"])
     picked = _post(c, "/replace_meal", day_idx=1, meal_type="lunch",
                    new_meal=BANNED_FOR_KIDNEY)
     assert KIDNEY in picked["check"]["warning"], picked
