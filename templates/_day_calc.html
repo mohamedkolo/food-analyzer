@@ -39,7 +39,8 @@
       <li><bdi>{{ _e.text }}</bdi> &mdash;
         {% if _e.code == 'noquantity' %}{{ 'الكمية مش مكتوبة' if _ar else 'no amount written' }}
         {% elif _e.code == 'generic' %}{{ ('الاسم عام. أقرب صنف في الجدول: ' + _e.detail + ' (اكتب اسمه بالظبط)') if _ar else ('generic name. Closest table food: ' + _e.detail + ' (write its exact name)') }}
-        {% elif _e.code == 'basis' %}{{ 'مش معروف لو الرقم قبل الطبخ ولا بعده' if _ar else 'table value may be a raw-weight value; the weight is meant after cooking' }}
+        {% elif _e.code == 'basis' %}{{ 'مفيش مصدر مطبوخ مؤكد للصنف ده' if _ar else 'table value may be a raw-weight value; the weight is meant after cooking' }}
+        {% elif _e.code == 'size' %}{{ 'حجم البيضة مش محدد (اكتب الجرامات أو كبيرة)' if _ar else 'egg size not stated (write grams or large)' }}
         {% elif _e.code == 'identity' %}{{ 'الاسم فيه كلمة مش موجودة في الصنف المطابق' if _ar else 'the name has a word the matched food lacks' }}
         {% elif _e.code == 'qualifier' %}{{ 'الصنف المحدد مش في الجدول' if _ar else 'the specific variant is not in the table' }}
         {% elif _e.code == 'variant' %}{{ 'نوع الصنف مش محدد' if _ar else 'variant not stated' }}
