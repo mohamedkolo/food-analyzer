@@ -57,6 +57,37 @@ def weigh_state(usda, basis=""):
     return "as_sold"
 
 
+_FULLS = None
+
+
+def _ref_names():
+    """Stored name (with its "(USDA n)" key) -> clean name, for the named USDA choices only. Longest first."""
+    global _FULLS
+    if _FULLS is None:
+        import meal_option_foods as O
+        import meal_variant_foods as V
+        pairs = {}
+        for f in list(O.OPTION_FOODS) + list(V.VARIANT_FOODS):
+            full = f["n"]
+            clean = re.sub(r"\s*\(USDA\s*\d+\)", "", full).strip()
+            if clean != full:
+                pairs[full] = clean
+        _FULLS = sorted(pairs.items(), key=lambda kv: -len(kv[0]))
+    return _FULLS
+
+
+def hide_ref(text):
+    """DISPLAY ONLY: show a known food's name without its "(USDA 175123)" key. The stored text keeps the key (it picks the exact
+    USDA row for the calculation). Only a key written right after the exact name it belongs to is hidden; an unknown or
+    mismatched reference stays visible so a wrong number is never hidden. Grams stay beside the name as written."""
+    if not text or "USDA" not in text:
+        return text
+    for full, clean in _ref_names():
+        if full in text:
+            text = text.replace(full, clean)
+    return text
+
+
 GRAMS_AR = {"raw": "اكتب الوزن بالجرام وهو نيّء (قبل الطبخ)", "cooked": "اكتب الوزن بالجرام بعد الطبخ", "as_sold": "اكتب الوزن بالجرام كما يُباع"}
 GRAMS_EN = {"raw": "Type the grams weighed RAW (before cooking)", "cooked": "Type the grams weighed AFTER cooking", "as_sold": "Type the grams as sold"}
 

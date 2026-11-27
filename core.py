@@ -758,16 +758,25 @@ def meal_en(text):
     Arabic for the safety filtering to work. Translation happens here, on the
     way to the page.
     """
+    from food_suggest import hide_ref
     try:
         if session.get("lang", "ar") == "ar":
-            return text
-        return translate_meal(text)
+            return hide_ref(text)
+        return hide_ref(translate_meal(text))
     except Exception:
-        return text
+        return hide_ref(text)
 
 
 _UNIT_EN = {"جم": "g", "جرام": "g", "مل": "ml", "ملعقة": "tbsp", "ملاعق": "tbsp",
             "كوب": "cup", "كوباية": "cup"}
+
+
+@app.template_global('nx_ref_names')
+def nx_ref_names():
+    """clean name -> stored name (with its "(USDA n)" key) for the named USDA choices, so the edit boxes can hide the key
+    and put it back on save. Display helper only; the stored text and the calculation are unchanged."""
+    import food_suggest as _fs
+    return {clean: full for full, clean in _fs._ref_names()}
 
 
 @app.template_global('meal_items')
@@ -837,7 +846,8 @@ def meal_sheet(text):
         return meal_en(text)
     try:
         from measures import annotate
-        return annotate(text or "")
+        from food_suggest import hide_ref
+        return hide_ref(annotate(text or ""))
     except Exception:
         return text
 

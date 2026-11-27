@@ -1096,9 +1096,10 @@ def _change_meal(data, plan, day_idx, meal_type, new_text):
 
 def _meal_display(text):
     """The meal as the current user should read it -- stored Arabic, or English."""
+    from food_suggest import hide_ref
     if cur_lang() == "ar":
-        return text
-    return translate_meal(text)
+        return hide_ref(text)
+    return hide_ref(translate_meal(text))
 
 
 @bp.route("/swap_meal", methods=["POST"])
