@@ -1,11 +1,19 @@
-/* NX launch splash: shows once per tab/app launch, about 1.5 s, tap to skip. */
+/* NX launch splash: about 1.5 s, tap to skip. App: once per launch. Browser: first visit on the device only. */
 (function () {
-  // Installed app only (home-screen PWA / Play Store TWA). In a browser tab it
-  // only delayed the first page by 1.5 s, including for visitors from Google.
+  // Installed app (home-screen PWA / Play Store TWA): once per app launch (sessionStorage).
+  // Normal browser tab (Safari, Chrome): once per device, on the first visit only (localStorage),
+  // so a returning visitor or a visitor from Google is never delayed again. If the browser blocks
+  // localStorage (Safari private mode), it falls back to once per tab.
   var app = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) ||
             (window.navigator && navigator.standalone === true);
-  if (!app) return;
-  try { if (sessionStorage.getItem('nx_splash')) return; sessionStorage.setItem('nx_splash', '1'); } catch (e) {}
+  var store = function (kind) { try { return window[kind]; } catch (e) { return null; } };
+  try {
+    var area = app ? store('sessionStorage') : (store('localStorage') || store('sessionStorage'));
+    if (area) {
+      if (area.getItem('nx_splash')) return;
+      area.setItem('nx_splash', '1');
+    }
+  } catch (e) {}
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var st = document.createElement('style');
   st.textContent =

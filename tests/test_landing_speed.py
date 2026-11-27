@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""‏الصفحة الرئيسية: خفيفة، وبتقول الخدمة إيه، والـsplash للتطبيق بس.
+"""‏الصفحة الرئيسية: خفيفة، وبتقول الخدمة إيه، والـsplash مرة للزائر الجديد وكل تشغيل للتطبيق.
 
 ‏مراجعة تصميم ٢٦ نوفمبر (صاحب المشروع: "صلّح التلاتة على طول"):
   ١. ‏مشهد الـ3D كان بيحمّل three.module.js كامل -- ١.٢٧ ميجا من غير ضغط،
@@ -73,12 +73,15 @@ def test_the_landing_says_what_the_service_is():
     assert not re.search(r"[؀-ۿ]", box), "عربي في النسخة الإنجليزي"
 
 
-def _splash_runs(standalone):
+def _splash_runs(standalone, seen_local=False, seen_session=False, local_blocked=False):
     js = open(os.path.join(ROOT, "static/js/nx-splash.js"), encoding="utf-8").read()
     harness = """
-const added = [];
+const added = []; const writes = [];
 const el = () => ({ style: {}, classList: { add() {} }, setAttribute() {}, addEventListener() {}, remove() {} });
-global.sessionStorage = { getItem() { return null; }, setItem() {} };
+const store = seen => ({ getItem() { return seen ? '1' : null; }, setItem(k) { writes.push(k); } });
+global.sessionStorage = store(%s);
+if (%s) { Object.defineProperty(global, 'localStorage', { get() { throw new Error('blocked'); } }); }
+else { global.localStorage = store(%s); }
 global.navigator = { standalone: false };
 global.window = global;
 global.matchMedia = q => ({ matches: q.includes('display-mode') ? %s : false });
@@ -87,18 +90,23 @@ global.document = { createElement: el, head: { appendChild: x => added.push(x) }
 global.setTimeout = () => 0;
 %s
 console.log(added.length);
-""" % ("true" if standalone else "false", js)
+""" % (*(("true" if v else "false") for v in (seen_session, local_blocked, seen_local, standalone)), js)
     out = subprocess.run(["node", "-e", harness], capture_output=True, text=True)
     assert out.returncode == 0, out.stderr
     return int(out.stdout.strip())
 
 
-def test_the_splash_is_for_the_installed_app_only():
+def test_the_splash_shows_once_in_the_browser_and_once_per_launch_in_the_app():
     if not shutil.which("node"):
         print("  (node not installed -- skipped)")
         return
-    assert _splash_runs(standalone=False) == 0, "الـsplash ظهر في المتصفح"
-    assert _splash_runs(standalone=True) > 0, "الـsplash اختفى من التطبيق"
+    assert _splash_runs(standalone=False) > 0, "first browser visit (Safari) has no splash"
+    assert _splash_runs(standalone=False, seen_local=True) == 0, "returning browser visitor sees the splash again"
+    assert _splash_runs(standalone=False, local_blocked=True) > 0, "blocked localStorage breaks the splash"
+    assert _splash_runs(standalone=False, local_blocked=True, seen_session=True) == 0, "private mode repeats in the same tab"
+    assert _splash_runs(standalone=True) > 0, "the splash disappeared from the app"
+    assert _splash_runs(standalone=True, seen_session=True) == 0, "app repeats within a session"
+    assert _splash_runs(standalone=True, seen_local=True) > 0, "app launch must not depend on the browser flag"
 
 
 if __name__ == "__main__":
