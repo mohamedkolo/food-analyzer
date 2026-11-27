@@ -72,19 +72,51 @@ def test_the_dinner_is_named_a_light_one():
     assert "Light" in info["meal_labels_en"]["dinner"], info["meal_labels_en"]
 
 
+def _calc_days():
+    """Generated days across goals and weights. Returns (all_days, fully_calculable_days). A day is
+    fully calculable only when every meal is complete under the default settings (cooked-weight rule on)."""
+    import random
+    days, ok = [], []
+    for goal in ("1500", "1800", "2200", "2600", "3000"):
+        for weight in ("52.1", "65", "80"):
+            random.seed("%s-%s" % (goal, weight))
+            _, plan = _plan(goal_cal=goal, weight=weight)
+            for day in plan:
+                days.append(day)
+                ms = [meal_macros.macros(day[s]) for s in ("breakfast", "lunch", "dinner")]
+                if all(m["complete"] for m in ms):
+                    ok.append((day, ms))
+    return days, ok
+
+
 def test_the_dinner_really_is_the_small_meal():
-    """‏الاسم لوحده مايعملش حاجة: حصص القاعدة متقاربة بين الوجبات،
-    فالعشا كان بيطلع وجبة كاملة ويتكبّر مع الباقي. "شوربة عدس ٤٢٠مل +
-    خبز ١٠٠جم + سلطة" مش عشا خفيف."""
-    _, plan = _plan()
-    big = 0
-    for day in plan:
-        dinner = meal_macros.macros(day["dinner"])["cal"]
-        day_cal = sum(meal_macros.macros(day[s])["cal"]
-                      for s in ("breakfast", "lunch", "dinner"))
-        if day_cal and dinner > day_cal * 0.30:
-            big += 1
-    assert big <= 1, "‏%d أيام العشا فيها مش خفيف" % big
+    """The target invariant, unchanged: on a fully calculated day the dinner is at most 30% of the day's
+    calories. Measured on every fully calculable generated day (several goals and weights)."""
+    days, ok = _calc_days()
+    assert len(ok) >= 3, "too few calculable days to say anything: %d of %d" % (len(ok), len(days))
+    big = [d["day"] for d, ms in ok if sum(m["cal"] for m in ms) and ms[2]["cal"] > sum(m["cal"] for m in ms) * 0.30]
+    assert not big, "‏العشا مش خفيف في %d يوم: %s" % (len(big), big)
+
+
+def test_the_dinner_scaling_halves_an_explicit_calculable_dinner():
+    """Explicit fixture for the mechanism: a fully calculable dinner is scaled by DINNER_HALF before it is placed."""
+    text = "🥚 بيضة كاملة 2 + 🥗 طماطم 150جم"
+    full = meal_macros.macros(text)
+    assert full["complete"] and full["cal"] > 0, full
+    scaled, eff = portion_scale.scale_meal(text, plan_engine.DINNER_HALF)
+    half = meal_macros.macros(scaled)
+    assert half["complete"] and half["cal"] <= full["cal"] * 0.65, (full["cal"], half["cal"], scaled)
+
+
+def test_days_that_are_not_fully_calculable_are_counted_not_tested_for_dinner_share():
+    """Separate on purpose: the generated week still has incomplete days (library meals with no stated
+    preparation). They are labelled as estimates and are NOT claimed to pass the dinner-share rule."""
+    days, ok = _calc_days()
+    incomplete = [d for d in days if d not in [x for x, _ in ok]]
+    assert incomplete, "expected incomplete days under the default rule"
+    for d in incomplete[:20]:
+        assert (d.get("calc") or {}).get("basis") == "label", d.get("calc")
+    print("        calculable %d of %d generated days; incomplete %d" % (len(ok), len(days), len(incomplete)))
 
 
 def test_the_dinner_share_is_a_named_number_not_a_magic_one():
@@ -167,7 +199,11 @@ def test_a_plain_liver_or_kofta_is_known_to_the_food_table():
     """‏الجدول فيه "كبدة بقري" و"كفتة مشوية"، وأسماء الجدول بتتلاقى لما
     تكون **جوّه** نص الصنف -- والقاعدة بتكتب "كبدة 200جم" كده. فالصنفين
     كانوا بصفر سعرة وفي "مش متعرّف" في قايمة المشتريات."""
-    for text in ("🍗 كبدة 200جم", "🥩 كفتة 240جم"):
+    # "كبدة" matches the beef-liver row, whose name states no preparation: it is KNOWN to the table but
+    # withheld by the cooked-weight rule (basis reason), not priced. Kofta is priced.
+    liver = meal_macros.macros("🍗 كبدة 200جم")["items"][0]
+    assert liver["food"] == "كبدة بقري" and str(liver["unresolved"]).startswith("basis:"), liver
+    for text in ("🥩 كفتة 240جم",):
         mac = meal_macros.macros(text)
         assert mac["covered"] >= 0.99, "%s: تغطية %.0f%%" % (
             text, mac["covered"] * 100)

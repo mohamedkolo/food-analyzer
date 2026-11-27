@@ -71,7 +71,7 @@ def test_two_different_links_are_two_different_clients():
     seen = {}
     for tok in ("aaa1", "bbb2", "ccc3", "ddd4", "eee5", "fff6", "ggg7"):
         html = _get("/demo/" + tok).get_data(as_text=True)
-        seen[tok] = re.search(r'<b>(\d{3,4})</b><span>سعرة', html)
+        seen[tok] = re.search(r'<b>(\d{3,4})</b><span>الهدف اليومي', html)
     vals = {m.group(1) for m in seen.values() if m}
     assert len(vals) > 1, "‏كل اللينكات طلعت نفس العميل: %s" % vals
 

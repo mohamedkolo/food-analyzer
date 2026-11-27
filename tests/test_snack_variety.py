@@ -71,7 +71,7 @@ def test_the_child_pool_has_more_snacks_than_the_week_has_slots():
 def test_the_engine_does_not_throw_the_extra_snacks_away():
     """‏كان `pool_snacks[:10]`: أي زيادة في المحتوى بتتقص قبل ما توصل."""
     import inspect
-    src = inspect.getsource(plan_engine.generate_weekly_plan)
+    src = inspect.getsource(plan_engine._generate_week)
     assert "pool_snacks[:10]" not in src, "‏القص رجع"
 
 
@@ -113,7 +113,12 @@ def test_every_ingredient_is_known_to_the_food_table():
     for goal in GOALS:
         for s in get_snacks_for_goal(goal):
             mac = meal_macros.macros(_body(s))
-            if mac["covered"] < 0.99:
+            # plain "حليب 200مل" has no fat level, so it is deliberately unresolved
+            # (open library item), not an unknown food: it is counted separately
+            rest = [i for i in mac["items"]
+                    if i.get("unresolved") != "variant:milk fat level not stated"]
+            known = sum(1 for i in rest if i.get("food") and i.get("grams", 0) > 0)
+            if rest and known / float(len(rest)) < 0.99:
                 bad.append("%s (تغطية %.0f%%)" % (s[:42], mac["covered"] * 100))
     assert not bad, "\n   ".join(bad)
 

@@ -245,7 +245,7 @@ def test_the_shuffle_does_not_wipe_the_deferral():
     الترتيب كله. يعني الخاصية كانت ملغية من ناحيتين في نفس الوقت."""
     import inspect
     import plan_engine
-    src = inspect.getsource(plan_engine.generate_weekly_plan)
+    src = inspect.getsource(plan_engine._generate_week)
     shuffle_at = src.index("random.shuffle")
     defer_at = src.index("_defer_repeats(breakfasts")
     assert defer_at > shuffle_at, (
@@ -334,6 +334,67 @@ def test_visits_are_recorded_and_numbered():
 
     names = [c["client_name"] for c in recent_clients(7)]
     assert CLIENT["name"] in names
+
+
+def _chain(*weights, gap=28, **kw):
+    """Visits newest first, `gap` days apart, ending 'today minus gap'."""
+    out = []
+    for i, w in enumerate(weights):          # weights given newest first
+        out.append(_visit(w, 2350, 1750, days_ago=gap * (i + 1), visit_no=len(weights) - i, **kw))
+    return out
+
+
+def test_history_reads_every_interval_not_only_the_last():
+    """FU-4  The doctor asked for the next program to analyse the previous
+    schedules. assess() only ever compared two visits; this reads each gap."""
+    visits = _chain(93, 93.2, 96)           # newest first: 96 -> 93.2 -> 93, then today
+    h = fu.analyse_history(visits, dict(CLIENT, weight="93"), "en")
+    assert [i["verdict"] for i in h["intervals"]] == ["on_track", "plateau", "plateau"]
+    assert h["intervals"][0]["from_visit"] == 1 and h["intervals"][-1]["to_visit"] is None
+    assert h["net_change"] == -3.0 and h["visits_used"] == 3
+
+
+def test_a_stall_that_repeats_is_named_as_a_streak():
+    visits = _chain(93, 93.2, 96)
+    h = fu.analyse_history(visits, dict(CLIENT, weight="93"), "en")
+    assert h["streak"] == {"verdict": "plateau", "count": 2}
+    assert "2" in h["streak_note_en"] and h["streak_note_ar"]
+    # observed trend, not a cause, and no mandatory change
+    note = h["streak_note_en"].lower()
+    assert "not the cause" in note and "adherence" in note and "clinical" in note
+    assert "target needs" not in note and "should" not in note
+    assert h["total_visits"] == 3
+    # a good last interval is not a streak
+    ok = fu.analyse_history(_chain(92, 95), dict(CLIENT, weight="90"), "en")
+    assert ok["streak"]["verdict"] == "on_track" and not ok["streak_note_en"]
+
+
+def test_the_window_cap_is_reported_not_hidden():
+    many = _chain(*[90 + i * 0.1 for i in range(8)])      # 8 visits, newest first
+    h = fu.analyse_history(many, dict(CLIENT, weight="90"), "en", total_visits=8)
+    assert h["visits_used"] == 6 and h["total_visits"] == 8
+
+
+def test_a_too_soon_interval_does_not_break_or_make_a_streak():
+    visits = _chain(93, 93.2, 96)
+    visits[0]["created_at"] = (dt.datetime.now() - dt.timedelta(days=3)).strftime("%Y-%m-%d %H:%M:%S")
+    h = fu.analyse_history(visits, dict(CLIENT, weight="93"), "en")
+    assert h["intervals"][-1]["verdict"] == "too_soon"
+    assert h["streak"]["count"] <= 1
+
+
+def test_history_with_no_weights_returns_nothing_instead_of_inventing():
+    assert fu.analyse_history([], dict(CLIENT, weight="90"), "en") is None
+    assert fu.analyse_history(_chain(None, None), dict(CLIENT, weight="90"), "en") is None
+
+
+def test_meals_are_collected_from_the_last_three_plans_only():
+    def v(i, meal):
+        return {"plan_json": '[{"breakfast": "%s"}]' % meal}
+    visits = [v(1, "A"), v(2, "B"), v(3, "C"), v(4, "D")]       # newest first
+    got = fu.meals_across_plans(visits, limit=3)
+    assert set(got) == {"A", "B", "C"}
+    assert fu.meals_across_plans([{"plan_json": "not json"}]) == []
 
 
 if __name__ == "__main__":

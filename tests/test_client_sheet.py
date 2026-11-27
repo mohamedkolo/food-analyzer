@@ -130,7 +130,7 @@ def test_what_left_the_sheet_reaches_the_specialist_instead():
     notes = data.get("sheet_notes")
     assert notes, "‏التحذيرات ضاعت خالص"
     joined = " ".join(n["short"] for n in notes)
-    assert "الفعلي" in joined and "الهدف" in joined, joined
+    assert "المكتوب" in joined and "الهدف" in joined, joined
     assert any("بروتين مستهدف" in n["short"] for n in notes), joined
 
 

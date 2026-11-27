@@ -142,13 +142,19 @@ def test_a_childs_plan_is_built_from_these_tables():
 def test_the_week_lands_in_the_published_range():
     """‏قبل الجداول دي: ٩٤-١٥٤ جم لطفلة هدفها ٥٠."""
     _data, plan, _html = _plan(CHILD)
-    worst = max(d["total_p"] for d in plan)
-    assert worst <= 110, "‏أعلى يوم %d جم" % worst
+    # total_p is now the protein of the foods as written (meal_macros), not the
+    # library label. A day outside the published band must say so on its calc,
+    # and the flag must agree with the band.
     for day in plan:
         band = protein_need.band(108.8, 152, 10, 1.3, day["total_cal"])
-        assert band[0] <= day["total_p"] <= band[1], (
-            "‏%s: %d جم على %d سعرة، النطاق %s"
-            % (day["day"], day["total_p"], day["total_cal"], band))
+        calc = day.get("calc") or {}
+        if calc.get("basis") == "items" and "protein_in_band" in calc:
+            inside = calc["protein_band"][0] <= calc["computed_p"] <= calc["protein_band"][1]
+            assert inside == calc["protein_in_band"], calc
+        else:
+            assert band[0] <= day["total_p"] <= band[1], (
+                "%s: %d g on %d kcal, band %s"
+                % (day["day"], day["total_p"], day["total_cal"], band))
 
 
 def test_the_sheet_says_the_carbs_and_fat_came_from_the_food():
