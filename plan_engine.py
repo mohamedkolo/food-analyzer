@@ -1671,8 +1671,10 @@ def plan_html(data, plan=None, clean=False):
         # meal_sheet في core، عشان الـPDF والينك يقولوا نفس الكلام.
         if _pdf_ar:
             from measures import annotate
-            return annotate(txt)
-        return translate_meal(txt)
+            from food_suggest import hide_ref
+            return hide_ref(annotate(txt))
+        from food_suggest import hide_ref
+        return hide_ref(translate_meal(txt))
 
     symptoms = data.get("symptoms", [])
     goal = data.get("goal_type", "weight_loss")

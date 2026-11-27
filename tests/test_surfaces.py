@@ -88,7 +88,9 @@ def test_an_adopted_option_persists_through_save_reload_and_the_client_link():
     assert OPTION in c.get("/preview").get_data(as_text=True)
     token = c.post("/api/plan-link").get_json()["url"].rsplit("/", 1)[1]
     # the client page adds a household measure after the amount, so the option NAME is what must be present
-    assert "صدر دجاج مشوي بدون جلد (USDA 171477)" in c.get("/p/%s" % token).get_data(as_text=True)
+    page = c.get("/p/%s" % token).get_data(as_text=True)
+    assert "صدر دجاج مشوي بدون جلد" in page and "USDA 171477" not in page, "the client sees the clean name, no reference number"
+    assert ">150 جم صدر دجاج مشوي بدون جلد" in c.get("/preview").get_data(as_text=True), "grams stay beside the clean name on the preview"
 
 
 def test_the_client_plan_history_page_shows_the_same_macros_and_no_adoption_button():
