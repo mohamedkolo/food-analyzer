@@ -112,13 +112,24 @@ def apply_change(data, day, old_text, new_text):
     """
     old = meal_macros.macros(old_text)
     new = meal_macros.macros(new_text)
-    estimated = min(old["covered"], new["covered"]) < MIN_COVERAGE
+    estimated = (min(old["covered"], new["covered"]) < MIN_COVERAGE
+                 or not old.get("exact") or not new.get("exact"))
     if old_text != new_text:
         day["total_cal"] = max(0, int(day.get("total_cal") or 0)
                                - old["cal"] + new["cal"])
         if day.get("total_p") is not None:
             day["total_p"] = max(0, int(day.get("total_p") or 0)
                                  - old["p"] + new["p"])
+    if old_text != new_text:
+        # Recompute calc (and, when every meal states its quantities, the stored
+        # totals) from the day as it will be after this change, so total, protein
+        # and calc never describe different food.
+        import plan_engine
+        key = next((k for k in MEAL_KEYS if day.get(k) == old_text), None)
+        if key:
+            day[key] = new_text
+            plan_engine.refresh_day_totals(day)
+            estimated = estimated and (day.get("calc") or {}).get("basis") != "items"
     status = day_status(data, day, estimated)
     status["problems"] = meal_problems(data, new_text)
     status["meal_cal"] = new["cal"]

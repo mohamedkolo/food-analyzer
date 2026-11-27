@@ -43,6 +43,7 @@
 تاني قبل ما يتكتب.
 """
 
+import os
 import re
 
 # ‏إيموجي الوجبة. بيتشال قبل أي مطابقة.
@@ -84,6 +85,20 @@ GENERIC = {
     # ‏"ارز بني" قبل "ارز": الجدول فيه "أرز بني مطبوخ"، بس أسماء الجدول
     # بتتلاقى لما تكون **جوّه** نص الصنف، و"مطبوخ" مش مكتوبة في الوجبة.
     # فـ"ارز بني 140جم" كان بيقع على "ارز" العام ويتحسب أرز أبيض.
+    # raw (dry) weight is a different food: 365 vs 130 kcal/100 g for rice.
+    # Sourced rows in meal_food_sources (USDA SR Legacy), never the cooked row.
+    "ارز نيء": "أرز أبيض نيء", "رز نيء": "أرز أبيض نيء",
+    "ارز نيه": "أرز أبيض نيء", "رز نيه": "أرز أبيض نيء",
+    "ارز خام": "أرز أبيض نيء", "رز خام": "أرز أبيض نيء",
+    "ارز جاف": "أرز أبيض نيء", "رز جاف": "أرز أبيض نيء",
+    "معكرونة نيئة": "معكرونة نيئة", "مكرونة نيئة": "معكرونة نيئة",
+    "معكرونة جافة": "معكرونة نيئة", "مكرونة جافة": "معكرونة نيئة",
+    "معكرونة نيه": "معكرونة نيئة", "مكرونة نيه": "معكرونة نيئة",
+    # "سمك سلمون" is salmon, not the generic tilapia reached through "سمك"
+    # milk with a stated fat level: the sourced milk rows, not لبن رايب
+    "لبن كامل الدسم": "حليب كامل الدسم", "لبن كامل": "حليب كامل الدسم",
+    "لبن خالي الدسم": "حليب خالي الدسم", "حليب خالي الدسم": "حليب خالي الدسم",
+    "سمك سلمون": "سلمون", "سمك التونة": "تونة معلبة بالماء",
     "ارز بني": "أرز بني مطبوخ",
     "رز بني": "أرز بني مطبوخ",
     "ارز": "أرز أبيض مطبوخ",
@@ -115,6 +130,11 @@ GENERIC = {
     "خضار": "خضار مشكل مجمد",
     "فطر": "مشروم",
     "مكسرات": "لوز",
+    # almond milk, never the nut (580 kcal) and never cow milk
+    "لبن لوز": "حليب لوز غير محلي",
+    "لبن اللوز": "حليب اللوز غير محلي",
+    # ‏"زبدة فول" = زبدة الفول السوداني. من غيرها كانت بتتحسب زبدة عادية (٧١٧).
+    "زبدة فول": "زبدة فول سوداني",
     "زبادي": "زبادي خالي الدسم",
     "لبن": "لبن رايب",
     # ‏"حليب" ماكانتش في الخريطة، و"حليب خالى الدسم" موجود في جدول
@@ -255,8 +275,15 @@ def _table():
     global _TABLE
     if _TABLE is None:
         import food_data
+        import meal_food_sources
+        import meal_option_foods
         rows = []
-        for food in food_data.FOODS:
+        # source-backed extras go AFTER the main table: a name already in the
+        # main table keeps winning, so nothing existing changes.
+        have = {_norm(f.get("n")) for f in food_data.FOODS}
+        for food in list(food_data.FOODS) + [
+                f for f in meal_food_sources.SOURCED_FOODS
+                if _norm(f["n"]) not in have] + list(meal_option_foods.OPTION_FOODS):
             name = _norm(food.get("n"))
             if name:
                 rows.append((name, food))
@@ -304,17 +331,41 @@ def find_food(item):
     return None
 
 
+_PREFIXES = {"ب", "ل", "و", "ال", "بال", "وال", "لل", "فال", "ف"}
+
+
+def _find_word(clean, name):
+    """Position of `name` in `clean` if it starts at a word start, else -1.
+
+    Plain str.find matched "تين" (fig) inside "بروتين" (protein), so a protein
+    scoop counted as a fig (22 kcal). The character before the name must be a
+    space, a bracket or an Arabic prefix (ب/ل/و/ال): "بحليب" still reads.
+    """
+    start = 0
+    while True:
+        at = clean.find(name, start)
+        if at < 0:
+            return -1
+        head = clean[:at]
+        frag = head.split(" ")[-1] if head and not head.endswith(" ") else ""
+        frag = frag.lstrip("(")
+        if not frag or frag in _PREFIXES:
+            return at
+        start = at + 1
+
+
 def _match(clean):
     """‏أقرب صنف لأول النص، بين الجدول والجسر العام مع بعض."""
     best = None                       # ((المكان, -الطول), الصنف)
     for name, food in _table():
-        at = clean.find(name)
+        at = _find_word(clean, name)
         if at >= 0:
             key = (at, -len(name))
             if best is None or key < best[0]:
                 best = (key, food)
 
-    candidates = [(clean.find(_norm(g)), g, sp) for g, sp in GENERIC.items()]
+    candidates = [(_find_word(clean, _norm(g)), g, sp)
+                  for g, sp in GENERIC.items()]
     for rx, word, specific in _word_patterns():
         m = rx.search(clean)
         candidates.append((m.start() if m else -1, word, specific))
@@ -436,6 +487,208 @@ def _unit_grams(text, food=None):
     return best[1] if best else None
 
 
+def _default_unit_name(text, food):
+    """Unit name the default weight of this item belongs to, or None."""
+    try:
+        import measures
+    except Exception:
+        return None
+    for row in (food.get("units") or []):
+        return str(row[0])
+    fname = _norm(food.get("n")) if food else ""
+    best = None
+    for key, info in measures.FOOD_MEASURES.items():
+        name = _norm(key)
+        if not name or name not in text:
+            continue
+        if fname and name not in fname and fname not in name:
+            continue
+        if best is None or len(name) > best[0]:
+            best = (len(name), info.get("unit"))
+    return best[1] if best else None
+
+
+AMBIGUOUS_COUNT = {"خبز أسمر", "شكشوكة"}
+_UNIT_WORD = re.compile(r"رغيف|ارغفة|شريح|شرايح|توست|قطع|حبة|حبات|ملعقة|كوب")
+
+_DRY_CATS = {"grain", "legume", "nut", "supplement"}
+_ML = re.compile(r"\d\s*(?:مل|ml)\b")
+
+
+def _is_ml(text):
+    return bool(_ML.search(_norm(text)))
+
+
+# Words that name a specific food, cut, fat or cooking method. When the item
+# text has one and the matched table food does not, the match is only the
+# nearest food, not the written one, so the item is not counted as verified.
+QUALIFIERS = ("شيدر", "موزاريلا", "بارميزان", "رومي", "كامل الدسم", "حليب كامل",
+              "مقلي", "بالزبدة", "بالسمن", "بلحم", "بالدجاج", "بالجبن", "بالكريمة",
+              "محشي", "مدخن")
+
+
+# Words that describe size, unit or presentation, not which food it is.
+# State words (raw/dry, whole/full-fat) are NOT here: they change the nutrient basis, so
+# they must appear in the matched row's name (or be settled by the raw/cooked guard).
+_HARMLESS = {"كبير", "كبيره", "صغير", "صغيره", "متوسط", "متوسطه", "وسط", "حبه", "حبات", "قطعه",
+             "قطع", "شريحه", "شرايح", "كوب", "اكواب", "ملعقه", "ملاعق", "كبيره", "طبق", "صحن",
+             "علبه", "رغيف", "نص", "ونص", "ربع", "حفنه", "مشكل", "مشكله", "بسيط", "سادة", "ساده",
+             "مع", "من", "في", "ماء", "الماء", "بيضات", "بيضتين", "بيضتان", "بيضه", "حبتين", "فرن", "متنوعه", "متنوع", "مشكله", "بدون", "طازج", "على", "او", "أو", "kcal", "سعره", "سعر"}
+
+
+# Cooked-weight basis (the user's weights for meat, poultry, fish and rice mean AFTER cooking,
+# WhatsApp 27 Nov 2026 "بعد الطبخ"). The basis of a table row comes from the row's OWN name only:
+#   cooked   the name states a cooking preparation (مطبوخ، مشوي، مسلوق، cooked, grilled ...)
+#   prepared sold already prepared (canned, smoked, cured, dried)
+#   raw      the name states raw / fresh / uncooked
+#   unknown  single-food row in scope whose name states no preparation
+# Only "cooked" and "prepared" qualify. A label qualifies the BASIS only: it is not proof that the
+# row's nutrients are the cooked values of that food, and it says nothing about the source.
+# Dishes, soups, sausages and other processed rows are out of scope for this rule.
+_BASIS_SCOPE_CATS = ("meat", "poultry", "fish")
+_BASIS_OUT = re.compile(
+    "شوربة|سلطة|curry|soup|salad|sushi|سوشى|سوشي|برياني|بريانى|biryani|مقلوبة|maqlobah|منسف|mansaf|هريس|harees|"
+    "ماجى|maggi|مرق|broth|كراكرز|crackers|طحين|flour|سجق|sausage|sujuk|لانشون|luncheon|مرتديلا|مارتيديلا|mortadella|"
+    "سلامي|سلامى|salami|بيبرونى|pepperoni|بسطرمة|basturma|برجر|burger|فسيخ|fesikh|ممبار|mombar|صالونة|salona|بانيه|"
+    "fillet, breaded|بسمن|ghee|بالفلفل|حليب|milk|كعكة|cakes|نودلز|noodles|بلبن|pudding|رز معمر|معمول|صيادية|sayadieh", re.I)
+_BASIS_COOKED = re.compile(
+    "مطبوخ|مشوي|مشوى|مسلوق|مطهي|مطهى|محمر|مقلي|مقلى|بالفرن|مسحب|بخار|cooked|grill|roast|boil|fried|baked|steam|broil|stew", re.I)
+_BASIS_PREPARED = (("canned", re.compile("معلب|canned", re.I)), ("smoked", re.compile("مدخن|smoked", re.I)),
+                   ("cured", re.compile("مملح|salted|cured|مقدد|bacon", re.I)), ("dried", re.compile("مجفف|dried|jerky|قديد", re.I)))
+# ready-to-eat products are weighed as sold; cooking does not change their weight. They are NOT "cooked".
+_AS_SOLD = ("canned", "smoked", "cured", "dried")
+# Candidate USDA matches (food_provenance.MATCHES) never qualify a row: a raw match withholds, a cooked
+# candidate leaves a no-preparation row unresolved. There is no switch that simulates a review.
+_BASIS_RAW = re.compile(r"نيئ|نئ|نيء|خام|\braw\b|طازج|fresh|uncooked", re.I)
+from food_provenance import MATCHES as _PROV, verified as _prov_verified, QUARANTINE as _QUAR
+
+
+def basis_of(food):
+    """'cooked' | 'prepared' | 'raw' | 'unknown' | None (row outside the cooked-weight rule),
+    from the row's own Arabic and English names. See the comment above."""
+    n = (food.get("n") or "") + " " + (food.get("en") or "")
+    cat = food.get("cat")
+    is_rice = cat == "grain" and re.search("أرز|رز|rice", n, re.I)
+    if not (cat in _BASIS_SCOPE_CATS or is_rice):
+        return None
+    if _BASIS_OUT.search(n):
+        return None
+    _m = _PROV.get(food.get("n"))
+    if _m and _m[2] == "raw":
+        return "raw"                    # USDA row of the same species and numbers is RAW: withhold
+    if _BASIS_RAW.search(n):
+        return "raw"
+    if _BASIS_COOKED.search(n):
+        return "cooked"
+    for _lab, _rx in _BASIS_PREPARED:
+        if _rx.search(n):
+            return _lab
+    return "unknown"
+
+
+def _has_proposed_cooked_row(food):
+    """With NX_PROPOSED_VARIANTS=1 a row that has a proposed USDA variant (kind variant or new_recipe,
+    never a proxy) is replaced by that variant below; the variant row names its own cooked
+    preparation and FDC id, so the basis of the library row does not decide the item."""
+    if os.environ.get("NX_PROPOSED_VARIANTS") != "1":
+        return False
+    import meal_proposed
+    pv = meal_proposed.PROPOSED.get(food.get("n"))
+    return bool(pv) and pv.get("kind") in ("variant", "new_recipe") and basis_of_proposed(pv) == "cooked"
+
+
+def basis_of_proposed(pv):
+    d = (pv.get("usda") or pv.get("en") or "") + " " + (pv.get("name") or "")
+    return "cooked" if re.search("cooked|roasted|baked|boiled|مطبوخ|مشوي|مسلوق", d, re.I) else "unknown"
+
+
+def basis_unresolved(food):
+    """Reason string when the row cannot stand for a cooked weight, else None."""
+    if food.get("n") in _QUAR:
+        return "identity:quarantined, " + _QUAR[food.get("n")]
+    b = basis_of(food)
+    if b is None or b == "cooked" or b in _AS_SOLD:
+        return None
+    _m = _PROV.get(food.get("n"))
+    if _m and b == "raw":
+        return "basis:values match USDA raw row %s (%s)" % (_m[0], _m[1])
+    if b == "unknown" and _m and _m[2] == "cooked":
+        return "basis:candidate cooked match USDA %s (%s), not yet reviewed" % (_m[0], _m[1])
+    return "basis:" + ("row is a raw-weight row" if b == "raw" else "row name states no preparation (cooked or raw unknown)")
+
+
+def identity_gap(raw, food):
+    """First word of the item that names something the matched table row does not
+    (chicken in "كفتة دجاج" vs the row "كفتة مشوية", "حلوم" vs the row "جبن قريش"),
+    or None. Such an item is not that row: the match is a guess at the head noun
+    and its qualifier was dropped, so it must stay unverified, not computed."""
+    nr = _strip_noise(_norm(raw))
+    nr = re.sub(r"\([^)]*[A-Za-z][^)]*\)", " ", nr)          # "(Greek Yogurt Bowl"
+    nr = re.sub(r"[A-Za-z][A-Za-z'\-]*", " ", nr)             # English words in titles
+    nr = re.sub(r"\d+(?:[.,]\d+)?\s*(?:جم|جرام|غ|g|ml|kcal|مل(?![\u0600-\u06FF]))?", " ", nr)
+    nf = _norm(food.get("n"))
+    syn = (("دجاج", "فراخ", "فروج", "فرخه", "فرخة"),)
+    allowed = set()
+    for g, sp in GENERIC.items():
+        if _norm(sp) == nf:
+            allowed.update(_norm(g).split())
+    for tok in re.split(r"[\s()+،,/-]+", nr):
+        if len(tok) < 3:
+            continue
+        core = re.sub(r"^(?:بال|وال|لل|ال|ب|ل|و)(?=.{3,})", "", tok)
+        if core in _HARMLESS or tok in _HARMLESS or core in allowed or tok in allowed:
+            continue
+        if core in nf or tok in nf:
+            continue
+        stems = {core[:-1] if core.endswith("ه") else core,
+                 core[:-2] if core.endswith(("ات", "ين")) else core}
+        if any(len(x) >= 3 and x in nf for x in stems):
+            continue    # singular/plural, feminine ending (تفاحة / تفاح)
+        if any(core in grp and any(w in nf for w in grp) for grp in syn):
+            continue
+        # report the word as written (the single-letter prefix strip is only for matching)
+        return tok if tok.startswith(("ب", "ل", "و")) and len(tok) - len(core) == 1 else core
+    return None
+
+
+def _exact_identity(text, food):
+    """The table row's own name is in the text (or the whole-egg alias)."""
+    nf = _norm(food.get("n"))
+    for clean in (_norm(text), _strip_noise(_norm(text))):
+        if clean and _find_word(clean, nf) >= 0:
+            return True
+        if nf == _norm("بيضة كاملة") and re.search(r"(?:^|\s)(?:بيضه|بيضتين|بيضتان|بيضات|بيض)(?:$|\s)", clean) \
+                and not re.search(_norm("ابيض|صفار|بياض"), clean):
+            return True
+    return False
+
+
+def _ok_level(r, kinds):
+    """Item is original-exact, or a PROPOSED item of an allowed kind with a stated or proposed quantity.
+    Proxies (identity-mismatched stand-ins) are never in a source-matched level."""
+    if r.get("exact_identity") and r.get("explicit_quantity"):
+        return True
+    if not r.get("proposed") or r.get("proposed_kind") not in kinds:
+        return False
+    return bool(r.get("explicit_quantity") or r.get("proposed_qty"))
+
+
+def _flag_row(r):
+    """Per-item flags (see macros()). Rows without a priced food get all False."""
+    if r.get("proposed"):
+        # proposed variant: stated quantity only if the text had one; never exact, never original
+        r["explicit_quantity"] = bool(r.get("how") in ("grams", "count", "ml*density"))
+        r["exact_identity"] = False
+        r["sourced"] = True
+        return
+    food = None
+    if r.get("food") and not r.get("unresolved"):
+        food = next((f for _n, f in _table() if f.get("n") == r["food"]), None)
+    r["explicit_quantity"] = bool(food) and r.get("how") in ("grams", "count", "ml*density")
+    r["exact_identity"] = bool(food) and _exact_identity(r["text"], food)
+    r["sourced"] = bool(food and (food.get("fdc") or _prov_verified(food)))
+
+
 def macros(text):
     """‏ماكروز الوجبة كلها من أصنافها.
 
@@ -451,9 +704,147 @@ def macros(text):
             continue
         total += 1
         food = find_food(raw)
+        food_orig_name = food.get("n") if food else None
         grams, how = item_grams(raw, food)
+        if food and _is_ml(raw) and food.get("cat") in _DRY_CATS \
+                and "زيت" not in str(food.get("n")):
+            # ‏"شوفان بحليب 200مل" طبق جاهز، مش ٢٠٠ جم شوفان خام.
+            # الأمان إننا مانخمّنش: الصنف بيتعدّ "مش متعرّف" والوجبة
+            # بترجع للرقم المكتوب.
+            food, grams, how = None, 0.0, None
         row = {"text": raw, "grams": grams, "how": how,
                "food": food.get("n") if food else None}
+        if (food and _norm("شوربة") in _norm(raw)
+                and _norm("شوربة") not in _norm(food.get("n"))):
+            # ‏"شوربة لسان عصفور" مش لسان بقري. الطبق مش في الجدول.
+            row["unresolved"] = "dish"
+            items.append(row)
+            continue
+        if food and any(_norm(w) in _norm(raw) and _norm(w) not in _norm(food.get("n"))
+                        for w in ("فتة", "فته", "شاورما", "مندي", "مجبوس", "برياني", "كبسة", "كشري")):
+            # a named dish (bread, rice, sauce...) is not the single food it
+            # contains, e.g. "فتة حمص" is not boiled chickpeas, "شاورما دجاج"
+            # is not grilled chicken breast. Dishes the table has under their
+            # own name still match (the food name contains the dish word).
+            row["unresolved"] = "dish"
+            items.append(row)
+            continue
+        _ml_g = food and __import__("meal_food_sources").ML_G.get(food.get("n"))
+        if food and how == "grams" and _is_ml(raw) and _ml_g:
+            # household weight from the source (USDA: 1 US cup = 244 g)
+            grams = grams * float(_ml_g)
+            row["grams"] = round(grams, 1)
+            row["how"] = "ml*density"
+        if food and (_norm("&") in _norm(raw) or "veggies" in raw.lower()
+                     or " مع " in " " + raw + " "
+                     or any(w in raw for w in ("بالخضار", "بالخضروات", "بالصينية", "بالفلافل"))):
+            # a dish title naming more than the matched food (fish AND vegetables)
+            row["unresolved"] = "composite"
+            items.append(row)
+            continue
+        if (food and _norm("لبن لوز") in _norm(raw) + " " or
+                food and _norm("حليب لوز") in _norm(raw) + " ") and not re.search(
+                _norm("غير محلى|بدون سكر|unsweetened|sugar free"), _norm(raw)):
+            # sweetened and unsweetened almond milk differ ~2.5x in kcal; the
+            # text does not say which
+            row["unresolved"] = "variant:sweetened or unsweetened not stated"
+            items.append(row)
+            continue
+        if food and os.environ.get("NX_IDENTITY_STRICT", "1") != "0":
+            _gap = identity_gap(raw, food)
+            if _gap and os.environ.get("NX_PROPOSED_VARIANTS") == "1":
+                import meal_proposed
+                _pv0 = meal_proposed.PROPOSED.get(food.get("n"))
+                if _pv0 and _pv0.get("overrides_identity") and _norm(_pv0["only_if"]) in _norm(raw):
+                    _gap = None             # proposed proxy for this exact phrase (flagged proposed below)
+            if _gap:
+                row["unresolved"] = "identity:" + _gap
+                items.append(row)
+                continue
+        if food:
+            _nr, _nf = _norm(raw), _norm(food.get("n"))
+            _q = [w for w in QUALIFIERS if _norm(w) in _nr and _norm(w) not in _nf]
+            if _q:
+                # ‏الجدول مافيهوش الصنف المحدّد ده (شيدر مش قريش، مقلي مش مسلوق،
+                # كامل الدسم مش قليل الدسم): الأقرب مش مرجع، فالصنف غير محسوم.
+                row["unresolved"] = "qualifier:" + _q[0]
+                items.append(row)
+                continue
+        if (food and os.environ.get("NX_BASIS_STRICT", "1") != "0" and basis_unresolved(food)
+                and not (basis_of(food) == "raw" and _BASIS_RAW.search(raw))
+                and not _has_proposed_cooked_row(food)):
+            # Design rule: weights written in the table mean AFTER cooking (the user's instruction, 27 Nov 2026; a code comment is not evidence of it).
+            # This row's values equal a USDA RAW row and its name states no preparation,
+            # so it is not a cooked-weight row. Resemblance, not proof: either way it is
+            # not exact, and the total shows it as unresolved.
+            row["unresolved"] = basis_unresolved(food)
+            items.append(row)
+            continue
+        if (food and how == "count"
+                and food.get("n") in AMBIGUOUS_COUNT
+                and not _named_unit(_norm(raw), food)
+                and not _UNIT_WORD.search(_norm(raw))):
+            # ‏"خبز 2": رغيف ولا شريحة؟ الجدول مافيهوش وزن معتمد،
+            # فمانخمّنش. الصنف بيتعدّ "غير محسوم" والحساب ناقص ظاهر.
+            row["unresolved"] = "unit"
+            items.append(row)
+            continue
+        if food:
+            _nr, _nf = _norm(raw), _norm(food.get("n"))
+            _raw_word = re.search(r"(?:^|\s)(?:نيء|نيه|ني|نيئه|نيئة|خام|جاف|جافه|جافة|ناشف)(?:$|\s)", _nr)
+            _cooked_food = re.search(r"مطبوخ|مسلوق|مشوي|مشوى", _nf)
+            if _raw_word and _cooked_food:
+                # raw weight is not cooked weight (rice 365 vs 130 kcal/100 g).
+                # The table has no raw row for this food: do not reuse the cooked one.
+                row["unresolved"] = "raw/cooked"
+                items.append(row)
+                continue
+            if _nf == _norm("سمك بلطي") and _norm("بلطي") not in _nr and re.search(
+                    _norm("سمك") + r"\s+(?!\d)\S+", _nr) and not re.search(_norm("سمك") + r"\s+(?:مشوي|مسلوق|مقلي|بالفرن|مشوى)\b", _nr):
+                # "سمك X" names a species the table does not have
+                row["unresolved"] = "variant:fish species"
+                items.append(row)
+                continue
+            if "سكر" in _nr and "بدون سكر" not in _nr and "بدون سكر" in _nf:
+                row["unresolved"] = "variant:sugar added, table row is unsweetened"
+                items.append(row)
+                continue
+            if (_nf == _norm("لبن رايب") and re.search(_norm("حليب|لبن") + "", _nr)
+                    and not re.search(_norm("رايب|زبادي"), _nr)
+                    and not re.search(_norm("خالي|كامل"), _nr)):
+                # plain milk with no fat level: the table has no single milk row for it
+                row["unresolved"] = "variant:milk fat level not stated"
+                items.append(row)
+                continue
+            if how == "default" and _UNIT_WORD.search(_nr):
+                _uw = _UNIT_WORD.search(_nr).group(0)
+                _du = _default_unit_name(_nr, food)
+                if _du and _norm(_uw) not in _norm(_du) and not re.search(r"\d", _nr):
+                    # the item states a unit (slice/loaf/spoon...) that is not the unit
+                    # the default weight belongs to
+                    row["unresolved"] = "unit"
+                    items.append(row)
+                    continue
+        if food and not row.get("unresolved") and os.environ.get("NX_PROPOSED_VARIANTS") == "1":
+            # PROPOSED review layer (off by default): a bridged generic phrase is priced from ONE
+            # chosen USDA variant, and a missing quantity from the USDA household portion. Neither
+            # is the doctor's original text or a verified value: flagged proposed, never exact.
+            import meal_proposed
+            _pv = meal_proposed.PROPOSED.get(food.get("n"))
+            if _pv and _pv.get("only_if") and _norm(_pv["only_if"]) not in _norm(raw):
+                _pv = None                          # e.g. mixed nuts only for "مكسرات", not plain almonds
+            if _pv and (not _exact_identity(raw, food) or how in (None, "default") or basis_unresolved(food)):
+                # basis_unresolved: an explicit amount of a row with no stated preparation is still
+                # swapped to the named cooked variant, never kept as the original
+                food = _pv
+                row["food"] = _pv["n"]
+                row["proposed"] = True
+                row["proposed_kind"] = _pv.get("kind", "variant")   # variant | proxy | new_recipe
+                row["original_food"] = food_orig_name
+                if how in (None, "default") or not grams:
+                    grams, how = float(_pv["default_g"]), "proposed_default"
+                    row["proposed_qty"] = True
+                row["grams"], row["how"] = round(grams, 1), how
         if food and grams > 0:
             known += 1
             share = grams / 100.0
@@ -465,7 +856,33 @@ def macros(text):
                     pass
             row["cal"] = round(float(food.get("cal") or 0) * share)
         items.append(row)
+    unresolved = [r["text"] for r in items
+                  if r.get("unresolved") or not (r.get("food") and r.get("grams", 0) > 0)]
+    for r in items:
+        _flag_row(r)
+    # three independent facts, never one flag:
+    #   explicit_quantity: the text states the amount (grams / count / ml)
+    #   exact_identity:    the table row's own name is in the text, not a generic bridge
+    #                      ("جبنة" -> cottage cheese, "لحم" -> lean beef, "لبن" -> laban rayeb)
+    #   sourced:           the row is a USDA-sourced row (has an fdc id), not an unsourced
+    #                      library row
+    # "complete" = every item is priced from some table row. "exact" = priced AND
+    # explicit AND exact identity: the only case that counts as calculated from the
+    # actual meal. Even then it is a table calculation, not source-verified unless
+    # every item is also sourced ("all_sourced").
+    _priced = bool(items) and not unresolved
     return {
+        # only with NX_PROPOSED_VARIANTS=1: every item is either original-exact or a PROPOSED variant
+        # with a stated or USDA-household quantity. A proposal is not the original meal.
+        "exact_if_proposed": _priced and all(_ok_level(r, ("variant",)) for r in items),
+        "exact_if_proposed_recipe": _priced and all(_ok_level(r, ("variant", "new_recipe")) for r in items),
+        "has_proxy": any(r.get("proposed_kind") == "proxy" for r in items),
+        "has_new_recipe": any(r.get("proposed_kind") == "new_recipe" for r in items),
+        "has_proposed": any(r.get("proposed") for r in items),
+        "exact": _priced and all(r.get("explicit_quantity") and r.get("exact_identity") for r in items),
+        "all_sourced": _priced and all(r.get("sourced") for r in items),
+        "complete": bool(items) and not unresolved,
+        "unresolved": unresolved,
         "cal": int(round(sums["cal"])),
         "p": int(round(sums["p"])),
         "c": int(round(sums["c"])),
@@ -475,6 +892,8 @@ def macros(text):
     }
 
 
+
+
 def trusted(text, stored_cal, stored_p=None):
     """‏الماكروز لو الحساب اتفق مع الرقم المكتوب، وإلا None.
 
@@ -482,7 +901,9 @@ def trusted(text, stored_cal, stored_p=None):
     قريب منه -- وساعتها الكارب والدهون المحسوبين ينفعوا يتكتبوا.
     """
     out = macros(text)
-    if out["covered"] < 0.6 or not stored_cal:
+    # an item that is unresolved (unknown food, unstated unit, named variant the
+    # table lacks) means the computed total is incomplete: never trust it
+    if out["covered"] < 0.6 or not stored_cal or out["unresolved"]:
         return None
     try:
         reference = float(stored_cal)
