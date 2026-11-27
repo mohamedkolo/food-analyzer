@@ -561,7 +561,7 @@ _AS_SOLD = ("canned", "smoked", "cured", "dried")
 # Candidate USDA matches (food_provenance.MATCHES) never qualify a row: a raw match withholds, a cooked
 # candidate leaves a no-preparation row unresolved. There is no switch that simulates a review.
 _BASIS_RAW = re.compile(r"نيئ|نئ|نيء|خام|\braw\b|طازج|fresh|uncooked", re.I)
-from food_provenance import MATCHES as _PROV, verified as _prov_verified, QUARANTINE as _QUAR
+from food_provenance import MATCHES as _PROV, verified as _prov_verified, QUARANTINE as _QUAR, REVIEWED as _REV, PREP_REQUIRED as _PREP, NAME_REQUIRED as _NAME_REQUIRED
 
 
 def basis_of(food):
@@ -618,6 +618,9 @@ def basis_unresolved(food):
     _m = _PROV.get(food.get("n"))
     if _m and b == "raw":
         return "basis:values match USDA raw row %s (%s)" % (_m[0], _m[1])
+    if b == "unknown" and _m and _m[2] == "cooked" and _prov_verified(food) and "cooked" in str((_REV.get(food.get("n")) or ("", "", ""))[2]):
+        # 28 Nov 2026: the row's numbers were checked against that cooked USDA row (REVIEWED); its weight is a cooked weight.
+        return None
     if b == "unknown" and _m and _m[2] == "cooked":
         return "basis:candidate cooked match USDA %s (%s), not yet reviewed" % (_m[0], _m[1])
     return "basis:" + ("row is a raw-weight row" if b == "raw" else "row name states no preparation (cooked or raw unknown)")
@@ -660,6 +663,13 @@ def identity_gap(raw, food):
 def _exact_identity(text, food):
     """The table row's own name is in the text (or the whole-egg alias)."""
     nf = _norm(food.get("n"))
+    if food.get("n") == _FRIED_EGG:
+        # plain "بيض مقلي" (+ count, size, grams) is the fried-egg row; any other word (oil, spices...) is not exact
+        _rest = _EMOJI.sub(" ", _norm(text))
+        _rest = re.sub(r"\d+(?:[.,]\d+)?|جم|جرام|غ|\(.*?\)", " ", _rest)
+        _rest = re.sub(r"(?<!\S)(?:" + _norm("بيض|بيضه|بيضتين|بيضتان|بيضات|مقلي|مقلى|مقليه|مقليتين|كبيره|كبيرة|كبار|large|usda") + r")(?!\S)", " ", _rest, flags=re.I)
+        if not _rest.strip():
+            return True
     for clean in (_norm(text), _strip_noise(_norm(text))):
         if clean and _find_word(clean, nf) >= 0:
             return True
@@ -695,6 +705,25 @@ def _flag_row(r):
     r["sourced"] = bool(food and (food.get("fdc") or _prov_verified(food)))
 
 
+_EGG_LARGE = re.compile(r"(?:^|\s)(?:كبيره|كبيرة|كبار|large)(?:$|\s)", re.I)
+_COUNT_ANY = re.compile(r"(?:^|\s)(\d+(?:[.,]\d+)?)(?=\s|$)")
+_FRIED_EGG = "بيض مقلي (USDA 173423)"
+_EGG_TWO = re.compile(_norm("بيضتين|بيضتان"))
+
+
+def _fried_egg(raw, food):
+    """The USDA fried-egg row when the text names fried eggs (and nothing else): "بيض مقلي", "بيضتين مقليتين بالقليل من الزيت".
+    Whole eggs only; a dish (with vegetables, tomato...) stays composite/unresolved."""
+    if not food or food.get("n") not in (_FRIED_EGG, "بيضة كاملة"):
+        return None
+    nr = _norm(raw)
+    if not re.search(_norm("بيض") + r"|" + _norm("بيضة") , nr) or not re.search(_norm("مقلي|مقلى|مقليه|مقليتين|مقلية"), nr):
+        return None
+    if re.search(r"(?<!\S)(?:" + _norm("بالخضار|مع|سلطة|طماطم|جبن|لحم|سجق|بسطرمة|شكشوكة|اومليت|ابيض|صفار|بياض|وخضار|وجبن") + r")(?!\S)", nr):
+        return None
+    return next((f for _n, f in _table() if f.get("n") == _FRIED_EGG), None)
+
+
 def macros(text):
     """‏ماكروز الوجبة كلها من أصنافها.
 
@@ -710,6 +739,13 @@ def macros(text):
             continue
         total += 1
         food = find_food(raw)
+        if raw.count("(") > raw.count(")") and food is not None and find_food(raw.split("(")[0]) is food \
+                and find_food(raw.split("(", 1)[1]) is not food:
+            # "سلطة تونة كبيرة (تونة 150جم + خضار 250جم)": the split cut a parenthetical list and the matched food comes from the
+            # dish TITLE before the bracket, so the ingredient's grams would be priced as that dish row. Not counted.
+            # (A title that matches no food, "Chicken Burrito Bowl (ارز بني 100جم", still prices its first ingredient as before.)
+            items.append({"text": raw, "grams": 0.0, "how": None, "food": food.get("n"), "unresolved": "composite"})
+            continue
         food_orig_name = food.get("n") if food else None
         grams, how = item_grams(raw, food)
         if food and _is_ml(raw) and food.get("cat") in _DRY_CATS \
@@ -759,7 +795,25 @@ def macros(text):
             row["unresolved"] = "variant:sweetened or unsweetened not stated"
             items.append(row)
             continue
-        if food and os.environ.get("NX_IDENTITY_STRICT", "1") != "0":
+        _egg = _fried_egg(raw, food)
+        if _egg:
+            # 28 Nov 2026: "بيض مقلي" is the USDA fried-egg row (cooking fat included), not the plain whole-egg row.
+            food = _egg
+            row["food"] = food.get("n")
+            if how in ("grams",):
+                pass
+            elif _EGG_LARGE.search(_norm(raw)) and (_COUNT_ANY.search(_norm(raw)) or _EGG_TWO.search(_norm(raw))):
+                # explicit "large" egg count: USDA household portion, 1 large = 46 g (FDC 173423 foodPortions)
+                _c = _COUNT_ANY.search(_norm(raw))
+                grams = (float(_c.group(1).replace(",", ".")) if _c else 2.0) * 46.0
+                row["grams"], row["how"], how = grams, "count", "count"
+            else:
+                # size not stated: do not assume it. Counted only with grams or the word "كبيرة".
+                row["grams"], row["how"] = 0.0, None
+                row["unresolved"] = "size:egg size not stated"
+                items.append(row)
+                continue
+        if food and not _egg and os.environ.get("NX_IDENTITY_STRICT", "1") != "0":
             _gap = identity_gap(raw, food)
             if _gap and os.environ.get("NX_PROPOSED_VARIANTS") == "1":
                 import meal_proposed
@@ -779,6 +833,13 @@ def macros(text):
                 row["unresolved"] = "qualifier:" + _q[0]
                 items.append(row)
                 continue
+        if food and os.environ.get("NX_BASIS_STRICT", "1") != "0" and basis_of(food) == "unknown" \
+                and food.get("n") in _PREP and not (re.search(_norm(_PREP[food.get("n")]), _norm(raw))
+                                                     and re.search(_norm(_NAME_REQUIRED.get(food.get("n"), ".")), _norm(raw))):
+            # reviewed against ONE USDA cooking method; the text does not name a compatible one (boiled or fried is not roasted)
+            row["unresolved"] = "basis:cooking method or species/cut not stated, USDA row " + str((_REV.get(food.get("n")) or ("", "", ""))[0])
+            items.append(row)
+            continue
         if (food and os.environ.get("NX_BASIS_STRICT", "1") != "0" and basis_unresolved(food)
                 and not (basis_of(food) == "raw" and _BASIS_RAW.search(raw))
                 and not _has_proposed_cooked_row(food)):
@@ -801,7 +862,8 @@ def macros(text):
         if food:
             _nr, _nf = _norm(raw), _norm(food.get("n"))
             _raw_word = re.search(r"(?:^|\s)(?:نيء|نيه|ني|نيئه|نيئة|خام|جاف|جافه|جافة|ناشف)(?:$|\s)", _nr)
-            _cooked_food = re.search(r"مطبوخ|مسلوق|مشوي|مشوى", _nf)
+            _cooked_food = re.search(r"مطبوخ|مسلوق|مشوي|مشوى", _nf) or (
+                basis_of(food) == "unknown" and basis_unresolved(food) is None)
             if _raw_word and _cooked_food:
                 # raw weight is not cooked weight (rice 365 vs 130 kcal/100 g).
                 # The table has no raw row for this food: do not reuse the cooked one.
