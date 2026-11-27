@@ -1184,7 +1184,7 @@ document.addEventListener('submit', async (e) => {
   if (!form) return;
   e.preventDefault();
   const input = form.querySelector('input');
-  const text = input.value.trim();
+  const text = nxExpand(input.value.trim(), input._nxAllowed || new Set());
   if (!text) { input.focus(); return; }
   const day = form.dataset.day, type = form.dataset.type;
   form.querySelector('button').disabled = true;
@@ -1208,6 +1208,24 @@ function showSaveIndicator() {
 // ═══════ Suggestions while typing a food name ═══════
 // Only source-qualified, named foods are offered (see food_suggest.py). Choosing one writes its NAME into the line; the doctor
 // types the amount in grams after cooking and saves as usual. Nothing is saved or replaced by choosing.
+const NXN = {{ nx_ref_names()|tojson }};
+const NXN_FULLS = Object.values(NXN).sort((a, b) => b.length - a.length);
+const NXN_CLEAN = Object.fromEntries(Object.entries(NXN).map(([c, f]) => [f, c]));
+const nxEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// Edit boxes show the clean name; the "(USDA n)" key is put back on save for exactly the names that carried it.
+function nxHide(text, allowed) {
+  NXN_FULLS.forEach(f => { if (text.includes(f)) { allowed.add(f); text = text.split(f).join(NXN_CLEAN[f]); } });
+  return text;
+}
+function nxExpand(text, allowed) {
+  const names = [...allowed].map(f => NXN_CLEAN[f]).filter(Boolean).sort((a, b) => b.length - a.length);
+  if (!names.length) return text;
+  const full = Object.fromEntries([...allowed].map(f => [NXN_CLEAN[f], f]));
+  // the name must stand alone: not glued to letters before it, and followed only by an amount, a separator or the end
+  // (so "سمك بوري نيّء مشوي" is a different food and gets no key)
+  const re = new RegExp('(?<![\\u0600-\\u06FFA-Za-z])(' + names.map(nxEsc).join('|') + ')(?=\\s*(?:$|[+،,\\n/\\d\\u0660-\\u0669]))', 'g');
+  return text.replace(re, (m) => full[m] || m);
+}
 function attachSuggest(el) {
   if (el.dataset.fsOn) return;
   el.dataset.fsOn = '1';
@@ -1230,7 +1248,8 @@ function attachSuggest(el) {
     const before = el.value.slice(0, start), seg = el.value.slice(start, el.selectionStart), after = el.value.slice(el.selectionStart);
     const lead = (seg.match(/^\s*/) || [''])[0];
     const amt = (seg.slice(lead.length).match(AMT) || [''])[0];
-    const out = before + lead + amt + it.text;
+    (el._nxAllowed = el._nxAllowed || new Set()).add(it.text);
+    const out = before + lead + amt + (NXN_CLEAN[it.text] || it.text);
     el.value = out + after;
     el.setSelectionRange(out.length, out.length);
     close(); el.focus();
@@ -1239,7 +1258,7 @@ function attachSuggest(el) {
     list.innerHTML = '';
     items.forEach((it, i) => {
       const d = document.createElement('div'); d.className = 'fs-item'; d.setAttribute('role', 'option');
-      const n = document.createElement('div'); n.className = 'fs-name'; n.textContent = it.text;
+      const n = document.createElement('div'); n.className = 'fs-name'; n.textContent = it.text.replace(/\s*[(\uFF08]\s*USDA\s*\d+\s*[)\uFF09]/g, '');
       const m = document.createElement('div'); m.className = 'fs-meta';
       m.textContent = FS.ar ? ((it.basis_ar || '') + (it.basis_ar ? ' · ' : '') + it.label + ' · USDA ' + it.fdc) : (it.basis + ' · ' + it.label_en + ' · USDA ' + it.fdc);
       const v = document.createElement('div'); v.className = 'fs-meta';
@@ -1283,7 +1302,8 @@ document.querySelectorAll('.meal-text.editable').forEach(el => {
     const parent = this.parentElement;
     const textarea = document.createElement('textarea');
     textarea.className = 'meal-edit-textarea';
-    textarea.value = currentText;
+    textarea._nxAllowed = new Set();
+    textarea.value = nxHide(currentText, textarea._nxAllowed);
     textarea.rows = 2;
     this.style.display = 'none';
     this.classList.add('editing');
@@ -1292,7 +1312,7 @@ document.querySelectorAll('.meal-text.editable').forEach(el => {
     textarea.focus();
     textarea.select();
     const saveEdit = async () => {
-      const newText = textarea.value.trim();
+      const newText = nxExpand(textarea.value.trim(), textarea._nxAllowed);
       if (!newText) { cleanup(); return; }
       try {
         const formData = new FormData();
