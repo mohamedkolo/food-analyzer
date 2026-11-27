@@ -882,12 +882,22 @@ def preview():
                     for k, v in plan_tools.plan_problems(data, plan).items()}
     except Exception as e:
         log_error("preview_problems", e, critical=True)
+    calc_warns = {}
+    try:
+        for _i, _day in enumerate(plan or []):
+            for _k in plan_tools.MEAL_KEYS:
+                if _day.get(_k):
+                    _w = _calc_warning(_day[_k])
+                    if _w:
+                        calc_warns["%d:%s" % (_i, _k)] = _w
+    except Exception as e:
+        log_error("preview_calc_warning", e)
     templates = db_rows("SELECT id, name, diet_type, goal_cal FROM plan_templates "
                         "WHERE user_id=? ORDER BY id DESC", (session["uid"],))
     return render_template("preview.html", user=u, lang=session.get("lang","ar"),
                            data=data, plan=plan, current_request_id=current_request_id,
                            sheet_notes=sheet_notes, diet_plans=DIET_PLAN_TYPES,
-                           problems=problems, templates=templates,
+                           problems=problems, calc_warns=calc_warns, templates=templates,
                            gap_alert=plan_tools.GAP_ALERT_KCAL,
                            tpl_msg=request.args.get("tpl", ""),
                            tpl_replaced=request.args.get("replaced", type=int) or 0,
@@ -1079,6 +1089,46 @@ def _problem_text(problems):
     return " · ".join(dict.fromkeys(parts))
 
 
+def _calc_warning(text):
+    """Plain words for each item the calculator did NOT count, so the day total is never silently short.
+    Only items the user typed with a quantity or a USDA key are named (bare descriptive words are not)."""
+    if not text or not isinstance(text, str):
+        return ""
+    import meal_macros
+    from food_suggest import hide_ref, _ref_names
+    ar = cur_lang() == "ar"
+    try:
+        rows = meal_macros.macros(text)["items"]
+    except Exception:
+        return ""
+    known = [full for full, _clean in _ref_names()]
+    out = []
+    for r in rows:
+        why = r.get("unresolved")
+        raw = r.get("text") or ""
+        if not why and r.get("food") and (r.get("grams") or 0) > 0:
+            continue
+        has_ref = bool(re.search(r"\(USDA\s*\d+\)", raw))
+        if not why and not (has_ref or re.search(r"\d", raw)):
+            continue
+        name = hide_ref(raw)
+        if has_ref and not any(full in raw for full in known):
+            msg = "رقم USDA غير معروف، مش محسوب: %s" if ar else "Unknown USDA number, not counted: %s"
+            name = raw
+        elif why in ("composite", "dish"):
+            msg = "وجبة مركبة، مش محسوبة: %s" if ar else "Mixed dish, not counted: %s"
+        elif why and why.startswith("basis"):
+            msg = "نيء ولا مطبوخ؟ مش محسوب: %s" if ar else "Raw or cooked? Not counted: %s"
+        else:
+            msg = "صنف مش معروف، مش محسوب: %s" if ar else "Unrecognised food, not counted: %s"
+        out.append(msg % name)
+    return " · ".join(dict.fromkeys(out))
+
+
+def _join_warn(a, b):
+    return " · ".join(x for x in (a, b) if x)
+
+
 def _change_meal(data, plan, day_idx, meal_type, new_text):
     """Write one meal into the draft and report what that did to the day.
 
@@ -1090,7 +1140,7 @@ def _change_meal(data, plan, day_idx, meal_type, new_text):
     check = plan_tools.apply_change(data, day, day.get(meal_type, ""), new_text)
     day[meal_type] = new_text
     draft_store.set_draft(plan=plan)
-    check["warning"] = _problem_text(check.pop("problems"))
+    check["warning"] = _join_warn(_problem_text(check.pop("problems")), _calc_warning(new_text))
     return check
 
 

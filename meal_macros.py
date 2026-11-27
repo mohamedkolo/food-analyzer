@@ -610,6 +610,11 @@ def basis_unresolved(food):
     b = basis_of(food)
     if b is None or b == "cooked" or b in _AS_SOLD:
         return None
+    if b == "raw" and food.get("family") and food.get("fdc") and _BASIS_RAW.search((food.get("n") or "") + " " + (food.get("en") or "")):
+        # A named USDA variant whose OWN name says it is raw: the doctor chose it from the list, and the list says
+        # "type the grams weighed raw". The weight basis is stated by the row itself, so it is counted. Library rows
+        # whose raw state is only a guess from their numbers stay withheld (they have no "family").
+        return None
     _m = _PROV.get(food.get("n"))
     if _m and b == "raw":
         return "basis:values match USDA raw row %s (%s)" % (_m[0], _m[1])
@@ -736,9 +741,12 @@ def macros(text):
             grams = grams * float(_ml_g)
             row["grams"] = round(grams, 1)
             row["how"] = "ml*density"
-        if food and (_norm("&") in _norm(raw) or "veggies" in raw.lower()
-                     or " مع " in " " + raw + " "
-                     or any(w in raw for w in ("بالخضار", "بالخضروات", "بالصينية", "بالفلافل"))):
+        # the food's OWN name may contain the word (حليب كامل الدسم "مع" فيتامين د): that is not a second food
+        _own = (food or {}).get("n") or ""
+        _rest = raw.replace(_own, " ") if _own and _own in raw else raw
+        if food and (_norm("&") in _norm(_rest) or "veggies" in _rest.lower()
+                     or " مع " in " " + _rest + " "
+                     or any(w in _rest for w in ("بالخضار", "بالخضروات", "بالصينية", "بالفلافل"))):
             # a dish title naming more than the matched food (fish AND vegetables)
             row["unresolved"] = "composite"
             items.append(row)
