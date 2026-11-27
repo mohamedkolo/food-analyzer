@@ -747,6 +747,7 @@ body.wy-page::before{display:none}
 
   ['wyCam', 'wyUp'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', () => readPhoto(el.files[0])); });
 })();
+</script>
 
 <script>
 document.getElementById('wyScanTop') && document.getElementById('wyScanTop').addEventListener('click', function () {
@@ -759,6 +760,5 @@ document.getElementById('wyScanTop') && document.getElementById('wyScanTop').add
   var card = h.closest('.wy-card');
   if (card) { card.classList.remove('wy-pulse'); void card.offsetWidth; card.classList.add('wy-pulse'); }
 });
-</script>
 </script>
 {% endblock %}
