@@ -103,6 +103,9 @@ SUITES = [
     "test_omega_barcode.py",
     "test_backup_workflow.py",
     "test_monitoring.py",
+    "test_inline_scripts.py",
+    "test_landing_speed.py",
+    "test_pdf_sample_routes.py",
 ]
 
 

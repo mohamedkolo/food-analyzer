@@ -25,8 +25,10 @@ _monitoring.init()
 # ═══ حماية CSRF ═══
 from flask_wtf import CSRFProtect
 csrf = CSRFProtect(app)
-from pdf_generator import pdf_bp
-app.register_blueprint(pdf_bp)
+# ‏كان هنا pdf_generator.py: قالب جاهز بتلت مسارات عيّنة من غير دخول
+# (/meal-plan/preview و pdf و patient/<id>.pdf). اتنين كانوا بيرجّعوا 500
+# لأي زائر، والتالت كان بيشغّل WeasyPrint لأي حد يطلب على سيرفر Render
+# المجاني. اتشالوا؛ الورق الحقيقي من plan_engine. (tests/test_pdf_sample_routes.py)
 # SECRET_KEY لازم يجي من متغير بيئة — لو مش موجود نولّد واحد عشوائي (الجلسات هتتقطع مع كل restart لحد ما تضيفه)
 import secrets as _secrets
 app.secret_key = os.environ.get("SECRET_KEY") or _secrets.token_hex(32)
@@ -196,6 +198,9 @@ def health():
     resp.headers["Cache-Control"] = "no-store"
     return resp, 200
 
+_STATIC_GZ = {}
+
+
 @app.after_request
 def speed_headers(resp):
     """① كاش طويل للملفات الثابتة  ② ضغط gzip للصفحات (بيوفر ~80% من الحجم)"""
@@ -206,6 +211,29 @@ def speed_headers(resp):
                 resp.headers["Cache-Control"] = "no-cache"
             else:
                 resp.headers["Cache-Control"] = "public, max-age=604800"
+        # ‏الملفات الثابتة (JS/CSS) كانت بتعدّي من غير ضغط: send_file بيبعتها
+        # direct_passthrough، والشرط اللي تحت كان بيرجّعها زي ما هي -- فمكتبة
+        # الـ3D في الصفحة الرئيسية كانت بتنزل ١.٢٧ ميجا كاملة على الموبايل.
+        # المضغوط بيتحفظ في الذاكرة لحد ما الملف يتغيّر (ETag).
+        if (resp.direct_passthrough and resp.status_code == 200
+                and request.path.startswith("/static/")
+                and request.path.endswith((".js", ".css", ".svg", ".json"))
+                and "gzip" in (request.headers.get("Accept-Encoding") or "").lower()
+                and "Content-Encoding" not in resp.headers):
+            key = (request.path, resp.headers.get("ETag"))
+            gz = _STATIC_GZ.get(key)
+            if gz is None:
+                resp.direct_passthrough = False
+                gz = _gzip.compress(resp.get_data(), 6)
+                if len(_STATIC_GZ) > 64:
+                    _STATIC_GZ.clear()
+                _STATIC_GZ[key] = gz
+            resp.direct_passthrough = False
+            resp.set_data(gz)
+            resp.headers["Content-Encoding"] = "gzip"
+            resp.headers["Content-Length"] = str(len(gz))
+            resp.headers["Vary"] = "Accept-Encoding"
+            return resp
         # ضغط gzip للردود النصية
         if (resp.direct_passthrough
                 or not (200 <= resp.status_code < 300)
@@ -214,7 +242,7 @@ def speed_headers(resp):
             return resp
         ct = resp.content_type or ""
         if not any(t in ct for t in ("text/html", "text/css", "text/plain",
-                                     "application/json", "application/javascript", "image/svg")):
+                                     "application/json", "application/javascript", "text/javascript", "image/svg")):
             return resp
         data = resp.get_data()
         if len(data) < 500:
