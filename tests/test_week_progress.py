@@ -29,7 +29,7 @@ from werkzeug.security import generate_password_hash  # noqa: E402
 A.app.config["WTF_CSRF_ENABLED"] = False
 ARABIC = re.compile(r"[؀-ۿ]")
 
-DAY = {"breakfast": "بيض مسلوق 2 + عيش بلدي 1 رغيف", "lunch": "صدر دجاج مشوي 200جم + أرز أبيض مطبوخ 150جم",
+DAY = {"breakfast": "بيض مسلوق 2 + عيش بلدي 1 رغيف", "lunch": "دجاج مشوى 200جم + أرز أبيض مطبوخ 150جم",
        "dinner": "جبن قريش 100جم", "total_cal": 1500, "total_p": 120, "total_c": 140, "total_f": 45}
 KEYS = ["breakfast", "lunch", "dinner"]
 LABELS = {k: k for k in KEYS}

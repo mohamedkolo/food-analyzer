@@ -225,27 +225,87 @@ def test_a_dead_connection_is_replaced_not_reported():
     assert core.db_row("SELECT 2 AS ok")["ok"] == 2, "‏اتصال ميّت مااتبدّلش"
 
 
-def test_each_thread_gets_its_own_connection():
-    """‏مافيش قفل مشترك -- ده اللي كان بيهجر ويوقّف كل الخيوط."""
-    _need_db()
-    seen = {}
+def _run_threads_together(n=6):
+    """‏يشغّل n خيط **في نفس الوقت**، وكل خيط بيعمل استعلامين على اتصاله.
+
+    ‏الخيوط كلها عايشة لحد ما الكل يخلص (barrier)، وكل خيط بيسلّم مرجع قوي
+    للاتصال اللي استخدمه. السبب: لو الخيط خلص واتصاله اتمسح من الذاكرة، الخيط
+    اللي بعده ممكن ياخد نفس العنوان في الذاكرة (id()) مع إنه اتصال تاني خالص،
+    والمقارنة بالـid() بعد ما الخيوط تخلص كانت بتفشل لهذا السبب لوحده
+    (اتقاس: الاتصالين ليهم نفس الـid وpid مختلف على السيرفر)."""
+    out = {}
     errors = []
+    lock = threading.Lock()
+    barrier = threading.Barrier(n)
 
     def work(name):
         try:
-            core.db_row("SELECT 1 AS ok")
-            seen[name] = id(getattr(core._db_local, "conn", None))
+            first = core.db_row("SELECT pg_backend_pid() AS pid")["pid"]
+            conn = getattr(core._db_local, "conn", None)
+            with lock:
+                out[name] = {"conn": conn, "pid_first": first}
+            barrier.wait(timeout=30)                 # ‏كلنا عايشين ومتمسكين باتصالاتنا دلوقتي
+            out[name]["pid_second"] = core.db_row("SELECT pg_backend_pid() AS pid")["pid"]
+            barrier.wait(timeout=30)
         except BaseException as e:      # noqa: BLE001
             errors.append(repr(e))
 
-    threads = [threading.Thread(target=work, args=("t%d" % i,)) for i in range(6)]
+    threads = [threading.Thread(target=work, args=("t%d" % i,)) for i in range(n)]
     for t in threads:
         t.start()
     for t in threads:
-        t.join(timeout=30)
+        t.join(timeout=60)
     assert not any(t.is_alive() for t in threads), "‏خيط علّق -- قفل مهجور"
-    assert not errors, errors
-    assert len(set(seen.values())) == len(seen), "‏خيطين بيستخدموا نفس الاتصال"
+    return out, errors
+
+
+def _independent(out, errors, n=6):
+    """‏True بس لو كل خيط ليه اتصال **كائن** لوحده وpid لوحده على السيرفر، وكله اشتغل."""
+    if errors or len(out) != n:
+        return False
+    conns = [v["conn"] for v in out.values()]
+    if any(c is None for c in conns):
+        return False
+    same_object = len({id(c) for c in conns}) == n                 # ‏كلها متمسكة، فالـid مايتكررش
+    same_pid_per_thread = all(v["pid_first"] == v["pid_second"] for v in out.values())
+    own_pids = len({v["pid_first"] for v in out.values()}) == n
+    return same_object and same_pid_per_thread and own_pids
+
+
+def test_each_thread_gets_its_own_connection():
+    """‏مافيش قفل مشترك -- ده اللي كان بيهجر ويوقّف كل الخيوط."""
+    _need_db()
+    out, errors = _run_threads_together()
+    try:
+        assert not errors, errors
+        assert _independent(out, errors), {k: (id(v["conn"]), v["pid_first"], v.get("pid_second")) for k, v in out.items()}
+    finally:
+        for v in out.values():
+            try:
+                v["conn"].close()
+            except Exception:
+                pass
+
+
+def test_the_isolation_check_would_catch_threads_that_share_one_connection():
+    """‏الشاهد السلبي: لو الخيوط بتشارك اتصال واحد، الفحص اللي فوق لازم يقول لأ.
+    ‏من غير ده الفحص ممكن يعدّي على أي حاجة ومانعرفش."""
+    _need_db()
+    import types
+    real = core._db_local
+    shared = types.SimpleNamespace(conn=core._new_conn())
+    core._db_local = shared
+    try:
+        out, errors = _run_threads_together()
+        assert not _independent(out, errors), "‏الفحص عدّى على اتصال مشترك"
+        conns = [v["conn"] for v in out.values() if v.get("conn") is not None]
+        assert conns and len({id(c) for c in conns}) == 1, "‏المفروض كل الخيوط على نفس الاتصال"
+    finally:
+        core._db_local = real
+        try:
+            shared.conn.close()
+        except Exception:
+            pass
 
 
 def test_a_thread_that_is_cut_off_does_not_freeze_the_others():

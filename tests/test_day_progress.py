@@ -37,9 +37,9 @@ ARABIC = re.compile(r"[؀-ۿ]")
 DAY = {
     "day": "الأحد",
     "breakfast": "بيض مسلوق 2 + عيش بلدي 1 رغيف",
-    "lunch": "صدر دجاج مشوي 200جم + أرز أبيض مطبوخ 150جم",
-    "snack": "زبادي 150جم",
-    "dinner": "جبن قريش 100جم + خيار",
+    "lunch": "دجاج مشوى 200جم + أرز أبيض مطبوخ 150جم",
+    "snack": "زبادي خالي الدسم 150جم",   # bare زبادي (fat level) and bare خيار (no amount) are estimates, not item-based
+    "dinner": "جبن قريش 100جم + خيار 100جم",
     "total_cal": 1600, "total_p": 120, "total_c": 150, "total_f": 50,
 }
 KEYS = ["breakfast", "lunch", "snack", "dinner"]

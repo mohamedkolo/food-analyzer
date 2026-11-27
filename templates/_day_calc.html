@@ -1,0 +1,68 @@
+{# Day calories: what the listed foods add up to, next to the stored number.
+   The stored total is the library's written meal labels scaled to the target, not a
+   sum of the foods. Needs: day, _ar (bool). #}
+{% set _c = day.get('calc') or day_calc(day) %}
+{% if _c %}
+<div class="day-calc" data-basis="{{ _c.basis }}" style="font-size:13px;font-weight:700;margin:6px 0 10px">
+  {% if _c.basis == 'items' %}
+    {{ 'المحسوب من الأكل المكتوب' if _ar else 'Calculated from the listed foods' }}: <bdi dir="ltr">{{ _c.computed_cal }} kcal</bdi>
+    <div data-macros-line="1" style="font-weight:600;font-size:12px;color:#4b5563">
+      {{ 'بروتين' if _ar else 'Protein' }} <bdi dir="ltr">{{ _c.computed_p }} {{ 'جم' if _ar else 'g' }}</bdi> ·
+      {{ 'كارب' if _ar else 'Carbs' }} <bdi dir="ltr">{{ _c.computed_c }} {{ 'جم' if _ar else 'g' }}</bdi> ·
+      {{ 'دهون' if _ar else 'Fat' }} <bdi dir="ltr">{{ _c.computed_f }} {{ 'جم' if _ar else 'g' }}</bdi>
+    </div>
+    {% if _c.target_met is false %}
+      <div data-target-unmet="1" style="color:#b45309">
+        {{ ('أقل من الهدف' if _c.target_gap_pct < 0 else 'أعلى من الهدف') if _ar else ('Below target' if _c.target_gap_pct < 0 else 'Above target') }}
+        <bdi dir="ltr">{{ _c.target_gap_pct|abs }}%</bdi>
+      </div>
+    {% endif %}
+    {% if day.get('target_p') %}
+      <div data-protein-line="1">
+        {{ 'البروتين: الهدف' if _ar else 'Protein: target' }} <bdi dir="ltr">{{ day.target_p }} {{ 'جم' if _ar else 'g' }}</bdi>
+        · {{ 'المحسوب من الأكل' if _ar else 'calculated from the foods' }} <bdi dir="ltr">{{ _c.computed_p }} {{ 'جم' if _ar else 'g' }}</bdi>
+      </div>
+    {% endif %}
+    {% if _c.protein_in_band is false %}
+      <div data-protein-out-of-band="1" style="color:#b45309">
+        {{ 'بروتين اليوم المحسوب خارج النطاق المناسب للسن' if _ar else 'Calculated protein is outside the age-appropriate range' }}
+      </div>
+    {% endif %}
+  {% else %}
+    {{ 'السعرات هنا تقدير: فيه أصناف مش محسومة (الكمية أو الاسم أو طريقة الطبخ)، فمجموع الأكل مش محسوب بدقة.' if _ar
+       else 'Calories here are an estimate: some foods are not fully specified (amount, name or cooking method), so the day is not calculated from the foods.' }}
+    {% set _ent = [] %}
+    {% for _k, _sl in (_c.slots or {}).items() %}{% for _e in _sl.entries or [] %}{% if _ent.append([_k, _e]) %}{% endif %}{% endfor %}{% endfor %}
+    {% if _ent and _doctor %}
+    <ul data-unresolved-entries="1" style="font-weight:600;font-size:12px;margin:6px 0 0;padding-inline-start:18px;color:#6b7280">
+      {% for _slot, _e in _ent[:8] %}
+      <li><bdi>{{ _e.text }}</bdi> &mdash;
+        {% if _e.code == 'noquantity' %}{{ 'الكمية مش مكتوبة' if _ar else 'no amount written' }}
+        {% elif _e.code == 'generic' %}{{ ('الاسم عام. أقرب صنف في الجدول: ' + _e.detail + ' (اكتب اسمه بالظبط)') if _ar else ('generic name. Closest table food: ' + _e.detail + ' (write its exact name)') }}
+        {% elif _e.code == 'basis' %}{{ 'مش معروف لو الرقم قبل الطبخ ولا بعده' if _ar else 'table value may be a raw-weight value; the weight is meant after cooking' }}
+        {% elif _e.code == 'identity' %}{{ 'الاسم فيه كلمة مش موجودة في الصنف المطابق' if _ar else 'the name has a word the matched food lacks' }}
+        {% elif _e.code == 'qualifier' %}{{ 'الصنف المحدد مش في الجدول' if _ar else 'the specific variant is not in the table' }}
+        {% elif _e.code == 'variant' %}{{ 'نوع الصنف مش محدد' if _ar else 'variant not stated' }}
+        {% elif _e.code == 'composite' %}{{ 'طبق مركب، محتاج مكوناته' if _ar else 'a composite dish; list its parts' }}
+        {% elif _e.code == 'unit' %}{{ 'الوحدة مش واضحة (رغيف ولا شريحة؟)' if _ar else 'unit unclear (loaf or slice?)' }}
+        {% else %}{{ 'مش في الجدول' if _ar else 'not in the food table' }}{% endif %}
+        {% if _e.option %}
+        <div data-option="1" style="margin-top:3px;font-weight:700;color:#374151">
+          {{ 'خيار مقترح بمصدر (مش بديل تلقائي):' if _ar else 'Suggested sourced option (not an automatic replacement):' }}
+          <bdi>{{ _e.option.name }}</bdi>
+          {% if _edit_day is defined and _edit_day is not none %}
+          <button type="button" class="use-option" data-day="{{ _edit_day }}" data-type="{{ _slot }}"
+                  data-old="{{ _e.text }}" data-new="{{ _e.option.text }}"
+                  style="margin-inline-start:6px;border:1px solid var(--nx-line);border-radius:8px;background:var(--nx-surface);padding:2px 8px;font:inherit;cursor:pointer">
+            {{ 'استخدم هذا الخيار' if _ar else 'Use this option' }}</button>
+          {% endif %}
+        </div>
+        {% endif %}
+      </li>
+      {% endfor %}
+      {% if _ent|length > 8 %}<li>+{{ _ent|length - 8 }}</li>{% endif %}
+    </ul>
+    {% endif %}
+  {% endif %}
+</div>
+{% endif %}

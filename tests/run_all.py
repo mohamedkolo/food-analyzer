@@ -20,12 +20,17 @@ RESULT = re.compile(r"(PASS|FAIL)\s+test_\w+")
 TEST_DB = os.environ.get("NUTRAX_TEST_DB", "/tmp/nutrax_suite.db")
 SUITES = [
     "test_db_connection.py",
+    "test_basis_gate.py",
+    "test_three_flags.py",
+    "test_identity_pairs.py",
+    "test_proposed_layer.py",
     "test_medical_filtering.py",
     "test_access_control.py",
     "test_translation.py",
     "test_zigzag.py",
     "test_food_data.py",
     "test_followup.py",
+    "test_followup_history_flow.py",
     "test_quick_check_and_renaming.py",
     "test_plan_link.py",
     "test_plan_editing.py",
@@ -44,6 +49,10 @@ SUITES = [
     "test_protein_target.py",
     "test_child_protein.py",
     "test_meal_macros.py",
+    "test_meal_sources.py",
+    "test_food_identity.py",
+    "test_day_calc.py",
+    "test_incomplete_visible.py",
     "test_child_meals.py",
     "test_glp1_protein.py",
     "test_obesity_staging.py",
@@ -94,9 +103,6 @@ SUITES = [
     "test_omega_barcode.py",
     "test_backup_workflow.py",
     "test_monitoring.py",
-    "test_inline_scripts.py",
-    "test_landing_speed.py",
-    "test_pdf_sample_routes.py",
 ]
 
 

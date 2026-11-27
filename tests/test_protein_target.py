@@ -433,6 +433,49 @@ def test_the_plan_itself_uses_the_corrected_number():
     assert data["protein_basis"]["why"] == "ffm", data["protein_basis"]
 
 
+
+# Pinned seeds (generate_weekly_plan(data, seed) is deterministic). The first group
+# failed the 0.95 g/kg floor with computed scaling OFF; they must pass now. The
+# second group is a known UNRESOLVED miss: the day stays short, so it must say so.
+PINNED_FIXED = [("أنثى 82 تخسيس كلاسيكي", 28), ("أنثى 95 تخسيس قوي", 3),
+                ("أنثى 95 تخسيس قوي", 14), ("أنثى 95 تخسيس قوي", 28),
+                ("أنثى 95 تخسيس قوي", 29)]
+PINNED_UNRESOLVED = [("أنثى 95 تخسيس قوي", 96, "الثلاثاء"),
+                     # 90 kg male refeed, configured target 162 g: calories met, protein
+                     # 77-85 g because every feasible top-up repeats the chicken already in
+                     # the meal and no alternate keeps as many computed days. Found by a
+                     # 640-seed scan (5 days in 4480). Reported, not repaired.
+                     ("ذكر 90 تخسيس ريفيد", 339, "الخميس"),
+                     ("ذكر 90 تخسيس ريفيد", 351, "الاثنين"),
+                     ("ذكر 90 تخسيس ريفيد", 393, "الاحد"),
+                     ("ذكر 90 تخسيس ريفيد", 401, "الاثنين"),
+                     ("ذكر 90 تخسيس ريفيد", 573, "الخميس")]
+
+
+def _pinned(name, seed):
+    extra = dict(CASES)[name]
+    data = dict(_BASE)
+    data.update(extra)
+    data["zigzag"] = zigzag.zigzag_from_data(data)
+    with A.app.test_request_context("/"):
+        return data, plan_engine.generate_weekly_plan(dict(data), "p%d" % seed)
+
+
+def test_pinned_seeds_that_used_to_starve_protein_now_hold_the_floor():
+    for name, seed in PINNED_FIXED:
+        data, plan = _pinned(name, seed)
+        for d in plan:
+            assert d["total_p"] / float(data["weight"]) >= DAY_FLOOR_PER_KG or \
+                d["calc"].get("protein_short"), (name, seed, d["day"], d["total_p"])
+
+
+def test_pinned_unresolved_protein_miss_is_reported_not_hidden():
+    for name, seed, day in PINNED_UNRESOLVED:
+        data, plan = _pinned(name, seed)
+        d = next(x for x in plan if x["day"] == day)
+        if d["total_p"] / float(data["weight"]) < DAY_FLOOR_PER_KG:
+            assert d["calc"].get("protein_short") is True, d["calc"]
+
 if __name__ == "__main__":
     passed = failed = 0
     for name, fn in sorted(globals().items()):

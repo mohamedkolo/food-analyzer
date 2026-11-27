@@ -35,7 +35,7 @@ from werkzeug.security import generate_password_hash  # noqa: E402
 A.app.config["WTF_CSRF_ENABLED"] = False
 ADMIN = A.db_row("SELECT id FROM users WHERE email='admin@nutrax.com'")["id"]
 FOOL = next(f for f in F.FOODS if f["n"] == "فول مدمس")
-DAY = {"breakfast": "بيض مسلوق 2", "lunch": "صدر دجاج مشوي 200جم", "dinner": "زبادي 150جم",
+DAY = {"breakfast": "بيض مسلوق 2", "lunch": "دجاج مشوى 200جم", "dinner": "زبادي خالي الدسم 150جم",   # bare زبادي is an estimate (fat level)
        "total_cal": 1200, "total_p": 100, "total_c": 80, "total_f": 40}
 
 

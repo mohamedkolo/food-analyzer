@@ -175,7 +175,8 @@ def _phrase(grams, food):
     n = round(raw / step) * step
     n = round(n, 2)
     if n <= 0:
-        n = step
+        # less than half a step: a hint would overstate the amount, so give none
+        return ""
 
     sing, dual, plur = UNIT_FORMS[food["unit"]]
     whole = int(n)

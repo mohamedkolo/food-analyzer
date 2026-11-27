@@ -41,7 +41,7 @@ ADMIN = A.db_row("SELECT id FROM users WHERE email='admin@nutrax.com'")["id"]
 # ‏الخطة المطبوعة اللي فوق.
 KEEP_LIGHT = {"meal_plan.html", "_afo.html", "landing.html"}
 # ‏قطع بتتحط جوه صفحات تانية، فالثيم بييجي من الصفحة الأم.
-PARTIALS = {"_admin_client_followup.html", "_afo.html", "_client_bar.html", "_client_home_cards.html",
+PARTIALS = {"_day_calc.html", "_admin_client_followup.html", "_afo.html", "_client_bar.html", "_client_home_cards.html",
             "_messages_ui.html", "_nav_icons.html", "_next_appointment.html", "_nx_icons.html", "_public_header.html", "_swap_sheet.html",
             "_theme.html", "_theme_btn.html"}
 

@@ -152,17 +152,19 @@ def generate():
 
         # ── المتابعة ── لو الشخص ده جه قبل كده، الزيارة دي مبنية على اللي فات
         data["client_key"] = followup.client_key(data["name"], data["phone"])
-        prev = last_visit(session["uid"], data["client_key"])
+        # ‏كل زيارات العميل مش آخر واحدة بس: الجدول الجديد بيتبني على التاريخ
+        # كله (كل فترة، وتكرار الثبات)، ومابيكررش أكل آخر ٣ خطط.
+        history_rows = visits_for(session["uid"], data["client_key"], limit=6)
+        prev = dict(history_rows[0]) if history_rows else None
         progress = followup.assess(prev, data, cur_lang()) if prev else None
         if progress:
+            progress["history"] = followup.analyse_history(
+                history_rows, data, cur_lang(),
+                total_visits=int(prev.get("visit_no") or len(history_rows)))
             data["followup"] = progress
             data["visit_no"] = int(prev.get("visit_no") or 1) + 1
-            # الوجبات اللي أكلها الأسبوع اللي فات ما تتكررش
-            try:
-                data["avoid_meals"] = followup.meals_in_plan(
-                    json.loads(prev.get("plan_json") or "[]"))
-            except (ValueError, TypeError):
-                data["avoid_meals"] = []
+            data["avoid_meals"] = followup.meals_across_plans(history_rows, 3)
+            data["avoid_plans"] = min(3, len(history_rows))
 
         plan = generate_weekly_plan(data)
         draft_store.set_draft(data=data, plan=plan)
@@ -1022,6 +1024,17 @@ def _filtered_meals(data, pool_key, culture=None):
 SNACK_SLOTS = ("snack", "snack1", "snack2")
 
 
+def _meal_incomplete(text):
+    """True when the item-by-item calculation of this meal is incomplete.
+    The cal/p shown beside it is the library's WRITTEN total, not computed
+    from the items, and the picker marks that. It does not verify the total."""
+    import meal_macros
+    try:
+        return not meal_macros.macros(text)["exact"]
+    except Exception:  # noqa: BLE001
+        return True
+
+
 def _snack_options(data):
     """أسناك العميل للتبديل، بنفس شكل وجبات الطابور ({"meal", "cal", "p"}).
 
@@ -1040,9 +1053,13 @@ def _snack_options(data):
         # المرجع، والبروتين بيتحسب من أصنافها -- من غير كده القايمة كانت
         # بتكتب "٠ بروتين" جنب زبادي يوناني.
         kcal = re.search(r"(\d+)\s*kcal", m)
+        mm = meal_macros.macros(m)
+        # an incomplete calculation is a partial sum: not a number to show
+        # as the snack's calories/protein (a written kcal label still is).
         out.append({"meal": m,
-                    "cal": int(kcal.group(1)) if kcal else meal_macros.macros(m)["cal"],
-                    "p": meal_macros.macros(m)["p"]})
+                    "cal": int(kcal.group(1)) if kcal else (mm["cal"] if mm["exact"] else None),
+                    "p": mm["p"] if mm["exact"] else None,
+                    "incomplete": not mm["exact"]})
     return out
 
 
@@ -1133,11 +1150,13 @@ def get_meal_options():
         # ‏السناك من طابور الأسناك بس: مطابخ تانية هنا معناها أطباق كاملة
         for m in _snack_options(data):
             all_options.append({"meal": m["meal"], "display": _meal_display(m["meal"]),
-                                "cal": m.get("cal", 0), "p": m.get("p", 0), "source": culture})
+                                "cal": m.get("cal", 0), "p": m.get("p", 0), "source": culture,
+                                "incomplete": bool(m.get("incomplete"))})
         return jsonify({"ok": True, "options": all_options})
     for m in _filtered_meals(data, pool_key):
         all_options.append({"meal": m["meal"], "display": _meal_display(m["meal"]),
-                            "cal": m.get("cal", 0), "p": m.get("p", 0), "source": culture})
+                            "cal": m.get("cal", 0), "p": m.get("p", 0), "source": culture,
+                            "incomplete": _meal_incomplete(m["meal"])})
     # مطابخ تانية (مفلترة برضو) - مش للكيتو/لو-كارب عشان النشويات
     if diet_type not in ("keto", "low_carb"):
         for oc in ["مصري", "خليجي", "شامي", "مغربي", "عالمي"]:
@@ -1145,7 +1164,8 @@ def get_meal_options():
                 continue
             for m in _filtered_meals(data, pool_key, culture=oc)[:5]:
                 all_options.append({"meal": m["meal"], "display": _meal_display(m["meal"]),
-                                    "cal": m.get("cal", 0), "p": m.get("p", 0), "source": oc})
+                                    "cal": m.get("cal", 0), "p": m.get("p", 0), "source": oc,
+                                    "incomplete": _meal_incomplete(m["meal"])})
     return jsonify({"ok": True, "options": all_options})
 
 @bp.route("/replace_meal", methods=["POST"])
@@ -1316,6 +1336,15 @@ def add_item():
     return _item_change(plan, slot[0], slot[1], new_text)
 
 
+@bp.route("/api/food_suggest")
+@staff_required
+def food_suggest_api():
+    """Source-qualified food names offered while the doctor types (see food_suggest.py). Read-only."""
+    import food_suggest
+    return jsonify({"ok": True, "q": food_suggest.split_query(request.args.get("q", "")),
+                    "items": food_suggest.suggest(request.args.get("q", ""))})
+
+
 @bp.route("/edit_meal", methods=["POST"])
 @staff_required
 def edit_meal():
@@ -1329,9 +1358,9 @@ def edit_meal():
         if day_idx < 0 or day_idx >= len(plan): return jsonify({"ok": False, "error": "invalid day"}), 400
         check = _change_meal(draft_store.draft_data() or {}, plan, day_idx,
                              meal_type, new_text)
-        return jsonify({"ok": True, "saved_text": new_text,
+        return jsonify({"ok": True, "saved_text": new_text, "new_meal": new_text,
+                        "display": _meal_display(new_text),
                         "items": _items_for_page(new_text), "check": check})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
-
 

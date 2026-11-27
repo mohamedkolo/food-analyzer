@@ -10,6 +10,7 @@ module calls it and layers the client's own exclusions and diet pattern on
 top.
 """
 
+import os
 import io as _io
 import random
 import re
@@ -444,7 +445,7 @@ def snack_queue(data, pool=None):
     return filter_by_conditions(snacks, symptoms, "snack")
 
 
-def generate_weekly_plan(data, seed=None):
+def _generate_week(data, seed=None, _shifts=None):
     """‏خطة سبع أيام. seed اختياري: لو اتبعت، نفس البذرة = نفس الخطة.
 
     الافتراضي عشوائي من الساعة، عشان الدكتور لما يضغط "ولّد تاني" ياخد
@@ -869,19 +870,20 @@ def generate_weekly_plan(data, seed=None):
         _pf_used = {}
     plan = []
     for i in range(7):
+        _sh = (_shifts or {}).get(i, 0)
         day_plan = {"day": days[i], "diet_type": diet_type,
                     "meal_labels": plan_info["meal_labels"], "meal_emojis": plan_info["meal_emojis"]}
         # ‏سعرات وبروتين كل خانة لوحدها: المجموع بيتحسب منها، وكل خانة
         # بتتكبّر بنفس المعامل تحت، فلازم نعرف نصيبها.
         _slot_cals, _slot_ps = {}, {}
         if diet_type in ("standard", "keto", "low_carb"):
-            b = breakfasts[i % len(breakfasts)]
-            l = lunches[i % len(lunches)]
-            d = dinners[i % len(dinners)]
+            b = breakfasts[(i + _sh) % len(breakfasts)]
+            l = lunches[(i + _sh) % len(lunches)]
+            d = dinners[(i + _sh) % len(dinners)]
             day_plan["breakfast"] = b["meal"]
             day_plan["lunch"] = l["meal"]
             day_plan["dinner"] = d["meal"]
-            day_plan["snack"] = snacks[i % len(snacks)]
+            day_plan["snack"] = snacks[(i + _sh) % len(snacks)]
             _slot_cals = {"breakfast": b.get("cal",300), "lunch": l.get("cal",400),
                           "dinner": d.get("cal",300), "snack": 150}
             _slot_ps = {"breakfast": b.get("p",20), "lunch": l.get("p",30),
@@ -892,9 +894,9 @@ def generate_weekly_plan(data, seed=None):
             # الكامل في أول أسبوع مش هيتاكل -- فالحصة بتتوزّع على اللي
             # هياكله فعلاً بدل ما تتكتب على ورق وتتسبب في ورقة مالهاش
             # علاقة باللي بيحصل.
-            b = breakfasts[i % len(breakfasts)]
-            l = lunches[i % len(lunches)]
-            d = dinners[i % len(dinners)]
+            b = breakfasts[(i + _sh) % len(breakfasts)]
+            l = lunches[(i + _sh) % len(lunches)]
+            d = dinners[(i + _sh) % len(dinners)]
             day_plan["breakfast"] = b["meal"]
             day_plan["lunch"] = l["meal"]
             # ‏العشا بياخد **نص** حصة العشا العادي قبل ما يدخل المعادلة.
@@ -914,56 +916,56 @@ def generate_weekly_plan(data, seed=None):
         elif diet_type == "two_meals":
             # وجبتين بس: الفطار والغداء، والسعرات كلها بينهم. مفيش عشاء،
             # فالحصة الواحدة أكبر من نظام التلات وجبات.
-            b = breakfasts[i % len(breakfasts)]
-            l = lunches[i % len(lunches)]
+            b = breakfasts[(i + _sh) % len(breakfasts)]
+            l = lunches[(i + _sh) % len(lunches)]
             day_plan["breakfast"] = b["meal"]
             day_plan["lunch"] = l["meal"]
             _slot_cals = {"breakfast": b.get("cal",450), "lunch": l.get("cal",550)}
             _slot_ps = {"breakfast": b.get("p",25), "lunch": l.get("p",35)}
         elif diet_type == "five_meals":
-            b = breakfasts[i % len(breakfasts)]
-            l = lunches[i % len(lunches)]
-            d = dinners[i % len(dinners)]
+            b = breakfasts[(i + _sh) % len(breakfasts)]
+            l = lunches[(i + _sh) % len(lunches)]
+            d = dinners[(i + _sh) % len(dinners)]
             day_plan["breakfast"] = b["meal"]
-            day_plan["snack1"] = snacks[i % len(snacks)]
+            day_plan["snack1"] = snacks[(i + _sh) % len(snacks)]
             day_plan["lunch"] = l["meal"]
-            day_plan["snack2"] = snacks[(i+3) % len(snacks)]
+            day_plan["snack2"] = snacks[(i + 3 + _sh) % len(snacks)]
             day_plan["dinner"] = d["meal"]
             _slot_cals = {"breakfast": b.get("cal",300), "lunch": l.get("cal",400),
                           "dinner": d.get("cal",300), "snack1": 150, "snack2": 150}
             _slot_ps = {"breakfast": b.get("p",20), "lunch": l.get("p",30),
                         "dinner": d.get("p",20), "snack1": SNK_P, "snack2": SNK_P}
         elif diet_type == "intermittent_16_8":
-            b = breakfasts[i % len(breakfasts)]
-            d = dinners[i % len(dinners)]
+            b = breakfasts[(i + _sh) % len(breakfasts)]
+            d = dinners[(i + _sh) % len(dinners)]
             day_plan["meal1"] = b["meal"]
-            day_plan["snack"] = snacks[i % len(snacks)]
+            day_plan["snack"] = snacks[(i + _sh) % len(snacks)]
             day_plan["meal2"] = d["meal"]
             _slot_cals = {"meal1": b.get("cal",350), "meal2": d.get("cal",450),
                           "snack": 150}
             _slot_ps = {"meal1": b.get("p",25), "meal2": d.get("p",30),
                         "snack": SNK_P}
         elif diet_type == "intermittent_18_6":
-            l = lunches[i % len(lunches)]
-            d = dinners[i % len(dinners)]
+            l = lunches[(i + _sh) % len(lunches)]
+            d = dinners[(i + _sh) % len(dinners)]
             day_plan["meal1"] = l["meal"]
             day_plan["meal2"] = d["meal"]
             _slot_cals = {"meal1": l.get("cal",400), "meal2": d.get("cal",400)}
             _slot_ps = {"meal1": l.get("p",30), "meal2": d.get("p",30)}
         elif diet_type == "ramadan":
-            l = lunches[i % len(lunches)]
-            b = breakfasts[i % len(breakfasts)]
+            l = lunches[(i + _sh) % len(lunches)]
+            b = breakfasts[(i + _sh) % len(breakfasts)]
             day_plan["iftar"] = l["meal"]
-            day_plan["snack"] = snacks[i % len(snacks)]
+            day_plan["snack"] = snacks[(i + _sh) % len(snacks)]
             day_plan["suhoor"] = b["meal"]
             _slot_cals = {"iftar": l.get("cal",400), "suhoor": b.get("cal",300),
                           "snack": 150}
             _slot_ps = {"iftar": l.get("p",30), "suhoor": b.get("p",20),
                         "snack": SNK_P}
         elif diet_type == "workout":
-            b = breakfasts[i % len(breakfasts)]
-            l = lunches[i % len(lunches)]
-            d = dinners[i % len(dinners)]
+            b = breakfasts[(i + _sh) % len(breakfasts)]
+            l = lunches[(i + _sh) % len(lunches)]
+            d = dinners[(i + _sh) % len(dinners)]
             day_plan["pre_workout"] = "موزة 1 + زبدة فول سوداني 15جم + قهوة"
             day_plan["breakfast"] = b["meal"]
             day_plan["post_workout"] = "بروتين شيك 30جم + موز 1 + لوز 15جم"
@@ -1016,6 +1018,18 @@ def generate_weekly_plan(data, seed=None):
         _day_target = zz_days[i]["kcal"] if i < len(zz_days) else _base_target
         _cur_cals = dict(_slot_cals)
         _cur_ps = dict(_slot_ps)
+        # A meal whose text states every quantity computes to a real number;
+        # scale from that, not from the library's written label. Meals with
+        # default portions or unresolved items keep the label (an estimate).
+        # Only a day where EVERY meal computes is seeded; mixing real numbers and
+        # labels in one total would be neither.
+        _real_all = {_k: computed_meal(day_plan.get(_k))
+                     for _k in plan_info["meal_labels"] if day_plan.get(_k)}
+        if COMPUTED_SCALING and _real_all and all(_real_all.values()):
+            for _k, _real in _real_all.items():
+                # both numbers come from the sourced per-ingredient table
+                _cur_ps[_k] = _real["p"]
+                _cur_cals[_k] = _real["cal"]
         _cur_cs = dict(_slot_cs)
         _cur_fs = dict(_slot_fs)
         _cum = {}          # ‏المعامل المتراكم لكل وجبة من حصتها الأساسية
@@ -1081,9 +1095,23 @@ def generate_weekly_plan(data, seed=None):
             _slots = {_k: (_cur_cals.get(_k, 0), _cur_ps.get(_k, 0))
                       for _k in plan_info["meal_labels"]
                       if day_plan.get(_k) and _cur_cals.get(_k, 0) > 0}
-            _top = protein_fix.plan_topup(
-                sum(_cur_ps.values()), _target_p, _slots, _pf_safe,
-                turn=i, used=_pf_used)
+            _top = None
+            # Try each source in rotation; skip one that repeats a protein already in
+            # the slot it would be added to (a chicken dish never gets chicken on top),
+            # but keep looking instead of giving the day up.
+            for _off in range(len(protein_fix.SOURCES)):
+                _cand_top = protein_fix.plan_topup(
+                    sum(_cur_ps.values()), _target_p, _slots, _pf_safe,
+                    turn=i + _off, used=_pf_used)
+                if not _cand_top:
+                    break
+                _slot_txt = day_plan.get(_pf_slot_for(plan_info)) or ""
+                _src_ar = _cand_top["source"].get("ar", "")
+                _dup = any(_kw in _src_ar and _kw in _slot_txt
+                           for _kw in ("دجاج", "تونة", "بياض", "بيض", "سمك", "لحم", "زبادي", "جبن", "بروتين"))
+                if not _dup:
+                    _top = _cand_top
+                    break
             if _top:
                 # ── القطع الأول، والزيادة بقدر اللي اتحرّر فعلاً ──
                 #
@@ -1156,8 +1184,262 @@ def generate_weekly_plan(data, seed=None):
             day_plan["target_p"] = zd["protein_g"]
             day_plan["target_c"] = zd["carb_g"]
             day_plan["target_f"] = zd["fat_g"]
+        if _base_target:
+            day_plan["goal_cal_day"] = int(round(float(_base_target)))
+        refresh_day_totals(day_plan, plan_info, data if _child else None,
+                           data.get("weight"))
         plan.append(day_plan)
     return plan
+
+
+# Off by default: scaling from computed kcal is correct but exposes that library
+# meals cannot reach low/high day targets (counted items are capped), so some days
+# land 19-23% short of target instead of hiding it behind label numbers. Needs a
+# product decision plus the proposed explicit recipes before it is switched on.
+COMPUTED_SCALING = os.environ.get("NX_COMPUTED_SCALING") != "0"
+
+
+def _is_exact(r):
+    """Original exact; or, only with NX_PROPOSED_VARIANTS=1 and NX_PROPOSED_LEVEL=A|B (experiment,
+    off by default), proposed source-matched variants (A) or also a new salad recipe (B)."""
+    if r.get("exact"):
+        return True
+    if os.environ.get("NX_PROPOSED_VARIANTS") != "1":
+        return False
+    lvl = os.environ.get("NX_PROPOSED_LEVEL")
+    return bool((lvl == "A" and r.get("exact_if_proposed")) or (lvl == "B" and r.get("exact_if_proposed_recipe")))
+
+
+def computed_meal(text):
+    """{"cal", "p"} when every item of the meal has a stated quantity and resolves,
+    else None. A default portion is a guess and does not count."""
+    if not text or not isinstance(text, str):
+        return None
+    import meal_macros
+    r = meal_macros.macros(text)
+    if not r["complete"] or not r["items"]:
+        return None
+    # stated quantity AND exact food identity (not a generic bridge), per item
+    if not _is_exact(r):
+        return None
+    return {"cal": float(r["cal"]), "p": float(r["p"])}
+
+
+def _variety_max(plan):
+    """Most repeats of one main ingredient in any of breakfast/lunch/dinner."""
+    from collections import Counter
+    worst = 0
+    for slot, base_of in (("breakfast", _bf_base), ("lunch", _main_base),
+                          ("dinner", _main_base)):
+        c = Counter(base_of(d.get(slot, "")) for d in plan if d.get(slot))
+        if c:
+            worst = max(worst, c.most_common(1)[0][1])
+    return worst
+
+
+# NOT clinical guidance and not a per-client requirement. 0.95 g/kg is the
+# threshold the repo's own test_protein_target.py uses as a "deficit day starves
+# protein" tripwire. It is used here only to rank alternate meal choices and to
+# print an engineering warning; the doctor's protein target (protein_need) stays
+# the source of truth. Provenance: tests/test_protein_target.py DAY_FLOOR_PER_KG.
+PROTEIN_FLOOR_PER_KG = 0.95
+
+
+def _protein_short(day, weight):
+    try:
+        return bool(weight) and (day.get("total_p") or 0) / float(weight) < PROTEIN_FLOOR_PER_KG
+    except (TypeError, ValueError):
+        return False
+
+
+def _repeated_days(plan, slots=("breakfast", "lunch", "dinner", "snack")):
+    """Days whose whole menu (food names, quantities ignored) repeats an earlier day."""
+    seen, n = set(), 0
+    for d in plan:
+        sig = tuple(re.sub(r"[\d.]+", "", str(d.get(k, "") or "")) for k in slots)
+        if sig in seen:
+            n += 1
+        seen.add(sig)
+    return n
+
+
+def _n_items(plan):
+    return sum(1 for d in plan if (d.get("calc") or {}).get("basis") == "items")
+
+
+def _week_penalty(plan, weight=None):
+    """Lower is better: unmet computed days cost their gap, out-of-band protein costs 10."""
+    pen = 0.0
+    for d in plan:
+        c = d.get("calc") or {}
+        if c.get("target_met") is False:
+            pen += abs(c.get("target_gap_pct") or 0)
+        if c.get("protein_in_band") is False:
+            pen += 10
+        if _protein_short(d, weight):
+            pen += 10
+    return pen
+
+
+def generate_weekly_plan(data, seed=None):
+    """Seven-day plan. When a fully computed day misses its target (or a child's
+    protein band) by more than the stated residual, try other meals from the SAME
+    already-filtered pools for that day and keep the week with the smallest penalty.
+    A day that still misses is reported as unmet on day["calc"], never hidden."""
+    if seed is None:
+        import time
+        seed = "w%d-%d" % ((data.get("user_id") or 1), time.time_ns())
+    plan = _generate_week(data, seed)
+    _w = data.get("weight")
+    best, shifts, best_pen = plan, {}, _week_penalty(plan, _w)
+    for _round in range(3):
+        bad = [i for i, d in enumerate(best)
+               if (d.get("calc") or {}).get("target_met") is False
+               or (d.get("calc") or {}).get("protein_in_band") is False
+               or _protein_short(d, _w)]
+        if not bad or best_pen == 0:
+            break
+        improved = False
+        for i in bad:
+            for sh in range(1, 7):
+                trial = dict(shifts)
+                trial[i] = shifts.get(i, 0) + sh
+                try:
+                    cand = _generate_week(data, seed, trial)
+                except Exception:
+                    continue
+                pen = _week_penalty(cand, _w)
+                # never trade an unmet day for an unknown one: the candidate must
+                # keep at least as many fully computed days as the best week
+                if _n_items(cand) < _n_items(best):
+                    continue
+                # nor may a swap cost the week its variety
+                if _variety_max(cand) > max(_variety_max(plan), 3):
+                    continue
+                if _repeated_days(cand) > _repeated_days(best):
+                    continue
+                if pen < best_pen - 0.5:
+                    best, shifts, best_pen, improved = cand, trial, pen, True
+                    break
+        if not improved:
+            break
+    for d in best:
+        d.get("calc") and d["calc"].update(alternates_tried=bool(shifts))
+    return best
+
+
+def _generate_week_marker():
+    return None
+
+
+def refresh_day_totals(day, plan_info=None, child_data=None, weight=None):
+    """Recompute day["calc"] from the FINAL meal texts and, when every meal has
+    stated quantities, make the stored totals equal that sum. Call after any
+    change to the meals (generation transforms, doctor edits, templates) so the
+    total, protein and calc never describe different food."""
+    calc = day_calc(day, plan_info)
+    day["calc"] = calc
+    if calc["basis"] == "items":
+        day["total_cal"] = calc["computed_cal"]
+        day["total_p"] = calc["computed_p"]
+        if day.get("total_c") is not None or day.get("total_f") is not None:
+            day["total_c"] = calc["computed_c"]
+            day["total_f"] = calc["computed_f"]
+        if child_data is not None:
+            try:
+                b = protein_need.band(child_data.get("weight"), child_data.get("height"),
+                                      child_data.get("age"),
+                                      child_data.get("protein_per_kg") or 1.0,
+                                      calc["computed_cal"])
+            except Exception:
+                b = None
+            if b:
+                calc["protein_band"] = list(b)
+                calc["protein_in_band"] = b[0] <= calc["computed_p"] <= b[1]
+    if weight:
+        calc["protein_short"] = _protein_short(day, weight)
+    return calc
+
+
+def _entry_issues(r):
+    """Entries of one meal that stop it being calculated from the written food, each with a
+    reason code the doctor can act on by editing the text: identity / basis / qualifier /
+    variant / composite / unit (item unresolved), noquantity (no amount written),
+    generic (a generic word bridged to a table row), nofood (no table row)."""
+    out = []
+    for i in r.get("items", []):
+        u = i.get("unresolved")
+        if u:
+            code = str(u).split(":", 1)[0]
+            detail = str(u).split(":", 1)[1] if ":" in str(u) else ""
+        elif not i.get("food"):
+            code, detail = "nofood", ""
+        elif not i.get("explicit_quantity"):
+            code, detail = "noquantity", ""
+        elif not i.get("exact_identity"):
+            code, detail = "generic", i.get("food") or ""
+        else:
+            continue
+        ent = {"text": i.get("text", ""), "code": code, "detail": detail}
+        # A named source-backed cooked option for this row, offered for review only (never applied here).
+        import meal_option_foods
+        opt = meal_option_foods.OPTION_FOR.get(i.get("food"))
+        if opt and code == "basis" and i.get("grams"):
+            ent["option"] = {"name": opt, "text": "%g جم %s" % (i["grams"], opt)}
+        out.append(ent)
+    return out
+
+
+def day_calc(day_plan, plan_info=None):
+    """What the foods written in this day add up to, next to the stored total.
+
+    total_cal is the library's written labels scaled toward the target. It is
+    not the sum of the listed foods. This is that sum, computed by meal_macros
+    from the quantities in the text: basis is "items" only when every meal of
+    the day computes completely from stated quantities; otherwise "label" and
+    computed_cal is a partial sum (a lower bound), never a day total.
+    """
+    import meal_macros
+    keys = list((plan_info or {}).get("meals") or []) or [
+        k for k in ("breakfast", "lunch", "dinner", "snack", "snack1", "snack2",
+                    "meal1", "meal2", "iftar", "suhoor", "pre_workout", "post_workout")
+        if day_plan.get(k)]
+    cal = p = c = f = 0
+    slots = {}
+    complete = True
+    for key in keys:
+        text = day_plan.get(key)
+        if not text:
+            continue
+        r = meal_macros.macros(text)
+        # a default portion (no quantity written) is a guess, not a stated amount
+        explicit = all(i.get("explicit_quantity") for i in r["items"])
+        ok = _is_exact(r)
+        slots[key] = {"complete": ok, "cal": r["cal"], "unresolved": r["unresolved"][:4],
+                      "default_portion": bool(r["complete"]) and not explicit,
+                      "generic_identity": bool(r["complete"]) and explicit and not ok,
+                      "all_sourced": bool(r["all_sourced"]),
+                      "entries": _entry_issues(r)}
+        cal += r["cal"]
+        p += r["p"]
+        c += r.get("c") or 0
+        f += r.get("f") or 0
+        complete = complete and ok
+    basis = "items" if complete and slots else "label"
+    out_gap = None
+    tgt = day_plan.get("target_cal") or day_plan.get("goal_cal_day")
+    if basis == "items" and tgt:
+        # The scaler stops at 3% of the target and counted items (whole eggs) or
+        # 5 g steps leave a residual, so 5% is the line between "met" and "unmet".
+        out_gap = round((cal - float(tgt)) / float(tgt) * 100, 1)
+    return {"target_gap_pct": out_gap,
+            "target_met": (abs(out_gap) <= 5.0) if out_gap is not None else None,
+            "basis": basis,
+            "computed_cal": int(round(cal)), "computed_p": int(round(p)),
+            "computed_c": int(round(c)), "computed_f": int(round(f)),
+            "slots": slots,
+            "incomplete_slots": [k for k, v in slots.items() if not v["complete"]]}
+
 
 def get_allowed_forbidden(symptoms, goal="weight_loss", age=None, deficit=0):
     """‏المسموح والممنوع للحالة.
@@ -1466,6 +1748,7 @@ def plan_html(data, plan=None, clean=False):
         pdf_days.append({"name": d["day"] if _pdf_ar else ENGLISH_DAYS.get(d["day"], d["day"]),
                          "total_kcal": d["total_cal"], "total_p": d.get("total_p", 0),
                          "target_kcal": d.get("target_cal"), "zigzag_pct": d.get("zigzag_pct"),
+                         "calc": d.get("calc"),
                          "meals": meals_html,
                          "breakfast": _meal(d.get("breakfast","")), "lunch": _meal(d.get("lunch","")),
                          "dinner": _meal(d.get("dinner","")), "snack": _meal(d.get("snack",""))})
@@ -1635,10 +1918,45 @@ def plan_html(data, plan=None, clean=False):
                                                 or _w.get("reason"))
         if _txt:
             _alerts.append(_esc(re.sub(r"\s+", " ", str(_txt)).strip()))
+    # Calorie basis on the sheet itself (the PDF is what the client keeps): which
+    # days are label estimates and which computed days miss the day's target.
+    _est, _unmet, _pshort = [], [], []
+    for _d in plan:
+        _c = _d.get("calc") or {}
+        _nm = _d["day"] if _pdf_ar else ENGLISH_DAYS.get(_d["day"], _d["day"])
+        if _c.get("basis") != "items":
+            _est.append(_nm)
+        elif _c.get("target_met") is False:
+            _g = _c.get("target_gap_pct")
+            _unmet.append("%s %+.0f%%" % (_nm, _g) if _g is not None else _nm)
+        if _c.get("protein_in_band") is False or _c.get("protein_short"):
+            _pshort.append(_nm)
+    _basis_lines = []
+    if _est:
+        _basis_lines.append(_esc(_L("السعرات تقديرية (من الوصف وليست محسوبة بالجرامات) في: ",
+                               "Calories are estimates (from the description, not summed from grams) on: ")
+                            + "، ".join(_est) if _pdf_ar else
+                            "Calories are estimates (from the description, not summed from grams) on: "
+                            + ", ".join(_est)))
+    if _unmet:
+        _basis_lines.append(_esc(_L("أيام خارج هدف السعرات بأكثر من 5%: ",
+                               "Days more than 5% off the calorie target: ") + ", ".join(_unmet)))
+    if _pshort:
+        _basis_lines.append(_esc(_L("البروتين أقل من هدف اليوم في: ",
+                               "Protein below the day's target on: ") + ", ".join(_pshort)))
+    # Calorie-basis notes always go to the specialist preview (sheet_notes). They are
+    # printed on the client sheet only when NX_PDF_BASIS_FOOTNOTE=1: the sheet rule
+    # recorded in the repo (commits d7a472c, 7f91284) says printed sheet = table +
+    # allowed/forbidden only. Unresolved: see docs/defect-ledger.md section 4.
+    for _bl in _basis_lines:
+        _notes_out.append({"kind": "basis", "short": re.sub(r"<[^>]+>", "", _bl)[:150],
+                           "full": re.sub(r"<[^>]+>", "", _bl)})
+    if os.environ.get("NX_PDF_BASIS_FOOTNOTE") == "1":
+        _alerts.extend(_basis_lines)
     _alert_html = ""
     if _alerts:
         _alert_html = ('<div class="alert">%s</div>'
-                       % "<br>".join(_alerts[:2]))
+                       % "<br>".join(_alerts[:5]))
 
     td = template_data
     cl = td['client']
@@ -2287,10 +2605,23 @@ td.dcell { white-space:normal !important; word-wrap:normal !important;
 
     # ‏الملخص كان على ورقة العميل. بقى أول ملاحظة عند الأخصائي --
     # دي البصة اللي بيتأكد بيها إن الجدول وصل هدفه قبل التسليم.
+    # "stored" = the library labels scaled to the target. The sum of the listed
+    # foods is shown beside it, and only counted for days that compute fully.
+    _calcs = [d.get("calc") for d in pdays if d.get("calc")]
+    _full = [c for c in _calcs if c["basis"] == "items"]
+    if _calcs:
+        _note("info", "%s: %s %s" % (
+            _L("السعرات المكتوبة في الجدول هي أرقام الوجبات المخزنة، مش مجموع الأكل المكتوب",
+               "The calories stored for this plan are the library's meal labels, not the sum of the listed foods"),
+            _L("الأيام اللي كل وجباتها بكميات مكتوبة وتتحسب كاملة:",
+               "days where every meal has stated quantities and computes fully:"),
+            "%d/%d" % (len(_full), len(_calcs)) + (
+                " (%s %s)" % (round(sum(c["computed_cal"] for c in _full) / len(_full)),
+                              _L("سعرة في المتوسط", "kcal on average")) if _full else "")))
     _notes_out.insert(0, {
         "kind": "info",
         "short": "%s %s %s · %s %s — %s %s %s · %s %s" % (
-            _L("الفعلي", "Actual"), _avg_cal, _L("سعرة", "kcal"),
+            _L("المكتوب", "Stored"), _avg_cal, _L("سعرة", "kcal"),
             _avg_p, _L("جم بروتين", "g protein"),
             _L("الهدف", "target"), _tcal if _tcal else "-",
             _L("سعرة", "kcal"), _tp if _tp else "-",

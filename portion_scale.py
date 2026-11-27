@@ -74,6 +74,34 @@ _KCAL_ANY = re.compile(
 _KCAL_PAREN = re.compile(r"\(\s*(\d+(?:\.\d+)?)\s*kcal\s*\)")
 _KCAL_DASH = re.compile(r"([-\u2013\u2014])\s*(\d+(?:\.\d+)?)\s*kcal")
 
+# EXPERIMENTAL HEURISTIC, NOT VALIDATED: the numbers below have no clinical or
+# user source; they are placeholders for a portion policy the user must choose
+# (see docs/defect-ledger.md). Physical plausibility: scaling must not turn one item into an unreasonable
+# amount on the plate (fish 440 g + potato 440 g + zucchini 440 g in one lunch).
+# These are engineering ceilings for a single weighed item after scaling, not
+# clinical limits; an item already above its ceiling is left as written. When a
+# day cannot reach its target under them, the day is reported as unmet.
+ITEM_MAX_G = 300          # solid items (protein, starch)
+VEG_MAX_G = 350           # vegetables / salad
+LIQUID_MAX_ML = 500       # soups, milk, yogurt drinks
+_VEG_WORDS = ("خضار", "كوسة", "سلطة", "شوربة خضار", "بروكلي", "جزر", "فاصوليا", "باذنجان", "ملوخية", "سبانخ")
+_LIQ_WORDS = ("شوربة", "عصير", "حليب", "لبن", "سموذي", "زبادي")
+
+
+def plausibility_caps_on():
+    """Experimental variant, OFF by default: set NX_PLAUSIBILITY_CAPS=1 to enable."""
+    import os
+    return os.environ.get("NX_PLAUSIBILITY_CAPS") == "1"
+
+
+def _item_ceiling(segment, unit):
+    if unit == "مل" or any(w in segment for w in _LIQ_WORDS):
+        return LIQUID_MAX_ML
+    if any(w in segment for w in _VEG_WORDS):
+        return VEG_MAX_G
+    return ITEM_MAX_G
+
+
 MIN_FACTOR = 0.5
 MAX_FACTOR = 3.0
 
@@ -129,6 +157,9 @@ def _scale_segment(segment, factor):
         original = float(match.group(1))
         unit = match.group(2)
         scaled = _round_grams(original * factor)
+        if factor > 1 and plausibility_caps_on():
+            scaled = min(scaled, max(_round_grams(original),
+                                     _item_ceiling(segment, unit)))
         before[0] += original
         after[0] += scaled
         return f"{scaled}{unit}" if unit in ("جم", "مل") else f"{scaled} {unit}"
@@ -280,7 +311,10 @@ def _item_cal(segment):
     """
     import meal_macros
     rows = meal_macros.macros(segment)["items"]
-    return rows[0].get("cal") if rows and rows[0].get("food") and rows[0].get("grams") else None
+    return rows[0].get("cal") if (rows and rows[0].get("food") and rows[0].get("grams")
+                                  and not rows[0].get("unresolved")
+                                  and rows[0].get("explicit_quantity")
+                                  and rows[0].get("exact_identity")) else None
 
 
 def meal_items(text):
