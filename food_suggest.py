@@ -8,7 +8,7 @@ grams (after cooking) is typed by the doctor, and nothing is replaced or saved u
 """
 import re
 
-MAX = 8
+MAX = 80   # the list scrolls. No Arabic food word matches more than 80 rows (tested); if a query ever does, the endpoint reports the total and the page says so
 
 # Arabic wording for each preparation note shown to the doctor (the English USDA text stays in "usda"/"basis" for the record).
 BASIS_AR = {
@@ -37,7 +37,7 @@ BASIS_AR = {
     "raw, with skin": "نيّء بجلده",
     "smoked as sold (lox)": "مدخن كما يُباع",
 }
-_AMOUNT = re.compile(r"^[\s\d\.\u0660-\u0669٫,/]*(?:جم|جرام|غ|g|gm|gram|grams)?\s*", re.I)
+_AMOUNT = re.compile(r"^[\s\d\.\u0660-\u0669٫,/]*(?:(?:جم|جرام|غ|g|gm|gram|grams)(?=\s|$))?\s*", re.I)
 
 
 def split_query(text):
@@ -46,26 +46,47 @@ def split_query(text):
     return _AMOUNT.sub("", seg, count=1).strip()
 
 
+def weigh_state(usda, basis=""):
+    """Which weight the doctor must type for this row: 'raw' (weighed before cooking), 'cooked' (weighed after cooking) or
+    'as_sold' (dried, canned, oil, nuts, smoked: as it is). Decided from the USDA description, never guessed from numbers."""
+    d = (str(usda) + " " + str(basis)).lower()
+    if re.search(r"\b(cooked|boiled|roasted|fried|stewed|poached|scrambled|omelet|steamed|prepared|baked|simmered)\b", d):
+        return "cooked"
+    if re.search(r"\b(raw|uncooked)\b", d):
+        return "raw"
+    return "as_sold"
+
+
+GRAMS_AR = {"raw": "اكتب الوزن بالجرام وهو نيّء (قبل الطبخ)", "cooked": "اكتب الوزن بالجرام بعد الطبخ", "as_sold": "اكتب الوزن بالجرام كما يُباع"}
+GRAMS_EN = {"raw": "Type the grams weighed RAW (before cooking)", "cooked": "Type the grams weighed AFTER cooking", "as_sold": "Type the grams as sold"}
+
+
 def _catalog():
     import food_data
     import food_provenance as P
     import meal_option_foods as O
+    import meal_variant_foods as V
     rows = []
     for f in O.OPTION_FOODS:
         rows.append({"text": f["n"], "also": [f.get("option_for", ""), f.get("en", "")], "usda": f["usda"], "fdc": f["fdc"], "basis": f["basis"],
+                     "kind": "option", "per100": [f["cal"], f["p"], f["c"], f["f"]]})
+    for f in V.VARIANT_FOODS:
+        rows.append({"text": f["n"], "also": [f.get("en", "")], "usda": f["usda"], "fdc": f["fdc"], "basis": f["basis"], "basis_ar": f["basis_ar"],
                      "kind": "option", "per100": [f["cal"], f["p"], f["c"], f["f"]]})
     for f in food_data.FOODS:
         r = P.REVIEWED.get(f.get("n"))
         if r:
             rows.append({"text": f["n"], "also": [f.get("en", "")], "usda": r[1], "fdc": int(r[0]), "basis": r[2],
                          "kind": "verified", "per100": [r[3], r[4], r[5], r[6]]})
+    for r in rows:
+        r["weigh"] = weigh_state(r["usda"], r["basis"])
     return rows
 
 
 _CAT = None
 
 
-def suggest(text):
+def suggest(text, limit=None):
     global _CAT
     from meal_macros import _norm
     q = _norm(split_query(text))
@@ -81,5 +102,10 @@ def suggest(text):
         if pos:
             out.append((min(pos), len(r["text"]), r))
     out.sort(key=lambda x: (x[0], x[1]))
-    return [dict(r, basis_ar=BASIS_AR.get(r["basis"], ""), label_en=("named USDA option" if r["kind"] == "option" else "reviewed USDA source"), label=("خيار مسمّى من USDA" if r["kind"] == "option" else "مصدر USDA مراجَع"))
-            for _, _, r in out[:MAX]]
+    return [dict(r, basis_ar=(r.get("basis_ar") or BASIS_AR.get(r["basis"], "")), grams_ar=GRAMS_AR[r["weigh"]], grams_en=GRAMS_EN[r["weigh"]], label_en=("named USDA option" if r["kind"] == "option" else "reviewed USDA source"), label=("خيار مسمّى من USDA" if r["kind"] == "option" else "مصدر USDA مراجَع"))
+            for _, _, r in out[:(MAX if limit is None else limit)]]
+
+
+def total(text):
+    """How many rows match what is typed, before the list is cut at MAX (the page says so when the list is cut)."""
+    return len(suggest(text, limit=10 ** 6))
