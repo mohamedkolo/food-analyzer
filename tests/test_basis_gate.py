@@ -39,10 +39,11 @@ def test_cooked_named_rows_unchanged():
 
 
 def test_unreviewed_cooked_candidate_does_not_qualify_a_row():
-    # "صدر دجاج" matches USDA cooked roasted breast 171477 by name and numbers, but nobody reviewed
-    # it, and the row name states no preparation, so the item stays unresolved and says why. There is no switch.
-    r = _items("200 جم صدر دجاج مشوي")
-    assert r["items"][0]["unresolved"].startswith("basis:candidate cooked match USDA 171477"), r["items"]
+    # "سمك قاروص" matches USDA cooked sea bass 173694 by name, but its protein (23) is 0.63 g from USDA (23.63), outside
+    # the review tolerance, so nobody reviewed it. The row name states no preparation, so the item stays unresolved and says why.
+    # (Chicken breast, tilapia, shrimp, crab, lobster and mullet passed the review on 28 Nov 2026 and are counted: see test_cooked_repair.)
+    r = _items("200 جم سمك قاروص")
+    assert r["items"][0]["unresolved"].startswith("basis:candidate cooked match USDA 173694"), r["items"]
     assert not r["exact"] and r["cal"] == 0
 
 
@@ -115,11 +116,11 @@ def test_proposed_cooked_option_replaces_not_keeps_an_unresolved_original():
     os.environ["NX_PROPOSED_VARIANTS"] = "1"; os.environ["NX_PROPOSED_LEVEL"] = "B"
     try:
         importlib.reload(MM)
-        r = MM.macros("150 جم صدر دجاج")
+        r = MM.macros("150 جم صدر دجاج مشوي")
         i = r["items"][0]
-        assert i["proposed"] and i["original_food"] == "صدر دجاج" and "USDA" in i["food"], i
-        assert not r["exact"] and r["exact_if_proposed"], r
-        assert (r["cal"], r["p"], r["c"], r["f"]) == (248, 47, 0, 5), r      # 150 g of USDA 171477 per 100 g: 247.5/46.5/0/5.4 (rounded in the app)
+        # 28 Nov 2026: chicken breast is a REVIEWED cooked row now (USDA 171477), so it is priced directly, not as a proposed replacement
+        assert not i.get("proposed") and i["food"] == "صدر دجاج" and i["sourced"] and r["complete"], i
+        assert (r["cal"], r["p"], r["c"], r["f"]) == (248, 46, 0, 5), r      # 150 g of USDA 171477 per 100 g: 247.5/46.5/0/5.4 (rounded in the app)
     finally:
         os.environ.pop("NX_PROPOSED_VARIANTS", None); os.environ.pop("NX_PROPOSED_LEVEL", None)
         importlib.reload(MM)
