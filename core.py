@@ -25,8 +25,10 @@ _monitoring.init()
 # ═══ حماية CSRF ═══
 from flask_wtf import CSRFProtect
 csrf = CSRFProtect(app)
-from pdf_generator import pdf_bp
-app.register_blueprint(pdf_bp)
+# ‏كان هنا pdf_generator.py: قالب جاهز بتلت مسارات عيّنة من غير دخول
+# (/meal-plan/preview و pdf و patient/<id>.pdf). اتنين كانوا بيرجّعوا 500
+# لأي زائر، والتالت كان بيشغّل WeasyPrint لأي حد يطلب على سيرفر Render
+# المجاني. اتشالوا؛ الورق الحقيقي من plan_engine. (tests/test_pdf_sample_routes.py)
 # SECRET_KEY لازم يجي من متغير بيئة — لو مش موجود نولّد واحد عشوائي (الجلسات هتتقطع مع كل restart لحد ما تضيفه)
 import secrets as _secrets
 app.secret_key = os.environ.get("SECRET_KEY") or _secrets.token_hex(32)
