@@ -1,0 +1,96 @@
+library_row,kcal,protein,carbs,fat,status
+صدر دجاج,165.0,31.0,0.0,3.6,macro-equal to offered USDA 171477 (صدر دجاج مشوي بدون جلد (USDA 171477)); identity not reviewed
+فخذ دجاج,209.0,26.0,0.0,11.0,"no offered USDA row matches its four macros; not offered, not changed"
+كبدة دجاج,172.0,25.0,1.0,6.5,"no offered USDA row matches its four macros; not offered, not changed"
+قوانص دجاج,94.0,18.0,0.0,2.0,macro-equal to offered USDA 171456 (قوانص دجاج نيّئة (USDA 171456)); identity not reviewed
+كبدة بقري,135.0,21.0,4.0,4.0,"no offered USDA row matches its four macros; not offered, not changed"
+سمك بلطي,128.0,26.0,0.0,2.7,macro-equal to offered USDA 175177 (سمك بلطي مطبوخ بالحرارة الجافة (USDA 175177)); identity not reviewed
+سلمون,208.0,20.0,0.0,13.0,"no offered USDA row matches its four macros; not offered, not changed"
+سمك قاروص,124.0,23.0,0.0,2.6,"no offered USDA row matches its four macros; not offered, not changed"
+بوري,150.0,25.0,0.0,5.0,macro-equal to offered USDA 175124 (سمك بوري مطبوخ بالحرارة الجافة (USDA 175124)); identity not reviewed
+جمبري,99.0,24.0,0.2,0.3,macro-equal to offered USDA 175180 (جمبري مطبوخ (USDA 175180)); identity not reviewed
+كابوريا,97.0,19.0,0.0,1.5,macro-equal to offered USDA 174202 (كابوريا ألاسكا كينج مطبوخة بالبخار (USDA 174202)); identity not reviewed
+جراد البحر,89.0,19.0,0.0,0.9,macro-equal to offered USDA 174209 (كركند شمالي مطبوخ بالبخار (USDA 174209)); identity not reviewed
+بيضة كاملة,155.0,13.0,1.1,11.0,"no offered USDA row matches its four macros; not offered, not changed"
+بياض بيض,52.0,11.0,0.7,0.2,macro-equal to offered USDA 172183 (بياض بيض نيّء (USDA 172183)); identity not reviewed
+صفار بيض,322.0,16.0,3.6,27.0,"no offered USDA row matches its four macros; not offered, not changed"
+زبادي خالي الدسم,59.0,10.0,3.6,0.4,macro-equal to offered USDA 170894 (زبادي يوناني سادة خالي الدسم (USDA 170894)); identity not reviewed
+زبادي يوناني,97.0,9.0,3.6,5.0,macro-equal to offered USDA 171304 (زبادي يوناني سادة كامل الدسم (USDA 171304)); identity not reviewed
+لبن رايب,40.0,3.3,4.5,1.0,macro-equal to offered USDA 170874 (لبن خض بتّاو قليل الدسم (USDA 170874)); identity not reviewed
+أرز بني مطبوخ,112.0,2.6,24.0,0.9,macro-equal to offered USDA 168875 (أرز بني حبة متوسطة مطبوخ (USDA 168875)); identity not reviewed
+أرز بسمتي مطبوخ,121.0,3.5,25.0,0.4,"no offered USDA row matches its four macros; not offered, not changed"
+عدس أصفر مطبوخ,116.0,9.0,20.0,0.4,"no offered USDA row matches its four macros; not offered, not changed"
+عدس أسود مطبوخ,116.0,9.0,20.0,0.4,"no offered USDA row matches its four macros; not offered, not changed"
+حمص بطحينة,166.0,8.0,14.0,10.0,"no offered USDA row matches its four macros; not offered, not changed"
+خس,15.0,1.4,2.9,0.2,macro-equal to offered USDA 169249 (خس ورق أخضر نيّء (USDA 169249)); identity not reviewed
+زيت جوز الهند,892.0,0.0,0.0,99.0,macro-equal to offered USDA 171412 (زيت جوز الهند (USDA 171412)); identity not reviewed
+زيت عباد الشمس,884.0,0.0,0.0,100.0,macro-equal to offered USDA 172336 (زيت كانولا (USDA 172336)); identity not reviewed
+حليب بالشوكولاتة,83.0,3.4,10.0,3.4,"no offered USDA row matches its four macros; not offered, not changed"
+كبدة اسكندراني ساندوتش,230.0,16.0,20.0,10.0,"no offered USDA row matches its four macros; not offered, not changed"
+طماطم معجون (صلصة),82,4.3,19,0.5,"no offered USDA row matches its four macros; not offered, not changed"
+حمص الشام (مشروب),90,4,15,1.5,"no offered USDA row matches its four macros; not offered, not changed"
+عدس أبو جبة (بتاو),95,6,15,1.2,"no offered USDA row matches its four macros; not offered, not changed"
+سمك ماكريل مدخن,305,19,0,25,"no offered USDA row matches its four macros; not offered, not changed"
+سمك موسى,91,19,0,1.2,"no offered USDA row matches its four macros; not offered, not changed"
+حليب جوز الهند,230,2.3,6,24,"no offered USDA row matches its four macros; not offered, not changed"
+حليب لوز غير محلى,15,0.6,0.6,1.2,"no offered USDA row matches its four macros; not offered, not changed"
+حليب شوفان,47,1,7.6,1.5,"no offered USDA row matches its four macros; not offered, not changed"
+لبن بودرة كامل,496,26,38,27,macro-equal to offered USDA 170876 (حليب بودرة كامل الدسم (USDA 170876)); identity not reviewed
+خيار مخلل,11,0.3,2.3,0.2,macro-equal to offered USDA 169225 (خيار مقشّر نيّء (USDA 169225)); identity not reviewed
+طماطم شيري,18,0.9,3.9,0.2,macro-equal to offered USDA 170050 (طماطم حمراء مطبوخة (USDA 170050)); identity not reviewed
+أرز ياسمين,129,2.7,28,0.3,macro-equal to offered USDA 168930 (أرز أبيض حبة متوسطة مطبوخ (USDA 168930)); identity not reviewed
+عدس بجبة باللحمة,130,10,16,3,"no offered USDA row matches its four macros; not offered, not changed"
+أرز معمول باللبن (بالمكسرات),165,4,25,5.5,"no offered USDA row matches its four macros; not offered, not changed"
+بيض بالبسطرمة,210,17,2,15,"no offered USDA row matches its four macros; not offered, not changed"
+بيض أومليت بالجبنة,190,13,2,15,"no offered USDA row matches its four macros; not offered, not changed"
+بيض مقلي بالسمنة,220,12,1,19,"no offered USDA row matches its four macros; not offered, not changed"
+زبادي بالفواكه (محلى),95,3.5,15,2,"no offered USDA row matches its four macros; not offered, not changed"
+حمص معلب,139,7.5,22,2.5,macro-equal to offered USDA 173800 (حمص معلّب مصفّى (USDA 173800)); identity not reviewed
+سلمون معلب,167,23,0,8,"no offered USDA row matches its four macros; not offered, not changed"
+كبدة فراخ مقلية,250,22,5,15,"no offered USDA row matches its four macros; not offered, not changed"
+طماطم مجففة,258,14,56,3,macro-equal to offered USDA 168567 (طماطم مجففة (USDA 168567)); identity not reviewed
+جزر أبيض (لفت),28,0.9,6,0.1,"no offered USDA row matches its four macros; not offered, not changed"
+بروكلي مجمد,30,2.5,6,0.3,"no offered USDA row matches its four macros; not offered, not changed"
+فراولة مجمدة,35,0.7,8,0.3,macro-equal to offered USDA 170394 (جزر مسلوق (USDA 170394)); identity not reviewed
+موز مجمد,89,1.1,23,0.3,"no offered USDA row matches its four macros; not offered, not changed"
+لوز محمص بالملح,598,21,20,53,"no offered USDA row matches its four macros; not offered, not changed"
+لبن أكتيفيا,64.0,3.0,4.9,3.7,"no offered USDA row matches its four macros; not offered, not changed"
+حليب اللوز غير محلى,14.6,0.4,0.8,1.0,"no offered USDA row matches its four macros; not offered, not changed"
+صدر دجاج بدون جلد مطبوخ أو مشوى,166.0,32.1,0.0,3.2,"no offered USDA row matches its four macros; not offered, not changed"
+زيت الذرة,900.0,0.0,0.0,100.0,macro-equal to offered USDA 171029 (زيت ذرة (USDA 171029)); identity not reviewed
+كابوريا مشوى او مطبوخ بالتوابل,83.0,17.88,0.0,0.7,macro-equal to offered USDA 174205 (سلطعون أزرق مطبوخ بالبخار (USDA 174205)); identity not reviewed
+بيضة مسلوقة أو أومليت,142.0,12.47,0.74,9.44,macro-equal to offered USDA 172186 (بيض مسلوق مفرط بوشيه (USDA 172186)); identity not reviewed
+بيض مخفوق,167.0,11.1,2.2,12.2,"no offered USDA row matches its four macros; not offered, not changed"
+صفار البيض,322.0,15.86,3.59,26.54,macro-equal to offered USDA 172184 (صفار بيض نيّء (USDA 172184)); identity not reviewed
+سمك رنجة مملح أو مدخن,217.0,24.5,0.0,12.3,"no offered USDA row matches its four macros; not offered, not changed"
+سمك أنشوجة,131.0,20.4,0.0,4.8,"no offered USDA row matches its four macros; not offered, not changed"
+سمك ماكاريل من المحيط,262.0,23.8,0.0,17.81,macro-equal to offered USDA 175120 (سمك ماكريل أطلسي مطبوخ بالحرارة الجافة (USDA 175120)); identity not reviewed
+سمك ماكاريل مقلى,302.0,19.0,9.7,20.2,"no offered USDA row matches its four macros; not offered, not changed"
+سمك بورى مقلى,241.0,19.26,9.7,13.39,"no offered USDA row matches its four macros; not offered, not changed"
+سمك بورى بالبخار أو مشوى,147.0,24.3,0.0,4.7,"no offered USDA row matches its four macros; not offered, not changed"
+سمك سردين مطبوخ او معلب,208.0,24.6,0.0,11.4,"no offered USDA row matches its four macros; not offered, not changed"
+سمك قاروص او سوبريم مقلى,224.0,18.4,9.7,11.88,"no offered USDA row matches its four macros; not offered, not changed"
+سمك قاروص أو سوبريم مشوى,122.0,23.1,0.0,2.5,"no offered USDA row matches its four macros; not offered, not changed"
+سمك بلطى مقلى,223.0,19.8,9.7,11.6,"no offered USDA row matches its four macros; not offered, not changed"
+سمك بلطى مشوى او بالفرن,121.0,25.25,0.0,2.1,"no offered USDA row matches its four macros; not offered, not changed"
+حليب الماعز,69.0,3.56,4.45,4.14,macro-equal to offered USDA 171278 (حليب ماعز سائل (USDA 171278)); identity not reviewed
+سمك هامور( الوقار ) مشوى,118.0,24.84,0.0,1.3,"no offered USDA row matches its four macros; not offered, not changed"
+حليب قليل الدسم,42.0,3.3,4.9,1.0,macro-equal to offered USDA 170872 (حليب 1% دسم قليل الدسم (USDA 170872)); identity not reviewed
+حليب خالى الدسم,35.0,3.4,4.9,0.2,macro-equal to offered USDA 173432 (حليب خالي الدسم بدون فيتامينات مضافة (USDA 173432)); identity not reviewed
+حليب مكثف محلى,321.0,7.91,54.4,8.7,macro-equal to offered USDA 171275 (حليب مكثف محلى (USDA 171275)); identity not reviewed
+حليب مجفف كامل الدسم,496.0,26.32,38.4,26.71,macro-equal to offered USDA 170876 (حليب بودرة كامل الدسم (USDA 170876)); identity not reviewed
+حليب خالى اللاكتوز,61.0,3.15,4.8,3.25,macro-equal to offered USDA 171265 (حليب كامل الدسم مع فيتامين د (USDA 171265)); identity not reviewed
+زيت الكانولا,884.0,0.0,0.0,100.0,macro-equal to offered USDA 172336 (زيت كانولا (USDA 172336)); identity not reviewed
+زيت النخيل,884.0,0.0,0.0,100.0,macro-equal to offered USDA 172336 (زيت كانولا (USDA 172336)); identity not reviewed
+حليب الرز,47.0,0.28,9.17,0.97,"no offered USDA row matches its four macros; not offered, not changed"
+أرز بنى مطهى,111.0,2.6,23.0,0.9,macro-equal to offered USDA 168875 (أرز بني حبة متوسطة مطبوخ (USDA 168875)); identity not reviewed
+أرز بنى نئ,370.0,7.9,77.2,2.9,"no offered USDA row matches its four macros; not offered, not changed"
+أرز مطبوخ,129.0,2.67,28.0,0.2,macro-equal to offered USDA 168930 (أرز أبيض حبة متوسطة مطبوخ (USDA 168930)); identity not reviewed
+سالمون مطبوخ بالتوابل,153.0,24.5,0.0,5.28,macro-equal to offered USDA 172001 (سلمون وردي مطبوخ بالحرارة الجافة (USDA 172001)); identity not reviewed
+سالمون بالبخار,160.0,25.78,0.0,5.53,"no offered USDA row matches its four macros; not offered, not changed"
+روبيان مشوى او مطبوخ بالتوابل,115.0,22.78,0.0,1.5,"no offered USDA row matches its four macros; not offered, not changed"
+حليب صويا لايت,30.0,2.38,3.51,0.77,"no offered USDA row matches its four macros; not offered, not changed"
+حليب الصويا,50.0,2.5,6.67,1.67,"no offered USDA row matches its four macros; not offered, not changed"
+صدر حبش (تركى مدخن ),95.0,20.9,1.3,0.7,"no offered USDA row matches its four macros; not offered, not changed"
+سمك سلطان ابراهيم مطبوخ بالتوابل,150.0,24.8,0.0,4.86,macro-equal to offered USDA 175124 (سمك بوري مطبوخ بالحرارة الجافة (USDA 175124)); identity not reviewed
+سمك سلطان ابراهيم مطبوخ بالتوابل fish red mullet cooked,118.0,24.84,0.0,1.3,"no offered USDA row matches its four macros; not offered, not changed"

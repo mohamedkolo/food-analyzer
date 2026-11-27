@@ -277,13 +277,14 @@ def _table():
         import food_data
         import meal_food_sources
         import meal_option_foods
+        import meal_variant_foods
         rows = []
         # source-backed extras go AFTER the main table: a name already in the
         # main table keeps winning, so nothing existing changes.
         have = {_norm(f.get("n")) for f in food_data.FOODS}
         for food in list(food_data.FOODS) + [
                 f for f in meal_food_sources.SOURCED_FOODS
-                if _norm(f["n"]) not in have] + list(meal_option_foods.OPTION_FOODS):
+                if _norm(f["n"]) not in have] + list(meal_option_foods.OPTION_FOODS) + list(meal_variant_foods.VARIANT_FOODS):
             name = _norm(food.get("n"))
             if name:
                 rows.append((name, food))

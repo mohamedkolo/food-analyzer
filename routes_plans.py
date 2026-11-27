@@ -1342,7 +1342,8 @@ def food_suggest_api():
     """Source-qualified food names offered while the doctor types (see food_suggest.py). Read-only."""
     import food_suggest
     return jsonify({"ok": True, "q": food_suggest.split_query(request.args.get("q", "")),
-                    "items": food_suggest.suggest(request.args.get("q", ""))})
+                    "items": food_suggest.suggest(request.args.get("q", "")),
+                    "total": food_suggest.total(request.args.get("q", ""))})
 
 
 @bp.route("/edit_meal", methods=["POST"])
