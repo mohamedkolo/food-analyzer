@@ -15,9 +15,16 @@
   /* ‏صف الوجبة: علامة الوجبة بقت أيقونة في مربع رمادي بدل إيموجي
      ٢٠ بكسل. والسناك بيفضل بخلفية دافية خفيفة عشان يتفرز بالعين عن
      الوجبات الرئيسية من غير ما ياخد لون. */
-  .meal-row{display:flex;align-items:center;gap:10px;padding:10px;
+  .meal-row{min-width:0;display:flex;align-items:center;gap:10px;padding:10px;
     background:var(--gray);border:1px solid var(--gray-2);border-radius:8px}
   .meal-row.is-snack{background:var(--nx-warn-bg);border-color:#EBE5DB}
+  /* ‏على الموبايل صف الوجبة (أيقونة + نص + كميات + 3 أزرار) كان أعرض من الشاشة فالأزرار على الطرف
+     بتتقصّ. الأزرار تنزل لسطرها تحت النص بدل ما تزق الصف برّه الكارت. */
+  @media (max-width:560px){
+    .meal-row{flex-wrap:wrap}
+    .meal-row > div:not(.meal-acts){flex:1 1 0;min-width:0}
+    .meal-row .meal-acts{order:3;flex-basis:100%;justify-content:flex-end}
+  }
   .meal-ic{flex:0 0 30px;height:30px;border-radius:7px;background:var(--nx-surface);
     border:1px solid var(--gray-2);display:flex;align-items:center;justify-content:center}
   .meal-ic i{font-size:13px;color:var(--nx-muted)}
@@ -249,9 +256,10 @@
   'lost_on_gain':  ('#8B2E2E', '#FBEDED', 'fa-arrow-trend-down'),
   'too_soon':      ('#5A6472', '#F3F5F7', 'fa-hourglass-half'),
 } %}
+{% set VERDICT_LABELS = {'on_track':('في النطاق','On track'),'gain_on_track':('زيادة صحية','Healthy gain'),'too_fast':('أسرع من الآمن','Faster than safe'),'gain_too_fast':('زيادة سريعة','Gaining too fast'),'too_slow':('أبطأ من المتوقع','Slower than expected'),'plateau':('ثابت','Stalled'),'gain_stalled':('مش بيزيد','Not rising'),'regained':('زاد','Went up'),'lost_on_gain':('نزل والهدف زيادة','Fell on a gain goal'),'too_soon':('أقل من أسبوع','Under a week')} %}
 {% set col, bg, vicon = VS.get(fu.verdict, ('#5A6472', '#F3F5F7', 'fa-circle-dot')) %}
 <!-- المتابعة -->
-<div style="background:var(--nx-surface);border:2px solid {{ col }};border-radius:12px;padding:16px 18px;margin-bottom:16px">
+<div id="fuCard" style="background:var(--nx-surface);border:2px solid {{ col }};border-radius:12px;scroll-margin-top:84px;padding:16px 18px;margin-bottom:16px">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
     <div style="font-weight:800;color:var(--nx-ink);font-size:15px">
       <i class="fa-solid fa-clock-rotate-left" style="color:{{ col }}"></i>
@@ -266,7 +274,7 @@
     <div>
       <div style="font-size:11.5px;color:var(--nx-muted);font-weight:700">{{ t('الوزن','Weight') }}</div>
       <div style="font-size:19px;font-weight:900;color:var(--nx-ink)">
-        {{ fu.old_weight }} → {{ fu.new_weight }}<span style="font-size:12px">{{ t('كجم','kg') }}</span>
+        <bdi dir="ltr">{{ fu.old_weight }} → {{ fu.new_weight }}</bdi><span style="font-size:12px"> {{ t('كجم','kg') }}</span>
       </div>
     </div>
     <div>
@@ -300,20 +308,57 @@
   {% if fu.tdee_drop and fu.tdee_drop > 0 %}
   <div style="font-size:12.5px;color:var(--nx-warn-ink);background:var(--nx-warn-bg);border:1px solid var(--nx-warn-line);
               border-radius:9px;padding:10px 13px;margin-top:9px;line-height:1.8">
-    {{ t('الـTDEE نزل','TDEE dropped') }} <b>{{ fu.tdee_drop }} kcal</b>
-    {{ t('مع الوزن. يعني هدف الزيارة اللي فاتت','with the weight. That means last visit’s target of') }}
-    <b>{{ fu.old_goal_cal }}</b> {{ t('بقى عجزه أصغر بالمقدار ده — ده السبب الأشهر لثبات الوزن.',
-                                      'now carries that much less deficit — the most common reason weight stalls.') }}
+    {{ t('الـTDEE المحسوب نزل','The calculated TDEE dropped') }} <b>{{ fu.tdee_drop }} kcal</b>
+    {{ t('مع الوزن (حساب مباشر على الوزن الجديد). يعني هدف الزيارة اللي فاتت','with the weight (a direct recalculation on the new weight). That means last visit’s target of') }}
+    <b>{{ fu.old_goal_cal }}</b> {{ t('بقى عجزه أصغر بالمقدار ده. ده حساب، مش تفسير لسبب ثبات الوزن.',
+                                      'now carries that much less deficit. This is arithmetic, not an explanation of why weight stalled.') }}
   </div>
   {% endif %}
 
   {% if fu.suggested_goal_cal and data.goal_cal and fu.suggested_goal_cal|int != data.goal_cal|int %}
   <div style="font-size:12.5px;color:var(--nx-ink);background:var(--nx-tint);border-radius:9px;
               padding:10px 13px;margin-top:9px;line-height:1.8">
-    <i class="fa-solid fa-lightbulb"></i> {{ t('المقترح للزيارة دي','Suggested for this visit') }}: <b>{{ fu.suggested_goal_cal }} kcal</b>
+    <i class="fa-solid fa-lightbulb"></i> {{ t('اقتراح القاعدة الحسابية للزيارة دي (مش توصية طبية)','Calculation-rule suggestion for this visit (not a medical recommendation)') }}: <b>{{ fu.suggested_goal_cal }} kcal</b>
     {{ t('— انت مولّد الخطة على','— you generated this plan on') }} <b>{{ data.goal_cal }}</b> kcal.
     {{ t('لو عايز تجرّب المقترح، ارجع لصفحة التوليد وغيّر الهدف.',
          'To try the suggestion, go back to the generate page and change the target.') }}
+  </div>
+  {% endif %}
+
+  {% set fh = fu.history %}
+  {% if fh and fh.intervals|length > 1 %}
+  <div id="fuHistory" style="margin-top:12px;border-top:1px solid var(--nx-line);padding-top:12px">
+    <div style="font-weight:800;font-size:13px;color:var(--nx-ink);margin-bottom:8px">
+      {{ t('اللي اتحلل من الزيارات اللي فاتت','What was read from the previous visits') }}
+      <span style="font-weight:600;color:var(--nx-muted)">({{ t('قرأنا','Read') }} {{ fh.visits_used }}
+        {{ t('من','of') }} {{ fh.total_visits }} {{ t('زيارات مسجّلة','recorded visits') }}{% if fh.total_visits > fh.visits_used %}{{ t(' (آخر 6 بس، الأقدم مش داخل)',' (the latest 6 only, older ones are not included)') }}{% endif %},
+        <bdi dir="ltr">{{ '+' if fh.net_change > 0 }}{{ fh.net_change }}</bdi> {{ t('كجم من أول زيارة مقروءة','kg since the first visit read') }})</span>
+    </div>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+      <thead><tr style="color:var(--nx-muted);text-align:start">
+        <th style="padding:4px 6px;text-align:start">{{ t('الفترة','Interval') }}</th>
+        <th style="padding:4px 6px;text-align:start">{{ t('الوزن','Weight') }}</th>
+        <th style="padding:4px 6px;text-align:start">{{ t('المعدل','Rate') }}</th>
+        <th style="padding:4px 6px;text-align:start">{{ t('الحكم','Reading') }}</th>
+      </tr></thead>
+      <tbody>
+      {% for iv in fh.intervals %}
+      <tr style="border-top:1px solid var(--nx-line)">
+        <td style="padding:5px 6px">{{ t('من','From') }} #{{ iv.from_visit or '?' }} {{ t('إلى','to') }} {{ ('#' ~ iv.to_visit) if iv.to_visit else t('دلوقتي','now') }}</td>
+        <td style="padding:5px 6px;white-space:nowrap"><bdi dir="ltr">{{ iv.old_weight }} → {{ iv.new_weight }}</bdi></td>
+        <td style="padding:5px 6px;white-space:nowrap"><bdi dir="ltr">{{ '+' if iv.rate > 0 }}{{ iv.rate }}</bdi> {{ t('كجم/أسبوع','kg/wk') }}</td>
+        <td style="padding:5px 6px">{{ VERDICT_LABELS.get(iv.verdict, (iv.verdict, iv.verdict))[0 if is_ar else 1] }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% set sn = fh.streak_note_ar if is_ar else fh.streak_note_en %}
+    {% if sn %}
+    <div style="font-size:12.5px;background:var(--nx-warn-bg);color:var(--nx-warn-ink);border:1px solid var(--nx-warn-line);
+                border-radius:9px;padding:9px 12px;margin-top:9px;line-height:1.8">{{ sn }}</div>
+    {% endif %}
   </div>
   {% endif %}
 
@@ -321,9 +366,17 @@
   <div style="font-size:12px;color:var(--nx-muted);margin-top:10px">
     {{ t('الخطة دي اتبنت وهي بتتفادى','This plan was built avoiding') }}
     <b>{{ data.avoid_meals|length }}</b>
-    {{ t('وجبة من خطة الزيارة اللي فاتت.','meals from last visit’s plan.') }}
+    {% if (data.avoid_plans or 1) > 1 %}
+    {{ t('وجبة مختلفة اتأخّرت في الاختيار من آخر','distinct meals were pushed to the back of the queue from the last') }} {{ data.avoid_plans }} {{ t('خطط. ده تأخير مش منع: لو الفلترة الطبية سابت خيارات قليلة ممكن وجبة تتكرر.','plans. This is deferral, not a ban: if medical filtering leaves few options, a meal can repeat.') }}
+    {% else %}
+    {{ t('وجبة مختلفة اتأخّرت في الاختيار من خطة الزيارة اللي فاتت (تأخير مش منع).','distinct meals were pushed to the back of the queue from last visit’s plan (deferral, not a ban).') }}
+    {% endif %}
   </div>
   {% endif %}
+  <div style="font-size:11.5px;color:var(--nx-muted);margin-top:8px">
+    {{ t('مسودة بتتراجع قبل أي حفظ أو إرسال للعميل. قراءة الزيارة الأخيرة والسعرات المقترحة فوق هما نفس قواعد المتابعة القديمة ماتغيّرتش. اللي اتضاف هنا جدول الفترات والملاحظة وده وصف للأوزان المسجّلة، مش توصية طبية جديدة متحقق منها.',
+         'A draft for review before anything is saved or sent. The last-visit reading and suggested calories above use the same follow-up rules as before, unchanged. What is new here is the interval table and the note, which describe recorded weights only; they are not a newly verified medical recommendation.') }}
+  </div>
 </div>
 {% endif %}
 
@@ -520,7 +573,9 @@
         <div class="day-total" data-day="{{ day_idx }}" role="status" dir="ltr"
              style="background:var(--nx-line);color:var(--nx-ink);padding:4px 12px;border-radius:100px;font-weight:700;font-size:13px"
              title="{{ t('مجموع سعرات الوجبات المكتوبة','Total of the meals listed') }}">
-          <span class="v">{{ day.total_cal }}</span> kcal
+          {% set _est = not (day.calc and day.calc.basis == 'items') %}
+          <span class="basis">{{ t('تقدير من الوصف:' if _est else 'المحسوب من الجرامات:', 'Estimate from labels:' if _est else 'Computed from grams:') }}</span>
+          <span class="v">{{ '~' if _est }}{{ day.total_cal }}</span> kcal
         </div>
         {% set day_target = (day.target_cal or data.goal_cal or 0) | int %}
         {% set gap = day_target - (day.total_cal or 0) %}
@@ -534,6 +589,7 @@
       </div>
     </div>
 
+    {% set _ar = is_ar %}{% set _doctor = true %}{% set _edit_day = day_idx %}{% include "_day_calc.html" %}
     {# النظام الكيميائي: قاعدة اليوم نفسها جزء من البروتوكول ("فاكهة بأي كمية
        عند الجوع")، والأربع خانات لوحدها مش بتوصّلها. بتظهر للأيام اللي فيها
        note بس، فباقي الأنظمة ما بتتغيرش. #}
@@ -556,7 +612,7 @@
     </div>
     {% endif %}
 
-    <div style="display:grid;gap:8px">
+    <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:8px">
       {# ‏علامات الوجبات كانت إيموجي. دي علامات القالب، **مش** أسامي
          الأكل -- الإيموجي اللي جوّه اسم الوجبة (🥚 🍅 …) جاية من قاعدة
          الأكل وبتروح للعميل على ورقته، فمالهاش دعوة بالتغيير ده. #}
@@ -582,9 +638,9 @@
         {% if key in day %}
         <div class="meal-row{% if 'snack' in key or key in ['pre_workout','post_workout'] %} is-snack{% endif %}">
           <span class="meal-ic"><i class="fa-solid {{ icon }}"></i></span>
-          <div style="flex:1">
+          <div style="flex:1;min-width:0">
             <div class="meal-slot">{{ label }}</div>
-            <div class="meal-text editable" data-day="{{ day_idx }}" data-type="{{ key }}" data-empty="{{ t('الوجبة فاضية — أضف صنف تحت','This meal is empty — add an item below') }}" style="font-size:13px;font-weight:600;cursor:text">{{ day[key] | meal_en }}</div>
+            <div class="meal-text editable" data-day="{{ day_idx }}" data-type="{{ key }}" data-empty="{{ t('الوجبة فاضية — أضف صنف تحت','This meal is empty — add an item below') }}" data-raw="{{ day[key] }}" style="font-size:13px;font-weight:600;cursor:text">{{ day[key] | meal_en }}</div>
             {# ‏كمية كل صنف بزرار: الدكتور يلاقي الجبنة كتير فينقّصها، من غير ما يكتب السطر كله من الأول #}
             <div class="qty-row" data-day="{{ day_idx }}" data-type="{{ key }}" role="group" aria-label="{{ t('كميات ' ~ label, label ~ ' portions') }}">{% for it in meal_items(day[key]) %}{{ qty_chip(it) }}{% endfor %}</div>
             <!--/qty-row-->
@@ -603,7 +659,7 @@
               <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span class="v">{{ warn }}</span></div>
           </div>
           {% if key not in ['pre_workout','post_workout'] %}
-          <div style="display:flex;gap:4px">
+          <div class="meal-acts" style="display:flex;gap:4px;flex-shrink:0">
             {# ‏السناك بيتبدّل بس، مايتنقلش: الترتيب بين الوجبات الرئيسية #}
             {% if key not in ['snack','snack1','snack2'] %}
             <button class="move-btn" data-day="{{ day_idx }}" data-type="{{ key }}" data-dir="up"
@@ -791,14 +847,22 @@
   .meal-text { transition: all 0.2s ease; padding:6px 10px;border-radius:6px;border:1.5px dashed transparent; }
   .meal-text.editable:hover { background:rgba(37,99,235,0.05);border-color:var(--nx-line); }
   .meal-text.editing { background:var(--nx-surface-2) !important;border:1.5px solid var(--nx-ink-2) !important;outline:none; }
-  .swap-btn, .pick-btn {
+  .swap-btn, .pick-btn, .move-btn {
     background:var(--nx-surface);border:1px solid var(--gray-2);border-radius:8px;
     padding:8px 10px;cursor:pointer;color:var(--nx-ink-2);
     font-family:inherit;font-size:14px;
   }
   .swap-btn:hover { background: var(--nx-solid-2) !important; color:var(--nx-on-solid) !important; }
+  .move-btn:hover { background: var(--nx-solid-2) !important; color:var(--nx-on-solid) !important; }
   .pick-btn:hover { background: var(--nx-solid-2) !important; color:var(--nx-on-solid) !important; }
-  .swap-btn:disabled, .pick-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .swap-btn:disabled, .pick-btn:disabled, .move-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .fs-list{position:absolute;z-index:60;inset-inline:0;top:100%;margin-top:2px;background:var(--nx-surface);border:1.5px solid var(--nx-ink-2);border-radius:8px;max-height:240px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,.18);font-family:'Cairo',sans-serif}
+  .fs-item{padding:6px 10px;cursor:pointer;border-bottom:1px solid var(--nx-line,rgba(0,0,0,.08));text-align:start}
+  .fs-item:last-child{border-bottom:0}
+  .fs-item[aria-selected="true"],.fs-item:hover{background:var(--nx-surface-2)}
+  .fs-name{font-size:13px;font-weight:800}
+  .fs-meta{font-size:11px;font-weight:600;opacity:.78;margin-top:1px;line-height:1.35}
+  .fs-note{padding:6px 10px;font-size:11px;font-weight:700;opacity:.8}
   .meal-edit-textarea {
     width:100%;padding:8px 10px;border:1.5px solid var(--nx-ink-2);border-radius:6px;
     font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;
@@ -869,9 +933,9 @@ document.addEventListener('click', async function(ev){
     const r = await fetch('/move_meal', { method:'POST', body: fd });
     const j = await r.json();
     if(j.ok){
-      const tmp = mine.textContent;
-      mine.textContent = other.textContent;
-      other.textContent = tmp;
+      const tmp = mine.textContent, tmpRaw = mine.dataset.raw;
+      mine.textContent = other.textContent; mine.dataset.raw = other.dataset.raw;
+      other.textContent = tmp; other.dataset.raw = tmpRaw;
       // ‏الكميات بتمشي مع الوجبة: الأرقام اللي في الصف هي أرقام نص الوجبة
       const qa = row.querySelector('.qty-row'), qb = target.querySelector('.qty-row');
       if (qa && qb) { const h = qa.innerHTML; qa.innerHTML = qb.innerHTML; qb.innerHTML = h; }
@@ -947,6 +1011,8 @@ function applyCheck(day, type, check) {
   if (!check) return;
   const total = document.querySelector(`.day-total[data-day="${day}"] .v`);
   if (total) total.textContent = (check.estimated ? '~' : '') + check.total_cal;
+  const basis = document.querySelector(`.day-total[data-day="${day}"] .basis`);
+  if (basis) basis.textContent = check.estimated ? (document.documentElement.lang === 'en' ? 'Estimate from labels:' : 'تقدير من الوصف:') : (document.documentElement.lang === 'en' ? 'Computed from grams:' : 'المحسوب من الجرامات:');
   const gap = document.querySelector(`.day-gap[data-day="${day}"]`);
   if (gap) {
     gap.style.display = check.alert ? 'block' : 'none';
@@ -1000,9 +1066,18 @@ function renderQty(day, type, items) {
   else if (form.hidden) { toggle.hidden = false; }
 }
 
+// ‏النص المحفوظ (data-raw) غير النص المعروض: في الإنجليزي المعروض مترجم. التعديل بيبدأ من المحفوظ دايمًا، والمعروض للقراءة بس.
+function showMeal(el, raw, display) {
+  el.dataset.raw = raw;
+  el.textContent = display || raw;
+}
+function storedMeal(el) {
+  return el.dataset.raw !== undefined ? el.dataset.raw : el.textContent.trim();
+}
+
 function setMeal(day, type, data) {
   const textEl = document.querySelector(`.meal-text[data-day="${day}"][data-type="${type}"]`);
-  if (textEl) textEl.textContent = data.display || data.new_meal || '';
+  if (textEl) showMeal(textEl, data.new_meal || '', data.display);
   renderQty(day, type, data.items);
   applyCheck(day, type, data.check);
   showSaveIndicator();
@@ -1130,11 +1205,77 @@ function showSaveIndicator() {
   setTimeout(() => { ind.style.display = 'none'; }, 2000);
 }
 
+// ═══════ Suggestions while typing a food name ═══════
+// Only source-qualified, named foods are offered (see food_suggest.py). Choosing one writes its NAME into the line; the doctor
+// types the amount in grams after cooking and saves as usual. Nothing is saved or replaced by choosing.
+function attachSuggest(el) {
+  if (el.dataset.fsOn) return;
+  el.dataset.fsOn = '1';
+  const host = el.parentElement;
+  if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+  const list = document.createElement('div');
+  list.className = 'fs-list'; list.setAttribute('role', 'listbox'); list.hidden = true; list.dir = 'rtl';
+  host.appendChild(list);
+  let items = [], active = -1, timer = null, seq = 0;
+  const FS = {ar: {{ t('true','false') }}, per100: {{ t('لكل 100 جم','per 100 g')|tojson }}, kcal: 'kcal', p: {{ t('بروتين','protein')|tojson }}, c: {{ t('كارب','carbs')|tojson }}, f: {{ t('دهون','fat')|tojson }},
+              hint: {{ t('اكتب الوزن بالجرام بعد الطبخ قبل اسم الصنف أو بعده','Type the amount in grams after cooking')|tojson }}};
+  const close = () => { list.hidden = true; list.innerHTML = ''; items = []; active = -1; };
+  const mark = () => list.querySelectorAll('.fs-item').forEach((n, i) => n.setAttribute('aria-selected', i === active ? 'true' : 'false'));
+  const segStart = () => { const v = el.value.slice(0, el.selectionStart); return Math.max(v.lastIndexOf('+'), v.lastIndexOf('\n'), v.lastIndexOf('،')) + 1; };
+  const AMT = /^[\s\d.\u0660-\u0669٫,\/]*(?:جم|جرام|غ|g|gm|gram|grams)?\s*/i;
+  const choose = (i) => {
+    const it = items[i]; if (!it) return;
+    const start = segStart();
+    const before = el.value.slice(0, start), seg = el.value.slice(start, el.selectionStart), after = el.value.slice(el.selectionStart);
+    const lead = (seg.match(/^\s*/) || [''])[0];
+    const amt = (seg.slice(lead.length).match(AMT) || [''])[0];
+    const out = before + lead + amt + it.text;
+    el.value = out + after;
+    el.setSelectionRange(out.length, out.length);
+    close(); el.focus();
+  };
+  const render = () => {
+    list.innerHTML = '';
+    items.forEach((it, i) => {
+      const d = document.createElement('div'); d.className = 'fs-item'; d.setAttribute('role', 'option');
+      const n = document.createElement('div'); n.className = 'fs-name'; n.textContent = it.text;
+      const m = document.createElement('div'); m.className = 'fs-meta';
+      m.textContent = FS.ar ? ((it.basis_ar || '') + (it.basis_ar ? ' · ' : '') + it.label + ' · USDA ' + it.fdc) : (it.basis + ' · ' + it.label_en + ' · USDA ' + it.fdc);
+      const v = document.createElement('div'); v.className = 'fs-meta';
+      v.textContent = FS.per100 + ': ' + Math.round(it.per100[0]) + ' ' + FS.kcal + ' · ' + FS.p + ' ' + it.per100[1] + ' · ' + FS.c + ' ' + it.per100[2] + ' · ' + FS.f + ' ' + it.per100[3];
+      d.append(n, m, v);
+      d.addEventListener('mousedown', (e) => { e.preventDefault(); choose(i); });   // keeps focus: no blur-save before the choice
+      list.appendChild(d);
+    });
+    const note = document.createElement('div'); note.className = 'fs-note'; note.textContent = FS.hint; list.appendChild(note);
+    list.hidden = !items.length; mark();
+  };
+  const query = async () => {
+    const my = ++seq;
+    try {
+      const r = await fetch('/api/food_suggest?q=' + encodeURIComponent(el.value.slice(segStart(), el.selectionStart)), {credentials: 'same-origin'});
+      const j = await r.json();
+      if (my !== seq) return;
+      items = j.ok ? j.items : []; active = -1; render();
+    } catch (e) { close(); }
+  };
+  el.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(query, 120); });
+  el.addEventListener('keydown', (e) => {
+    if (list.hidden || !items.length) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); active = (active + 1) % items.length; mark(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); active = (active - 1 + items.length) % items.length; mark(); }
+    else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); e.stopImmediatePropagation(); choose(active); }
+    else if (e.key === 'Escape') { e.stopImmediatePropagation(); e.preventDefault(); close(); }
+  }, true);
+  el.addEventListener('blur', () => setTimeout(() => { close(); if (el.classList.contains('meal-edit-textarea')) list.remove(); }, 150));
+}
+document.querySelectorAll('form.add-item input[name="text"]').forEach(attachSuggest);
+
 // ═══════ Click to Edit ═══════
 document.querySelectorAll('.meal-text.editable').forEach(el => {
   el.addEventListener('click', function() {
     if (this.classList.contains('editing')) return;
-    const currentText = this.textContent.trim();
+    const currentText = storedMeal(this);
     const day = this.dataset.day;
     const type = this.dataset.type;
     const parent = this.parentElement;
@@ -1145,6 +1286,7 @@ document.querySelectorAll('.meal-text.editable').forEach(el => {
     this.style.display = 'none';
     this.classList.add('editing');
     parent.appendChild(textarea);
+    attachSuggest(textarea);
     textarea.focus();
     textarea.select();
     const saveEdit = async () => {
@@ -1158,7 +1300,7 @@ document.querySelectorAll('.meal-text.editable').forEach(el => {
         const res = await fetch('/edit_meal', { method: 'POST', body: formData });
         const data = await res.json();
         if (data.ok) {
-          el.textContent = newText;
+          showMeal(el, data.new_meal || newText, data.display);
           renderQty(day, type, data.items);
           applyCheck(day, type, data.check);
           showSaveIndicator();
@@ -1198,7 +1340,7 @@ document.querySelectorAll('.swap-btn').forEach(btn => {
         const textEl = document.querySelector(`.meal-text[data-day="${day}"][data-type="${type}"]`);
         if (textEl) {
           textEl.style.opacity = '0';
-          setTimeout(() => { textEl.textContent = data.display || data.new_meal; textEl.style.opacity = '1'; }, 150);
+          setTimeout(() => { showMeal(textEl, data.new_meal, data.display); textEl.style.opacity = '1'; }, 150);
         }
         renderQty(day, type, data.items);
         applyCheck(day, type, data.check);
@@ -1270,12 +1412,13 @@ document.querySelectorAll('.pick-btn').forEach(btn => {
                   ${emoji} ${source}
                 </div>
                 <div style="background:var(--nx-line);color:var(--nx-ink);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">
-                  ${opt.cal} kcal • ${opt.p}${PV.protein}
+                  ${opt.incomplete ? "⚠ " : ""}<bdi dir="ltr">${opt.cal == null ? "?" : opt.cal} kcal</bdi> • <bdi dir="ltr">${opt.p == null ? "?" : opt.p}${PV.protein}</bdi>
                 </div>
               </div>
               <div style="font-size:13px;color:var(--text);font-weight:600;line-height:1.6">
                 ${esc(opt.display || opt.meal)}
               </div>
+              ${opt.incomplete ? '<div style="font-size:11px;color:var(--nx-muted);margin-top:4px"><div>⚠ الرقم مكتوب في المكتبة، مش محسوب من الأصناف (حساب ناقص)</div><div dir="ltr" style="text-align:start">Stored library figure, items not fully calculated</div></div>' : ''}
             </div>
           `;
         }).join('');
@@ -1325,7 +1468,7 @@ async function selectMeal(card, mealText, displayText) {
       const textEl = document.querySelector(`.meal-text[data-day="${currentPickDay}"][data-type="${currentPickType}"]`);
       if (textEl) {
         textEl.style.opacity = '0';
-        setTimeout(() => { textEl.textContent = displayText || mealText; textEl.style.opacity = '1'; }, 150);
+        setTimeout(() => { showMeal(textEl, mealText, displayText); textEl.style.opacity = '1'; }, 150);
       }
       renderQty(currentPickDay, currentPickType, data.items);
       applyCheck(currentPickDay, currentPickType, data.check);
@@ -1345,6 +1488,25 @@ document.addEventListener('keydown', (e) => {
 });
 document.getElementById('pickerModal').addEventListener('click', (e) => {
   if (e.target === document.getElementById('pickerModal')) closePicker();
+});
+
+// ‏خيار مقترح بمصدر: بيبدّل نص الصنف ده بس في المسودة بعد ما الدكتور يضغط. الأصل ما بيتغيّرش قبل كده.
+document.addEventListener('click', async (e) => {
+  const ob = e.target.closest('.use-option');
+  if (!ob) return;
+  const day = ob.dataset.day, type = ob.dataset.type;
+  const el = document.querySelector(`.meal-text[data-day="${day}"][data-type="${type}"]`);
+  if (!el || !storedMeal(el).includes(ob.dataset.old)) return;
+  ob.disabled = true;
+  const fd = new FormData();
+  fd.append('day_idx', day); fd.append('meal_type', type);
+  fd.append('new_text', storedMeal(el).replace(ob.dataset.old, ob.dataset.new));
+  try {
+    const res = await fetch('/edit_meal', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.ok) { location.reload(); return; }
+  } catch (err) {}
+  ob.disabled = false;
 });
 </script>
 

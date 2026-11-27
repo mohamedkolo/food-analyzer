@@ -290,10 +290,11 @@
       <div class="day-card">
         <div class="day-head">
           <span class="day-name">{{ (day.day | day_en) or t('يوم','Day') }}</span>
-          {% if day.total_cal %}
-          <span class="day-cals">🔥 {{ day.total_cal }} kcal</span>
+          {% if day.target_cal or day.goal_cal_day or day.total_cal %}
+          <span class="day-cals">🔥 {{ t("الهدف","Target") }} {{ day.target_cal or day.goal_cal_day or day.total_cal }} kcal</span>
           {% endif %}
         </div>
+        {% set _ar = is_ar %}{% set _doctor = true %}{% include "_day_calc.html" %}
 
         {% set meal_keys = plan_info.get('meals') or ['breakfast', 'lunch', 'dinner', 'snack'] %}
         {% set meal_labels = (plan_info.get('meal_labels') if is_ar else (plan_info.get('meal_labels_en') or plan_info.get('meal_labels'))) or {'breakfast':t('الفطار','Breakfast'), 'lunch':t('الغداء','Lunch'), 'dinner':t('العشاء','Dinner'), 'snack':t('سناك','Snack')} %}

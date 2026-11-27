@@ -73,7 +73,7 @@
     <div class="sub">{{ 'جدول 7 أيام مبني على حالتك' if _ar else 'A 7-day plan built around your condition' }}</div>
     <div class="facts">
       {% if data.goal_cal %}
-      <div class="fact"><b>{{ data.goal_cal }}</b><span>{{ 'سعرة يومياً' if _ar else 'kcal a day' }}</span></div>
+      <div class="fact"><b>{{ data.goal_cal }}</b><span>{{ 'الهدف اليومي (سعرة)' if _ar else 'daily target (kcal)' }}</span></div>
       {% endif %}
       {% if data.culture %}
       <div class="fact"><b>{{ data.culture }}</b><span>{{ 'المطبخ' if _ar else 'Cuisine' }}</span></div>
@@ -111,12 +111,13 @@
   <div class="day">
     <div class="day-h">
       <b>{{ day.day }}</b>
-      {% if day.target_cal %}
-        <span class="kcal">{{ day.target_cal }} kcal</span>
+      {% if day.target_cal or day.goal_cal_day %}
+        <span class="kcal">{{ "الهدف" if _ar else "Target" }} <bdi dir="ltr">{{ day.target_cal or day.goal_cal_day }} kcal</bdi></span>
       {% elif day.total_cal %}
-        <span class="kcal">{{ day.total_cal }} kcal</span>
+        <span class="kcal">{{ "الهدف" if _ar else "Target" }} <bdi dir="ltr">{{ day.total_cal }} kcal</bdi></span>
       {% endif %}
     </div>
+    {% include "_day_calc.html" %}
     {% for key, meta in LABELS.items() %}
       {% if day[key] %}
       <div class="meal">
