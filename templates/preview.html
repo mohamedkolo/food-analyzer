@@ -1216,13 +1216,14 @@ function attachSuggest(el) {
   const list = document.createElement('div');
   list.className = 'fs-list'; list.setAttribute('role', 'listbox'); list.hidden = true; list.dir = 'rtl';
   host.appendChild(list);
-  let items = [], active = -1, timer = null, seq = 0;
+  let items = [], active = -1, timer = null, seq = 0, total = 0;
   const FS = {ar: {{ t('true','false') }}, per100: {{ t('لكل 100 جم','per 100 g')|tojson }}, kcal: 'kcal', p: {{ t('بروتين','protein')|tojson }}, c: {{ t('كارب','carbs')|tojson }}, f: {{ t('دهون','fat')|tojson }},
-              hint: {{ t('اكتب الوزن بالجرام بعد الطبخ قبل اسم الصنف أو بعده','Type the amount in grams after cooking')|tojson }}};
+              more: {{ t(' (عرض {n} من {m}، اكتب حروفًا أكثر)',' (showing {n} of {m}, type more letters)')|tojson }},
+              hint: {{ t('اكتب الوزن بالجرام قبل اسم الصنف أو بعده، حسب التحضير المكتوب تحت كل خيار','Type the amount in grams before or after the name, as the preparation under each choice says')|tojson }}};
   const close = () => { list.hidden = true; list.innerHTML = ''; items = []; active = -1; };
   const mark = () => list.querySelectorAll('.fs-item').forEach((n, i) => n.setAttribute('aria-selected', i === active ? 'true' : 'false'));
   const segStart = () => { const v = el.value.slice(0, el.selectionStart); return Math.max(v.lastIndexOf('+'), v.lastIndexOf('\n'), v.lastIndexOf('،')) + 1; };
-  const AMT = /^[\s\d.\u0660-\u0669٫,\/]*(?:جم|جرام|غ|g|gm|gram|grams)?\s*/i;
+  const AMT = /^[\s\d.\u0660-\u0669٫,\/]*(?:(?:جم|جرام|غ|g|gm|gram|grams)(?=\s|$))?\s*/i;
   const choose = (i) => {
     const it = items[i]; if (!it) return;
     const start = segStart();
@@ -1243,11 +1244,12 @@ function attachSuggest(el) {
       m.textContent = FS.ar ? ((it.basis_ar || '') + (it.basis_ar ? ' · ' : '') + it.label + ' · USDA ' + it.fdc) : (it.basis + ' · ' + it.label_en + ' · USDA ' + it.fdc);
       const v = document.createElement('div'); v.className = 'fs-meta';
       v.textContent = FS.per100 + ': ' + Math.round(it.per100[0]) + ' ' + FS.kcal + ' · ' + FS.p + ' ' + it.per100[1] + ' · ' + FS.c + ' ' + it.per100[2] + ' · ' + FS.f + ' ' + it.per100[3];
-      d.append(n, m, v);
+      const g = document.createElement('div'); g.className = 'fs-meta'; g.style.fontWeight = '600'; g.textContent = FS.ar ? it.grams_ar : it.grams_en;
+      d.append(n, m, v, g);
       d.addEventListener('mousedown', (e) => { e.preventDefault(); choose(i); });   // keeps focus: no blur-save before the choice
       list.appendChild(d);
     });
-    const note = document.createElement('div'); note.className = 'fs-note'; note.textContent = FS.hint; list.appendChild(note);
+    const note = document.createElement('div'); note.className = 'fs-note'; note.textContent = FS.hint + (total > items.length ? FS.more.replace('{n}', items.length).replace('{m}', total) : ''); list.appendChild(note);
     list.hidden = !items.length; mark();
   };
   const query = async () => {
@@ -1256,7 +1258,7 @@ function attachSuggest(el) {
       const r = await fetch('/api/food_suggest?q=' + encodeURIComponent(el.value.slice(segStart(), el.selectionStart)), {credentials: 'same-origin'});
       const j = await r.json();
       if (my !== seq) return;
-      items = j.ok ? j.items : []; active = -1; render();
+      items = j.ok ? j.items : []; total = j.ok ? (j.total || items.length) : 0; active = -1; render();
     } catch (e) { close(); }
   };
   el.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(query, 120); });
