@@ -57,8 +57,13 @@ def test_unknown_fish_species_is_not_tilapia():
 def test_named_tilapia_still_resolves():
     # the plain "سمك بلطي" row names no preparation, so under the cooked-weight rule it is
     # unresolved (with a reason), not priced; the cooked-named tilapia row is priced
-    r, i = _one("150 جم سمك بلطي")
+    # 28 Nov 2026: the tilapia row is reviewed against USDA 175177 (cooked, dry heat), so its grams count as a cooked weight
+    r, i = _one("150 جم سمك بلطي")           # no method word: not proven dry heat, so withheld
     assert i["food"] == "سمك بلطي" and (i.get("unresolved") or "").startswith("basis:"), r
+    r, i = _one("150 جم سمك بلطي مشوي")
+    assert i["food"] == "سمك بلطي" and not i.get("unresolved") and i["sourced"] and r["complete"], r
+    r, i = _one("150 جم سمك قاروص")        # sea bass failed the numeric check (protein 23 vs 23.63): still withheld
+    assert (i.get("unresolved") or "").startswith("basis:"), r
     r, i = _one("150 جم سمك بلطى مشوى او بالفرن")
     assert r["complete"] and r["exact"], r
 

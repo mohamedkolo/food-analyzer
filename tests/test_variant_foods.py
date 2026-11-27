@@ -62,9 +62,13 @@ def test_each_variant_is_suggested_when_its_family_word_is_typed_and_resolves_to
     for f in V.VARIANT_FOODS:
         word = f["n"].split()[0]
         offered = {i["text"] for i in F.suggest(word)}
-        assert f["n"] in offered, (word, f["n"])
+        # 28 Nov 2026: raw cooked-weight rows (meat, poultry, fish, rice, dry legumes) are no longer offered; the engine still computes them
+        _hidden = M.basis_of(f) == "raw" or (f.get("cat") in ("legume", "egg") and F.weigh_state(f["usda"], f["basis"]) == "raw")
+        assert (f["n"] not in offered) if _hidden else (f["n"] in offered), (word, f["n"])
         row = M.find_food("100 جم " + f["n"])
         assert row and row["n"] == f["n"] and (row["cal"], row["p"], row["c"], row["f"]) == (f["cal"], f["p"], f["c"], f["f"]), f["n"]
+        if _hidden:
+            continue
         sug = next(i for i in F.suggest(f["n"]) if i["text"] == f["n"])
         assert sug["kind"] == "option" and sug["basis_ar"] == f["basis_ar"] and sug["per100"] == [f["cal"], f["p"], f["c"], f["f"]]
 
@@ -93,12 +97,13 @@ def test_the_result_cap_never_hides_a_match_for_any_arabic_food_word_prefix():
     assert len(F.suggest("USDA")) == F.MAX and F.total("USDA") > F.MAX, "English filler words are cut, and total() says so"
 
 
-def test_raw_and_cooked_variants_are_both_offered_and_labelled_in_arabic():
+def test_cooked_variants_are_offered_and_raw_cooked_weight_rows_are_not():
     import re
-    for q, fdcs in (("دجاج", (171474, 171477)), ("سلمون", (173686, 171998)), ("ارز", (168877, 169704)), ("بيض", (171287, 173424)),
-                    ("حمص", (173756, 173757)), ("عدس", (172420, 172421))):
+    for q, fdcs, gone in (("دجاج", (171477,), (171474,)), ("سلمون", (171998,), (173686,)), ("ارز", (169704,), (168877,)), ("بيض", (173424,), (171287, 172183, 172184)),
+                          ("حمص", (173757,), (173756,)), ("عدس", (172421,), (172420,))):
         got = {i["fdc"]: i for i in F.suggest(q)}
         assert all(x in got for x in fdcs), (q, fdcs)
+        assert not any(x in got for x in gone), (q, gone)
     raw = [f for f in V.VARIANT_FOODS if re.search(r"\braw\b", f["usda"]) and "cooked" not in f["usda"]]
     assert raw and all("نيّ" in f["n"] or "نيء" in f["n"] for f in raw), [f["n"] for f in raw if "نيّ" not in f["n"]]
 
@@ -106,7 +111,7 @@ def test_raw_and_cooked_variants_are_both_offered_and_labelled_in_arabic():
 def test_the_grams_guidance_follows_the_selected_preparation_not_a_blanket_rule():
     import re
     rows = {r["fdc"]: r for r in F._catalog()}
-    pins = {171474: "raw", 168877: "raw", 171287: "raw", 173756: "raw", 170393: "raw", 171477: "cooked", 168878: "cooked", 173424: "cooked",
+    pins = {170393: "raw", 171477: "cooked", 168878: "cooked", 173424: "cooked",
             171998: "cooked", 173928: "cooked", 172421: "cooked", 171413: "as_sold", 170886: "as_sold", 173712: "as_sold", 168567: "as_sold"}
     for fdc, want in pins.items():
         assert rows[fdc]["weigh"] == want, (fdc, rows[fdc]["text"], rows[fdc]["weigh"])
@@ -121,7 +126,7 @@ def test_the_grams_guidance_follows_the_selected_preparation_not_a_blanket_rule(
                 assert "بعد الطبخ" in i["grams_ar"] and "AFTER cooking" in i["grams_en"], i["text"]
             else:
                 assert "كما يُباع" in i["grams_ar"] and i["grams_en"] == "Type the grams as sold" and "غير مطبوخ" not in i["grams_ar"], i["text"]
-    assert {i["weigh"] for i in F.suggest("ارز")} == {"raw", "cooked"}, "raw and cooked rice must both stay offered"
+    assert {i["weigh"] for i in F.suggest("ارز")} == {"cooked"}, "only cooked rice is offered (28 Nov 2026)"
 
 
 def test_the_page_shows_the_guidance_per_choice_and_the_endpoint_carries_it():
@@ -145,7 +150,7 @@ def test_library_rows_and_original_options_are_not_rewritten():
     rows = {f["n"]: (f["cal"], f["p"], f["c"], f["f"]) for f in food_data.FOODS}
     for n, v in pinned.items():
         assert rows[n] == v, n
-    assert len(O.OPTION_FOODS) == 9 and len(P.REVIEWED) == 29 and len(food_data.FOODS) == 938
+    assert len(O.OPTION_FOODS) == 9 and len(P.REVIEWED) == 33 and len(food_data.FOODS) == 938
 
 
 if __name__ == "__main__":

@@ -70,6 +70,26 @@ REVIEWED['أفوكادو'] = ('171705', 'Avocados, raw, all commercial varieties
 REVIEWED['خس آيسبرج'] = ('169248', 'Lettuce, iceberg (includes crisphead types), raw', 'raw', 14.0, 0.9, 2.97, 0.14)
 REVIEWED['خس روماني'] = ('169247', 'Lettuce, cos or romaine, raw', 'raw', 17.0, 1.23, 3.29, 0.3)
 
+# cooked-weight review (28 Nov 2026): library rows whose own numbers equal the cooked USDA row; values read from the USDA FoodData Central API (api.nal.usda.gov/fdc/v1/food/<id>).
+REVIEWED['صدر دجاج'] = ('171477', 'Chicken, broilers or fryers, breast, meat only, cooked, roasted', 'cooked (roasted, meat only)', 165.0, 31.02, 0.0, 3.57)
+REVIEWED['سمك بلطي'] = ('175177', 'Fish, tilapia, cooked, dry heat', 'cooked, dry heat', 128.0, 26.15, 0.0, 2.65)
+REVIEWED['جمبري'] = ('175180', 'Crustaceans, shrimp, cooked', 'cooked', 99.0, 23.98, 0.2, 0.28)
+REVIEWED['بوري'] = ('175124', 'Fish, mullet, striped, cooked, dry heat', 'cooked, dry heat', 150.0, 24.81, 0.0, 4.86)
+
+# PREP_REQUIRED: a reviewed row whose USDA row names ONE cooking method counts only when the item text names a compatible method.
+# "Cooked weight" settles the weight basis; it does not say roasted, boiled or fried, and the generic row does not either.
+# regex over the normalised item text. Rows not listed here need no method word.
+PREP_REQUIRED = {
+    'صدر دجاج': r"مشوي|مشوى|مشويه|مشوية|بالفرن|محمص|roast|grill|bak",           # USDA 171477: roasted, meat only
+    'سمك بلطي': r"مشوي|مشوى|مشويه|مشوية|بالفرن|بالحراره الجافه|dry heat|grill|bak|roast",      # USDA 175177: cooked, dry heat
+    'بوري': r"مشوي|مشوى|مشويه|مشوية|بالفرن|بالحراره الجافه|dry heat|grill|bak|roast",         # USDA 175124: cooked, dry heat
+    'جمبري': r"مطبوخ|مسلوق|بالبخار|boil|cook|steam",     # USDA 175180: shrimp, cooked, moist heat (grilled, breaded or fried is another row)
+}
+# the text must also NAME the species/cut the USDA row is about ("سمك مشوي" is not tilapia, "دجاج بالفرن" is not breast)
+NAME_REQUIRED = {'صدر دجاج': r"صدر", 'سمك بلطي': r"بلطي|بلطى", 'بوري': r"بوري", 'جمبري': r"جمبري|روبيان|ربيان"}
+# generic rows that must not be offered as a picker choice (the named USDA options with their method are)
+NOT_OFFERED = ('صدر دجاج', 'سمك بلطي', 'بوري', 'جمبري')
+
 TOL = (1.5, 0.5, 0.6, 0.3)
 
 

@@ -1117,8 +1117,10 @@ def _calc_warning(text):
             name = raw
         elif why in ("composite", "dish"):
             msg = "وجبة مركبة، مش محسوبة: %s" if ar else "Mixed dish, not counted: %s"
+        elif why and why.startswith("size"):
+            msg = "حجم البيضة مش محدد، اكتب الوزن بالجرام أو كبيرة، مش محسوب: %s" if ar else "Egg size not stated (write grams or large), not counted: %s"
         elif why and why.startswith("basis"):
-            msg = "نيء ولا مطبوخ؟ مش محسوب: %s" if ar else "Raw or cooked? Not counted: %s"
+            msg = "مفيش مصدر مطبوخ مؤكد للصنف، مش محسوب: %s" if ar else "No confirmed cooked source for this food, not counted: %s"
         else:
             msg = "صنف مش معروف، مش محسوب: %s" if ar else "Unrecognised food, not counted: %s"
         out.append(msg % name)

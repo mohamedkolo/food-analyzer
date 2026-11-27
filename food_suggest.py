@@ -106,12 +106,19 @@ def _catalog():
                      "kind": "option", "per100": [f["cal"], f["p"], f["c"], f["f"]]})
     for f in food_data.FOODS:
         r = P.REVIEWED.get(f.get("n"))
-        if r:
+        if r and f.get("n") not in P.NOT_OFFERED:
             rows.append({"text": f["n"], "also": [f.get("en", "")], "usda": r[1], "fdc": int(r[0]), "basis": r[2],
                          "kind": "verified", "per100": [r[3], r[4], r[5], r[6]]})
     for r in rows:
         r["weigh"] = weigh_state(r["usda"], r["basis"])
-    return rows
+    # 28 Nov 2026: foods that are cooked before eating are offered only as cooked rows (the user wants every weight after cooking).
+    # Raw meat, poultry, fish, shellfish, rice, eggs and dry legumes are not offered; fruit, vegetables and as-sold items are untouched.
+    import meal_macros as _M
+    _tb = {f.get("n"): f for _n, f in _M._table()}
+    def _cook_raw(r):
+        f = _tb.get(r["text"]) or {}
+        return r["weigh"] == "raw" and (_M.basis_of(f) == "raw" or f.get("cat") in ("legume", "egg"))
+    return [r for r in rows if not _cook_raw(r)]
 
 
 _CAT = None

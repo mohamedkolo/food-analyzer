@@ -21,6 +21,7 @@ TEST_DB = os.environ.get("NUTRAX_TEST_DB", "/tmp/nutrax_suite.db")
 SUITES = [
     "test_db_connection.py",
     "test_basis_gate.py",
+    "test_cooked_repair.py",
     "test_three_flags.py",
     "test_identity_pairs.py",
     "test_proposed_layer.py",
