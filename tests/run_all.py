@@ -94,6 +94,7 @@ SUITES = [
     "test_omega_barcode.py",
     "test_backup_workflow.py",
     "test_monitoring.py",
+    "test_inline_scripts.py",
 ]
 
 
