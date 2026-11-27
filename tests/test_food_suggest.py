@@ -12,6 +12,7 @@ import test_household_measures as H
 import food_suggest as F
 import meal_option_foods as O
 import food_provenance as P
+import meal_variant_foods as V
 
 
 def _names(q):
@@ -22,6 +23,10 @@ def test_the_part_being_typed_is_the_last_item_without_its_amount():
     assert F.split_query("150 جم دجاج") == "دجاج"
     assert F.split_query("150 جم صدر دجاج + 200 جم ارز") == "ارز"
     assert F.split_query("2") == ""
+    # a word that merely STARTS with the letters of a unit is a food, not a unit (جمبري = shrimp, غزل = candy floss)
+    assert F.split_query("جمبري") == "جمبري" and F.split_query("200 جم جمبري") == "جمبري" and F.split_query("غزل البنات") == "غزل البنات"
+    assert F.split_query("150جم دجاج") == "دجاج" and F.split_query("150 g chicken") == "chicken"
+    assert any(i["fdc"] == 175180 for i in F.suggest("جمبري")), "typing shrimp must offer the shrimp rows"
 
 
 def test_typing_chicken_offers_named_cooked_chicken_with_its_source_and_values():
@@ -34,7 +39,7 @@ def test_typing_chicken_offers_named_cooked_chicken_with_its_source_and_values()
 
 
 def test_every_suggestion_is_source_qualified_and_nothing_unverified_is_offered():
-    ok = {f["n"] for f in O.OPTION_FOODS} | set(P.REVIEWED)
+    ok = {f["n"] for f in O.OPTION_FOODS} | {f["n"] for f in V.VARIANT_FOODS} | set(P.REVIEWED)
     for q in ["دجاج", "ارز", "سمك", "بيض", "عدس", "حمص", "لبن", "موز", "تفاح", "لحم", "تونه", "جبن"]:
         for i in F.suggest(q):
             assert i["text"] in ok and i["fdc"] and i["usda"] and i["basis"], (q, i)
@@ -44,13 +49,16 @@ def test_every_suggestion_is_source_qualified_and_nothing_unverified_is_offered(
 def test_every_suggestion_has_an_arabic_preparation_line():
     import re
     for r in F._catalog():
-        assert F.BASIS_AR.get(r["basis"]), ("no Arabic wording for", r["text"], r["basis"])
-        assert not re.search(r"[A-Za-z]", F.BASIS_AR[r["basis"]]), r["basis"]
+        ar = r.get("basis_ar") or F.BASIS_AR.get(r["basis"])
+        assert ar, ("no Arabic wording for", r["text"], r["basis"])
+        assert not re.search(r"[A-Za-z]", ar), (r["text"], ar)
     assert all(i["basis_ar"] and i["label"] for i in F.suggest("دجاج"))
 
 
 def test_a_word_must_start_with_what_is_typed():
-    assert _names("بيض") == ["بيض مسلوق صلب (USDA 173424)"], _names("بيض")    # not 'أبيض'
+    got = _names("بيض")
+    assert "بيض مسلوق صلب (USDA 173424)" in got and len(got) == 8, got
+    assert not any(n.startswith("أبيض") or " أبيض" in n for n in got), got    # not 'أبيض'
 
 
 def test_the_endpoint_is_staff_only_and_changes_nothing():
